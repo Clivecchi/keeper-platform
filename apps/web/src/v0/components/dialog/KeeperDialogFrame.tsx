@@ -242,9 +242,11 @@ export function KeeperDialogFrame({
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
   const isWorking = isSending || isFileUploading
   const hasWorkingThinkSpace = isWorking || hasUploads
-  const showDiagStream = isSending && thinkStream === "diag"
+  const showDiagStream = thinkStream === "diag"
   const showThinkStream = !showDiagStream && isSending
-  const showComposerFooter = showServiceBar || isSending
+  const showThinkSpace = mode !== "feed" && (hasWorkingThinkSpace || showDiagStream)
+  const showComposerFooter = mode !== "feed"
+  const wasSendingRef = React.useRef(false)
   const toggleDiagStream = React.useCallback(() => {
     setThinkStream((current) => (current === "diag" ? null : "diag"))
   }, [])
@@ -254,12 +256,10 @@ export function KeeperDialogFrame({
   }, [])
 
   React.useEffect(() => {
-    if (isSending) {
+    if (isSending && !wasSendingRef.current) {
       clearConsoleDiagEntries()
-      setThinkStream(null)
-      return
     }
-    setThinkStream(null)
+    wasSendingRef.current = isSending
   }, [isSending])
 
   const measureDialogScrollInset = React.useCallback(() => {
@@ -276,7 +276,7 @@ export function KeeperDialogFrame({
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, thinkStream, hasWorkingThinkSpace])
+  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, thinkStream, showThinkSpace])
 
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
@@ -620,7 +620,7 @@ export function KeeperDialogFrame({
 
       {/* ── Thinking Space — expands while the agent works; uploads when staging ── *
        *  Collapses after the reply; post-run summary moves to composer Horizon.  */}
-      {mode !== 'feed' && hasWorkingThinkSpace && (
+      {showThinkSpace && (
         <div
           ref={thinkSpaceRef}
           className={[
@@ -690,12 +690,10 @@ export function KeeperDialogFrame({
               ) : (
                 <div className="dialog-composer-footer-spacer" aria-hidden />
               )}
-              {isSending && (
-                <ComposerDebugToolbar
-                  active={thinkStream === "diag"}
-                  onToggle={toggleDiagStream}
-                />
-              )}
+              <ComposerDebugToolbar
+                active={thinkStream === "diag"}
+                onToggle={toggleDiagStream}
+              />
             </div>
           )}
         </div>

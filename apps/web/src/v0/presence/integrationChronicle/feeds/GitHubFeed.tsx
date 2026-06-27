@@ -1,12 +1,16 @@
 "use client"
 
 import * as React from "react"
+import {
+  parseDomainServiceBindings,
+  parseIntegrationServiceBinding,
+} from "@keeper/shared"
 import { apiFetch } from "../../../../lib/apiFetch"
 import {
   DEFAULT_GITHUB_BRANCH,
   DEFAULT_GITHUB_REPOSITORY,
-  GITHUB_REPO_PLACEHOLDER,
 } from "../../../../lib/githubIntegrationDefaults"
+import type { IntegrationDto } from "../shared"
 
 export type GitHubCommit = { sha: string; message?: string; date?: string; author?: string }
 export type GitHubPR = { number: number; title: string; state?: string; updated_at?: string }
@@ -20,8 +24,6 @@ export type GitHubFeedData = {
   branches: GitHubBranch[]
 }
 
-const PLACEHOLDER_REPO = GITHUB_REPO_PLACEHOLDER
-
 async function githubProxy<T>(endpoint: string): Promise<T> {
   return apiFetch("/api/integrations/proxy", {
     method: "POST",
@@ -31,10 +33,6 @@ async function githubProxy<T>(endpoint: string): Promise<T> {
       endpoint,
     }),
   }) as Promise<T>
-}
-
-function isUsableRepoSlug(value: string | undefined): value is string {
-  return Boolean(value && value.includes("/") && value !== PLACEHOLDER_REPO)
 }
 
 export function formatGitHubProxyError(err: unknown): string {
@@ -59,22 +57,14 @@ async function loadDomainGitHubContext(
   try {
     const domainRes = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}`)
     const domain = (domainRes as { domain?: Record<string, unknown> })?.domain
-    const settings =
-      domain?.settings && typeof domain.settings === "object"
-        ? (domain.settings as Record<string, unknown>)
-        : {}
-    const ideBuild =
-      settings.ideBuildContext && typeof settings.ideBuildContext === "object"
-        ? (settings.ideBuildContext as Record<string, unknown>)
-        : {}
-    const repo =
-      typeof ideBuild.activeRepository === "string" ? ideBuild.activeRepository : undefined
-    const branch =
-      typeof ideBuild.activeBranch === "string" ? ideBuild.activeBranch : undefined
-    return {
-      repo: isUsableRepoSlug(repo) ? repo : undefined,
-      branch: branch?.trim() || undefined,
+    const bindings = parseDomainServiceBindings(domain?.settings)
+    if (bindings.github) {
+      return {
+        repo: bindings.github.repository,
+        branch: bindings.github.defaultBranch,
+      }
     }
+    return {}
   } catch {
     return {}
   }
@@ -82,7 +72,19 @@ async function loadDomainGitHubContext(
 
 async function resolveGitHubRepository(
   domainId: string,
+  integration?: IntegrationDto | null,
 ): Promise<{ fullName: string; branch?: string }> {
+  const fromIntegration = parseIntegrationServiceBinding(
+    "github",
+    integration?.metadata ?? null,
+  )
+  if (fromIntegration) {
+    return {
+      fullName: fromIntegration.repository,
+      branch: fromIntegration.defaultBranch,
+    }
+  }
+
   const domainCtx = await loadDomainGitHubContext(domainId)
   if (domainCtx.repo) {
     return { fullName: domainCtx.repo, branch: domainCtx.branch }
@@ -94,7 +96,11 @@ async function resolveGitHubRepository(
   }
 }
 
-export function useGitHubFeedData(domainId: string, connected: boolean) {
+export function useGitHubFeedData(
+  domainId: string,
+  connected: boolean,
+  integration?: IntegrationDto | null,
+) {
   const [data, setData] = React.useState<GitHubFeedData>({
     repoName: "—",
     branch: "main",
@@ -110,7 +116,10 @@ export function useGitHubFeedData(domainId: string, connected: boolean) {
     setLoading(true)
     setError(null)
     try {
-      const { fullName, branch: configuredBranch } = await resolveGitHubRepository(domainId)
+      const { fullName, branch: configuredBranch } = await resolveGitHubRepository(
+        domainId,
+        integration,
+      )
       const repoRes = await githubProxy<{ full_name?: string; default_branch?: string }>(
         `/repos/${fullName}`,
       )
@@ -194,7 +203,7 @@ export function useGitHubFeedData(domainId: string, connected: boolean) {
     } finally {
       setLoading(false)
     }
-  }, [connected, domainId])
+  }, [connected, domainId, integration?.metadata])
 
   React.useEffect(() => {
     if (connected) void reload()

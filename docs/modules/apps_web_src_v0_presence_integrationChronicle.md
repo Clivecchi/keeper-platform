@@ -7,18 +7,30 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `declarationChronicle.tsx` — `DeclarationChronicleBlocks`, `resolveDeclarationActions`, integration + key block dispatch
 - `serviceConfig.tsx` — per-service feed schemas and action builders
 - `shared.tsx` — connection hooks, hero/status primitives, integration DTO types
-- `feeds/KeyFeed.tsx` — Key EntityKind feed hook (`useKeyFeedData`)
+- `feeds/KeeperFeed.tsx` — Keeper EntityKind feed hook (`useKeeperFeedData`, `recordToKeeperDto`)
 - `feeds/CapabilityFeed.tsx` — Capability EntityKind feed hook (`useCapabilityFeedData`)
 - `feeds/AIModelFeed.tsx` — AI model provider feed
 - `KeyConfigPresence.tsx` — Key Config Mode CRUD surface
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
-- `blocks/` — `ConnectionStatusBlock`, `KeyHealthBlock`, `LinkedAgentsBlock`, etc.
+- `ServiceBindingConfigPresence.tsx` — infra service binding Config Mode (GitHub repo + branch)
+- `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
+- `JourneyChronicleBlocks.tsx` — Paths + Moments declaration blocks below journey cover
+- `DialogConfigPresence.tsx` — Dialog Config Mode (title) via `useChronicleConfig`
+- `DialogChronicleBlocks.tsx` — Recent Exchanges + Sessions below dialog cover
+- `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
+- `DraftChronicleBlocks.tsx` — Summary, points (Accept + Discuss), versions, linked dialog sessions
+- `cdraft.tsx` — Manuscript Chronicle treatment (header, manage bar, warm charcoal canvas)
+- `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering
+- `DraftVersionStrip.tsx` — Read-only last N versions from `GET .../versions`
+- `DraftSessionsBlock.tsx` — Sessions on linked Dialog; highlights `active_draft_id` below draft cover
+- `PathChronicleBlocks.tsx` — Prelude + moments below path cover
+- `MomentChronicleBlocks.tsx` — Story body below moment cover
 
 ## 🔄 Data & Behavior
 - **Cover (Integration + Key + Capability):** `IntegrationFocusPresence` / `KeyFocusPresence` / `CapabilityFocusPresence` always render `DeclarationChronicleBlocks` below `EntityCoverPresence`; client-side defaults from `@keeper/shared` when DB `chronicle_blocks` is empty (`resolveChronicleDeclaration.ts`)
-- **Config mode:** metadata (`display_label`, `description`, `connect_copy` / key fields) saves through `useChronicleConfig` → `chroniclePatch.ts`; credential actions (verify, rotate, paste-key, disconnect) stay on POST routes via `KeyHealthBlock` and cover action buttons
+- **Config mode:** metadata (`display_label`, `description`, `connect_copy` / key fields) saves through `useChronicleConfig` → `chroniclePatch.ts`; **service bindings** (GitHub `repository` + `defaultBranch`) save via `PATCH /api/integrations/:service?domainId=` → `domain.settings.serviceBindings` with legacy `ideBuildContext` sync; credential actions (verify, rotate, paste-key, disconnect) stay on POST routes via `KeyHealthBlock` and cover action buttons
 - **Feed hooks:** `useAIModelFeedData` / `useKeyFeedData` supply live data to declaration blocks and Config credential blocks — no legacy cover feed UI
 - `serviceConfig.tsx` — per-service feed hooks, hero/glow/status, and cover action builders (no `FeedComponent`)
 
@@ -27,6 +39,46 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-27 — GitHub service binding (Chronicle Manage)
+- Added `ServiceBindingConfigPresence` — GitHub repo + default branch on connected GitHub service (Manage action on cover)
+- GitHub feed reads `integration.metadata.binding` → `domain.settings.serviceBindings` → legacy `ideBuildContext`
+
+### 2026-06-23 — Cdraft manuscript Chronicle treatment
+- `cdraft.tsx` replaces generic `EntityCoverPresence` for Draft focus — warm charcoal canvas, title header, manage bar, session badge
+- `draftManuscriptUtils.ts` — opener truncation (177 chars), prelude/closer beats, path clustering
+- `DraftPointRow` / `DraftPointsSection` manuscript mode — prelude · opener · closer cards, ghost Discuss, amber Accepted badge
+
+### 2026-06-19 — Draft EntityKind Phase 1b
+- `DraftVersionStrip`, `DraftSessionsBlock`, Discuss → Dialog via `draftDiscussAnchor` on board context
+- Shared `DraftPointRow` with `data-gloss-anchor` via `@keeper/shared` `GlossAnchor`
+
+### 2026-06-19 — Draft EntityKind migration
+- `DraftConfigPresence` — title + status via `useChronicleConfig`; post-save `bumpDraftNav`
+- `DraftChronicleBlocks` — points with Accept + optional linked dialog
+
+### 2026-06-19 — Dialog EntityKind migration
+- `DialogConfigPresence` — explicit Save for title; scope display read-only
+- `DialogChronicleBlocks` — session lists with tappable resume
+
+### 2026-06-19 — Path EntityKind migration
+- `PathConfigPresence` — explicit Save for name/prelude (`PATCH /api/paths/:id`)
+- `PathChronicleBlocks` — prelude story + tappable moments
+- `JourneyChronicleBlocks` — path cards tappable (`navigateKind: path`)
+
+### 2026-06-19 — Moment EntityKind migration
+- `MomentConfigPresence` — explicit Save for title/narrative (`PATCH /api/moments/:id`)
+- `MomentChronicleBlocks` — narrative story section below `EntityCoverPresence`
+
+### 2026-06-19 — Journey EntityKind migration
+- `JourneyConfigPresence` — explicit Save for name/forward (`PATCH /api/journeys/:id`)
+- `JourneyChronicleBlocks` — paths and moments lists below `EntityCoverPresence`
+
+### 2026-06-17 — Composer clip → Library upload
+- `addLibraryUploadFromFile` shared by Library nav + and `AgentComposer` clip; sets `display_label` from filename
+
+### 2026-06-17 — Keeper feed domain scoping
+- `useKeeperFeedData(keeperId, domainId)` — GET `/api/keepers/:id?domainId=`; `recordToKeeperDto` for enrichment fallback
 
 ### 2026-06-14 — AgentCapability grants (Pass 2a)
 - `AgentCapability` join table; backfill from `kip_agents` arrays (source: capabilities/tools/permissions)

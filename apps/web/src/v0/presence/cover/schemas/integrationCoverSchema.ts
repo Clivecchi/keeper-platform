@@ -14,6 +14,7 @@ import type {
   CoverResolveContext,
   ResolvedCoverContent,
 } from "../coverTypes"
+import { hasServiceBindingConfig } from "@keeper/shared"
 
 const INTEGRATION_TYPE_LABELS: Record<IntegrationType, string> = {
   Services: "OAuth service",
@@ -51,6 +52,7 @@ function healthLayerSummary(integration: IntegrationDto | null): string | undefi
 function toCoverActions(
   actions: ServiceAction[],
   integrationType: IntegrationType,
+  serviceSlug: string,
   onConfigure: () => void,
 ): CoverActionDef[] {
   const mapped: CoverActionDef[] = actions.map((action, index) => ({
@@ -60,8 +62,11 @@ function toCoverActions(
     onClick: action.onClick,
   }))
 
+  const needsManage =
+    integrationType === "AI_Model" || hasServiceBindingConfig(serviceSlug)
+
   if (
-    integrationType === "AI_Model" &&
+    needsManage &&
     !mapped.some((action) => action.label === "Manage" || action.label === "Configure")
   ) {
     mapped.push({
@@ -145,7 +150,7 @@ export function resolveIntegrationCoverContent(
   })
 
   const coverActions = connected
-    ? toCoverActions(resolvedActions, integrationType, onConfigure)
+    ? toCoverActions(resolvedActions, integrationType, params.serviceSlug, onConfigure)
     : [
         {
           id: "connect",

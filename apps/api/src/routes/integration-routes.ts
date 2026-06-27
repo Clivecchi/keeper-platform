@@ -9,6 +9,7 @@ import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import {
   resolveIntegrationDeclarationBackfill,
   resolveIntegrationDeclarationForCreate,
+  validateGitHubBindingFields,
 } from '@keeper/shared';
 import {
   connectSessionFailureHint,
@@ -58,6 +59,11 @@ import { verifyAIModelConnect } from '../lib/integrationAiModelConnect.js';
 import { KipUserKeyService } from '../services/KipUserKeyService.js';
 import { PlatformApiKeyService } from '../services/PlatformApiKeyService.js';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import {
+  mirrorGitHubBindingOnIntegration,
+  parseGitHubBindingPatch,
+  persistGitHubBinding,
+} from '../lib/resolveServiceBinding.js';
 
 const router: Router = Router();
 
@@ -99,6 +105,7 @@ const patchIntegrationSchema = z
     display_label: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional(),
     connect_copy: z.string().max(500).optional(),
+    binding: z.record(z.unknown()).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',
@@ -706,10 +713,63 @@ router.patch('/:service', authMiddlewareCompat, async (req: Request, res: Respon
       return res.status(404).json({ error: 'Integration not found', service });
     }
 
-    const row = await prisma.integration.update({
-      where: { id: existing.id },
-      data: parsed.data,
-    });
+    const { binding: bindingPatch, ...metadataPatch } = parsed.data;
+
+    if (bindingPatch !== undefined) {
+      if (service !== 'github') {
+        return res.status(400).json({
+          error: 'Service binding is not yet supported for this integration',
+          service,
+        });
+      }
+      if (!domainId) {
+        return res.status(400).json({
+          error: 'domainId query param is required when saving service binding',
+        });
+      }
+
+      const fieldErrors = validateGitHubBindingFields({
+        repository: typeof bindingPatch.repository === 'string' ? bindingPatch.repository : '',
+        defaultBranch:
+          typeof bindingPatch.defaultBranch === 'string' ? bindingPatch.defaultBranch : '',
+      });
+      if (Object.keys(fieldErrors).length > 0) {
+        return res.status(400).json({ error: 'Invalid GitHub binding', details: fieldErrors });
+      }
+
+      const binding = parseGitHubBindingPatch(bindingPatch);
+      if (!binding) {
+        return res.status(400).json({ error: 'Invalid GitHub binding payload' });
+      }
+
+      await persistGitHubBinding(domainId, binding);
+      await mirrorGitHubBindingOnIntegration(binding);
+    }
+
+    const row =
+      Object.keys(metadataPatch).length > 0
+        ? await prisma.integration.update({
+            where: { id: existing.id },
+            data: metadataPatch,
+          })
+        : existing;
+
+    if (bindingPatch !== undefined && domainId) {
+      const binding = parseGitHubBindingPatch(bindingPatch);
+      if (binding) {
+        const metadata = parseGatewayMetadata(row.metadata) ?? {};
+        const refreshed = await prisma.integration.update({
+          where: { id: row.id },
+          data: {
+            metadata: toPrismaIntegrationMetadata({
+              ...metadata,
+              binding,
+            }),
+          },
+        });
+        return res.status(200).json(toIntegrationRecord(refreshed));
+      }
+    }
 
     return res.status(200).json(toIntegrationRecord(row));
   } catch (err) {

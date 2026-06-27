@@ -9,8 +9,8 @@ export interface ComposerDebugToolbarProps {
 }
 
 /**
- * Right-aligned composer footer control — toggles the Diag stream in Thinking Space
- * while the agent is working. Copy lives in DialogDiagStream once the panel is open.
+ * Right-aligned composer footer control — toggles the client-side console log panel.
+ * Capture runs continuously; open the panel any time to review or copy logs.
  */
 export function ComposerDebugToolbar({ active, onToggle }: ComposerDebugToolbarProps) {
   return (
@@ -20,11 +20,11 @@ export function ComposerDebugToolbar({ active, onToggle }: ComposerDebugToolbarP
         className={`dialog-composer-debug-btn${active ? " dialog-composer-debug-btn--active" : ""}`}
         onClick={onToggle}
         aria-pressed={active}
-        aria-label={active ? "Hide diagnostic log" : "Show diagnostic log"}
+        aria-label={active ? "Hide client console log" : "Show client console log"}
         title={
           active
-            ? "Hide console diagnostic log"
-            : "Show console diagnostic log — copy from panel"
+            ? "Hide client console log"
+            : "Show client console log — copy from panel"
         }
       >
         <BugAntIcon className="h-3.5 w-3.5" aria-hidden />

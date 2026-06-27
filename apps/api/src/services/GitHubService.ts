@@ -4,6 +4,7 @@
 
 import { prisma } from '@keeper/database';
 import { getNango, isNangoConfigured, resolveNangoIntegrationId } from '../lib/nango.js';
+import { mergeGitHubToolArgs } from '../lib/resolveServiceBinding.js';
 
 const DEFAULT_REPOSITORY = process.env.GITHUB_DEFAULT_REPOSITORY?.trim() || 'Clivecchi/keeper-platform';
 
@@ -78,15 +79,16 @@ export class GitHubService {
   }
 
   /** Read repository contents — file body or directory listing. */
-  static async readRepository(args: Record<string, unknown>) {
-    const { owner, repo, fullName } = resolveRepository(args);
+  static async readRepository(args: Record<string, unknown>, domainId?: string | null) {
+    const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
+    const { owner, repo, fullName } = resolveRepository(resolvedArgs);
     const path = typeof args.path === 'string' ? args.path.replace(/^\//, '') : '';
     const mode = typeof args.mode === 'string' ? args.mode : path ? 'file' : 'tree';
 
     if (mode === 'tree') {
       const ref =
-        (typeof args.ref === 'string' && args.ref) ||
-        (typeof args.branch === 'string' && args.branch) ||
+        (typeof resolvedArgs.ref === 'string' && resolvedArgs.ref) ||
+        (typeof resolvedArgs.branch === 'string' && resolvedArgs.branch) ||
         'main';
       const branchRef = await githubProxy<{ object?: { sha?: string } }>(
         'GET',
@@ -135,11 +137,12 @@ export class GitHubService {
     };
   }
 
-  static async listCommits(args: Record<string, unknown>) {
-    const { owner, repo, fullName } = resolveRepository(args);
+  static async listCommits(args: Record<string, unknown>, domainId?: string | null) {
+    const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
+    const { owner, repo, fullName } = resolveRepository(resolvedArgs);
     const branch =
-      (typeof args.branch === 'string' && args.branch) ||
-      (typeof args.ref === 'string' && args.ref) ||
+      (typeof resolvedArgs.branch === 'string' && resolvedArgs.branch) ||
+      (typeof resolvedArgs.ref === 'string' && resolvedArgs.ref) ||
       'main';
     const limit = Math.min(Math.max(Number(args.limit ?? 10), 1), 30);
     const commits = await githubProxy<
@@ -164,12 +167,13 @@ export class GitHubService {
     };
   }
 
-  static async createBranch(args: Record<string, unknown>) {
-    const { owner, repo, fullName } = resolveRepository(args);
+  static async createBranch(args: Record<string, unknown>, domainId?: string | null) {
+    const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
+    const { owner, repo, fullName } = resolveRepository(resolvedArgs);
     const branchName = typeof args.branch === 'string' ? args.branch.trim() : '';
     const baseBranch =
-      (typeof args.base === 'string' && args.base.trim()) ||
-      (typeof args.baseBranch === 'string' && args.baseBranch.trim()) ||
+      (typeof resolvedArgs.base === 'string' && resolvedArgs.base.trim()) ||
+      (typeof resolvedArgs.baseBranch === 'string' && resolvedArgs.baseBranch.trim()) ||
       'main';
 
     if (!branchName) {
@@ -199,10 +203,12 @@ export class GitHubService {
     };
   }
 
-  static async writeFile(args: Record<string, unknown>) {
-    const { owner, repo, fullName } = resolveRepository(args);
+  static async writeFile(args: Record<string, unknown>, domainId?: string | null) {
+    const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
+    const { owner, repo, fullName } = resolveRepository(resolvedArgs);
     const path = typeof args.path === 'string' ? args.path.replace(/^\//, '') : '';
-    const branch = typeof args.branch === 'string' ? args.branch : 'main';
+    const branch =
+      typeof resolvedArgs.branch === 'string' ? resolvedArgs.branch : 'main';
     const message =
       (typeof args.message === 'string' && args.message.trim()) || `Update ${path} via Keeper MCP`;
     const content = typeof args.content === 'string' ? args.content : '';
@@ -242,11 +248,12 @@ export class GitHubService {
     };
   }
 
-  static async createPullRequest(args: Record<string, unknown>) {
-    const { owner, repo, fullName } = resolveRepository(args);
+  static async createPullRequest(args: Record<string, unknown>, domainId?: string | null) {
+    const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
+    const { owner, repo, fullName } = resolveRepository(resolvedArgs);
     const title = typeof args.title === 'string' ? args.title.trim() : '';
     const head = typeof args.head === 'string' ? args.head.trim() : '';
-    const base = (typeof args.base === 'string' && args.base.trim()) || 'main';
+    const base = (typeof resolvedArgs.base === 'string' && resolvedArgs.base.trim()) || 'main';
     const body = typeof args.body === 'string' ? args.body : '';
 
     if (!title) throw new Error('title is required');
@@ -275,8 +282,9 @@ export class GitHubService {
     };
   }
 
-  static async readPullRequest(args: Record<string, unknown>) {
-    const { owner, repo, fullName } = resolveRepository(args);
+  static async readPullRequest(args: Record<string, unknown>, domainId?: string | null) {
+    const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
+    const { owner, repo, fullName } = resolveRepository(resolvedArgs);
     const number = Number(args.number ?? args.pullNumber);
     if (!Number.isFinite(number) || number <= 0) {
       throw new Error('number is required');
@@ -327,9 +335,10 @@ export class GitHubService {
     };
   }
 
-  static async getActionsStatus(args: Record<string, unknown>) {
-    const { owner, repo, fullName } = resolveRepository(args);
-    const branch = typeof args.branch === 'string' ? args.branch : undefined;
+  static async getActionsStatus(args: Record<string, unknown>, domainId?: string | null) {
+    const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
+    const { owner, repo, fullName } = resolveRepository(resolvedArgs);
+    const branch = typeof resolvedArgs.branch === 'string' ? resolvedArgs.branch : undefined;
     const query = branch ? `?branch=${encodeURIComponent(branch)}&per_page=1` : '?per_page=1';
 
     const runs = await githubProxy<{

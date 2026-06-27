@@ -10,12 +10,13 @@ import {
   resolveDeclarationActions,
 } from "../integrationChronicle/declarationChronicle"
 import { IntegrationConfigPresence } from "../integrationChronicle/IntegrationConfigPresence"
+import { ServiceBindingConfigPresence } from "../integrationChronicle/ServiceBindingConfigPresence"
 import {
   resolveIntegrationChronicleActions,
   resolveIntegrationChronicleBlocks,
 } from "../integrationChronicle/resolveChronicleDeclaration"
 import { getServiceConfig, useServiceFeedData } from "../integrationChronicle/serviceConfig"
-import { getIntegrationChronicleDeclaration } from "@keeper/shared"
+import { getIntegrationChronicleDeclaration, hasServiceBindingConfig } from "@keeper/shared"
 import {
   FeedShimmer,
   IntegrationUnconnectedState,
@@ -54,8 +55,14 @@ export function IntegrationFocusPresence({
   const [chronicleMode, setChronicleMode] = React.useState<AgentCoverMode>("cover")
 
   const feedParams = React.useMemo(
-    () => ({ domainId, boardId, agentSlug: AGENT_SLUG, connected }),
-    [domainId, boardId, connected],
+    () => ({
+      domainId,
+      boardId,
+      agentSlug: AGENT_SLUG,
+      connected,
+      integration: conn.integration,
+    }),
+    [domainId, boardId, connected, conn.integration],
   )
 
   const feed = useServiceFeedData(objectId, feedParams)
@@ -196,6 +203,24 @@ export function IntegrationFocusPresence({
           onBack={() => setChronicleMode("cover")}
           onRefresh={() => void conn.refresh()}
           onLabelResolved={onLabelResolved}
+        />
+      </div>
+    )
+  }
+
+  if (chronicleMode === "config" && hasServiceBindingConfig(objectId)) {
+    return (
+      <div className="relative flex flex-col h-full min-h-0">
+        <ServiceBindingConfigPresence
+          serviceSlug={objectId}
+          domainId={domainId}
+          displayLabel={displayLabel}
+          integration={conn.integration}
+          onBack={() => setChronicleMode("cover")}
+          onRefresh={() => {
+            void conn.refresh()
+            void feed.reload()
+          }}
         />
       </div>
     )

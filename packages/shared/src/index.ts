@@ -4,5 +4,6 @@ export * from './canonicalBoards.js';
 export * from './draftPoints.js';
 export * from './glossAnchor.js';
 export * from './integrationChronicleDeclarations.js';
+export * from './serviceBindings.js';
 export * from './directorContinuity.js';
 export * from './structure/index.js';

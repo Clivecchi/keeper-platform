@@ -18,7 +18,7 @@ import {
   type KeyHealth,
 } from "./feeds/AIModelFeed"
 import { apiFetch } from "../../../lib/apiFetch"
-import type { IntegrationType } from "./shared"
+import type { IntegrationDto, IntegrationType } from "./shared"
 
 export type GlowState = "healthy" | "building" | "degraded" | "muted"
 
@@ -37,6 +37,7 @@ export type FeedDataParams = {
   agentSlug: string
   connected: boolean
   enabled: boolean
+  integration?: IntegrationDto | null
 }
 
 export type FeedDataState<T> = {
@@ -322,7 +323,11 @@ function useVercelFeedData({
 
 function useGitHubFeedDataSlot(params: FeedDataParams): FeedDataState<GitHubFeedData> {
   const active = params.connected && params.enabled
-  const { data, loading, error, reload } = useGitHubFeedData(params.domainId, active)
+  const { data, loading, error, reload } = useGitHubFeedData(
+    params.domainId,
+    active,
+    params.integration,
+  )
   return { data, loading, error, reload }
 }
 

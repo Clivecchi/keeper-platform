@@ -268,7 +268,7 @@ const tools: Tool[] = [
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.repo.read')!, ctx);
-      return GitHubService.readRepository(args);
+      return GitHubService.readRepository(args, ctx.domainId);
     },
   },
   {
@@ -287,7 +287,7 @@ const tools: Tool[] = [
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.commits.list')!, ctx);
-      return GitHubService.listCommits(args);
+      return GitHubService.listCommits(args, ctx.domainId);
     },
   },
   {
@@ -308,7 +308,7 @@ const tools: Tool[] = [
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.branch.create')!, ctx);
-      return GitHubService.createBranch(args);
+      return GitHubService.createBranch(args, ctx.domainId);
     },
   },
   {
@@ -331,7 +331,7 @@ const tools: Tool[] = [
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.file.write')!, ctx);
-      return GitHubService.writeFile(args);
+      return GitHubService.writeFile(args, ctx.domainId);
     },
   },
   {
@@ -354,7 +354,7 @@ const tools: Tool[] = [
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.pr.create')!, ctx);
-      return GitHubService.createPullRequest(args);
+      return GitHubService.createPullRequest(args, ctx.domainId);
     },
   },
   {
@@ -373,7 +373,7 @@ const tools: Tool[] = [
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.pr.read')!, ctx);
-      return GitHubService.readPullRequest(args);
+      return GitHubService.readPullRequest(args, ctx.domainId);
     },
   },
   {
@@ -392,7 +392,7 @@ const tools: Tool[] = [
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.actions.status')!, ctx);
-      return GitHubService.getActionsStatus(args);
+      return GitHubService.getActionsStatus(args, ctx.domainId);
     },
   },
   {

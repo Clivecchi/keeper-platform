@@ -4,6 +4,8 @@ import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicy
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
 import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
+import { resolveGitHubBinding } from '../../lib/resolveServiceBinding.js';
+import type { GitHubServiceBinding } from '@keeper/shared';
 
 export type KipEnvironmentContext = {
   version: 'kip-env-v1';
@@ -59,6 +61,9 @@ export type KipEnvironmentContext = {
   domainIndex?: {
     keepers: Array<{ id: string; title: string; purpose?: string | null }>;
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
+  };
+  infraBindings?: {
+    github?: GitHubServiceBinding;
   };
 };
 
@@ -374,6 +379,13 @@ export async function buildKipEnvironmentContext(args: {
     environment.governance = await getAgentPolicyView(domainId);
   } catch (error) {
     console.warn('[kip:environment] governance lookup failed', { domainId, error });
+  }
+
+  try {
+    const github = await resolveGitHubBinding(domainId);
+    environment.infraBindings = { github };
+  } catch (error) {
+    console.warn('[kip:environment] infra binding lookup failed', { domainId, error });
   }
 
   // Moment types and prop types are not yet modeled; keep stable empty arrays.

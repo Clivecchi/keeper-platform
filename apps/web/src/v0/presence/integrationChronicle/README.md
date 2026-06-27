@@ -14,6 +14,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
+- `ServiceBindingConfigPresence.tsx` — infra service binding Config Mode (GitHub repo + branch)
 - `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
 - `JourneyChronicleBlocks.tsx` — Paths + Moments declaration blocks below journey cover
 - `DialogConfigPresence.tsx` — Dialog Config Mode (title) via `useChronicleConfig`
@@ -29,7 +30,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 🔄 Data & Behavior
 - **Cover (Integration + Key + Capability):** `IntegrationFocusPresence` / `KeyFocusPresence` / `CapabilityFocusPresence` always render `DeclarationChronicleBlocks` below `EntityCoverPresence`; client-side defaults from `@keeper/shared` when DB `chronicle_blocks` is empty (`resolveChronicleDeclaration.ts`)
-- **Config mode:** metadata (`display_label`, `description`, `connect_copy` / key fields) saves through `useChronicleConfig` → `chroniclePatch.ts`; credential actions (verify, rotate, paste-key, disconnect) stay on POST routes via `KeyHealthBlock` and cover action buttons
+- **Config mode:** metadata (`display_label`, `description`, `connect_copy` / key fields) saves through `useChronicleConfig` → `chroniclePatch.ts`; **service bindings** (GitHub `repository` + `defaultBranch`) save via `PATCH /api/integrations/:service?domainId=` → `domain.settings.serviceBindings` with legacy `ideBuildContext` sync; credential actions (verify, rotate, paste-key, disconnect) stay on POST routes via `KeyHealthBlock` and cover action buttons
 - **Feed hooks:** `useAIModelFeedData` / `useKeyFeedData` supply live data to declaration blocks and Config credential blocks — no legacy cover feed UI
 - `serviceConfig.tsx` — per-service feed hooks, hero/glow/status, and cover action builders (no `FeedComponent`)
 
@@ -38,6 +39,10 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-27 — GitHub service binding (Chronicle Manage)
+- Added `ServiceBindingConfigPresence` — GitHub repo + default branch on connected GitHub service (Manage action on cover)
+- GitHub feed reads `integration.metadata.binding` → `domain.settings.serviceBindings` → legacy `ideBuildContext`
 
 ### 2026-06-23 — Cdraft manuscript Chronicle treatment
 - `cdraft.tsx` replaces generic `EntityCoverPresence` for Draft focus — warm charcoal canvas, title header, manage bar, session badge

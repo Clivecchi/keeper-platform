@@ -7,6 +7,7 @@ Shared utilities and service clients used across Express routes and middleware.
 - `nango.ts` — lazy singleton for `@nangohq/node` (self-hosted Nango)
 - `nangoConfig.ts` — `DEFAULT_NANGO_HOST`, `resolveNangoIntegrationId()`, Nango error formatting
 - `integrationCustomConnect.ts` — Custom integration token verification (Railway + Vercel probes)
+- `resolveServiceBinding.ts` — domain-scoped GitHub binding resolver for MCP tools, agent context, and Chronicle PATCH
 - `env.ts` — database/redis disable helpers
 - `redis.ts` — Redis client helpers
 - `errors/DomainError.ts` — domain-scoped API errors
@@ -20,6 +21,9 @@ Shared utilities and service clients used across Express routes and middleware.
 - [ ] Webhook HMAC verification before public launch
 
 ## 📆 Update Log
+
+### 2026-06-27 — Service binding resolver
+- Added `resolveServiceBinding.ts` — resolves GitHub repo/branch from `domain.settings.serviceBindings`, legacy `ideBuildContext`, integration metadata, or env default; persists binding on integration PATCH
 
 ### 2026-06-02 — Integrations Phase A
 - Added `integrationCustomConnect.ts` for Railway env token + reachability check (no `RailwayService` changes)

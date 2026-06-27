@@ -7,7 +7,7 @@ IDE Board-specific UI pieces mounted inside the Universal Board shell — notabl
 - `IntegratedServicesBar.tsx` — Composer footer (left): **Tools** (Cloud, Rendr — invoke agents) and **Services** (Railway, Vercel, GitHub — open Chronicle integrations). Pairs with `ComposerDebugToolbar` on the right via `.dialog-composer-footer` in `KeeperDialogFrame`.
 
 ## 🔄 Data & Behavior
-- Rendered inside `.dialog-composer-footer` when `def.conversation.showServiceBar` is true (IDE Board only). Debug icon (`ComposerDebugToolbar`) sits on the right of the same footer while the agent is working.
+- Rendered inside `.dialog-composer-footer` when `def.conversation.showServiceBar` is true (IDE Board only). Debug icon (`ComposerDebugToolbar`) sits on the right of the same footer at all times in dialog mode.
 - `onToolInvoke` shifts the Dialog to the Cloud or Rendr agent via `UniversalConversation`.
 - `onOpen` opens the integrations panel in Chronicle (`UniversalViewPanel` → `ServicesFrame`).
 
@@ -15,6 +15,9 @@ IDE Board-specific UI pieces mounted inside the Universal Board shell — notabl
 - [ ] Wire live connection status for Railway, Vercel, GitHub chips.
 
 ## 📆 Update Log
+
+### 2026-06-27 — Debug always visible
+- `ComposerDebugToolbar` no longer gated on agent working state; footer shows in all dialog modes.
 
 ### 2026-06-27 — Composer footer layout
 - Left-aligned Tools/Services only; top border moved to `.dialog-composer-footer` wrapper. Debug control lives in `ComposerDebugToolbar` (right).

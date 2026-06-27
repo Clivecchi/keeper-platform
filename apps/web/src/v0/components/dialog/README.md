@@ -8,7 +8,7 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 - `DialogScrollHint.tsx` — “Latest” pill above the Horizon when the user scrolls up.
 - `DialogUploadStream.tsx` — Pending uploads in Thinking Space (Library item created at clip; sent with next message).
 - `DialogDiagStream.tsx` — Diag thinking stream: captures console output, board-definition snapshot, copy.
-- `ComposerDebugToolbar.tsx` — Right-aligned composer footer debug icon; toggles Diag stream while the agent works.
+- `ComposerDebugToolbar.tsx` — Right-aligned composer footer debug icon; toggles client console log panel on demand.
 - `DialogThinkStream.tsx` — Run trace in Thinking Space (progress steps + mapped action receipts).
 - `DialogScrollRail.tsx` — Overlay scroll thumb for Dialog Space.
 
@@ -21,7 +21,7 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 | **Header Bar** | Expandable breadcrumb + session meta | `.dialog-header-banner` |
 | **Dialog Space** | Messages and responses scroll here, **above** the Horizon | `.dialog-message-zone` / `.dialog-message-surface` |
 | **Horizon** | Gradient band at the bottom of Dialog Space while working; one-line post-run summary atop Composer | `.dialog-horizon-band`, `.dialog-composer-horizon` |
-| **Thinking Space** | Scrollable detail below Horizon — agent steps, Diag log, upload previews — **only while working** | `.dialog-think-space` |
+| **Thinking Space** | Scrollable detail below Horizon — agent steps, client log panel, upload previews | `.dialog-think-space` |
 | **Composer** | User input floor; two states on `.keeper-dialog-frame` | `data-composer-state="composing"` \| `"working"` |
 | **Composing** | Input + optional post-run Horizon summary; Thinking Space collapsed | default state |
 | **Working** | Dialog Space Horizon (live status) + expanded Thinking Space + input (disabled while sending) | `isSending === true` |
@@ -43,8 +43,8 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 - **Dialog Space**: Scrollable messages **above** the Horizon dissolve. Top + bottom **mask fade** on `.dialog-message-surface` softens edges against Header Bar and Composer. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Horizon (working)**: Live beat of the working story — latest narrative sentence, pulsing on the gradient band.
 - **Horizon (post-run)**: One-line dialogic summary (`.dialog-composer-horizon`) atop the Composer — ends with `…` via `dialogicRunSummary()`.
-- **Thinking Space**: `{agent} is working` lead + compositional paragraph of prior story beats (`composeThinkingStoryBody`). Collapses after the reply.
-- **Composer**: `AgentComposer` input + toolbar; footer row below with Tools/Services (left, IDE Board) and **Debug** icon (right, while sending).
+- **Thinking Space**: Run trace while the agent works; client log panel when Debug is toggled; upload previews when staging files.
+- **Composer**: `AgentComposer` input + toolbar; footer row below with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode).
 
 ### Readability
 Board scope (`.keeper-board-scope`) bumps message body to 17px and composer input to match. Global `data-density` on `<html>` (`compact` | `default` | `comfortable`) exists for Design Board; a user-facing **Readable** setting for all boards is TODO.
@@ -73,7 +73,8 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [x] When `isSending` is true, working status renders on the Horizon; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
-- 2026-06-27: **Debug toolbar** — Diag toggle moved from Horizon to right-aligned `ComposerDebugToolbar` in `.dialog-composer-footer` (below composer). Toggles `DialogDiagStream` + Copy in Thinking Space while `isSending`. Footer shows on IDE Board (Tools/Services) and on all boards while the agent works (debug-only row).
+- 2026-06-27: **Debug always on** — `ComposerDebugToolbar` visible whenever dialog mode is active (not gated on `isSending`). Diag panel opens on demand; logs accumulate client-side until a new agent send clears the buffer. Panel stays open after the reply.
+- 2026-06-27: **Debug toolbar** — Diag toggle moved from Horizon to right-aligned `ComposerDebugToolbar` in `.dialog-composer-footer` (below composer). Toggles `DialogDiagStream` + Copy in Thinking Space. Footer shows on IDE Board (Tools/Services) and on all dialog boards (debug-only row when no service bar).
 - 2026-06-26: **Diag button fix** — console capture installs on frame mount; Diag toggle always visible while `isSending` (not gated on horizon summary text); CSS removes parent `pointer-events: none` block on horizon streams so the button is clickable; Diag panel expands in Thinking Space on toggle.
 - 2026-06-26: Working story composition — run trace labels become narrative sentences (`stepLabelToStorySentence`, `composeHorizonBeat`, `composeThinkingStoryBody`). Horizon carries the live beat; Thinking Space shows `{agent} is working` + prior beats as prose (no Run Trace header or numbered steps). Post-run summary ends with `…`. In-list “is thinking…” suppressed when `horizonThinking` is set.
 - 2026-06-22: Thinking Space **Run trace** — renamed from "Chain of thought"; keeps steps after send; maps `actionResults` into trace lines via `dialogThinking.ts`.
