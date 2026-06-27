@@ -9,11 +9,12 @@
  *   Header Bar   — expandable breadcrumb / session meta (`.dialog-header-banner`)
  *   Dialog Space — scrollable messages above the Horizon (`.dialog-message-zone`)
  *   Composer     — user input floor; two states via `data-composer-state`:
- *     composing — input only; Thinking Space idle
- *     working   — Horizon (status + stream toolbar) + Thinking Space + input
+ *     composing — input only; optional post-run Horizon summary atop composer
+ *     working   — Dialog Space Horizon (live status) + expanded Thinking Space + input
  *
- * Horizon sits at the bottom edge of Dialog Space (gradient dissolve). Thinking Space
- * and the input field are siblings below — grouped logically as Composer when working.
+ * While sending: Thinking Space expands with the run trace; Horizon summarizes live.
+ * After the reply lands: Thinking Space collapses; a one-line dialogic summary sits
+ * atop the composer (`.dialog-composer-horizon`).
  *
  * Message logic and API calls live in the Board; this file owns layout only.
  */
@@ -31,7 +32,11 @@ import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
 import { DialogThinkStream } from "./DialogThinkStream"
 import { DialogUploadStream } from "./DialogUploadStream"
-import { latestThinkingSummary, type DialogThinkingStep } from "./dialogThinking"
+import {
+  dialogicRunSummary,
+  latestThinkingSummary,
+  type DialogThinkingStep,
+} from "./dialogThinking"
 
 type ThinkStream = "diag" | null
 
@@ -234,10 +239,10 @@ export function KeeperDialogFrame({
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
-  const hasRunTrace = thinkingSteps.length > 0
-  const hasWorkingThinkSpace = isSending || pendingAttachments.length > 0 || hasRunTrace
+  const isWorking = isSending || isFileUploading
+  const hasWorkingThinkSpace = isWorking || hasUploads
   const showDiagStream = isSending && thinkStream === "diag"
-  const showThinkStream = thinkStream !== "diag" && (isSending || hasRunTrace)
+  const showThinkStream = !showDiagStream && isSending
 
   React.useEffect(() => {
     if (isSending) {
@@ -326,6 +331,11 @@ export function KeeperDialogFrame({
 
   const showHorizonStatus = horizonStatusLabel !== null
 
+  const postRunSummary = React.useMemo(() => {
+    if (isWorking || thinkingSteps.length === 0) return null
+    return dialogicRunSummary(thinkingSteps, agentName)
+  }, [isWorking, thinkingSteps, agentName])
+
   // Auto-scroll so the newest message clears the Horizon (Thinking space + fade overlay)
   React.useEffect(() => {
     if (mode === "feed" || dialogContent) return
@@ -364,6 +374,7 @@ export function KeeperDialogFrame({
     <div
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
+      data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
       data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
       data-mobile-dialog-stage={isMobileStaged ? mobileDialogStage : undefined}
@@ -584,18 +595,17 @@ export function KeeperDialogFrame({
         <DialogScrollRail scrollRef={scrollRef} />
         <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
 
-        {/* Horizon — gradient dissolve at Composer edge; status + stream toolbar when working */}
+        {/* Horizon — gradient dissolve at Dialog Space floor; live status while working */}
         {mode !== 'feed' && (
-          <div className="dialog-horizon-band">
-            <div
-              className="dialog-fade-overlay"
-              aria-hidden="true"
-            />
-            {showHorizonStatus && (
-              <div
-                className="dialog-horizon-status"
-                aria-live="polite"
-              >
+          <div
+            className={[
+              "dialog-horizon-band",
+              isWorking ? " dialog-horizon-band--working" : " dialog-horizon-band--idle",
+            ].join("")}
+          >
+            <div className="dialog-fade-overlay" aria-hidden="true" />
+            {isWorking && showHorizonStatus && (
+              <div className="dialog-horizon-status" aria-live="polite">
                 <div className="dialog-column dialog-horizon-row">
                   <span className="dialog-think-pulse dialog-horizon-summary">{horizonStatusLabel}</span>
                   {isSending && (
@@ -619,9 +629,8 @@ export function KeeperDialogFrame({
 
       {isMobileStaged && mobileDialogStage === "response" ? mobileResponseToolbar : null}
 
-      {/* ── Thinking Space: reserved for uploads, messaging, composer features ── *
-       *  Fixed height: never causes the composer to resize or jump.               *
-       *  Agent thinking status lives on the Horizon gradient band in Zone 2.   */}
+      {/* ── Thinking Space — expands while the agent works; uploads when staging ── *
+       *  Collapses after the reply; post-run summary moves to composer Horizon.  */}
       {mode !== 'feed' && hasWorkingThinkSpace && (
         <div
           ref={thinkSpaceRef}
@@ -650,9 +659,14 @@ export function KeeperDialogFrame({
         </div>
       )}
 
-      {/* ── Composer — input floor; Horizon + Thinking Space are the working state above */}
+      {/* ── Composer — input floor; post-run Horizon summary sits directly above ── */}
       <div className="dialog-bottom-zone">
         <div className="dialog-column dialog-bottom-stack">
+          {mode !== "feed" && postRunSummary && (
+            <div className="dialog-composer-horizon" aria-live="polite">
+              <p className="dialog-composer-horizon-summary">{postRunSummary}</p>
+            </div>
+          )}
           <AgentComposer
             agentName={agentName}
             agentId={agentId}

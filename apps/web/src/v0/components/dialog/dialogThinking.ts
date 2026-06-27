@@ -86,3 +86,64 @@ export function latestThinkingSummary(
   const last = steps[steps.length - 1]
   return last?.label?.trim() || fallback
 }
+
+const THINKING_META_PATTERNS = [
+  /^received your message$/i,
+  /^run complete$/i,
+  /is composing a reply/i,
+]
+
+function isThinkingMetaStep(label: string): boolean {
+  return THINKING_META_PATTERNS.some((pattern) => pattern.test(label.trim()))
+}
+
+const ACTION_STEP_PREFIX =
+  /^(created|updated|saved|captured|generated|called|listed|retrieved|proposed|accepted|deleted|set active)/i
+
+/**
+ * One-line dialogic bridge for the post-run Horizon — sits atop the composer
+ * and preps the conversational reply below.
+ */
+export function dialogicRunSummary(
+  steps: readonly DialogThinkingStep[],
+  agentName: string,
+): string | null {
+  if (steps.length === 0) return null
+
+  const failed = steps.find((step) => /^run failed/i.test(step.label.trim()))
+  if (failed) return failed.label.trim()
+
+  const work = steps
+    .map((step) => step.label.trim())
+    .filter((label) => label.length > 0 && !isThinkingMetaStep(label))
+
+  if (work.length === 0) return null
+
+  const actions = work.filter((label) => ACTION_STEP_PREFIX.test(label))
+
+  if (actions.length === 1) {
+    const [head, detail] = actions[0].split(" · ")
+    if (detail?.trim()) {
+      return `${head} — ${detail.trim()}. Read on for the reply.`
+    }
+    return `${actions[0]} — read on for the reply.`
+  }
+
+  if (actions.length > 1) {
+    const latest = actions[actions.length - 1].split(" · ")[0]?.trim()
+    return latest
+      ? `After ${actions.length} steps (${latest.toLowerCase()}…) — here's the reply.`
+      : `After ${actions.length} steps — here's the reply.`
+  }
+
+  const last = work[work.length - 1]
+  if (/reviewing \d+ attached/i.test(last)) {
+    return `${last.replace(/\…$/, "")} — here's my reply.`
+  }
+
+  if (/consulting/i.test(last)) {
+    return `${last.replace(/\…$/, "")} — here's the answer.`
+  }
+
+  return `${agentName} finished that turn — read on for the reply.`
+}

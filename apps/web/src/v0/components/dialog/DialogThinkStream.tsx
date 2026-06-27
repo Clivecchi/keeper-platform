@@ -11,8 +11,8 @@ interface DialogThinkStreamProps {
 }
 
 /**
- * Thinking Space — scrollable run trace while the agent works and briefly after.
- * The Horizon shows a short summary of the latest step while sending.
+ * Thinking Space — scrollable run trace while the agent works.
+ * Collapses after the reply; Horizon carries the post-run dialogic summary.
  */
 export function DialogThinkStream({
   steps,

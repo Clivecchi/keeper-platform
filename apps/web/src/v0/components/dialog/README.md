@@ -19,13 +19,13 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 |---|---|---|
 | **Header Bar** | Expandable breadcrumb + session meta | `.dialog-header-banner` |
 | **Dialog Space** | Messages and responses scroll here, **above** the Horizon | `.dialog-message-zone` / `.dialog-message-surface` |
-| **Horizon** | Gradient band at the bottom of Dialog Space; when working, shows agent status + stream toolbar (Diag) | `.dialog-horizon-band`, `.dialog-horizon-status` |
-| **Thinking Space** | Scrollable detail below Horizon — agent steps, Diag log, future upload previews | `.dialog-think-space` |
+| **Horizon** | Gradient band at the bottom of Dialog Space while working; one-line post-run summary atop Composer | `.dialog-horizon-band`, `.dialog-composer-horizon` |
+| **Thinking Space** | Scrollable detail below Horizon — agent steps, Diag log, upload previews — **only while working** | `.dialog-think-space` |
 | **Composer** | User input floor; two states on `.keeper-dialog-frame` | `data-composer-state="composing"` \| `"working"` |
-| **Composing** | Input + toolbar only; Thinking Space idle | default state |
-| **Working** | Horizon active + Thinking Space streams + input (disabled while sending) | `isSending === true` |
+| **Composing** | Input + optional post-run Horizon summary; Thinking Space collapsed | default state |
+| **Working** | Dialog Space Horizon (live status) + expanded Thinking Space + input (disabled while sending) | `isSending === true` |
 
-Horizon is positioned at the bottom of Dialog Space (for scroll math). Thinking Space and the input field sit below as siblings — grouped **logically** as Composer when working.
+Horizon live status sits at the bottom of Dialog Space while the agent works. After the reply, Thinking Space collapses and a dialogic one-liner (`.dialog-composer-horizon`) sits directly above the input.
 
 ### Named Surfaces — Opacity Hierarchy (most opaque → most transparent)
 | Surface | CSS class | Opacity | Blur | Purpose |
@@ -39,9 +39,10 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 
 ### Surface behaviour
 - **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
-- **Dialog Space**: Scrollable messages **above** the Horizon. Renders `DialogueMessageList` by default. Long responses fill the space between Header Bar and Horizon, then scroll. `DialogScrollHint` offers “Latest” when scrolled up.
-- **Horizon**: Gradient dissolve at the Composer edge. When working (`isSending`), shows `{agentName} is thinking…` and stream toggles (Diag). Summarizes what Thinking Space streams in detail.
-- **Thinking Space**: Between Dialog Space and input. **Uploads** appear here after clip (Library item created immediately; removed on send). **Run trace** while sending and briefly after — progress placeholders plus real action receipts from `actionResults`. Diag stream when working. Expands with uploads (`--uploads`).
+- **Dialog Space**: Scrollable messages **above** the Horizon dissolve. Top + bottom **mask fade** on `.dialog-message-surface` softens edges against Header Bar and Composer. `DialogScrollHint` offers “Latest” when scrolled up.
+- **Horizon (working)**: Gradient dissolve at the Dialog Space floor. While `isSending`, shows live status + Diag toggle (`.dialog-horizon-status`).
+- **Horizon (post-run)**: One-line dialogic summary (`.dialog-composer-horizon`) atop the Composer — derived from run trace via `dialogicRunSummary()`.
+- **Thinking Space**: Expands **only while sending** (run trace / Diag) or when uploads are staged. Collapses after the reply.
 - **Composer**: `AgentComposer` input + toolbar; `IntegratedServicesBar` below on IDE Board.
 
 ### Readability
@@ -71,6 +72,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [ ] When `isSending` is true, thinking status renders on the Horizon inside Dialog Space; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-26: Horizon / Thinking Space lifecycle — Thinking Space expands only while sending (or uploads staged); collapses after reply. Post-run dialogic summary moves to `.dialog-composer-horizon` atop Composer via `dialogicRunSummary()`. Dialog Space scroll mask adds top + bottom gradient dissolve; Header Bar / Composer use soft gradient hairlines instead of hard borders.
 - 2026-06-22: Thinking Space **Run trace** — renamed from "Chain of thought"; keeps steps after send; maps `actionResults` into trace lines via `dialogThinking.ts`.
 - 2026-06-17: Composer clip stages blob only; Library commit on send. Horizon shows "Uploading…". Taller input; composer + Tools share one `.dialog-bottom-stack` column.
 - 2026-06-17: Upload → Thinking Space (`DialogUploadStream`); clip adds Library item + stages file until send; composer input grows when uploads present.

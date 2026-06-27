@@ -163,11 +163,28 @@ html[data-density="comfortable"] {
   background: hsl(var(--theme-surface-paper) / 0.55);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.3);
+  border-bottom: none;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   min-height: 40px;
+}
+
+.dialog-header-banner::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--theme-border-soft) / 0.35) 20%,
+    hsl(var(--theme-border-soft) / 0.35) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 
 .dialog-banner-main-row {
@@ -348,8 +365,22 @@ button.dialog-prelude:hover {
   /* Native scrollbar hidden — DialogScrollRail provides a fixed overlay thumb */
   scrollbar-width: none;
   -ms-overflow-style: none;
-  /* Open atmosphere — messages float above; dissolve handled by sibling overlay */
+  /* Open atmosphere — messages float above; dissolve handled by mask + horizon overlay */
   background: transparent;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--dialog-fade-top-height, 36px),
+    #000 calc(100% - var(--dialog-fade-height)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--dialog-fade-top-height, 36px),
+    #000 calc(100% - var(--dialog-fade-height)),
+    transparent 100%
+  );
 }
 
 .dialog-message-surface::-webkit-scrollbar {
@@ -363,11 +394,17 @@ button.dialog-prelude:hover {
   min-height: 0;
   overflow: hidden;
   z-index: 1;
-  --dialog-fade-height: 120px;
-  --dialog-horizon-inset: 36px; /* status sits on the gradient band, below message landing line */
+  --dialog-fade-top-height: 40px;
+  --dialog-fade-height: 56px;
+  --dialog-horizon-inset: 8px;
 }
 
-/* Horizon band — gradient dissolve overlay at the Composer edge */
+.keeper-dialog-frame[data-composer-state="working"] .dialog-message-zone {
+  --dialog-fade-height: 96px;
+  --dialog-horizon-inset: 28px;
+}
+
+/* Horizon band — gradient dissolve overlay at the Dialog Space floor */
 .dialog-horizon-band {
   position: absolute;
   bottom: 0;
@@ -376,22 +413,41 @@ button.dialog-prelude:hover {
   height: var(--dialog-fade-height);
   z-index: 3;
   pointer-events: none;
+  transition: height 0.3s ease;
+}
+
+.dialog-horizon-band--idle {
+  height: var(--dialog-fade-height);
+}
+
+.dialog-horizon-band--working {
+  height: var(--dialog-fade-height);
 }
 
 .dialog-horizon-band:has(.dialog-horizon-streams) {
   pointer-events: none;
 }
 
-/* Bottom dissolve — fills the horizon band */
+/* Bottom dissolve — fills the horizon band; softens the Dialog Space floor */
 .dialog-fade-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to top,
-    transparent 0%,
-    hsla(30, 12%, 8%, 0.7) 100%
+    hsl(var(--theme-surface-panel) / 0.55) 0%,
+    hsla(30, 12%, 8%, 0.45) 42%,
+    transparent 100%
   );
   pointer-events: none;
+}
+
+.keeper-dialog-frame[data-composer-state="working"] .dialog-fade-overlay {
+  background: linear-gradient(
+    to top,
+    hsl(var(--theme-surface-panel) / 0.62) 0%,
+    hsla(30, 12%, 8%, 0.55) 48%,
+    transparent 100%
+  );
 }
 
 .dialog-message-bubble {
@@ -513,14 +569,59 @@ button.dialog-prelude:hover {
   background: hsl(var(--theme-surface-panel) / 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid hsl(var(--theme-border-soft) / 0.35);
-  padding: 12px 0 8px;
-  transition: border-top-color 0.2s ease;
+  border-top: none;
+  padding: 8px 0 8px;
+  transition: border-top-color 0.2s ease, padding-top 0.25s ease;
+  position: relative;
+}
+
+.dialog-bottom-zone::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--theme-border-soft) / 0.35) 18%,
+    hsl(var(--theme-border-soft) / 0.35) 82%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.keeper-dialog-frame[data-has-run-summary="true"] .dialog-bottom-zone {
+  padding-top: 4px;
+}
+
+.dialog-composer-horizon {
+  padding: 2px 0 10px;
+}
+
+.dialog-composer-horizon-summary {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: hsl(var(--theme-ink-secondary));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Treatment focus line above composer when active */
-.keeper-board-scope .dialog-bottom-zone:has(.keeper-composer-form:focus-within) {
-  border-top-color: hsl(var(--treatment-color) / 0.55);
+.keeper-board-scope .dialog-bottom-zone:has(.keeper-composer-form:focus-within)::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--treatment-color) / 0.55) 18%,
+    hsl(var(--treatment-color) / 0.55) 82%,
+    transparent 100%
+  );
 }
 
 .dialog-services-bar-inner {
@@ -605,26 +706,38 @@ button.dialog-prelude:hover {
 
 .dialog-think-space {
   flex-shrink: 0;
-  height: 52px;
+  height: 0;
+  min-height: 0;
+  max-height: 0;
+  opacity: 0;
   background: transparent;
   overflow: hidden;
   position: relative;
+  transition:
+    max-height 0.32s ease,
+    opacity 0.24s ease,
+    min-height 0.32s ease;
 }
 
 .dialog-think-space--diag {
-  height: 120px;
+  height: auto;
+  min-height: 120px;
+  max-height: 120px;
+  opacity: 1;
 }
 
 .dialog-think-space--working {
   height: auto;
   min-height: 96px;
   max-height: 168px;
+  opacity: 1;
 }
 
 .dialog-think-space--uploads {
   height: auto;
   min-height: 88px;
   max-height: 176px;
+  opacity: 1;
 }
 
 .dialog-think-space-inner {
@@ -1095,7 +1208,10 @@ button.dialog-prelude:hover {
  */
 .keeper-board-scope .dialog-header-banner {
   background: hsl(var(--theme-surface-paper) / 0.55);
-  border-bottom-color: hsl(var(--theme-border-soft) / 0.3);
+}
+
+.keeper-board-scope .dialog-composer-horizon-summary {
+  font-size: 15px;
 }
 
 .keeper-board-scope .dialog-breadcrumb {
@@ -1128,7 +1244,6 @@ button.dialog-prelude:hover {
 
 .keeper-board-scope .dialog-bottom-zone {
   background: hsl(var(--theme-surface-panel) / 0.82);
-  border-top-color: hsl(var(--theme-border-soft) / 0.35);
 }
 
 .keeper-board-scope .kip-message-content {

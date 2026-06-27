@@ -186,6 +186,11 @@
   display: none;
 }
 
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-composer-horizon {
+  display: block;
+  padding-top: 0;
+}
+
 .universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-horizon-band {
   display: none;
 }
