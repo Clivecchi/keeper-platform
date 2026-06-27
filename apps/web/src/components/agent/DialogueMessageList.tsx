@@ -9,11 +9,54 @@ import clsx from "clsx"
 import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
-import type { AgentDialogueMessage } from "./types"
+import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
 import { getAgentErrorPresentation } from "./errorPresentation"
+import { isDirectorDelegationFailureContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
+
+function visibleDelegationBeat(
+  delegation: DialogResponseEcho | undefined,
+): DialogResponseEcho | null {
+  const content = delegation?.content?.trim()
+  if (!content || isDirectorDelegationFailureContent(content)) return null
+  return delegation ?? null
+}
+
+function DialogResponseBeat({
+  beat,
+  fallbackName,
+  position,
+}: {
+  beat: DialogResponseEcho
+  fallbackName: string
+  position: "above" | "below"
+}) {
+  const content = beat.content?.trim()
+  if (!content) return null
+  return (
+    <div
+      className={clsx(
+        position === "above" ? "mb-2.5 border-b pb-2.5" : "mt-2.5 border-t pt-2.5",
+      )}
+      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.65)" }}
+    >
+      <p
+        className="mb-1 text-[11px] font-semibold uppercase tracking-wide"
+        style={{ color: "hsl(var(--theme-ink-secondary))" }}
+      >
+        {beat.attributedTo ?? fallbackName}
+      </p>
+      <p
+        className="whitespace-pre-line text-[12px] leading-relaxed"
+        style={{ color: "hsl(var(--theme-ink-secondary))" }}
+      >
+        {content}
+      </p>
+    </div>
+  )
+}
 
 export interface DialogueMessageListProps {
   /** Whether messages are still loading */
@@ -34,10 +77,21 @@ export interface DialogueMessageListProps {
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
   agentName?: string
+  /** Echo attribution fallback when message.echo.attributedTo is missing */
+  echoAgentName?: string
   /** Domain-driven messaging strings for dialogue states */
   agentBoardMessaging?: AgentBoardMessaging
+  /** Agent messages span full width of the centered column */
+  agentBubbleFullWidth?: boolean
+  /** Scroll container ref from KeeperDialogFrame (opacity depth — optional) */
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>
   /** When true, suppress the in-list “is thinking…” line — Horizon owns working status. */
   horizonThinking?: boolean
+  /** @deprecated Legacy draft point accept — retained for KeeperDialogFrame pass-through */
+  onAcceptDraftPoint?: (draftId: string, pointId: string) => void
+  acceptedDraftPointIds?: ReadonlySet<string>
+  acceptingDraftPointId?: string | null
+  onOpenSoleMemory?: (memoryCardId: string) => void
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -50,6 +104,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenJourney,
   onConfirmDraftUpdate,
   agentName = "Agent",
+  echoAgentName,
   agentBoardMessaging,
   horizonThinking = false,
 }) => (
@@ -74,7 +129,14 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
         {(agentBoardMessaging?.dialogue.start_prompt ?? "Say hello to {agent_name} to start the conversation.").replace("{agent_name}", agentName)}
       </div>
     ) : (
-      messages.map((message) => (
+      messages.map((message) => {
+        const delegation = visibleDelegationBeat(message.delegation)
+        const echo =
+          message.echo?.content?.trim() && !isDirectorDelegationFailureContent(message.echo.content)
+            ? message.echo
+            : null
+
+        return (
         <div
           key={message.id}
           className={clsx(
@@ -97,7 +159,21 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
             }}
           >
+            {delegation && (
+              <DialogResponseBeat
+                beat={delegation}
+                fallbackName="Instrument"
+                position="above"
+              />
+            )}
             <p className="whitespace-pre-line">{message.content}</p>
+            {echo && (
+              <DialogResponseBeat
+                beat={echo}
+                fallbackName={echoAgentName ?? agentName}
+                position="below"
+              />
+            )}
             {message.linkedCard && (
               <div className="mt-3">
                 <LinkedCard
@@ -168,7 +244,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
             </span>
           </div>
         </div>
-      ))
+        )
+      })
     )}
     {isSending && !horizonThinking && (
       <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
