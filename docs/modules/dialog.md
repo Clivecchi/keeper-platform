@@ -40,9 +40,9 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 ### Surface behaviour
 - **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
 - **Dialog Space**: Scrollable messages **above** the Horizon dissolve. Top + bottom **mask fade** on `.dialog-message-surface` softens edges against Header Bar and Composer. `DialogScrollHint` offers “Latest” when scrolled up.
-- **Horizon (working)**: Gradient dissolve at the Dialog Space floor. While `isSending`, shows live status + Diag toggle (`.dialog-horizon-status`).
-- **Horizon (post-run)**: One-line dialogic summary (`.dialog-composer-horizon`) atop the Composer — derived from run trace via `dialogicRunSummary()`.
-- **Thinking Space**: Expands **only while sending** (run trace / Diag) or when uploads are staged. Collapses after the reply.
+- **Horizon (working)**: Live beat of the working story — latest narrative sentence on the gradient band. Diag toggle when sending.
+- **Horizon (post-run)**: One-line dialogic summary (`.dialog-composer-horizon`) atop the Composer — ends with `…` via `dialogicRunSummary()`.
+- **Thinking Space**: `{agent} is working` lead + compositional paragraph of prior story beats. Collapses after the reply.
 - **Composer**: `AgentComposer` input + toolbar; `IntegratedServicesBar` below on IDE Board.
 
 ### Readability
@@ -69,9 +69,10 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [ ] Additional Horizon streams beyond Diag (live server-side phase events).
 - [ ] `dialogContent` replaces the full Dialog Space content — separate slot if messages needed alongside.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
-- [ ] When `isSending` is true, thinking status renders on the Horizon inside Dialog Space; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
+- [x] When `isSending` is true, working status renders on the Horizon; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-26: Working story composition — run trace labels become narrative sentences. Horizon carries the live beat; Thinking Space shows `{agent} is working` + prior beats as prose. Post-run summary ends with `…`.
 - 2026-06-26: Horizon / Thinking Space lifecycle — Thinking Space expands only while sending (or uploads staged); collapses after reply. Post-run dialogic summary moves to `.dialog-composer-horizon` atop Composer via `dialogicRunSummary()`. Dialog Space scroll mask adds top + bottom gradient dissolve; Header Bar / Composer use soft gradient hairlines instead of hard borders.
 - 2026-06-22: Thinking Space **Run trace** — renamed from "Chain of thought"; keeps steps after send; maps `actionResults` into trace lines via `dialogThinking.ts`.
 - 2026-06-17: Composer clip stages blob only; Library commit on send. Horizon shows "Uploading…". Taller input; composer + Tools share one `.dialog-bottom-stack` column.

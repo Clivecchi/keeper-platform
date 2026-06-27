@@ -97,6 +97,108 @@ function isThinkingMetaStep(label: string): boolean {
   return THINKING_META_PATTERNS.some((pattern) => pattern.test(label.trim()))
 }
 
+/** Convert an internal run-trace label into a short narrative sentence. */
+export function stepLabelToStorySentence(label: string, agentName: string): string | null {
+  const text = label.trim()
+  if (!text) return null
+  if (/^received your message$/i.test(text)) return "Your message arrived."
+  if (/^run complete$/i.test(text)) return null
+  if (/^run failed/i.test(text)) return text.replace(/…$/, ".")
+
+  if (/is composing a reply/i.test(text)) {
+    return text.replace(/…$/, ".")
+  }
+
+  if (/^(.+) is thinking…?$/i.test(text)) {
+    return text.endsWith("…") ? text : `${text}…`
+  }
+
+  const attachmentMatch = text.match(/^reviewing (\d+) attached files/i)
+  if (attachmentMatch) {
+    const count = Number(attachmentMatch[1])
+    return count === 1 ? "Reviewing the file you attached." : `Reviewing ${count} attached files.`
+  }
+  if (/reviewing 1 attached file/i.test(text)) return "Reviewing the file you attached."
+
+  const consultingMatch = text.match(/^consulting (.+?)(?:…|\.)?$/i)
+  if (consultingMatch?.[1]) {
+    return `Consulting ${consultingMatch[1].trim()}.`
+  }
+
+  if (text.includes(" · ")) {
+    const [head, detail] = text.split(" · ")
+    if (head?.trim() && detail?.trim()) {
+      return `${head.trim()} — ${detail.trim()}.`
+    }
+  }
+
+  if (ACTION_STEP_PREFIX.test(text)) {
+    return text.endsWith(".") || text.endsWith("…") ? text.replace(/…$/, ".") : `${text}.`
+  }
+
+  return text.replace(/…$/, ".")
+}
+
+/** Narrative sentences derived from run trace — meta beats omitted. */
+export function thinkingStepsToStorySentences(
+  steps: readonly DialogThinkingStep[],
+  agentName: string,
+): string[] {
+  const seen = new Set<string>()
+  const sentences: string[] = []
+
+  for (const step of steps) {
+    const sentence = stepLabelToStorySentence(step.label, agentName)
+    if (!sentence) continue
+    const key = sentence.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    sentences.push(sentence)
+  }
+
+  return sentences
+}
+
+function formatInProgressBeat(sentence: string): string {
+  return sentence.endsWith("…") ? sentence : sentence.replace(/\.$/, "…")
+}
+
+/** Live Horizon line — the current beat of the working story. */
+export function composeHorizonBeat(
+  steps: readonly DialogThinkingStep[],
+  agentName: string,
+  override?: string,
+): string {
+  if (override?.trim()) {
+    const fromOverride = stepLabelToStorySentence(override, agentName)
+    return formatInProgressBeat(fromOverride ?? override.trim())
+  }
+
+  const sentences = thinkingStepsToStorySentences(steps, agentName)
+  const latest = sentences[sentences.length - 1]
+  if (latest) return formatInProgressBeat(latest)
+
+  return formatInProgressBeat(`${agentName} is working.`)
+}
+
+/** Prior story beats for Thinking Space — everything before the live Horizon beat. */
+export function composeThinkingStoryBody(
+  steps: readonly DialogThinkingStep[],
+  agentName: string,
+): string {
+  const sentences = thinkingStepsToStorySentences(steps, agentName)
+  if (sentences.length <= 1) return ""
+  return sentences.slice(0, -1).join(" ")
+}
+
+function ensureEllipsisEnding(text: string): string {
+  const trimmed = text.trim()
+  if (!trimmed) return trimmed
+  if (trimmed.endsWith("…") || trimmed.endsWith("...")) return trimmed
+  if (trimmed.endsWith(".")) return `${trimmed.slice(0, -1)}…`
+  return `${trimmed}…`
+}
+
 const ACTION_STEP_PREFIX =
   /^(created|updated|saved|captured|generated|called|listed|retrieved|proposed|accepted|deleted|set active)/i
 
@@ -124,26 +226,28 @@ export function dialogicRunSummary(
   if (actions.length === 1) {
     const [head, detail] = actions[0].split(" · ")
     if (detail?.trim()) {
-      return `${head} — ${detail.trim()}. Read on for the reply.`
+      return ensureEllipsisEnding(`${head} — ${detail.trim()}`)
     }
-    return `${actions[0]} — read on for the reply.`
+    return ensureEllipsisEnding(actions[0])
   }
 
   if (actions.length > 1) {
-    const latest = actions[actions.length - 1].split(" · ")[0]?.trim()
-    return latest
-      ? `After ${actions.length} steps (${latest.toLowerCase()}…) — here's the reply.`
-      : `After ${actions.length} steps — here's the reply.`
+    const latest = actions[actions.length - 1]
+    return ensureEllipsisEnding(latest)
   }
 
   const last = work[work.length - 1]
   if (/reviewing \d+ attached/i.test(last)) {
-    return `${last.replace(/\…$/, "")} — here's my reply.`
+    return ensureEllipsisEnding(last.replace(/…$/, ""))
   }
 
   if (/consulting/i.test(last)) {
-    return `${last.replace(/\…$/, "")} — here's the answer.`
+    return ensureEllipsisEnding(last.replace(/…$/, ""))
   }
 
-  return `${agentName} finished that turn — read on for the reply.`
+  const storySentences = thinkingStepsToStorySentences(steps, agentName)
+  const closing = storySentences[storySentences.length - 1]
+  if (closing) return ensureEllipsisEnding(closing)
+
+  return ensureEllipsisEnding(`${agentName} finished that turn`)
 }

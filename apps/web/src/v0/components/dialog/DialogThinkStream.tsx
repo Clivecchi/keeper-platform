@@ -1,57 +1,43 @@
 "use client"
 
 import * as React from "react"
-import type { DialogThinkingStep } from "./dialogThinking"
+import { composeThinkingStoryBody, type DialogThinkingStep } from "./dialogThinking"
 
 interface DialogThinkStreamProps {
   steps: readonly DialogThinkingStep[]
   agentName?: string
-  /** When true, the latest step pulses — agent is still working. */
+  /** When true, the agent is still working through the request. */
   isActive?: boolean
 }
 
 /**
- * Thinking Space — scrollable run trace while the agent works.
- * Collapses after the reply; Horizon carries the post-run dialogic summary.
+ * Thinking Space — compositional story while the agent works.
+ * The live beat lives on the Horizon; prior beats accumulate here as prose.
  */
 export function DialogThinkStream({
   steps,
   agentName = "Kip",
   isActive = false,
 }: DialogThinkStreamProps) {
-  const scrollRef = React.useRef<HTMLDivElement>(null)
+  const storyBody = React.useMemo(
+    () => composeThinkingStoryBody(steps, agentName),
+    [steps, agentName],
+  )
 
-  React.useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  }, [steps.length])
-
-  if (steps.length === 0) {
-    return (
-      <p className="dialog-think-stream-idle" aria-live="polite">
-        {isActive ? `${agentName} is working through your request…` : "Run trace will appear here while Kip works."}
-      </p>
-    )
+  if (!isActive && steps.length === 0) {
+    return null
   }
 
   return (
-    <div className="dialog-think-stream">
-      <div className="dialog-think-stream-head">
-        <span className="dialog-think-stream-label">{isActive ? "Run trace" : "Last run"}</span>
-        <span className="dialog-think-stream-count">{steps.length} step{steps.length === 1 ? "" : "s"}</span>
-      </div>
-      <div ref={scrollRef} className="dialog-think-stream-scroll" aria-live="polite">
-        {steps.map((step, index) => (
-          <div
-            key={step.id}
-            className={`dialog-think-step${isActive && index === steps.length - 1 ? " dialog-think-step--active" : ""}`}
-          >
-            <span className="dialog-think-step-index">{index + 1}</span>
-            <span className="dialog-think-step-label">{step.label}</span>
-          </div>
-        ))}
-      </div>
+    <div className="dialog-think-stream" aria-live="polite">
+      <p className="dialog-think-story-lead">{agentName} is working</p>
+      {storyBody ? (
+        <p className="dialog-think-story-body">{storyBody}</p>
+      ) : isActive && steps.length === 0 ? (
+        <p className="dialog-think-story-body dialog-think-story-body--pending">
+          Listening to your message…
+        </p>
+      ) : null}
     </div>
   )
 }

@@ -34,6 +34,8 @@ export interface DialogueMessageListProps {
   agentName?: string
   /** Domain-driven messaging strings for dialogue states */
   agentBoardMessaging?: AgentBoardMessaging
+  /** When true, suppress the in-list “is thinking…” line — Horizon owns working status. */
+  horizonThinking?: boolean
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -46,6 +48,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onConfirmDraftUpdate,
   agentName = "Agent",
   agentBoardMessaging,
+  horizonThinking = false,
 }) => (
   <div
     className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
@@ -153,7 +156,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
         </div>
       ))
     )}
-    {isSending && (
+    {isSending && !horizonThinking && (
       <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
     )}
     {error && <AgentErrorAlert error={error} />}

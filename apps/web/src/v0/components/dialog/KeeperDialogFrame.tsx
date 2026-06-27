@@ -33,8 +33,8 @@ import { DialogScrollRail } from "./DialogScrollRail"
 import { DialogThinkStream } from "./DialogThinkStream"
 import { DialogUploadStream } from "./DialogUploadStream"
 import {
+  composeHorizonBeat,
   dialogicRunSummary,
-  latestThinkingSummary,
   type DialogThinkingStep,
 } from "./dialogThinking"
 
@@ -303,22 +303,10 @@ export function KeeperDialogFrame({
     [onSubmit, onCommitAttachmentsToLibrary, pendingAttachments],
   )
 
-  const defaultThinkingLabel = React.useMemo(
-    () =>
-      (agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace(
-        "{agent_name}",
-        agentName,
-      ),
-    [agentBoardMessaging?.dialogue.thinking, agentName],
-  )
-
   const horizonStatusLabel = React.useMemo(() => {
     if (isFileUploading) return "Uploading…"
     if (isSending) {
-      return (
-        thinkingStatusLabel
-        ?? latestThinkingSummary(thinkingSteps, defaultThinkingLabel)
-      )
+      return composeHorizonBeat(thinkingSteps, agentName, thinkingStatusLabel)
     }
     return null
   }, [
@@ -326,7 +314,7 @@ export function KeeperDialogFrame({
     isSending,
     thinkingStatusLabel,
     thinkingSteps,
-    defaultThinkingLabel,
+    agentName,
   ])
 
   const showHorizonStatus = horizonStatusLabel !== null
