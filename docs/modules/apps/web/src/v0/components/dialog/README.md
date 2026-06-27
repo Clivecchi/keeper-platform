@@ -44,7 +44,7 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 - **Horizon (working)**: Live beat of the working story — latest narrative sentence, pulsing on the gradient band.
 - **Horizon (post-run)**: One-line dialogic summary (`.dialog-composer-horizon`) atop the Composer — ends with `…` via `dialogicRunSummary()`.
 - **Thinking Space**: Run trace while the agent works; client log panel when Debug is toggled; upload previews when staging files.
-- **Composer**: `AgentComposer` input + toolbar; footer row below with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode).
+- **Composer**: `AgentComposer` input + toolbar; ephemeral **Pasted** supporting-document tiles above the input; footer row with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode).
 
 ### Readability
 Board scope (`.keeper-board-scope`) bumps message body to 17px and composer input to match. Global `data-density` on `<html>` (`compact` | `default` | `comfortable`) exists for Design Board; a user-facing **Readable** setting for all boards is TODO.
@@ -73,6 +73,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [x] When `isSending` is true, working status renders on the Horizon; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-27: **Supporting documents** — large paste no longer fills the input or Thinking Space; `AgentComposer` shows Pasted tiles in composer; Library commit skips paste items.
 - 2026-06-27: **Debug always on** — `ComposerDebugToolbar` visible whenever dialog mode is active (not gated on `isSending`). Diag panel opens on demand; logs accumulate client-side until a new agent send clears the buffer. Panel stays open after the reply.
 - 2026-06-27: **Debug toolbar** — Diag toggle moved from Horizon to right-aligned `ComposerDebugToolbar` in `.dialog-composer-footer` (below composer). Toggles `DialogDiagStream` + Copy in Thinking Space. Footer shows on IDE Board (Tools/Services) and on all dialog boards (debug-only row when no service bar).
 - 2026-06-26: **Diag button fix** — console capture installs on frame mount; Diag toggle always visible while `isSending` (not gated on horizon summary text); CSS removes parent `pointer-events: none` block on horizon streams so the button is clickable; Diag panel expands in Thinking Space on toggle.

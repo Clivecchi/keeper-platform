@@ -213,7 +213,7 @@ export interface UseAgentDialogResult {
   fetchMessages: (sessionId: string) => Promise<KipMessage[] | undefined>
   sendMessage: (
     e: FormEvent,
-    payload: { content: string; attachments?: AgentAttachment[] },
+    payload: { content: string; displayContent?: string; attachments?: AgentAttachment[] },
   ) => Promise<void>
 }
 
@@ -505,7 +505,11 @@ export function useAgentDialog({
   const sendMessage = React.useCallback(
     async (
       _e: FormEvent,
-      { content, attachments }: { content: string; attachments?: AgentAttachment[] },
+      { content, displayContent, attachments }: {
+        content: string
+        displayContent?: string
+        attachments?: AgentAttachment[]
+      },
     ) => {
       if (mode === "designer" && !frameKey) return
 
@@ -516,13 +520,15 @@ export function useAgentDialog({
 
       const ts = Date.now()
 
+      const transcriptContent = displayContent?.trim() || content || "[attachment]"
+
       if (mode !== "ide") {
         setMessages((prev) => [
           ...prev,
           {
             id: `user-${ts}`,
             role: "user",
-            content: content || "[attachment]",
+            content: transcriptContent,
             createdAt: new Date(ts).toISOString(),
           },
         ])
@@ -530,7 +536,7 @@ export function useAgentDialog({
         const optimistic: AgentDialogueMessage = {
           id: `user-${ts}`,
           role: "user",
-          content: content || "[attachment]",
+          content: transcriptContent,
           createdAt: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, optimistic])

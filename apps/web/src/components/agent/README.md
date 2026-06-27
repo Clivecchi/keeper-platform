@@ -5,6 +5,8 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 
 ## Key Files
 - `AgentComposer.tsx` -- Cursor-style chat input with tool kit: agent/mode dropdown, config dropdown (model/lens, Open Cockpit), textarea, library upload (composer clip), submit, feedback area. Used by AgentBoardFrame and KeeperDialogFrame.
+- `SupportingDocumentTile.tsx` -- Compact "Pasted" tile for ephemeral supporting context in the composer (Claude-style).
+- `composerSupporting.ts` -- Paste capture threshold, message assembly for supporting documents.
 - `AgentContextBanner.tsx` -- Context-first banner for Agent Board: domain · keeper/journey/studio, Live indicator, Open Cockpit. Agent name lives in AgentComposer.
 - `AgentPostureHeader.tsx` -- Legacy governance stack banner (agent, domain, lens, mode, governance, voice). Used by KipAgentBoardPage.
 - `DraftCard.tsx` -- Inline-editing draft card: title, summary, status pill, sections (add/delete), JSON toggle, bottom toolbar (Save, JSON/Edit, ← Dialogue).
@@ -20,7 +22,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `helpers.ts` -- Shared formatting utilities: `formatDate`, `formatTime`, `formatRelative`, `shortId`.
 
 ## Data and Behavior
-- `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, clip attach (uploads to Library, stages in Thinking Space on Dialog boards), submit. `onLibraryFileUpload` returns `{ url, name, libraryItemId }`. Controlled `attachments` + `attachmentDisplay="thinking-space"` used by `KeeperDialogFrame`.
+- `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, clip attach (uploads to Library, stages in Thinking Space on Dialog boards), submit. Large paste (≥500 chars or multi-line block) becomes an ephemeral **supporting document** tile in the composer — not Library, not Thinking Space. Full context is sent with the next message; the Dialog transcript shows a short label. `onLibraryFileUpload` returns `{ url, name, libraryItemId }`. Controlled `attachments` + `attachmentDisplay="thinking-space"` used by `KeeperDialogFrame` for file uploads only.
 - `DialogueMessageList` renders `AgentDialogueMessage[]` with role-based styling (user messages right-aligned, agent messages left-aligned). Supports `LinkedCard` inline rendering and `ActionReceiptCard` for draft/entity creation receipts.
 - Dialogue errors route through `getAgentErrorPresentation()` so provider overloads and configuration issues receive informational headings instead of generic failure copy.
 - Unsupported action receipts (`NOT_ALLOWED`) are filtered from the visible transcript because the server logs/skips them; they should not appear as user-facing failures.
@@ -32,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-06-27: **Supporting documents** — large paste captured as ephemeral composer tile (`SupportingDocumentTile`, label "Pasted"); full text sent as supporting context with prompt; transcript shows short label; not saved to Library; file uploads still stage in Thinking Space.
 - 2026-06-26: Restored **director delegation** (Cloud/Rendr beat above Kip) and **agent echo** (subordinate beat below) in `DialogueMessageList` — regressed during UI simplification; hides internal failure copy via `isDirectorDelegationFailureContent`.
 - 2026-06-24: Filtered unsupported `NOT_ALLOWED` action receipts from `DialogueMessageList` so invented/unsupported coordination actions do not render as red failure cards.
 - 2026-06-24: Added shared agent error presentation helper; `DialogueMessageList` titles Kip failures by category (overload, quota, timeout, provider key, invalid model) instead of generic "Something went wrong".

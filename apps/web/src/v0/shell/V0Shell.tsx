@@ -23,6 +23,7 @@ import {
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
+import { DomainBoard } from "../boards/domain/DomainBoard"
 import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
 import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
 import { useMobileSurface } from "../../mobile/hooks/useMobileSurface"
@@ -589,6 +590,8 @@ export function V0Shell() {
                   themeSlug={activeThemeSlug}
                 />
               </UniversalBoardProvider>
+            ) : matchedDef.boardId === "domain" ? (
+              <DomainBoard key="domain" />
             ) : (
               <UniversalBoard
                 key={matchedDef.boardId}

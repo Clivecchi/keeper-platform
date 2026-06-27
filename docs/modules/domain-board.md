@@ -4,8 +4,8 @@
 The public-facing domain overview board. Persisted Kip conversation in the center (sessions created and resumable). Domain feed (recent Moments + active Journeys) lives in Chronicle (right panel) as its ambient idle state. Three-column layout: left board/frame nav, center dialog shell, right Chronicle.
 
 ## 🧱 Key Files
-- `DomainBoard.tsx` — Root board component. Owns domain metadata (wordmark, journeyCount, momentCount) and UI state (leftCollapsed, switcherOpen, selectedMomentId, activeJourneyId). No longer owns message/input state.
-- `DomainBoardConversation.tsx` — Center panel conversation component. Uses `useAgentDialog({ mode: "domain" })` to create and persist Kip sessions like every other board. Renders `KeeperDialogFrame`.
+- `DomainBoard.tsx` — Root board component. Owns switcher open state and live domain list fetch for `DomainSwitcher`. Delegates three-column layout to `UniversalBoard`.
+- `domainSwitcherData.ts` — Fetches `GET /api/domains` and maps API rows to `DomainSwitcher` card entries (slug, name, tagline, cover image).
 
 ## 🔄 Data & Behavior
 - **Left panel**: Collapsible board switcher (Domain / Design / Agent) and frame list.
@@ -14,10 +14,16 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - No feed/dialog toggle — the center is always a dialog. The feed lives in Chronicle.
 
 ## ⚠️ Notes & ToDo
-- [ ] MOCK_DOMAINS list is hardcoded — should come from user's domain list API.
+- [ ] Domain creation from switcher "Add a domain" — Step 1.2.
 - [ ] Domain Board session resumption — allow users to return to a prior Domain session via Chronicle trail.
 
 ## 📆 Update Log
+
+### 2026-06-27 — Step 1.1: Real domains in DomainSwitcher
+- Removed `MOCK_DOMAINS` from `DomainBoard.tsx`.
+- Added `domainSwitcherData.ts` — live fetch from `GET /api/domains` (`domains` array from paginated response). Uses same-origin fetch on localhost so Vite `/api` proxy is used during local dev.
+- Loading, empty, and error states render in `DomainBoard` before `DomainSwitcher` opens (switcher UI unchanged).
+- Domain selection navigates to `/d/:slug/board?board=domain` so Chronicle reloads via `DomainFocusPresence`.
 
 ### 2026-05-09 — Domain Board center correction + useAgentDialog
 - Removed `centerMode` state, `FeedFrame`, Feed/Dialog toggle, and `/api/domains/:id/kip/designer` route from Domain Board.

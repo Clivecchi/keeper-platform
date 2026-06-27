@@ -14,6 +14,12 @@
 import * as React from "react"
 import { PaperAirplaneIcon, PaperClipIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { useAuth } from "../../context/AuthContext"
+import {
+  buildComposerSubmitContent,
+  isPastedSupportingDoc,
+  shouldCapturePaste,
+} from "./composerSupporting"
+import { SupportingDocumentTile } from "./SupportingDocumentTile"
 
 const SURFACE = {
   inkPrimary: "var(--theme-ink-primary-color)",
@@ -42,8 +48,21 @@ export type PendingAttachment = {
   name: string
   url: string
   type: "text" | "image" | "file"
+  /** `upload` = clip/file; `paste` = ephemeral supporting document (not Library). */
+  source?: "upload" | "paste"
+  /** Full pasted text — in-memory only until send. */
+  pastedContent?: string
   /** Set when committed to Library on message send. */
   libraryItemId?: string
+}
+
+/** Payload passed to onSubmit from AgentComposer. */
+export type ComposerSubmitPayload = {
+  /** Full message for the agent API (includes supporting context). */
+  content: string
+  /** Shorter label for the Dialog transcript when supporting docs are attached. */
+  displayContent?: string
+  attachments?: AgentAttachment[]
 }
 
 /** Attachment sent to the agent API (for vision and context) */
@@ -66,7 +85,7 @@ export interface AgentComposerProps {
   onOpenCockpit?: () => void
   inputValue: string
   onInputChange: (value: string) => void
-  onSubmit: (e: React.FormEvent, options: { content: string; attachments?: AgentAttachment[] }) => void
+  onSubmit: (e: React.FormEvent, options: ComposerSubmitPayload) => void
   /** Stage file for the next message (blob upload only — not Library until send). */
   onComposerFileUpload?: (file: File) => Promise<ComposerFileUploadResult>
   /** @deprecated Prefer onComposerFileUpload */
@@ -139,7 +158,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [internalAttachments, setInternalAttachments] = React.useState<PendingAttachment[]>([])
   const attachments = controlledAttachments ?? internalAttachments
   const setAttachments = onAttachmentsChange ?? setInternalAttachments
-  const showAttachmentBar = attachmentDisplay === "composer" && attachments.length > 0
+  const pastedSupporting = attachments.filter(isPastedSupportingDoc)
+  const uploadAttachments = attachments.filter((a) => !isPastedSupportingDoc(a))
+  const showAttachmentBar = attachmentDisplay === "composer" && uploadAttachments.length > 0
+  const showSupportingDocs = pastedSupporting.length > 0
 
   const TEXT_TYPES = ["text/plain", "text/markdown", "text/csv", "application/json"]
   const TEXT_EXT = /\.(txt|md|json|csv|pdf)$/i
@@ -200,6 +222,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           name: result.name || file.name,
           url: result.url,
           type: inferAttachmentType(file),
+          source: "upload",
         },
       ])
     } catch (err) {
@@ -215,16 +238,34 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     setAttachments((prev) => prev.filter((a) => a.id !== id))
   }
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData("text/plain")
+    if (!shouldCapturePaste(text)) return
+
+    e.preventDefault()
+    setAttachments((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name: "Pasted text",
+        url: "",
+        type: "text",
+        source: "paste",
+        pastedContent: text,
+      },
+    ])
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const agentAttachments: AgentAttachment[] = attachments
+    const agentAttachments: AgentAttachment[] = uploadAttachments
       .filter((a) => a.type !== "text")
       .map((a) => ({ url: a.url, name: a.name, type: a.type as "image" | "file" }))
-    const content = inputValue.trim()
+    const { content, displayContent } = buildComposerSubmitContent(inputValue, attachments)
     const hasContent = content.length > 0 || agentAttachments.length > 0
     if (!hasContent || !activeSessionId || isSending) return
     setAttachments([])
-    onSubmit(e, { content, attachments: agentAttachments })
+    onSubmit(e, { content, displayContent, attachments: agentAttachments })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -255,7 +296,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         : "Share your thoughts…"
       : "Create a session to start chatting"
 
-  const canSend = (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled
+  const canSend =
+    (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled
 
   return (
     <div className="flex w-full flex-col gap-1">
@@ -350,7 +392,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             style={{ borderBottom: `1px solid ${SURFACE.border}`, backgroundColor: SURFACE.toolbarBg }}
           >
             <div className="flex flex-wrap gap-2">
-              {attachments.map((a) => (
+              {uploadAttachments.map((a) => (
                 <div
                   key={a.id}
                   className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
@@ -370,7 +412,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               ))}
             </div>
             {/* Vision unavailability notice — shown when any image is attached */}
-            {attachments.some((a) => a.type === "image") && (
+            {uploadAttachments.some((a) => a.type === "image") && (
               <p
                 className="text-[11px] leading-snug px-1"
                 style={{
@@ -392,10 +434,21 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           className="keeper-composer-input-wrap w-full rounded-b-[10px] px-3 py-2"
           style={{ backgroundColor: "transparent" }}
         >
+          {showSupportingDocs && (
+            <div
+              className="keeper-composer-supporting-docs mb-2"
+              aria-label="Supporting documents for this message"
+            >
+              {pastedSupporting.map((doc) => (
+                <SupportingDocumentTile key={doc.id} document={doc} onRemove={removeAttachment} />
+              ))}
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
+            onPaste={handlePaste}
             onFocus={() => onInputFocusChange?.(true)}
             onBlur={() => onInputFocusChange?.(false)}
             onKeyDown={handleKeyDown}

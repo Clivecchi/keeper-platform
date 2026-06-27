@@ -1903,6 +1903,77 @@ button.dialog-prelude:hover {
   color: hsl(var(--theme-ink-secondary));
 }
 
+/* Supporting documents — ephemeral pasted context tiles in composer (Claude-style) */
+.keeper-composer-supporting-docs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.keeper-composer-support-tile {
+  width: 132px;
+  flex-shrink: 0;
+}
+
+.keeper-composer-support-tile-body {
+  display: flex;
+  flex-direction: column;
+  height: 104px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.55);
+  border-radius: 10px;
+  background: hsl(var(--theme-surface-elevated) / 0.75);
+  overflow: hidden;
+}
+
+.keeper-composer-support-tile-preview {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 8px 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: hsl(var(--theme-ink-secondary));
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  word-break: break-word;
+}
+
+.keeper-composer-support-tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 6px 6px;
+  border-top: 1px solid hsl(var(--theme-border-soft) / 0.35);
+}
+
+.keeper-composer-support-tile-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.keeper-composer-support-tile-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: hsl(var(--theme-ink-placeholder));
+  cursor: pointer;
+}
+
+.keeper-composer-support-tile-remove:hover {
+  color: hsl(var(--theme-ink-secondary));
+  background: hsl(var(--theme-surface-paper) / 0.5);
+}
+
 /* ─── Cdraft — Chronicle Draft manuscript treatment ─────────────────────── */
 
 .cdraft {

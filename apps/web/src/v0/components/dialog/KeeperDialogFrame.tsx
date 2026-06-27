@@ -21,7 +21,8 @@
 
 import * as React from "react"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
-import type { AgentComposerProps, AgentAttachment, PendingAttachment } from "../../../components/agent/AgentComposer"
+import type { AgentComposerProps, AgentAttachment, PendingAttachment, ComposerSubmitPayload } from "../../../components/agent/AgentComposer"
+import { isPastedSupportingDoc } from "../../../components/agent/composerSupporting"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
@@ -239,7 +240,8 @@ export function KeeperDialogFrame({
   const [thinkStream, setThinkStream] = React.useState<ThinkStream>(null)
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
-  const hasUploads = pendingAttachments.length > 0 || isFileUploading
+  const hasUploads =
+    pendingAttachments.some((a) => !isPastedSupportingDoc(a)) || isFileUploading
   const isWorking = isSending || isFileUploading
   const hasWorkingThinkSpace = isWorking || hasUploads
   const showDiagStream = thinkStream === "diag"
@@ -294,13 +296,11 @@ export function KeeperDialogFrame({
   const composerState: "composing" | "working" = isSending ? "working" : "composing"
 
   const handleComposerSubmit = React.useCallback(
-    async (
-      event: React.FormEvent,
-      options: { content: string; attachments?: AgentAttachment[] },
-    ) => {
-      if (onCommitAttachmentsToLibrary && pendingAttachments.length > 0) {
+    async (event: React.FormEvent, options: ComposerSubmitPayload) => {
+      const libraryAttachments = pendingAttachments.filter((a) => !isPastedSupportingDoc(a))
+      if (onCommitAttachmentsToLibrary && libraryAttachments.length > 0) {
         try {
-          await onCommitAttachmentsToLibrary(pendingAttachments)
+          await onCommitAttachmentsToLibrary(libraryAttachments)
         } catch (err) {
           alert(err instanceof Error ? err.message : "Failed to save attachments to Library.")
           return
@@ -640,7 +640,7 @@ export function KeeperDialogFrame({
               <DialogThinkStream steps={thinkingSteps} agentName={agentName} isActive={isSending} />
             ) : (
               <DialogUploadStream
-                attachments={pendingAttachments}
+                attachments={pendingAttachments.filter((a) => !isPastedSupportingDoc(a))}
                 onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
               />
             )}
