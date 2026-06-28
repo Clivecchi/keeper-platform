@@ -126,7 +126,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           color: 'var(--theme-ink-secondary-color)',
         }}
       >
-        {(agentBoardMessaging?.dialogue.start_prompt ?? "Say hello to {agent_name} to start the conversation.").replace("{agent_name}", agentName)}
+        {(agentBoardMessaging?.dialogue?.start_prompt ?? "Say hello to {agent_name} to start the conversation.").replace("{agent_name}", agentName)}
       </div>
     ) : (
       messages.map((message) => {
@@ -248,7 +248,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
       })
     )}
     {isSending && !horizonThinking && (
-      <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
+      <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue?.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
     )}
     {error && <AgentErrorAlert error={error} />}
   </div>

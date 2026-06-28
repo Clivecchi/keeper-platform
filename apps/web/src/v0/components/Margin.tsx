@@ -13,6 +13,7 @@ import type {
   DomainFrameInteractionBarLabels,
   DomainFrameJson,
 } from "../data/domain-frame.types"
+import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
 
 export const V0_MARGIN_HEIGHT = "72px"
 export const V0_MARGIN_HEIGHT_WITH_COMPOSER = "180px"
@@ -313,15 +314,7 @@ export function Margin() {
 
   // agentContext — Spec Step 6: pass the resolved domain frame context into Kip's environment.
   // Computed here from domainFrame + resolvedAudience so the API can inject it into the system prompt.
-  const agentContext: Record<string, unknown> | undefined = domainFrame
-    ? {
-        audience,
-        model: domainFrame.kip.model,
-        forward: domainFrame.forward,
-        directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
-        kip_context: domainFrame.kip_context[audience] ?? "",
-      }
-    : undefined
+  const agentContext = buildExperienceAgentContext(domainFrame, audience)
 
   return (
     <>

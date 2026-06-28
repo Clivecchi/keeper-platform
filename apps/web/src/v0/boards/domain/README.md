@@ -22,6 +22,10 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## 📆 Update Log
 
+### 2026-06-28 — AI Access nav typography + domain copy
+- `DomainAiAccessNav`: provider lines 14px; section uses shared `keeper-nav-section-title` (no 10px override).
+- `DomainAddPanel`: placeholders say domain, not realm (Realm is a separate Universal Board).
+
 ### 2026-06-27 — Step 1.2 (partial): Add domain from switcher
 - `DomainAddPanel` + `POST /api/domains`; navigates to new slug on success.
 - Picker ink: fixed light-on-dark tokens in `domainSwitcherTheme.ts`.

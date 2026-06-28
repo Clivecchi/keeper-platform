@@ -164,6 +164,14 @@ const DEFAULT_FRAME_FALLBACK = {
       settings: 'Settings',
     },
   },
+  agent_board: {
+    messaging: {
+      dialogue: {
+        start_prompt: 'Say hello to {agent_name} to start the conversation.',
+        thinking: '{agent_name} is thinking…',
+      },
+    },
+  },
 };
 
 router.get('/:slug/frame', async (req: Request, res: Response) => {

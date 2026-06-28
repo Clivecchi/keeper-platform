@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { apiFetch } from "../lib/api"
-import { KipApi } from "../lib/kipApi"
+import { KipApi, type KipSession } from "../lib/kipApi"
 import { pickBestDialogSessionId, resumeOrCreateBoardSession } from "../lib/kipDialogSession"
 import type { AgentDialogueMessage } from "../components/agent/types"
 
@@ -151,7 +151,7 @@ export function useSelectionSessionResume({
           agentId: agentForLookup,
           board: "agent",
           frame: "conversation",
-          dialogSubject: "domain",
+          subject: "domain",
           dialogScope: "keeper",
           domainSlug,
           sessionName: "Agent Board",

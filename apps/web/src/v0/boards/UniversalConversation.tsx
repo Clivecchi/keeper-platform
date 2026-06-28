@@ -35,6 +35,8 @@ import { extractLinkedCard } from "../../components/agent/helpers"
 import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
 import { glossAnchorToDraftDiscuss } from "@keeper/shared"
 import { useAgentDialog, extractRunAgentPayload } from "../../hooks/useAgentDialog"
+import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
+import type { AgentBoardMessaging } from "../data/domain-frame.types"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
@@ -302,14 +304,8 @@ export function UniversalConversation({
 
   // ── agentContext — computed once, shared across all modes ─────────────
   const agentContext = React.useMemo(() => {
-    if (!domainFrame) return undefined
-    const base = {
-      audience,
-      model: domainFrame.kip.model,
-      forward: domainFrame.forward,
-      directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
-      kip_context: domainFrame.kip_context[audience] ?? "",
-    }
+    const base = buildExperienceAgentContext(domainFrame, audience)
+    if (!base) return undefined
     const anchor = selection.draftDiscussAnchor
     if (!anchor) return base
     const draftDiscuss = glossAnchorToDraftDiscuss(anchor)
@@ -319,6 +315,11 @@ export function UniversalConversation({
       ...(draftDiscuss ? { draftDiscuss } : {}),
     }
   }, [domainFrame, audience, selection.draftDiscussAnchor])
+
+  const agentBoardMessaging = React.useMemo((): AgentBoardMessaging | undefined => {
+    if (kipMode !== "agent") return undefined
+    return domainFrame?.agent_board?.messaging
+  }, [kipMode, domainFrame])
 
   // ── ide mode: resolved names for banner ───────────────────────────────────
   const activeKeeperId = selectedKeeperId ?? frameCtx?.selection?.activeKeeperId ?? null
@@ -1301,6 +1302,7 @@ export function UniversalConversation({
         error={error}
         agentName={dialogAgentDisplayName}
         echoAgentName={defaultAgentName}
+        agentBoardMessaging={agentBoardMessaging}
         onOpenDraft={onDraftSelect}
         onOpenMoment={onMomentSelect}
         onOpenJourney={(id) => onJourneySelect(id)}

@@ -1877,7 +1877,7 @@ button.dialog-prelude:hover {
 .keeper-nav-panel .keeper-sidebar-card button.text-xl,
 .keeper-nav-panel .keeper-nav-section-title {
   font-family: 'Courier New', monospace;
-  font-size: 13px !important;
+  font-size: 14px !important;
   font-weight: 700 !important;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1889,7 +1889,7 @@ button.dialog-prelude:hover {
 }
 
 .keeper-nav-panel .keeper-sidebar-card p.text-base {
-  font-size: 12px !important;
+  font-size: 13px !important;
   color: hsl(38 15% 56%) !important;
 }
 
@@ -1913,14 +1913,14 @@ button.dialog-prelude:hover {
 }
 
 .keeper-nav-panel .keeper-sidebar-card ul button {
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 500 !important;
   color: hsl(38 28% 84%) !important;
   line-height: 1.4;
 }
 
 .keeper-nav-panel .keeper-sidebar-card ul span:not([class*="rounded-full"]) {
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 500 !important;
   color: hsl(38 28% 84%) !important;
   line-height: 1.4;

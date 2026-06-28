@@ -387,7 +387,7 @@ export function useAgentDialog({
   React.useEffect(() => {
     if (mode === "ide" || mode === "designer" || manageSessionExternally || !agentId) return
     if (
-      mode === "domain" &&
+      (mode === "domain" || mode === "agent") &&
       (!domainId || String(domainId).startsWith("fallback-"))
     ) {
       return

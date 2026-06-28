@@ -128,7 +128,7 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               disabled={submitting}
-              placeholder="My Project Realm"
+              placeholder="My Project Domain"
               className="w-full rounded-md px-2 py-1.5 text-[11px] outline-none"
               style={inputStyle}
               autoFocus
@@ -177,7 +177,7 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
               onChange={(e) => setDescription(e.target.value)}
               disabled={submitting}
               rows={2}
-              placeholder="Optional — what this realm is for"
+              placeholder="Optional — what this domain is for"
               className="w-full rounded-md px-2 py-1.5 text-[11px] outline-none resize-none"
               style={inputStyle}
             />

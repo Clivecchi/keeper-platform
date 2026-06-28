@@ -31,17 +31,17 @@ function AccessLine({
       <button
         type="button"
         onClick={() => onManage(line.keyId!)}
-        className="w-full text-left px-2 py-1 rounded-sm transition-opacity hover:opacity-85"
+        className="w-full text-left px-2 py-1.5 rounded-sm transition-opacity hover:opacity-85"
         style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 84%))" }}
       >
-        <span className="text-[11px] leading-snug">{hint}</span>
+        <span className="text-[14px] leading-snug">{hint}</span>
       </button>
     )
   }
 
   return (
     <p
-      className="px-2 py-1 text-[11px] leading-snug"
+      className="px-2 py-1.5 text-[14px] leading-snug"
       style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 84%))" }}
     >
       {hint}
@@ -107,21 +107,21 @@ export function DomainAiAccessNav({ domainId, onManageKey, onAddKey }: DomainAiA
       }}
     >
       <div className="px-3 pb-1">
-        <p className="keeper-nav-section-title text-[10px] font-semibold uppercase tracking-widest">
+        <p className="keeper-nav-section-title">
           AI Access
         </p>
         <p
-          className="text-[10px] mt-0.5 leading-snug"
+          className="text-[13px] mt-1 leading-snug"
           style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 78%))" }}
         >
           {description}
         </p>
         <p
-          className="text-[9px] mt-1 leading-snug opacity-80"
+          className="text-[12px] mt-1.5 leading-snug opacity-85"
           style={{ color: "var(--theme-ink-secondary-color, hsl(40 8% 72%))" }}
         >
           {summary?.canAddOwnKeys
-            ? "Included access is private to your realm — shared capacity, never revealed."
+            ? "Included access is private to your domain — shared capacity, never revealed."
             : "Included access on your plan. Upgrade to add your own provider keys."}
         </p>
       </div>
@@ -141,7 +141,7 @@ export function DomainAiAccessNav({ domainId, onManageKey, onAddKey }: DomainAiA
           <button
             type="button"
             onClick={onAddKey}
-            className="text-[10px] font-medium underline underline-offset-2 transition-opacity hover:opacity-80"
+            className="text-[13px] font-medium underline underline-offset-2 transition-opacity hover:opacity-80"
             style={{ color: "var(--theme-ink-primary-color, hsl(40 14% 92%))" }}
           >
             Add your key
@@ -150,7 +150,7 @@ export function DomainAiAccessNav({ domainId, onManageKey, onAddKey }: DomainAiA
       ) : null}
 
       {error ? (
-        <p className="text-[10px] px-3 pt-1" style={{ color: "hsl(var(--destructive))" }}>
+        <p className="text-[12px] px-3 pt-1" style={{ color: "hsl(var(--destructive))" }}>
           {error}
         </p>
       ) : null}
