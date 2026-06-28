@@ -6,6 +6,10 @@ import {
   providerDisplayLabel,
   providerIconLetter,
 } from "../../integrationChronicle/keyNavUtils"
+import {
+  keyAccessKind,
+  keyAccessKindLabel,
+} from "../../integrationChronicle/domainKeyAccessSummary"
 import { formatRelativeTime } from "../../integrationChronicle/shared"
 import type {
   CoverActionDef,
@@ -84,12 +88,12 @@ function resolveActions(
 export const keyCoverSchema: EntityCoverSchema<KeyRecord> = {
   objectType: "key",
   resolve(record, _fieldValues, _ctx, handlers) {
-    const sourceLabel = record.key_source.toUpperCase()
+    const sourceLabel = keyAccessKindLabel(keyAccessKind(record))
     const displayStatus = mapDisplayStatus(record.status)
     const traits = [
       { label: "Status", value: displayStatus },
       { label: "Last verified", value: formatRelativeTime(record.last_verified ?? undefined) },
-      { label: "Source", value: sourceLabel },
+      { label: "Access", value: sourceLabel },
       ...(record.expires_at
         ? [{ label: "Expires", value: formatRelativeTime(record.expires_at) }]
         : []),
@@ -102,7 +106,7 @@ export const keyCoverSchema: EntityCoverSchema<KeyRecord> = {
         accentColor: "hsl(var(--theme-accent-primary))",
         chromeTitle: providerDisplayLabel(record.provider, record.display_label),
         statusLabel: displayStatus.toUpperCase(),
-        roleLabel: sourceLabel,
+        roleLabel: keyAccessKindLabel(keyAccessKind(record)),
       },
       identity: {
         name: keyChronicleTitle(record),

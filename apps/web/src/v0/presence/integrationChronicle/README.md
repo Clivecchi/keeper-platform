@@ -40,6 +40,10 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-06-27 — Domain AI access summary (included vs yours)
+- `domainKeyAccessSummary.ts` — soft labels (`Included`, `Yours`); never raw `platform` in UI.
+- Agent Board `DomainAiAccessNav` — count + brief provider lines; IDE keeps full key registry.
+
 ### 2026-06-27 — GitHub service binding (Chronicle Manage)
 - Added `ServiceBindingConfigPresence` — GitHub repo + default branch on connected GitHub service (Manage action on cover)
 - GitHub feed reads `integration.metadata.binding` → `domain.settings.serviceBindings` → legacy `ideBuildContext`

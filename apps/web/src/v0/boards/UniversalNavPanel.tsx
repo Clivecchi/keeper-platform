@@ -45,10 +45,12 @@ import type { WorkspaceBoardId } from "./workspaceBoardNav"
 import {
   collapseKeyNavRows,
   fetchAllDomainKeyRows,
+  IDE_AI_PROVIDERS,
   keyChronicleTitle,
   keyStatusNavHint,
   type KeyNavRow,
 } from "../presence/integrationChronicle/keyNavUtils"
+import { DomainAiAccessNav } from "./domain/DomainAiAccessNav"
 import {
   applyCapabilityNavRowPatch,
   capabilityChronicleTitle,
@@ -167,6 +169,7 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "drafts",
   "integrations",
   "keys",
+  "aiAccess",
   "capabilities",
   "library",
   "agents",
@@ -558,7 +561,27 @@ export function UniversalNavPanel({
   }, [domainId, def.nav.sections.agents])
 
   const showKeysNav = (def.nav.integrations ?? []).some((item) => item.group === "ai")
+  const showAiAccessNav = def.nav.aiAccessSummary === true
   const keysDomainRef = React.useRef<string | null>(null)
+
+  const handleAddDomainKey = React.useCallback(async () => {
+    if (!domainId || !onKeySelect) return
+    for (const provider of IDE_AI_PROVIDERS) {
+      try {
+        await apiFetch(
+          `/api/keys?domainId=${encodeURIComponent(domainId)}&provider=${encodeURIComponent(provider)}&sync=1`,
+        )
+        const rows = await fetchAllDomainKeyRows(domainId)
+        const row = collapseKeyNavRows(rows).find((entry) => entry.provider === provider)
+        if (row) {
+          onKeySelect(row.id)
+          return
+        }
+      } catch {
+        // try next provider
+      }
+    }
+  }, [domainId, onKeySelect])
 
   // ── Fetch: Keys — IDE Board Layer 3 only ─────────────────────────────────
   React.useEffect(() => {
@@ -1059,6 +1082,15 @@ export function UniversalNavPanel({
               </p>
             )}
           </>
+        )
+      case "aiAccess":
+        if (!showAiAccessNav) return null
+        return (
+          <DomainAiAccessNav
+            domainId={domainId}
+            onManageKey={onKeySelect}
+            onAddKey={() => void handleAddDomainKey()}
+          />
         )
       case "library":
         if (!showLibraryNav) return null

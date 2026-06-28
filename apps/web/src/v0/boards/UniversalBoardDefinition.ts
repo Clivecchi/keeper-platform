@@ -31,6 +31,7 @@ export type NavRenderBlock =
   | NavSectionKey
   | "integrations"
   | "keys"
+  | "aiAccess"
   | "capabilities"
   | "library"
   | "boards"
@@ -78,6 +79,10 @@ export interface NavPanelDef {
    * Visually distinct from Domain Nav record sections above.
    */
   integrations?: NavInstrumentDef[]
+  /**
+   * Realm / Agent boards: soft AI access summary (included vs yours) — not the IDE key registry.
+   */
+  aiAccessSummary?: boolean
 }
 
 // Center panel — Dialog Frame
@@ -335,7 +340,9 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       boardDefs: false,
     },
     primarySection: "agents",
-    // Keys + platform AI providers live on IDE Board only — not personal/platform Agent nav.
+    navBlockOrder: ["agents", "aiAccess", "boards"],
+    aiAccessSummary: true,
+    // Full Keys + platform AI providers live on IDE Board only.
   },
   conversation: {
     agentSlug: "kip",
