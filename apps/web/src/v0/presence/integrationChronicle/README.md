@@ -40,6 +40,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-06-27 — Domain tier key flags (AI Access)
+- `domainKeyAccessSummary.ts` — tier-aware collapse; BYOK gated on `keeper`+ tiers
+- `fetchDomainKeyAccess()` — loads `GET /api/domains/:id/key-access`
+- `DomainAiAccessNav` — shows tier label; hides "Add your key" on Free tier
+
 ### 2026-06-27 — Domain AI access summary (included vs yours)
 - `domainKeyAccessSummary.ts` — soft labels (`Included`, `Yours`); never raw `platform` in UI.
 - Agent Board `DomainAiAccessNav` — count + brief provider lines; IDE keeps full key registry.

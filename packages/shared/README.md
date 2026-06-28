@@ -11,6 +11,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/draftPoints.ts` – Draft Point types and `spec_json.points` helpers
 - `src/glossAnchor.ts` – `GlossAnchor` type + DOM attribute helpers (Gloss-readiness)
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
+- `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -24,6 +25,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-06-27 — Domain tier key flags
+- Added `domainTier.ts` — `parseDomainTier`, `getDomainTierKeyPolicy`, `applyTierToResolvedProviderKey`, `defaultDomainSettingsForCreate`.
 
 ### 2026-06-19 — Draft spec merge safety (points preservation)
 - `mergeDraftSpecPatch` merges points by id; empty `points: []` no longer wipes existing points; non-content spec keys preserved on merge.

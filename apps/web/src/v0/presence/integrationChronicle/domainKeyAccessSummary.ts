@@ -1,3 +1,4 @@
+import type { DomainTierKeyPolicy } from "@keeper/shared"
 import {
   collapseKeyNavRows,
   IDE_AI_PROVIDERS,
@@ -41,11 +42,16 @@ export interface DomainAiAccessSummary {
   yoursCount: number
   includedCount: number
   connectedCount: number
+  canAddOwnKeys: boolean
 }
 
-export function summarizeDomainKeyAccess(rows: KeyNavRow[]): DomainAiAccessSummary {
-  const collapsed = collapseKeyNavRows(rows)
+export function summarizeDomainKeyAccess(
+  rows: KeyNavRow[],
+  policy?: DomainTierKeyPolicy,
+): DomainAiAccessSummary {
+  const collapsed = collapseKeyNavRows(rows, null, policy)
   const byProvider = new Map(collapsed.map((row) => [row.provider, row]))
+  const canAddOwnKeys = policy?.allowDomainKeys ?? true
 
   const lines: DomainProviderAccessLine[] = IDE_AI_PROVIDERS.map((provider) => {
     const row = byProvider.get(provider)
@@ -57,11 +63,12 @@ export function summarizeDomainKeyAccess(rows: KeyNavRow[]): DomainAiAccessSumma
         accessLabel: "Not connected",
         status: "missing",
         keyId: null,
-        canManage: true,
+        canManage: canAddOwnKeys,
       }
     }
 
     const accessKind = keyAccessKind(row)
+    const isYours = accessKind === "yours"
     return {
       provider,
       providerLabel: providerDisplayLabel(provider, row.display_label),
@@ -69,7 +76,7 @@ export function summarizeDomainKeyAccess(rows: KeyNavRow[]): DomainAiAccessSumma
       accessLabel: keyAccessKindLabel(accessKind),
       status: row.status,
       keyId: row.id,
-      canManage: accessKind === "yours" || row.status !== "valid",
+      canManage: isYours ? canAddOwnKeys : row.status !== "valid",
     }
   })
 
@@ -79,5 +86,5 @@ export function summarizeDomainKeyAccess(rows: KeyNavRow[]): DomainAiAccessSumma
   ).length
   const connectedCount = lines.filter((line) => line.status === "valid").length
 
-  return { lines, yoursCount, includedCount, connectedCount }
+  return { lines, yoursCount, includedCount, connectedCount, canAddOwnKeys }
 }

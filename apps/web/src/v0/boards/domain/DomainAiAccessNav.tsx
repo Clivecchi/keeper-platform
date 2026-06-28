@@ -1,12 +1,13 @@
 "use client"
 
 import * as React from "react"
+import type { DomainTierKeyPolicy } from "@keeper/shared"
 import {
   summarizeDomainKeyAccess,
   type DomainProviderAccessLine,
 } from "../../presence/integrationChronicle/domainKeyAccessSummary"
 import {
-  fetchAllDomainKeyRows,
+  fetchDomainKeyAccess,
   type KeyNavRow,
 } from "../../presence/integrationChronicle/keyNavUtils"
 
@@ -23,10 +24,7 @@ function AccessLine({
   line: DomainProviderAccessLine
   onManage?: (keyId: string) => void
 }) {
-  const connected = line.status === "valid"
-  const hint = connected
-    ? `${line.providerLabel} · ${line.accessLabel}`
-    : `${line.providerLabel} · ${line.accessLabel}`
+  const hint = `${line.providerLabel} · ${line.accessLabel}`
 
   if (line.keyId && line.canManage && onManage) {
     return (
@@ -53,16 +51,24 @@ function AccessLine({
 
 export function DomainAiAccessNav({ domainId, onManageKey, onAddKey }: DomainAiAccessNavProps) {
   const [rows, setRows] = React.useState<KeyNavRow[] | null>(null)
+  const [policy, setPolicy] = React.useState<DomainTierKeyPolicy | null>(null)
+  const [tierLabel, setTierLabel] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!domainId) return
     let cancelled = false
     setRows(null)
+    setPolicy(null)
+    setTierLabel(null)
     setError(null)
-    void fetchAllDomainKeyRows(domainId)
-      .then((list) => {
-        if (!cancelled) setRows(list)
+    void fetchDomainKeyAccess(domainId)
+      .then((payload) => {
+        if (!cancelled) {
+          setRows(payload.keys)
+          setPolicy(payload.policy)
+          setTierLabel(payload.tier.label)
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -76,21 +82,21 @@ export function DomainAiAccessNav({ domainId, onManageKey, onAddKey }: DomainAiA
   }, [domainId])
 
   const summary = React.useMemo(
-    () => (rows ? summarizeDomainKeyAccess(rows) : null),
-    [rows],
+    () => (rows ? summarizeDomainKeyAccess(rows, policy ?? undefined) : null),
+    [rows, policy],
   )
 
   const description = !domainId
     ? "Loading…"
     : summary
       ? summary.connectedCount === 0
-        ? "No providers connected yet"
-        : `${summary.includedCount} included · ${summary.yoursCount} yours`
+        ? `${tierLabel ?? "Free"} · no providers connected yet`
+        : `${tierLabel ?? "Free"} · ${summary.includedCount} included · ${summary.yoursCount} yours`
       : "Loading…"
 
-  const firstAddCandidate = summary?.lines.find(
-    (line) => line.canManage && line.status !== "valid",
-  )
+  const firstAddCandidate = summary?.canAddOwnKeys
+    ? summary.lines.find((line) => line.canManage && line.status !== "valid")
+    : undefined
 
   return (
     <div
@@ -114,7 +120,9 @@ export function DomainAiAccessNav({ domainId, onManageKey, onAddKey }: DomainAiA
           className="text-[9px] mt-1 leading-snug opacity-80"
           style={{ color: "var(--theme-ink-secondary-color, hsl(40 8% 72%))" }}
         >
-          Included access is private to your realm — shared capacity, never revealed.
+          {summary?.canAddOwnKeys
+            ? "Included access is private to your realm — shared capacity, never revealed."
+            : "Included access on your plan. Upgrade to add your own provider keys."}
         </p>
       </div>
 

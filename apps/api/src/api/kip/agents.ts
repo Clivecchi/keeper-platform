@@ -3849,6 +3849,7 @@ export class KipAgentService {
         settings: modelSettings,
         provider: modelProvider,
         userId,
+        domainId: promptOptions?.domainId,
         environment: promptOptions?.environment ?? undefined,
         jsonMode: requiresStructuredOutput && capabilities.jsonMode,
       });

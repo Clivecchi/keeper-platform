@@ -1,4 +1,5 @@
 import { apiFetch } from "../../../lib/apiFetch"
+import { isKeySourceAllowedForTier, type DomainTierKeyPolicy } from "@keeper/shared"
 
 export type KeyNavRow = {
   id: string
@@ -68,9 +69,13 @@ export function pickKeyRowForProvider(
   rows: KeyNavRow[],
   provider: string,
   preferredKeyId?: string | null,
+  policy?: DomainTierKeyPolicy,
 ): KeyNavRow | undefined {
   const providerRows = rows.filter(
-    (row) => row.provider === provider && row.status !== "revoked",
+    (row) =>
+      row.provider === provider &&
+      row.status !== "revoked" &&
+      (!policy || isKeySourceAllowedForTier(row.key_source, policy)),
   )
   if (providerRows.length === 0) return undefined
 
@@ -88,10 +93,30 @@ export function pickKeyRowForProvider(
 export function collapseKeyNavRows(
   rows: KeyNavRow[],
   preferredKeyId?: string | null,
+  policy?: DomainTierKeyPolicy,
 ): KeyNavRow[] {
   return IDE_AI_PROVIDERS.map((provider) =>
-    pickKeyRowForProvider(rows, provider, preferredKeyId),
+    pickKeyRowForProvider(rows, provider, preferredKeyId, policy),
   ).filter((row): row is KeyNavRow => row != null)
+}
+
+/** Fetch tier flags + synced Key presence for realm AI Access nav. */
+export type DomainKeyAccessPayload = {
+  tier: { id: string; label: string; description: string }
+  policy: DomainTierKeyPolicy
+  keys: KeyNavRow[]
+}
+
+export async function fetchDomainKeyAccess(domainId: string): Promise<DomainKeyAccessPayload> {
+  const response = (await apiFetch(
+    `/api/domains/${encodeURIComponent(domainId)}/key-access`,
+  )) as { success?: boolean; data?: DomainKeyAccessPayload }
+
+  if (!response?.data) {
+    throw new Error("Could not load domain key access")
+  }
+
+  return response.data
 }
 
 /** Fetch all non-revoked Key rows for a domain (after optional provider sync). */

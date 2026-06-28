@@ -35,6 +35,7 @@ import { buildKipEnvironmentContext } from '../../services/kip/buildKipEnvironme
 import { loadDomainPolicy, upsertDomainPolicy } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION } from '../../policy/policyPack.js';
 import { loadDomainAgentPolicy, ensureDomainAgentPolicy } from '../../governance/index.js';
+import { buildDomainKeyAccessPayload } from '../../routes/key-entity-routes.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -544,6 +545,48 @@ router.get('/:domainId/kip/agents', authMiddlewareCompat, requireDomainReadCompa
     return res.status(500).json({ error: 'FAILED_TO_LOAD_AGENTS', message: 'Failed to load domain agents' });
   }
 });
+
+// GET /api/domains/:domainId/key-access — tier flags + Key presence for realm AI Access nav
+router.get(
+  '/:domainId/key-access',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const { domainId } = req.params;
+      const domain = await getDomainService().getDomainById(domainId);
+      if (!domain) {
+        return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+      }
+
+      const permission = await getPermissionService().checkPermission({
+        userId: req.user.id,
+        domainId,
+        permission: 'read',
+      });
+      if (!permission.hasPermission) {
+        return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have access to this domain' });
+      }
+
+      const payload = await buildDomainKeyAccessPayload(domainId, req.user.id);
+      if (!payload) {
+        return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+      }
+
+      return res.json({ success: true, data: payload });
+    } catch (error) {
+      console.error('[domains:key-access:error]', error);
+      return res.status(500).json({
+        error: 'FAILED_TO_LOAD_KEY_ACCESS',
+        message: 'Failed to load domain key access',
+      });
+    }
+  },
+);
 
 // GET /api/domains/:domainId/management-board
 router.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {

@@ -8,6 +8,7 @@ import type { Domain, DomainPermission } from '@prisma/client';
 import { SlugValidationService } from './SlugValidationService.js';
 import { DomainCacheService } from './DomainCacheService.js';
 import { getFeatureFlagService } from './FeatureFlagService.js';
+import { defaultDomainSettingsForCreate } from '@keeper/shared';
 
 // Define the Domain with includes type using Prisma-derived types
 export type DomainWithIncludes = Prisma.DomainGetPayload<{
@@ -145,7 +146,9 @@ export class DomainService {
           features: JSON.parse(JSON.stringify({ ...defaultFeatures, ...request.features })),
           limits: JSON.parse(JSON.stringify({ ...defaultLimits, ...request.limits })),
           theme: JSON.parse(JSON.stringify(request.theme ?? {})),
-          settings: JSON.parse(JSON.stringify(request.settings ?? {})),
+          settings: JSON.parse(
+            JSON.stringify(defaultDomainSettingsForCreate(request.settings ?? {})),
+          ),
           isActive: true,
         },
       });

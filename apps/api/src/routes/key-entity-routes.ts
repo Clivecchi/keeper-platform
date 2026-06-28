@@ -14,7 +14,10 @@ import { resolveProviderApiKeyWithSource } from '../lib/resolveProviderApiKey.js
 import {
   resolveKeyChronicleDefaults,
   resolveKeyDeclarationBackfill,
+  isKeySourceAllowedForTier,
+  type DomainTierKeyPolicy,
 } from '@keeper/shared';
+import { loadDomainTierContext } from '../lib/loadDomainTier.js';
 
 const router: Router = Router();
 
@@ -138,7 +141,14 @@ async function syncProviderKeyPresence(
   domainId: string,
   provider: ModelProvider,
   userId: string | null,
+  policy?: DomainTierKeyPolicy,
 ): Promise<void> {
+  const tierContext = policy
+    ? null
+    : await loadDomainTierContext(domainId);
+  const keyPolicy = policy ?? tierContext?.policy;
+  if (!keyPolicy) return;
+
   const meta = PROVIDER_KEY_META[provider];
   if (!meta) return;
 
@@ -151,17 +161,17 @@ async function syncProviderKeyPresence(
     user_id: string | null;
   }> = [];
 
-  if (resolved.key && resolved.source === 'env') {
+  if (resolved.key && resolved.source === 'env' && isKeySourceAllowedForTier('env', keyPolicy)) {
     sources.push({ key_source: 'env', status: 'valid', user_id: null });
   }
-  if (userId) {
+  if (userId && isKeySourceAllowedForTier('user', keyPolicy)) {
     const userKey = await KipUserKeyService.getUserKey(provider, userId);
     if (userKey) {
       sources.push({ key_source: 'user', status: 'valid', user_id: userId });
     }
   }
   const platformKey = await PlatformApiKeyService.getKeyForProvider(provider);
-  if (platformKey) {
+  if (platformKey && isKeySourceAllowedForTier('platform', keyPolicy)) {
     sources.push({ key_source: 'platform', status: 'valid', user_id: null });
   }
   if (sources.length === 0) {
@@ -300,6 +310,18 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     const userId = key_source === 'user' ? bodyUserId ?? authReq.user?.id ?? null : null;
     if (key_source === 'user' && !userId) {
       return res.status(400).json({ error: 'user_id is required for user-sourced keys' });
+    }
+
+    if (key_source === 'user') {
+      const tierContext = await loadDomainTierContext(domain_id);
+      if (!tierContext?.policy.allowDomainKeys) {
+        return res.status(403).json({
+          error: 'TIER_BYOK_UNAVAILABLE',
+          message: 'Your realm tier does not include bringing your own provider keys.',
+          tier: tierContext?.tierId ?? 'free',
+          upgradeHint: 'Upgrade to Keeper tier to add your own keys.',
+        });
+      }
     }
 
     if (key_source === 'env') {
@@ -583,5 +605,42 @@ export const PROVIDER_KEY_META: Record<
     scope: 'Text-to-speech and voice synthesis for agents',
   },
 };
+
+export type DomainKeyAccessPayload = {
+  tier: { id: string; label: string; description: string };
+  policy: DomainTierKeyPolicy;
+  keys: KeyEntityRecord[];
+};
+
+/** Sync Key presence for all AI providers and return tier + policy + rows. */
+export async function buildDomainKeyAccessPayload(
+  domainId: string,
+  userId: string | null,
+): Promise<DomainKeyAccessPayload | null> {
+  const tierContext = await loadDomainTierContext(domainId);
+  if (!tierContext) return null;
+
+  for (const provider of VALID_PROVIDERS) {
+    await syncProviderKeyPresence(domainId, provider, userId, tierContext.policy);
+  }
+
+  const rows = await prisma.key.findMany({
+    where: {
+      domain_id: domainId,
+      status: { not: 'revoked' },
+    },
+    orderBy: [{ provider: 'asc' }, { key_source: 'asc' }],
+  });
+
+  return {
+    tier: {
+      id: tierContext.tierId,
+      label: tierContext.tier.label,
+      description: tierContext.tier.description,
+    },
+    policy: tierContext.policy,
+    keys: rows.map(toKeyRecord),
+  };
+}
 
 export default router;

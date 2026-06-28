@@ -37,6 +37,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-27: **Domain key access + tier flags** — `GET /:domainId/key-access` returns tier policy + synced Key presence for Agent Board AI Access nav.
 - 2026-06-27: **Domain-scoped agent list** — `GET /:domainId/kip/agents` returns domain lead (when not Kip) + Kip; not the global registry.
 - 2026-06-27: **Frame operational key freeze + strip** — `session_notes` and `platform_gaps` are frozen on `PATCH`/`publish` and stripped from `GET /:slug/frame` boot payloads via `frameOperationalKeys.ts`. Existing DB values preserved on publish until migrated to session/SOLE/Logbook.
 - 2026-06-22: **Draft ↔ Dialog auto-link** — `POST .../sessions/:sessionId/active-draft` sets `kip_drafts.dialog_id` from the session's Dialog when unset (Chronicle Sessions block). Kip draft actions use the same helper server-side.

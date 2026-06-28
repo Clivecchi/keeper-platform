@@ -10,6 +10,7 @@ import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ModelProvider, ModelSettings } from '@keeper/database';
 import { KipUserKeyService } from './KipUserKeyService.js';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
+import { resolveDomainProviderApiKeyWithSource } from '../lib/resolveDomainProviderApiKey.js';
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
 import { getModelCapabilities } from '../config/index.js';
 
@@ -82,6 +83,7 @@ export interface ModelCallOptions {
   settings: ModelSettings;
   provider: ModelProvider;
   userId?: string; // Optional user ID for user-scoped API keys
+  domainId?: string; // When set, tier flags gate included vs BYOK resolution
   environment?: Record<string, unknown> | null;
   /** When true, request JSON object output (OpenAI response_format) for structured responses */
   jsonMode?: boolean;
@@ -608,7 +610,7 @@ export class ModelProviderService {
    */
   static async callModel(options: ModelCallOptions): Promise<ModelResponse> {
     const startTime = Date.now();
-    const { messages, settings, provider, userId } = options;
+    const { messages, settings, provider, userId, domainId } = options;
     const retryConfig = settings.retry || { max_retries: 3, retry_delay_ms: 1000 };
     
     // Helper: treat empty/whitespace keys as invalid
@@ -634,6 +636,16 @@ export class ModelProviderService {
       } else if (provider === 'elevenlabs') {
         apiKey = validKey(process.env.ELEVENLABS_API_KEY);
         keySource = apiKey ? 'env' : 'none';
+      }
+    } else if (domainId) {
+      const domainResolved = await resolveDomainProviderApiKeyWithSource(
+        domainId,
+        provider,
+        userId,
+      );
+      if (domainResolved) {
+        apiKey = validKey(domainResolved.key);
+        keySource = domainResolved.source;
       }
     } else {
       // 1. Try environment key first (highest priority, recommended long-term)

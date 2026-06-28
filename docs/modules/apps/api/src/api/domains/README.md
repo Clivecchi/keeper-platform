@@ -12,6 +12,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
 - `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, update/archive, resolve-active.
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
+- `frameOperationalKeys.ts` – Frozen operational keys (`session_notes`, `platform_gaps`) stripped on boot GET, omitted from PATCH/publish writes.
 - `DOMAIN_HOME_BOARD_CHECKLIST.md` – Manual verification checklist for domain-home board ensure.
 
 ## 🔄 Data & Behavior
@@ -36,6 +37,9 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-27: **Domain key access + tier flags** — `GET /:domainId/key-access` returns tier policy + synced Key presence for Agent Board AI Access nav.
+- 2026-06-27: **Domain-scoped agent list** — `GET /:domainId/kip/agents` returns domain lead (when not Kip) + Kip; not the global registry.
+- 2026-06-27: **Frame operational key freeze + strip** — `session_notes` and `platform_gaps` are frozen on `PATCH`/`publish` and stripped from `GET /:slug/frame` boot payloads via `frameOperationalKeys.ts`. Existing DB values preserved on publish until migrated to session/SOLE/Logbook.
 - 2026-06-22: **Draft ↔ Dialog auto-link** — `POST .../sessions/:sessionId/active-draft` sets `kip_drafts.dialog_id` from the session's Dialog when unset (Chronicle Sessions block). Kip draft actions use the same helper server-side.
 - 2026-06-19: **Draft points preservation** — `POST /:domainId/kip/drafts` upsert merges `spec_json` via `mergeDraftSpecPatch` (no wipe on recreate); snapshots prior version on upsert.
 - 2026-06-15: **domain.frame.theme** — added `themeFrameSchema` (`DomainFrameTheme`) to `FRAME_SCHEMA_MAP`; Design Board Kip can propose brand token drafts on `?frame=theme`.
