@@ -12,6 +12,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
 - `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, update/archive, resolve-active.
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
+- `frameOperationalKeys.ts` – Frozen operational keys (`session_notes`, `platform_gaps`) stripped on boot GET, omitted from PATCH/publish writes.
 - `DOMAIN_HOME_BOARD_CHECKLIST.md` – Manual verification checklist for domain-home board ensure.
 
 ## 🔄 Data & Behavior
@@ -36,6 +37,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-27: **Frame operational key freeze + strip** — `session_notes` and `platform_gaps` are frozen on `PATCH`/`publish` and stripped from `GET /:slug/frame` boot payloads via `frameOperationalKeys.ts`. Existing DB values preserved on publish until migrated to session/SOLE/Logbook.
 - 2026-06-15: **domain.frame.theme** — added `themeFrameSchema` (`DomainFrameTheme`) to `FRAME_SCHEMA_MAP`; Design Board Kip can propose brand token drafts on `?frame=theme`.
 ### 2026-04-01 — Dialog: persistent conversation container
 - Added `kip-dialogs.ts` with four routes: `POST /:domainId/kip/dialogs`, `GET /:domainId/kip/dialogs`, `GET /:domainId/kip/dialogs/:dialogId`, `PATCH /:domainId/kip/dialogs/:dialogId`, and `GET /:domainId/kip/dialogs/resolve/active`.

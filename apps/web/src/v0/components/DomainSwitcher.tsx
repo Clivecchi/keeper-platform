@@ -119,14 +119,14 @@ export function DomainSwitcher({
     <>
       {/* Click-outside backdrop — transparent, covers full screen */}
       <div
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-[100]"
         aria-hidden
         onClick={onClose}
       />
 
-      {/* Panel */}
+      {/* Panel — fixed to viewport so it is not clipped by board overflow */}
       <div
-        className="absolute z-50 flex flex-col overflow-hidden rounded-md"
+        className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
         style={{
           top: 72,        // flush below KeeperTopBar (40px row 1 + 32px row 2)
           left: 0,

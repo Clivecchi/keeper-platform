@@ -13,6 +13,7 @@
  */
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { useNavigate } from "react-router-dom"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
@@ -45,9 +46,9 @@ function DomainSwitcherStatusPanel({
 
   return (
     <>
-      <div className="fixed inset-0 z-40" aria-hidden onClick={onClose} />
+      <div className="fixed inset-0 z-[100]" aria-hidden onClick={onClose} />
       <div
-        className="absolute z-50 flex flex-col overflow-hidden rounded-md"
+        className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
         style={{
           top: 72,
           left: 0,
@@ -171,44 +172,46 @@ export function DomainBoard() {
     setFetchAttempt((value) => value + 1)
   }, [])
 
+  const switcherOverlay =
+    switcherOpen && fetchState === "loading" ? (
+      <DomainSwitcherStatusPanel
+        title="Loading domains"
+        message="Fetching your domain list…"
+        onClose={closeSwitcher}
+      />
+    ) : switcherOpen && fetchState === "error" ? (
+      <DomainSwitcherStatusPanel
+        title="Could not load domains"
+        message="The domain list could not be fetched. Check your connection and try again."
+        onClose={closeSwitcher}
+        actionLabel="Try again"
+        onAction={retryFetch}
+      />
+    ) : switcherOpen && fetchState === "ready" && domains.length === 0 ? (
+      <DomainSwitcherStatusPanel
+        title="No domains yet"
+        message="You do not have any domains to switch to. Domain creation is coming in the next step."
+        onClose={closeSwitcher}
+      />
+    ) : switcherOpen && fetchState === "ready" && domains.length > 0 ? (
+      <DomainSwitcher
+        domains={domains}
+        currentSlug={slug || domains[0]?.slug || ""}
+        onSelect={handleDomainSelect}
+        onAddDomain={() => console.log("Add domain")}
+        onClose={closeSwitcher}
+      />
+    ) : null
+
   return (
     <>
       <UniversalBoard
         def={DOMAIN_BOARD_DEF}
         onDomainClick={() => setSwitcherOpen(true)}
       />
-      {switcherOpen && fetchState === "loading" ? (
-        <DomainSwitcherStatusPanel
-          title="Loading domains"
-          message="Fetching your domain list…"
-          onClose={closeSwitcher}
-        />
-      ) : null}
-      {switcherOpen && fetchState === "error" ? (
-        <DomainSwitcherStatusPanel
-          title="Could not load domains"
-          message="The domain list could not be fetched. Check your connection and try again."
-          onClose={closeSwitcher}
-          actionLabel="Try again"
-          onAction={retryFetch}
-        />
-      ) : null}
-      {switcherOpen && fetchState === "ready" && domains.length === 0 ? (
-        <DomainSwitcherStatusPanel
-          title="No domains yet"
-          message="You do not have any domains to switch to. Domain creation is coming in the next step."
-          onClose={closeSwitcher}
-        />
-      ) : null}
-      {switcherOpen && fetchState === "ready" && domains.length > 0 ? (
-        <DomainSwitcher
-          domains={domains}
-          currentSlug={slug || domains[0]?.slug || ""}
-          onSelect={handleDomainSelect}
-          onAddDomain={() => console.log("Add domain")}
-          onClose={closeSwitcher}
-        />
-      ) : null}
+      {typeof document !== "undefined" && switcherOverlay
+        ? createPortal(switcherOverlay, document.body)
+        : null}
     </>
   )
 }

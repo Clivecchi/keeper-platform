@@ -24,6 +24,10 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - Client filters inactive / soft-deleted rows.
 - `DomainSwitcher` ink/border tokens fixed for dark board theme (`--theme-ink-*-color`, `hsl(var(--theme-border-soft))`).
 
+### 2026-06-27 — Domain switcher overlay + stale cache fix
+- Switcher/status panels render via `createPortal(document.body)` with `position: fixed` so the dropdown is not clipped by board layout.
+- API `getUserDomains` heals stale Redis lists when owned domains are missing from cache (repair-script path).
+
 ### 2026-06-27 — Step 1.1: Real domains in DomainSwitcher
 - Removed `MOCK_DOMAINS` from `DomainBoard.tsx`.
 - Added `domainSwitcherData.ts` — live fetch from `GET /api/domains` (`domains` array from paginated response). Uses same-origin fetch on localhost so Vite `/api` proxy is used during local dev.

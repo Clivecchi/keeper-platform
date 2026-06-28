@@ -9,6 +9,10 @@ import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { normalizeDraftSpecJson, mergeDraftSpecPatch, canonicalizeDraftSpecJson } from '@keeper/shared';
 import { normalizeSummary } from '../kip/actions/schema.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
+import {
+  omitOperationalFrameKeysFromPatch,
+  pickOperationalFrameKeys,
+} from './frameOperationalKeys.js';
 
 /**
  * Build draft open URL
@@ -519,7 +523,7 @@ router.post(
       // Fetch domain — needed for ownership check and slug in response
       const domain = await prisma.domain.findUnique({
         where: { id: domainId },
-        select: { id: true, slug: true, ownerId: true },
+        select: { id: true, slug: true, ownerId: true, frame_json: true },
       });
 
       if (!domain) {
@@ -549,9 +553,17 @@ router.post(
       }
 
       // Write spec_json → Domain.frame_json (full replace) using raw SQL.
+      // Frozen operational keys are stripped from the draft and preserved from live frame.
       // Prisma ORM silently fails to persist JSONB updates on this column in some
       // configurations — raw SQL with ::jsonb cast is the reliable path.
-      const frameJsonStr = JSON.stringify(specJson);
+      const preservedOperational = pickOperationalFrameKeys(
+        domain.frame_json as Record<string, unknown> | null,
+      );
+      const sanitizedSpec = omitOperationalFrameKeysFromPatch(
+        specJson as Record<string, unknown>,
+      );
+      const frameToWrite = { ...sanitizedSpec, ...preservedOperational };
+      const frameJsonStr = JSON.stringify(frameToWrite);
       await prisma.$executeRaw`
         UPDATE "Domain"
         SET frame_json = ${frameJsonStr}::jsonb,

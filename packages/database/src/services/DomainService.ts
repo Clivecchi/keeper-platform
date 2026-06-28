@@ -163,6 +163,7 @@ export class DomainService {
 
       // Cache the new domain
       await this.cacheService.cacheDomain(domain);
+      await this.cacheService.invalidateUser(request.ownerId);
 
       // Log domain creation
       await this.logDomainActivity(domain.id, request.ownerId, 'create_domain', {
@@ -416,7 +417,24 @@ export class DomainService {
       const domains = await Promise.all(
         cachedDomainIds.map(id => this.getDomainById(id))
       );
-      return domains.filter(Boolean) as DomainWithPermissions[];
+      const cached = domains.filter(Boolean) as DomainWithPermissions[];
+      const cachedIdSet = new Set(cached.map((domain) => domain.id));
+
+      // Heal stale user-domain lists (e.g. domain created outside createDomain / repair scripts).
+      const ownedMissingFromCache = await this.prisma.domain.count({
+        where: {
+          ownerId: userId,
+          isActive: true,
+          deletedAt: null,
+          id: { notIn: [...cachedIdSet] },
+        },
+      });
+
+      if (ownedMissingFromCache === 0) {
+        return cached;
+      }
+
+      await this.cacheService.invalidateUser(userId);
     }
 
     // Fetch from database

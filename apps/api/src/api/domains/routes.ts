@@ -23,6 +23,12 @@ import { createDomainResolutionMiddleware } from '../../middleware/domainResolut
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
 import { ensureDomainHomeBoard, ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
+import {
+  omitOperationalFrameKeysFromPatch,
+  patchTouchesFrozenFrameKeys,
+  pickOperationalFrameKeys,
+  stripOperationalFrameKeys,
+} from './frameOperationalKeys.js';
 import { KipAgentService } from '../kip/agents.js';
 import type { AgentResponse, KipCommandIntent } from '@keeper/database';
 import { buildKipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
@@ -181,7 +187,8 @@ router.get('/:slug/frame', async (req: Request, res: Response) => {
       frameJson === undefined ||
       (typeof frameJson === 'object' && Object.keys(frameJson as object).length === 0);
 
-    return res.json(isEmpty ? DEFAULT_FRAME_FALLBACK : frameJson);
+    const rawFrame = isEmpty ? DEFAULT_FRAME_FALLBACK : (frameJson as Record<string, unknown>);
+    return res.json(stripOperationalFrameKeys(rawFrame));
   } catch (error) {
     console.error('[domains:frame:error]', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -218,10 +225,16 @@ router.patch('/:slug/frame', authMiddlewareCompat, async (req: Request, res: Res
     const current = (domain.frame_json as Record<string, unknown>) ?? {};
     const patch = req.body as Record<string, unknown>;
 
+    if (patchTouchesFrozenFrameKeys(patch)) {
+      console.info('[domains:frame:patch] ignored frozen operational keys in patch');
+    }
+
+    const sanitizedPatch = omitOperationalFrameKeysFromPatch(patch);
+
     // Deep-merge top-level keys; for 'theme', also merge nested sub-objects
     const merged: Record<string, unknown> = { ...current };
-    for (const key of Object.keys(patch)) {
-      const pVal = patch[key];
+    for (const key of Object.keys(sanitizedPatch)) {
+      const pVal = sanitizedPatch[key];
       const cVal = current[key];
       if (pVal !== null && typeof pVal === 'object' && !Array.isArray(pVal) &&
           cVal !== null && typeof cVal === 'object' && !Array.isArray(cVal)) {
@@ -247,7 +260,7 @@ router.patch('/:slug/frame', authMiddlewareCompat, async (req: Request, res: Res
     const mergedJson = JSON.stringify(merged);
     await prisma.$executeRaw`UPDATE "Domain" SET frame_json = ${mergedJson}::jsonb WHERE id = ${domain.id}`;
 
-    return res.json({ ok: true, frame: merged });
+    return res.json({ ok: true, frame: stripOperationalFrameKeys(merged) });
   } catch (error) {
     console.error('[domains:frame:patch:error]', error);
     return res.status(500).json({ error: 'Internal server error' });
