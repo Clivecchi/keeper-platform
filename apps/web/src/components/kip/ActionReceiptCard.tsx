@@ -25,12 +25,21 @@ export interface ActionReceipt {
   }
 }
 
+export interface KeepAsMomentPayload {
+  title: string
+  narrative: string
+  imageUrl?: string
+}
+
 export interface ActionReceiptCardProps {
   receipt: ActionReceipt
+  /** Agent message text surrounding this receipt — included in the kept moment body. */
+  contextNarrative?: string
   onOpenDraft?: (draftId: string) => void
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
   onOpenSoleMemory?: (memoryCardId: string) => void
+  onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -181,6 +190,94 @@ function PathReceiptCard({
   )
 }
 
+function deriveKeepTitle(
+  subject: string | undefined,
+  imagePrompt: string | undefined,
+  contextNarrative: string | undefined,
+): string {
+  if (subject?.trim()) return subject.trim()
+  if (imagePrompt?.trim()) {
+    const trimmed = imagePrompt.trim()
+    return trimmed.length > 72 ? `${trimmed.slice(0, 69)}…` : trimmed
+  }
+  const firstLine = contextNarrative?.split("\n").find((line) => line.trim())?.trim()
+  if (firstLine) {
+    return firstLine.length > 72 ? `${firstLine.slice(0, 69)}…` : firstLine
+  }
+  return "Captured moment"
+}
+
+function ImageReceiptCard({
+  imageUrl,
+  imagePrompt,
+  subject,
+  contextNarrative,
+  onKeepAsMoment,
+}: {
+  imageUrl: string
+  imagePrompt?: string
+  subject?: string
+  contextNarrative?: string
+  onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
+}) {
+  const [keeping, setKeeping] = React.useState(false)
+
+  const handleKeep = async () => {
+    if (!onKeepAsMoment || keeping) return
+    setKeeping(true)
+    try {
+      await onKeepAsMoment({
+        title: deriveKeepTitle(subject, imagePrompt, contextNarrative),
+        narrative: contextNarrative?.trim() ?? "",
+        imageUrl,
+      })
+    } finally {
+      setKeeping(false)
+    }
+  }
+
+  return (
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{
+        borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+        backgroundColor: "hsl(var(--theme-surface-paper) / 0.95)",
+      }}
+    >
+      <div
+        className="flex items-center gap-1.5 border-b px-3 py-1.5"
+        style={{
+          borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+          background: "hsl(var(--theme-surface-elevated) / 0.6)",
+        }}
+      >
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Generated image
+        </span>
+      </div>
+      <img src={imageUrl} alt={subject ?? "Generated image"} className="w-full object-cover" loading="lazy" />
+      {imagePrompt && (
+        <p className="px-3 py-2 text-xs leading-relaxed" style={{ color: "var(--theme-ink-tertiary-color)" }}>
+          {imagePrompt}
+        </p>
+      )}
+      {onKeepAsMoment && (
+        <div className="border-t px-3 py-2.5" style={{ borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))" }}>
+          <button
+            type="button"
+            onClick={() => void handleKeep()}
+            disabled={keeping}
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
+          >
+            {keeping ? "Keeping…" : "Keep as Moment →"}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MomentReceiptCard({
   moment,
   onOpen,
@@ -299,10 +396,12 @@ function SoleMemoryReceiptCard({
 
 export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   receipt,
+  contextNarrative,
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
   onOpenSoleMemory,
+  onKeepAsMoment,
 }) => {
   const { type, status, message, errorCode, data } = receipt
   const draft =
@@ -341,20 +440,13 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
 
     if (imageUrl) {
       return (
-        <div
-          className="overflow-hidden rounded-xl border"
-          style={{
-            borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
-            backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))",
-          }}
-        >
-          <img src={imageUrl} alt={subject ?? "Generated image"} className="w-full object-cover" loading="lazy" />
-          {imagePrompt && (
-            <p className="px-3 py-2 text-xs leading-relaxed" style={{ color: "var(--theme-ink-tertiary-color)" }}>
-              {imagePrompt}
-            </p>
-          )}
-        </div>
+        <ImageReceiptCard
+          imageUrl={imageUrl}
+          imagePrompt={imagePrompt}
+          subject={subject}
+          contextNarrative={contextNarrative}
+          onKeepAsMoment={onKeepAsMoment}
+        />
       )
     }
   }

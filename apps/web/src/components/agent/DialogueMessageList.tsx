@@ -7,7 +7,7 @@
 import React from "react"
 import clsx from "clsx"
 import { LinkedCard } from "../props/LinkedCard"
-import { ActionReceiptCard } from "../kip/ActionReceiptCard"
+import { ActionReceiptCard, type KeepAsMomentPayload } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
 import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
 import { normalizeActionReceipt } from "./types"
@@ -75,6 +75,8 @@ export interface DialogueMessageListProps {
   onOpenJourney?: (journeyId: string) => void
   /** Callback when user confirms a proposed draft update */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
+  /** Callback when user keeps dialog content (e.g. generated image) as a moment */
+  onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
   agentName?: string
   /** Echo attribution fallback when message.echo.attributedTo is missing */
@@ -102,6 +104,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onKeepAsMoment,
   onConfirmDraftUpdate,
   agentName = "Agent",
   echoAgentName,
@@ -219,6 +222,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                     <ActionReceiptCard
                       key={idx}
                       receipt={receipt}
+                      contextNarrative={message.role === "agent" ? message.content : undefined}
                       onOpenDraft={
                         receipt.data?.draft?.id
                           ? (draftId) => onOpenDraft?.(draftId)
@@ -229,6 +233,12 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                           ? (momentId) => onOpenMoment?.(momentId)
                           : undefined
                       }
+                      onOpenJourney={
+                        receipt.data?.journey?.id
+                          ? (journeyId) => onOpenJourney?.(journeyId)
+                          : undefined
+                      }
+                      onKeepAsMoment={onKeepAsMoment}
                     />
                   )
                 })}

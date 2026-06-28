@@ -36,6 +36,8 @@ import { loadDomainPolicy, upsertDomainPolicy } from '../../policy/domainPolicyS
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION } from '../../policy/policyPack.js';
 import { loadDomainAgentPolicy, ensureDomainAgentPolicy } from '../../governance/index.js';
 import { buildDomainKeyAccessPayload } from '../../routes/key-entity-routes.js';
+import { DOMAIN_FRAME_FALLBACK } from '../../services/domains/domainFrameFallback.js';
+import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -122,57 +124,7 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
 // GET /api/domains/:slug/frame - Public. Returns the domain frame JSON.
 // Drives the public cover card, InteractionBar, and companion config.
 // Falls back to the default frame shape if frame_json is null or empty on the record.
-const DEFAULT_FRAME_FALLBACK = {
-  domain: 'default',
-  keeper_type: 'platform',
-  theme: {
-    wordmark: 'KE3P',
-    tagline: 'cryptically designed, wonderfully underfolded',
-    background: '/images/keeper-dawn.jpg',
-    colors: { primary: '#2d6a7f', accent: '#b8963e', surface: '#fdfaf4' },
-    fonts: { display: 'Cormorant Garamond', ui: 'Outfit' },
-  },
-  kip: {
-    agent_id: 'kip-default',
-    model: 'claude-sonnet-4-6',
-    visibility: 'public',
-    greeting: 'Hello. What would you like to keep today?',
-  },
-  audience_roles: ['guest', 'keeper', 'admin'],
-  cover: {
-    slide_type: 'domain_cover',
-    card: { type: 'journey_invitation', available_to: ['guest', 'keeper', 'admin'] },
-  },
-  forward: { label: 'Forward', destination: 'journey/default', available_to: ['guest', 'keeper', 'admin'] },
-  directions: [
-    { label: 'Journeys', frame: 'journeys', available_to: ['keeper', 'admin'] },
-    { label: 'Sign In', action: 'auth.signin', available_to: ['guest'] },
-  ],
-  kip_context: {
-    guest: 'A visitor exploring Keeper for the first time. Warm welcome. Offer Forward.',
-    keeper: 'An authenticated keeper. Orient to their journeys and moments.',
-    admin: 'Platform admin. Full context available.',
-  },
-  interaction_bar: {
-    primary: 'forward',
-    secondary: ['kip'],
-    auth: { guest: ['sign_in'], keeper: [], admin: ['settings'] },
-    labels: {
-      forward: 'Forward',
-      kip: 'Kip',
-      sign_in: 'Sign In',
-      settings: 'Settings',
-    },
-  },
-  agent_board: {
-    messaging: {
-      dialogue: {
-        start_prompt: 'Say hello to {agent_name} to start the conversation.',
-        thinking: '{agent_name} is thinking…',
-      },
-    },
-  },
-};
+const DEFAULT_FRAME_FALLBACK = DOMAIN_FRAME_FALLBACK;
 
 router.get('/:slug/frame', async (req: Request, res: Response) => {
   try {
@@ -918,7 +870,12 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       console.warn('[domains] Failed to ensure domain agent policy:', err)
     );
 
-    return res.status(201).json({ domain });
+    const provisioned = await provisionDomainOnCreate(prisma, { domain }).catch((err) => {
+      console.warn('[domains] Domain provision after create failed:', err);
+      return null;
+    });
+
+    return res.status(201).json({ domain: provisioned?.domain ?? domain });
   } catch (error) {
     console.error('Error creating domain:', error);
     if (error instanceof Error) {
@@ -926,6 +883,43 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         return res.status(409).json({ error: error.message });
       }
     }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/domains/:id/provision — idempotent seed/repair for frame, lead agent, keeper (domain admin)
+router.post('/:id/provision', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const domain = await getDomainService().getDomainById(req.params.id);
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    const permission = await getPermissionService().checkPermission({
+      userId: req.user.id,
+      domainId: domain.id,
+      permission: 'admin',
+    });
+
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const provisioned = await provisionDomainOnCreate(prisma, { domain });
+    return res.json({
+      domain: provisioned.domain,
+      provision: {
+        keeperId: provisioned.keeperId,
+        leadAgentId: provisioned.leadAgentId,
+        leadAgentSlug: provisioned.leadAgentSlug,
+      },
+    });
+  } catch (error) {
+    console.error('[domains:provision:error]', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

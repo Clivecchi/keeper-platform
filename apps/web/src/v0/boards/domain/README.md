@@ -16,9 +16,10 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - No feed/dialog toggle — the center is always a dialog. The feed lives in Chronicle.
 
 ## ⚠️ Notes & ToDo
-- [ ] Default lead agent + keeper seed on domain create (Chronicle — remainder of Step 1.2).
-- [ ] Set `primaryDomainId` when user's first personal domain is created.
+- [x] Default lead agent + keeper seed on domain create (`provisionDomainOnCreate` — Step 1.2).
+- [x] Set `primaryDomainId` when user's first personal domain is created.
 - [ ] Domain Board session resumption — allow users to return to a prior Domain session via Chronicle trail.
+- [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready).
 
 ## 📆 Update Log
 

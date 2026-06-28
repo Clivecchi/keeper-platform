@@ -24,6 +24,7 @@ import { AgentComposer } from "../../../components/agent/AgentComposer"
 import type { AgentComposerProps, AgentAttachment, PendingAttachment, ComposerSubmitPayload } from "../../../components/agent/AgentComposer"
 import { isPastedSupportingDoc } from "../../../components/agent/composerSupporting"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
+import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
@@ -117,6 +118,7 @@ export interface KeeperDialogFrameProps {
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
   onOpenSoleMemory?: (memoryCardId: string) => void
+  onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
   onConfirmDraftUpdate?: (
     draftId: string,
     payload: { title?: string; summary?: string; status?: string; spec?: unknown },
@@ -202,6 +204,7 @@ export function KeeperDialogFrame({
   onOpenMoment,
   onOpenJourney,
   onOpenSoleMemory,
+  onKeepAsMoment,
   onConfirmDraftUpdate,
   onAcceptDraftPoint,
   acceptedDraftPointIds,
@@ -562,6 +565,7 @@ export function KeeperDialogFrame({
                     onOpenDraft={onOpenDraft}
                     onOpenMoment={onOpenMoment}
                     onOpenJourney={onOpenJourney}
+                    onKeepAsMoment={onKeepAsMoment}
                     onOpenSoleMemory={onOpenSoleMemory}
                     onConfirmDraftUpdate={onConfirmDraftUpdate}
                     onAcceptDraftPoint={onAcceptDraftPoint}

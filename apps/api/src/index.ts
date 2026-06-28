@@ -32,6 +32,7 @@ import { randomUUID } from 'crypto';
 import domainRoutes from './api/domains/routes.js';
 import governanceRouter from './api/governance/routes.js';
 import { ensureDomainAgentPolicy, ensureAllDomainsHaveAgentPolicy } from './governance/index.js';
+import { provisionDomainOnCreate } from './services/domains/provisionDomainOnCreate.js';
 import { ensureAiModelIntegrations } from './lib/ensureAiModelIntegrations.js';
 import flatDomainsRouter from './api/domains.js';
 import domainBoardDataRouter from './api/domains/board-data.js';
@@ -854,24 +855,10 @@ app.post('/api/kam/auth/register', async (req, res) => {
         console.warn('[auth] Failed to ensure domain agent policy for new user:', err)
       );
 
-      // Auto-create a default Keeper so Journey creation works immediately
-      try {
-        await prisma.keeper.create({
-          data: {
-            id: `keeper-default-${newUser.id}`,
-            title: `${name}'s Keeper`,
-            purpose: 'Default keeper for organizing journeys and moments.',
-            ownerId: newUser.id,
-            domainId: newDomainId,
-            keeperType: 'PersonalKeeper',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
-        console.log('[auth] Default keeper created for new user:', newUser.email);
-      } catch (keeperError) {
-        console.error('Failed to create default keeper on signup:', keeperError);
-      }
+      const createdDomain = await prisma.domain.findUniqueOrThrow({ where: { id: newDomainId } });
+      await provisionDomainOnCreate(prisma, { domain: createdDomain }).catch((err) => {
+        console.warn('[auth] Domain provision after signup failed:', err);
+      });
     } catch (domainError) {
       console.error('❗ Failed to create personal domain on signup:', domainError);
       // We don’t fail the signup if domain creation fails, but we surface a log for debugging.

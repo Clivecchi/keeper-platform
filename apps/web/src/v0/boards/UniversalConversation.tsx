@@ -57,11 +57,8 @@ import {
   resumeOrCreateBoardSession,
   resolveActiveDialogSessions,
 } from "../../lib/kipDialogSession"
-import {
-  BOARD_INSTRUMENT_LABELS,
-  extractAgentReplyFromRunResult,
-  type DirectorSendPhase,
-} from "./directorDialog"
+import { createDraftMoment, keepMoment } from "../api/v0Moments"
+import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -1271,6 +1268,38 @@ export function UniversalConversation({
     ],
   )
 
+  const handleKeepAsMoment = React.useCallback(
+    async (payload: KeepAsMomentPayload) => {
+      if (!domainSlug) {
+        throw new Error("Domain context is required to keep moments")
+      }
+      const bodyParts: string[] = []
+      if (payload.narrative.trim()) bodyParts.push(payload.narrative.trim())
+      if (payload.imageUrl) {
+        bodyParts.push(`![${payload.title}](${payload.imageUrl})`)
+      }
+      const draft = await createDraftMoment({
+        domainSlug,
+        title: payload.title,
+        body: bodyParts.join("\n\n") || payload.title,
+      })
+      await keepMoment(draft.id, {
+        domainSlug,
+        journeyId: selectedJourneyId ?? undefined,
+        keeperId: selectedKeeperId ?? undefined,
+      })
+      onJourneyListRefresh?.()
+      onMomentSelect(draft.id)
+    },
+    [
+      domainSlug,
+      selectedJourneyId,
+      selectedKeeperId,
+      onJourneyListRefresh,
+      onMomentSelect,
+    ],
+  )
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -1306,6 +1335,7 @@ export function UniversalConversation({
         onOpenDraft={onDraftSelect}
         onOpenMoment={onMomentSelect}
         onOpenJourney={(id) => onJourneySelect(id)}
+        onKeepAsMoment={domainSlug ? handleKeepAsMoment : undefined}
         onOpenSoleMemory={(memoryCardId) => actions.onSoleMemorySelect(memoryCardId)}
         onConfirmDraftUpdate={domainId ? handleConfirmDraftUpdate : undefined}
         onAcceptDraftPoint={domainId ? handleAcceptDraftPoint : undefined}
