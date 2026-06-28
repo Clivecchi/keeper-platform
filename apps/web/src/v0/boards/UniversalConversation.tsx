@@ -911,6 +911,14 @@ export function UniversalConversation({
     idleMessages,
   })
 
+  // Safety net: session exists but transcript was cleared (e.g. stale openIdle) — refetch once.
+  React.useEffect(() => {
+    if (isSending || !dialogSessionId) return
+    if (messages.length > 0) return
+    if (kipMode === "designer") return
+    void fetchMessages(dialogSessionId)
+  }, [kipMode, dialogSessionId, messages.length, isSending, fetchMessages])
+
   // ── IDE director mode: pin Cloud / Rendr for delegation + Chronicle focus ─
   const handleToolInvoke = React.useCallback(
     (tool: ToolSlug) => {
@@ -932,6 +940,7 @@ export function UniversalConversation({
   React.useEffect(() => {
     if (kipMode !== "ide" || !agentId) return
     if (frameCtx?.isResolving) return
+    if (activeSessionId) return
 
     const resolvedDomainId =
       domainId && !String(domainId).startsWith("fallback-") ? domainId : undefined
@@ -965,6 +974,7 @@ export function UniversalConversation({
   }, [
     kipMode,
     agentId,
+    activeSessionId,
     domainId,
     domainSlug,
     audience,
@@ -1273,23 +1283,32 @@ export function UniversalConversation({
       if (!domainSlug) {
         throw new Error("Domain context is required to keep moments")
       }
-      const bodyParts: string[] = []
-      if (payload.narrative.trim()) bodyParts.push(payload.narrative.trim())
-      if (payload.imageUrl) {
-        bodyParts.push(`![${payload.title}](${payload.imageUrl})`)
+      try {
+        const bodyParts: string[] = []
+        if (payload.narrative.trim()) bodyParts.push(payload.narrative.trim())
+        if (payload.imageUrl) {
+          bodyParts.push(`![${payload.title}](${payload.imageUrl})`)
+        }
+        const draft = await createDraftMoment({
+          domainSlug,
+          title: payload.title,
+          body: bodyParts.join("\n\n") || payload.title,
+        })
+        await keepMoment(draft.id, {
+          domainSlug,
+          journeyId: selectedJourneyId ?? undefined,
+          keeperId: selectedKeeperId ?? undefined,
+        })
+        onJourneyListRefresh?.()
+        onMomentSelect(draft.id)
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not keep this as a moment. Try again."
+        setError(message)
+        throw err
       }
-      const draft = await createDraftMoment({
-        domainSlug,
-        title: payload.title,
-        body: bodyParts.join("\n\n") || payload.title,
-      })
-      await keepMoment(draft.id, {
-        domainSlug,
-        journeyId: selectedJourneyId ?? undefined,
-        keeperId: selectedKeeperId ?? undefined,
-      })
-      onJourneyListRefresh?.()
-      onMomentSelect(draft.id)
     },
     [
       domainSlug,
@@ -1297,6 +1316,7 @@ export function UniversalConversation({
       selectedKeeperId,
       onJourneyListRefresh,
       onMomentSelect,
+      setError,
     ],
   )
 

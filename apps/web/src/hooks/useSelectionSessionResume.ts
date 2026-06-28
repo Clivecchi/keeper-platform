@@ -136,10 +136,25 @@ export function useSelectionSessionResume({
       return
     }
 
+    // Domain Board: same rule — draft/journey/keeper nav drives Chronicle; center Dialog keeps its session.
+    if (
+      kipMode === "domain" &&
+      !selectedDialogId &&
+      (selectedKeeperId || selectedJourneyId || selectedDraftId)
+    ) {
+      return
+    }
+
     const token = ++resumeRef.current
     let cancelled = false
 
     const openIdle = () => {
+      const current = activeSessionIdRef.current
+      if (current) {
+        // Session still exists — refetch instead of wiping the transcript in place.
+        void fetchMessages(current)
+        return
+      }
       onSessionSelect(null)
       setMessages(idleMessages)
     }
@@ -197,6 +212,17 @@ export function useSelectionSessionResume({
           if (sessionId) {
             onSessionSelect(sessionId)
             await fetchMessages(sessionId)
+          } else if (activeSessionIdRef.current) {
+            // No draft-linked session yet — keep the live dialog and link it to the draft.
+            try {
+              await KipApi.setActiveDraft(domainId, activeSessionIdRef.current, selectedDraftId)
+            } catch {
+              /* best-effort link */
+            }
+            await fetchMessages(activeSessionIdRef.current)
+          } else if (kipMode === "ide") {
+            // IDE board session bootstrap owns first session — do not wipe to idle greeting.
+            return
           } else {
             openIdle()
           }

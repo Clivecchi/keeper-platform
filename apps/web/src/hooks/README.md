@@ -28,6 +28,12 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-06-28 — Domain Board dialog preserved on draft nav
+- `useSelectionSessionResume` — Domain Board draft/journey/keeper nav no longer clears center Dialog (Chronicle-only, same as Agent Board).
+- `UniversalBoardContext` — Dialog/Journey/Keeper/Moment/Agent nav clears `?draftId=` so URL sync does not undo Dialog selection.
+- `openIdle` — refetches active session instead of wiping transcript when session id still exists.
+- IDE draft resume — when no draft-linked session exists, links the active session to the draft instead of wiping to idle greeting.
+
 ### 2026-06-22 — Universal composer draft autosave
 - Added `useComposerDraftAutosave.ts` — debounced `sessionStorage` persist keyed by domain, board, agent, and session.
 - Wired into `useAgentDialog` (Universal Board), `AgentBoardFrame`, `CompanionSlide`, and `CoverChatInterface`.

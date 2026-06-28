@@ -24,8 +24,16 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-28 — Domain dialog no longer wiped by draft URL
+- **useSelectionSessionResume:** Domain Board `?draftId=` / draft nav drives Chronicle only — center Dialog keeps its Kip session (fixes empty “Say hello to Kip” after Opening Moment Spec selection).
+- **UniversalBoardContext:** `onDialogSelect` (and Journey/Keeper/Moment/Agent) clears `?draftId=` from the URL so Dialog nav clicks are not immediately undone by URL sync.
+- **useSelectionSessionResume `openIdle`:** refetches the active session instead of wiping messages when a session id still exists.
+- **UniversalConversation:** refetches messages when session is set but transcript is empty (recovery after stale wipe).
+- **IDE draft resume:** links active session to draft when none is linked yet; avoids resetting to idle greeting.
+- **UniversalConversation:** IDE session bootstrap skips when a session is already active.
+
 ### 2026-06-26 — Message-frame draft open pipeline
-- **UniversalBoardContext:** `?draftId=` URL syncs to `selectedDraftId`; `onDraftSelect` writes `draftId` + `board=domain` to the query string so Chronicle opens the draft from message receipts and shared links.
+- **UniversalBoardContext:** `?draftId=` URL syncs to `selectedDraftId`; `onDraftSelect` writes `draftId` + `board=domain` to the query string so Chronicle opens the draft from message receipts and shared links. Dialog/Journey/Keeper nav clears `?draftId=` so center Dialog resume is not blocked.
 - **LinkedCard / DialogueMessageList:** in-board draft/journey/moment cards call board selection callbacks instead of legacy `/agent?view=drafts` routes.
 
 ### 2026-06-22 — Panel error boundaries + composer draft autosave

@@ -76,6 +76,14 @@ export function normalizeActionReceipt(actionResult: {
     [key: string]: unknown
   }
 }): { type: string; status: "success" | "error" | "skipped"; message: string; errorCode?: string; data?: any } {
+  if (!actionResult || typeof actionResult !== "object") {
+    return {
+      type: "unknown",
+      status: "error",
+      message: "Invalid action result",
+    }
+  }
+
   const resolveDraftFromPayload = (
     payload: Record<string, unknown> | undefined,
   ): { id: string; title: string; kind: string; key: string } | undefined => {

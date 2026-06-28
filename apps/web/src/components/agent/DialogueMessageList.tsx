@@ -305,6 +305,7 @@ const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
 }
 
 function isVisibleActionResult(actionResult: NonNullable<AgentDialogueMessage["actionResults"]>[number]): boolean {
+  if (!actionResult || typeof actionResult !== "object") return false
   const receipt = normalizeActionReceipt(actionResult)
   return receipt.errorCode !== "NOT_ALLOWED"
 }

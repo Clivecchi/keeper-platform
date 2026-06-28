@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-06-28: `normalizeActionReceipt` guards null/invalid action payloads; `DialogueMessageList` skips malformed receipts so Dialog panel does not crash on bad metadata.
 - 2026-06-28: `DialogueMessageList` — passes `contextNarrative` (agent message body) and `onKeepAsMoment` to `ActionReceiptCard` for **Keep as Moment** on generated images; wired from Domain Board via `KeeperDialogFrame`.
 - 2026-06-27: **Supporting documents** — large paste captured as ephemeral composer tile (`SupportingDocumentTile`, label "Pasted"); full text sent as supporting context with prompt; transcript shows short label; not saved to Library; file uploads still stage in Thinking Space.
 - 2026-06-26: Restored **director delegation** (Cloud/Rendr beat above Kip) and **agent echo** (subordinate beat below) in `DialogueMessageList` — regressed during UI simplification; hides internal failure copy via `isDirectorDelegationFailureContent`.

@@ -216,8 +216,23 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const urlDraftId = shell?.draftId ?? searchParams.get("draftId")
 
+  /** Remove ?draftId= so nav selections (Dialog, Journey, …) are not overwritten by URL sync. */
+  const clearDraftIdFromUrl = React.useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        if (!prev.get("draftId")) return prev
+        const next = new URLSearchParams(prev)
+        next.delete("draftId")
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
+
   React.useEffect(() => {
     if (!urlDraftId || urlDraftId === selectedDraftId) return
+    // Explicit Dialog nav wins over stale ?draftId= in the URL.
+    if (selectedDialogId) return
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(urlDraftId)
     setSelectedDialogId(null)
@@ -230,7 +245,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [urlDraftId, selectedDraftId])
+  }, [urlDraftId, selectedDraftId, selectedDialogId])
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
@@ -253,6 +268,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   )
 
   const onDialogSelect = React.useCallback((id: string) => {
+    clearDraftIdFromUrl()
     setSelectedDialogId(id)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
@@ -264,9 +280,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [])
+  }, [clearDraftIdFromUrl])
 
   const onJourneySelect = React.useCallback((id: string) => {
+    clearDraftIdFromUrl()
     setSelectedJourneyId(id)
     setSelectedPathId(null)
     setSelectedDialogId(null)
@@ -278,9 +295,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [])
+  }, [clearDraftIdFromUrl])
 
   const onPathSelect = React.useCallback((id: string) => {
+    clearDraftIdFromUrl()
     setSelectedPathId(id)
     setSelectedMomentId(null)
     setSelectedDialogId(null)
@@ -291,9 +309,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [])
+  }, [clearDraftIdFromUrl])
 
   const onMomentSelect = React.useCallback((id: string) => {
+    clearDraftIdFromUrl()
     setSelectedMomentId(id)
     setSelectedPathId(null)
     setSelectedDialogId(null)
@@ -305,13 +324,14 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [])
+  }, [clearDraftIdFromUrl])
 
   const onMomentClear = React.useCallback(() => {
     setSelectedMomentId(null)
   }, [])
 
   const onKeeperSelect = React.useCallback((id: string) => {
+    clearDraftIdFromUrl()
     setSelectedKeeperId(id)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
@@ -323,7 +343,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [])
+  }, [clearDraftIdFromUrl])
 
   const onDraftSelect = React.useCallback((id: string) => {
     setSelectedSoleMemoryId(null)
@@ -350,6 +370,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [setSearchParams])
 
   const onAgentSelect = React.useCallback((id: string) => {
+    clearDraftIdFromUrl()
     setTrainingMode(false)
     setSelectedAgentId(id)
     setSelectedDialogId(null)
@@ -362,7 +383,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [])
+  }, [clearDraftIdFromUrl])
 
   const onServiceOpen = React.useCallback((slug: string) => {
     setSelectedServiceSlug(slug)
