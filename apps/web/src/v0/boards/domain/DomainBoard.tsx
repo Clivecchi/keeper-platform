@@ -19,9 +19,17 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { UniversalBoard } from "../UniversalBoard"
 import { DOMAIN_BOARD_DEF } from "../UniversalBoardDefinition"
+import { DomainAddPanel } from "./DomainAddPanel"
 import { fetchDomainSwitcherEntries, type DomainSwitcherEntry } from "./domainSwitcherData"
+import {
+  SWITCHER_INK_MUTED,
+  SWITCHER_INK_PRIMARY,
+  SWITCHER_INK_SECONDARY,
+  SWITCHER_PANEL_STYLE,
+} from "./domainSwitcherTheme"
 
 type SwitcherFetchState = "idle" | "loading" | "ready" | "error"
+type SwitcherView = "list" | "add"
 
 function DomainSwitcherStatusPanel({
   title,
@@ -50,13 +58,8 @@ function DomainSwitcherStatusPanel({
       <div
         className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
         style={{
-          top: 72,
-          left: 0,
+          ...SWITCHER_PANEL_STYLE,
           width: 210,
-          border: "1px solid hsl(var(--theme-border-soft))",
-          backgroundColor: "hsl(var(--theme-surface-paper) / 0.98)",
-          backdropFilter: "blur(8px)",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
         }}
         role="dialog"
         aria-label={title}
@@ -68,7 +71,7 @@ function DomainSwitcherStatusPanel({
         >
           <span
             className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "var(--theme-ink-secondary-color)" }}
+            style={{ color: SWITCHER_INK_MUTED }}
           >
             Your Domains
           </span>
@@ -79,7 +82,7 @@ function DomainSwitcherStatusPanel({
             style={{
               width: 18,
               height: 18,
-              color: "var(--theme-ink-secondary-color)",
+              color: SWITCHER_INK_SECONDARY,
             }}
             aria-label="Close domain switcher"
           >
@@ -96,13 +99,13 @@ function DomainSwitcherStatusPanel({
         <div className="px-3 py-4">
           <p
             className="text-[11px] font-medium mb-1"
-            style={{ color: "var(--theme-ink-primary-color)" }}
+            style={{ color: SWITCHER_INK_PRIMARY }}
           >
             {title}
           </p>
           <p
             className="text-[10px] leading-snug"
-            style={{ color: "var(--theme-ink-secondary-color)" }}
+            style={{ color: SWITCHER_INK_SECONDARY }}
           >
             {message}
           </p>
@@ -111,7 +114,7 @@ function DomainSwitcherStatusPanel({
               type="button"
               onClick={onAction}
               className="mt-3 text-[10px] font-medium underline underline-offset-2 transition-opacity hover:opacity-80"
-              style={{ color: "var(--theme-ink-primary-color)" }}
+              style={{ color: SWITCHER_INK_PRIMARY }}
             >
               {actionLabel}
             </button>
@@ -126,6 +129,7 @@ export function DomainBoard() {
   const { domainSlug: slug } = useV0Shell()
   const navigate = useNavigate()
   const [switcherOpen, setSwitcherOpen] = React.useState(false)
+  const [switcherView, setSwitcherView] = React.useState<SwitcherView>("list")
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([])
   const [fetchState, setFetchState] = React.useState<SwitcherFetchState>("idle")
   const [fetchAttempt, setFetchAttempt] = React.useState(0)
@@ -166,14 +170,34 @@ export function DomainBoard() {
 
   const closeSwitcher = React.useCallback(() => {
     setSwitcherOpen(false)
+    setSwitcherView("list")
   }, [])
+
+  const openAddDomain = React.useCallback(() => {
+    setSwitcherView("add")
+  }, [])
+
+  const handleDomainCreated = React.useCallback(
+    (nextSlug: string) => {
+      closeSwitcher()
+      setFetchAttempt((value) => value + 1)
+      navigate(`/d/${encodeURIComponent(nextSlug)}/board?board=domain`)
+    },
+    [closeSwitcher, navigate],
+  )
 
   const retryFetch = React.useCallback(() => {
     setFetchAttempt((value) => value + 1)
   }, [])
 
   const switcherOverlay =
-    switcherOpen && fetchState === "loading" ? (
+    switcherOpen && switcherView === "add" ? (
+      <DomainAddPanel
+        onClose={closeSwitcher}
+        onBack={() => setSwitcherView("list")}
+        onCreated={handleDomainCreated}
+      />
+    ) : switcherOpen && fetchState === "loading" ? (
       <DomainSwitcherStatusPanel
         title="Loading domains"
         message="Fetching your domain list…"
@@ -190,15 +214,17 @@ export function DomainBoard() {
     ) : switcherOpen && fetchState === "ready" && domains.length === 0 ? (
       <DomainSwitcherStatusPanel
         title="No domains yet"
-        message="You do not have any domains to switch to. Domain creation is coming in the next step."
+        message="Create your first domain to get started."
         onClose={closeSwitcher}
+        actionLabel="Add a domain"
+        onAction={openAddDomain}
       />
     ) : switcherOpen && fetchState === "ready" && domains.length > 0 ? (
       <DomainSwitcher
         domains={domains}
         currentSlug={slug || domains[0]?.slug || ""}
         onSelect={handleDomainSelect}
-        onAddDomain={() => console.log("Add domain")}
+        onAddDomain={openAddDomain}
         onClose={closeSwitcher}
       />
     ) : null

@@ -478,69 +478,63 @@ router.get('/:domainId/kip/agents', authMiddlewareCompat, requireDomainReadCompa
     }
 
     // Get primary agent from domain settings
-    const domainSettings = ((domain.settings as Record<string, any>) || {});
-    const primaryAgentId = typeof domainSettings.primaryAgentId === 'string' ? domainSettings.primaryAgentId : null;
+    const domainSettings = ((domain.settings as Record<string, unknown>) || {});
+    const primaryAgentId =
+      typeof domainSettings.primaryAgentId === "string" ? domainSettings.primaryAgentId : null;
+
+    const agentSelect = {
+      id: true,
+      slug: true,
+      name: true,
+      purpose: true,
+      model: true,
+      context_scope: true,
+      memory_enabled: true,
+      tools: true,
+      permissions: true,
+      config: true,
+      status: true,
+      role: true,
+      model_provider: true,
+      model_settings: true,
+      visibility: true,
+      created_at: true,
+      updated_at: true,
+    } as const;
+
+    const kipAgent = await prisma.kip_agents.findFirst({
+      where: { slug: "kip" },
+      select: agentSelect,
+    });
 
     const agents = [];
-    
-    if (primaryAgentId) {
+    const seen = new Set<string>();
+
+    const pushUnique = (agent: typeof kipAgent) => {
+      if (!agent || seen.has(agent.id)) return;
+      seen.add(agent.id);
+      agents.push(agent);
+    };
+
+    // Domain lead first when it is not Kip; Kip always follows as platform Lead.
+    if (primaryAgentId && primaryAgentId !== kipAgent?.id) {
       const primaryAgent = await prisma.kip_agents.findUnique({
         where: { id: primaryAgentId },
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          purpose: true,
-          model: true,
-          context_scope: true,
-          memory_enabled: true,
-          tools: true,
-          permissions: true,
-          config: true,
-          status: true,
-          role: true,
-          model_provider: true,
-          model_settings: true,
-          visibility: true,
-          created_at: true,
-          updated_at: true,
-        },
+        select: agentSelect,
       });
-
-      if (primaryAgent) {
-        agents.push(primaryAgent);
-      }
+      pushUnique(primaryAgent);
     }
 
-    // If no primary agent, ensure Kip is assigned (auto-assign)
-    if (agents.length === 0) {
+    if (kipAgent) {
+      pushUnique(kipAgent);
+    } else if (agents.length === 0) {
       const kipAgentId = await ensurePrimaryAgentAssignment(domain);
       if (kipAgentId) {
-        const kipAgent = await prisma.kip_agents.findUnique({
+        const assignedKip = await prisma.kip_agents.findUnique({
           where: { id: kipAgentId },
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            purpose: true,
-            model: true,
-            context_scope: true,
-            memory_enabled: true,
-            tools: true,
-            permissions: true,
-            config: true,
-            status: true,
-            role: true,
-            model_provider: true,
-            model_settings: true,
-            visibility: true,
-            created_at: true,
-            updated_at: true,
-          },
+          select: agentSelect,
         });
-        if (kipAgent) {
-          agents.push(kipAgent);
-        }
+        pushUnique(assignedKip);
       }
     }
 

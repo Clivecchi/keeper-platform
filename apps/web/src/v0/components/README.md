@@ -30,6 +30,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-06-27: `DomainSwitcher` — Step 1.2 add-domain form (`DomainAddPanel`); fixed picker ink via `domainSwitcherTheme.ts`.
 - 2026-06-27: `DomainSwitcher` — cover thumbs (72px), slug-hash placeholder gradient + initials watermark, dark panel surfaces, light-on-cover typography.
 - 2026-06-27: `DomainSwitcher` — fixed unreadable text (`--theme-ink-*-color` tokens instead of raw HSL component vars); scrollable domain list when long.
 - 2026-06-24: Margin guest Sign In now returns to `?board=domain` (Domain Board) instead of forcing legacy `?frame=agent`.

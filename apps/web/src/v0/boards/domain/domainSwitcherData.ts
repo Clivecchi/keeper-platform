@@ -80,3 +80,45 @@ export async function fetchDomainSwitcherEntries(): Promise<DomainSwitcherEntry[
 
   return rows.filter(isVisibleUserDomain).map(mapApiDomainToSwitcherEntry)
 }
+
+export function suggestDomainSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^(-)+|(-)+$/g, "")
+    .slice(0, 50)
+}
+
+export interface CreateDomainPayload {
+  name: string
+  slug?: string
+  description?: string
+}
+
+interface CreateDomainResponse {
+  domain?: ApiDomainRow & { id?: string }
+  error?: string
+}
+
+export async function createDomain(payload: CreateDomainPayload): Promise<ApiDomainRow> {
+  const body = {
+    name: payload.name.trim(),
+    ...(payload.slug?.trim() ? { slug: payload.slug.trim() } : {}),
+    ...(payload.description?.trim() ? { description: payload.description.trim() } : {}),
+    isPublic: false,
+    allowRequests: false,
+  }
+
+  const data = (await apiFetch("/api/domains", {
+    method: "POST",
+    body: JSON.stringify(body),
+  })) as CreateDomainResponse
+
+  if (!data.domain?.slug) {
+    const message =
+      typeof data.error === "string" ? data.error : "Domain was not created."
+    throw new Error(message)
+  }
+
+  return data.domain
+}

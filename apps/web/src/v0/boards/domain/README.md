@@ -5,7 +5,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## 🧱 Key Files
 - `DomainBoard.tsx` — Root board component. Owns switcher open state and live domain list fetch for `DomainSwitcher`. Delegates three-column layout to `UniversalBoard`.
-- `domainSwitcherData.ts` — Fetches `GET /api/domains/my` (user-owned and permitted domains only).
+- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; `createDomain` → `POST /api/domains`.
+- `DomainAddPanel.tsx` — Create-domain form opened from switcher “Add a domain”.
+- `domainSwitcherTheme.ts` — Fixed light-on-dark ink tokens for picker readability.
 
 ## 🔄 Data & Behavior
 - **Left panel**: Collapsible board switcher (Domain / Design / Agent) and frame list.
@@ -14,10 +16,15 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - No feed/dialog toggle — the center is always a dialog. The feed lives in Chronicle.
 
 ## ⚠️ Notes & ToDo
-- [ ] Domain creation from switcher "Add a domain" — Step 1.2.
+- [ ] Default lead agent + keeper seed on domain create (Chronicle — remainder of Step 1.2).
+- [ ] Set `primaryDomainId` when user's first personal domain is created.
 - [ ] Domain Board session resumption — allow users to return to a prior Domain session via Chronicle trail.
 
 ## 📆 Update Log
+
+### 2026-06-27 — Step 1.2 (partial): Add domain from switcher
+- `DomainAddPanel` + `POST /api/domains`; navigates to new slug on success.
+- Picker ink: fixed light-on-dark tokens in `domainSwitcherTheme.ts`.
 
 ### 2026-06-27 — Switcher: user domains + readable text
 - Fetch switched from `GET /api/domains` (all domains) to `GET /api/domains/my` (owned + permitted only).

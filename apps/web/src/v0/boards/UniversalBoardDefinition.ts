@@ -335,12 +335,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       boardDefs: false,
     },
     primarySection: "agents",
-    integrations: [
-      { id: "anthropic", label: "Anthropic", group: "ai" },
-      { id: "openai", label: "OpenAI", group: "ai" },
-      { id: "together-ai", label: "Together AI", group: "ai" },
-      { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
-    ],
+    // Keys + platform AI providers live on IDE Board only — not personal/platform Agent nav.
   },
   conversation: {
     agentSlug: "kip",

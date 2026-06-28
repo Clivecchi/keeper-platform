@@ -534,18 +534,19 @@ export function UniversalNavPanel({
     )
   }, [drafts, draftNavRowPatch])
 
-  // ── Fetch: Agents — only when def.nav.sections.agents is true ───────────
+  // ── Fetch: Agents — domain-scoped (Kip + domain lead), not global registry ──
   React.useEffect(() => {
     if (!domainId) return
     if (!def.nav.sections.agents) return
     let cancelled = false
     setAgents(null)
     setAgentError(null)
-    apiFetch(`/api/agents?domainId=${encodeURIComponent(domainId)}`)
+    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/kip/agents`)
       .then((res: unknown) => {
         if (cancelled) return
-        const list = (res as { agents?: AgentItem[] })?.agents ?? []
-        setAgents(Array.isArray(list) ? (list as AgentItem[]) : [])
+        const payload = res as { data?: AgentItem[]; agents?: AgentItem[] }
+        const list = payload.data ?? payload.agents ?? []
+        setAgents(Array.isArray(list) ? list : [])
       })
       .catch((err: unknown) => {
         if (!cancelled) {

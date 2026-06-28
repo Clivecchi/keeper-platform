@@ -106,6 +106,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `UniversalNavPanel`: Library section with upload (+) and Add URL; labels via shared `libraryItemChronicleTitle()`
 - `UniversalViewPanel`: `library` trail kind routing
 
+### 2026-06-27 — Agent Board: domain-scoped nav
+- Agent nav uses `GET /api/domains/:domainId/kip/agents` (Kip + domain lead only).
+- Removed platform Keys / AI Providers from Agent Board def — IDE Board only.
+
 ### 2026-06-14 — Nav cleanup (Domain · IDE · Agent boards)
 - Shared nav section titles: larger accent-weight headers in `index.css` (`.keeper-nav-section-title` + SidebarCard titles)
 - `SidebarCard`: optional `collapsible` / `defaultCollapsed` for nav section collapse

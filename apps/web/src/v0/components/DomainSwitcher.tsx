@@ -1,6 +1,12 @@
 "use client"
 
 import * as React from "react"
+import {
+  SWITCHER_INK_MUTED,
+  SWITCHER_INK_PRIMARY,
+  SWITCHER_INK_SECONDARY,
+  SWITCHER_PANEL_STYLE,
+} from "../boards/domain/domainSwitcherTheme"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,7 +130,7 @@ function DomainCard({
       >
         <p
           className="text-[10px] leading-snug truncate"
-          style={{ color: "var(--theme-ink-secondary-color, hsl(0 0% 72%))" }}
+          style={{ color: SWITCHER_INK_SECONDARY }}
         >
           {domain.tagline || domain.slug}
         </p>
@@ -164,14 +170,8 @@ export function DomainSwitcher({
       <div
         className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
         style={{
-          top: 72,        // flush below KeeperTopBar (40px row 1 + 32px row 2)
-          left: 0,
+          ...SWITCHER_PANEL_STYLE,
           width: 210,
-          border: "1px solid hsl(var(--theme-border-soft))",
-          backgroundColor: "hsl(var(--theme-surface-panel, var(--theme-surface-raised)) / 0.96)",
-          backdropFilter: "blur(8px)",
-          boxShadow:
-            "0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
         }}
         role="dialog"
         aria-label="Domain switcher"
@@ -184,7 +184,7 @@ export function DomainSwitcher({
         >
           <span
             className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "var(--theme-ink-secondary-color)" }}
+            style={{ color: SWITCHER_INK_MUTED }}
           >
             Your Domains
           </span>
@@ -195,7 +195,7 @@ export function DomainSwitcher({
             style={{
               width: 18,
               height: 18,
-              color: "var(--theme-ink-secondary-color)",
+              color: SWITCHER_INK_SECONDARY,
             }}
             aria-label="Close domain switcher"
           >
@@ -231,8 +231,8 @@ export function DomainSwitcher({
             onClick={onAddDomain}
             className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-left transition-opacity hover:opacity-80"
             style={{
-              border: "1px dashed hsl(var(--theme-border-soft))",
-              background: "transparent",
+              border: "1px dashed hsl(var(--theme-border-soft) / 0.7)",
+              background: "hsl(220 14% 14% / 0.5)",
             }}
             aria-label="Add a domain"
           >
@@ -242,8 +242,8 @@ export function DomainSwitcher({
               style={{
                 width: 16,
                 height: 16,
-                border: "1px solid hsl(var(--theme-border-soft))",
-                color: "var(--theme-ink-secondary-color)",
+                border: "1px solid hsl(var(--theme-border-soft) / 0.7)",
+                color: SWITCHER_INK_SECONDARY,
               }}
               aria-hidden
             >
@@ -257,8 +257,8 @@ export function DomainSwitcher({
               </svg>
             </span>
             <span
-              className="text-[11px]"
-              style={{ color: "var(--theme-ink-secondary-color)" }}
+              className="text-[11px] font-medium"
+              style={{ color: SWITCHER_INK_PRIMARY }}
             >
               Add a domain
             </span>
