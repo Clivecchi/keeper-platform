@@ -2166,8 +2166,9 @@ export async function executeAgentActions(
             }
 
             try {
-              // Read domain image_style to use as domain_context — folded into the FLUX prompt
+              // Read domain image_style + image_model from frame_json (server-side defaults)
               let domainContext: string | undefined;
+              let domainImageModel: string | undefined;
               if (ctx.domainId) {
                 try {
                   const domainRecord = await tx.domain.findUnique({
@@ -2179,11 +2180,15 @@ export async function executeAgentActions(
                   if (typeof imageStyle === 'string' && imageStyle.trim()) {
                     domainContext = imageStyle.trim();
                   }
+                  const imageModel = frame?.kip?.image_model;
+                  if (typeof imageModel === 'string' && imageModel.trim()) {
+                    domainImageModel = imageModel.trim();
+                  }
                 } catch {
                   // Non-fatal — proceed without domain context
                 }
               }
-              console.log('[image.generate] domain_context:', domainContext);
+              console.log('[image.generate] domain_context:', domainContext, 'domain_model:', domainImageModel);
 
               const parts: string[] = [subject];
               if (typeof payload.mood === 'string' && payload.mood.trim()) parts.push(payload.mood.trim());
@@ -2202,7 +2207,10 @@ export async function executeAgentActions(
 
               const brief: ImageGenerationBrief = {
                 prompt,
-                model:          typeof payload.model === 'string' ? payload.model : undefined,
+                model:
+                  typeof payload.model === 'string' && payload.model.trim()
+                    ? payload.model.trim()
+                    : domainImageModel,
                 width:          dims.width,
                 height:         dims.height,
                 domain_context: domainContext,

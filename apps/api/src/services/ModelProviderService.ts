@@ -105,6 +105,24 @@ export interface ImageGenerationResult {
   prompt: string;
 }
 
+/** Default FLUX model for Kip image.generate — fast serverless endpoint. */
+export const DEFAULT_IMAGE_MODEL = 'black-forest-labs/FLUX.1-schnell';
+
+/** Free-tier FLUX Schnell is not available on Together's serverless API. */
+const UNSUPPORTED_IMAGE_MODELS = new Set(['black-forest-labs/FLUX.1-schnell-Free']);
+
+const IMAGE_GEN_MAX_PROMPT_CHARS = 2000;
+const IMAGE_GEN_TIMEOUT_MS = 120_000;
+const IMAGE_GEN_MAX_RETRIES = 3;
+
+export function resolveImageModel(requested?: string | null): string {
+  const candidate = typeof requested === 'string' ? requested.trim() : '';
+  if (candidate && !UNSUPPORTED_IMAGE_MODELS.has(candidate)) {
+    return candidate;
+  }
+  return DEFAULT_IMAGE_MODEL;
+}
+
 export interface VoiceSynthesisBrief {
   text: string;
   voiceId?: string;
@@ -480,31 +498,47 @@ class TogetherProvider {
   }
 
   async generateImage(brief: ImageGenerationBrief): Promise<ImageGenerationResult> {
-    const model = brief.model ?? 'black-forest-labs/FLUX.1-schnell';
-    const response = await fetch('https://api.together.xyz/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const model = resolveImageModel(brief.model);
+    const prompt = brief.prompt.trim().slice(0, IMAGE_GEN_MAX_PROMPT_CHARS);
+    const width = brief.width ?? 1024;
+    const height = brief.height ?? 1024;
+    const steps = brief.steps ?? 4;
+
+    const { default: Together, APIError } = await import('together-ai');
+    const client = new Together({
+      apiKey: this.apiKey,
+      maxRetries: IMAGE_GEN_MAX_RETRIES,
+      timeout: IMAGE_GEN_TIMEOUT_MS,
+    });
+
+    try {
+      const response = await client.images.generate({
         model,
-        prompt: brief.prompt,
-        width: brief.width ?? 1024,
-        height: brief.height ?? 1024,
-        steps: brief.steps ?? 4,
+        prompt,
+        width,
+        height,
+        steps,
         n: 1,
         response_format: 'url',
-      }),
-    });
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Together AI API error: ${response.status} ${err}`);
+      });
+
+      const first = response.data?.[0];
+      const url = first && 'url' in first ? first.url : undefined;
+      if (!url) {
+        throw new Error('No image URL returned from Together AI');
+      }
+
+      return { url, model: response.model ?? model, prompt };
+    } catch (error) {
+      if (error instanceof APIError) {
+        const detail = error.error != null ? JSON.stringify(error.error) : error.message;
+        throw new Error(`Together AI API error: ${error.status} ${detail}`);
+      }
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Together AI image generation failed');
     }
-    const data = await response.json();
-    const url = data.data?.[0]?.url;
-    if (!url) throw new Error('No image URL returned from Together AI');
-    return { url, model, prompt: brief.prompt };
   }
 }
 

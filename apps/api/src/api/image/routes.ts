@@ -20,7 +20,7 @@ import express, { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
-import { ModelProviderService } from '../../services/ModelProviderService.js';
+import { ModelProviderService, resolveImageModel } from '../../services/ModelProviderService.js';
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 
 const router = express.Router();
@@ -94,7 +94,7 @@ router.post('/generate', imageLimiter, authMiddlewareCompat, async (req: Request
 
     const brief: ImageGenerationBrief = {
       prompt,
-      model:          body.model,
+      model:          resolveImageModel(body.model),
       width:          dimensions.width,
       height:         dimensions.height,
       domain_context: body.domain_context,

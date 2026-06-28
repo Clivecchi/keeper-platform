@@ -32,6 +32,8 @@ import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
+import { ensureDomainProvisioned } from "../lib/ensureDomainProvisioned"
+import { domainFrameLooksUnseeded } from "../lib/domainFrameLooksUnseeded"
 import { resolveAudience } from "../data/resolveAudience"
 import { usePlacementMode } from "./usePlacementMode"
 import { FrameContextProvider } from "./FrameContext"
@@ -58,7 +60,7 @@ export function V0Shell() {
   const resolvedSlug = slug ?? ""
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAuthenticated, isAdmin, authResolved } = useAuth()
+  const { isAuthenticated, isAdmin, authResolved, user } = useAuth()
   const { colorScheme } = useTheme()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -294,6 +296,33 @@ export function V0Shell() {
     })
     return () => { ignore = true }
   }, [slug])
+
+  // Step 1.2 — auto-repair unseeded personal domains (frame_json, lead agent, keeper).
+  React.useEffect(() => {
+    if (!authResolved || !isAuthenticated || !user?.id || !slug || !domainData?.id) return
+    if (String(domainData.id).startsWith("fallback-")) return
+    if (domainData.ownerId !== user.id && !isAdmin) return
+    if (!domainFrame) return
+    if (!domainFrameLooksUnseeded(domainFrame, slug, domainData.name)) return
+
+    let cancelled = false
+    void (async () => {
+      const result = await ensureDomainProvisioned(domainData.id)
+      if (cancelled || !result.provisioned) return
+      try {
+        const frame = await loadDomainFrame(slug)
+        if (!cancelled) {
+          setDomainFrame(frame)
+          console.log("[DomainProvision] Repaired and reloaded frame for:", slug)
+        }
+      } catch (err) {
+        console.warn("[DomainProvision] Frame reload after provision failed:", err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authResolved, isAuthenticated, user?.id, isAdmin, slug, domainData, domainFrame])
 
   // ── Domain theme resolution ──
   // Runs whenever domainFrame or colorScheme changes.

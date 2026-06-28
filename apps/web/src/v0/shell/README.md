@@ -26,6 +26,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
+- 2026-06-28: Step 1.2 auto-provision — domain owners loading an unseeded personal domain trigger `POST /api/domains/:id/provision` and frame reload (`v0/lib/ensureDomainProvisioned.ts`).
 - 2026-06-27: Domain workspace (`?board=domain`) now mounts `DomainBoard` (includes live `DomainSwitcher` fetch) instead of bare `UniversalBoard`.
 - 2026-06-15: `FRAME_TO_JSON_KEY` canonical source moved to `@keeper/shared/structure/frameJsonMap`; this file re-exports for backward-compatible imports.
 - 2026-06-12: Removed designer-only auto-default `?definition=ide` (was racing stale router and blocking Design open). All board URL writes use `commitBoardSearch` → `navigate()` from authoritative search params.

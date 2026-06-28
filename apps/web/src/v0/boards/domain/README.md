@@ -19,9 +19,10 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [x] Default lead agent + keeper seed on domain create (`provisionDomainOnCreate` — Step 1.2).
 - [x] Set `primaryDomainId` when user's first personal domain is created.
 - [ ] Domain Board session resumption — allow users to return to a prior Domain session via Chronicle trail.
-- [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready).
+- [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+- 2026-06-28: `V0Shell` auto-calls `POST /api/domains/:id/provision` when personal domain frame still shows KE3P defaults; reloads frame after repair.
 
 ### 2026-06-28 — AI Access nav typography + domain copy
 - `DomainAiAccessNav`: provider lines 14px; section uses shared `keeper-nav-section-title` (no 10px override).
