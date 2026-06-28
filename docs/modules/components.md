@@ -29,6 +29,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-06-27: `DomainSwitcher` — cover thumbs (72px), slug-hash placeholder gradient + initials watermark, dark panel surfaces, light-on-cover typography.
 - 2026-06-27: `DomainSwitcher` — fixed unreadable text (`--theme-ink-*-color` tokens instead of raw HSL component vars); scrollable domain list when long.
 - 2026-06-10: `KeeperTopBar` workspace board tabs use `setSearchParams` (not `navigate`) and strip `?boardDef=` when leaving Design so top-bar switches are not blocked after Design nav selection.
 - 2026-04-28 (Prompt 5): Added `panels/` subdirectory with `KeeperJourneyPanel.tsx` — self-contained Journey view state panel (living document layout). See `panels/README.md`.

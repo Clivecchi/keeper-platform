@@ -19,6 +19,32 @@ export interface DomainSwitcherProps {
   onClose: () => void
 }
 
+const COVER_HEIGHT = 72
+
+function hashSlug(slug: string): number {
+  let hash = 0
+  for (let i = 0; i < slug.length; i += 1) {
+    hash = (hash * 31 + slug.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+/** Deterministic dusk gradient per domain — cover thumb before frame art exists. */
+function placeholderCoverBackground(slug: string): string {
+  const hash = hashSlug(slug)
+  const hueA = 185 + (hash % 48)
+  const hueB = (hueA + 28 + (hash % 16)) % 360
+  return `linear-gradient(145deg, hsl(${hueA} 38% 24%) 0%, hsl(${hueB} 42% 14%) 52%, hsl(${hueA} 32% 9%) 100%)`
+}
+
+function domainInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase()
+  }
+  return (parts[0]?.slice(0, 1) ?? "?").toUpperCase()
+}
+
 // ─── DomainCard ──────────────────────────────────────────────────────────────
 
 function DomainCard({
@@ -37,58 +63,68 @@ function DomainCard({
     onClose()
   }
 
+  const hasCoverImage = Boolean(domain.coverImageUrl)
+  const initials = domainInitials(domain.name)
+
   return (
     <button
       type="button"
       onClick={handleClick}
       className="w-full text-left rounded-md overflow-hidden transition-opacity hover:opacity-90"
       style={{
-        // #6ee7b7 is the "primary" teal border already used throughout the
-        // Board chrome (DomainBoard.tsx primary badge, DesignBoardFrameList.tsx).
         border: isCurrent ? "1.5px solid #6ee7b7" : "1px solid hsl(var(--theme-border-soft))",
-        background: "hsl(var(--theme-surface-paper) / 1)",
+        background: "hsl(var(--theme-surface-panel, var(--theme-surface-raised)) / 0.92)",
       }}
       aria-current={isCurrent ? "true" : undefined}
       aria-label={`Switch to ${domain.name}${isCurrent ? " (current)" : ""}`}
     >
-      {/* Cover area — 40px */}
       <div
-        className="relative w-full flex items-end px-2 pb-1"
+        className="relative w-full flex items-end px-2 pb-1.5 overflow-hidden"
         style={{
-          height: 40,
-          ...(domain.coverImageUrl
+          height: COVER_HEIGHT,
+          ...(hasCoverImage
             ? {
-                backgroundImage: `url(${domain.coverImageUrl})`,
+                backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.08) 55%, transparent 100%), url(${domain.coverImageUrl})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
             : {
-                // Gradient placeholder built from theme tokens
-                background:
-                  "linear-gradient(135deg, hsl(var(--theme-surface-raised, var(--theme-surface-paper)) / 1) 0%, hsl(var(--theme-border-soft) / 0.4) 100%)",
+                background: placeholderCoverBackground(domain.slug),
               }),
         }}
       >
+        {!hasCoverImage ? (
+          <span
+            className="pointer-events-none absolute inset-0 flex items-center justify-center font-serif select-none"
+            style={{
+              fontSize: 42,
+              fontWeight: 600,
+              color: "hsla(0, 0%, 100%, 0.12)",
+              letterSpacing: "0.04em",
+            }}
+            aria-hidden
+          >
+            {initials}
+          </span>
+        ) : null}
         <span
-          className="relative z-[1] text-[11px] font-medium leading-tight truncate max-w-full"
+          className="relative z-[1] text-[11px] font-medium leading-tight truncate max-w-full font-serif"
           style={{
-            color: domain.coverImageUrl
-              ? "#ffffff"
-              : "var(--theme-ink-primary-color)",
-            textShadow: domain.coverImageUrl
-              ? "0 1px 2px rgba(0,0,0,0.5)"
-              : "none",
+            color: "hsl(0 0% 98%)",
+            textShadow: "0 1px 3px rgba(0,0,0,0.55)",
           }}
         >
           {domain.name}
         </span>
       </div>
 
-      {/* Meta area */}
-      <div className="px-2 py-1.5">
+      <div
+        className="px-2 py-1.5"
+        style={{ borderTop: "0.5px solid hsl(var(--theme-border-soft) / 0.6)" }}
+      >
         <p
           className="text-[10px] leading-snug truncate"
-          style={{ color: "var(--theme-ink-secondary-color)" }}
+          style={{ color: "var(--theme-ink-secondary-color, hsl(0 0% 72%))" }}
         >
           {domain.tagline || domain.slug}
         </p>
@@ -132,7 +168,7 @@ export function DomainSwitcher({
           left: 0,
           width: 210,
           border: "1px solid hsl(var(--theme-border-soft))",
-          backgroundColor: "hsl(var(--theme-surface-paper) / 0.98)",
+          backgroundColor: "hsl(var(--theme-surface-panel, var(--theme-surface-raised)) / 0.96)",
           backdropFilter: "blur(8px)",
           boxShadow:
             "0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
