@@ -8,13 +8,13 @@
  * Canonical surfaces (product language):
  *   Header Bar   — expandable breadcrumb / session meta (`.dialog-header-banner`)
  *   Dialog Space — scrollable messages above the Horizon (`.dialog-message-zone`)
- *   Composer     — user input floor; two states via `data-composer-state`:
- *     composing — input only; optional post-run Horizon summary atop composer
- *     working   — Dialog Space Horizon (live status) + expanded Thinking Space + input
+ *   Composer        — user input floor; two states via `data-composer-state`:
+ *     composing    — input only; optional post-run summary atop composer
+ *     working      — Broadcast Strip (live + ticker) + input
  *
- * While sending: Thinking Space expands with the run trace; Horizon summarizes live.
- * After the reply lands: Thinking Space collapses; a one-line dialogic summary sits
- * atop the composer (`.dialog-composer-horizon`).
+ * While sending: Broadcast Strip expands with live beat + prior story beats.
+ * After the reply lands: strip collapses; a one-line dialogic summary sits atop
+ * the composer (`.dialog-composer-horizon`).
  *
  * Message logic and API calls live in the Board; this file owns layout only.
  */
@@ -33,7 +33,7 @@ import { ComposerDebugToolbar } from "./ComposerDebugToolbar"
 import { DialogDebugOverlay } from "./DialogDebugOverlay"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
-import { DialogThinkStream } from "./DialogThinkStream"
+import { DialogBroadcastStrip } from "./DialogBroadcastStrip"
 import { DialogUploadStream } from "./DialogUploadStream"
 import {
   composeHorizonBeat,
@@ -104,7 +104,7 @@ export interface KeeperDialogFrameProps {
   activeToolSlug?: ToolSlug | null
   /** Overrides Horizon summary while sending; otherwise derived from thinkingSteps. */
   thinkingStatusLabel?: string
-  /** Chain-of-thought detail for Thinking Space while sending. */
+  /** Run trace for Broadcast Strip while sending. */
   thinkingSteps?: readonly DialogThinkingStep[]
   railwayStatus?: ServiceStatus
   vercelStatus?: ServiceStatus
@@ -235,7 +235,7 @@ export function KeeperDialogFrame({
   mobileResponseToolbar,
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
-  const thinkSpaceRef = React.useRef<HTMLDivElement>(null)
+  const broadcastStripRef = React.useRef<HTMLDivElement>(null)
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
   const [debugPanelOpen, setDebugPanelOpen] = React.useState(false)
@@ -244,8 +244,7 @@ export function KeeperDialogFrame({
   const hasUploads =
     pendingAttachments.some((a) => !isPastedSupportingDoc(a)) || isFileUploading
   const isWorking = isSending || isFileUploading
-  const hasWorkingThinkSpace = isWorking || hasUploads
-  const showThinkSpace = mode !== "feed" && hasWorkingThinkSpace
+  const showBroadcastStrip = mode !== "feed" && (isWorking || hasUploads)
   const showComposerFooter = mode !== "feed"
   const toggleDebugPanel = React.useCallback(() => {
     setDebugPanelOpen((open) => !open)
@@ -256,12 +255,12 @@ export function KeeperDialogFrame({
   }, [])
 
   const measureDialogScrollInset = React.useCallback(() => {
-    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 0
+    const broadcastHeight = broadcastStripRef.current?.offsetHeight ?? 0
     const fadeEl = scrollRef.current?.parentElement?.querySelector(
       ".dialog-fade-overlay",
     ) as HTMLElement | null
     const fadeHeight = fadeEl?.offsetHeight ?? 120
-    setDialogScrollInset(thinkHeight + fadeHeight)
+    setDialogScrollInset(broadcastHeight + fadeHeight)
   }, [])
 
   React.useLayoutEffect(() => {
@@ -269,22 +268,22 @@ export function KeeperDialogFrame({
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, showThinkSpace])
+  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, showBroadcastStrip])
 
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
     if (!el) return 0
-    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 0
+    const broadcastHeight = broadcastStripRef.current?.offsetHeight ?? 0
     const fadeEl = el.parentElement?.querySelector(
       ".dialog-fade-overlay",
     ) as HTMLElement | null
     const fadeHeight = fadeEl?.offsetHeight ?? 120
-    const clearance = thinkHeight + fadeHeight
+    const clearance = broadcastHeight + fadeHeight
     const maxScroll = el.scrollHeight - el.clientHeight
-    return Math.max(0, maxScroll - clearance + thinkHeight)
+    return Math.max(0, maxScroll - clearance + broadcastHeight)
   }, [])
 
-  const composerState: "composing" | "working" = isSending ? "working" : "composing"
+  const composerState: "composing" | "working" = isWorking ? "working" : "composing"
 
   const handleComposerSubmit = React.useCallback(
     async (event: React.FormEvent, options: ComposerSubmitPayload) => {
@@ -303,12 +302,12 @@ export function KeeperDialogFrame({
     [onSubmit, onCommitAttachmentsToLibrary, pendingAttachments],
   )
 
-  const horizonStatusLabel = React.useMemo(() => {
+  const broadcastLiveLabel = React.useMemo(() => {
     if (isFileUploading) return "Uploading…"
     if (isSending) {
       return composeHorizonBeat(thinkingSteps, agentName, thinkingStatusLabel)
     }
-    return null
+    return ""
   }, [
     isFileUploading,
     isSending,
@@ -317,14 +316,12 @@ export function KeeperDialogFrame({
     agentName,
   ])
 
-  const showHorizonStatus = horizonStatusLabel !== null
-
   const postRunSummary = React.useMemo(() => {
     if (isWorking || thinkingSteps.length === 0) return null
     return dialogicRunSummary(thinkingSteps, agentName)
   }, [isWorking, thinkingSteps, agentName])
 
-  // Auto-scroll so the newest message clears the Horizon (Thinking space + fade overlay)
+  // Auto-scroll so the newest message clears the Broadcast Strip + fade overlay
   React.useEffect(() => {
     if (mode === "feed" || dialogContent) return
     const el = scrollRef.current
@@ -332,14 +329,14 @@ export function KeeperDialogFrame({
 
     const run = () => {
       measureDialogScrollInset()
-      const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 0
+      const broadcastHeight = broadcastStripRef.current?.offsetHeight ?? 0
       const fadeEl = el.parentElement?.querySelector(
         ".dialog-fade-overlay",
       ) as HTMLElement | null
       const fadeHeight = fadeEl?.offsetHeight ?? 120
-      const clearance = thinkHeight + fadeHeight
+      const clearance = broadcastHeight + fadeHeight
       const maxScroll = el.scrollHeight - el.clientHeight
-      el.scrollTop = Math.max(0, maxScroll - clearance + thinkHeight)
+      el.scrollTop = Math.max(0, maxScroll - clearance + broadcastHeight)
     }
 
     requestAnimationFrame(run)
@@ -584,8 +581,8 @@ export function KeeperDialogFrame({
         <DialogScrollRail scrollRef={scrollRef} />
         <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
 
-        {/* Horizon — gradient dissolve at Dialog Space floor; live status while working */}
-        {mode !== 'feed' && (
+        {/* Horizon dissolve — softens Dialog Space floor; live status lives in Broadcast Strip */}
+        {mode !== "feed" && (
           <div
             className={[
               "dialog-horizon-band",
@@ -593,40 +590,34 @@ export function KeeperDialogFrame({
             ].join("")}
           >
             <div className="dialog-fade-overlay" aria-hidden="true" />
-            {isWorking && (
-              <div className="dialog-horizon-status" aria-live="polite">
-                <div className="dialog-column dialog-horizon-row">
-                  {showHorizonStatus ? (
-                    <span className="dialog-think-pulse dialog-horizon-summary">{horizonStatusLabel}</span>
-                  ) : (
-                    <span className="dialog-horizon-summary" aria-hidden="true" />
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
 
       {isMobileStaged && mobileDialogStage === "response" ? mobileResponseToolbar : null}
 
-      {/* ── Thinking Space — expands while the agent works; uploads when staging ── *
-       *  Collapses after the reply; post-run summary moves to composer Horizon.  */}
-      {showThinkSpace && (
+      {/* ── Broadcast Strip — live beat + ticker while working; uploads when staging ── */}
+      {showBroadcastStrip && (
         <div
-          ref={thinkSpaceRef}
+          ref={broadcastStripRef}
           className={[
-            "dialog-think-space",
-            isSending ? " dialog-think-space--working" : "",
-            hasUploads && !isSending ? " dialog-think-space--uploads" : "",
+            "dialog-broadcast-strip",
+            isWorking ? " dialog-broadcast-strip--working" : "",
+            hasUploads && !isWorking ? " dialog-broadcast-strip--uploads" : "",
             isMobileStaged && mobileDialogStage === "composing" && hasUploads
-              ? " dialog-think-space--mobile-composing"
+              ? " dialog-broadcast-strip--mobile-composing"
               : "",
           ].join("")}
         >
-          <div className="dialog-column dialog-think-space-inner">
-            {isSending ? (
-              <DialogThinkStream steps={thinkingSteps} agentName={agentName} isActive={isSending} />
+          <div className="dialog-broadcast-scanlines" aria-hidden="true" />
+          <div className="dialog-column dialog-broadcast-inner">
+            {isWorking ? (
+              <DialogBroadcastStrip
+                liveLabel={broadcastLiveLabel}
+                steps={thinkingSteps}
+                agentName={agentName}
+                isActive={isWorking}
+              />
             ) : (
               <DialogUploadStream
                 attachments={pendingAttachments.filter((a) => !isPastedSupportingDoc(a))}

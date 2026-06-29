@@ -40,7 +40,7 @@ function levelClass(level: ConsoleDiagEntry["level"]): string {
 }
 
 /**
- * Full-width overlay over Horizon + Thinking Space + Composer.
+ * Full-width overlay over Broadcast Strip and Composer.
  * Shows captured client console output with Copy and close.
  */
 export function DialogDebugOverlay({ open, onClose }: DialogDebugOverlayProps) {

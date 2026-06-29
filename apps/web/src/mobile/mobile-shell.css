@@ -102,11 +102,11 @@
   display: none;
 }
 
-.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-think-space:not(.dialog-think-space--mobile-composing) {
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-broadcast-strip:not(.dialog-broadcast-strip--mobile-composing) {
   display: none;
 }
 
-.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-think-space--mobile-composing {
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-broadcast-strip--mobile-composing {
   flex: 0 0 auto;
   min-height: 72px;
   max-height: 28vh;
@@ -154,7 +154,7 @@
   --dialog-fade-height: 88px;
 }
 
-.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-think-space {
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-broadcast-strip {
   flex: 1 1 auto;
   min-height: 120px;
   max-height: none;
@@ -178,11 +178,11 @@
   min-height: 0;
 }
 
-.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-think-space {
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-broadcast-strip {
   display: none !important;
 }
 
-.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-horizon-status {
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-broadcast-content {
   display: none;
 }
 

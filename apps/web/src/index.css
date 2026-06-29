@@ -400,8 +400,13 @@ button.dialog-prelude:hover {
 }
 
 .keeper-dialog-frame[data-composer-state="working"] .dialog-message-zone {
-  --dialog-fade-height: 96px;
-  --dialog-horizon-inset: 28px;
+  --dialog-fade-height: 72px;
+  --dialog-horizon-inset: 12px;
+}
+
+.keeper-dialog-frame[data-composer-state="working"] .dialog-message-surface .keeper-panel-scroll {
+  opacity: 0.82;
+  transition: opacity 0.35s ease;
 }
 
 /* Horizon band — gradient dissolve overlay at the Dialog Space floor */
@@ -685,14 +690,141 @@ button.dialog-prelude:hover {
  * The most transparent surface. The atmosphere is most visible here.
  * A fixed-height zone that never causes the composer to resize.
  */
-/* Agent status — anchored inside the horizon gradient, left-aligned */
-.dialog-horizon-status {
-  position: absolute;
-  top: var(--dialog-horizon-inset);
-  left: 0;
-  right: 0;
+/* ─── Broadcast Strip — unified working surface (live + ticker) ──────────────
+ * Replaces the split Horizon status line + Thinking Space panel.
+ * CRT lower-third: scanlines, phosphor live line, prior beats as ticker.
+ */
+.dialog-broadcast-strip {
+  flex-shrink: 0;
+  height: 0;
+  min-height: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  position: relative;
   z-index: 4;
+  border-top: 1px solid hsl(var(--theme-border-soft) / 0.42);
+  background:
+    linear-gradient(
+      180deg,
+      hsl(var(--theme-surface-panel) / 0.58) 0%,
+      hsl(28 14% 8% / 0.72) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 hsl(var(--treatment-color) / 0.12),
+    0 -8px 24px hsl(20 10% 4% / 0.18);
+  transition:
+    max-height 0.32s ease,
+    opacity 0.24s ease,
+    min-height 0.32s ease;
+}
+
+.dialog-broadcast-scanlines {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    hsl(0 0% 0% / 0.07) 2px,
+    hsl(0 0% 0% / 0.07) 4px
+  );
+}
+
+.dialog-broadcast-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  min-height: 0;
+}
+
+.dialog-broadcast-strip--working {
+  height: auto;
+  min-height: 68px;
+  max-height: 120px;
+  opacity: 1;
+}
+
+.dialog-broadcast-strip--uploads {
+  height: auto;
+  min-height: 88px;
+  max-height: 176px;
+  opacity: 1;
+}
+
+.dialog-broadcast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dialog-broadcast-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dialog-broadcast-live-marker {
+  flex-shrink: 0;
+  font-size: 9px;
+  line-height: 1;
+  color: hsl(142 52% 46%);
+  text-shadow: 0 0 10px hsl(142 60% 42% / 0.55);
+}
+
+.dialog-broadcast-live-text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  letter-spacing: 0.03em;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.45;
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-broadcast-cursor {
+  flex-shrink: 0;
+  width: 7px;
+  height: 14px;
+  border-radius: 1px;
+  background: hsl(142 48% 48% / 0.9);
+  box-shadow: 0 0 8px hsl(142 55% 45% / 0.45);
+  animation: dialog-broadcast-blink 1.05s step-end infinite;
+}
+
+@keyframes dialog-broadcast-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.dialog-broadcast-ticker {
+  margin: 0;
+  padding-left: 17px;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: hsl(var(--theme-ink-tertiary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dialog-broadcast-ticker--pending {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* Legacy horizon status — retained for mobile overrides; status now in Broadcast Strip */
+.dialog-horizon-status {
+  display: none;
 }
 
 .dialog-horizon-row {
@@ -752,40 +884,26 @@ button.dialog-prelude:hover {
   background: hsl(var(--theme-surface-panel) / 0.55);
 }
 
+/* Upload staging — tiles inside Broadcast Strip when composing with attachments */
+.dialog-think-space,
+.dialog-broadcast-strip--uploads .dialog-upload-stream {
+  /* height owned by .dialog-broadcast-strip--uploads */
+}
+
 .dialog-think-space {
-  flex-shrink: 0;
-  height: 0;
-  min-height: 0;
-  max-height: 0;
-  opacity: 0;
-  background: transparent;
-  overflow: hidden;
-  position: relative;
-  transition:
-    max-height 0.32s ease,
-    opacity 0.24s ease,
-    min-height 0.32s ease;
+  display: none;
 }
 
 .dialog-think-space--diag {
-  height: auto;
-  min-height: 120px;
-  max-height: 120px;
-  opacity: 1;
+  display: none;
 }
 
 .dialog-think-space--working {
-  height: auto;
-  min-height: 96px;
-  max-height: 168px;
-  opacity: 1;
+  display: none;
 }
 
 .dialog-think-space--uploads {
-  height: auto;
-  min-height: 88px;
-  max-height: 176px;
-  opacity: 1;
+  display: none;
 }
 
 .dialog-think-space-inner {
@@ -1179,7 +1297,7 @@ button.dialog-prelude:hover {
   color: hsl(var(--theme-ink-primary));
 }
 
-/* Debug overlay — covers Horizon band, Thinking Space, and Composer */
+/* Debug overlay — covers Broadcast Strip and Composer */
 .dialog-debug-overlay {
   position: absolute;
   left: 0;
@@ -1441,6 +1559,14 @@ button.dialog-prelude:hover {
 .keeper-board-scope .dialog-think-pulse {
   font-size: 14px;
   letter-spacing: 0.06em;
+}
+
+.keeper-board-scope .dialog-broadcast-live-text {
+  font-size: 15px;
+}
+
+.keeper-board-scope .dialog-broadcast-ticker {
+  font-size: 13px;
 }
 
 .keeper-board-scope .dialog-horizon-summary {
