@@ -75,7 +75,6 @@ import {
 } from "../presence/integrationChronicle/keeperNavUtils"
 import { applyAgentNavRowPatch } from "../presence/integrationChronicle/agentNavUtils"
 import { addLibraryUploadFromFile, createLibraryItem } from "../presence/integrationChronicle/libraryNavCreate"
-import { BOARD_INSTRUMENT_LABELS } from "./directorDialog"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -171,7 +170,6 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "journeys",
   "keepers",
   "drafts",
-  "boardInstruments",
   "integrations",
   "keys",
   "aiAccess",
@@ -544,7 +542,7 @@ export function UniversalNavPanel({
     )
   }, [drafts, draftNavRowPatch])
 
-  // ── Fetch: Agents — domain-scoped (Kip + domain lead), not global registry ──
+  // ── Fetch: Agents — domain-accessible roster (lead + Kip + Cloud + Rendr) ──
   React.useEffect(() => {
     if (!domainId) return
     if (!def.nav.sections.agents) return
@@ -566,76 +564,6 @@ export function UniversalNavPanel({
       })
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.agents, agentListVersion])
-
-  const boardInstrumentSlugs = React.useMemo(
-    () => def.conversation.boardInstruments ?? [],
-    [def.conversation.boardInstruments],
-  )
-  const activeBoardInstrument = boardCtx?.selection.activeBoardInstrument ?? null
-
-  type BoardInstrumentNavRow = {
-    slug: string
-    id: string
-    name: string
-    model: string | null
-  }
-
-  const [boardInstrumentAgents, setBoardInstrumentAgents] = React.useState<
-    BoardInstrumentNavRow[]
-  >([])
-
-  React.useEffect(() => {
-    if (!boardInstrumentSlugs.length) {
-      setBoardInstrumentAgents([])
-      return
-    }
-    let cancelled = false
-    void Promise.all(
-      boardInstrumentSlugs.map(async (slug) => {
-        try {
-          const agent = await KipApi.getAgentBySlug(slug)
-          return {
-            slug,
-            id: agent.id,
-            name: agent.name?.trim() || BOARD_INSTRUMENT_LABELS[slug] || slug,
-            model: agent.model ?? null,
-          }
-        } catch {
-          return {
-            slug,
-            id: slug,
-            name: BOARD_INSTRUMENT_LABELS[slug] ?? slug,
-            model: null,
-          }
-        }
-      }),
-    ).then((rows) => {
-      if (!cancelled) setBoardInstrumentAgents(rows)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [boardInstrumentSlugs])
-
-  const boardInstrumentNavItems: SidebarCardItem[] = React.useMemo(
-    () =>
-      boardInstrumentAgents.map((agent) => ({
-        id: agent.slug,
-        label: agent.model ? `${agent.name} · ${agent.model}` : agent.name,
-        isSelected: activeBoardInstrument === agent.slug,
-        onClick: () => {
-          if (!boardCtx) return
-          const next = activeBoardInstrument === agent.slug ? null : agent.slug
-          boardCtx.actions.onSetActiveBoardInstrument(next)
-          if (next && agent.id !== agent.slug) {
-            onAgentSelect?.(agent.id)
-          }
-        },
-      })),
-    [boardInstrumentAgents, activeBoardInstrument, boardCtx, onAgentSelect],
-  )
-
-  const showBoardInstrumentsNav = boardInstrumentSlugs.length > 0
 
   const showKeysNav = (def.nav.integrations ?? []).some((item) => item.group === "ai")
   const showAiAccessNav = def.nav.aiAccessSummary === true
@@ -1117,16 +1045,6 @@ export function UniversalNavPanel({
               </p>
             )}
           </>
-        )
-      case "boardInstruments":
-        if (!showBoardInstrumentsNav) return null
-        return (
-          <SidebarCard
-            className="keeper-sidebar-card"
-            title="Agents"
-            description={countLabel(boardInstrumentNavItems.length, "agent")}
-            items={boardInstrumentNavItems.length ? boardInstrumentNavItems : undefined}
-          />
         )
       case "integrations":
         if (integrationItems.length === 0) return null

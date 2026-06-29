@@ -7,6 +7,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `domainFrameFallback.ts` — platform frame fallback (shared with GET `/:slug/frame`).
 - `buildInitialDomainFrameJson.ts` — personal domain wordmark/tagline/agent wiring.
 - `provisionDomainOnCreate.ts` — idempotent orchestration after `POST /api/domains`.
+- `loadDomainScopedAgents.ts` — domain-accessible agent roster (lead + Kip + platform agents).
 
 ## 🔄 Data & Behavior
 On create (and via `POST /api/domains/:id/provision` repair):

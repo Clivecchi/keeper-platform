@@ -38,6 +38,7 @@ import { loadDomainAgentPolicy, ensureDomainAgentPolicy } from '../../governance
 import { buildDomainKeyAccessPayload } from '../../routes/key-entity-routes.js';
 import { DOMAIN_FRAME_FALLBACK } from '../../services/domains/domainFrameFallback.js';
 import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
+import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -414,7 +415,7 @@ router.put('/:domainId/kip/sole-memory-cards/:id', authMiddlewareCompat, require
   }
 });
 
-// GET /api/domains/:domainId/kip/agents - Domain-scoped agents list
+// GET /api/domains/:domainId/kip/agents - Domain-accessible agents (lead + Kip + platform)
 router.get('/:domainId/kip/agents', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -438,64 +439,13 @@ router.get('/:domainId/kip/agents', authMiddlewareCompat, requireDomainReadCompa
       return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have access to this domain' });
     }
 
-    // Get primary agent from domain settings
-    const domainSettings = ((domain.settings as Record<string, unknown>) || {});
-    const primaryAgentId =
-      typeof domainSettings.primaryAgentId === "string" ? domainSettings.primaryAgentId : null;
+    const agents = await loadDomainAccessibleAgents(domainId);
 
-    const agentSelect = {
-      id: true,
-      slug: true,
-      name: true,
-      purpose: true,
-      model: true,
-      context_scope: true,
-      memory_enabled: true,
-      tools: true,
-      permissions: true,
-      config: true,
-      status: true,
-      role: true,
-      model_provider: true,
-      model_settings: true,
-      visibility: true,
-      created_at: true,
-      updated_at: true,
-    } as const;
-
-    const kipAgent = await prisma.kip_agents.findFirst({
-      where: { slug: "kip" },
-      select: agentSelect,
-    });
-
-    const agents = [];
-    const seen = new Set<string>();
-
-    const pushUnique = (agent: typeof kipAgent) => {
-      if (!agent || seen.has(agent.id)) return;
-      seen.add(agent.id);
-      agents.push(agent);
-    };
-
-    // Domain lead first when it is not Kip; Kip always follows as platform Lead.
-    if (primaryAgentId && primaryAgentId !== kipAgent?.id) {
-      const primaryAgent = await prisma.kip_agents.findUnique({
-        where: { id: primaryAgentId },
-        select: agentSelect,
-      });
-      pushUnique(primaryAgent);
-    }
-
-    if (kipAgent) {
-      pushUnique(kipAgent);
-    } else if (agents.length === 0) {
+    if (agents.length === 0) {
       const kipAgentId = await ensurePrimaryAgentAssignment(domain);
       if (kipAgentId) {
-        const assignedKip = await prisma.kip_agents.findUnique({
-          where: { id: kipAgentId },
-          select: agentSelect,
-        });
-        pushUnique(assignedKip);
+        const fallback = await loadDomainAccessibleAgents(domainId);
+        return res.json({ success: true, data: fallback });
       }
     }
 

@@ -35,8 +35,6 @@ export type NavRenderBlock =
   | "capabilities"
   | "library"
   | "boards"
-  /** IDE director mode — platform board instruments (Cloud, Rendr) from conversation.boardInstruments */
-  | "boardInstruments"
 
 export interface NavSectionsDef {
   dialogs: boolean
@@ -305,7 +303,7 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
       { id: "together-ai", label: "Together AI", group: "ai" },
       { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
     ],
-    navBlockOrder: ["drafts", "boardInstruments", "integrations", "keys", "capabilities", "boards"],
+    navBlockOrder: ["drafts", "integrations", "keys", "capabilities", "boards"],
   },
   conversation: {
     agentSlug: "kip",

@@ -24,6 +24,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-28 — Domain-accessible agents on Agent board Nav (not IDE Nav)
+- **Agent board** Nav lists domain-accessible roster from `GET /api/domains/:id/kip/agents`: domain lead (when set) → Kip → Cloud → Rendr — each configurable in Chronicle.
+- **IDE board** keeps Cloud/Rendr in composer **Tools** only; no Agents section in left Nav.
+- API `loadDomainAccessibleAgents` merges global platform agents (`cloud`, `rendr`) into every domain roster.
+
 ### 2026-06-12 — Optimistic board definition + router/window desync fix
 - V0Shell holds `pendingBoardDefinitionId` — UI updates immediately on nav click before router catches up
 - When `window.location.search` and React Router `location.search` disagree on `?definition=`, trust window

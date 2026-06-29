@@ -309,8 +309,9 @@ export function UniversalConversation({
     if (kipMode === "ide") return { ...BOARD_INSTRUMENT_LABELS }
     if (kipMode === "domain") {
       const labels: Record<string, string> = {}
+      const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
       for (const agent of domainScopedAgents) {
-        if (agent.slug !== "kip") {
+        if (!platformComposerSlugs.has(agent.slug)) {
           labels[agent.slug] = agent.name
         }
       }
