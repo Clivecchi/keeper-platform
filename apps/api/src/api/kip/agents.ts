@@ -19,6 +19,8 @@ import {
   createDraftPoint,
   findDraftPoint,
   mergeDraftSpecPatch,
+  rewriteDraftPointInSpec,
+  summarizeDraftPointsForAgent,
   updateDraftPointInSpec,
   type DraftPointType,
   type DirectorContinuityMessage,
@@ -171,13 +173,15 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding or changing draft CONTENT, use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
+    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content, and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
+  const rewritePoints =
+    '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), and payload.content. Only points with status proposed or pending are rewritable. Accepted (kept) points are anchors — never rewrite them; treat their text as fixed context when revising nearby points.';
   const preservePoints =
-    '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id) or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
+    '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
   if (isOperationalDraftAgent(agent)) {
-    return `${proposePoints}\n${preservePoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point — only use actions from the allowlist.`;
+    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
   }
-  return `${proposePoints}\n${preservePoints}`;
+  return `${proposePoints}\n${rewritePoints}\n${preservePoints}`;
 }
 
 class AgentExecutionError extends Error {
@@ -568,6 +572,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('draft.update');
   allow.add('draft.update.propose');
   allow.add('draft.point.accept');
+  allow.add('draft.point.rewrite');
   allow.add('draft.delete');
   allow.add('moment.create');
   allow.add('sole.save');
@@ -722,6 +727,18 @@ export async function executeAgentActions(
   const VALID_KINDS = ['journey_spec', 'keeper_type_proposal', 'vehicle_template', 'checklist_spec', 'development_journey', 'conversation_review', 'domain_json'];
   const normalizedActions = actions.map((action) => {
     if (
+      action.type === 'draft.point.rewrite'
+      && action.payload
+      && typeof action.payload === 'object'
+    ) {
+      const p = action.payload as Record<string, unknown>;
+      const out: Record<string, unknown> = { ...p };
+      if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
+      if (!out.pointId && typeof p.point_id === 'string') out.pointId = p.point_id;
+      if (!out.content && typeof p.text === 'string') out.content = p.text;
+      return { type: action.type, payload: out };
+    }
+    if (
       action.type === 'draft.update.propose'
       && action.payload
       && typeof action.payload === 'object'
@@ -819,6 +836,7 @@ export async function executeAgentActions(
     'draft.update',
     'draft.update.propose',
     'draft.point.accept',
+    'draft.point.rewrite',
     'draft.delete',
     'draft.list',
     'draft.get',
@@ -1240,6 +1258,99 @@ export async function executeAgentActions(
                 draftId: draft.id,
                 draftTitle: draft.title,
                 point: updatedPoint,
+                draft: { id: draft.id, title: draft.title, kind: draft.kind, key: draft.key },
+                links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
+              },
+            });
+            break;
+          }
+          case 'draft.point.rewrite': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+            const pointId = typeof payload.pointId === 'string' ? payload.pointId.trim() : '';
+            const content = typeof payload.content === 'string' ? payload.content.trim() : '';
+
+            if (!draftId || !pointId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Draft id and point id required for rewrite',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (!content) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Point content is required for rewrite',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            const draft = await tx.kip_drafts.findFirst({
+              where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
+            });
+            if (!draft) {
+              results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
+              break;
+            }
+
+            const pointType = typeof payload.type === 'string'
+              ? payload.type as DraftPointType
+              : undefined;
+
+            const rewriteResult = rewriteDraftPointInSpec(draft.spec_json, pointId, content, pointType);
+            if (rewriteResult.ok === false) {
+              const message =
+                rewriteResult.code === 'POINT_ANCHORED'
+                  ? 'Cannot rewrite an accepted (kept) point — it is an anchor. Revise a proposed point instead.'
+                  : rewriteResult.code === 'POINT_NOT_FOUND'
+                    ? 'Point not found — call draft.read first and use an exact pointId from spec.points'
+                    : 'Point content is required';
+              results.push({
+                type: action.type,
+                status: 'error',
+                message,
+                errorCode: rewriteResult.code,
+              });
+              break;
+            }
+
+            await tx.kip_draft_versions.create({
+              data: {
+                draft_id: draft.id,
+                version: await tx.kip_draft_versions.count({ where: { draft_id: draft.id } }).then((n) => n + 1),
+                spec_json: (draft.spec_json ?? {}) as Prisma.InputJsonValue,
+                title: draft.title,
+                summary: draft.summary ?? null,
+                status: draft.status,
+                created_by_session_id: ctx.sessionId ?? null,
+              },
+            });
+
+            await tx.kip_drafts.update({
+              where: { id: draft.id },
+              data: {
+                spec_json: rewriteResult.spec as object,
+                updated_at: new Date(),
+              },
+            });
+
+            await ensureDraftLinkedToSessionDialog(tx, {
+              draftId: draft.id,
+              sessionId: ctx.sessionId,
+            });
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: 'Point rewritten',
+              data: {
+                draftId: draft.id,
+                draftTitle: draft.title,
+                point: rewriteResult.point,
                 draft: { id: draft.id, title: draft.title, kind: draft.kind, key: draft.key },
                 links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
               },
@@ -3243,6 +3354,7 @@ export class KipAgentService {
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
+          'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
           'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
           'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
@@ -3336,7 +3448,8 @@ export class KipAgentService {
         'keeper.read — retrieves full Keeper content including associated journeys and counts.',
         'Use when a user asks about a specific Keeper. Payload: { keeperId }',
         '',
-        'draft.read / draft.get — retrieves full draft spec (including points). Payload: { id } or { kind, key }.',
+        'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
+        'draft.point.rewrite — rewrites one proposed/pending point in place. Payload: { id, pointId, content, type? }. Accepted points are anchors — not rewritable.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -3655,6 +3768,7 @@ export class KipAgentService {
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
+          'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',

@@ -3,6 +3,7 @@ import { DomainAuthManager } from '@keeper/kam';
 import { getRedis, isNoOpRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
+import { summarizeDraftPointsForAgent } from '@keeper/shared';
 import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
 
@@ -52,6 +53,7 @@ export type AgentEnvironmentContext = {
     title: string;
     status: string;
     updatedAt: Date;
+    points?: ReturnType<typeof summarizeDraftPointsForAgent>;
   };
   debug?: {
     resolvedBy: 'KAM';
@@ -406,6 +408,7 @@ export async function resolveAgentEnvironment(args: {
             title: true,
             status: true,
             updated_at: true,
+            spec_json: true,
           },
         });
 
@@ -417,6 +420,7 @@ export async function resolveAgentEnvironment(args: {
             title: draft.title,
             status: draft.status,
             updatedAt: draft.updated_at,
+            points: summarizeDraftPointsForAgent(draft.spec_json),
           };
         }
       }

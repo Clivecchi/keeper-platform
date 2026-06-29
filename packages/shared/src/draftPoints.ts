@@ -234,11 +234,42 @@ export function createDraftPoint(input: CreateDraftPointInput): DraftPoint {
   };
 }
 
+/** Accepted points are anchors — content cannot be rewritten in place. */
+export function isDraftPointRewritable(status: DraftPointStatus): boolean {
+  return status !== 'accepted';
+}
+
+/** Compact point index for agent environment (ids + rewrite eligibility). */
+export function summarizeDraftPointsForAgent(spec: unknown): Array<{
+  id: string;
+  status: DraftPointStatus;
+  type: DraftPointType;
+  preview: string;
+  rewritable: boolean;
+}> {
+  return parseDraftPoints(spec).map((point) => ({
+    id: point.id,
+    status: point.status,
+    type: point.type,
+    preview: point.content.trim().slice(0, 160),
+    rewritable: isDraftPointRewritable(point.status),
+  }));
+}
+
 function mergeDraftPointsById(existingPoints: DraftPoint[], patchPoints: DraftPoint[]): DraftPoint[] {
   if (patchPoints.length === 0) return existingPoints;
 
   const byId = new Map(existingPoints.map((point) => [point.id, point]));
   for (const patchPoint of patchPoints) {
+    const existing = byId.get(patchPoint.id);
+    if (
+      existing
+      && existing.status === 'accepted'
+      && patchPoint.content.trim() !== existing.content.trim()
+    ) {
+      // Anchor — preserve accepted content; ignore agent content overwrite.
+      continue;
+    }
     byId.set(patchPoint.id, patchPoint);
   }
 
@@ -279,6 +310,42 @@ function withDraftPointsPreservingExtras(spec: unknown, points: DraftPoint[]): D
 export function appendDraftPointToSpec(spec: unknown, point: DraftPoint): DraftSpecJson {
   const normalized = canonicalizeDraftSpecJson(spec);
   return withDraftPointsPreservingExtras(spec, [...(normalized.points ?? []), point]);
+}
+
+export type RewriteDraftPointResult =
+  | { ok: true; spec: DraftSpecJson; point: DraftPoint }
+  | { ok: false; code: 'POINT_NOT_FOUND' | 'POINT_ANCHORED' | 'VALIDATION_ERROR' };
+
+/** Rewrite draft point content in place. Accepted (kept) points cannot be rewritten. */
+export function rewriteDraftPointInSpec(
+  spec: unknown,
+  pointId: string,
+  content: string,
+  type?: DraftPointType,
+): RewriteDraftPointResult {
+  const trimmed = content.trim();
+  if (!trimmed) {
+    return { ok: false, code: 'VALIDATION_ERROR' };
+  }
+
+  const existing = findDraftPoint(spec, pointId);
+  if (!existing) {
+    return { ok: false, code: 'POINT_NOT_FOUND' };
+  }
+  if (!isDraftPointRewritable(existing.status)) {
+    return { ok: false, code: 'POINT_ANCHORED' };
+  }
+
+  const { spec: nextSpec, point } = updateDraftPointInSpec(spec, pointId, {
+    content: trimmed,
+    ...(type ? { type } : {}),
+  });
+
+  if (!point) {
+    return { ok: false, code: 'POINT_NOT_FOUND' };
+  }
+
+  return { ok: true, spec: nextSpec, point };
 }
 
 /** Update a point by id within spec_json.points */

@@ -28,6 +28,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-06-28: **draft.point.rewrite** — agents can rewrite proposed/pending points by exact `pointId`; accepted (kept) points are anchors (blocked). Active draft environment now includes `activeDraft.points` index (id, status, preview, rewritable). `mergeDraftSpecPatch` preserves accepted anchor content on agent overwrite attempts.
 - 2026-06-28: **image.generate reliability** — handler now reads domain `image_model` from `frame_json.kip` (server-side default per system prompt contract); `ModelProviderService.generateImage` uses Together SDK with automatic 5xx retries.
 - 2026-06-24: Kip run-agent failures now return sanitized provider failure details (`KipAgentRunError` + stable error codes) and user-friendly messages for overload, timeout, quota, and missing keys.
 - 2026-06-24: GET agent-by-slug now self-heals canonical Lead agents (`kip`, `ceox`) when DB records drift from expected `role=Lead` and `visibility=public`.

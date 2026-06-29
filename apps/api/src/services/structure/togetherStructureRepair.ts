@@ -22,7 +22,7 @@ export async function repairAgentOutputWithTogether(
   const allowed =
     input.allowedActions && input.allowedActions.length > 0
       ? input.allowedActions.join(', ')
-      : 'draft.create, draft.update, draft.update.propose, sole.save, image.generate';
+      : 'draft.create, draft.update, draft.update.propose, draft.point.rewrite, sole.save, image.generate';
 
   const systemPrompt = [
     'You convert assistant output into a single JSON object for the Keeper platform.',

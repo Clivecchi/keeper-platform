@@ -585,7 +585,8 @@ export function UniversalConversation({
             return
           }
           if (
-            receipt.type === "draft.update.propose"
+            (receipt.type === "draft.update.propose"
+              || receipt.type === "draft.point.rewrite")
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
@@ -637,7 +638,8 @@ export function UniversalConversation({
             return
           }
           if (
-            receipt.type === "draft.update.propose"
+            (receipt.type === "draft.update.propose"
+              || receipt.type === "draft.point.rewrite")
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
@@ -799,6 +801,7 @@ export function UniversalConversation({
             "draft.create",
             "draft.update",
             "draft.update.propose",
+            "draft.point.rewrite",
             "draft.point.accept",
             "draft.delete",
             "draft.setActive",

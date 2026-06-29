@@ -6,6 +6,7 @@ import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
 import { resolveGitHubBinding } from '../../lib/resolveServiceBinding.js';
 import type { GitHubServiceBinding } from '@keeper/shared';
+import { summarizeDraftPointsForAgent } from '@keeper/shared';
 
 export type KipEnvironmentContext = {
   version: 'kip-env-v1';
@@ -56,6 +57,7 @@ export type KipEnvironmentContext = {
     title: string;
     status: string;
     updatedAt: Date;
+    points?: ReturnType<typeof summarizeDraftPointsForAgent>;
   };
   governance?: AgentPolicyView | null;
   domainIndex?: {
@@ -295,6 +297,7 @@ export async function buildKipEnvironmentContext(args: {
             title: true,
             status: true,
             updated_at: true,
+            spec_json: true,
           },
         });
 
@@ -306,6 +309,7 @@ export async function buildKipEnvironmentContext(args: {
             title: draft.title,
             status: draft.status,
             updatedAt: draft.updated_at,
+            points: summarizeDraftPointsForAgent(draft.spec_json),
           };
         }
       }

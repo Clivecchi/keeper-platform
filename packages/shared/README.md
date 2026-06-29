@@ -26,6 +26,10 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-06-28 — Draft point rewrite + anchor guard
+- Added `isDraftPointRewritable`, `rewriteDraftPointInSpec`, `summarizeDraftPointsForAgent`.
+- `mergeDraftPointsById` ignores content overwrites for accepted (kept) anchor points.
+
 ### 2026-06-27 — Domain tier key flags
 - Added `domainTier.ts` — `parseDomainTier`, `getDomainTierKeyPolicy`, `applyTierToResolvedProviderKey`, `defaultDomainSettingsForCreate`.
 

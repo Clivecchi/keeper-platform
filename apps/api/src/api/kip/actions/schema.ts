@@ -51,6 +51,17 @@ const draftPointAcceptPayloadSchema = z.object({
   { message: 'Must provide draftId or id' },
 );
 
+const draftPointRewritePayloadSchema = z.object({
+  draftId: z.string().uuid().optional(),
+  id: z.string().uuid().optional(),
+  pointId: z.string().uuid(),
+  content: z.string().min(1, 'content is required'),
+  type: z.enum(['moment', 'decision', 'context', 'general']).optional(),
+}).refine(
+  (data) => Boolean(data.draftId || data.id),
+  { message: 'Must provide draftId or id' },
+);
+
 const draftUpdateProposePayloadSchema = z.object({
   id: z.string().uuid().optional(),
   draftId: z.string().uuid().optional(),
@@ -180,6 +191,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'draft.update': draftUpdatePayloadSchema,
   'draft.update.propose': draftUpdateProposePayloadSchema,
   'draft.point.accept': draftPointAcceptPayloadSchema,
+  'draft.point.rewrite': draftPointRewritePayloadSchema,
   'draft.delete': draftDeletePayloadSchema,
   'draft.list': draftListPayloadSchema,
   'draft.get': draftGetPayloadSchema,

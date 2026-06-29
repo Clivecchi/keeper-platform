@@ -54,6 +54,8 @@ function getActionLabel(actionType: string): string {
     "draft.get": "Retrieved",
     "draft.read": "Retrieved",
     "draft.update.propose": "Proposed update",
+    "draft.point.rewrite": "Rewrote point",
+    "draft.point.accept": "Accepted point",
     "moment.create": "Moment captured",
     "moment.keep": "Moment captured",
     "sole.save": "Memory saved",
