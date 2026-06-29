@@ -154,13 +154,8 @@ type RunAgentOptions = {
   activeJourneyId?: string | null;
   activeKeeperId?: string | null;
   attachments?: AgentAttachmentInput[];
-  /** IDE director mode — run board instrument before Lead synthesis (server-orchestrated). */
-  directorDelegation?: {
-    instrumentSlug: 'cloud' | 'rendr';
-    userMessage: string;
-    taskMessage?: string;
-    directorDisplayName: string;
-  };
+  /** IDE / Domain director mode — run board instrument before Lead synthesis. */
+  directorDelegation?: DirectorDelegationRequest;
 };
 
 function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown }): boolean {
@@ -658,7 +653,7 @@ function buildActionPackFromEnvironment(environment?: AgentEnvironmentContext | 
 
 async function buildInstrumentRunEnvironment(params: {
   instAgentId: string;
-  instrumentSlug: 'cloud' | 'rendr';
+  instrumentSlug: string;
   userId?: string;
   domainId?: string | null;
   fallback?: AgentEnvironmentContext | KipEnvironmentContext | null;
