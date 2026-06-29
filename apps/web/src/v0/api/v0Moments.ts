@@ -20,6 +20,8 @@ export interface KeptMoment {
   keptAt: string;
   createdAt: string;
   updatedAt: string;
+  libraryItemId?: string;
+  coverImageUrl?: string;
 }
 
 export interface MomentClaim {
@@ -38,6 +40,8 @@ interface DomainScopedOptions {
   journeyId?: string;
   /** Active keeper to bind the moment to */
   keeperId?: string;
+  /** Generated image URL to archive into Library on keep */
+  imageUrl?: string;
 }
 
 interface DraftRequestOptions extends DomainScopedOptions {
@@ -226,10 +230,11 @@ export async function keepMoment(
   const url = `${API_BASE_URL}/api/v0/moments/${id}/keep`;
   logDraftRequest('keepDraft', url, headers);
 
-  // Include journey/keeper context in the keep request
+  // Include journey/keeper/image context in the keep request
   const body: Record<string, string> = {};
   if (options?.journeyId) body.journeyId = options.journeyId;
   if (options?.keeperId) body.keeperId = options.keeperId;
+  if (options?.imageUrl) body.imageUrl = options.imageUrl;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -239,7 +244,14 @@ export async function keepMoment(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to keep moment: ${response.statusText}`);
+    let message = `Failed to keep moment: ${response.statusText}`;
+    try {
+      const errJson = (await response.json()) as { message?: string; error?: string };
+      message = errJson.message?.trim() || errJson.error?.trim() || message;
+    } catch {
+      // ignore JSON parse failure
+    }
+    throw new Error(message);
   }
 
   const result = await response.json();

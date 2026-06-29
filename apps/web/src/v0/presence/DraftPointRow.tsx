@@ -3,7 +3,7 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import type { DraftPoint } from "@keeper/shared"
-import { buildGlossAnchorDataAttribute } from "@keeper/shared"
+import { buildGlossAnchorDataAttribute, isDraftPointRewritable } from "@keeper/shared"
 import { resolvePointBeats } from "./integrationChronicle/draftManuscriptUtils"
 
 export interface DraftPointRowProps {
@@ -14,6 +14,7 @@ export interface DraftPointRowProps {
   isAccepting: boolean
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
+  onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
   manuscript?: boolean
 }
 
@@ -43,9 +44,12 @@ export function DraftPointRow({
   isAccepting,
   onAcceptPoint,
   onDiscussPoint,
+  onRewritePoint,
   manuscript = false,
 }: DraftPointRowProps) {
   const displayStatus = isAccepted ? "accepted" : point.status
+  const canRewrite =
+    !isAccepted && isDraftPointRewritable(point.status) && !!draftId && !!onRewritePoint
   const [expanded, setExpanded] = React.useState(false)
   const beats = resolvePointBeats(point)
   const prevContent = React.useRef(point.content)
@@ -116,7 +120,7 @@ export function DraftPointRow({
           <p className="cdraft-closer-text">{beats.closer}</p>
         ) : null}
 
-        {(canAccept || onDiscussPoint) && draftId ? (
+        {(canAccept || onDiscussPoint || canRewrite) && draftId ? (
           <div className="cdraft-point-actions">
             {canAccept && onAcceptPoint ? (
               <button
@@ -126,6 +130,15 @@ export function DraftPointRow({
                 className="cdraft-ghost-btn"
               >
                 {isAccepting ? "Accepting…" : "Accept"}
+              </button>
+            ) : null}
+            {canRewrite ? (
+              <button
+                type="button"
+                onClick={() => onRewritePoint(draftId, point.id, point.content)}
+                className="cdraft-ghost-btn cdraft-ghost-btn--rewrite"
+              >
+                Rewrite
               </button>
             ) : null}
             {onDiscussPoint ? (
@@ -213,7 +226,7 @@ export function DraftPointRow({
           </span>
         )}
       </div>
-      {(canAccept || onDiscussPoint) && draftId ? (
+      {(canAccept || onDiscussPoint || canRewrite) && draftId ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {canAccept && onAcceptPoint ? (
             <button
@@ -224,6 +237,19 @@ export function DraftPointRow({
               style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
             >
               {isAccepting ? "Accepting…" : "Accept"}
+            </button>
+          ) : null}
+          {canRewrite ? (
+            <button
+              type="button"
+              onClick={() => onRewritePoint(draftId, point.id, point.content)}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-90"
+              style={{
+                borderColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+                color: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+              }}
+            >
+              Rewrite
             </button>
           ) : null}
           {onDiscussPoint ? (

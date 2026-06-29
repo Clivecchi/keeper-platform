@@ -4,6 +4,12 @@ import { PrismaClient } from '@keeper/database';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { authMiddlewareCompat, optionalAuthMiddleware } from '../../middleware/authMiddleware.js';
 import crypto from 'crypto';
+import {
+  extractMarkdownImageUrl,
+  mergePresenceSchemaCover,
+  persistImageToLibrary,
+  replaceMarkdownImageUrl,
+} from '../../services/imageArchiveService.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -428,9 +434,10 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
   try {
     const { id } = req.params;
 
-    // Optional journey/keeper context from request body (Context Contract)
+    // Optional journey/keeper/image context from request body
     const journeyId = typeof req.body?.journeyId === 'string' ? req.body.journeyId : undefined;
     const keeperId = typeof req.body?.keeperId === 'string' ? req.body.keeperId : undefined;
+    const imageUrl = typeof req.body?.imageUrl === 'string' ? req.body.imageUrl.trim() : undefined;
 
     // Get domain from resolved context - required for keeping
     const domainId = await resolveDomainId(req);
@@ -448,18 +455,19 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
       });
     }
 
-    // First check if the moment exists and belongs to the authenticated user
-    const existingMoment = await prisma.moment.findUnique({
+    const existingMomentFull = await prisma.moment.findUnique({
       where: { id },
-      select: { id: true, ownerId: true, anonKey: true },
+      select: { id: true, ownerId: true, anonKey: true, title: true, narrative: true, presenceSchema: true },
     });
 
-    if (!existingMoment) {
+    if (!existingMomentFull) {
       return res.status(404).json({
         success: false,
         error: 'Moment not found',
       });
     }
+
+    const existingMoment = existingMomentFull;
 
     if (existingMoment.ownerId) {
       if (!req.user?.id) {
@@ -489,15 +497,51 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
       ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
       : null;
 
+    let nextNarrative = existingMomentFull.narrative;
+    let nextPresenceSchema = existingMomentFull.presenceSchema;
+    let libraryItemId: string | undefined;
+    let persistedCoverUrl: string | undefined;
+
+    const sourceImageUrl =
+      imageUrl || extractMarkdownImageUrl(existingMomentFull.narrative) || undefined;
+
+    if (sourceImageUrl && req.user?.id) {
+      try {
+        const persisted = await persistImageToLibrary({
+          sourceUrl: sourceImageUrl,
+          userId: req.user.id,
+          domainId,
+          displayLabel: existingMomentFull.title,
+          keeperId,
+        });
+        libraryItemId = persisted.libraryItemId;
+        persistedCoverUrl = persisted.persistedUrl;
+        nextNarrative = replaceMarkdownImageUrl(nextNarrative, persisted.persistedUrl);
+        nextPresenceSchema = mergePresenceSchemaCover(
+          nextPresenceSchema,
+          persisted.persistedUrl,
+        ) as typeof nextPresenceSchema;
+      } catch (archiveError) {
+        console.error('[v0:moments] Image archive failed during keep:', archiveError);
+        return res.status(502).json({
+          success: false,
+          error: 'IMAGE_ARCHIVE_FAILED',
+          message: archiveError instanceof Error ? archiveError.message : 'Failed to save image to library',
+        });
+      }
+    }
+
     // Update the moment: set domainId, status to 'kept', and keptAt timestamp
     // Optionally bind to journey from Context Contract
     // Note: keeperId is available for logging but Moment model links to Keeper via Path
     const moment = await prisma.moment.update({
       where: { id },
       data: {
-        domainId, // Bind to domain at keep time
+        domainId,
         keptAt: new Date(),
         updatedAt: new Date(),
+        narrative: nextNarrative,
+        presenceSchema: nextPresenceSchema ?? undefined,
         ...(journeyId ? { journeyId } : {}),
         ...(claimToken ? { claimToken, claimTokenExpiresAt } : {}),
       },
@@ -518,6 +562,29 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
       },
     });
 
+    if (persistedCoverUrl && journeyId) {
+      try {
+        const journey = await prisma.journey.findUnique({
+          where: { id: journeyId },
+          select: { id: true, presenceSchema: true },
+        });
+        if (journey) {
+          await prisma.journey.update({
+            where: { id: journeyId },
+            data: {
+              presenceSchema: mergePresenceSchemaCover(
+                journey.presenceSchema,
+                persistedCoverUrl,
+              ) as typeof journey.presenceSchema,
+              updatedAt: new Date(),
+            },
+          });
+        }
+      } catch (coverError) {
+        console.warn('[v0:moments] Journey cover update failed (non-fatal):', coverError);
+      }
+    }
+
     console.log(`[v0:moments] Kept moment: ${moment.id} in domain: ${domainId}`);
 
     return res.json({
@@ -531,6 +598,8 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
         domain: moment.domain,
+        libraryItemId,
+        coverImageUrl: persistedCoverUrl,
       },
       ...(claimToken
         ? { claim: { token: claimToken, expiresAt: claimTokenExpiresAt?.toISOString() } }

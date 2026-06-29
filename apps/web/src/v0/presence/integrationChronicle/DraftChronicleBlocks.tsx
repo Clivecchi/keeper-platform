@@ -73,6 +73,7 @@ export interface DraftChronicleBlocksProps {
   presenceRefreshKey?: number
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
+  onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
   acceptingPointId?: string | null
   acceptedPointIds?: Set<string>
   onDialogSelect?: (dialogId: string) => void
@@ -91,6 +92,7 @@ export function DraftChronicleBlocks({
   presenceRefreshKey = 0,
   onAcceptPoint,
   onDiscussPoint,
+  onRewritePoint,
   acceptingPointId,
   acceptedPointIds,
   onDialogSelect,
@@ -123,6 +125,7 @@ export function DraftChronicleBlocks({
             pathEmergence={pathEmergence}
             onAcceptPoint={onAcceptPoint}
             onDiscussPoint={onDiscussPoint}
+            onRewritePoint={onRewritePoint}
             acceptingPointId={acceptingPointId}
             acceptedPointIds={acceptedPointIds}
             manuscript
@@ -135,6 +138,7 @@ export function DraftChronicleBlocks({
             draftId={draftId}
             onAcceptPoint={onAcceptPoint}
             onDiscussPoint={onDiscussPoint}
+            onRewritePoint={onRewritePoint}
             acceptingPointId={acceptingPointId}
             acceptedPointIds={acceptedPointIds}
           />

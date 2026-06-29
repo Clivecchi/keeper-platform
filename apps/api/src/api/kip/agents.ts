@@ -25,6 +25,7 @@ import {
   type DraftPointType,
   type DirectorContinuityMessage,
   resolveDirectorDelegationMessage,
+  type DraftDiscussContext,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
@@ -561,6 +562,69 @@ type ActionExecutionResult = {
 
 const ACTION_DRAFT_LIMIT = 25;
 const ACTION_ENVELOPE_TYPE = 'agent_output';
+
+async function enrichEnvironmentActiveDraft(
+  environment: AgentEnvironmentContext | KipEnvironmentContext | null | undefined,
+  draftId: string | null | undefined,
+  userId?: string | null,
+  domainId?: string | null,
+): Promise<void> {
+  if (!environment || !draftId) return;
+  try {
+    const draft = await prisma.kip_drafts.findFirst({
+      where: {
+        id: draftId,
+        ...(domainId ? { domain_id: domainId } : {}),
+        ...(userId ? { owner_id: userId } : {}),
+      },
+      select: {
+        id: true,
+        kind: true,
+        key: true,
+        title: true,
+        status: true,
+        updated_at: true,
+        spec_json: true,
+      },
+    });
+    if (!draft) return;
+    environment.activeDraft = {
+      id: draft.id,
+      kind: draft.kind,
+      key: draft.key,
+      title: draft.title,
+      status: draft.status,
+      updatedAt: draft.updated_at,
+      points: summarizeDraftPointsForAgent(draft.spec_json),
+    };
+  } catch (error) {
+    console.warn('[kip.agents] activeDraft enrichment failed', { draftId, error });
+  }
+}
+
+function buildDraftDiscussPrompt(
+  agentContext: Record<string, unknown> | undefined,
+): string | null {
+  if (!agentContext) return null;
+  const draftDiscuss = agentContext.draftDiscuss as DraftDiscussContext | undefined;
+  if (!draftDiscuss?.draftId || !draftDiscuss.pointId) return null;
+  const intent = agentContext.draftDiscussIntent === 'rewrite' ? 'rewrite' : 'discuss';
+  if (intent === 'rewrite') {
+    return [
+      'DRAFT POINT REWRITE (immediate action required when user confirms):',
+      `- Target draft id: ${draftDiscuss.draftId}`,
+      `- Target pointId: ${draftDiscuss.pointId} (exact UUID — do not invent or truncate)`,
+      '- Use draft.point.rewrite with payload { id, pointId, content }. Accepted points are anchors — never rewrite them.',
+      '- If the user asked to revise this point, call draft.point.rewrite in this turn — do not use edit, add_point, or draft.update with spec.points.',
+    ].join('\n');
+  }
+  return [
+    'DRAFT POINT FOCUS:',
+    `- User selected draft point ${draftDiscuss.pointId} on draft ${draftDiscuss.draftId}.`,
+    '- To revise this point, use draft.point.rewrite with the exact pointId above.',
+    '- Accepted points on this draft are anchors — treat their text as fixed context.',
+  ].join('\n');
+}
 
 function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
   const pack = buildPolicyPackFromEnvironment(environment);
@@ -2746,6 +2810,7 @@ const AgentRunSchema = z.object({
   attachments: z.array(AgentAttachmentSchema).optional(),
   activeJourneyId: z.string().nullable().optional(),
   activeKeeperId: z.string().nullable().optional(),
+  activeDraftId: z.string().uuid().nullable().optional(),
   agentContext: z.record(z.unknown()).optional(),
   directorDelegation: z
     .object({
@@ -3285,6 +3350,14 @@ export class KipAgentService {
     if (environment) {
       systemParts.push(`Environment context (resolved via KAM):\n${JSON.stringify(environment, null, 2)}`);
 
+      const agentContextRecord =
+        (environment as { agentContext?: Record<string, unknown> }).agentContext
+        ?? (options as { agentContext?: Record<string, unknown> }).agentContext;
+      const draftDiscussPrompt = buildDraftDiscussPrompt(agentContextRecord);
+      if (draftDiscussPrompt) {
+        systemParts.push(draftDiscussPrompt);
+      }
+
       // Domain contract (matches callAIModel injection)
       if (options.domainId) {
         try {
@@ -3632,6 +3705,16 @@ export class KipAgentService {
           role: 'system',
           content: `Environment context (resolved via KAM):\n${JSON.stringify(environmentContext, null, 2)}`,
         });
+
+        const agentContextRecord =
+          (environmentContext as { agentContext?: Record<string, unknown> }).agentContext;
+        const draftDiscussPrompt = buildDraftDiscussPrompt(agentContextRecord);
+        if (draftDiscussPrompt) {
+          messages.push({
+            role: 'system',
+            content: draftDiscussPrompt,
+          });
+        }
 
         // --- Domain contract injection (wires contract rules to Kip) ---
         const suppressKipPrompt =
@@ -5429,6 +5512,35 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               environment.activeDraft = directoryEntry;
               const existing = Array.isArray(environment.draftsDirectory) ? environment.draftsDirectory : [];
               environment.draftsDirectory = [directoryEntry, ...existing.filter((item) => item.id !== draft.id)].slice(0, ACTION_DRAFT_LIMIT);
+            }
+          }
+
+          if (environment) {
+            let draftIdToEnrich =
+              validation.data.activeDraftId
+              ?? draftIntentResult?.draft?.id
+              ?? environment.activeDraft?.id
+              ?? null;
+
+            if (!draftIdToEnrich && sessionId) {
+              try {
+                const sessionRow = await prisma.kip_sessions.findUnique({
+                  where: { id: sessionId },
+                  select: { active_draft_id: true },
+                });
+                draftIdToEnrich = sessionRow?.active_draft_id ?? null;
+              } catch (sessionLookupError) {
+                console.warn('[kip.agents] session active draft lookup failed', sessionLookupError);
+              }
+            }
+
+            if (draftIdToEnrich) {
+              await enrichEnvironmentActiveDraft(
+                environment,
+                draftIdToEnrich,
+                requestUserId,
+                validation.data.domainId ?? resolvedDomain.domainId,
+              );
             }
           }
 

@@ -16,6 +16,7 @@ export interface DraftPointsSectionProps {
   pathEmergence?: DraftPathEmergence[]
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
+  onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
   acceptingPointId?: string | null
   acceptedPointIds?: Set<string>
   manuscript?: boolean
@@ -27,6 +28,7 @@ export function DraftPointsSection({
   pathEmergence = [],
   onAcceptPoint,
   onDiscussPoint,
+  onRewritePoint,
   acceptingPointId = null,
   acceptedPointIds,
   manuscript = false,
@@ -34,6 +36,13 @@ export function DraftPointsSection({
   const points = React.useMemo(() => parseDraftPoints(spec), [spec])
   const accepted = points.filter((p) => p.status === "accepted")
   const pending = points.filter((p) => p.status !== "accepted")
+  const [anchorsCollapsed, setAnchorsCollapsed] = React.useState(
+    () => accepted.length > 2,
+  )
+
+  React.useEffect(() => {
+    setAnchorsCollapsed(accepted.length > 2)
+  }, [draftId, accepted.length])
 
   if (!points.length) {
     return (
@@ -66,6 +75,7 @@ export function DraftPointsSection({
         isAccepting={acceptingPointId === point.id}
         onAcceptPoint={onAcceptPoint}
         onDiscussPoint={onDiscussPoint}
+        onRewritePoint={onRewritePoint}
         manuscript={manuscript}
       />
     )
@@ -96,13 +106,34 @@ export function DraftPointsSection({
     return (
       <div className="cdraft-points-stack">
         {accepted.length > 0 && (
-          <div>
-            <p className="cdraft-section-label cdraft-section-label--nested">Accepted</p>
-            <ul className="cdraft-cluster-list">{renderClustered(accepted)}</ul>
+          <div className="cdraft-anchors-block">
+            <button
+              type="button"
+              className="cdraft-section-toggle"
+              onClick={() => setAnchorsCollapsed((c) => !c)}
+              aria-expanded={!anchorsCollapsed}
+            >
+              <span className="cdraft-section-label cdraft-section-label--nested">
+                Anchors ({accepted.length})
+              </span>
+              <span className="cdraft-section-toggle-hint">
+                {anchorsCollapsed ? "Show" : "Hide"}
+              </span>
+            </button>
+            {!anchorsCollapsed ? (
+              <ul className="cdraft-cluster-list">{renderClustered(accepted)}</ul>
+            ) : (
+              <p className="cdraft-anchors-collapsed-hint">
+                {accepted.length} accepted {accepted.length === 1 ? "point" : "points"} — fixed context for rewrites
+              </p>
+            )}
           </div>
         )}
         {pending.length > 0 && (
           <div>
+            <p className="cdraft-section-label cdraft-section-label--nested">
+              Rewrite queue ({pending.length})
+            </p>
             <AnimatePresence initial={false}>
               <ul className="cdraft-cluster-list">{renderClustered(pending)}</ul>
             </AnimatePresence>
@@ -131,7 +162,7 @@ export function DraftPointsSection({
             className="text-[11px] font-semibold uppercase tracking-widest mb-2"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            Under consideration
+            Under consideration ({pending.length})
           </p>
           <AnimatePresence initial={false}>
             <ul className="space-y-2">{pending.map(renderPoint)}</ul>

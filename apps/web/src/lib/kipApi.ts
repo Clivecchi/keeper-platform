@@ -764,6 +764,7 @@ export class KipApi {
       debugBundle?: unknown
       activeJourneyId?: string | null
       activeKeeperId?: string | null
+      activeDraftId?: string | null
       attachments?: Array<{ url: string; name: string; type: "image" | "file" }>
       /** agentContext — from domain frame JSON, injected into Kip's environment */
       agentContext?: Record<string, unknown>
@@ -790,6 +791,7 @@ export class KipApi {
         debugBundle: options?.debugBundle,
         activeJourneyId: options?.activeJourneyId ?? undefined,
         activeKeeperId: options?.activeKeeperId ?? undefined,
+        activeDraftId: options?.activeDraftId ?? undefined,
         attachments: options?.attachments ?? undefined,
         agentContext: options?.agentContext ?? undefined,
         directorDelegation: options?.directorDelegation ?? undefined,

@@ -103,6 +103,16 @@ export function DraftFocusPresence({
     [boardCtx, dialogId],
   )
 
+  const handleRewritePoint = React.useCallback(
+    (rewriteDraftId: string, pointId: string, preview: string) => {
+      boardCtx?.actions.requestRewriteDraftPoint(
+        { entityKind: "draft", entityId: rewriteDraftId, nodeId: pointId },
+        { dialogId, pointPreview: preview },
+      )
+    },
+    [boardCtx, dialogId],
+  )
+
   if (coverMode === "config") {
     return (
       <DraftConfigPresence
@@ -144,6 +154,7 @@ export function DraftFocusPresence({
               onManage={() => setCoverMode("config")}
               onAcceptPoint={acceptDraftPoint}
               onDiscussPoint={handleDiscussPoint}
+              onRewritePoint={handleRewritePoint}
               acceptingPointId={acceptingDraftPointId}
               acceptedPointIds={acceptedDraftPointIds}
               onDialogSelect={boardCtx?.actions.onDialogSelect}

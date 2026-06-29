@@ -2262,6 +2262,43 @@ button.dialog-prelude:hover {
   gap: 1.35rem;
 }
 
+.cdraft-anchors-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cdraft-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cdraft-section-toggle-hint {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cdraft-ink-faint);
+}
+
+.cdraft-anchors-collapsed-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--cdraft-ink-faint);
+  font-style: italic;
+}
+
+.cdraft-ghost-btn--rewrite {
+  font-weight: 600;
+}
+
 .cdraft-cluster-list {
   list-style: none;
   margin: 0;

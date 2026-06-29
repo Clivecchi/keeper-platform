@@ -20,6 +20,7 @@ export interface CdraftProps {
   onManage: () => void
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
+  onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
   acceptingPointId?: string | null
   acceptedPointIds?: Set<string>
   onDialogSelect?: (dialogId: string) => void
@@ -55,6 +56,7 @@ export function Cdraft({
   onManage,
   onAcceptPoint,
   onDiscussPoint,
+  onRewritePoint,
   acceptingPointId,
   acceptedPointIds,
   onDialogSelect,
@@ -72,6 +74,8 @@ export function Cdraft({
   const spec = record.spec ?? record.spec_json
 
   const points = React.useMemo(() => parseDraftPoints(spec), [spec])
+  const anchorCount = points.filter((p) => p.status === "accepted").length
+  const queueCount = points.length - anchorCount
   const pathEmergence = React.useMemo(() => parseDraftPathEmergence(spec), [spec])
 
   const journeyLabel =
@@ -121,6 +125,12 @@ export function Cdraft({
           <span className="cdraft-meta-item">
             {points.length} {points.length === 1 ? "point" : "points"}
           </span>
+          {anchorCount > 0 ? (
+            <span className="cdraft-meta-item">{anchorCount} anchor{anchorCount === 1 ? "" : "s"}</span>
+          ) : null}
+          {queueCount > 0 ? (
+            <span className="cdraft-meta-item">{queueCount} in queue</span>
+          ) : null}
           {updatedLabel ? (
             <span className="cdraft-meta-item">Updated {updatedLabel}</span>
           ) : null}
@@ -139,6 +149,7 @@ export function Cdraft({
           presenceRefreshKey={presenceRefreshKey}
           onAcceptPoint={onAcceptPoint}
           onDiscussPoint={onDiscussPoint}
+          onRewritePoint={onRewritePoint}
           acceptingPointId={acceptingPointId}
           acceptedPointIds={acceptedPointIds}
           onDialogSelect={onDialogSelect}

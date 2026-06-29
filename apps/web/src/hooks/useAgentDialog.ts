@@ -166,6 +166,7 @@ export interface UseAgentDialogOptions {
   domainSlug: string
   domainId?: string | null
   activeJourneyId?: string | null
+  activeDraftId?: string | null
   agentContext?: AgentContext
   resolvedAudience?: string | null
   refreshSession?: () => Promise<boolean>
@@ -264,6 +265,7 @@ export function useAgentDialog({
   domainSlug,
   domainId,
   activeJourneyId = null,
+  activeDraftId = null,
   agentContext,
   resolvedAudience = "keeper",
   refreshSession,
@@ -567,6 +569,7 @@ export function useAgentDialog({
         mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
+        activeDraftId: activeDraftId ?? undefined,
         agentContext: mode === "designer" && frameKey
           ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
           : agentContext,

@@ -223,16 +223,26 @@ function ImageReceiptCard({
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
 }) {
   const [keeping, setKeeping] = React.useState(false)
+  const [keepError, setKeepError] = React.useState<string | null>(null)
+  const [kept, setKept] = React.useState(false)
 
   const handleKeep = async () => {
     if (!onKeepAsMoment || keeping) return
     setKeeping(true)
+    setKeepError(null)
     try {
       await onKeepAsMoment({
         title: deriveKeepTitle(subject, imagePrompt, contextNarrative),
         narrative: contextNarrative?.trim() ?? "",
         imageUrl,
       })
+      setKept(true)
+    } catch (err) {
+      setKeepError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Could not keep this moment. Try again.",
+      )
     } finally {
       setKeeping(false)
     }
@@ -265,15 +275,26 @@ function ImageReceiptCard({
       )}
       {onKeepAsMoment && (
         <div className="border-t px-3 py-2.5" style={{ borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))" }}>
-          <button
-            type="button"
-            onClick={() => void handleKeep()}
-            disabled={keeping}
-            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-            style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
-          >
-            {keeping ? "Keeping…" : "Keep as Moment →"}
-          </button>
+          {keepError ? (
+            <p className="mb-2 text-xs leading-relaxed" style={{ color: "hsl(0 60% 45%)" }}>
+              {keepError}
+            </p>
+          ) : null}
+          {kept ? (
+            <p className="text-xs font-medium" style={{ color: "hsl(142 50% 30%)" }}>
+              Kept — image saved to Library and set as cover when a journey is active.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleKeep()}
+              disabled={keeping}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
+            >
+              {keeping ? "Keeping…" : "Keep as Moment →"}
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -310,8 +310,11 @@ export function UniversalConversation({
       ...base,
       glossAnchor: anchor,
       ...(draftDiscuss ? { draftDiscuss } : {}),
+      ...(selection.draftDiscussIntent === "rewrite"
+        ? { draftDiscussIntent: "rewrite" as const }
+        : {}),
     }
-  }, [domainFrame, audience, selection.draftDiscussAnchor])
+  }, [domainFrame, audience, selection.draftDiscussAnchor, selection.draftDiscussIntent])
 
   const agentBoardMessaging = React.useMemo((): AgentBoardMessaging | undefined => {
     if (kipMode !== "agent") return undefined
@@ -839,6 +842,7 @@ export function UniversalConversation({
     domainSlug,
     domainId,
     agentContext,
+    activeDraftId: selectedDraftId ?? null,
     resolvedAudience: audience,
     refreshSession,
     frameCtx,
@@ -860,6 +864,13 @@ export function UniversalConversation({
     onDirectorPhaseChange: isDirectorMode ? setDirectorSendPhase : undefined,
     userId: user?.id ?? null,
   })
+
+  React.useEffect(() => {
+    const hint = selection.draftComposeHint
+    if (!hint) return
+    setInput(hint)
+    actions.clearDraftComposeHint()
+  }, [selection.draftComposeHint, setInput, actions])
 
   const horizonThinkingLabel = React.useMemo(() => {
     if (!isDirectorMode || !isSending) return undefined
@@ -1297,11 +1308,17 @@ export function UniversalConversation({
           title: payload.title,
           body: bodyParts.join("\n\n") || payload.title,
         })
-        await keepMoment(draft.id, {
+        const kept = await keepMoment(draft.id, {
           domainSlug,
           journeyId: selectedJourneyId ?? undefined,
           keeperId: selectedKeeperId ?? undefined,
+          imageUrl: payload.imageUrl,
         })
+        actions.bumpLibraryNav?.()
+        const libraryItemId = kept.data.libraryItemId
+        if (libraryItemId) {
+          actions.onLibraryItemSelect(libraryItemId)
+        }
         onJourneyListRefresh?.()
         onMomentSelect(draft.id)
       } catch (err) {
@@ -1320,6 +1337,7 @@ export function UniversalConversation({
       onJourneyListRefresh,
       onMomentSelect,
       setError,
+      actions,
     ],
   )
 

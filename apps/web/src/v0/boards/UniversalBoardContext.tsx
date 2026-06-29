@@ -24,6 +24,7 @@ import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import type { GlossAnchor } from "@keeper/shared"
+import { glossAnchorToDraftDiscuss } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
@@ -91,6 +92,10 @@ export interface UniversalBoardSelection {
   draftNavRowPatch: DraftNavRowPatch | null
   /** When set, the next Dialog run includes this anchor in agentContext. */
   draftDiscussAnchor: GlossAnchor | null
+  /** When rewrite, Kip receives draftDiscussIntent and a stronger rewrite prompt. */
+  draftDiscussIntent: "discuss" | "rewrite" | null
+  /** Prefills Dialog composer once (e.g. Rewrite draft point). */
+  draftComposeHint: string | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
   /** IDE director mode: pinned board instrument for delegation + Chronicle focus. */
@@ -128,7 +133,13 @@ export interface UniversalBoardActions {
   bumpDraftNav: (patch?: DraftNavRowPatch) => void
   /** Pass a draft point into Dialog context for the next Kip exchange. */
   requestDiscussDraftPoint: (anchor: GlossAnchor, options?: { dialogId?: string | null }) => void
+  /** Opens Dialog with rewrite intent and prefills composer for draft.point.rewrite. */
+  requestRewriteDraftPoint: (
+    anchor: GlossAnchor,
+    options?: { dialogId?: string | null; pointPreview?: string },
+  ) => void
   clearDraftDiscussAnchor: () => void
+  clearDraftComposeHint: () => void
   /** Open an engagement form in Chronicle (right panel), not Nav. */
   requestChronicleEngagement: (slug: string, context: EngagementContext) => Promise<void>
   closeChronicleEngagement: () => void
@@ -208,6 +219,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     React.useState<DraftNavRowPatch | null>(null)
   const [draftDiscussAnchor, setDraftDiscussAnchor] =
     React.useState<GlossAnchor | null>(null)
+  const [draftDiscussIntent, setDraftDiscussIntent] =
+    React.useState<"discuss" | "rewrite" | null>(null)
+  const [draftComposeHint, setDraftComposeHint] =
+    React.useState<string | null>(null)
   const [chronicleEngagement, setChronicleEngagement] =
     React.useState<BoardEngagementIntent | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
@@ -540,6 +555,43 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const requestDiscussDraftPoint = React.useCallback(
     (anchor: GlossAnchor, options?: { dialogId?: string | null }) => {
       setDraftDiscussAnchor(anchor)
+      setDraftDiscussIntent("discuss")
+      setDraftComposeHint(null)
+      if (options?.dialogId) {
+        onDialogSelect(options.dialogId)
+      }
+    },
+    [onDialogSelect],
+  )
+
+  const requestRewriteDraftPoint = React.useCallback(
+    (
+      anchor: GlossAnchor,
+      options?: { dialogId?: string | null; pointPreview?: string },
+    ) => {
+      setDraftDiscussAnchor(anchor)
+      setDraftDiscussIntent("rewrite")
+      const draftDiscuss = glossAnchorToDraftDiscuss(anchor)
+      if (draftDiscuss) {
+        const preview = options?.pointPreview?.trim()
+        const hint = preview
+          ? [
+              `Rewrite this draft point using draft.point.rewrite.`,
+              `Draft id: ${draftDiscuss.draftId}`,
+              `pointId: ${draftDiscuss.pointId}`,
+              "",
+              "Current text:",
+              preview,
+              "",
+              "Describe how you want it revised:",
+            ].join("\n")
+          : [
+              `Rewrite draft point ${draftDiscuss.pointId} on draft ${draftDiscuss.draftId}.`,
+              "Use draft.point.rewrite with the exact pointId above.",
+              "Describe how you want it revised:",
+            ].join("\n")
+        setDraftComposeHint(hint)
+      }
       if (options?.dialogId) {
         onDialogSelect(options.dialogId)
       }
@@ -549,6 +601,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const clearDraftDiscussAnchor = React.useCallback(() => {
     setDraftDiscussAnchor(null)
+    setDraftDiscussIntent(null)
+  }, [])
+
+  const clearDraftComposeHint = React.useCallback(() => {
+    setDraftComposeHint(null)
   }, [])
 
   const closeChronicleEngagement = React.useCallback(() => {
@@ -603,6 +660,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         draftNavRevision,
         draftNavRowPatch,
         draftDiscussAnchor,
+        draftDiscussIntent,
+        draftComposeHint,
         trainingMode,
         activeBoardInstrument,
       },
@@ -632,7 +691,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpJourneyNav,
         bumpDraftNav,
         requestDiscussDraftPoint,
+        requestRewriteDraftPoint,
         clearDraftDiscussAnchor,
+        clearDraftComposeHint,
         requestChronicleEngagement,
         closeChronicleEngagement,
         onEnterTrainingMode,
@@ -673,6 +734,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       draftNavRevision,
       draftNavRowPatch,
       draftDiscussAnchor,
+      draftDiscussIntent,
+      draftComposeHint,
       trainingMode,
       activeBoardInstrument,
       onSessionSelect,
@@ -700,7 +763,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpJourneyNav,
       bumpDraftNav,
       requestDiscussDraftPoint,
+      requestRewriteDraftPoint,
       clearDraftDiscussAnchor,
+      clearDraftComposeHint,
       requestChronicleEngagement,
       closeChronicleEngagement,
       onEnterTrainingMode,

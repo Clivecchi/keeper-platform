@@ -225,6 +225,53 @@ router.post('/direct', authMiddlewareCompat, async (req: Request, res: Response)
   }
 });
 
+const ImportUrlSchema = z.object({
+  url: z.string().url(),
+  domainId: z.string().min(1),
+  displayLabel: z.string().max(200).optional(),
+  keeperId: z.string().optional(),
+});
+
+/**
+ * POST /api/uploads/import-url — fetch external image and persist to Vercel Blob + Library
+ */
+router.post('/import-url', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const parsed = ImportUrlSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: 'Invalid request', details: parsed.error.flatten() });
+    }
+
+    const { persistImageToLibrary } = await import('../../services/imageArchiveService.js');
+    const result = await persistImageToLibrary({
+      sourceUrl: parsed.data.url,
+      userId,
+      domainId: parsed.data.domainId,
+      displayLabel: parsed.data.displayLabel,
+      keeperId: parsed.data.keeperId,
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        url: result.persistedUrl,
+        libraryItemId: result.libraryItemId,
+      },
+    });
+  } catch (error) {
+    console.error('[Upload Import URL] Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to import image',
+    });
+  }
+});
+
 /**
  * DELETE /api/uploads/:key → remove uploaded asset from Vercel Blob
  */
