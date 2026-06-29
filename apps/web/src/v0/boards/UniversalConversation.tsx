@@ -59,6 +59,10 @@ import {
 } from "../../lib/kipDialogSession"
 import { createDraftMoment, keepMoment } from "../api/v0Moments"
 import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
+import {
+  BOARD_INSTRUMENT_LABELS,
+  type DirectorSendPhase,
+} from "./directorDialog"
 
 type ToolSlug = "cloud" | "rendr"
 
