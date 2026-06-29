@@ -24,6 +24,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-28 — Composer instrument pin does not open Chronicle
+- Director mode (IDE + Domain): pinning an agent in composer sets `activeBoardInstrument` for delegation only — Dialog stays in focus; Chronicle unchanged. Configure agents via Agent board Nav.
+
 ### 2026-06-28 — Agents nav refreshes after Chronicle Config save
 - `UniversalBoardContext`: `bumpAgentNav(patch?)` + `agentNavRevision` / `agentNavRowPatch` (same pattern as Keys/Keepers).
 - `UniversalNavPanel`: refetches agents on revision; optimistic name/model patch until refetch completes.
@@ -115,7 +118,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-06-17 — IDE director dialog orchestration
 - `UniversalBoardDefinition`: IDE preset uses `dialogOrchestration: "director"`; Agent preset stays `solo`
 - `directorDialog.ts`: delegation + synthesis prompts, `DirectorDialogConfig`, `extractAgentReplyFromRunResult`
-- `UniversalConversation`: Kip always owns composer on IDE; Cloud/Rendr chips pin `activeBoardInstrument` + Chronicle focus (no agent swap)
+- `UniversalConversation`: Kip always owns composer on IDE; Cloud/Rendr chips pin `activeBoardInstrument` for delegation only (no agent swap, no Chronicle navigation)
 - `useAgentDialog`: when instrument pinned, runs instrument → Kip synthesis; attaches `delegation` beat on last agent message
 - `DialogueMessageList`: renders instrument delegation above Lead content (echo stays below)
 - `IntegratedServicesBar`: pin/unpin copy for director delegation

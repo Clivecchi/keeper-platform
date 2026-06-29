@@ -11,7 +11,7 @@ type ServiceStatus = "connected" | "warning" | "disconnected"
 export interface IntegratedServicesBarProps {
   /** Opens the integrations panel in Chronicle (Railway, Vercel, GitHub). */
   onOpen: (service?: ServiceSlug) => void
-  /** Pins Cloud or Rendr for director delegation + Chronicle focus (does not swap the composer agent). */
+  /** Pins Cloud or Rendr for director delegation (does not swap composer agent or Chronicle). */
   onToolInvoke?: (tool: ToolSlug) => void
   /** Currently pinned instrument — highlights the active tool chip. */
   activeToolSlug?: ToolSlug | null

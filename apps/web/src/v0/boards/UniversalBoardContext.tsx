@@ -111,7 +111,7 @@ export interface UniversalBoardSelection {
   trainingMode: boolean
   /** Agent Board training storyboard — which voice-prompt frame is in focus. */
   activeTrainingFrame: VoicePromptSectionKey
-  /** IDE director mode: pinned board instrument for delegation + Chronicle focus. */
+  /** Director mode: pinned board instrument for dialog delegation (Chronicle unchanged). */
   activeBoardInstrument: BoardInstrumentSlug | null
 }
 

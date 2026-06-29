@@ -24,6 +24,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-28 — Composer instrument pin does not open Chronicle
+- Director mode (IDE + Domain): composer agent chips pin `activeBoardInstrument` for delegation only — Dialog stays in focus; Chronicle unchanged.
+
 ### 2026-06-28 — Domain-accessible agents on Agent board Nav (not IDE Nav)
 - **Agent board** Nav lists domain-accessible roster from `GET /api/domains/:id/kip/agents`: domain lead (when set) → Kip → Cloud → Rendr — each configurable in Chronicle.
 - **IDE board** keeps Cloud/Rendr in composer **Tools** only; no Agents section in left Nav.

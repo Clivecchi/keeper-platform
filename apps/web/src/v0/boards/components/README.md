@@ -8,9 +8,12 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 
 ## 🔄 Data & Behavior
 - Rendered in `KeeperDialogFrame` composer footer when `boardInstruments` is set (Domain board).
-- Pinning sets `activeBoardInstrument` in `UniversalBoardContext`; Kip delegates via director orchestration.
+- Pinning sets `activeBoardInstrument` in `UniversalBoardContext` for director delegation; Chronicle stays on current focus (configure agents via Agent board Nav only).
 
-## ⚠️ Notes & ToDo
+## 📆 Update Log
+
+### 2026-06-28 — Composer instrument pin does not open Chronicle
+- Domain + IDE director mode: pinning an agent in composer only sets `activeBoardInstrument` — no Chronicle navigation.
 - [ ] Consider merging Tool chips from `IntegratedServicesBar` into this bar for a single instrument primitive.
 
 ## 📆 Update Log

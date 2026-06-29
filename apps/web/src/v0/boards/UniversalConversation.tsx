@@ -1028,25 +1028,14 @@ export function UniversalConversation({
     void fetchMessages(dialogSessionId)
   }, [kipMode, dialogSessionId, messages.length, isSending, fetchMessages])
 
-  // ── Director mode: pin board instruments for delegation + Chronicle focus ───
+  // ── Director mode: pin board instruments for dialog delegation only ─────────
   const handleBoardInstrumentInvoke = React.useCallback(
     (slug: string) => {
       if (!isDirectorMode) return
       const next = activeBoardInstrument === slug ? null : slug
       actions.onSetActiveBoardInstrument(next)
-      if (!next) return
-      const domainAgent = domainScopedAgents.find((agent) => agent.slug === slug)
-      if (domainAgent) {
-        actions.onAgentSelect(domainAgent.id)
-        return
-      }
-      void KipApi.getAgentBySlug(slug)
-        .then((agent) => actions.onAgentSelect(agent.id))
-        .catch(() => {
-          /* Chronicle focus is best-effort */
-        })
     },
-    [isDirectorMode, activeBoardInstrument, actions, domainScopedAgents],
+    [isDirectorMode, activeBoardInstrument, actions],
   )
 
   const handleToolInvoke = React.useCallback(
