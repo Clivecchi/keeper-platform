@@ -24,6 +24,7 @@ Styles use a comprehensive token system covering:
 - **Layout**: sheet radius, frame/sheet padding
 
 ## 📆 Update Log
+- 2026-06-29: Added `gray-earth` style id (platform default merge base when domain-resolved). `neutral` remains Warm Dark board shell — opt in via `?style=neutral`.
 - 2026-05-31: Focus Color System — `tokensToCSSVars` emits `--treatment-color` and alpha variants (`-08`, `-12`, `-20`) derived from `focus.ring` (domain Treatment accent). Used by composer glow, nav selection, and Chronicle focus frame in `index.css`.
 - 2026-05-30: Rendr treatment correction — `neutral` style renamed Warm Dark; cold indigo-violet tokens shifted to warm dark register (hsl 28–38 hue). Platform teal accent (`--theme-accent-primary`, `--theme-focus-ring`, status success). Dialogue tokens: teal user bubbles, warm charcoal agent bubbles.
 - 2026-04-01: `StyleScope` accepts optional `className` (merged with `v0-style-scope`) so board shells can apply `flex flex-1 flex-col min-h-0` without an extra wrapper.

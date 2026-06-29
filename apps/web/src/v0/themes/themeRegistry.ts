@@ -5,6 +5,8 @@
  * Matches exactly the seeded database themes.
  */
 
+import { GRAY_EARTH_STYLE_TOKENS } from './presets/grayEarth.tokens'
+
 export interface ThemeTokens {
   [key: string]: string;
 }
@@ -20,6 +22,12 @@ export interface ThemeData {
  * Static theme registry - bundled with apps/web for dev independence
  */
 const staticThemeRegistry: Record<string, ThemeData> = {
+  'gray-earth': {
+    id: 'gray-earth-id',
+    slug: 'gray-earth',
+    label: 'Gray Earth',
+    tokens: { ...GRAY_EARTH_STYLE_TOKENS },
+  },
   'diary-paper': {
     id: 'diary-paper-id',
     slug: 'diary-paper',

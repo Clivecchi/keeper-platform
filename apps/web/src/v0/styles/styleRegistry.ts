@@ -3,7 +3,9 @@
 // Style = appearance layer (current - how things look)
 // Tone = attribute of Style (current - mood/atmosphere)
 
-export type ToneId = 'neutral' | 'diary'
+import { GRAY_EARTH_STYLE_TOKENS } from '../themes/presets/grayEarth.tokens'
+
+export type ToneId = 'neutral' | 'diary' | 'earth'
 
 export interface StyleTokens {
   // Surface colors
@@ -55,9 +57,15 @@ export interface StyleDefinition {
   tokens: StyleTokens
 }
 
-export type StyleId = 'neutral' | 'diary-paper'
+export type StyleId = 'neutral' | 'diary-paper' | 'gray-earth'
 
 export const styleRegistry: StyleDefinition[] = [
+  {
+    id: 'gray-earth',
+    name: 'Gray Earth',
+    tone: 'earth',
+    tokens: GRAY_EARTH_STYLE_TOKENS,
+  },
   {
     id: 'neutral',
     name: 'Warm Dark',

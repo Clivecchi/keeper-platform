@@ -24,37 +24,239 @@ function visibleDelegationBeat(
   return delegation ?? null
 }
 
-function DialogResponseBeat({
-  beat,
-  fallbackName,
-  position,
+type AgentBubbleVariant = "lead" | "collaborator" | "echo"
+
+function agentBubbleSurface(variant: AgentBubbleVariant): React.CSSProperties {
+  switch (variant) {
+    case "collaborator":
+      return {
+        backgroundColor:
+          "hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.14)",
+        color: "var(--theme-ink-primary-color)",
+        border:
+          "1px solid hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.28)",
+        boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.05)",
+      }
+    case "echo":
+      return {
+        backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))",
+        color: "var(--theme-ink-primary-color)",
+        border: "1px solid hsl(var(--theme-border-soft) / 0.85)",
+        boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.04)",
+      }
+    case "lead":
+    default:
+      return {
+        backgroundColor: "hsl(var(--theme-surface-paper))",
+        color: "var(--theme-ink-primary-color)",
+        border: "1px solid hsl(var(--theme-border-soft))",
+        boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
+      }
+  }
+}
+
+/** Distinct chat bubble for multi-agent turns — equal weight, variant tint per agent. */
+function AgentChatBubble({
+  name,
+  content,
+  variant,
 }: {
-  beat: DialogResponseEcho
-  fallbackName: string
-  position: "above" | "below"
+  name: string
+  content: string
+  variant: AgentBubbleVariant
 }) {
-  const content = beat.content?.trim()
-  if (!content) return null
+  const trimmed = content.trim()
+  if (!trimmed) return null
+
   return (
-    <div
-      className={clsx(
-        position === "above" ? "mb-2.5 border-b pb-2.5" : "mt-2.5 border-t pt-2.5",
-      )}
-      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.65)" }}
-    >
-      <p
-        className="mb-1 text-[11px] font-semibold uppercase tracking-wide"
-        style={{ color: "hsl(var(--theme-ink-secondary))" }}
+    <div className="flex flex-col gap-1">
+      <span
+        className="text-xs font-medium tracking-wide"
+        style={{ color: "var(--theme-ink-secondary-color)" }}
       >
-        {beat.attributedTo ?? fallbackName}
-      </p>
-      <p
-        className="whitespace-pre-line text-[12px] leading-relaxed"
-        style={{ color: "hsl(var(--theme-ink-secondary))" }}
+        {name}
+      </span>
+      <div
+        className="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
+        style={agentBubbleSurface(variant)}
       >
-        {content}
-      </p>
+        <p className="whitespace-pre-line">{trimmed}</p>
+      </div>
     </div>
+  )
+}
+
+function AgentMessageTurn({
+  message,
+  agentName,
+  echoAgentName,
+  onOpenDraft,
+  onOpenMoment,
+  onOpenJourney,
+  onKeepAsMoment,
+  onConfirmDraftUpdate,
+}: {
+  message: AgentDialogueMessage
+  agentName: string
+  echoAgentName?: string
+  onOpenDraft?: (draftId: string) => void
+  onOpenMoment?: (momentId: string) => void
+  onOpenJourney?: (journeyId: string) => void
+  onKeepAsMoment?: DialogueMessageListProps["onKeepAsMoment"]
+  onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
+}) {
+  const delegation = visibleDelegationBeat(message.delegation)
+  const echo =
+    message.echo?.content?.trim() && !isDirectorDelegationFailureContent(message.echo.content)
+      ? message.echo
+      : null
+  const isMultiAgentTurn = Boolean(delegation || echo)
+
+  if (!isMultiAgentTurn) {
+    return (
+      <div
+        className="max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm"
+        style={{
+          backgroundColor: "hsl(var(--theme-surface-paper))",
+          color: "var(--theme-ink-primary-color)",
+          border: "1px solid hsl(var(--theme-border-soft))",
+          boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
+        }}
+      >
+        <p className="whitespace-pre-line">{message.content}</p>
+        <MessageAttachments
+          message={message}
+          onOpenDraft={onOpenDraft}
+          onOpenMoment={onOpenMoment}
+          onOpenJourney={onOpenJourney}
+          onKeepAsMoment={onKeepAsMoment}
+          onConfirmDraftUpdate={onConfirmDraftUpdate}
+        />
+        <span
+          className="mt-2 block text-xs"
+          style={{ color: "var(--theme-ink-tertiary-color)" }}
+        >
+          {formatTime(message.createdAt)}
+        </span>
+      </div>
+    )
+  }
+
+  const leadName = echoAgentName ?? agentName
+
+  return (
+    <div className="max-w-xl space-y-2.5">
+      {delegation && (
+        <AgentChatBubble
+          variant="collaborator"
+          name={delegation.attributedTo ?? "Agent"}
+          content={delegation.content}
+        />
+      )}
+      {message.content.trim() && (
+        <AgentChatBubble variant="lead" name={agentName} content={message.content} />
+      )}
+      {echo && (
+        <AgentChatBubble
+          variant="echo"
+          name={echo.attributedTo ?? leadName}
+          content={echo.content}
+        />
+      )}
+      <MessageAttachments
+        message={message}
+        onOpenDraft={onOpenDraft}
+        onOpenMoment={onOpenMoment}
+        onOpenJourney={onOpenJourney}
+        onKeepAsMoment={onKeepAsMoment}
+        onConfirmDraftUpdate={onConfirmDraftUpdate}
+      />
+      <span className="block text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>
+        {formatTime(message.createdAt)}
+      </span>
+    </div>
+  )
+}
+
+function MessageAttachments({
+  message,
+  onOpenDraft,
+  onOpenMoment,
+  onOpenJourney,
+  onKeepAsMoment,
+  onConfirmDraftUpdate,
+}: {
+  message: AgentDialogueMessage
+  onOpenDraft?: (draftId: string) => void
+  onOpenMoment?: (momentId: string) => void
+  onOpenJourney?: (journeyId: string) => void
+  onKeepAsMoment?: DialogueMessageListProps["onKeepAsMoment"]
+  onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
+}) {
+  return (
+    <>
+      {message.linkedCard && (
+        <div className="mt-1">
+          <LinkedCard
+            {...message.linkedCard}
+            variant="inline"
+            onNavigate={(() => {
+              const card = message.linkedCard!
+              const entityType = card.entityType as string
+              if (entityType === "draft" && onOpenDraft) return () => onOpenDraft(card.entityId)
+              if (entityType === "moment" && onOpenMoment) return () => onOpenMoment(card.entityId)
+              if (entityType === "journey" && onOpenJourney) return () => onOpenJourney(card.entityId)
+              return undefined
+            })()}
+          />
+        </div>
+      )}
+      {message.actionResults && message.actionResults.filter(isVisibleActionResult).length > 0 && (
+        <div className="mt-2 space-y-2">
+          {message.actionResults.filter(isVisibleActionResult).map((actionResult, idx) => {
+            const receipt = normalizeActionReceipt(actionResult)
+            const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
+            const proposeData = receipt.data as {
+              draftId?: string
+              draftTitle?: string
+              summary?: string
+              proposedPayload?: { id: string; title?: string; summary?: string; status?: string; spec?: unknown }
+            } | undefined
+            if (isPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
+              return (
+                <DraftUpdateProposeCard
+                  key={idx}
+                  draftId={proposeData.draftId}
+                  draftTitle={proposeData.draftTitle ?? "Draft"}
+                  summary={proposeData.summary ?? "Update draft"}
+                  proposedPayload={proposeData.proposedPayload}
+                  onConfirm={onConfirmDraftUpdate}
+                  onReject={() => {}}
+                  onOpenDraft={onOpenDraft}
+                />
+              )
+            }
+            return (
+              <ActionReceiptCard
+                key={idx}
+                receipt={receipt}
+                contextNarrative={message.role === "agent" ? message.content : undefined}
+                onOpenDraft={
+                  receipt.data?.draft?.id ? (draftId) => onOpenDraft?.(draftId) : undefined
+                }
+                onOpenMoment={
+                  receipt.data?.moment?.id ? (momentId) => onOpenMoment?.(momentId) : undefined
+                }
+                onOpenJourney={
+                  receipt.data?.journey?.id ? (journeyId) => onOpenJourney?.(journeyId) : undefined
+                }
+                onKeepAsMoment={onKeepAsMoment}
+              />
+            )
+          })}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -133,127 +335,37 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
       </div>
     ) : (
       messages.map((message) => {
-        const delegation = visibleDelegationBeat(message.delegation)
-        const echo =
-          message.echo?.content?.trim() && !isDirectorDelegationFailureContent(message.echo.content)
-            ? message.echo
-            : null
+        if (message.role === "user") {
+          return (
+            <div key={message.id} className="flex justify-end">
+              <div
+                className="max-w-xl rounded-2xl px-4 py-3 text-sm text-white shadow-sm"
+                style={{
+                  backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+                }}
+              >
+                <p className="whitespace-pre-line">{message.content}</p>
+                <span className="mt-2 block text-xs" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  {formatTime(message.createdAt)}
+                </span>
+              </div>
+            </div>
+          )
+        }
 
         return (
-        <div
-          key={message.id}
-          className={clsx(
-            "flex",
-            message.role === "user" ? "justify-end" : "justify-start",
-          )}
-        >
-          <div
-            className={clsx(
-              "max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm",
-              message.role === "user" && "text-white",
-            )}
-            style={{
-              backgroundColor:
-                message.role === "user"
-                  ? "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))"
-                  : "hsl(var(--theme-surface-paper))",
-              color: message.role === "user" ? undefined : "var(--theme-ink-primary-color)",
-              border: message.role === "agent" ? "1px solid hsl(var(--theme-border-soft))" : undefined,
-              boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
-            }}
-          >
-            {delegation && (
-              <DialogResponseBeat
-                beat={delegation}
-                fallbackName="Instrument"
-                position="above"
-              />
-            )}
-            <p className="whitespace-pre-line">{message.content}</p>
-            {echo && (
-              <DialogResponseBeat
-                beat={echo}
-                fallbackName={echoAgentName ?? agentName}
-                position="below"
-              />
-            )}
-            {message.linkedCard && (
-              <div className="mt-3">
-                <LinkedCard
-                  {...message.linkedCard}
-                  variant="inline"
-                  onNavigate={(() => {
-                    const card = message.linkedCard!
-                    const entityType = card.entityType as string
-                    if (entityType === "draft" && onOpenDraft) return () => onOpenDraft(card.entityId)
-                    if (entityType === "moment" && onOpenMoment) return () => onOpenMoment(card.entityId)
-                    if (entityType === "journey" && onOpenJourney) return () => onOpenJourney(card.entityId)
-                    return undefined
-                  })()}
-                />
-              </div>
-            )}
-            {message.actionResults && message.actionResults.filter(isVisibleActionResult).length > 0 && (
-              <div className="mt-3 space-y-2">
-                {message.actionResults.filter(isVisibleActionResult).map((actionResult, idx) => {
-                  const receipt = normalizeActionReceipt(actionResult)
-                  const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
-                  const proposeData = receipt.data as {
-                    draftId?: string
-                    draftTitle?: string
-                    summary?: string
-                    proposedPayload?: { id: string; title?: string; summary?: string; status?: string; spec?: unknown }
-                  } | undefined
-                  if (isPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
-                    return (
-                      <DraftUpdateProposeCard
-                        key={idx}
-                        draftId={proposeData.draftId}
-                        draftTitle={proposeData.draftTitle ?? "Draft"}
-                        summary={proposeData.summary ?? "Update draft"}
-                        proposedPayload={proposeData.proposedPayload}
-                        onConfirm={onConfirmDraftUpdate}
-                        onReject={() => {}}
-                        onOpenDraft={onOpenDraft}
-                      />
-                    )
-                  }
-                  return (
-                    <ActionReceiptCard
-                      key={idx}
-                      receipt={receipt}
-                      contextNarrative={message.role === "agent" ? message.content : undefined}
-                      onOpenDraft={
-                        receipt.data?.draft?.id
-                          ? (draftId) => onOpenDraft?.(draftId)
-                          : undefined
-                      }
-                      onOpenMoment={
-                        receipt.data?.moment?.id
-                          ? (momentId) => onOpenMoment?.(momentId)
-                          : undefined
-                      }
-                      onOpenJourney={
-                        receipt.data?.journey?.id
-                          ? (journeyId) => onOpenJourney?.(journeyId)
-                          : undefined
-                      }
-                      onKeepAsMoment={onKeepAsMoment}
-                    />
-                  )
-                })}
-              </div>
-            )}
-            <span
-              className="mt-2 block text-xs"
-              style={{
-                color: message.role === "user" ? "rgba(255,255,255,0.8)" : "var(--theme-ink-tertiary-color)",
-              }}
-            >
-              {formatTime(message.createdAt)}
-            </span>
+          <div key={message.id} className="flex justify-start">
+            <AgentMessageTurn
+              message={message}
+              agentName={agentName}
+              echoAgentName={echoAgentName}
+              onOpenDraft={onOpenDraft}
+              onOpenMoment={onOpenMoment}
+              onOpenJourney={onOpenJourney}
+              onKeepAsMoment={onKeepAsMoment}
+              onConfirmDraftUpdate={onConfirmDraftUpdate}
+            />
           </div>
-        </div>
         )
       })
     )}

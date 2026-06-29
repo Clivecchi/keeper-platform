@@ -271,9 +271,10 @@ export function FrameContextProvider({
   )
 
   // =========================================================================
-  // 3. Theme resolution (MVP)
-  //    Priority: URL themeSlug param → domain default → null
-  //    For MVP we pass through the themeSlug; no UUID resolution yet.
+  // 3. Theme resolution
+  //    Runtime tokens: domain-resolved slug (V0Shell + useBoardThemeRegistration).
+  //    Hierarchy override: Moment → Path → Journey → Keeper (board hook).
+  //    URL ?theme= bypasses domain-resolved for dev preview.
   // =========================================================================
   const resolvedTheme: FrameContextTheme = React.useMemo(
     () => ({ themeSlug: themeSlug ?? null, themeId: null }),

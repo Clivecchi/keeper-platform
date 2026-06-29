@@ -41,6 +41,7 @@ import * as React from "react"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { StyleScope } from "../styles/StyleScope"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
+import { useBoardThemeRegistration } from "../themes/useBoardThemeRegistration"
 import { KeeperTopBar } from "../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../components/DomainBriefSlideOver"
 import { KeeperBoardPanelGroup } from "./KeeperBoardPanelGroup"
@@ -175,6 +176,8 @@ function UniversalBoardShell({
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
   const { isAdmin } = useAuth()
+
+  useBoardThemeRegistration()
 
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [domainId, setDomainId] = React.useState<string | null>(null)

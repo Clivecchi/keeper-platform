@@ -20,6 +20,7 @@ import type { DomainFrameTheme } from '../data/domain-frame.types'
 import type { ThemeTokens } from './themeRegistry'
 import { getThemeTokensBySlug } from './themeRegistry'
 import type { ColorScheme } from '../../context/ThemeContext'
+import { DEFAULT_BASE_THEME_SLUG } from './constants'
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -197,7 +198,7 @@ function resolveDark(primary: HSL, accent: HSL, surface: HSL, base: ThemeTokens)
  * Resolve domain JSON theme block to StyleScope ThemeTokens.
  *
  * Priority:
- *   1. Load base tokens from themeRegistry by baseThemeSlug (default: 'neutral')
+ *   1. Load base tokens from themeRegistry by baseThemeSlug (default: gray-earth)
  *   2. If domainTheme.colors is present, map primary/accent/surface hex values to tokens
  *   3. If colorScheme is 'dark', apply dark mode token inversions
  *   4. Return merged ThemeTokens
@@ -209,9 +210,13 @@ function resolveDark(primary: HSL, accent: HSL, surface: HSL, base: ThemeTokens)
 export function resolveDomainThemeSync(
   domainTheme: DomainFrameTheme,
   colorScheme: ColorScheme,
-  baseThemeSlug = 'neutral',
+  baseThemeSlug = DEFAULT_BASE_THEME_SLUG,
 ): ThemeTokens {
-  const base = getThemeTokensBySlug(baseThemeSlug) ?? getThemeTokensBySlug('neutral') ?? {}
+  const base =
+    getThemeTokensBySlug(baseThemeSlug)
+    ?? getThemeTokensBySlug(DEFAULT_BASE_THEME_SLUG)
+    ?? getThemeTokensBySlug('neutral')
+    ?? {}
 
   const { colors } = domainTheme
 
@@ -241,7 +246,7 @@ export function resolveDomainThemeSync(
 export async function resolveDomainTheme(
   domainTheme: DomainFrameTheme,
   colorScheme: ColorScheme,
-  baseThemeSlug = 'neutral',
+  baseThemeSlug = DEFAULT_BASE_THEME_SLUG,
 ): Promise<ThemeTokens> {
   return resolveDomainThemeSync(domainTheme, colorScheme, baseThemeSlug)
 }

@@ -22,7 +22,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 
 ## ⚠️ Notes & ToDo
 - [ ] Replace fallback domain data once domain home board wiring is live.
-- [ ] Add theme resolution from Journey/Keeper/Domain hierarchy (MVP uses URL param only).
+- [ ] Add theme resolution from Journey/Keeper/Domain hierarchy — **partial:** board hook resolves Moment → Path → Journey → Keeper `theme_id`; domain JSON remains base layer.
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
