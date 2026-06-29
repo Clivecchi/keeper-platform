@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-29: **Post-run Horizon** — `Consulting …` and other in-flight beats are meta steps; composer summary no longer sticks on "Consulting vecch.io…" after a text-only reply with no action receipts.
 - 2026-06-28: **Broadcast Strip** — merged Horizon live status + Thinking Space into `.dialog-broadcast-strip` (phosphor live line, ticker, CRT scanlines). Horizon band is dissolve-only; post-run summary unchanged on composer.
 - 2026-06-27: **Debug overlay** — bug icon opens `DialogDebugOverlay` over Horizon/Thinking/Composer (Copy + X). Logs no longer cleared on send; capture re-wraps console after HMR and includes window errors.
 - 2026-06-27: **Supporting documents** — large paste no longer fills the input or Thinking Space; `AgentComposer` shows Pasted tiles in composer; Library commit skips paste items.

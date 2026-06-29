@@ -39,7 +39,7 @@ import { usePlacementMode } from "./usePlacementMode"
 import { FrameContextProvider } from "./FrameContext"
 import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
 import { registerRuntimeTheme } from "../themes/themeResolver"
-import { DOMAIN_THEME_SLUG, DEFAULT_BASE_THEME_SLUG } from "../themes/constants"
+import { DOMAIN_THEME_SLUG } from "../themes/constants"
 
 /** Placeholder used while domain is loading or when API fails. Never shows hardcoded marketing copy. */
 const getDomainFallback = (slug: string) => ({
@@ -188,12 +188,6 @@ export function V0Shell() {
   // StyleOverrideProvider starts clean and StyleScope handles token merging.
   const activeThemeSlug = urlThemeSlug ?? DOMAIN_THEME_SLUG
   const initialStyleId = activeThemeSlug ? undefined : styleId
-
-  /** StyleScope merge base — gray-earth when domain-resolved; Warm Dark only via ?style=neutral. */
-  const effectiveStyleId: StyleId =
-    activeThemeSlug === DOMAIN_THEME_SLUG && !urlThemeSlug && !urlStyleId
-      ? DEFAULT_BASE_THEME_SLUG
-      : styleId
 
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
@@ -598,7 +592,7 @@ export function V0Shell() {
             placementMode: placement.state.mode,
             placementActions: placement.actions,
             themeSlug: urlThemeSlug,
-            styleId: effectiveStyleId,
+            styleId,
             draftId,
             domainData,
             domainFrame,
@@ -620,7 +614,7 @@ export function V0Shell() {
             {useMobileShell ? (
               <UniversalBoardProvider>
                 <UniversalMobileShell
-                  styleId={effectiveStyleId}
+                  styleId={styleId}
                   themeSlug={activeThemeSlug}
                 />
               </UniversalBoardProvider>
@@ -650,7 +644,7 @@ export function V0Shell() {
           // V0ShellContext carries the URL theme for ThemeSwitcher / navigation compatibility.
           // Frame components receive activeThemeSlug directly as a prop (see below).
           themeSlug: urlThemeSlug,
-          styleId: effectiveStyleId,
+          styleId,
           draftId,
           domainData,
           domainFrame,
@@ -670,15 +664,15 @@ export function V0Shell() {
           draftId={draftId}
         >
         {frame === "cover" ? (
-          <FrameComponent styleId={effectiveStyleId} themeSlug={activeThemeSlug} domainData={domainData} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainData={domainData} />
         ) : frame === "moment" ? (
-          <FrameComponent styleId={effectiveStyleId} themeSlug={activeThemeSlug} domainSlug={slug} draftId={draftId} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} draftId={draftId} />
         ) : frame === "moments" ? (
-          <FrameComponent styleId={effectiveStyleId} themeSlug={activeThemeSlug} domainSlug={slug} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
         ) : frame === "diagnostics" ? (
-          <FrameComponent styleId={effectiveStyleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}`} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}`} />
         ) : (
-          <FrameComponent styleId={effectiveStyleId} themeSlug={activeThemeSlug} domainSlug={slug} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
         )}
         {showDebugHud && (
           <div

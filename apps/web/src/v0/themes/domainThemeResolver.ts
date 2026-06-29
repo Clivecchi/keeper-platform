@@ -21,6 +21,7 @@ import type { ThemeTokens } from './themeRegistry'
 import { getThemeTokensBySlug } from './themeRegistry'
 import type { ColorScheme } from '../../context/ThemeContext'
 import { DEFAULT_BASE_THEME_SLUG } from './constants'
+import { domainHasBrandColors } from './domainThemeHelpers'
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -210,10 +211,14 @@ function resolveDark(primary: HSL, accent: HSL, surface: HSL, base: ThemeTokens)
 export function resolveDomainThemeSync(
   domainTheme: DomainFrameTheme,
   colorScheme: ColorScheme,
-  baseThemeSlug = DEFAULT_BASE_THEME_SLUG,
+  baseThemeSlug?: string,
 ): ThemeTokens {
+  const resolvedBaseSlug =
+    baseThemeSlug
+    ?? (domainHasBrandColors(domainTheme) ? 'neutral' : DEFAULT_BASE_THEME_SLUG)
+
   const base =
-    getThemeTokensBySlug(baseThemeSlug)
+    getThemeTokensBySlug(resolvedBaseSlug)
     ?? getThemeTokensBySlug(DEFAULT_BASE_THEME_SLUG)
     ?? getThemeTokensBySlug('neutral')
     ?? {}

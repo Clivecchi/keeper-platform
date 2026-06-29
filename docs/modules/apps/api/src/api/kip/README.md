@@ -27,6 +27,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-06-29: **Mutation deferral follow-up** — when user asks for draft work and the model defers without draft actions ("give me a moment"), server runs a second turn via `shouldRunMutationDeferralFollowUp` / `buildMutationDeferralFollowUpInput`. Prompt forbids future-tense draft promises without same-turn actions.
 - 2026-06-22: **Read-action follow-up (Lead agents)** — After read-only actions (`draft.read`, `journey.read`, etc.), server runs a second model turn with live results so Kip answers substantively instead of stopping at deferral text + a Retrieved receipt.
 - 2026-06-19: **Draft points preservation** — `draft.create` upsert merges spec (preserves points); version snapshot before overwrite; agent prompts forbid rebuilding existing drafts via create; `processDraftIntent` merges on update.
 - 2026-06-18: **MCP wired into Cloud agent runs** — `mcp.call` action executes Railway/Vercel/GitHub tools in-process; Cloud gets tool catalog in system prompt + follow-up turn with live results.

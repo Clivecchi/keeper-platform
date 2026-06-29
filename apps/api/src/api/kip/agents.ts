@@ -51,7 +51,9 @@ import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
 import {
+  buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
+  shouldRunMutationDeferralFollowUp,
   shouldRunReadActionFollowUp,
 } from '../../services/kip/actionFollowUp.js';
 import {
@@ -3412,6 +3414,7 @@ export class KipAgentService {
           'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
           'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
+          'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
           '',
           'SOLE vs DRAFTS — use the right tool:',
@@ -3838,6 +3841,7 @@ export class KipAgentService {
                 ]
               : [
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
+            'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             '',
             'SOLE vs DRAFTS — use the right tool:',
@@ -4583,6 +4587,68 @@ export class KipAgentService {
                   finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
                 }
               }
+            }
+          }
+        }
+
+        if (
+          shouldRunMutationDeferralFollowUp({
+            userInput: input,
+            responseText: finalResponseText,
+            actions: structured.actions,
+          })
+        ) {
+          const followUpInput = buildMutationDeferralFollowUpInput({
+            originalInput: input,
+            agentName: agent.name,
+            priorResponseText: finalResponseText,
+          });
+          const followUpResult = await this.callAIModel(
+            agent,
+            followUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: activeMode,
+              modeConfig: activeModeConfig,
+              lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+              debugSummary,
+              maxChars,
+              outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+              includeFixPlan: activeModeConfig.includeFixPlan,
+              autoBrief: activeModeConfig.autoBrief,
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+            },
+          );
+          const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
+            requestId: randomUUID(),
+            userId,
+            allowedActions: Array.from(allowActions),
+          });
+          finalResponseText =
+            followUpStructured.responseText?.trim()
+            || followUpResult.content.trim()
+            || finalResponseText;
+
+          if (followUpStructured.actions.length) {
+            const followUpExecution = await executeAgentActions(followUpStructured.actions, {
+              domainId: options?.domainId ?? null,
+              domainSlug: options?.domainSlug ?? null,
+              userId,
+              agentId: agent.id,
+              allowlist: allowActions,
+              sessionId: currentSessionId,
+              keeperId: options?.activeKeeperId ?? null,
+              requestId,
+              skipActionTypes: options?.skipActionTypes,
+            });
+            actionResults = [...actionResults, ...followUpExecution.results];
+            if (followUpExecution.failedMessage) {
+              finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
             }
           }
         }

@@ -92,6 +92,7 @@ const THINKING_META_PATTERNS = [
   /^received your message$/i,
   /^run complete$/i,
   /is composing a reply/i,
+  /^consulting /i,
 ]
 
 function isThinkingMetaStep(label: string): boolean {
@@ -239,10 +240,6 @@ export function dialogicRunSummary(
 
   const last = work[work.length - 1]
   if (/reviewing \d+ attached/i.test(last)) {
-    return ensureEllipsisEnding(last.replace(/…$/, ""))
-  }
-
-  if (/consulting/i.test(last)) {
     return ensureEllipsisEnding(last.replace(/…$/, ""))
   }
 

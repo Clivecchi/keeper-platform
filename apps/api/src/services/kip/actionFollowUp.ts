@@ -106,3 +106,101 @@ export function buildReadActionFollowUpInput(params: {
     'Do not stop at "I read the draft" — complete the engagement.',
   ].join('\n');
 }
+
+const DRAFT_MUTATION_ACTION_TYPES = new Set([
+  'draft.create',
+  'draft.update',
+  'draft.update.propose',
+  'draft.point.rewrite',
+  'draft.point.accept',
+  'draft.delete',
+  'draft.setActive',
+]);
+
+export function isDraftMutationActionType(type: string): boolean {
+  return DRAFT_MUTATION_ACTION_TYPES.has(type);
+}
+
+const USER_DRAFT_WORK_PATTERNS: RegExp[] = [
+  /\bmove .+ (into|to) (a )?(new )?draft\b/i,
+  /\bseparate draft\b/i,
+  /\bsplit .+ draft\b/i,
+  /\bnew draft\b/i,
+  /\bupdate (the )?draft\b/i,
+  /\bclean (up )?(the )?draft\b/i,
+  /\brewrite queue\b/i,
+  /\bpull .+ (into|out of)\b/i,
+  /\bcreate a draft\b/i,
+  /\bsave (this|it) (as )?(a )?draft\b/i,
+  /\bwork (on|in) (the )?draft\b/i,
+];
+
+const RESPONSE_DEFERRAL_PATTERNS: RegExp[] = [
+  /\bgive me a moment\b/i,
+  /\bone moment\b/i,
+  /\bhold on\b/i,
+  /\bstay with me\b/i,
+  /\b(i'm|i am) (pulling|creating|updating|moving|splitting|working on|about to)\b/i,
+  /\b(i'll|i will) (create|update|move|pull|split|separate)\b/i,
+  /\blet me (create|update|move|pull|split|separate|work)\b/i,
+];
+
+const READ_ONLY_ESCAPE_PATTERNS = [
+  'no draft',
+  'read only',
+  'read-only',
+  'do not make changes',
+  "don't make changes",
+  'without making changes',
+  'no changes',
+  'only report',
+  'only summarize',
+];
+
+export function userRequestedDraftWork(userInput: string): boolean {
+  const normalized = userInput.trim();
+  if (!normalized) return false;
+  const lower = normalized.toLowerCase();
+  if (READ_ONLY_ESCAPE_PATTERNS.some((phrase) => lower.includes(phrase))) {
+    return false;
+  }
+  return USER_DRAFT_WORK_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+export function responseDefersDraftWork(responseText: string): boolean {
+  const text = responseText.trim();
+  if (!text) return false;
+  return RESPONSE_DEFERRAL_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+/** When the user asked for draft work but the model deferred without draft actions. */
+export function shouldRunMutationDeferralFollowUp(params: {
+  userInput: string;
+  responseText: string;
+  actions: Array<{ type: string }>;
+}): boolean {
+  if (params.actions.some((action) => isDraftMutationActionType(action.type))) {
+    return false;
+  }
+  if (!userRequestedDraftWork(params.userInput)) return false;
+  return responseDefersDraftWork(params.responseText);
+}
+
+export function buildMutationDeferralFollowUpInput(params: {
+  originalInput: string;
+  agentName: string;
+  priorResponseText: string;
+}): string {
+  return [
+    `[Draft work deferred — reply as ${params.agentName}. Complete the draft work now in this turn.]`,
+    '',
+    `Your prior message deferred without acting: "${params.priorResponseText.trim()}"`,
+    '',
+    `Original user message: "${params.originalInput}"`,
+    'The user asked for draft work. Do NOT defer again.',
+    '- Include draft.create, draft.update, draft.update.propose, or draft.point.rewrite actions now.',
+    '- Use draftsDirectory and session history for existing draft ids and point content.',
+    '- Replace deferral language ("give me a moment", "I\'m pulling…") with a short confirmation after actions run.',
+    '- If the work truly cannot be done, explain why in one sentence and ask one clarifying question — no false promises.',
+  ].join('\n');
+}
