@@ -95,6 +95,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-28 — IDE board instruments in Nav
+- `boardInstruments` nav block — Cloud and Rendr from `IDE_BOARD_DEF.conversation.boardInstruments` appear under **Agents** in left nav (same pin/focus as composer Tools bar).
+
 ### 2026-06-28 — Domain board director mode + domain agent roster
 - `DOMAIN_BOARD_DEF`: `dialogOrchestration: "director"` — Kip owns composer; domain lead (e.g. Ceox) pin-able like Cloud/Rendr on IDE.
 - `UniversalConversation`: loads `GET /api/domains/:id/kip/agents`; `BoardInstrumentsBar` in composer footer on Domain board.
