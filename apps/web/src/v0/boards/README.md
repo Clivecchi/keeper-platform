@@ -24,6 +24,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-28 — Agents nav refreshes after Chronicle Config save
+- `UniversalBoardContext`: `bumpAgentNav(patch?)` + `agentNavRevision` / `agentNavRowPatch` (same pattern as Keys/Keepers).
+- `UniversalNavPanel`: refetches agents on revision; optimistic name/model patch until refetch completes.
+- `KeeperPresence`: agent Config save calls `bumpAgentNav` when `name` or `model` changes.
+
 ### 2026-06-28 — Domain dialog no longer wiped by draft URL
 - **useSelectionSessionResume:** Domain Board `?draftId=` / draft nav drives Chronicle only — center Dialog keeps its Kip session (fixes empty “Say hello to Kip” after Opening Moment Spec selection).
 - **UniversalBoardContext:** `onDialogSelect` (and Journey/Keeper/Moment/Agent) clears `?draftId=` from the URL so Dialog nav clicks are not immediately undone by URL sync.

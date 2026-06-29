@@ -35,7 +35,7 @@ import { useFrameContextOptional } from "../shell/FrameContext"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
-import type { KeyNavRowPatch, DraftNavRowPatch } from "./UniversalBoardContext"
+import type { KeyNavRowPatch, DraftNavRowPatch, AgentNavRowPatch } from "./UniversalBoardContext"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import type { UniversalBoardDef, NavRenderBlock } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
@@ -73,6 +73,7 @@ import {
   keeperChronicleTitle,
   type KeeperNavRowPatch,
 } from "../presence/integrationChronicle/keeperNavUtils"
+import { applyAgentNavRowPatch } from "../presence/integrationChronicle/agentNavUtils"
 import { addLibraryUploadFromFile, createLibraryItem } from "../presence/integrationChronicle/libraryNavCreate"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -125,6 +126,8 @@ export interface UniversalNavPanelProps {
   libraryListVersion?: number
   libraryNavRowPatch?: LibraryNavRowPatch | null
   keeperNavRowPatch?: KeeperNavRowPatch | null
+  agentListVersion?: number
+  agentNavRowPatch?: AgentNavRowPatch | null
 }
 
 // ─── Internal Types ──────────────────────────────────────────────────────────
@@ -297,6 +300,8 @@ export function UniversalNavPanel({
   libraryListVersion = 0,
   libraryNavRowPatch = null,
   keeperNavRowPatch = null,
+  agentListVersion = 0,
+  agentNavRowPatch = null,
 }: UniversalNavPanelProps) {
 
   const { user } = useAuth()
@@ -558,7 +563,7 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, def.nav.sections.agents])
+  }, [domainId, def.nav.sections.agents, agentListVersion])
 
   const showKeysNav = (def.nav.integrations ?? []).some((item) => item.group === "ai")
   const showAiAccessNav = def.nav.aiAccessSummary === true
@@ -797,14 +802,17 @@ export function UniversalNavPanel({
   })
 
   // Agents: embed model name when available
-  const allAgentItems: SidebarCardItem[] = (agents ?? []).map((a) => ({
-    id: a.id,
-    label: a.model
-      ? `${a.name?.trim() || "Unnamed agent"} · ${a.model}`
-      : (a.name?.trim() || "Unnamed agent"),
-    isSelected: a.id === selectedAgentId,
-    onClick: () => onAgentSelect?.(a.id),
-  }))
+  const allAgentItems: SidebarCardItem[] = React.useMemo(() => {
+    const patched = applyAgentNavRowPatch(agents ?? [], agentNavRowPatch)
+    return patched.map((a) => ({
+      id: a.id,
+      label: a.model
+        ? `${a.name?.trim() || "Unnamed agent"} · ${a.model}`
+        : (a.name?.trim() || "Unnamed agent"),
+      isSelected: a.id === selectedAgentId,
+      onClick: () => onAgentSelect?.(a.id),
+    }))
+  }, [agents, agentNavRowPatch, selectedAgentId, onAgentSelect])
 
   const showDrafts = def.nav.sections.drafts
   const showAgents = def.nav.sections.agents

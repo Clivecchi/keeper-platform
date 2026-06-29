@@ -400,6 +400,8 @@ function UniversalBoardShell({
                           libraryListVersion={selection.libraryNavRevision}
                           libraryNavRowPatch={selection.libraryNavRowPatch}
                           keeperNavRowPatch={selection.keeperNavRowPatch}
+                          agentListVersion={selection.agentNavRevision}
+                          agentNavRowPatch={selection.agentNavRowPatch}
                         />
                       )}
                 </PanelErrorBoundary>

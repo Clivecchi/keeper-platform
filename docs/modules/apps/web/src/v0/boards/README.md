@@ -24,6 +24,23 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-28 — Agents nav refreshes after Chronicle Config save
+- `UniversalBoardContext`: `bumpAgentNav(patch?)` + `agentNavRevision` / `agentNavRowPatch` (same pattern as Keys/Keepers).
+- `UniversalNavPanel`: refetches agents on revision; optimistic name/model patch until refetch completes.
+- `KeeperPresence`: agent Config save calls `bumpAgentNav` when `name` or `model` changes.
+
+### 2026-06-28 — Domain dialog no longer wiped by draft URL
+- **useSelectionSessionResume:** Domain Board `?draftId=` / draft nav drives Chronicle only — center Dialog keeps its Kip session (fixes empty “Say hello to Kip” after Opening Moment Spec selection).
+- **UniversalBoardContext:** `onDialogSelect` (and Journey/Keeper/Moment/Agent) clears `?draftId=` from the URL so Dialog nav clicks are not immediately undone by URL sync.
+- **useSelectionSessionResume `openIdle`:** refetches the active session instead of wiping messages when a session id still exists.
+- **UniversalConversation:** refetches messages when session is set but transcript is empty (recovery after stale wipe).
+- **IDE draft resume:** links active session to draft when none is linked yet; avoids resetting to idle greeting.
+- **UniversalConversation:** IDE session bootstrap skips when a session is already active.
+
+### 2026-06-26 — Message-frame draft open pipeline
+- **UniversalBoardContext:** `?draftId=` URL syncs to `selectedDraftId`; `onDraftSelect` writes `draftId` + `board=domain` to the query string so Chronicle opens the draft from message receipts and shared links. Dialog/Journey/Keeper nav clears `?draftId=` so center Dialog resume is not blocked.
+- **LinkedCard / DialogueMessageList:** in-board draft/journey/moment cards call board selection callbacks instead of legacy `/agent?view=drafts` routes.
+
 ### 2026-06-22 — Panel error boundaries + composer draft autosave
 - **UniversalBoard:** wraps Nav, Dialog, and Chronicle in `PanelErrorBoundary` — one panel crash no longer takes down the full board.
 - **Composer autosave:** unsent dialog text persists in `sessionStorage` via `useComposerDraftAutosave` (see hooks README).
@@ -101,6 +118,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `UniversalBoardContext`: `selectedLibraryItemId`, `onLibraryItemSelect`, `bumpLibraryNav` + optimistic row patch
 - `UniversalNavPanel`: Library section with upload (+) and Add URL; labels via shared `libraryItemChronicleTitle()`
 - `UniversalViewPanel`: `library` trail kind routing
+
+### 2026-06-27 — Agent Board: domain-scoped nav + AI Access summary
+- Agent nav uses `GET /api/domains/:domainId/kip/agents` (Kip + domain lead only).
+- **AI Access** nav (`DomainAiAccessNav`): included vs yours whisper — not IDE key registry.
+- Key cover shows **Access: Included / Yours** — never raw `PLATFORM` source.
+
+### 2026-06-27 — Agent Board: domain-scoped nav
+- Agent nav uses `GET /api/domains/:domainId/kip/agents` (Kip + domain lead only).
+- Removed platform Keys / AI Providers from Agent Board def — IDE Board only.
 
 ### 2026-06-14 — Nav cleanup (Domain · IDE · Agent boards)
 - Shared nav section titles: larger accent-weight headers in `index.css` (`.keeper-nav-section-title` + SidebarCard titles)
@@ -352,6 +378,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - This is documentation-first wiring. Moment 2.2 begins Board reconciliation using this schema as the standard.
 ### 2026-03-31
 - Domain Board (`domain/DomainBoard.tsx`): Brief mode center panel now renders `DomainBrief` (editable domain JSON form) instead of the placeholder; Kip composer unchanged.
+
+### 2026-06-28
+- `requestRewriteDraftPoint` + `draftComposeHint` — Chronicle **Rewrite** opens Dialog with prefilled `draft.point.rewrite` instructions; `draftDiscussIntent: rewrite` in agentContext.
+- `UniversalConversation` forwards `activeDraftId` to Kip runs; prefills composer from `draftComposeHint`.
 
 ### 2026-03-11
 - Created `boards/` directory and `boardRegistry.ts` (Step 3 of designer-to-board migration)

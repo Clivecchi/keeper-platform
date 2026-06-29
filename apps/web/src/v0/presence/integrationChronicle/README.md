@@ -13,6 +13,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `KeyConfigPresence.tsx` — Key Config Mode CRUD surface
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
+- `agentNavUtils.ts` — optimistic Agents nav row patch after agent Config save
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
 - `ServiceBindingConfigPresence.tsx` — infra service binding Config Mode (GitHub repo + branch)
 - `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
@@ -98,6 +99,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `AgentCapability` join table; backfill from `kip_agents` arrays (source: capabilities/tools/permissions)
 - `used_by` reads `AgentCapability` rows; Config mode grant CRUD via POST/DELETE `/api/capabilities/:id/grants`
 - `CapabilityUsedByGrantsBlock` in Config mode — add/remove agents (source: manual)
+
+## 📆 Update Log
+
+### 2026-06-28 — Agents nav patch after Config save
+- Added `agentNavUtils.ts` — `applyAgentNavRowPatch()` for optimistic Nav label sync when agent `name` or `model` is saved in Chronicle Config.
 
 ### 2026-06-13 — Capability EntityKind Pass 1 (registry)
 - Added `CapabilityFeed.tsx`, `CapabilityConfigPresence.tsx`, `capabilityNavUtils.ts`, `blocks/capabilityBlocks.tsx` (`definition`, `used_by`)

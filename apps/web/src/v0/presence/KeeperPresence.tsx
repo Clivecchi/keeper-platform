@@ -940,7 +940,16 @@ export function KeeperPresence({
       }
       return []
     },
-    onSaved,
+    onSaved: (field, value) => {
+      onSaved?.(field, value)
+      if (objectType === "agent" && typeof value === "string") {
+        boardCtx?.actions.bumpAgentNav({
+          agentId: objectId,
+          ...(field === "name" ? { name: value } : {}),
+          ...(field === "model" ? { model: value } : {}),
+        })
+      }
+    },
     onRefresh: handlePresenceRefresh,
   })
 

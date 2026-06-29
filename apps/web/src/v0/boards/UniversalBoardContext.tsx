@@ -47,6 +47,12 @@ export type DraftNavRowPatch = {
   title?: string
 }
 
+export type AgentNavRowPatch = {
+  agentId: string
+  name?: string
+  model?: string | null
+}
+
 export interface UniversalBoardSelection {
   activeSessionId: string | null
   /** Domain-level active journey — persisted via FrameContext; used by Set as Active in Chronicle. */
@@ -90,6 +96,10 @@ export interface UniversalBoardSelection {
   draftNavRevision: number
   /** Optimistic Drafts nav row patch applied before refetch completes. */
   draftNavRowPatch: DraftNavRowPatch | null
+  /** Increment to refetch Agents nav list after agent metadata save. */
+  agentNavRevision: number
+  /** Optimistic Agents nav row patch applied before refetch completes. */
+  agentNavRowPatch: AgentNavRowPatch | null
   /** When set, the next Dialog run includes this anchor in agentContext. */
   draftDiscussAnchor: GlossAnchor | null
   /** When rewrite, Kip receives draftDiscussIntent and a stronger rewrite prompt. */
@@ -131,6 +141,7 @@ export interface UniversalBoardActions {
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   bumpJourneyNav: () => void
   bumpDraftNav: (patch?: DraftNavRowPatch) => void
+  bumpAgentNav: (patch?: AgentNavRowPatch) => void
   /** Pass a draft point into Dialog context for the next Kip exchange. */
   requestDiscussDraftPoint: (anchor: GlossAnchor, options?: { dialogId?: string | null }) => void
   /** Opens Dialog with rewrite intent and prefills composer for draft.point.rewrite. */
@@ -217,6 +228,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [draftNavRevision, setDraftNavRevision] = React.useState(0)
   const [draftNavRowPatch, setDraftNavRowPatch] =
     React.useState<DraftNavRowPatch | null>(null)
+  const [agentNavRevision, setAgentNavRevision] = React.useState(0)
+  const [agentNavRowPatch, setAgentNavRowPatch] =
+    React.useState<AgentNavRowPatch | null>(null)
   const [draftDiscussAnchor, setDraftDiscussAnchor] =
     React.useState<GlossAnchor | null>(null)
   const [draftDiscussIntent, setDraftDiscussIntent] =
@@ -552,6 +566,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setDraftNavRevision((n) => n + 1)
   }, [])
 
+  const bumpAgentNav = React.useCallback((patch?: AgentNavRowPatch) => {
+    setAgentNavRowPatch(patch ?? null)
+    setAgentNavRevision((n) => n + 1)
+  }, [])
+
   const requestDiscussDraftPoint = React.useCallback(
     (anchor: GlossAnchor, options?: { dialogId?: string | null }) => {
       setDraftDiscussAnchor(anchor)
@@ -659,6 +678,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         journeyNavRevision,
         draftNavRevision,
         draftNavRowPatch,
+        agentNavRevision,
+        agentNavRowPatch,
         draftDiscussAnchor,
         draftDiscussIntent,
         draftComposeHint,
@@ -690,6 +711,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpKeeperNav,
         bumpJourneyNav,
         bumpDraftNav,
+        bumpAgentNav,
         requestDiscussDraftPoint,
         requestRewriteDraftPoint,
         clearDraftDiscussAnchor,
@@ -733,6 +755,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       journeyNavRevision,
       draftNavRevision,
       draftNavRowPatch,
+      agentNavRevision,
+      agentNavRowPatch,
       draftDiscussAnchor,
       draftDiscussIntent,
       draftComposeHint,
@@ -762,6 +786,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpKeeperNav,
       bumpJourneyNav,
       bumpDraftNav,
+      bumpAgentNav,
       requestDiscussDraftPoint,
       requestRewriteDraftPoint,
       clearDraftDiscussAnchor,
