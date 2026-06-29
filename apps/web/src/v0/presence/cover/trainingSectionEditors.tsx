@@ -41,6 +41,29 @@ interface SectionEditorBaseProps {
   agentName: string
   onVoicePromptSaved: (next: string) => void
   defaultOpen?: boolean
+  /** accordion = stacked list (legacy); frame = single storyboard stage (no collapsible shell) */
+  presentation?: "accordion" | "frame"
+}
+
+function SectionWrapper({
+  label,
+  defaultOpen,
+  presentation = "accordion",
+  children,
+}: {
+  label: string
+  defaultOpen?: boolean
+  presentation?: "accordion" | "frame"
+  children: React.ReactNode
+}) {
+  if (presentation === "frame") {
+    return <div className="min-h-0">{children}</div>
+  }
+  return (
+    <SectionWrapper label={label} defaultOpen={defaultOpen} presentation={presentation}>
+      {children}
+    </SectionWrapper>
+  )
 }
 
 const monoInputClass =
@@ -384,7 +407,7 @@ function PlatformDataBlock({ data }: { data: TrainingPlatformData }) {
 }
 
 export function CurrentlySectionEditor(props: SectionEditorBaseProps) {
-  const { label, content, defaultOpen, agentName } = props
+  const { label, content, defaultOpen, agentName, presentation = "accordion" } = props
   const [draft, setDraft] = React.useState(content)
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -393,7 +416,7 @@ export function CurrentlySectionEditor(props: SectionEditorBaseProps) {
   }, [content, props.objectId])
 
   return (
-    <SectionShell label={label} defaultOpen={defaultOpen}>
+    <SectionWrapper label={label} defaultOpen={defaultOpen} presentation={presentation}>
       <FieldLabel
         label="Currently"
         subtitle="What's live, what's next. Update this at the start of each working session."
@@ -411,14 +434,14 @@ export function CurrentlySectionEditor(props: SectionEditorBaseProps) {
         saveMessage={saveMessage}
         onSave={() => void saveSection(draft)}
       />
-    </SectionShell>
+    </SectionWrapper>
   )
 }
 
 export function IdentitySectionEditor(
   props: SectionEditorBaseProps & { platformData: TrainingPlatformData },
 ) {
-  const { label, content, defaultOpen, platformData, agentName } = props
+  const { label, content, defaultOpen, platformData, agentName, presentation = "accordion" } = props
   const parsed = React.useMemo(() => parseIdentitySection(content), [content])
   const [voice, setVoice] = React.useState(parsed.voice)
   const [character, setCharacter] = React.useState(parsed.character)
@@ -435,7 +458,7 @@ export function IdentitySectionEditor(
   }
 
   return (
-    <SectionShell label={label} defaultOpen={defaultOpen}>
+    <SectionWrapper label={label} defaultOpen={defaultOpen} presentation={presentation}>
       <FieldLabel
         label="Voice"
         subtitle={<AgentSpeaksInstruction agentName={agentName} />}
@@ -461,7 +484,7 @@ export function IdentitySectionEditor(
       <PlatformDataBlock data={platformData} />
       <ProposalScaffold agentName={agentName} />
       <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
-    </SectionShell>
+    </SectionWrapper>
   )
 }
 
@@ -607,7 +630,7 @@ function RuleListEditor({
 }
 
 export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
-  const { label, content, defaultOpen, agentName } = props
+  const { label, content, defaultOpen, agentName, presentation = "accordion" } = props
   const [rules, setRules] = React.useState(() => parseRuleLines(content))
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -624,7 +647,7 @@ export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
   }
 
   return (
-    <SectionShell label={label} defaultOpen={defaultOpen}>
+    <SectionWrapper label={label} defaultOpen={defaultOpen} presentation={presentation}>
       <RuleListEditor
         rules={rules}
         onRulesChange={setRules}
@@ -634,7 +657,7 @@ export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
         onAcceptProposal={handleAcceptProposal}
       />
       <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
-    </SectionShell>
+    </SectionWrapper>
   )
 }
 
@@ -790,7 +813,7 @@ function CapabilityListEditor({
 export function CapabilitiesSectionEditor(
   props: SectionEditorBaseProps & { activeCapabilities: string[] },
 ) {
-  const { label, content, defaultOpen, activeCapabilities, agentName } = props
+  const { label, content, defaultOpen, activeCapabilities, agentName, presentation = "accordion" } = props
   const [capabilities, setCapabilities] = React.useState(() => parseCapabilityLines(content))
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -803,7 +826,7 @@ export function CapabilitiesSectionEditor(
   }
 
   return (
-    <SectionShell label={label} defaultOpen={defaultOpen}>
+    <SectionWrapper label={label} defaultOpen={defaultOpen} presentation={presentation}>
       <ActiveCapabilitiesBlock chips={activeCapabilities} />
       <CapabilityListEditor
         capabilities={capabilities}
@@ -811,12 +834,12 @@ export function CapabilitiesSectionEditor(
         agentName={agentName}
       />
       <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
-    </SectionShell>
+    </SectionWrapper>
   )
 }
 
 export function GovernanceSectionEditor(props: SectionEditorBaseProps) {
-  const { label, content, defaultOpen, agentName } = props
+  const { label, content, defaultOpen, agentName, presentation = "accordion" } = props
   const [draft, setDraft] = React.useState(content)
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -825,7 +848,7 @@ export function GovernanceSectionEditor(props: SectionEditorBaseProps) {
   }, [content, props.objectId])
 
   return (
-    <SectionShell label={label} defaultOpen={defaultOpen}>
+    <SectionWrapper label={label} defaultOpen={defaultOpen} presentation={presentation}>
       <FieldLabel
         label="Governance"
         subtitle="Platform knowledge. EntityKinds, hierarchy, locked decisions. Edit rarely."
@@ -843,6 +866,6 @@ export function GovernanceSectionEditor(props: SectionEditorBaseProps) {
         saveMessage={saveMessage}
         onSave={() => void saveSection(draft)}
       />
-    </SectionShell>
+    </SectionWrapper>
   )
 }

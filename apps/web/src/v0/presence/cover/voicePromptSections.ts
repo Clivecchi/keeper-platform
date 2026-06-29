@@ -15,6 +15,10 @@ export interface VoicePromptSectionDef {
   delimiter: string
   /** Chronicle Training Mode header label */
   label: string
+  /** Film strip chip label */
+  stripLabel: string
+  /** One-line frame intent shown in storyboard stage chrome */
+  frameIntent: string
   placeholder: string
 }
 
@@ -23,33 +27,51 @@ export const VOICE_PROMPT_SECTIONS: VoicePromptSectionDef[] = [
     key: "currently",
     delimiter: "## Currently",
     label: "Currently",
+    stripLabel: "Currently",
+    frameIntent: "What's live and what's next — open every training session here.",
     placeholder: "No Currently content yet. Edit to add.",
   },
   {
     key: "identity",
     delimiter: "## 1. Identity",
     label: "1. Identity",
+    stripLabel: "Identity",
+    frameIntent: "Voice and character — who this agent is when they speak.",
     placeholder: "No Identity content yet. Edit to add.",
   },
   {
     key: "behavior",
     delimiter: "## 2. Behavior",
     label: "2. Behavior",
+    stripLabel: "Behavior",
+    frameIntent: "Rules and habits — how the agent acts in conversation.",
     placeholder: "No Behavior content yet. Edit to add.",
   },
   {
     key: "capabilities",
     delimiter: "## 3. Capabilities",
     label: "3. Capabilities",
+    stripLabel: "Capabilities",
+    frameIntent: "What this agent can do — declared skills and limits.",
     placeholder: "No Capabilities content yet. Edit to add.",
   },
   {
     key: "governance",
     delimiter: "## 4. Governance",
     label: "4. Governance",
+    stripLabel: "Governance",
+    frameIntent: "Boundaries, escalation, and what stays off-limits.",
     placeholder: "No Governance content yet. Edit to add.",
   },
 ]
+
+export function voicePromptSectionDef(
+  key: VoicePromptSectionKey,
+): VoicePromptSectionDef {
+  const def = VOICE_PROMPT_SECTIONS.find((section) => section.key === key)
+  if (!def) throw new Error(`Unknown voice prompt section: ${key}`)
+  return def
+}
 
 const DELIMITER_PATTERN =
   /^## (?:Currently|1\. Identity|2\. Behavior|3\. Capabilities|4\. Governance)\s*$/m

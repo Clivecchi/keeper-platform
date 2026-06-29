@@ -34,7 +34,7 @@ import { useAuth } from "../../context/AuthContext"
 import { extractLinkedCard } from "../../components/agent/helpers"
 import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
 import { glossAnchorToDraftDiscuss } from "@keeper/shared"
-import { useAgentDialog, extractRunAgentPayload } from "../../hooks/useAgentDialog"
+import { useAgentDialog, extractRunAgentPayload, type AgentContext } from "../../hooks/useAgentDialog"
 import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
 import type { AgentBoardMessaging } from "../data/domain-frame.types"
 import { useDraftContext } from "../../hooks/useDraftContext"
@@ -63,6 +63,9 @@ import {
   BOARD_INSTRUMENT_LABELS,
   type DirectorSendPhase,
 } from "./directorDialog"
+import {
+  voicePromptSectionDef,
+} from "../presence/cover/voicePromptSections"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -358,19 +361,54 @@ export function UniversalConversation({
   // ── agentContext — computed once, shared across all modes ─────────────
   const agentContext = React.useMemo(() => {
     const base = buildExperienceAgentContext(domainFrame, audience)
-    if (!base) return undefined
+    let merged: Record<string, unknown> | undefined = base ? { ...base } : undefined
+
     const anchor = selection.draftDiscussAnchor
-    if (!anchor) return base
-    const draftDiscuss = glossAnchorToDraftDiscuss(anchor)
-    return {
-      ...base,
-      glossAnchor: anchor,
-      ...(draftDiscuss ? { draftDiscuss } : {}),
-      ...(selection.draftDiscussIntent === "rewrite"
-        ? { draftDiscussIntent: "rewrite" as const }
-        : {}),
+    if (anchor) {
+      const draftDiscuss = glossAnchorToDraftDiscuss(anchor)
+      merged = {
+        ...(merged ?? {}),
+        glossAnchor: anchor,
+        ...(draftDiscuss ? { draftDiscuss } : {}),
+        ...(selection.draftDiscussIntent === "rewrite"
+          ? { draftDiscussIntent: "rewrite" as const }
+          : {}),
+      }
     }
-  }, [domainFrame, audience, selection.draftDiscussAnchor, selection.draftDiscussIntent])
+
+    if (
+      kipMode === "agent" &&
+      selection.trainingMode &&
+      selectedAgentRecord &&
+      boardSelectedAgentId
+    ) {
+      const frameKey = selection.activeTrainingFrame
+      const frameDef = voicePromptSectionDef(frameKey)
+      merged = {
+        ...(merged ?? {}),
+        agentTraining: {
+          agentId: boardSelectedAgentId,
+          agentName: selectedAgentRecord.name,
+          frame: frameKey,
+          frameLabel: frameDef.stripLabel,
+          frameIntent: frameDef.frameIntent,
+          instruction: `Training ${selectedAgentRecord.name}. Chronicle frame in focus: ${frameDef.stripLabel}. Help the user refine this section of the agent voice prompt — suggest concrete copy, ask clarifying questions, and align with the frame intent.`,
+        },
+      }
+    }
+
+    return merged as AgentContext | undefined
+  }, [
+    domainFrame,
+    audience,
+    kipMode,
+    selection.trainingMode,
+    selection.activeTrainingFrame,
+    selection.draftDiscussAnchor,
+    selection.draftDiscussIntent,
+    selectedAgentRecord,
+    boardSelectedAgentId,
+  ])
 
   const agentBoardMessaging = React.useMemo((): AgentBoardMessaging | undefined => {
     if (kipMode !== "agent") return undefined
@@ -1192,12 +1230,15 @@ export function UniversalConversation({
         }
       case "agent":
         if (selection.trainingMode) {
+          const frameLabel = voicePromptSectionDef(
+            selection.activeTrainingFrame,
+          ).stripLabel
           return {
-            primary: "Training",
+            primary: frameLabel,
             secondary: selectedAgentRecord?.name ?? def.conversation.agentName,
             prelude: "Exit Training",
             onPreludeClick: () => actions.onExitTrainingMode(),
-            sessionLabel: "Session" as const,
+            sessionLabel: "Training" as const,
           }
         }
         if (usingSelectedNonDefaultAgent && selectedAgentRecord) {
@@ -1278,6 +1319,7 @@ export function UniversalConversation({
     journeyCount,
     momentCount,
     selection.trainingMode,
+    selection.activeTrainingFrame,
     actions,
   ])
 

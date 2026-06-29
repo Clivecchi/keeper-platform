@@ -30,6 +30,7 @@ import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/cap
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
 import type { LibraryNavRowPatch } from "../presence/integrationChronicle/libraryNavUtils"
 import type { BoardInstrumentSlug } from "./UniversalBoardDefinition"
+import type { VoicePromptSectionKey } from "../presence/cover/voicePromptSections"
 import type { BoardEngagementIntent } from "./engagement/useBoardEngagement"
 import type { EngagementContext } from "../../components/engagement/EngagementForm"
 import { apiFetch } from "../../lib/api"
@@ -108,6 +109,8 @@ export interface UniversalBoardSelection {
   draftComposeHint: string | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
+  /** Agent Board training storyboard — which voice-prompt frame is in focus. */
+  activeTrainingFrame: VoicePromptSectionKey
   /** IDE director mode: pinned board instrument for delegation + Chronicle focus. */
   activeBoardInstrument: BoardInstrumentSlug | null
 }
@@ -156,6 +159,7 @@ export interface UniversalBoardActions {
   closeChronicleEngagement: () => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
+  onTrainingFrameSelect: (frame: VoicePromptSectionKey) => void
   onSetActiveBoardInstrument: (slug: BoardInstrumentSlug | null) => void
 }
 
@@ -240,6 +244,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [chronicleEngagement, setChronicleEngagement] =
     React.useState<BoardEngagementIntent | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
+  const [activeTrainingFrame, setActiveTrainingFrame] =
+    React.useState<VoicePromptSectionKey>("currently")
   const [activeBoardInstrument, setActiveBoardInstrument] =
     React.useState<BoardInstrumentSlug | null>(null)
 
@@ -479,10 +485,15 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onEnterTrainingMode = React.useCallback(() => {
     setTrainingMode(true)
+    setActiveTrainingFrame("currently")
   }, [])
 
   const onExitTrainingMode = React.useCallback(() => {
     setTrainingMode(false)
+  }, [])
+
+  const onTrainingFrameSelect = React.useCallback((frame: VoicePromptSectionKey) => {
+    setActiveTrainingFrame(frame)
   }, [])
 
   const onSetActiveBoardInstrument = React.useCallback((slug: BoardInstrumentSlug | null) => {
@@ -684,6 +695,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         draftDiscussIntent,
         draftComposeHint,
         trainingMode,
+        activeTrainingFrame,
         activeBoardInstrument,
       },
       actions: {
@@ -720,6 +732,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         closeChronicleEngagement,
         onEnterTrainingMode,
         onExitTrainingMode,
+        onTrainingFrameSelect,
         onSetActiveBoardInstrument,
       },
       navCollapsed,
@@ -761,6 +774,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       draftDiscussIntent,
       draftComposeHint,
       trainingMode,
+      activeTrainingFrame,
       activeBoardInstrument,
       onSessionSelect,
       onSetActiveJourney,
@@ -795,6 +809,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       closeChronicleEngagement,
       onEnterTrainingMode,
       onExitTrainingMode,
+      onTrainingFrameSelect,
       onSetActiveBoardInstrument,
       navCollapsed,
       onToggleNavCollapsed,

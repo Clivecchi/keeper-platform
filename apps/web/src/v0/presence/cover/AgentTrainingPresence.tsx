@@ -2,7 +2,10 @@
 
 import * as React from "react"
 import { motion } from "framer-motion"
-import { parseVoicePromptSections } from "./voicePromptSections"
+import {
+  parseVoicePromptSections,
+  type VoicePromptSectionKey,
+} from "./voicePromptSections"
 import {
   BehaviorSectionEditor,
   CapabilitiesSectionEditor,
@@ -11,6 +14,9 @@ import {
   IdentitySectionEditor,
   type TrainingPlatformData,
 } from "./trainingSectionEditors"
+import { TrainingFilmStrip } from "./TrainingFilmStrip"
+import { TrainingFrameStage } from "./TrainingFrameStage"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
 export interface AgentTrainingPresenceProps {
   objectId: string
@@ -91,9 +97,26 @@ export function AgentTrainingPresence({
   identity,
   onVoicePromptSaved,
 }: AgentTrainingPresenceProps) {
+  const boardCtx = useUniversalBoardOptional()
+  const activeFrame =
+    boardCtx?.selection.activeTrainingFrame ?? ("currently" as VoicePromptSectionKey)
+  const onFrameSelect = boardCtx?.actions.onTrainingFrameSelect
+
   const sections = React.useMemo(
     () => parseVoicePromptSections(voicePrompt),
     [voicePrompt],
+  )
+
+  const frameHints = React.useMemo(
+    () =>
+      ({
+        currently: Boolean(sections.currently.trim()),
+        identity: Boolean(sections.identity.trim()),
+        behavior: Boolean(sections.behavior.trim()),
+        capabilities: Boolean(sections.capabilities.trim()),
+        governance: Boolean(sections.governance.trim()),
+      }) satisfies Partial<Record<VoicePromptSectionKey, boolean>>,
+    [sections],
   )
 
   const baseProps = {
@@ -102,6 +125,61 @@ export function AgentTrainingPresence({
     domainId,
     agentName: identity.name,
     onVoicePromptSaved,
+    presentation: "frame" as const,
+  }
+
+  const renderActiveFrame = () => {
+    switch (activeFrame) {
+      case "currently":
+        return (
+          <CurrentlySectionEditor
+            {...baseProps}
+            sectionKey="currently"
+            label="Currently"
+            content={sections.currently}
+          />
+        )
+      case "identity":
+        return (
+          <IdentitySectionEditor
+            {...baseProps}
+            sectionKey="identity"
+            label="1. Identity"
+            content={sections.identity}
+            platformData={platformData}
+          />
+        )
+      case "behavior":
+        return (
+          <BehaviorSectionEditor
+            {...baseProps}
+            sectionKey="behavior"
+            label="2. Behavior"
+            content={sections.behavior}
+          />
+        )
+      case "capabilities":
+        return (
+          <CapabilitiesSectionEditor
+            {...baseProps}
+            sectionKey="capabilities"
+            label="3. Capabilities"
+            content={sections.capabilities}
+            activeCapabilities={activeCapabilities}
+          />
+        )
+      case "governance":
+        return (
+          <GovernanceSectionEditor
+            {...baseProps}
+            sectionKey="governance"
+            label="4. Governance"
+            content={sections.governance}
+          />
+        )
+      default:
+        return null
+    }
   }
 
   return (
@@ -114,55 +192,24 @@ export function AgentTrainingPresence({
       data-cover-mode="training"
     >
       <TrainingIdentityHeader {...identity} />
-      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4">
+      {onFrameSelect && (
+        <TrainingFilmStrip
+          activeFrame={activeFrame}
+          onFrameSelect={onFrameSelect}
+          frameHints={frameHints}
+        />
+      )}
+      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
+        <TrainingFrameStage frameKey={activeFrame} agentName={identity.name}>
+          {renderActiveFrame()}
+        </TrainingFrameStage>
         <p
-          className="text-[12px] mb-4 leading-relaxed"
+          className="text-[11px] leading-relaxed mt-2 px-1"
           style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
-          Structured system prompt — saved per section to this agent&apos;s voice prompt.
+          Edit this frame in Chronicle, or talk it through in Dialog — the focused frame
+          steers what Kip helps you shape next.
         </p>
-
-        <CurrentlySectionEditor
-          {...baseProps}
-          sectionKey="currently"
-          label="Currently"
-          content={sections.currently}
-          defaultOpen
-        />
-
-        <IdentitySectionEditor
-          {...baseProps}
-          sectionKey="identity"
-          label="1. Identity"
-          content={sections.identity}
-          platformData={platformData}
-          defaultOpen
-        />
-
-        <BehaviorSectionEditor
-          {...baseProps}
-          sectionKey="behavior"
-          label="2. Behavior"
-          content={sections.behavior}
-          defaultOpen
-        />
-
-        <CapabilitiesSectionEditor
-          {...baseProps}
-          sectionKey="capabilities"
-          label="3. Capabilities"
-          content={sections.capabilities}
-          activeCapabilities={activeCapabilities}
-          defaultOpen
-        />
-
-        <GovernanceSectionEditor
-          {...baseProps}
-          sectionKey="governance"
-          label="4. Governance"
-          content={sections.governance}
-          defaultOpen
-        />
       </div>
     </motion.div>
   )

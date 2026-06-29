@@ -52,6 +52,11 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-06-28 — Training storyboard (film strip + frame focus)
+- Train opens on **Currently** frame; horizontal `TrainingFilmStrip` for Currently · Identity · Behavior · Capabilities · Governance.
+- `TrainingFrameStage` — one framed editor at a time in Chronicle (replaces vertical accordion list).
+- `activeTrainingFrame` in `UniversalBoardContext`; Dialog `agentTraining` context follows focused frame.
+
 ### 2026-06-22 — Cover card visibility after session activity
 - `coverMotion.ts`: removed per-frame React `setState` on pulse animation (reduces update-depth pressure); added reduced-motion snap + 900ms safety fallback so `EntityCoverPresence` never stays at opacity 0 after interrupted entrance
 - `EntityCoverPresence.tsx`: dropped debug `data-*` motion attrs tied to removed motion state
