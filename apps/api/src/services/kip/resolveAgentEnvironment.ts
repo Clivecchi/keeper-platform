@@ -6,6 +6,7 @@ import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type
 import { summarizeDraftPointsForAgent } from '@keeper/shared';
 import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
+import { loadDomainScopedAgents } from '../domains/loadDomainScopedAgents.js';
 
 export type AgentEnvironmentContext = {
   version: 'env-v1';
@@ -62,6 +63,14 @@ export type AgentEnvironmentContext = {
     canary?: string;
   };
   governance?: AgentPolicyView | null;
+  /** Domain lead + Kip — same roster as GET /api/domains/:domainId/kip/agents */
+  domainAgents?: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    purpose: string | null;
+    role: string | null;
+  }>;
   domainIndex?: {
     keepers: Array<{ id: string; title: string; purpose?: string | null }>;
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
@@ -334,6 +343,14 @@ export async function resolveAgentEnvironment(args: {
             keepers: keepers.map((k) => ({ id: k.id, title: k.title, purpose: k.purpose ?? null })),
             journeys: journeys.map((j) => ({ id: j.id, name: j.name, forward: j.forward, keeperId: j.keeperId })),
           };
+          try {
+            environment.domainAgents = await loadDomainScopedAgents(primaryDomainId);
+          } catch (error) {
+            console.warn('[resolveAgentEnvironment] domain agents lookup failed', {
+              domainId: primaryDomainId,
+              error,
+            });
+          }
         } catch (error) {
           console.warn('[resolveAgentEnvironment] domain index lookup failed', { domainId: primaryDomainId, error });
         }

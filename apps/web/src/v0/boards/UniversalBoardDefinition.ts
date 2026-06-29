@@ -19,7 +19,7 @@ export type DialogOrchestrationMode =
   | "hot_seat"
   | "chorus"
 
-export type BoardInstrumentSlug = "cloud" | "rendr"
+export type BoardInstrumentSlug = string
 
 // Left panel — Navigation
 // What sections appear. What board nav integrations are present.
@@ -389,6 +389,8 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: false,
     kipMode: "domain",
+    dialogOrchestration: "director",
+    directorAgentSlug: "kip",
   },
   contextSurface: {
     viewStates: mergeViewStates({

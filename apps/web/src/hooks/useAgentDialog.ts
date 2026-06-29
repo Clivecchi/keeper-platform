@@ -581,6 +581,7 @@ export function useAgentDialog({
         ? resolveDirectorInstrument({
             pinned: liveDirectorConfig.activeInstrument,
             userMessage: content,
+            knownSlugs: Object.keys(liveDirectorConfig.instrumentLabels),
           })
         : null
 

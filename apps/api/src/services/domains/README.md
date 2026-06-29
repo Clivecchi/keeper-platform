@@ -24,6 +24,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-06-28 — Domain agent roster helper
+- `loadDomainScopedAgents.ts` — shared loader for domain lead + Kip; used by Kip environment resolution and mirrors `GET /:domainId/kip/agents`.
+
 ### 2026-06-28 — Step 1.2 seeding
 - Added provisioning pipeline + admin repair route `POST /api/domains/:id/provision`.
 - Signup path uses same provisioner (replaces inline keeper-only seed).

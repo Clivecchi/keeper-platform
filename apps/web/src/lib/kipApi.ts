@@ -770,7 +770,7 @@ export class KipApi {
       agentContext?: Record<string, unknown>
       /** IDE director mode — server runs instrument then Lead synthesis. */
       directorDelegation?: {
-        instrumentSlug: "cloud" | "rendr"
+        instrumentSlug: string
         userMessage: string
         taskMessage?: string
         directorDisplayName: string

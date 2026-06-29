@@ -66,6 +66,13 @@ import {
 
 type ToolSlug = "cloud" | "rendr"
 
+interface DomainScopedAgent {
+  id: string
+  slug: string
+  name: string
+  purpose?: string | null
+}
+
 interface SelectedAgentRecord {
   slug: string
   name: string
@@ -269,9 +276,54 @@ export function UniversalConversation({
     selectedAgentRecord.slug !== defaultAgentSlug
 
   const isDirectorMode =
-    kipMode === "ide" && def.conversation.dialogOrchestration === "director"
+    def.conversation.dialogOrchestration === "director" &&
+    (kipMode === "ide" || kipMode === "domain")
   const directorAgentSlug = def.conversation.directorAgentSlug ?? defaultAgentSlug
   const activeBoardInstrument = selection.activeBoardInstrument
+
+  const [domainScopedAgents, setDomainScopedAgents] = React.useState<DomainScopedAgent[]>([])
+
+  React.useEffect(() => {
+    if (!domainId || kipMode !== "domain" || !isDirectorMode) {
+      setDomainScopedAgents([])
+      return
+    }
+    let cancelled = false
+    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/kip/agents`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const payload = res as { data?: DomainScopedAgent[]; agents?: DomainScopedAgent[] }
+        const list = payload.data ?? payload.agents ?? []
+        setDomainScopedAgents(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setDomainScopedAgents([])
+      })
+    return () => { cancelled = true }
+  }, [domainId, kipMode, isDirectorMode])
+
+  const directorInstrumentLabels = React.useMemo((): Record<string, string> => {
+    if (kipMode === "ide") return { ...BOARD_INSTRUMENT_LABELS }
+    if (kipMode === "domain") {
+      const labels: Record<string, string> = {}
+      for (const agent of domainScopedAgents) {
+        if (agent.slug !== "kip") {
+          labels[agent.slug] = agent.name
+        }
+      }
+      return labels
+    }
+    return {}
+  }, [kipMode, domainScopedAgents])
+
+  const domainBoardInstruments = React.useMemo(
+    () =>
+      Object.entries(directorInstrumentLabels).map(([slug, label]) => ({
+        slug,
+        label,
+      })),
+    [directorInstrumentLabels],
+  )
 
   const dialogAgentSlug = isDirectorMode
     ? directorAgentSlug
@@ -289,11 +341,11 @@ export function UniversalConversation({
       isDirectorMode
         ? {
             activeInstrument: activeBoardInstrument,
-            instrumentLabels: BOARD_INSTRUMENT_LABELS,
+            instrumentLabels: directorInstrumentLabels,
             directorDisplayName: defaultAgentName,
           }
         : undefined,
-    [isDirectorMode, activeBoardInstrument, defaultAgentName],
+    [isDirectorMode, activeBoardInstrument, defaultAgentName, directorInstrumentLabels],
   )
 
   const [directorSendPhase, setDirectorSendPhase] = React.useState<DirectorSendPhase | null>(null)
@@ -879,13 +931,13 @@ export function UniversalConversation({
   const horizonThinkingLabel = React.useMemo(() => {
     if (!isDirectorMode || !isSending) return undefined
     if (directorSendPhase === "instrument" && activeBoardInstrument) {
-      return `${BOARD_INSTRUMENT_LABELS[activeBoardInstrument]} is thinking…`
+      return `${directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument} is thinking…`
     }
     if (directorSendPhase === "director") {
       return `${defaultAgentName} is thinking…`
     }
     return undefined
-  }, [isDirectorMode, isSending, directorSendPhase, activeBoardInstrument, defaultAgentName])
+  }, [isDirectorMode, isSending, directorSendPhase, activeBoardInstrument, defaultAgentName, directorInstrumentLabels])
 
   setMessagesRef.current = setMessages
 
@@ -937,21 +989,32 @@ export function UniversalConversation({
     void fetchMessages(dialogSessionId)
   }, [kipMode, dialogSessionId, messages.length, isSending, fetchMessages])
 
-  // ── IDE director mode: pin Cloud / Rendr for delegation + Chronicle focus ─
+  // ── Director mode: pin board instruments for delegation + Chronicle focus ───
+  const handleBoardInstrumentInvoke = React.useCallback(
+    (slug: string) => {
+      if (!isDirectorMode) return
+      const next = activeBoardInstrument === slug ? null : slug
+      actions.onSetActiveBoardInstrument(next)
+      if (!next) return
+      const domainAgent = domainScopedAgents.find((agent) => agent.slug === slug)
+      if (domainAgent) {
+        actions.onAgentSelect(domainAgent.id)
+        return
+      }
+      void KipApi.getAgentBySlug(slug)
+        .then((agent) => actions.onAgentSelect(agent.id))
+        .catch(() => {
+          /* Chronicle focus is best-effort */
+        })
+    },
+    [isDirectorMode, activeBoardInstrument, actions, domainScopedAgents],
+  )
+
   const handleToolInvoke = React.useCallback(
     (tool: ToolSlug) => {
-      if (!isDirectorMode) return
-      const next = activeBoardInstrument === tool ? null : tool
-      actions.onSetActiveBoardInstrument(next)
-      if (next) {
-        void KipApi.getAgentBySlug(next)
-          .then((agent) => actions.onAgentSelect(agent.id))
-          .catch(() => {
-            /* Chronicle focus is best-effort */
-          })
-      }
+      handleBoardInstrumentInvoke(tool)
     },
-    [isDirectorMode, activeBoardInstrument, actions],
+    [handleBoardInstrumentInvoke],
   )
 
   // IDE Board owns Kip session lifecycle (instruments do not swap the dialog agent).
@@ -1123,7 +1186,7 @@ export function UniversalConversation({
         return {
           primary: defaultAgentName,
           secondary: activeBoardInstrument
-            ? BOARD_INSTRUMENT_LABELS[activeBoardInstrument]
+            ? (directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument)
             : (journeyName ?? keeperName ?? domainName ?? undefined),
           sessionLabel: "Session" as const,
         }
@@ -1175,6 +1238,12 @@ export function UniversalConversation({
         return {
           primary: wordmark,
           ...(tagline ? { tagline } : {}),
+          ...(activeBoardInstrument
+            ? {
+                secondary:
+                  directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument,
+              }
+            : {}),
           livePulse: { color: primaryAccent },
           stats: [
             { label: "Journeys", value: statJourneys },
@@ -1205,6 +1274,7 @@ export function UniversalConversation({
     hasDraftSpec,
     activeBoardInstrument,
     defaultAgentName,
+    directorInstrumentLabels,
     journeyCount,
     momentCount,
     selection.trainingMode,
@@ -1367,8 +1437,15 @@ export function UniversalConversation({
         onSaveTitle={kipMode === "ide" ? handleSaveTitle : undefined}
         showServiceBar={def.conversation.showServiceBar}
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
-        onToolInvoke={isDirectorMode ? handleToolInvoke : undefined}
-        activeToolSlug={isDirectorMode ? activeBoardInstrument : null}
+        onToolInvoke={isDirectorMode && kipMode === "ide" ? handleToolInvoke : undefined}
+        activeToolSlug={isDirectorMode && kipMode === "ide" ? activeBoardInstrument : null}
+        boardInstruments={isDirectorMode && kipMode === "domain" ? domainBoardInstruments : undefined}
+        onBoardInstrumentInvoke={
+          isDirectorMode && kipMode === "domain" ? handleBoardInstrumentInvoke : undefined
+        }
+        activeBoardInstrumentSlug={
+          isDirectorMode && kipMode === "domain" ? activeBoardInstrument : null
+        }
         thinkingStatusLabel={horizonThinkingLabel}
         thinkingSteps={thinkingSteps}
         messages={messages}

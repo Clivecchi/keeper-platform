@@ -2,7 +2,10 @@
  * Director dialog — server-side orchestration for IDE board Lead + instrument turns.
  */
 
-export type BoardInstrumentSlug = 'cloud' | 'rendr';
+import { prisma } from '@keeper/database';
+
+/** Agent slug delegated by Lead on director-mode boards (IDE tools or domain lead agents). */
+export type BoardInstrumentSlug = string;
 
 export type DirectorDelegationRequest = {
   instrumentSlug: BoardInstrumentSlug;
@@ -20,13 +23,28 @@ export type DirectorDelegationResult = {
   error?: string;
 };
 
-const INSTRUMENT_LABELS: Record<BoardInstrumentSlug, string> = {
+const PLATFORM_INSTRUMENT_LABELS: Record<string, string> = {
   cloud: 'Cloud',
   rendr: 'Rendr',
 };
 
-export function instrumentLabel(slug: BoardInstrumentSlug): string {
-  return INSTRUMENT_LABELS[slug] ?? slug;
+export function instrumentLabelSync(slug: BoardInstrumentSlug): string {
+  return PLATFORM_INSTRUMENT_LABELS[slug] ?? slug;
+}
+
+export async function resolveInstrumentLabel(slug: BoardInstrumentSlug): Promise<string> {
+  const platform = PLATFORM_INSTRUMENT_LABELS[slug];
+  if (platform) return platform;
+  try {
+    const agent = await prisma.kip_agents.findUnique({
+      where: { slug },
+      select: { name: true },
+    });
+    if (agent?.name?.trim()) return agent.name.trim();
+  } catch {
+    /* fall through */
+  }
+  return slug;
 }
 
 export function buildInstrumentDelegationPrompt(params: {

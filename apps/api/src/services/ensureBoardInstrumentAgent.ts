@@ -101,5 +101,6 @@ export async function ensureBoardInstrumentAgent(
   slug: BoardInstrumentSlug,
 ): Promise<InstrumentAgent | null> {
   if (slug === 'cloud') return ensureCloudAgent();
-  return ensureRendrAgent();
+  if (slug === 'rendr') return ensureRendrAgent();
+  return prisma.kip_agents.findUnique({ where: { slug } });
 }

@@ -11,32 +11,37 @@ export {
 
 import type { DirectorDelegationBeat } from "../../components/agent/types"
 
-export type BoardInstrumentSlug = "cloud" | "rendr"
+/** Agent slug delegated by Lead on director-mode boards (IDE tools or domain lead agents). */
+export type BoardInstrumentSlug = string
 
 export type DirectorDialogConfig = {
   activeInstrument: BoardInstrumentSlug | null
-  instrumentLabels: Record<BoardInstrumentSlug, string>
+  instrumentLabels: Record<string, string>
   directorDisplayName: string
 }
 
-export const BOARD_INSTRUMENT_LABELS: Record<BoardInstrumentSlug, string> = {
+export const BOARD_INSTRUMENT_LABELS: Record<string, string> = {
   cloud: "Cloud",
   rendr: "Rendr",
 }
 
 export type DirectorSendPhase = "instrument" | "director"
 
-const INSTRUMENT_ADDRESS_PATTERN = /^(cloud|rendr)\s*(?:[—\-:,]|,\s*)/i
-
-/** Pinned chip wins; otherwise honor "Cloud — …" / "Rendr — …" in the message. */
+/** Pinned chip wins; otherwise honor "Cloud — …" / "Ceox — …" style addressing. */
 export function resolveDirectorInstrument(params: {
   pinned: BoardInstrumentSlug | null
   userMessage: string
+  knownSlugs: string[]
 }): BoardInstrumentSlug | null {
   if (params.pinned) return params.pinned
-  const match = params.userMessage.trim().match(INSTRUMENT_ADDRESS_PATTERN)
+  if (!params.knownSlugs.length) return null
+  const escaped = params.knownSlugs
+    .map((slug) => slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|")
+  const pattern = new RegExp(`^(${escaped})\\s*(?:[—\\-:,]|,\\s*)`, "i")
+  const match = params.userMessage.trim().match(pattern)
   if (!match) return null
-  return match[1].toLowerCase() as BoardInstrumentSlug
+  return match[1].toLowerCase()
 }
 
 export function buildInstrumentDelegationPrompt(params: {

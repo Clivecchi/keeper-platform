@@ -27,6 +27,7 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
+import { BoardInstrumentsBar } from "../../boards/components/BoardInstrumentsBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 import { installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
 import { ComposerDebugToolbar } from "./ComposerDebugToolbar"
@@ -102,6 +103,11 @@ export interface KeeperDialogFrameProps {
   onServiceOpen?: (service?: ServiceSlug) => void
   onToolInvoke?: (tool: ToolSlug) => void
   activeToolSlug?: ToolSlug | null
+  /** Domain board director mode — pin domain lead agents (Ceox, etc.). */
+  boardInstruments?: ReadonlyArray<{ slug: string; label: string }>
+  onBoardInstrumentInvoke?: (slug: string) => void
+  activeBoardInstrumentSlug?: string | null
+  boardInstrumentsEyebrow?: string
   /** Overrides Horizon summary while sending; otherwise derived from thinkingSteps. */
   thinkingStatusLabel?: string
   /** Run trace for Broadcast Strip while sending. */
@@ -191,6 +197,10 @@ export function KeeperDialogFrame({
   onServiceOpen,
   onToolInvoke,
   activeToolSlug = null,
+  boardInstruments,
+  onBoardInstrumentInvoke,
+  activeBoardInstrumentSlug = null,
+  boardInstrumentsEyebrow = "Agents",
   thinkingStatusLabel,
   thinkingSteps = [],
   railwayStatus = "disconnected",
@@ -666,6 +676,13 @@ export function KeeperDialogFrame({
                   railwayStatus={railwayStatus}
                   vercelStatus={vercelStatus}
                   githubStatus={githubStatus}
+                />
+              ) : boardInstruments?.length ? (
+                <BoardInstrumentsBar
+                  eyebrow={boardInstrumentsEyebrow}
+                  instruments={boardInstruments}
+                  activeSlug={activeBoardInstrumentSlug}
+                  onInvoke={onBoardInstrumentInvoke}
                 />
               ) : (
                 <div className="dialog-composer-footer-spacer" aria-hidden />

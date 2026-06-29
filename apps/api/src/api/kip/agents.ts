@@ -59,7 +59,7 @@ import {
   buildDirectorSynthesisPrompt,
   buildInstrumentDelegationPrompt,
   extractReplyFromAgentRunResult,
-  instrumentLabel,
+  resolveInstrumentLabel,
   type DirectorDelegationResult,
   type DirectorDelegationRequest,
 } from '../../services/directorDialog.js';
@@ -2814,7 +2814,7 @@ const AgentRunSchema = z.object({
   agentContext: z.record(z.unknown()).optional(),
   directorDelegation: z
     .object({
-      instrumentSlug: z.enum(['cloud', 'rendr']),
+      instrumentSlug: z.string().min(1),
       userMessage: z.string().min(1),
       taskMessage: z.string().min(1).optional(),
       directorDisplayName: z.string().min(1),
@@ -3349,6 +3349,25 @@ export class KipAgentService {
 
     if (environment) {
       systemParts.push(`Environment context (resolved via KAM):\n${JSON.stringify(environment, null, 2)}`);
+
+      const domainAgents = (environment as { domainAgents?: Array<{ slug: string; name: string; role?: string | null; purpose?: string | null }> }).domainAgents;
+      if (Array.isArray(domainAgents) && domainAgents.length > 0) {
+        const roster = domainAgents
+          .map((agent) => {
+            const role = agent.role?.trim() ? ` (${agent.role})` : '';
+            const purpose = agent.purpose?.trim() ? ` — ${agent.purpose.trim()}` : '';
+            return `- ${agent.name}${role} [slug: ${agent.slug}]${purpose}`;
+          })
+          .join('\n');
+        systemParts.push(
+          [
+            'DOMAIN AGENTS — registered on this domain (not the global platform registry):',
+            roster,
+            'The domain lead agent (when not Kip) participates in Dialog via director delegation when pinned or addressed by name.',
+            'Do not claim domain agents are absent when they appear in this list.',
+          ].join('\n'),
+        );
+      }
 
       const agentContextRecord =
         (environment as { agentContext?: Record<string, unknown> }).agentContext
@@ -4207,7 +4226,7 @@ export class KipAgentService {
 
         if (options?.directorDelegation) {
           const dd = options.directorDelegation;
-          const instLabel = instrumentLabel(dd.instrumentSlug);
+          const instLabel = await resolveInstrumentLabel(dd.instrumentSlug);
           const priorContinuityMessages: DirectorContinuityMessage[] = previousMessages.map((msg) => {
             const role =
               msg.sender === 'user' || msg.role === 'user' ? ('user' as const) : ('agent' as const);

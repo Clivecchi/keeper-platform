@@ -93,6 +93,14 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `resolveDirectorInstrument`: pinned chip or `Cloud —` / `Rendr —` prefix in message
 - `buildDirectorFallbackSynthesisPrompt`: Kip still in director mode when instrument reply empty — no "you're talking to Kip" / "hand off to Cloud"
 
+## 📆 Update Log
+
+### 2026-06-28 — Domain board director mode + domain agent roster
+- `DOMAIN_BOARD_DEF`: `dialogOrchestration: "director"` — Kip owns composer; domain lead (e.g. Ceox) pin-able like Cloud/Rendr on IDE.
+- `UniversalConversation`: loads `GET /api/domains/:id/kip/agents`; `BoardInstrumentsBar` in composer footer on Domain board.
+- `BoardInstrumentSlug` generalized to `string`; director delegation supports any registered agent slug (API + web).
+- Kip environment includes `domainAgents` roster so Lead knows domain lead agents exist.
+
 ### 2026-06-17 — Director dialog fixes (delegation beat, Horizon phases, focus)
 - `directorDialog.ts`: stronger delegation/synthesis prompts (no "you're talking to Kip" correction); robust `extractAgentReplyFromRunResult`
 - `useAgentDialog`: `directorConfigRef` + single post-run merge for `delegation` / `actionResults`; `onDirectorPhaseChange` for Horizon
