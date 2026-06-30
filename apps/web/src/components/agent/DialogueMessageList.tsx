@@ -60,13 +60,24 @@ function AgentChatBubble({
   name,
   content,
   variant,
+  grouped = false,
 }: {
   name: string
   content: string
   variant: AgentBubbleVariant
+  grouped?: boolean
 }) {
   const trimmed = content.trim()
   if (!trimmed) return null
+
+  if (grouped) {
+    return (
+      <div className="dialog-multi-agent-turn__beat" data-agent-variant={variant}>
+        <span className="dialog-multi-agent-turn__name">{name}</span>
+        <p className="dialog-multi-agent-turn__content whitespace-pre-line">{trimmed}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-1">
@@ -82,6 +93,14 @@ function AgentChatBubble({
       >
         <p className="whitespace-pre-line">{trimmed}</p>
       </div>
+    </div>
+  )
+}
+
+function MultiAgentTurnGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="dialog-multi-agent-turn">
+      <div className="dialog-multi-agent-turn__body">{children}</div>
     </div>
   )
 }
@@ -146,23 +165,27 @@ function AgentMessageTurn({
 
   return (
     <div className="max-w-xl space-y-2.5">
-      {delegation && (
-        <AgentChatBubble
-          variant="collaborator"
-          name={delegation.attributedTo ?? "Agent"}
-          content={delegation.content}
-        />
-      )}
-      {message.content.trim() && (
-        <AgentChatBubble variant="lead" name={agentName} content={message.content} />
-      )}
-      {echo && (
-        <AgentChatBubble
-          variant="echo"
-          name={echo.attributedTo ?? leadName}
-          content={echo.content}
-        />
-      )}
+      <MultiAgentTurnGroup>
+        {delegation && (
+          <AgentChatBubble
+            grouped
+            variant="collaborator"
+            name={delegation.attributedTo ?? "Agent"}
+            content={delegation.content}
+          />
+        )}
+        {message.content.trim() && (
+          <AgentChatBubble grouped variant="lead" name={agentName} content={message.content} />
+        )}
+        {echo && (
+          <AgentChatBubble
+            grouped
+            variant="echo"
+            name={echo.attributedTo ?? leadName}
+            content={echo.content}
+          />
+        )}
+      </MultiAgentTurnGroup>
       <MessageAttachments
         message={message}
         onOpenDraft={onOpenDraft}
