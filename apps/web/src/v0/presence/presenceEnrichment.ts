@@ -590,7 +590,13 @@ async function enrichAgent(
     if (typeof cfg.personality === "string") {
       record.personality = cfg.personality
     }
-    if (typeof cfg.avatar === "string") {
+    const schemaAvatar =
+      record.presenceSchema && typeof record.presenceSchema === "object"
+        ? (record.presenceSchema as Record<string, unknown>).avatar
+        : undefined
+    if (typeof schemaAvatar === "string" && schemaAvatar.trim()) {
+      record.avatar = schemaAvatar
+    } else if (typeof cfg.avatar === "string") {
       record.avatar = cfg.avatar
     }
     if (typeof cfg.theme_color === "string") {

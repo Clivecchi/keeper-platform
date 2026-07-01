@@ -124,6 +124,7 @@ export function MomentConfigPresence({
     >
       <ChronicleCoverField
         value={coverMedia}
+        themeBits={record?.presenceSchema}
         onSave={async (cover) => {
           await patchPresenceCover(`/api/moments/${encodeURIComponent(momentId)}`, cover)
         }}

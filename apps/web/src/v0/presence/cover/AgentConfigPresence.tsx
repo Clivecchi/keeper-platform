@@ -6,6 +6,12 @@ import { resolveFieldLabel } from "../KeeperPresenceDefaults"
 import { ComposedPromptPreview } from "../ComposedPromptPreview.tsx"
 import { ChronicleConfigShell } from "../chronicleConfig/useChronicleConfig"
 import type { ChronicleSaveStatus } from "../chronicleConfig/types"
+import {
+  ChronicleVisualUploadField,
+  patchPresenceAvatar,
+  type ChronicleCoverMedia,
+} from "../chronicleConfig/ChronicleCoverField"
+import { avatarFromRecord, themeContainerFromRecord } from "../cover/coverImageUtils"
 
 export interface AgentConfigPresenceProps {
   objectId: string
@@ -27,6 +33,7 @@ export interface AgentConfigPresenceProps {
   onAdvancedChange: (key: "temperature" | "max_tokens", value: string) => void
   advancedOpen: boolean
   advancedValues: { temperature: string; max_tokens: string }
+  onAvatarSaved?: () => void
   /** Field editor from KeeperPresence — shared save path */
   renderFieldEditor: (
     key: string,
@@ -44,7 +51,6 @@ const CONFIG_FIELD_ORDER = [
   "model_provider",
   "memory_enabled",
   "visibility",
-  "avatar",
   "theme_color",
   "tools",
 ] as const
@@ -54,6 +60,8 @@ const CONFIG_FIELD_ORDER = [
  * Same behavior pattern for all EntityKinds; agent-specific fields here.
  */
 export function AgentConfigPresence({
+  objectId,
+  record,
   fieldValues,
   fieldErrors,
   hiddenFields,
@@ -71,14 +79,26 @@ export function AgentConfigPresence({
   onAdvancedChange,
   advancedOpen,
   advancedValues,
+  onAvatarSaved,
   renderFieldEditor,
 }: AgentConfigPresenceProps) {
+  const [avatarRevision, setAvatarRevision] = React.useState(0)
+
+  const avatarMedia = React.useMemo((): ChronicleCoverMedia => {
+    const { avatar, avatarKey } = avatarFromRecord(record)
+    if (!avatar || !/^https?:\/\//.test(avatar)) return null
+    return { type: "image", url: avatar, key: avatarKey ?? undefined }
+  }, [record, avatarRevision])
+
   const fieldMap = React.useMemo(
     () => new Map(visibleFields),
     [visibleFields],
   )
 
   const orderedKeys = CONFIG_FIELD_ORDER.filter((key) => fieldMap.has(key))
+
+  const identityAvatar =
+    avatarMedia?.url ?? fieldValues.avatar?.trim() ?? fieldValues.name?.slice(0, 1).toUpperCase()
 
   const placeholders: Record<string, string> = {
     name: "Agent name",
@@ -99,7 +119,7 @@ export function AgentConfigPresence({
     <ChronicleConfigShell
       identity={{
         name: fieldValues.name ?? "",
-        avatar: fieldValues.avatar,
+        avatar: identityAvatar,
         status: fieldValues.status,
       }}
       onBack={onBack}
@@ -109,6 +129,21 @@ export function AgentConfigPresence({
       onSave={onSave}
       onDismissError={onDismissSaveError}
     >
+      <ChronicleVisualUploadField
+        label="Avatar"
+        uploadRole="avatar"
+        description="Agent portrait on the cover card. Each upload adds a theme bit — object theme follows upload order."
+        value={avatarMedia}
+        themeBits={themeContainerFromRecord(record)}
+        onSave={async (avatar) => {
+          await patchPresenceAvatar(`/api/agents/${encodeURIComponent(objectId)}`, avatar)
+        }}
+        onSaved={() => {
+          setAvatarRevision((n) => n + 1)
+          onAvatarSaved?.()
+        }}
+      />
+
       {/* Domain assignment — incomplete — no save path */}
       <div className="mb-4">
         <p className="keeper-presence-field-label mb-1.5">Domain Assignment</p>
@@ -132,6 +167,23 @@ export function AgentConfigPresence({
           </div>
         )
       })}
+
+      {!hiddenFields.includes("avatar") && (
+        <div className="mb-4">
+          <p className="keeper-presence-field-label mb-1.5">Avatar fallback</p>
+          <p
+            className="text-[12px] mb-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Emoji or short text when no portrait image is uploaded.
+          </p>
+          {renderFieldEditor(
+            "avatar",
+            fieldMap.get("avatar") ?? { role: "ambient", editable: true, label: "Avatar" },
+            placeholders.avatar,
+          )}
+        </div>
+      )}
 
       {!hiddenFields.includes("lensSystemPrompt") && (
         <div className="mb-4">

@@ -123,6 +123,7 @@ export function JourneyConfigPresence({
     >
       <ChronicleCoverField
         value={coverMedia}
+        themeBits={record?.presenceSchema}
         onSave={async (cover) => {
           await patchPresenceCover(
             `/api/journeys/${encodeURIComponent(journeyId)}`,

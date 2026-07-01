@@ -114,6 +114,7 @@ export function DomainConfigPresence({
         label="Cover image"
         description="The domain's visual identity — shown on the cover card and as the background across frames."
         value={coverMedia}
+        themeBits={existingTheme}
         onSave={async (cover) => {
           await patchDomainThemeCover(domainId, existingTheme, cover)
           await v0Shell?.reloadDomainFrame()

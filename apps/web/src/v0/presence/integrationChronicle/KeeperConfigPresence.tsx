@@ -4,6 +4,12 @@ import * as React from "react"
 import { ChronicleConfigShell, useChronicleConfig } from "../chronicleConfig/useChronicleConfig"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { KeeperDto } from "./feeds/KeeperFeed"
+import {
+  ChronicleVisualUploadField,
+  patchPresenceAvatar,
+  type ChronicleCoverMedia,
+} from "../chronicleConfig/ChronicleCoverField"
+import { avatarFromRecord, themeContainerFromRecord } from "../cover/coverImageUtils"
 
 export type KeeperMetadataFields = {
   display_label: string
@@ -26,6 +32,7 @@ export function KeeperConfigPresence({
   displayLabel,
   description,
   keeper,
+  record,
   onBack,
   onRefresh,
   onLabelResolved,
@@ -35,11 +42,20 @@ export function KeeperConfigPresence({
   displayLabel: string
   description?: string | null
   keeper: KeeperDto
+  record?: Record<string, unknown>
   onBack: () => void
   onRefresh?: () => void
   onLabelResolved?: (label: string) => void
 }) {
   const board = useUniversalBoardOptional()
+  const [avatarRevision, setAvatarRevision] = React.useState(0)
+  const themeSource = record ?? { presenceSchema: keeper.presenceSchema }
+
+  const avatarMedia = React.useMemo((): ChronicleCoverMedia => {
+    const { avatar, avatarKey } = avatarFromRecord(themeSource)
+    if (!avatar) return null
+    return { type: "image", url: avatar, key: avatarKey ?? undefined }
+  }, [themeSource, avatarRevision])
 
   const baselineRef = React.useRef(toMetadataFields(displayLabel, description))
   const [fieldValues, setFieldValues] = React.useState(baselineRef.current)
@@ -118,6 +134,24 @@ export function KeeperConfigPresence({
       onDismissError={chronicleConfig.dismissSaveError}
     >
       <div className="flex flex-col gap-4 px-4 py-4">
+        <ChronicleVisualUploadField
+          label="Avatar"
+          uploadRole="avatar"
+          description="Keeper's visual identity. Each upload adds a theme bit to the object theme."
+          value={avatarMedia}
+          themeBits={themeContainerFromRecord(themeSource)}
+          onSave={async (avatar) => {
+            await patchPresenceAvatar(
+              `/api/keepers/${encodeURIComponent(keeperId)}?domainId=${encodeURIComponent(domainId)}`,
+              avatar,
+            )
+          }}
+          onSaved={() => {
+            setAvatarRevision((n) => n + 1)
+            onRefresh?.()
+          }}
+        />
+
         <div>
           <label
             className="text-[10px] font-mono uppercase tracking-wider block mb-1"

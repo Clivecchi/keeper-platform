@@ -10,6 +10,7 @@ import { activityRouter } from './agents/activity.js';
 import { tasksRouter } from './agents/tasks.js';
 import eventsRouter from './agents/events.js';
 import { z } from 'zod';
+import { mergePresenceSchemaAvatar } from '@keeper/shared';
 import { PrismaClient, updateKipAgent } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { KipAgentService } from './kip/agents.js';
@@ -33,6 +34,7 @@ function formatAgentResponse(agent: {
   permissions: string[];
   config: unknown;
   model_settings: unknown;
+  presenceSchema?: unknown;
   created_at: Date;
   updated_at: Date;
   kip_agent_logs?: unknown[];
@@ -54,6 +56,7 @@ function formatAgentResponse(agent: {
     permissions: agent.permissions,
     config: agent.config,
     model_settings: agent.model_settings,
+    presenceSchema: agent.presenceSchema ?? null,
     created_at: agent.created_at,
     updated_at: agent.updated_at,
     ...(agent.kip_agent_logs !== undefined ? { recent_logs: agent.kip_agent_logs } : {}),
@@ -146,6 +149,16 @@ function mergeModelSettings(
   };
 }
 
+function shouldAppendAvatarThemeBit(body: {
+  avatar?: string | null;
+  avatarKey?: string | null;
+}): boolean {
+  if (body.avatarKey !== undefined) return true;
+  if (body.avatar === null) return true;
+  if (typeof body.avatar === 'string' && /^https?:\/\//.test(body.avatar.trim())) return true;
+  return false;
+}
+
 const patchAgentSchema = z
   .object({
     name: z.string().min(1).max(100).optional(),
@@ -158,7 +171,8 @@ const patchAgentSchema = z
     config: z.record(z.any()).optional(),
     tagline: z.string().max(500).optional(),
     personality: z.string().max(2000).optional(),
-    avatar: z.string().max(500).optional(),
+    avatar: z.string().max(500).nullable().optional(),
+    avatarKey: z.string().nullable().optional(),
     theme_color: z.string().max(100).optional(),
     model_settings: z.record(z.any()).optional(),
     temperature: z.number().min(0).max(1).optional(),
@@ -535,6 +549,14 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
       Object.keys(modelSettingsPatch).length > 0 ? modelSettingsPatch : undefined,
     );
     if (mergedModelSettings !== undefined) updatePayload.model_settings = mergedModelSettings;
+
+    if (shouldAppendAvatarThemeBit(body)) {
+      updatePayload.presenceSchema = mergePresenceSchemaAvatar(
+        existing.presenceSchema,
+        body.avatar ?? null,
+        body.avatarKey,
+      ) as Record<string, unknown>;
+    }
 
     if (Object.keys(updatePayload).length === 0) {
       return res.status(400).json({ error: 'No updatable fields provided' });

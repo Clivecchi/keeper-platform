@@ -3,6 +3,9 @@
 import * as React from "react"
 import MediaUploader from "../../../components/studio/MediaUploader"
 import { apiFetch } from "../../../lib/api"
+import type { ObjectThemeBitRole } from "@keeper/shared"
+import { extractObjectTheme } from "@keeper/shared"
+import { ObjectThemeBitsStrip } from "./ObjectThemeBitsStrip"
 
 export type ChronicleCoverMedia = {
   type: "image"
@@ -10,10 +13,12 @@ export type ChronicleCoverMedia = {
   key?: string
 } | null
 
-export interface ChronicleCoverFieldProps {
+export interface ChronicleVisualUploadFieldProps {
   label?: string
   description?: string
+  uploadRole?: ObjectThemeBitRole
   value: ChronicleCoverMedia
+  themeBits?: unknown
   disabled?: boolean
   onSaved?: () => void
   onSave: (cover: ChronicleCoverMedia) => Promise<void>
@@ -24,11 +29,8 @@ export async function patchDomainThemeCover(
   existingTheme: Record<string, unknown> | undefined,
   cover: ChronicleCoverMedia,
 ): Promise<void> {
-  const nextTheme = {
-    ...(existingTheme ?? {}),
-    coverImage: cover?.url ?? null,
-    coverImageKey: cover?.key ?? null,
-  }
+  const { applyObjectThemeUpload } = await import("@keeper/shared")
+  const nextTheme = applyObjectThemeUpload(existingTheme, "cover", cover?.url ?? null, cover?.key ?? null)
   await apiFetch(`/api/domains/${encodeURIComponent(domainId)}`, {
     method: "PATCH",
     body: JSON.stringify({ theme: nextTheme }),
@@ -48,23 +50,42 @@ export async function patchPresenceCover(
   })
 }
 
-export function ChronicleCoverField({
+export async function patchPresenceAvatar(
+  endpoint: string,
+  avatar: ChronicleCoverMedia,
+): Promise<void> {
+  await apiFetch(endpoint, {
+    method: "PATCH",
+    body: JSON.stringify({
+      avatar: avatar?.url ?? null,
+      avatarKey: avatar?.key ?? null,
+    }),
+  })
+}
+
+/** @deprecated Use ChronicleVisualUploadField */
+export type ChronicleCoverFieldProps = ChronicleVisualUploadFieldProps
+
+export function ChronicleVisualUploadField({
   label = "Cover image",
-  description = "Shown on the entity cover in Chronicle and across the domain.",
+  description = "Shown on the entity cover in Chronicle. Each upload adds to the object theme.",
+  uploadRole = "cover",
   value,
+  themeBits,
   disabled = false,
   onSaved,
   onSave,
-}: ChronicleCoverFieldProps) {
+}: ChronicleVisualUploadFieldProps) {
   const [status, setStatus] = React.useState<"idle" | "saving" | "error">("idle")
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const bits = React.useMemo(() => extractObjectTheme(themeBits).bits, [themeBits])
 
   const handleChange = async (
     media: { type: "image" | "video"; url: string; key?: string } | null,
   ) => {
     if (media && media.type !== "image") {
       setStatus("error")
-      setErrorMessage("Cover images must be PNG, JPG, or WEBP.")
+      setErrorMessage("Images must be PNG, JPG, or WEBP.")
       return
     }
 
@@ -79,17 +100,19 @@ export function ChronicleCoverField({
       onSaved?.()
       setStatus("idle")
     } catch (error) {
-      console.error("[ChronicleCoverField] save failed:", error)
+      console.error("[ChronicleVisualUploadField] save failed:", error)
       setStatus("error")
       setErrorMessage(
-        error instanceof Error ? error.message : "Cover image could not be saved.",
+        error instanceof Error ? error.message : "Image could not be saved.",
       )
     }
   }
 
+  const roleLabel = uploadRole === "avatar" ? "Avatar" : uploadRole === "cover" ? "Cover" : "Visual"
+
   return (
     <div className="mb-4">
-      <p className="keeper-presence-field-label mb-1.5">{label}</p>
+      <p className="keeper-presence-field-label mb-1.5">{label ?? roleLabel}</p>
       {description ? (
         <p
           className="text-[12px] mb-2 leading-relaxed"
@@ -104,7 +127,7 @@ export function ChronicleCoverField({
           className="text-[12px] mt-2"
           style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
-          Saving cover…
+          Saving {roleLabel.toLowerCase()}…
         </p>
       ) : null}
       {status === "error" && errorMessage ? (
@@ -115,6 +138,10 @@ export function ChronicleCoverField({
           {errorMessage}
         </p>
       ) : null}
+      <ObjectThemeBitsStrip bits={bits} />
     </div>
   )
 }
+
+/** Back-compat alias */
+export const ChronicleCoverField = ChronicleVisualUploadField

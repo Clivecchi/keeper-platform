@@ -36,6 +36,7 @@ export interface AgentFocusPresenceProps {
   onFieldChange: (key: string, value: string) => void
   onAdvancedOpenChange: (open: boolean) => void
   onAdvancedChange: (key: "temperature" | "max_tokens", value: string) => void
+  onAvatarSaved?: () => void
   renderFieldEditor: (
     key: string,
     def: FieldDefinition,
@@ -68,6 +69,7 @@ export function AgentFocusPresence({
   onFieldChange,
   onAdvancedOpenChange,
   onAdvancedChange,
+  onAvatarSaved,
   renderFieldEditor,
 }: AgentFocusPresenceProps) {
   const boardCtx = useUniversalBoardOptional()
@@ -238,6 +240,7 @@ export function AgentFocusPresence({
             onFieldChange={onFieldChange}
             onAdvancedOpenChange={onAdvancedOpenChange}
             onAdvancedChange={onAdvancedChange}
+            onAvatarSaved={onAvatarSaved}
             renderFieldEditor={renderFieldEditor}
           />
         )}

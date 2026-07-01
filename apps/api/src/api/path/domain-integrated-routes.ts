@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { mergePresenceSchemaCover } from '@keeper/shared';
-import { PrismaClient } from '@keeper/database';
+import { PrismaClient, type Prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { queryValidationMiddleware, validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
@@ -274,7 +274,7 @@ async function updatePathById(req: Request, res: Response): Promise<Response> {
     const updateData: {
       name?: string;
       prelude?: string;
-      presenceSchema?: unknown;
+      presenceSchema?: Prisma.InputJsonValue;
     } = { ...metadata };
 
     if (coverImage !== undefined) {
@@ -282,7 +282,7 @@ async function updatePathById(req: Request, res: Response): Promise<Response> {
         existing.presenceSchema,
         coverImage,
         coverImageKey,
-      );
+      ) as Prisma.InputJsonValue;
     }
 
     const path = await prisma.path.update({

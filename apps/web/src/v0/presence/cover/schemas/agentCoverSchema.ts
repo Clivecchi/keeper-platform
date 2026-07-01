@@ -10,6 +10,7 @@ import type {
   EntityCoverSchema,
   ResolvedCoverContent,
 } from "../coverTypes"
+import { resolveCoverAvatarDisplay } from "../coverImageUtils"
 
 function resolveAccent(themeColor?: string): string {
   if (!themeColor?.trim()) return ""
@@ -149,7 +150,7 @@ export const agentCoverSchema: EntityCoverSchema = {
 
     return {
       hero: {
-        avatar: fieldValues.avatar,
+        avatar: resolveCoverAvatarDisplay(fieldValues.avatar, name.slice(0, 1).toUpperCase()),
         avatarGlow: glow,
         accentColor: resolveAccent(fieldValues.theme_color),
         chromeTitle: `KE3P · AGENT · ${slug.toUpperCase().slice(0, 12)}`,

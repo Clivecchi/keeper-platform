@@ -348,6 +348,7 @@ export async function updateKipAgent(id: string, data: Partial<{
   model_provider: string;
   model_settings: Record<string, unknown>;
   visibility: string;
+  presenceSchema: Record<string, unknown>;
 }>) {
   const updateData: any = {
     ...data,
@@ -360,6 +361,9 @@ export async function updateKipAgent(id: string, data: Partial<{
   }
   if (data.model_settings) {
     updateData.model_settings = JSON.parse(JSON.stringify(data.model_settings)) as Prisma.InputJsonValue;
+  }
+  if (data.presenceSchema) {
+    updateData.presenceSchema = JSON.parse(JSON.stringify(data.presenceSchema)) as Prisma.InputJsonValue;
   }
 
   return prisma.kip_agents.update({

@@ -9,6 +9,7 @@ import type {
   EntityCoverSchema,
   ResolvedCoverContent,
 } from "../coverTypes"
+import { resolveCoverAvatarDisplay } from "../coverImageUtils"
 
 export type KeeperRecord = {
   id: string
@@ -17,6 +18,7 @@ export type KeeperRecord = {
   description: string | null
   keeperType: string | null
   memoryPattern: string | null
+  avatar?: string | null
   stats?: {
     journeyCount?: number
     pathCount?: number
@@ -44,6 +46,7 @@ export const keeperCoverSchema: EntityCoverSchema<KeeperRecord> = {
       display_label: record.display_label,
       title: record.title ?? record.display_label ?? "",
     })
+    const avatarFallback = title.charAt(0).toUpperCase() || "K"
 
     const traits = [
       ...(record.keeperType
@@ -76,7 +79,7 @@ export const keeperCoverSchema: EntityCoverSchema<KeeperRecord> = {
 
     return {
       hero: {
-        avatar: title.charAt(0).toUpperCase() || "K",
+        avatar: resolveCoverAvatarDisplay(record.avatar, avatarFallback),
         avatarGlow: "active",
         accentColor: "hsl(var(--theme-accent-primary))",
         chromeTitle: "KE3P · KEEPER",

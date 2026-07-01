@@ -32,6 +32,7 @@ export type KeeperDto = {
   memoryPattern: string | null
   domainId: string | null
   ownerId: string
+  presenceSchema?: unknown
   createdAt: string
   updatedAt: string
   stats: {
@@ -74,6 +75,7 @@ export function recordToKeeperDto(
     memoryPattern: src.memoryPattern != null ? String(src.memoryPattern) : null,
     domainId: src.domainId != null ? String(src.domainId) : null,
     ownerId: String(src.ownerId ?? ""),
+    presenceSchema: src.presenceSchema,
     createdAt: String(src.createdAt ?? new Date().toISOString()),
     updatedAt: String(src.updatedAt ?? new Date().toISOString()),
     stats: {

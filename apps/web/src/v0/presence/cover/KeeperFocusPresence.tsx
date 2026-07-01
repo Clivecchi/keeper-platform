@@ -13,6 +13,7 @@ import {
 } from "../integrationChronicle/feeds/KeeperFeed"
 import { FeedError, FeedShimmer } from "../integrationChronicle/shared"
 import { resolveKeeperCoverContent, type KeeperRecord } from "./schemas/keeperCoverSchema"
+import { avatarFromRecord } from "./coverImageUtils"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { AgentCoverMode } from "./coverTypes"
 
@@ -24,6 +25,7 @@ export interface KeeperFocusPresenceProps {
 }
 
 function toKeeperRecord(objectId: string, src: Record<string, unknown>): KeeperRecord {
+  const { avatar } = avatarFromRecord(src)
   return {
     id: String(src.id ?? objectId),
     title: src.title != null ? String(src.title) : undefined,
@@ -31,6 +33,7 @@ function toKeeperRecord(objectId: string, src: Record<string, unknown>): KeeperR
     description: src.description != null ? String(src.description) : null,
     keeperType: src.keeperType != null ? String(src.keeperType) : null,
     memoryPattern: src.memoryPattern != null ? String(src.memoryPattern) : null,
+    avatar,
     stats:
       src.stats && typeof src.stats === "object" && !Array.isArray(src.stats)
         ? (src.stats as KeeperRecord["stats"])
@@ -126,6 +129,10 @@ export function KeeperFocusPresence({
         }
         description={effectiveFeed.keeper.description ?? effectiveFeed.keeper.purpose}
         keeper={effectiveFeed.keeper}
+        record={{
+          ...record,
+          presenceSchema: effectiveFeed.keeper.presenceSchema ?? record.presenceSchema,
+        }}
         onBack={() => {
           setCoverMode("cover")
           void reload()

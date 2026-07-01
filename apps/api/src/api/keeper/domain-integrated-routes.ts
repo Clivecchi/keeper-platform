@@ -5,8 +5,8 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
-import { resolveKeeperChronicleDefaults } from '@keeper/shared';
+import { PrismaClient, type Prisma } from '@keeper/database';
+import { resolveKeeperChronicleDefaults, mergePresenceSchemaAvatar } from '@keeper/shared';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
@@ -53,6 +53,8 @@ const patchKeeperSchema = z
   .object({
     display_label: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional(),
+    avatar: z.string().url().nullable().optional(),
+    avatarKey: z.string().nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',
@@ -70,6 +72,7 @@ type KeeperRow = {
   memoryPattern: string | null;
   domainId: string | null;
   ownerId: string;
+  presenceSchema: unknown;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -117,6 +120,7 @@ async function buildKeeperEntityRecord(keeper: KeeperRow) {
     memoryPattern: keeper.memoryPattern,
     domainId: keeper.domainId,
     ownerId: keeper.ownerId,
+    presenceSchema: keeper.presenceSchema,
     createdAt: keeper.createdAt,
     updatedAt: keeper.updatedAt,
     stats: {
@@ -407,16 +411,33 @@ router.patch('/:id',
         return res.status(404).json({ error: 'Keeper not found' });
       }
 
+      const { avatar, avatarKey, ...metadata } = body;
+      const updateData: {
+        display_label?: string;
+        title?: string;
+        description?: string;
+        purpose?: string;
+        presenceSchema?: Prisma.InputJsonValue;
+      } = {
+        ...(metadata.display_label !== undefined
+          ? { display_label: metadata.display_label, title: metadata.display_label }
+          : {}),
+        ...(metadata.description !== undefined
+          ? { description: metadata.description, purpose: metadata.description }
+          : {}),
+      };
+
+      if (avatar !== undefined) {
+        updateData.presenceSchema = mergePresenceSchemaAvatar(
+          existing.presenceSchema,
+          avatar,
+          avatarKey,
+        ) as Prisma.InputJsonValue;
+      }
+
       const keeper = await prisma.keeper.update({
         where: { id: req.params.id },
-        data: {
-          ...(body.display_label !== undefined
-            ? { display_label: body.display_label, title: body.display_label }
-            : {}),
-          ...(body.description !== undefined
-            ? { description: body.description, purpose: body.description }
-            : {}),
-        },
+        data: updateData,
       });
 
       return res.json(await buildKeeperEntityRecord(keeper as KeeperRow));

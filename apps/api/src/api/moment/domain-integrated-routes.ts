@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { mergePresenceSchemaCover } from '@keeper/shared';
-import { PrismaClient } from '@keeper/database';
+import { PrismaClient, type Prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { queryValidationMiddleware, validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { 
@@ -283,9 +283,9 @@ async function updateMomentById(req: Request, res: Response): Promise<Response> 
       type?: string;
       isPublic?: boolean;
       tags?: string[];
-      metadata?: Record<string, unknown>;
-      attachments?: unknown;
-      presenceSchema?: unknown;
+      metadata?: Prisma.InputJsonValue;
+      attachments?: Prisma.InputJsonValue;
+      presenceSchema?: Prisma.InputJsonValue;
     } = { ...metadata };
 
     if (coverImage !== undefined) {
@@ -293,7 +293,7 @@ async function updateMomentById(req: Request, res: Response): Promise<Response> 
         existing.presenceSchema,
         coverImage,
         coverImageKey,
-      );
+      ) as Prisma.InputJsonValue;
     }
 
     const moment = await prisma.moment.update({

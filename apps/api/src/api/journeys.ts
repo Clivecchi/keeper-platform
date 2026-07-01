@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { mergePresenceSchemaCover } from '@keeper/shared';
-import { PrismaClient } from '@keeper/database';
+import { PrismaClient, type Prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 
 const router: Router = Router();
@@ -217,7 +217,7 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     const updateData: {
       name?: string;
       forward?: string;
-      presenceSchema?: unknown;
+      presenceSchema?: Prisma.InputJsonValue;
       updatedAt: Date;
     } = {
       ...metadata,
@@ -229,7 +229,7 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
         existing.presenceSchema,
         coverImage,
         coverImageKey,
-      );
+      ) as Prisma.InputJsonValue;
     }
 
     const journey = await prisma.journey.update({

@@ -1613,6 +1613,7 @@ function KeeperPresenceSurface({
           markAdvancedEdited()
           setAdvancedValues((prev) => ({ ...prev, [key]: value }))
         }}
+        onAvatarSaved={handlePresenceRefresh}
         renderFieldEditor={renderFieldEditor}
       />
     )

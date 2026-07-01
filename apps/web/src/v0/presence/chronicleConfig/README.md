@@ -31,6 +31,12 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-06-30 — Object theme bits + Keeper/Agent avatar upload
+- `@keeper/shared/objectTheme` — each visual upload appends an ordered theme bit; cover/avatar active fields sync to latest bit of that role
+- Keeper Configure: avatar upload via `presenceSchema` (`Keeper.presenceSchema` migration)
+- Agent Configure: portrait upload + emoji fallback; theme bits on `kip_agents.presenceSchema`
+- Configure modes show **Object theme** strip (upload history in order)
+
 ### 2026-06-30 — Chronicle cover upload + record delete
 - `ChronicleCoverField` wires cover image upload in Domain/Journey/Path/Moment Configure modes
 - `ChronicleRecordDelete` adds delete for Journey, Path, Moment in Configure danger zone
