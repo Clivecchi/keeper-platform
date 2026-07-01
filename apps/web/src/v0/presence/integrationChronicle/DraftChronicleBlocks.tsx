@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { buildDraftSummaryFromAcceptedPoints } from "@keeper/shared"
 import { DraftPointsSection } from "../DraftPointsSection"
 import { DraftSessionsBlock } from "./DraftSessionsBlock"
 import { DraftVersionStrip } from "./DraftVersionStrip"
@@ -41,23 +42,29 @@ function BlockSection({
   )
 }
 
-function ManuscriptSummary({
+function ManuscriptStoryArc({
   text,
   flashKey,
 }: {
   text: string
   flashKey: number
 }) {
-  const sentences = text.trim().split(/(?<=[.!?])\s+/).filter(Boolean)
-  const lead = sentences[0] ?? text.trim()
-  const tail = sentences.slice(1).join(" ")
+  const beats = text.split(" → ").filter(Boolean)
 
   return (
-    <div className="cdraft-summary" data-flash={flashKey}>
-      <p className="cdraft-summary-prose">
-        <span className="cdraft-summary-lead">{lead}</span>
-        {tail ? ` ${tail}` : null}
-      </p>
+    <div className="cdraft-story-arc" data-flash={flashKey}>
+      {beats.length > 1 ? (
+        <ol className="cdraft-story-arc-track">
+          {beats.map((beat, index) => (
+            <li key={`${beat}-${index}`} className="cdraft-story-arc-beat">
+              <span className="cdraft-story-arc-index">{index + 1}</span>
+              <span className="cdraft-story-arc-label">{beat}</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="cdraft-story-arc-single">{text}</p>
+      )}
     </div>
   )
 }
@@ -99,18 +106,25 @@ export function DraftChronicleBlocks({
   onSessionSelect,
   manuscript = false,
 }: DraftChronicleBlocksProps) {
+  const displaySummary = React.useMemo(() => {
+    if (!manuscript) return summary?.trim() || null
+    const arc = buildDraftSummaryFromAcceptedPoints(spec)
+    if (arc) return arc
+    return summary?.trim() || null
+  }, [manuscript, spec, summary])
+
   return (
     <>
-      {summary?.trim() ? (
+      {displaySummary ? (
         manuscript ? (
-          <ManuscriptSummary text={summary.trim()} flashKey={summaryFlashKey} />
+          <ManuscriptStoryArc text={displaySummary} flashKey={summaryFlashKey} />
         ) : (
           <BlockSection title="Summary">
             <p
               className="text-[14px] leading-relaxed whitespace-pre-wrap"
               style={{ color: "hsl(var(--theme-ink-secondary))" }}
             >
-              {summary.trim()}
+              {displaySummary}
             </p>
           </BlockSection>
         )

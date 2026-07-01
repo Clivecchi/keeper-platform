@@ -2,6 +2,7 @@ export * from './logger.js';
 export * from './roles.js';
 export * from './canonicalBoards.js';
 export * from './draftPoints.js';
+export * from './draftPointStructure.js';
 export * from './glossAnchor.js';
 export * from './integrationChronicleDeclarations.js';
 export * from './serviceBindings.js';

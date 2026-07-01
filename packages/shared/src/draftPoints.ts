@@ -2,11 +2,19 @@
  * Draft Point model — stored in kip_drafts.spec_json.points
  */
 
+import { draftPointBeatLabel } from './draftPointStructure.js';
+
 export const DRAFT_POINT_STATUSES = ['proposed', 'accepted', 'pending'] as const;
 export type DraftPointStatus = (typeof DRAFT_POINT_STATUSES)[number];
 
 export const DRAFT_POINT_TYPES = ['moment', 'decision', 'context', 'general'] as const;
 export type DraftPointType = (typeof DRAFT_POINT_TYPES)[number];
+
+/** Moment beat inside a journey_spec path point — promotes to Moment.title */
+export interface DraftPointMoment {
+  title: string;
+  narrative?: string;
+}
 
 export interface DraftPoint {
   id: string;
@@ -16,10 +24,12 @@ export interface DraftPoint {
   proposedBy: string;
   createdAt: string;
   updatedAt: string;
-  /** Invitation line above opener — optional in spec_json.points */
+  /** High-level beat — promotes to Path.prelude for journey_spec points */
   prelude?: string;
-  /** Landing sentiment below opener — optional in spec_json.points */
+  /** Landing sentiment below the body */
   closer?: string;
+  /** Structured moment beats — promote to Path.Moment records */
+  moments?: DraftPointMoment[];
   /** Cluster id for path-emergence grouping — optional in spec_json.points */
   pathGroupId?: string;
 }
@@ -86,6 +96,7 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
 
   const prelude = typeof value.prelude === 'string' ? value.prelude : undefined;
   const closer = typeof value.closer === 'string' ? value.closer : undefined;
+  const moments = normalizeDraftPointMoments(value.moments);
   const pathGroupId =
     typeof value.pathGroupId === 'string'
       ? value.pathGroupId
@@ -103,8 +114,23 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
     updatedAt,
     ...(prelude ? { prelude } : {}),
     ...(closer ? { closer } : {}),
+    ...(moments.length > 0 ? { moments } : {}),
     ...(pathGroupId ? { pathGroupId } : {}),
   };
+}
+
+function normalizeDraftPointMoments(value: unknown): DraftPointMoment[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry): DraftPointMoment | null => {
+      if (!isRecord(entry)) return null;
+      const title = typeof entry.title === 'string' ? entry.title.trim() : '';
+      if (!title) return null;
+      const narrative =
+        typeof entry.narrative === 'string' ? entry.narrative.trim() : undefined;
+      return { title, ...(narrative ? { narrative } : {}) };
+    })
+    .filter((row): row is DraftPointMoment => row !== null);
 }
 
 /** Parse and validate points from spec_json (invalid entries dropped). */
@@ -215,6 +241,10 @@ export interface CreateDraftPointInput {
   type?: DraftPointType;
   proposedBy: string;
   status?: DraftPointStatus;
+  prelude?: string;
+  closer?: string;
+  moments?: DraftPointMoment[];
+  pathGroupId?: string;
   id?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -223,6 +253,11 @@ export interface CreateDraftPointInput {
 /** Build a new point for append to spec_json.points */
 export function createDraftPoint(input: CreateDraftPointInput): DraftPoint {
   const now = input.createdAt ?? new Date().toISOString();
+  const prelude = input.prelude?.trim();
+  const closer = input.closer?.trim();
+  const moments = normalizeDraftPointMoments(input.moments);
+  const pathGroupId = input.pathGroupId?.trim();
+
   return {
     id: input.id ?? crypto.randomUUID(),
     content: input.content.trim(),
@@ -231,6 +266,10 @@ export function createDraftPoint(input: CreateDraftPointInput): DraftPoint {
     proposedBy: input.proposedBy,
     createdAt: now,
     updatedAt: input.updatedAt ?? now,
+    ...(prelude ? { prelude } : {}),
+    ...(closer ? { closer } : {}),
+    ...(moments.length > 0 ? { moments } : {}),
+    ...(pathGroupId ? { pathGroupId } : {}),
   };
 }
 
@@ -245,6 +284,8 @@ export function summarizeDraftPointsForAgent(spec: unknown): Array<{
   status: DraftPointStatus;
   type: DraftPointType;
   preview: string;
+  prelude?: string;
+  momentCount?: number;
   rewritable: boolean;
 }> {
   return parseDraftPoints(spec).map((point) => ({
@@ -252,6 +293,10 @@ export function summarizeDraftPointsForAgent(spec: unknown): Array<{
     status: point.status,
     type: point.type,
     preview: point.content.trim().slice(0, 160),
+    ...(point.prelude?.trim() ? { prelude: point.prelude.trim() } : {}),
+    ...(point.moments && point.moments.length > 0
+      ? { momentCount: point.moments.length }
+      : {}),
     rewritable: isDraftPointRewritable(point.status),
   }));
 }
@@ -322,6 +367,7 @@ export function rewriteDraftPointInSpec(
   pointId: string,
   content: string,
   type?: DraftPointType,
+  extras?: Partial<Pick<DraftPoint, 'prelude' | 'closer' | 'moments'>>,
 ): RewriteDraftPointResult {
   const trimmed = content.trim();
   if (!trimmed) {
@@ -339,6 +385,7 @@ export function rewriteDraftPointInSpec(
   const { spec: nextSpec, point } = updateDraftPointInSpec(spec, pointId, {
     content: trimmed,
     ...(type ? { type } : {}),
+    ...(extras ?? {}),
   });
 
   if (!point) {
@@ -352,7 +399,7 @@ export function rewriteDraftPointInSpec(
 export function updateDraftPointInSpec(
   spec: unknown,
   pointId: string,
-  patch: Partial<Pick<DraftPoint, 'status' | 'content' | 'type'>>,
+  patch: Partial<Pick<DraftPoint, 'status' | 'content' | 'type' | 'prelude' | 'closer' | 'moments'>>,
 ): { spec: DraftSpecJson; point: DraftPoint | null } {
   const normalized = canonicalizeDraftSpecJson(spec);
   const points = normalized.points ?? [];
@@ -424,11 +471,11 @@ export function mergeDraftSpecPatch(existingSpec: unknown, patchSpec: unknown): 
   return canonicalizeDraftSpecJson({ ...mergedExtras, points: nextPoints });
 }
 
-/** Build draft summary text from accepted points (visible Chronicle field). */
+/** Build a short story arc from accepted point beats — not a content dump. */
 export function buildDraftSummaryFromAcceptedPoints(spec: unknown): string {
   return parseDraftPoints(spec)
     .filter((point) => point.status === 'accepted')
-    .map((point) => point.content.trim())
+    .map((point) => draftPointBeatLabel(point))
     .filter(Boolean)
-    .join('\n\n');
+    .join(' → ');
 }

@@ -26,6 +26,11 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-06-29 — Draft point structure + film strip
+- Added `draftPointStructure.ts` — journey_spec PATH/Moments parsing; promotion mapping (point→Path, moments→Moment)
+- `buildDraftSummaryFromAcceptedPoints` builds beat arc, not content concatenation
+- DraftPoint gains optional `moments[]`; propose/rewrite actions accept prelude/closer/moments
+
 ### 2026-06-28 — Draft point rewrite + anchor guard
 - Added `isDraftPointRewritable`, `rewriteDraftPointInSpec`, `summarizeDraftPointsForAgent`.
 - `mergeDraftPointsById` ignores content overwrites for accepted (kept) anchor points.

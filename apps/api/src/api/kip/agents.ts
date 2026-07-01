@@ -22,6 +22,7 @@ import {
   rewriteDraftPointInSpec,
   summarizeDraftPointsForAgent,
   updateDraftPointInSpec,
+  type DraftPoint,
   type DraftPointType,
   type DirectorContinuityMessage,
   resolveDirectorDelegationMessage,
@@ -171,9 +172,9 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content, and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
+    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content, optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
   const rewritePoints =
-    '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), and payload.content. Only points with status proposed or pending are rewritable. Accepted (kept) points are anchors — never rewrite them; treat their text as fixed context when revising nearby points.';
+    '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), payload.content, and optional payload.prelude, payload.closer, payload.moments. Only points with status proposed or pending are rewritable. Accepted (kept) points are anchors — never rewrite them; treat their text as fixed context when revising nearby points.';
   const preservePoints =
     '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
   if (isOperationalDraftAgent(agent)) {
@@ -1190,6 +1191,15 @@ export async function executeAgentActions(
               type: pointType,
               proposedBy,
               status: 'proposed',
+              ...(typeof payload.prelude === 'string' && payload.prelude.trim()
+                ? { prelude: payload.prelude.trim() }
+                : {}),
+              ...(typeof payload.closer === 'string' && payload.closer.trim()
+                ? { closer: payload.closer.trim() }
+                : {}),
+              ...(Array.isArray(payload.moments) && payload.moments.length > 0
+                ? { moments: payload.moments }
+                : {}),
             });
 
             const nextSpec = appendDraftPointToSpec(draft.spec_json, point);
@@ -1362,7 +1372,24 @@ export async function executeAgentActions(
               ? payload.type as DraftPointType
               : undefined;
 
-            const rewriteResult = rewriteDraftPointInSpec(draft.spec_json, pointId, content, pointType);
+            const rewriteExtras: Partial<Pick<DraftPoint, 'prelude' | 'closer' | 'moments'>> = {};
+            if (typeof payload.prelude === 'string' && payload.prelude.trim()) {
+              rewriteExtras.prelude = payload.prelude.trim();
+            }
+            if (typeof payload.closer === 'string' && payload.closer.trim()) {
+              rewriteExtras.closer = payload.closer.trim();
+            }
+            if (Array.isArray(payload.moments) && payload.moments.length > 0) {
+              rewriteExtras.moments = payload.moments;
+            }
+
+            const rewriteResult = rewriteDraftPointInSpec(
+              draft.spec_json,
+              pointId,
+              content,
+              pointType,
+              rewriteExtras,
+            );
             if (rewriteResult.ok === false) {
               const message =
                 rewriteResult.code === 'POINT_ANCHORED'

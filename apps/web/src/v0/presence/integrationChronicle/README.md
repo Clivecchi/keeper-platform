@@ -41,6 +41,13 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-06-29 — Draft film strip + structured path points
+- `draftPointStructure.ts` (shared) — parse `PATH N: NAME — Subtitle` content; prelude → Path.prelude, moments → Moment.title on promote
+- `buildDraftSummaryFromAcceptedPoints` — short beat arc (`A → B → C`), not full content dump
+- `DraftFilmStrip.tsx` — horizontal accepted-frame journey; moment sub-frames in focus panel
+- `DraftPointRow` manuscript — prelude from parsed subtitle; moment chips; no generic "An idea forming"
+- Agent `draft.update.propose` / `draft.point.rewrite` accept optional `prelude`, `closer`, `moments`
+
 ### 2026-06-28 — Draft script-IDE rewrite queue
 - **Rewrite** on proposed/pending points → Dialog prefilled for `draft.point.rewrite` (via `requestRewriteDraftPoint`)
 - Manuscript **Anchors** collapsible when >2 accepted; **Rewrite queue** section for pending points

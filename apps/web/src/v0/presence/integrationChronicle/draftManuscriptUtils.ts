@@ -1,4 +1,5 @@
 import type { DraftPoint, DraftPointType } from "@keeper/shared"
+import { resolveDraftPointStructure } from "@keeper/shared"
 
 export const DRAFT_OPENER_CHAR_LIMIT = 177
 
@@ -14,6 +15,7 @@ export interface DraftPointBeats {
   closer: string
   hasMore: boolean
   fullContent: string
+  structure: ReturnType<typeof resolveDraftPointStructure>
 }
 
 const TYPE_PRELUDE: Record<DraftPointType, string> = {
@@ -22,6 +24,8 @@ const TYPE_PRELUDE: Record<DraftPointType, string> = {
   context: "Background that matters",
   general: "An idea forming",
 }
+
+export { resolveDraftPointStructure } from "@keeper/shared"
 
 export function truncateAtWord(text: string, maxChars: number): {
   text: string
@@ -54,15 +58,25 @@ function lastSentence(text: string): string {
 }
 
 export function resolvePointBeats(point: DraftPoint): DraftPointBeats {
+  const structure = resolveDraftPointStructure(point)
   const fullContent = point.content.trim()
-  const prelude = point.prelude?.trim() || TYPE_PRELUDE[point.type]
+  const prelude =
+    structure.prelude ||
+    (structure.isPathSpec ? "" : TYPE_PRELUDE[point.type])
+
+  const bodyForOpener =
+    structure.isPathSpec && structure.description
+      ? structure.description
+      : fullContent
+
   const { text: opener, remainder, truncated } = truncateAtWord(
-    fullContent,
+    bodyForOpener,
     DRAFT_OPENER_CHAR_LIMIT,
   )
   let closer =
+    structure.closer ||
     point.closer?.trim() ||
-    (remainder ? lastSentence(remainder) : truncated ? lastSentence(fullContent) : "")
+    (remainder ? lastSentence(remainder) : truncated ? lastSentence(bodyForOpener) : "")
 
   if (closer && (closer === opener || opener.includes(closer))) {
     closer = ""
@@ -73,7 +87,8 @@ export function resolvePointBeats(point: DraftPoint): DraftPointBeats {
     opener,
     closer,
     hasMore: truncated,
-    fullContent,
+    fullContent: bodyForOpener,
+    structure,
   }
 }
 

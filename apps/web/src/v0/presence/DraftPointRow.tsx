@@ -52,6 +52,7 @@ export function DraftPointRow({
     !isAccepted && isDraftPointRewritable(point.status) && !!draftId && !!onRewritePoint
   const [expanded, setExpanded] = React.useState(false)
   const beats = resolvePointBeats(point)
+  const { structure } = beats
   const prevContent = React.useRef(point.content)
   const prevUpdatedAt = React.useRef(point.updatedAt)
   const [flashKey, setFlashKey] = React.useState(0)
@@ -69,6 +70,10 @@ export function DraftPointRow({
 
   if (manuscript) {
     const showFull = expanded || !beats.hasMore
+    const pathLabel =
+      structure.pathName && structure.pathSubtitle
+        ? `${structure.pathName} — ${structure.pathSubtitle}`
+        : structure.pathName || structure.pathSubtitle
 
     return (
       <motion.li
@@ -76,7 +81,7 @@ export function DraftPointRow({
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="cdraft-point-card"
+        className="cdraft-point-card cdraft-point-card--frame"
         data-point-id={point.id}
         data-flash={flashKey}
         data-gloss-anchor={
@@ -93,28 +98,47 @@ export function DraftPointRow({
           <span className="cdraft-accepted-badge">Accepted</span>
         ) : null}
 
-        <div className="cdraft-point-prelude">
-          <span className="cdraft-beat-label">Prelude</span>
-          <p className="cdraft-prelude-text">{beats.prelude}</p>
-        </div>
+        {beats.prelude ? (
+          <div className="cdraft-point-prelude">
+            <span className="cdraft-beat-label">Prelude</span>
+            <p className="cdraft-prelude-text">{beats.prelude}</p>
+          </div>
+        ) : null}
 
-        <div className="cdraft-point-opener">
-          <p className="cdraft-opener-text">
-            {showFull ? beats.fullContent : beats.opener}
-            {beats.hasMore && !expanded ? (
-              <>
-                {" "}
-                <button
-                  type="button"
-                  className="cdraft-more-link"
-                  onClick={() => setExpanded(true)}
-                >
-                  [more]
-                </button>
-              </>
-            ) : null}
-          </p>
-        </div>
+        {pathLabel ? (
+          <p className="cdraft-path-label">{pathLabel}</p>
+        ) : null}
+
+        {(beats.opener || beats.fullContent) && (
+          <div className="cdraft-point-opener">
+            <p className="cdraft-opener-text">
+              {showFull ? beats.fullContent : beats.opener}
+              {beats.hasMore && !expanded ? (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    className="cdraft-more-link"
+                    onClick={() => setExpanded(true)}
+                  >
+                    [more]
+                  </button>
+                </>
+              ) : null}
+            </p>
+          </div>
+        )}
+
+        {structure.moments.length > 0 ? (
+          <ul className="cdraft-moment-strip cdraft-moment-strip--inline" aria-label="Moments">
+            {structure.moments.map((moment, idx) => (
+              <li key={`${point.id}-m-${idx}`} className="cdraft-moment-frame">
+                <span className="cdraft-moment-frame-index">{idx + 1}</span>
+                <span className="cdraft-moment-frame-title">{moment.title}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {beats.closer ? (
           <p className="cdraft-closer-text">{beats.closer}</p>
@@ -203,6 +227,14 @@ export function DraftPointRow({
               </span>
             )}
           </div>
+          {beats.prelude ? (
+            <p
+              className="text-[13px] italic mb-1"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              {beats.prelude}
+            </p>
+          ) : null}
           <p
             className="text-[14px] leading-relaxed"
             style={{
@@ -210,7 +242,7 @@ export function DraftPointRow({
               fontWeight: isAccepted ? 500 : 400,
             }}
           >
-            {point.content}
+            {structure.description || point.content}
           </p>
         </div>
         {isAccepted && (

@@ -51,12 +51,20 @@ const draftPointAcceptPayloadSchema = z.object({
   { message: 'Must provide draftId or id' },
 );
 
+const draftPointMomentSchema = z.object({
+  title: z.string().min(1),
+  narrative: z.string().optional(),
+});
+
 const draftPointRewritePayloadSchema = z.object({
   draftId: z.string().uuid().optional(),
   id: z.string().uuid().optional(),
   pointId: z.string().uuid(),
   content: z.string().min(1, 'content is required'),
   type: z.enum(['moment', 'decision', 'context', 'general']).optional(),
+  prelude: z.string().optional(),
+  closer: z.string().optional(),
+  moments: z.array(draftPointMomentSchema).optional(),
 }).refine(
   (data) => Boolean(data.draftId || data.id),
   { message: 'Must provide draftId or id' },
@@ -67,6 +75,9 @@ const draftUpdateProposePayloadSchema = z.object({
   draftId: z.string().uuid().optional(),
   content: z.string().min(1, 'content is required'),
   type: z.enum(['moment', 'decision', 'context', 'general']).optional(),
+  prelude: z.string().optional(),
+  closer: z.string().optional(),
+  moments: z.array(draftPointMomentSchema).optional(),
 }).refine(
   (data) => Boolean(data.id || data.draftId),
   { message: 'Must provide id or draftId' },

@@ -5,6 +5,7 @@ import type { DraftPoint } from "@keeper/shared"
 import { parseDraftPoints } from "@keeper/shared"
 import { AnimatePresence } from "framer-motion"
 import { DraftPointRow } from "./DraftPointRow"
+import { DraftFilmStrip } from "./integrationChronicle/DraftFilmStrip"
 import {
   clusterDraftPoints,
   type DraftPathEmergence,
@@ -36,13 +37,6 @@ export function DraftPointsSection({
   const points = React.useMemo(() => parseDraftPoints(spec), [spec])
   const accepted = points.filter((p) => p.status === "accepted")
   const pending = points.filter((p) => p.status !== "accepted")
-  const [anchorsCollapsed, setAnchorsCollapsed] = React.useState(
-    () => accepted.length > 2,
-  )
-
-  React.useEffect(() => {
-    setAnchorsCollapsed(accepted.length > 2)
-  }, [draftId, accepted.length])
 
   if (!points.length) {
     return (
@@ -107,26 +101,14 @@ export function DraftPointsSection({
       <div className="cdraft-points-stack">
         {accepted.length > 0 && (
           <div className="cdraft-anchors-block">
-            <button
-              type="button"
-              className="cdraft-section-toggle"
-              onClick={() => setAnchorsCollapsed((c) => !c)}
-              aria-expanded={!anchorsCollapsed}
-            >
-              <span className="cdraft-section-label cdraft-section-label--nested">
-                Anchors ({accepted.length})
-              </span>
-              <span className="cdraft-section-toggle-hint">
-                {anchorsCollapsed ? "Show" : "Hide"}
-              </span>
-            </button>
-            {!anchorsCollapsed ? (
-              <ul className="cdraft-cluster-list">{renderClustered(accepted)}</ul>
-            ) : (
-              <p className="cdraft-anchors-collapsed-hint">
-                {accepted.length} accepted {accepted.length === 1 ? "point" : "points"} — fixed context for rewrites
-              </p>
-            )}
+            <p className="cdraft-section-label cdraft-section-label--nested">
+              Story ({accepted.length})
+            </p>
+            <DraftFilmStrip
+              points={accepted}
+              draftId={draftId}
+              onDiscussPoint={onDiscussPoint}
+            />
           </div>
         )}
         {pending.length > 0 && (
