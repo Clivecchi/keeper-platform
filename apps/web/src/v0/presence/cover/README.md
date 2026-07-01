@@ -6,7 +6,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 ## 🧱 Key Files
 - `coverTypes.ts` — slot names, `EntityCoverSchema`, Theatre.js motion value names
 - `coverMotion.ts` — Framer Motion hook (`atmosphereOpacity`, `nameReveal`, `statusPulse`, `heroEntrance`)
-- `EntityCoverPresence.tsx` — Layer 1 universal slot renderer
+- `EntityCoverPresence.tsx` — Layer 1 universal slot renderer (merged hero + identity header)
 - `schemas/agentCoverSchema.ts` — Layer 2 Agent EntityKind fill
 - `AgentFocusPresence.tsx` — Agent Cover Mode + Config Mode orchestration
 - `schemas/keyCoverSchema.ts` — Layer 2 Key EntityKind fill
@@ -44,6 +44,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - **Config Mode:** Configure action → `AgentConfigPresence`; back arrow returns to cover without requiring save
 - Save reuses existing `handleSaveAgent` PATCH path in `KeeperPresence` — no third save route
 - All colors via `hsl(var(--theme-*))`; agent `theme_color` drives hero radial accent
+- **Merged cover header (Phase A):** identity left, visual right; uploaded image bleeds with ambient blur wash; role line uses accent color
 
 ## ⚠️ Notes & ToDo
 - [ ] Journey, Path, Moment, Dialog, Draft cover schemas — **Journey + Path + Moment + Dialog + Draft done**
@@ -51,6 +52,11 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-30 — Merged cover header (Phase A)
+- `EntityCoverPresence.tsx`: replaced separate `HeroSlot` + `IdentitySlot` with `UnifiedCoverHeader` — identity left, image right
+- Ambient blur wash from uploaded cover/avatar; image bleeds past right edge with accent-tinted scrim for text legibility
+- Role line and voice-quote accent bar use entity accent color; crop marks and tall centered circle hero removed
 
 ### 2026-06-28 — Training storyboard (film strip + frame focus)
 - Train opens on **Currently** frame; horizontal `TrainingFilmStrip` for Currently · Identity · Behavior · Capabilities · Governance.

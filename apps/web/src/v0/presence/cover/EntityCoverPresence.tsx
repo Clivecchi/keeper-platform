@@ -40,34 +40,193 @@ function glowColor(glow: CoverHeroContent["avatarGlow"]): string {
   return "hsl(var(--theme-ink-tertiary))"
 }
 
-function CropMarks() {
-  const mark = "absolute w-4 h-4 pointer-events-none"
-  const stroke = "hsl(var(--theme-ink-primary) / 0.35)"
+function CoverActionButton({ action }: { action: CoverActionDef }) {
+  const isPrimary = action.variant === "primary"
+  const Icon = action.icon === "gear" ? Cog6ToothIcon : action.icon === "play" ? PlayIcon : null
+
   return (
-    <>
-      <span className={`${mark} top-3 left-3 border-t border-l`} style={{ borderColor: stroke }} aria-hidden />
-      <span className={`${mark} top-3 right-3 border-t border-r`} style={{ borderColor: stroke }} aria-hidden />
-      <span className={`${mark} bottom-3 left-3 border-b border-l`} style={{ borderColor: stroke }} aria-hidden />
-      <span className={`${mark} bottom-3 right-3 border-b border-r`} style={{ borderColor: stroke }} aria-hidden />
-    </>
+    <button
+      type="button"
+      onClick={action.onClick}
+      className="flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[12px] font-semibold transition-opacity hover:opacity-85"
+      style={
+        isPrimary
+          ? {
+              background: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.18)",
+              border: "1px solid hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.45)",
+              color: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)))",
+            }
+          : {
+              background: "transparent",
+              border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
+              color: "hsl(var(--theme-ink-secondary))",
+            }
+      }
+    >
+      {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
+      {action.label}
+    </button>
   )
 }
 
-function HeroSlot({
+function AmbientVisualLayer({
+  accent,
+  imageSrc,
+}: {
+  accent: string
+  imageSrc: string | null
+}) {
+  if (imageSrc) {
+    return (
+      <>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden
+          style={{
+            backgroundImage: `url(${imageSrc})`,
+            backgroundSize: "cover",
+            backgroundPosition: "right center",
+            filter: "blur(28px) saturate(1.35)",
+            transform: "scale(1.2)",
+            opacity: 0.5,
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden
+          style={{
+            background: `linear-gradient(
+              to right,
+              hsl(var(--theme-surface-panel) / 0.97) 0%,
+              hsl(var(--theme-surface-panel) / 0.88) 42%,
+              ${accent}22 62%,
+              transparent 100%
+            )`,
+          }}
+        />
+      </>
+    )
+  }
+
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none"
+      aria-hidden
+      style={{
+        background: `radial-gradient(
+          ellipse 90% 120% at 88% 50%,
+          ${accent}28 0%,
+          hsl(var(--theme-surface-panel) / 0.92) 55%,
+          hsl(var(--theme-surface-page)) 100%
+        )`,
+      }}
+    />
+  )
+}
+
+function CoverVisualSlot({
+  accent,
+  imageSrc,
+  displayFallback,
+  glow,
+  glowScale,
+}: {
+  accent: string
+  imageSrc: string | null
+  displayFallback: string
+  glow: string
+  glowScale: ReturnType<typeof useCoverMotion>["glowScale"]
+}) {
+  if (imageSrc) {
+    return (
+      <div className="relative h-full min-h-[7.5rem] w-full overflow-visible">
+        <motion.div
+          className="absolute inset-y-0 right-[-12%] w-[112%] overflow-hidden rounded-l-2xl"
+          style={{
+            boxShadow: `-8px 0 32px ${accent}33`,
+            borderLeft: `1px solid ${accent}44`,
+          }}
+        >
+          <img
+            src={imageSrc}
+            alt=""
+            className="h-full w-full object-cover object-center"
+            draggable={false}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden
+            style={{
+              background: `linear-gradient(
+                to right,
+                hsl(var(--theme-surface-panel) / 0.55) 0%,
+                transparent 38%
+              )`,
+            }}
+          />
+        </motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative flex h-full min-h-[7.5rem] items-center justify-end pr-1">
+      <motion.div
+        className="relative flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden rounded-2xl border"
+        style={{
+          borderColor: `${accent}55`,
+          background: `${accent}12`,
+          boxShadow: `0 0 28px ${accent}33`,
+        }}
+      >
+        <motion.div
+          className="absolute inset-0 rounded-2xl"
+          style={{
+            background: `radial-gradient(circle, ${glow}44 0%, transparent 70%)`,
+            scale: glowScale,
+          }}
+          aria-hidden
+        />
+        <span
+          className="relative text-3xl font-semibold select-none"
+          style={{ color: accent }}
+          aria-hidden={!displayFallback}
+        >
+          {displayFallback.length <= 2 ? (
+            displayFallback
+          ) : (
+            <span className="text-[11px] font-mono truncate px-1">{displayFallback.slice(0, 8)}</span>
+          )}
+        </span>
+      </motion.div>
+    </div>
+  )
+}
+
+/**
+ * Merged hero + identity band — text left, visual right with ambient bleed.
+ */
+function UnifiedCoverHeader({
   hero,
+  identity,
   motionValues,
   heroY,
+  nameOpacity,
   glowScale,
 }: {
   hero: CoverHeroContent
+  identity: CoverIdentityContent
   motionValues: ReturnType<typeof useCoverMotion>["values"]
   heroY: ReturnType<typeof useCoverMotion>["heroY"]
+  nameOpacity: ReturnType<typeof useCoverMotion>["nameOpacity"]
   glowScale: ReturnType<typeof useCoverMotion>["glowScale"]
 }) {
   const accent = resolveAccent(hero.accentColor)
   const displayAvatar = hero.avatar?.trim() || "◇"
   const glow = glowColor(hero.avatarGlow)
   const avatarIsImage = isAvatarImageSrc(displayAvatar)
+  const imageSrc = avatarIsImage ? displayAvatar : null
+  const voiceText = identity.voiceQuote?.trim()
 
   return (
     <motion.div
@@ -75,18 +234,18 @@ function HeroSlot({
       style={{
         y: heroY,
         opacity: motionValues.heroEntrance,
-        background: `radial-gradient(ellipse 80% 70% at 50% 45%, ${accent}22 0%, hsl(var(--theme-surface-panel) / 0.95) 55%, hsl(var(--theme-surface-page)) 100%)`,
         borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.35)",
       }}
     >
-      {/* Window chrome */}
+      <AmbientVisualLayer accent={accent} imageSrc={imageSrc} />
+
       {hero.chromeTitle && (
         <div
-          className="flex items-center justify-between px-3 py-1.5 text-[9px] font-mono uppercase tracking-[0.18em]"
+          className="relative z-10 flex items-center justify-between px-3 py-1.5 text-[9px] font-mono uppercase tracking-[0.18em]"
           style={{
             borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.25)",
             color: "hsl(var(--theme-ink-tertiary))",
-            background: "hsl(var(--theme-surface-elevated) / 0.4)",
+            background: "hsl(var(--theme-surface-elevated) / 0.55)",
           }}
         >
           <span className="flex gap-1" aria-hidden>
@@ -101,12 +260,10 @@ function HeroSlot({
         </div>
       )}
 
-      <div className="relative px-4 pt-5 pb-4 min-h-[140px] flex items-center justify-center">
-        <CropMarks />
-
+      <div className="relative z-10 px-4 pt-4 pb-3">
         {hero.statusLabel && (
           <div
-            className="absolute top-4 right-4 flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest"
+            className="absolute top-4 right-4 z-20 flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest"
             style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}
           >
             <motion.span
@@ -120,113 +277,71 @@ function HeroSlot({
           </div>
         )}
 
-        <motion.div
-          className="relative flex items-center justify-center rounded-full border overflow-hidden"
-          style={{
-            width: 88,
-            height: 88,
-            borderColor: `${accent}55`,
-            background: avatarIsImage ? "hsl(var(--theme-surface-panel))" : `${accent}12`,
-            boxShadow: `0 0 32px ${accent}33`,
-          }}
-        >
-          <motion.div
-            className="absolute inset-0 rounded-full"
-            style={{
-              background: `radial-gradient(circle, ${glow}44 0%, transparent 70%)`,
-              scale: glowScale,
-            }}
-            aria-hidden
-          />
-          {avatarIsImage ? (
-            <img
-              src={displayAvatar}
-              alt=""
-              className="relative h-full w-full object-cover"
-              draggable={false}
-            />
-          ) : (
-            <span
-              className="relative text-3xl font-semibold select-none"
-              style={{ color: accent }}
-              aria-hidden={!hero.avatar}
+        <div className="flex gap-3 items-stretch min-h-[7.5rem]">
+          <div className="flex-1 min-w-0 flex flex-col justify-center py-1 pr-2 max-w-[58%]">
+            <motion.h2
+              className="font-serif text-[26px] font-bold leading-tight tracking-tight"
+              style={{ color: "hsl(var(--theme-ink-primary))", opacity: nameOpacity }}
             >
-              {displayAvatar.length <= 2 ? (
-                displayAvatar
-              ) : (
-                <span className="text-[11px] font-mono truncate px-1">{displayAvatar.slice(0, 8)}</span>
-              )}
-            </span>
-          )}
-        </motion.div>
+              {identity.name || "Untitled agent"}
+            </motion.h2>
 
-        {hero.frameLabel && (
-          <p
-            className="absolute bottom-3 left-4 text-[9px] font-mono uppercase tracking-wider"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            {hero.frameLabel}
-          </p>
-        )}
-        {hero.roleLabel && (
-          <p
-            className="absolute bottom-3 right-4 text-[9px] font-mono uppercase tracking-wider text-right max-w-[45%] truncate"
-            style={{ color: accent }}
-          >
-            {hero.roleLabel}
-          </p>
+            {identity.roleLine?.trim() && (
+              <motion.p
+                className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.16em]"
+                style={{ color: accent, opacity: nameOpacity }}
+              >
+                {identity.roleLine}
+              </motion.p>
+            )}
+
+            {voiceText && (
+              <motion.div
+                className="mt-3 flex gap-3"
+                style={{ opacity: nameOpacity }}
+              >
+                <div
+                  className="shrink-0 w-0.5 rounded-full self-stretch min-h-[2rem]"
+                  style={{ background: accent }}
+                  aria-hidden
+                />
+                <p
+                  className="text-[13px] italic leading-relaxed line-clamp-3"
+                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                >
+                  {voiceText}
+                </p>
+              </motion.div>
+            )}
+          </div>
+
+          <div className="relative w-[42%] max-w-[9.5rem] shrink-0 self-stretch">
+            <CoverVisualSlot
+              accent={accent}
+              imageSrc={imageSrc}
+              displayFallback={displayAvatar}
+              glow={glow}
+              glowScale={glowScale}
+            />
+          </div>
+        </div>
+
+        {(hero.frameLabel || hero.roleLabel) && (
+          <div className="mt-2 flex items-center justify-between gap-3 text-[9px] font-mono uppercase tracking-wider">
+            {hero.frameLabel ? (
+              <p style={{ color: "hsl(var(--theme-ink-tertiary))" }}>{hero.frameLabel}</p>
+            ) : (
+              <span aria-hidden />
+            )}
+            {hero.roleLabel ? (
+              <p className="text-right truncate max-w-[45%]" style={{ color: accent }}>
+                {hero.roleLabel}
+              </p>
+            ) : null}
+          </div>
         )}
       </div>
     </motion.div>
-  )
-}
-
-function IdentitySlot({
-  identity,
-  nameOpacity,
-}: {
-  identity: CoverIdentityContent
-  nameOpacity: ReturnType<typeof useCoverMotion>["nameOpacity"]
-}) {
-  const voiceText = identity.voiceQuote?.trim()
-
-  return (
-    <div className="px-4 pt-5 pb-4">
-      <motion.h2
-        className="font-serif text-[28px] font-bold leading-tight tracking-tight"
-        style={{ color: "hsl(var(--theme-ink-primary))", opacity: nameOpacity }}
-      >
-        {identity.name || "Untitled agent"}
-      </motion.h2>
-
-      {identity.roleLine?.trim() && (
-        <motion.p
-          className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.16em]"
-          style={{ color: "hsl(var(--theme-ink-tertiary))", opacity: nameOpacity }}
-        >
-          {identity.roleLine}
-        </motion.p>
-      )}
-
-      {voiceText && (
-        <motion.div
-          className="mt-4 flex gap-3"
-          style={{ opacity: nameOpacity }}
-        >
-          <div
-            className="shrink-0 w-0.5 rounded-full self-stretch min-h-[2.5rem]"
-            style={{ background: "hsl(var(--theme-accent-primary, var(--theme-ink-secondary)))" }}
-            aria-hidden
-          />
-          <p
-            className="text-[13px] italic leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          >
-            {voiceText}
-          </p>
-        </motion.div>
-      )}
-    </div>
   )
 }
 
@@ -301,35 +416,6 @@ function CreditsSlot({ credits }: { credits: string[] }) {
   )
 }
 
-function CoverActionButton({ action }: { action: CoverActionDef }) {
-  const isPrimary = action.variant === "primary"
-  const Icon = action.icon === "gear" ? Cog6ToothIcon : action.icon === "play" ? PlayIcon : null
-
-  return (
-    <button
-      type="button"
-      onClick={action.onClick}
-      className="flex-1 flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[12px] font-semibold transition-opacity hover:opacity-85"
-      style={
-        isPrimary
-          ? {
-              background: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.18)",
-              border: "1px solid hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.45)",
-              color: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)))",
-            }
-          : {
-              background: "transparent",
-              border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
-              color: "hsl(var(--theme-ink-secondary))",
-            }
-      }
-    >
-      {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
-      {action.label}
-    </button>
-  )
-}
-
 function ActionsSlot({ actions }: { actions: CoverActionDef[] }) {
   if (actions.length === 0) return null
 
@@ -350,7 +436,7 @@ function ActionsSlot({ actions }: { actions: CoverActionDef[] }) {
 
 /**
  * Layer 1 — Universal cover slot structure.
- * Renders hero, identity, traits, credits, and actions in fixed positions.
+ * Renders merged header (hero + identity), traits, credits, and actions.
  */
 export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenceProps) {
   const { values, heroY, nameOpacity, glowScale } = useCoverMotion(instanceKey)
@@ -365,13 +451,14 @@ export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenc
       }}
       data-cover-mode="cover"
     >
-      <HeroSlot
+      <UnifiedCoverHeader
         hero={content.hero}
+        identity={content.identity}
         motionValues={values}
         heroY={heroY}
+        nameOpacity={nameOpacity}
         glowScale={glowScale}
       />
-      <IdentitySlot identity={content.identity} nameOpacity={nameOpacity} />
       <TraitStrip traits={content.traits} />
       <CreditsSlot credits={content.credits} />
       <ActionsSlot actions={content.actions} />
