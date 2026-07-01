@@ -43,16 +43,7 @@ export function extractMarkdownImageUrl(body: string): string | null {
   return candidate || null;
 }
 
-export function mergePresenceSchemaCover(
-  existing: unknown,
-  coverImage: string,
-): Record<string, unknown> {
-  const base =
-    existing && typeof existing === 'object' && !Array.isArray(existing)
-      ? { ...(existing as Record<string, unknown>) }
-      : {};
-  return { ...base, coverImage };
-}
+export { mergePresenceSchemaCover } from '@keeper/shared';
 
 export async function archiveRemoteImageToBlob(params: {
   sourceUrl: string;

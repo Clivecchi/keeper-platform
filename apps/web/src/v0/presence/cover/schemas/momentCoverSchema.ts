@@ -9,6 +9,7 @@ import type {
   EntityCoverSchema,
   ResolvedCoverContent,
 } from "../coverTypes"
+import { resolveCoverAvatarDisplay } from "../coverImageUtils"
 
 export type MomentCoverRecord = {
   id: string
@@ -20,6 +21,7 @@ export type MomentCoverRecord = {
   updatedAt?: string
   createdAt?: string
   keptLabel?: string
+  coverImage?: string | null
 }
 
 function formatDate(iso: string | undefined): string {
@@ -103,7 +105,7 @@ export const momentCoverSchema: EntityCoverSchema<MomentCoverRecord> = {
 
     return {
       hero: {
-        avatar: "✦",
+        avatar: resolveCoverAvatarDisplay(record.coverImage, "✦"),
         avatarGlow: glow,
         accentColor: "hsl(var(--theme-accent-primary))",
         chromeTitle: `KE3P · MOMENT · ${slug}`,

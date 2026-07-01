@@ -9,3 +9,4 @@ export * from './serviceBindings.js';
 export * from './directorContinuity.js';
 export * from './domainTier.js';
 export * from './structure/index.js';
+export * from './presenceCover.js';

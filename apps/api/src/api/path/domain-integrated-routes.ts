@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
+import { mergePresenceSchemaCover } from '@keeper/shared';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { queryValidationMiddleware, validationMiddleware } from '../../middleware/validationMiddleware.js';
@@ -34,6 +35,8 @@ const createPathSchema = z.object({
 const updatePathSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   prelude: z.string().max(1000).optional(),
+  coverImage: z.string().url().nullable().optional(),
+  coverImageKey: z.string().nullable().optional(),
 });
 
 /**
@@ -256,9 +259,35 @@ router.post(
  */
 async function updatePathById(req: Request, res: Response): Promise<Response> {
   try {
+    const payload = updatePathSchema.parse(req.body);
+    const { coverImage, coverImageKey, ...metadata } = payload;
+
+    const existing = await prisma.path.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, presenceSchema: true },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Path not found' });
+    }
+
+    const updateData: {
+      name?: string;
+      prelude?: string;
+      presenceSchema?: unknown;
+    } = { ...metadata };
+
+    if (coverImage !== undefined) {
+      updateData.presenceSchema = mergePresenceSchemaCover(
+        existing.presenceSchema,
+        coverImage,
+        coverImageKey,
+      );
+    }
+
     const path = await prisma.path.update({
       where: { id: req.params.id },
-      data: req.body,
+      data: updateData,
     });
 
     return res.json({ path });

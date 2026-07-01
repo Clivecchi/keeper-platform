@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { mergePresenceSchemaCover } from '@keeper/shared';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { queryValidationMiddleware, validationMiddleware } from '../../middleware/validationMiddleware.js';
@@ -46,6 +47,8 @@ const updateMomentSchema = z.object({
   isPublic: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
   metadata: z.record(z.any()).optional(),
+  coverImage: z.string().url().nullable().optional(),
+  coverImageKey: z.string().nullable().optional(),
   attachments: z.array(z.object({
     url: z.string().url(),
     type: z.string(),
@@ -262,9 +265,40 @@ async function updateMomentById(req: Request, res: Response): Promise<Response> 
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    const payload = updateMomentSchema.parse(req.body);
+    const { coverImage, coverImageKey, ...metadata } = payload;
+
+    const existing = await prisma.moment.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, presenceSchema: true },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Moment not found' });
+    }
+
+    const updateData: {
+      title?: string;
+      narrative?: string;
+      type?: string;
+      isPublic?: boolean;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
+      attachments?: unknown;
+      presenceSchema?: unknown;
+    } = { ...metadata };
+
+    if (coverImage !== undefined) {
+      updateData.presenceSchema = mergePresenceSchemaCover(
+        existing.presenceSchema,
+        coverImage,
+        coverImageKey,
+      );
+    }
+
     const moment = await prisma.moment.update({
       where: { id: req.params.id },
-      data: req.body,
+      data: updateData,
       include: {
         domain: {
           select: {

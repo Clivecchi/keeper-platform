@@ -1496,6 +1496,7 @@ function KeeperPresenceSurface({
     return (
       <DomainFocusPresence
         objectId={objectId}
+        domainId={domainId}
         record={record}
         fieldValues={fieldValues}
         fieldErrors={fieldErrors}
@@ -1507,6 +1508,7 @@ function KeeperPresenceSurface({
         isDirty={isDirty}
         onSave={() => void onChronicleSave?.()}
         onFieldChange={handleFieldChange}
+        onCoverSaved={handlePresenceRefresh}
         renderFieldEditor={renderFieldEditor}
       />
     )

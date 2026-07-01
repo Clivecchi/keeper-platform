@@ -284,17 +284,18 @@ model Moment {
 }
 
 model Path {
-  id        String  @id
-  name      String
-  prelude   String
-  ownerId   String
-  journeyId String
-  keeperId  String
-  theme_id  String? @db.Uuid
-  Moment    Moment[]
-  Journey   Journey @relation(fields: [journeyId], references: [id])
-  Keeper    Keeper  @relation(fields: [keeperId], references: [id])
-  themes    themes? @relation(fields: [theme_id], references: [id])
+  id             String   @id
+  name           String
+  prelude        String
+  ownerId        String
+  journeyId      String
+  keeperId       String
+  theme_id       String?  @db.Uuid
+  presenceSchema Json?
+  Moment         Moment[]
+  Journey        Journey  @relation(fields: [journeyId], references: [id])
+  Keeper         Keeper   @relation(fields: [keeperId], references: [id])
+  themes         themes?  @relation(fields: [theme_id], references: [id])
 }
 
 model PlatformStorageConfig {

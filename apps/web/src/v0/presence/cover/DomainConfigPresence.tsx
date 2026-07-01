@@ -9,8 +9,17 @@ import {
 } from "../../../lib/githubIntegrationDefaults"
 import { ChronicleConfigShell } from "../chronicleConfig/useChronicleConfig"
 import type { ChronicleSaveStatus } from "../chronicleConfig/types"
+import {
+  ChronicleCoverField,
+  patchDomainThemeCover,
+  type ChronicleCoverMedia,
+} from "../chronicleConfig/ChronicleCoverField"
+import { useV0ShellOptional } from "../../shell/V0ShellContext"
 
 export interface DomainConfigPresenceProps {
+  domainId: string
+  existingTheme?: Record<string, unknown>
+  coverMedia: ChronicleCoverMedia
   fieldValues: Record<string, string>
   fieldErrors: Record<string, string>
   visibleFields: [string, FieldDefinition][]
@@ -20,6 +29,7 @@ export interface DomainConfigPresenceProps {
   onBack: () => void
   onSave: () => void | Promise<void>
   onFieldChange: (key: string, value: string) => void
+  onCoverSaved?: () => void
   renderFieldEditor: (
     key: string,
     def: FieldDefinition,
@@ -47,6 +57,9 @@ const IDE_BUILD_FIELD_ORDER = [
 ] as const
 
 export function DomainConfigPresence({
+  domainId,
+  existingTheme,
+  coverMedia,
   fieldValues,
   fieldErrors,
   visibleFields,
@@ -56,9 +69,11 @@ export function DomainConfigPresence({
   onBack,
   onSave,
   onFieldChange,
+  onCoverSaved,
   renderFieldEditor,
   ideBuildContextFields = [],
 }: DomainConfigPresenceProps) {
+  const v0Shell = useV0ShellOptional()
   const fieldMap = React.useMemo(() => new Map(visibleFields), [visibleFields])
   const ideFieldMap = React.useMemo(
     () => new Map(ideBuildContextFields),
@@ -95,6 +110,17 @@ export function DomainConfigPresence({
       isDirty={isDirty}
       onSave={onSave}
     >
+      <ChronicleCoverField
+        label="Cover image"
+        description="The domain's visual identity — shown on the cover card and as the background across frames."
+        value={coverMedia}
+        onSave={async (cover) => {
+          await patchDomainThemeCover(domainId, existingTheme, cover)
+          await v0Shell?.reloadDomainFrame()
+        }}
+        onSaved={onCoverSaved}
+      />
+
       {orderedKeys.map((key) => {
         const def = fieldMap.get(key)
         if (!def) return null

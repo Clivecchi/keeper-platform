@@ -9,6 +9,7 @@ import type {
   EntityCoverSchema,
   ResolvedCoverContent,
 } from "../coverTypes"
+import { resolveCoverAvatarDisplay } from "../coverImageUtils"
 
 export type PathCoverRecord = {
   id: string
@@ -17,6 +18,7 @@ export type PathCoverRecord = {
   journeyName?: string
   keeperTitle?: string
   momentCount?: number
+  coverImage?: string | null
 }
 
 function truncatePrelude(text: string, max = 72): string {
@@ -81,7 +83,7 @@ export const pathCoverSchema: EntityCoverSchema<PathCoverRecord> = {
 
     return {
       hero: {
-        avatar: "🛤",
+        avatar: resolveCoverAvatarDisplay(record.coverImage, "🛤"),
         avatarGlow: glow,
         accentColor: "hsl(var(--theme-accent-primary))",
         chromeTitle: `KE3P · PATH · ${slug}`,

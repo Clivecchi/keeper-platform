@@ -9,6 +9,7 @@ import type {
   EntityCoverSchema,
   ResolvedCoverContent,
 } from "../coverTypes"
+import { resolveCoverAvatarDisplay } from "../coverImageUtils"
 
 export type JourneyCoverRecord = {
   id: string
@@ -19,6 +20,7 @@ export type JourneyCoverRecord = {
   pathCount?: number
   keeperTitle?: string
   isActive?: boolean
+  coverImage?: string | null
 }
 
 function formatCreatedDate(iso: string | undefined): string {
@@ -139,7 +141,7 @@ export const journeyCoverSchema: EntityCoverSchema<JourneyCoverRecord> = {
 
     return {
       hero: {
-        avatar: "🧭",
+        avatar: resolveCoverAvatarDisplay(record.coverImage, "🧭"),
         avatarGlow: glow,
         accentColor: "hsl(var(--theme-accent-primary))",
         chromeTitle: `KE3P · JOURNEY · ${slug}`,

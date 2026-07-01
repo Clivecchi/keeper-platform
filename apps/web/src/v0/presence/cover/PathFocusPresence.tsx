@@ -11,6 +11,8 @@ import {
   type PathCoverRecord,
 } from "./schemas/pathCoverSchema"
 import type { EntityCoverMode } from "./coverTypes"
+import { coverFromRecord } from "./coverImageUtils"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
 export interface PathFocusPresenceProps {
   objectId: string
@@ -51,6 +53,7 @@ function toPathCoverRecord(
         ? record.keeperTitle
         : ((record.Keeper as { title?: string } | undefined)?.title ?? undefined),
     momentCount,
+    coverImage: coverFromRecord(record).coverImage,
   }
 }
 
@@ -65,6 +68,7 @@ export function PathFocusPresence({
   onMomentSelect,
   onEngagementSuccess,
 }: PathFocusPresenceProps) {
+  const boardCtx = useUniversalBoardOptional()
   const [coverMode, setCoverMode] = React.useState<EntityCoverMode>("cover")
 
   const fieldValues = React.useMemo(
@@ -109,12 +113,14 @@ export function PathFocusPresence({
         domainId={domainId}
         name={fieldValues.name}
         prelude={fieldValues.prelude}
+        record={record}
         onBack={() => {
           setCoverMode("cover")
           onEngagementSuccess?.()
         }}
         onRefresh={onEngagementSuccess}
         onLabelResolved={onLabelResolved}
+        onDeleted={() => boardCtx?.actions.clearSelection()}
       />
     )
   }

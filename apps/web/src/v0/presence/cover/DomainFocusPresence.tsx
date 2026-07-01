@@ -9,9 +9,12 @@ import { DomainConfigPresence } from "./DomainConfigPresence"
 import { domainCoverSchema } from "./schemas/domainCoverSchema"
 import type { ChronicleSaveStatus } from "../chronicleConfig/types"
 import type { AgentCoverMode } from "./coverTypes"
+import { coverFromRecord } from "./coverImageUtils"
+import type { ChronicleCoverMedia } from "../chronicleConfig/ChronicleCoverField"
 
 export interface DomainFocusPresenceProps {
   objectId: string
+  domainId: string
   record: Record<string, unknown>
   fieldValues: Record<string, string>
   fieldErrors: Record<string, string>
@@ -23,6 +26,7 @@ export interface DomainFocusPresenceProps {
   isDirty: boolean
   onSave: () => void | Promise<void>
   onFieldChange: (key: string, value: string) => void
+  onCoverSaved?: () => void
   renderFieldEditor: (
     key: string,
     def: FieldDefinition,
@@ -32,6 +36,7 @@ export interface DomainFocusPresenceProps {
 
 export function DomainFocusPresence({
   objectId,
+  domainId,
   record,
   fieldValues,
   fieldErrors,
@@ -43,13 +48,28 @@ export function DomainFocusPresence({
   isDirty,
   onSave,
   onFieldChange,
+  onCoverSaved,
   renderFieldEditor,
 }: DomainFocusPresenceProps) {
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
+  const [coverRevision, setCoverRevision] = React.useState(0)
 
   React.useEffect(() => {
     setCoverMode("cover")
   }, [objectId])
+
+  const coverMedia = React.useMemo((): ChronicleCoverMedia => {
+    const { coverImage, coverImageKey } = coverFromRecord(record)
+    if (!coverImage) return null
+    return { type: "image", url: coverImage, key: coverImageKey ?? undefined }
+  }, [record, coverRevision])
+
+  const existingTheme = React.useMemo(() => {
+    if (record.theme && typeof record.theme === "object" && !Array.isArray(record.theme)) {
+      return record.theme as Record<string, unknown>
+    }
+    return undefined
+  }, [record.theme])
 
   const coverContent = React.useMemo(
     () =>
@@ -59,7 +79,7 @@ export function DomainFocusPresence({
         { objectId },
         { onConfigure: () => setCoverMode("config"), onOpenSession: () => {} },
       ),
-    [record, fieldValues, objectId],
+    [record, fieldValues, objectId, coverRevision],
   )
 
   return (
@@ -119,6 +139,9 @@ export function DomainFocusPresence({
         ) : (
           <DomainConfigPresence
             key="config"
+            domainId={domainId}
+            existingTheme={existingTheme}
+            coverMedia={coverMedia}
             fieldValues={fieldValues}
             fieldErrors={fieldErrors}
             visibleFields={visibleFields}
@@ -129,6 +152,10 @@ export function DomainFocusPresence({
             onBack={() => setCoverMode("cover")}
             onSave={() => void onSave()}
             onFieldChange={onFieldChange}
+            onCoverSaved={() => {
+              setCoverRevision((n) => n + 1)
+              onCoverSaved?.()
+            }}
             renderFieldEditor={renderFieldEditor}
           />
         )}

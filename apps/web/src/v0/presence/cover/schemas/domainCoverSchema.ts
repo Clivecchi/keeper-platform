@@ -1,8 +1,10 @@
 import type {
   CoverActionDef,
+  CoverActionHandlers,
   EntityCoverSchema,
   ResolvedCoverContent,
 } from "../coverTypes"
+import { resolveCoverAvatarDisplay } from "../coverImageUtils"
 
 function resolveAccent(themeColor?: string): string {
   if (!themeColor?.trim()) return ""
@@ -44,6 +46,11 @@ export const domainCoverSchema: EntityCoverSchema = {
       (typeof record.status === "string" && record.status) ||
       "active"
 
+    const coverUrl =
+      (typeof record.coverImage === "string" && record.coverImage) ||
+      undefined
+    const avatarFallback = name.slice(0, 1).toUpperCase()
+
     const configureAction: CoverActionDef = {
       id: "configure",
       label: "Configure",
@@ -54,7 +61,7 @@ export const domainCoverSchema: EntityCoverSchema = {
 
     return {
       hero: {
-        avatar: name.slice(0, 1).toUpperCase(),
+        avatar: resolveCoverAvatarDisplay(coverUrl, avatarFallback),
         accentColor: accent,
         statusLabel: status,
         avatarGlow: "active",

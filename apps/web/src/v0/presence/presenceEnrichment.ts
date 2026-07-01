@@ -808,6 +808,13 @@ async function enrichDomain(
       if (typeof colors.primary === "string") {
         record.theme_color = colors.primary
       }
+      if (typeof theme.coverImage === "string") {
+        record.coverImage = theme.coverImage
+      }
+      if (typeof theme.coverImageKey === "string") {
+        record.coverImageKey = theme.coverImageKey
+      }
+      record.theme = theme
 
       const settings =
         domain.settings && typeof domain.settings === "object"

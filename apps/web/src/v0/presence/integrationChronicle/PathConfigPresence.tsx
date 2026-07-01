@@ -2,6 +2,13 @@
 
 import * as React from "react"
 import { ChronicleConfigShell, useChronicleConfig } from "../chronicleConfig/useChronicleConfig"
+import {
+  ChronicleCoverField,
+  patchPresenceCover,
+  type ChronicleCoverMedia,
+} from "../chronicleConfig/ChronicleCoverField"
+import { ChronicleRecordDelete } from "../chronicleConfig/ChronicleRecordDelete"
+import { coverFromRecord } from "../cover/coverImageUtils"
 
 export type PathMetadataFields = {
   name: string
@@ -21,18 +28,30 @@ export function PathConfigPresence({
   domainId,
   name,
   prelude,
+  record,
   onBack,
   onRefresh,
   onLabelResolved,
+  onDeleted,
 }: {
   pathId: string
   domainId: string
   name: string
   prelude?: string | null
+  record?: Record<string, unknown>
   onBack: () => void
   onRefresh?: () => void
   onLabelResolved?: (label: string) => void
+  onDeleted?: () => void
 }) {
+  const [coverRevision, setCoverRevision] = React.useState(0)
+
+  const coverMedia = React.useMemo((): ChronicleCoverMedia => {
+    const { coverImage, coverImageKey } = coverFromRecord(record ?? {})
+    if (!coverImage) return null
+    return { type: "image", url: coverImage, key: coverImageKey ?? undefined }
+  }, [record, coverRevision])
+
   const baselineRef = React.useRef<PathMetadataFields>({
     name: name.trim(),
     prelude: prelude?.trim() ?? "",
@@ -99,6 +118,17 @@ export function PathConfigPresence({
       onSave={() => void chronicleConfig.handleSave()}
       onDismissError={chronicleConfig.dismissSaveError}
     >
+      <ChronicleCoverField
+        value={coverMedia}
+        onSave={async (cover) => {
+          await patchPresenceCover(`/api/paths/${encodeURIComponent(pathId)}`, cover)
+        }}
+        onSaved={() => {
+          setCoverRevision((n) => n + 1)
+          onRefresh?.()
+        }}
+      />
+
       <div className="flex flex-col gap-4">
         <div>
           <p className="keeper-presence-field-label mb-1.5">Path name</p>
@@ -114,13 +144,21 @@ export function PathConfigPresence({
           <textarea
             value={fieldValues.prelude}
             onChange={(e) => handleFieldChange("prelude", e.target.value)}
-            rows={6}
+            rows={5}
             className={INPUT_CLASS}
-            style={{ ...INPUT_STYLE, minHeight: "8rem" }}
+            style={{ ...INPUT_STYLE, minHeight: "7rem" }}
             placeholder="What does this path gather?"
           />
         </div>
       </div>
+
+      {onDeleted ? (
+        <ChronicleRecordDelete
+          entityLabel="Path"
+          deleteEndpoint={`/api/paths/${encodeURIComponent(pathId)}`}
+          onDeleted={onDeleted}
+        />
+      ) : null}
     </ChronicleConfigShell>
   )
 }

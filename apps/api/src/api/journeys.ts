@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { mergePresenceSchemaCover } from '@keeper/shared';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 
@@ -193,6 +194,8 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     const updateJourneySchema = z.object({
       name: z.string().min(2).max(200).optional(),
       forward: z.string().min(1).max(1000).optional(),
+      coverImage: z.string().url().nullable().optional(),
+      coverImageKey: z.string().nullable().optional(),
     });
 
     const data = updateJourneySchema.parse(req.body);
@@ -203,19 +206,35 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
 
     const existing = await prisma.journey.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, presenceSchema: true },
     });
 
     if (!existing) {
       return res.status(404).json({ error: 'Journey not found' });
     }
 
+    const { coverImage, coverImageKey, ...metadata } = data;
+    const updateData: {
+      name?: string;
+      forward?: string;
+      presenceSchema?: unknown;
+      updatedAt: Date;
+    } = {
+      ...metadata,
+      updatedAt: new Date(),
+    };
+
+    if (coverImage !== undefined) {
+      updateData.presenceSchema = mergePresenceSchemaCover(
+        existing.presenceSchema,
+        coverImage,
+        coverImageKey,
+      );
+    }
+
     const journey = await prisma.journey.update({
       where: { id },
-      data: {
-        ...data,
-        updatedAt: new Date(),
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,

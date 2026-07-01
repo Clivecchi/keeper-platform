@@ -9,10 +9,14 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 - `useChronicleConfig.ts` — hook: dirty state, validate, build payload, save handler
 - `ChronicleSaveBar.tsx` — green/red confirmed save indicator
 - `ChronicleConfigShell.tsx` — universal Config Mode layout shell
+- `ChronicleActPresence.tsx` — engagement template Acts through the same shell (Submit bar, declared fields)
+- `ChronicleCoverField.tsx` — cover image upload (Vercel Blob via `MediaUploader`); saves immediately on upload
+- `ChronicleRecordDelete.tsx` — danger-zone delete with confirm for Journey, Path, Moment Config
 
 ## 🔄 Data & Behavior
-- **Cover:** Integration and Key always render `DeclarationChronicleBlocks` below `EntityCoverPresence` (see `cover/IntegrationFocusPresence`, `cover/KeyFocusPresence`)
+- **Cover image CRUD:** Domain Configure → `theme.coverImage`; Journey/Path/Moment Configure → `presenceSchema.coverImage` via targeted PATCH. Cover saves immediately (not through Save bar). Hero avatar on `EntityCoverPresence` reflects uploaded image.
 - **Config metadata:** Agent, Domain, Integration (service), and Key → `useChronicleConfig` + explicit Save bar → `chroniclePatch.ts`
+- **Act (engagement create):** Nav `+` or action bar → `ChronicleActPresence` inside `ChronicleConfigShell` — same header/save bar as Manage; fields use `keeper-presence-field-label` + theme tokens. **Not** generic `EngagementForm`.
 - **Config credentials:** verify, rotate, paste-key, revoke, disconnect → POST routes on feed hooks / block actions (not `handleChronicleSave`)
 - Agent saves → `PATCH /api/agents/:id` with `domainId` (explicit Save, no autosave)
 - Domain saves → `PATCH /api/domains/:id` plus optional partial `PATCH /api/domains/:slug/frame` for tagline/theme/kip visibility
@@ -26,6 +30,14 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 - [ ] BoardDefConfigPresence remains read-only — no targeted save route for board defs
 
 ## 📆 Update Log
+
+### 2026-06-30 — Chronicle cover upload + record delete
+- `ChronicleCoverField` wires cover image upload in Domain/Journey/Path/Moment Configure modes
+- `ChronicleRecordDelete` adds delete for Journey, Path, Moment in Configure danger zone
+- Shared cover helpers in `@keeper/shared/presenceCover`
+
+### 2026-06-19 — ChronicleActPresence (declared engagement Acts)
+- Engagement templates render through `ChronicleConfigShell` + declared fields — same surface as Agent Manage, not bespoke `EngagementForm` chrome
 
 ### 2026-06-17 — Keeper PATCH domain query
 - `handleChronicleSave` appends `?domainId=` for `entityKind === "keeper"` (matches integration pattern)

@@ -11,6 +11,8 @@ import {
   type MomentCoverRecord,
 } from "./schemas/momentCoverSchema"
 import type { EntityCoverMode } from "./coverTypes"
+import { coverFromRecord } from "./coverImageUtils"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
 export interface MomentFocusPresenceProps {
   objectId: string
@@ -69,6 +71,7 @@ function toMomentCoverRecord(
     updatedAt,
     createdAt,
     keptLabel: meta?.line,
+    coverImage: coverFromRecord(record).coverImage,
   }
 }
 
@@ -81,6 +84,7 @@ export function MomentFocusPresence({
   onLabelResolved,
   onEngagementSuccess,
 }: MomentFocusPresenceProps) {
+  const boardCtx = useUniversalBoardOptional()
   const [coverMode, setCoverMode] = React.useState<EntityCoverMode>("cover")
 
   const fieldValues = React.useMemo(
@@ -130,12 +134,14 @@ export function MomentFocusPresence({
         domainId={domainId}
         title={fieldValues.title}
         narrative={fieldValues.narrative}
+        record={record}
         onBack={() => {
           setCoverMode("cover")
           onEngagementSuccess?.()
         }}
         onRefresh={onEngagementSuccess}
         onLabelResolved={onLabelResolved}
+        onDeleted={() => boardCtx?.actions.clearSelection()}
       />
     )
   }

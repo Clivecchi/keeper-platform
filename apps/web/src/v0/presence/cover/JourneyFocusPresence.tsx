@@ -18,6 +18,7 @@ import {
 } from "./schemas/journeyCoverSchema"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { EntityCoverMode } from "./coverTypes"
+import { coverFromRecord } from "./coverImageUtils"
 
 export interface JourneyFocusPresenceProps {
   objectId: string
@@ -70,6 +71,7 @@ function toJourneyCoverRecord(
     pathCount,
     keeperTitle: meta?.keeper?.title,
     isActive,
+    coverImage: coverFromRecord(record).coverImage,
   }
 }
 
@@ -186,12 +188,17 @@ export function JourneyFocusPresence({
         domainId={domainId}
         name={fieldValues.name}
         forward={fieldValues.forward}
+        record={record}
         onBack={() => {
           setCoverMode("cover")
           onEngagementSuccess?.()
         }}
         onRefresh={onEngagementSuccess}
         onLabelResolved={onLabelResolved}
+        onDeleted={() => {
+          boardCtx?.actions.clearSelection()
+          boardCtx?.actions.bumpJourneyNav()
+        }}
       />
     )
   }
