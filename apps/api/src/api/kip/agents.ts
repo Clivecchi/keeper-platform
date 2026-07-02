@@ -51,6 +51,7 @@ import type { ImageGenerationBrief } from '../../services/ModelProviderService.j
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
+import { promoteDraftPointInTransaction } from '../../services/kip/promoteDraftPoint.js';
 import {
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
@@ -898,6 +899,7 @@ export async function executeAgentActions(
     'draft.update',
     'draft.update.propose',
     'draft.point.accept',
+    'draft.point.promote',
     'draft.point.rewrite',
     'draft.delete',
     'draft.list',
@@ -1331,6 +1333,70 @@ export async function executeAgentActions(
                 point: updatedPoint,
                 draft: { id: draft.id, title: draft.title, kind: draft.kind, key: draft.key },
                 links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
+              },
+            });
+            break;
+          }
+          case 'draft.point.promote': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+            const pointId = typeof payload.pointId === 'string' ? payload.pointId : '';
+            const journeyId = typeof payload.journeyId === 'string' ? payload.journeyId.trim() : '';
+
+            if (!draftId || !pointId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Draft id and point id required',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (!journeyId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'journeyId is required',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            const promoteResult = await promoteDraftPointInTransaction(tx, {
+              domainId: ctx.domainId!,
+              userId: ctx.userId!,
+              draftId,
+              pointId,
+              journeyId,
+              sessionId: ctx.sessionId,
+            });
+
+            if (promoteResult.ok === false) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: promoteResult.message,
+                errorCode: promoteResult.code,
+              });
+              break;
+            }
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: promoteResult.idempotent
+                ? 'Point already promoted'
+                : 'Point promoted to path and moments',
+              data: {
+                idempotent: promoteResult.idempotent,
+                draftId: promoteResult.draftId,
+                point: promoteResult.point,
+                journeyId: promoteResult.journeyId,
+                path: promoteResult.path,
+                moments: promoteResult.moments,
+                pathId: promoteResult.pathId,
+                momentIds: promoteResult.momentIds,
+                promotion: promoteResult.promotion,
               },
             });
             break;

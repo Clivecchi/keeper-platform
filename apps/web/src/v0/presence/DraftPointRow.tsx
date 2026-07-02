@@ -9,12 +9,17 @@ import { resolvePointBeats } from "./integrationChronicle/draftManuscriptUtils"
 export interface DraftPointRowProps {
   point: DraftPoint
   draftId?: string
+  draftKind?: string | null
+  selectedJourneyId?: string | null
   isAccepted: boolean
   canAccept: boolean
   isAccepting: boolean
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
   onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
+  onPromotePoint?: (draftId: string, pointId: string) => void
+  isPromoting?: boolean
+  isPromoted?: boolean
   manuscript?: boolean
 }
 
@@ -39,17 +44,29 @@ function pointBorder(status: DraftPoint["status"]): string {
 export function DraftPointRow({
   point,
   draftId,
+  draftKind,
+  selectedJourneyId,
   isAccepted,
   canAccept,
   isAccepting,
   onAcceptPoint,
   onDiscussPoint,
   onRewritePoint,
+  onPromotePoint,
+  isPromoting = false,
+  isPromoted = false,
   manuscript = false,
 }: DraftPointRowProps) {
   const displayStatus = isAccepted ? "accepted" : point.status
   const canRewrite =
     !isAccepted && isDraftPointRewritable(point.status) && !!draftId && !!onRewritePoint
+  const canPromote =
+    isAccepted &&
+    draftKind === "journey_spec" &&
+    !isPromoted &&
+    !point.promotion?.promotedPathId &&
+    !!draftId &&
+    !!onPromotePoint
   const [expanded, setExpanded] = React.useState(false)
   const beats = resolvePointBeats(point)
   const { structure } = beats
@@ -96,6 +113,9 @@ export function DraftPointRow({
       >
         {isAccepted ? (
           <span className="cdraft-accepted-badge">Accepted</span>
+        ) : null}
+        {isPromoted || point.promotion?.promotedPathId ? (
+          <span className="cdraft-accepted-badge">Promoted</span>
         ) : null}
 
         {beats.prelude ? (
@@ -144,7 +164,7 @@ export function DraftPointRow({
           <p className="cdraft-closer-text">{beats.closer}</p>
         ) : null}
 
-        {(canAccept || onDiscussPoint || canRewrite) && draftId ? (
+        {(canAccept || onDiscussPoint || canRewrite || canPromote) && draftId ? (
           <div className="cdraft-point-actions">
             {canAccept && onAcceptPoint ? (
               <button
@@ -154,6 +174,21 @@ export function DraftPointRow({
                 className="cdraft-ghost-btn"
               >
                 {isAccepting ? "Accepting…" : "Accept"}
+              </button>
+            ) : null}
+            {canPromote ? (
+              <button
+                type="button"
+                onClick={() => onPromotePoint(draftId, point.id)}
+                disabled={isPromoting || !selectedJourneyId}
+                title={
+                  selectedJourneyId
+                    ? "Promote to selected Journey"
+                    : "Select a Journey in Nav first"
+                }
+                className="cdraft-ghost-btn"
+              >
+                {isPromoting ? "Promoting…" : "Promote"}
               </button>
             ) : null}
             {canRewrite ? (
@@ -257,8 +292,20 @@ export function DraftPointRow({
             Accepted
           </span>
         )}
+        {(isPromoted || point.promotion?.promotedPathId) && (
+          <span
+            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+            style={{
+              background: "hsl(210 40% 94%)",
+              color: "hsl(210 50% 30%)",
+              border: "1px solid hsl(210 30% 82%)",
+            }}
+          >
+            Promoted
+          </span>
+        )}
       </div>
-      {(canAccept || onDiscussPoint || canRewrite) && draftId ? (
+      {(canAccept || onDiscussPoint || canRewrite || canPromote) && draftId ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {canAccept && onAcceptPoint ? (
             <button
@@ -269,6 +316,25 @@ export function DraftPointRow({
               style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
             >
               {isAccepting ? "Accepting…" : "Accept"}
+            </button>
+          ) : null}
+          {canPromote ? (
+            <button
+              type="button"
+              onClick={() => onPromotePoint(draftId, point.id)}
+              disabled={isPromoting || !selectedJourneyId}
+              title={
+                selectedJourneyId
+                  ? "Promote to selected Journey"
+                  : "Select a Journey in Nav first"
+              }
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-90 disabled:opacity-50"
+              style={{
+                borderColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+                color: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+              }}
+            >
+              {isPromoting ? "Promoting…" : "Promote"}
             </button>
           ) : null}
           {canRewrite ? (

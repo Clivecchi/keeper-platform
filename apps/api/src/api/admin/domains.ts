@@ -7,6 +7,7 @@ import { DomainPermissionService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 import { ensureDomainAgentPolicy } from '../../governance/index.js';
+import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
 
 const router: Router = Router();
 
@@ -145,7 +146,12 @@ router.post('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, r
       console.warn('[admin/domains] Failed to ensure domain agent policy:', err)
     );
 
-    return res.status(201).json({ domain });
+    const provisioned = await provisionDomainOnCreate(prisma, { domain }).catch((err) => {
+      console.warn('[admin/domains] Domain provision after create failed:', err);
+      return null;
+    });
+
+    return res.status(201).json({ domain: provisioned?.domain ?? domain });
   } catch (error: any) {
     console.error('[AdminDomains] create error', error);
     if (error?.issues) {

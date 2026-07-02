@@ -9,7 +9,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/index.ts` – public exports
 - `src/logger.ts` – simple console logger
 - `src/draftPoints.ts` – Draft Point types and `spec_json.points` helpers
-- `src/draftPointStructure.ts` – journey_spec PATH/Moments parsing and promotion mapping
+- `src/draftPointPromotion.ts` – `buildDraftPointPromotionPlan` for journey_spec point → Path/Moment mapping
 - `src/glossAnchor.ts` – `GlossAnchor` type + DOM attribute helpers (Gloss-readiness)
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
@@ -27,6 +27,10 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-06-30 — Draft point promotion (Phase 2.2b)
+- `DraftPoint.promotion` JSON refs (`promotedPathId`, `promotedMomentIds`, etc.)
+- Added `draftPointPromotion.ts` — `buildDraftPointPromotionPlan` using `resolveDraftPointStructure`
+
 ### 2026-06-29 — Draft point structure + film strip
 - Added `draftPointStructure.ts` — journey_spec PATH/Moments parsing; promotion mapping (point→Path, moments→Moment)
 - `buildDraftSummaryFromAcceptedPoints` builds beat arc, not content concatenation
@@ -35,3 +39,22 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 ### 2026-06-28 — Draft point rewrite + anchor guard
 - Added `isDraftPointRewritable`, `rewriteDraftPointInSpec`, `summarizeDraftPointsForAgent`.
 - `mergeDraftPointsById` ignores content overwrites for accepted (kept) anchor points.
+
+### 2026-06-27 — Domain tier key flags
+- Added `domainTier.ts` — `parseDomainTier`, `getDomainTierKeyPolicy`, `applyTierToResolvedProviderKey`, `defaultDomainSettingsForCreate`.
+
+### 2026-06-19 — Draft spec merge safety (points preservation)
+- `mergeDraftSpecPatch` merges points by id; empty `points: []` no longer wipes existing points; non-content spec keys preserved on merge.
+- `appendDraftPointToSpec` / `updateDraftPointInSpec` preserve extra spec keys (paths, purpose, etc.).
+
+### 2026-06-19 — GlossAnchor types (Phase 1b)
+- Added `glossAnchor.ts` — `GlossAnchor`, `buildGlossAnchorDataAttribute`, `glossAnchorToDraftDiscuss`
+
+### 2026-06-17 — Phase 0 draft content-shape + Keeper declarations
+- `canonicalizeDraftSpecJson`, `sectionsToDraftPoints` — points-only writes; legacy sections merged on read
+- `resolveKeeperChronicleDefaults`, `DEFAULT_KEEPER_CHRONICLE_BLOCKS`
+
+### 2026-06-13 — Integration/Key Chronicle declaration defaults
+- Added `integrationChronicleDeclarations.ts` — shared declaration map, create/backfill helpers for Integration and Key rows
+
+- 2026-05-27 – Added `draftPoints.ts`: Draft Point model (`proposed | accepted | pending`, types `moment | decision | context | general`) stored in `spec_json.points`.

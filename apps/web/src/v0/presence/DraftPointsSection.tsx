@@ -14,24 +14,34 @@ import {
 export interface DraftPointsSectionProps {
   spec: unknown
   draftId?: string
+  draftKind?: string | null
+  selectedJourneyId?: string | null
   pathEmergence?: DraftPathEmergence[]
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
   onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
+  onPromotePoint?: (draftId: string, pointId: string) => void
   acceptingPointId?: string | null
   acceptedPointIds?: Set<string>
+  promotingPointId?: string | null
+  promotedPointIds?: Set<string>
   manuscript?: boolean
 }
 
 export function DraftPointsSection({
   spec,
   draftId,
+  draftKind,
+  selectedJourneyId,
   pathEmergence = [],
   onAcceptPoint,
   onDiscussPoint,
   onRewritePoint,
+  onPromotePoint,
   acceptingPointId = null,
   acceptedPointIds,
+  promotingPointId = null,
+  promotedPointIds,
   manuscript = false,
 }: DraftPointsSectionProps) {
   const points = React.useMemo(() => parseDraftPoints(spec), [spec])
@@ -59,17 +69,25 @@ export function DraftPointsSection({
     const canAccept =
       !isAccepted && !!draftId && !!onAcceptPoint && point.status !== "accepted"
 
+    const isPromoted =
+      !!point.promotion?.promotedPathId || promotedPointIds?.has(point.id) === true
+
     return (
       <DraftPointRow
         key={point.id}
         point={point}
         draftId={draftId}
+        draftKind={draftKind}
+        selectedJourneyId={selectedJourneyId}
         isAccepted={isAccepted}
         canAccept={canAccept}
         isAccepting={acceptingPointId === point.id}
         onAcceptPoint={onAcceptPoint}
         onDiscussPoint={onDiscussPoint}
         onRewritePoint={onRewritePoint}
+        onPromotePoint={onPromotePoint}
+        isPromoting={promotingPointId === point.id}
+        isPromoted={isPromoted}
         manuscript={manuscript}
       />
     )

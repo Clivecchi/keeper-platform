@@ -54,6 +54,8 @@ import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { UniversalConversation } from "./UniversalConversation"
 import { useAuth } from "../../context/AuthContext"
 import { PanelErrorBoundary } from "../components/PanelErrorBoundary"
+import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
+import type { WorkspaceBoardId } from "./workspaceBoardNav"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
@@ -176,6 +178,9 @@ function UniversalBoardShell({
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
   const { isAdmin } = useAuth()
+
+  const targetBoardId = def.boardId as WorkspaceBoardId
+  const { openSwitcher, switcherOverlay } = useDomainSwitcher(targetBoardId)
 
   useBoardThemeRegistration()
 
@@ -343,10 +348,12 @@ function UniversalBoardShell({
         style={pageBackground}
       >
         <KeeperTopBar
-          onDomainClick={onDomainClick ?? (() => {})}
+          onDomainClick={onDomainClick ?? openSwitcher}
           onBriefClick={() => setBriefOpen((o) => !o)}
           isBriefOpen={briefOpen}
         />
+
+        {switcherOverlay}
 
         {briefOpen && domainFrame && (
           <DomainBriefSlideOver

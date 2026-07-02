@@ -26,6 +26,7 @@ const ACTION_TRACE_VERBS: Record<string, string> = {
   "draft.update.propose": "Proposed draft update",
   "draft.point.rewrite": "Rewrote draft point",
   "draft.point.accept": "Accepted draft point",
+  "draft.point.promote": "Promoted draft point to Journey",
   "moment.create": "Captured moment",
   "moment.keep": "Captured moment",
   "sole.save": "Saved memory",

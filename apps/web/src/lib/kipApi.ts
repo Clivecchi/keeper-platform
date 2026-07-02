@@ -1019,6 +1019,51 @@ export class KipApi {
     throw new Error(pickErrorMessage(response, 'Failed to accept draft point'));
   }
 
+  static async promoteDraftPoint(
+    domainId: string,
+    draftId: string,
+    pointId: string,
+    payload: { journeyId: string; sessionId?: string },
+  ): Promise<{
+    success: boolean;
+    idempotent?: boolean;
+    result: {
+      status: string;
+      message: string;
+      data?: {
+        point?: DraftPoint;
+        path?: { id: string; name: string };
+        moments?: Array<{ id: string; title: string }>;
+        journeyId?: string;
+      };
+    };
+  }> {
+    const response = await apiFetch(
+      `/api/domains/${domainId}/kip/drafts/${draftId}/points/${pointId}/promote`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+    if (response?.success && response?.result) {
+      return response as {
+        success: boolean;
+        idempotent?: boolean;
+        result: {
+          status: string;
+          message: string;
+          data?: {
+            point?: DraftPoint;
+            path?: { id: string; name: string };
+            moments?: Array<{ id: string; title: string }>;
+            journeyId?: string;
+          };
+        };
+      };
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to promote draft point'));
+  }
+
   static async deleteDraft(domainId: string, draftId: string): Promise<void> {
     const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}`, {
       method: 'DELETE',

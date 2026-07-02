@@ -5,6 +5,8 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 🧱 Key Files
 - `useDraftPointAccept.ts` — Shared Accept handler for draft points (Dialog receipts + Chronicle blocks).
+- `useDraftPointPromote.ts` — Promote accepted journey_spec points to the Nav-selected Journey (Path + Moments).
+- `useDraftPointPromote.ts` — Promote accepted journey_spec points to Nav-selected Journey (Chronicle).
 - `useAgentDialog.ts` — Parameterized agent session hook (`agentSlug` / `agentDisplayName`). Used by IDE, Agent, and Domain boards.
 - `useComposerDraftAutosave.ts` — SessionStorage-backed unsent composer recovery for all Kip dialog surfaces.
 - `useKipSession.ts` — Deprecated alias for `useAgentDialog`. Re-exported for backward compatibility only.
@@ -27,6 +29,15 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-06-30 — Draft point promote hook
+- Added `useDraftPointPromote.ts` — calls `KipApi.promoteDraftPoint`; bumps draft + journey nav on success
+
+### 2026-06-28 — Domain Board dialog preserved on draft nav
+- `useSelectionSessionResume` — Domain Board draft/journey/keeper nav no longer clears center Dialog (Chronicle-only, same as Agent Board).
+- `UniversalBoardContext` — Dialog/Journey/Keeper/Moment/Agent nav clears `?draftId=` so URL sync does not undo Dialog selection.
+- `openIdle` — refetches active session instead of wiping transcript when session id still exists.
+- IDE draft resume — when no draft-linked session exists, links the active session to the draft instead of wiping to idle greeting.
 
 ### 2026-06-22 — Universal composer draft autosave
 - Added `useComposerDraftAutosave.ts` — debounced `sessionStorage` persist keyed by domain, board, agent, and session.

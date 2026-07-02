@@ -4,6 +4,7 @@
 V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A Board owns its layout, chrome (top banner, InteractionBar), and context entirely — V0Shell mounts a Board and steps back.
 
 ## 🧱 Key Files
+- `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle); mounts domain switcher overlay for all boards
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
 - `designer/` — The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
@@ -14,6 +15,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - V0Shell reads `?board=` and renders the matching Board component inside V0ShellProvider context
 - Boards call `useV0Shell()` to access `domainSlug`, `domainFrame`, `resolvedAudience`, etc.
 - `?board=` takes precedence over `?frame=` when both are present in the URL
+- **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides entity sections when loaded count is 0. Override with `navAlwaysShow` (e.g. `["dialogs"]`). Logic in `navContentGating.ts`; applied in `UniversalNavPanel.renderNavBlock`.
 
 ## ⚠️ Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace — they share `/d/:slug/board`
@@ -23,6 +25,19 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-06-30 — Phase 1.1: Domain switcher on all member boards
+- **`domain/DomainSwitcherOverlay.tsx`** — Extracted switcher fetch/open/add/navigate logic from `DomainBoard`.
+- **`UniversalBoard`** — `useDomainSwitcher(def.boardId)` wires top-bar domain click on IDE, Agent, Design, and Domain boards; navigates to same workspace after domain select/create.
+- **`DomainBoard.tsx`** — Slim entry point only; switcher owned by UniversalBoard.
+
+### 2026-06-30 — Nav content gating infrastructure (Realm prerequisite)
+- `NavPanelDef`: optional `navMode` (`static` | `contentGated`, default `static`) and `navAlwaysShow` for exceptions.
+- `navContentGating.ts` + unit tests — hide dialogs/journeys/keepers/drafts/agents/library when count is 0 under `contentGated`.
+- `UniversalNavPanel`: applies gating in `renderNavBlock` before section render. Existing boards unchanged.
+
+### 2026-06-28 — Composer instrument pin does not open Chronicle
+- Director mode (IDE + Domain): pinning an agent in composer sets `activeBoardInstrument` for delegation only — Dialog stays in focus; Chronicle unchanged. Configure agents via Agent board Nav.
 
 ### 2026-06-28 — Agents nav refreshes after Chronicle Config save
 - `UniversalBoardContext`: `bumpAgentNav(patch?)` + `agentNavRevision` / `agentNavRowPatch` (same pattern as Keys/Keepers).
@@ -93,6 +108,19 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `resolveDirectorInstrument`: pinned chip or `Cloud —` / `Rendr —` prefix in message
 - `buildDirectorFallbackSynthesisPrompt`: Kip still in director mode when instrument reply empty — no "you're talking to Kip" / "hand off to Cloud"
 
+## 📆 Update Log
+
+### 2026-06-28 — Domain-accessible agents on Agent board Nav (not IDE Nav)
+- **Agent board** Nav lists domain-accessible roster from `GET /api/domains/:id/kip/agents`: domain lead (when set) → Kip → Cloud → Rendr — each configurable in Chronicle.
+- **IDE board** keeps Cloud/Rendr in composer **Tools** only; no Agents section in left Nav.
+- API `loadDomainAccessibleAgents` merges global platform agents (`cloud`, `rendr`) into every domain roster.
+
+### 2026-06-28 — Domain board director mode + domain agent roster
+- `DOMAIN_BOARD_DEF`: `dialogOrchestration: "director"` — Kip owns composer; domain lead (e.g. Ceox) pin-able like Cloud/Rendr on IDE.
+- `UniversalConversation`: loads `GET /api/domains/:id/kip/agents`; `BoardInstrumentsBar` in composer footer on Domain board.
+- `BoardInstrumentSlug` generalized to `string`; director delegation supports any registered agent slug (API + web).
+- Kip environment includes `domainAgents` roster so Lead knows domain lead agents exist.
+
 ### 2026-06-17 — Director dialog fixes (delegation beat, Horizon phases, focus)
 - `directorDialog.ts`: stronger delegation/synthesis prompts (no "you're talking to Kip" correction); robust `extractAgentReplyFromRunResult`
 - `useAgentDialog`: `directorConfigRef` + single post-run merge for `delegation` / `actionResults`; `onDirectorPhaseChange` for Horizon
@@ -102,7 +130,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-06-17 — IDE director dialog orchestration
 - `UniversalBoardDefinition`: IDE preset uses `dialogOrchestration: "director"`; Agent preset stays `solo`
 - `directorDialog.ts`: delegation + synthesis prompts, `DirectorDialogConfig`, `extractAgentReplyFromRunResult`
-- `UniversalConversation`: Kip always owns composer on IDE; Cloud/Rendr chips pin `activeBoardInstrument` + Chronicle focus (no agent swap)
+- `UniversalConversation`: Kip always owns composer on IDE; Cloud/Rendr chips pin `activeBoardInstrument` for delegation only (no agent swap, no Chronicle navigation)
 - `useAgentDialog`: when instrument pinned, runs instrument → Kip synthesis; attaches `delegation` beat on last agent message
 - `DialogueMessageList`: renders instrument delegation above Lead content (echo stays below)
 - `IntegratedServicesBar`: pin/unpin copy for director delegation

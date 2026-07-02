@@ -16,6 +16,14 @@ export interface DraftPointMoment {
   narrative?: string;
 }
 
+/** Promotion refs persisted on a point after successful journey_spec promote */
+export interface DraftPointPromotion {
+  promotedAt: string;
+  promotedJourneyId: string;
+  promotedPathId: string;
+  promotedMomentIds: string[];
+}
+
 export interface DraftPoint {
   id: string;
   content: string;
@@ -32,6 +40,8 @@ export interface DraftPoint {
   moments?: DraftPointMoment[];
   /** Cluster id for path-emergence grouping — optional in spec_json.points */
   pathGroupId?: string;
+  /** Set after point is promoted to Journey / Path / Moment */
+  promotion?: DraftPointPromotion;
 }
 
 /** @deprecated Legacy sections shape — read compat only; canonical content is `points`. */
@@ -60,6 +70,20 @@ function isDraftPointStatus(value: unknown): value is DraftPointStatus {
 
 function isDraftPointType(value: unknown): value is DraftPointType {
   return typeof value === 'string' && (DRAFT_POINT_TYPES as readonly string[]).includes(value);
+}
+
+function normalizeDraftPointPromotion(value: unknown): DraftPointPromotion | undefined {
+  if (!isRecord(value)) return undefined;
+  const promotedAt = typeof value.promotedAt === 'string' ? value.promotedAt : '';
+  const promotedJourneyId =
+    typeof value.promotedJourneyId === 'string' ? value.promotedJourneyId : '';
+  const promotedPathId =
+    typeof value.promotedPathId === 'string' ? value.promotedPathId : '';
+  const promotedMomentIds = Array.isArray(value.promotedMomentIds)
+    ? value.promotedMomentIds.filter((id): id is string => typeof id === 'string')
+    : [];
+  if (!promotedAt || !promotedJourneyId || !promotedPathId) return undefined;
+  return { promotedAt, promotedJourneyId, promotedPathId, promotedMomentIds };
 }
 
 export function isDraftPoint(value: unknown): value is DraftPoint {
@@ -103,6 +127,7 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
       : typeof value.path_group_id === 'string'
         ? value.path_group_id
         : undefined;
+  const promotion = normalizeDraftPointPromotion(value.promotion);
 
   return {
     id: value.id,
@@ -116,6 +141,7 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
     ...(closer ? { closer } : {}),
     ...(moments.length > 0 ? { moments } : {}),
     ...(pathGroupId ? { pathGroupId } : {}),
+    ...(promotion ? { promotion } : {}),
   };
 }
 
@@ -399,7 +425,12 @@ export function rewriteDraftPointInSpec(
 export function updateDraftPointInSpec(
   spec: unknown,
   pointId: string,
-  patch: Partial<Pick<DraftPoint, 'status' | 'content' | 'type' | 'prelude' | 'closer' | 'moments'>>,
+  patch: Partial<
+    Pick<
+      DraftPoint,
+      'status' | 'content' | 'type' | 'prelude' | 'closer' | 'moments' | 'promotion'
+    >
+  >,
 ): { spec: DraftSpecJson; point: DraftPoint | null } {
   const normalized = canonicalizeDraftSpecJson(spec);
   const points = normalized.points ?? [];

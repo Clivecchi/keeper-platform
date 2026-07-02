@@ -3,7 +3,7 @@ export * from './roles.js';
 export * from './canonicalBoards.js';
 export * from './draftPoints.js';
 export * from './draftPointStructure.js';
-export * from './glossAnchor.js';
+export * from './draftPointPromotion.js';export * from './glossAnchor.js';
 export * from './integrationChronicleDeclarations.js';
 export * from './serviceBindings.js';
 export * from './directorContinuity.js';

@@ -4,6 +4,7 @@
 V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A Board owns its layout, chrome (top banner, InteractionBar), and context entirely — V0Shell mounts a Board and steps back.
 
 ## 🧱 Key Files
+- `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle); mounts domain switcher overlay for all boards
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
 - `designer/` — The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
@@ -14,6 +15,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - V0Shell reads `?board=` and renders the matching Board component inside V0ShellProvider context
 - Boards call `useV0Shell()` to access `domainSlug`, `domainFrame`, `resolvedAudience`, etc.
 - `?board=` takes precedence over `?frame=` when both are present in the URL
+- **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides entity sections when loaded count is 0. Override with `navAlwaysShow` (e.g. `["dialogs"]`). Logic in `navContentGating.ts`; applied in `UniversalNavPanel.renderNavBlock`.
 
 ## ⚠️ Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace — they share `/d/:slug/board`
@@ -23,6 +25,16 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-06-30 — Phase 1.1: Domain switcher on all member boards
+- **`domain/DomainSwitcherOverlay.tsx`** — Extracted switcher fetch/open/add/navigate logic from `DomainBoard`.
+- **`UniversalBoard`** — `useDomainSwitcher(def.boardId)` wires top-bar domain click on IDE, Agent, Design, and Domain boards; navigates to same workspace after domain select/create.
+- **`DomainBoard.tsx`** — Slim entry point only; switcher owned by UniversalBoard.
+
+### 2026-06-30 — Nav content gating infrastructure (Realm prerequisite)
+- `NavPanelDef`: optional `navMode` (`static` | `contentGated`, default `static`) and `navAlwaysShow` for exceptions.
+- `navContentGating.ts` + unit tests — hide dialogs/journeys/keepers/drafts/agents/library when count is 0 under `contentGated`.
+- `UniversalNavPanel`: applies gating in `renderNavBlock` before section render. Existing boards unchanged.
 
 ### 2026-06-28 — Composer instrument pin does not open Chronicle
 - Director mode (IDE + Domain): pinning an agent in composer sets `activeBoardInstrument` for delegation only — Dialog stays in focus; Chronicle unchanged. Configure agents via Agent board Nav.

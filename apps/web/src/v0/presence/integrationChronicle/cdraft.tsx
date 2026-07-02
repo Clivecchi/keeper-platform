@@ -21,8 +21,12 @@ export interface CdraftProps {
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
   onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
+  onPromotePoint?: (draftId: string, pointId: string) => void
   acceptingPointId?: string | null
   acceptedPointIds?: Set<string>
+  promotingPointId?: string | null
+  promotedPointIds?: Set<string>
+  selectedJourneyId?: string | null
   onDialogSelect?: (dialogId: string) => void
   onSessionSelect?: (sessionId: string) => void
 }
@@ -57,8 +61,12 @@ export function Cdraft({
   onAcceptPoint,
   onDiscussPoint,
   onRewritePoint,
+  onPromotePoint,
   acceptingPointId,
   acceptedPointIds,
+  promotingPointId,
+  promotedPointIds,
+  selectedJourneyId,
   onDialogSelect,
   onSessionSelect,
 }: CdraftProps) {
@@ -150,8 +158,13 @@ export function Cdraft({
           onAcceptPoint={onAcceptPoint}
           onDiscussPoint={onDiscussPoint}
           onRewritePoint={onRewritePoint}
+          onPromotePoint={onPromotePoint}
           acceptingPointId={acceptingPointId}
           acceptedPointIds={acceptedPointIds}
+          promotingPointId={promotingPointId}
+          promotedPointIds={promotedPointIds}
+          draftKind={kind}
+          selectedJourneyId={selectedJourneyId}
           onDialogSelect={onDialogSelect}
           onSessionSelect={onSessionSelect}
           manuscript

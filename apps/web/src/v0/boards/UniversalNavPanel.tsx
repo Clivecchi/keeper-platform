@@ -38,6 +38,7 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import type { KeyNavRowPatch, DraftNavRowPatch, AgentNavRowPatch } from "./UniversalBoardContext"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import type { UniversalBoardDef, NavRenderBlock } from "./UniversalBoardDefinition"
+import { shouldRenderContentGatedBlock } from "./navContentGating"
 import { useBoardDefs } from "./useBoardDefs"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { useV0Shell } from "../shell/V0ShellContext"
@@ -946,7 +947,33 @@ export function UniversalNavPanel({
 
   const navBlockOrder = resolveNavBlockOrder(def)
 
+  const libraryRowCount = (allLibraryRows ?? []).filter(
+    (row) => row.id && row.source_ref?.trim(),
+  ).length
+
+  const navContentCounts = React.useMemo(
+    () => ({
+      dialogs: dialogs?.length ?? null,
+      journeys: journeys?.length ?? null,
+      keepers: keepers?.length ?? null,
+      drafts: patchedDrafts?.length ?? null,
+      agents: agents?.length ?? null,
+      library: allLibraryRows === null ? null : libraryRowCount,
+    }),
+    [
+      dialogs,
+      journeys,
+      keepers,
+      patchedDrafts,
+      agents,
+      allLibraryRows,
+      libraryRowCount,
+    ],
+  )
+
   const renderNavBlock = (block: NavRenderBlock): React.ReactNode => {
+    if (!shouldRenderContentGatedBlock(block, def.nav, navContentCounts)) return null
+
     switch (block) {
       case "dialogs":
         if (!showDialogs) return null

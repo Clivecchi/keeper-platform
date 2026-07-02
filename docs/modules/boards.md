@@ -14,6 +14,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - V0Shell reads `?board=` and renders the matching Board component inside V0ShellProvider context
 - Boards call `useV0Shell()` to access `domainSlug`, `domainFrame`, `resolvedAudience`, etc.
 - `?board=` takes precedence over `?frame=` when both are present in the URL
+- **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides entity sections when loaded count is 0. Override with `navAlwaysShow` (e.g. `["dialogs"]`). Logic in `navContentGating.ts`; applied in `UniversalNavPanel.renderNavBlock`.
 
 ## ⚠️ Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace — they share `/d/:slug/board`
@@ -24,13 +25,146 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-30 — Nav content gating infrastructure (Realm prerequisite)
+- `NavPanelDef`: optional `navMode` (`static` | `contentGated`, default `static`) and `navAlwaysShow` for exceptions.
+- `navContentGating.ts` + unit tests — hide dialogs/journeys/keepers/drafts/agents/library when count is 0 under `contentGated`.
+- `UniversalNavPanel`: applies gating in `renderNavBlock` before section render. Existing boards unchanged.
+
 ### 2026-06-28 — Composer instrument pin does not open Chronicle
-- Director mode (IDE + Domain): composer agent chips pin `activeBoardInstrument` for delegation only — Dialog stays in focus; Chronicle unchanged.
+- Director mode (IDE + Domain): pinning an agent in composer sets `activeBoardInstrument` for delegation only — Dialog stays in focus; Chronicle unchanged. Configure agents via Agent board Nav.
+
+### 2026-06-28 — Agents nav refreshes after Chronicle Config save
+- `UniversalBoardContext`: `bumpAgentNav(patch?)` + `agentNavRevision` / `agentNavRowPatch` (same pattern as Keys/Keepers).
+- `UniversalNavPanel`: refetches agents on revision; optimistic name/model patch until refetch completes.
+- `KeeperPresence`: agent Config save calls `bumpAgentNav` when `name` or `model` changes.
+
+### 2026-06-28 — Domain dialog no longer wiped by draft URL
+- **useSelectionSessionResume:** Domain Board `?draftId=` / draft nav drives Chronicle only — center Dialog keeps its Kip session (fixes empty “Say hello to Kip” after Opening Moment Spec selection).
+- **UniversalBoardContext:** `onDialogSelect` (and Journey/Keeper/Moment/Agent) clears `?draftId=` from the URL so Dialog nav clicks are not immediately undone by URL sync.
+- **useSelectionSessionResume `openIdle`:** refetches the active session instead of wiping messages when a session id still exists.
+- **UniversalConversation:** refetches messages when session is set but transcript is empty (recovery after stale wipe).
+- **IDE draft resume:** links active session to draft when none is linked yet; avoids resetting to idle greeting.
+- **UniversalConversation:** IDE session bootstrap skips when a session is already active.
+
+### 2026-06-26 — Message-frame draft open pipeline
+- **UniversalBoardContext:** `?draftId=` URL syncs to `selectedDraftId`; `onDraftSelect` writes `draftId` + `board=domain` to the query string so Chronicle opens the draft from message receipts and shared links. Dialog/Journey/Keeper nav clears `?draftId=` so center Dialog resume is not blocked.
+- **LinkedCard / DialogueMessageList:** in-board draft/journey/moment cards call board selection callbacks instead of legacy `/agent?view=drafts` routes.
+
+### 2026-06-22 — Panel error boundaries + composer draft autosave
+- **UniversalBoard:** wraps Nav, Dialog, and Chronicle in `PanelErrorBoundary` — one panel crash no longer takes down the full board.
+- **Composer autosave:** unsent dialog text persists in `sessionStorage` via `useComposerDraftAutosave` (see hooks README).
+
+### 2026-06-22 — IDE session resume + draft Dialog link
+- **UniversalConversation:** IDE and Designer session bootstrap use `resumeOrCreateBoardSession` (board-scoped `/kip/dialogs/resolve/active`) instead of agent-wide `getSessionsByAgentId`.
+- Reuses empty Dialog sessions on mount instead of creating a new ghost session each refresh.
+- Pairs with API auto-link of `kip_drafts.dialog_id` from the active session so Chronicle Sessions blocks populate.
+
+### 2026-06-19 — Board-only engagement (Singular UI)
+- `engagement/` module: `useBoardEngagement`, `BoardEngagementForm`, `PresenceEngagementActions`, `JourneyChronicleEngagement`
+- `UniversalNavPanel`: JOURNEYS `+` → `journey.create` template
+- `KeeperPresence`: journey Chronicle → add moment / path / moment create; moment Chronicle → `MomentFocusPresence` (cover + Config edit)
+- `UniversalBoardContext`: `bumpJourneyNav` refreshes nav after engagement
+
+### 2026-06-19 — Draft EntityKind Phase 1b
+- `bumpDraftNav` gains `requestDiscussDraftPoint` / `clearDraftDiscussAnchor` for Dialog anchor context
+- Domain board `onAfterAgentRun` wired for draft receipts + anchor clear
+
+### 2026-06-19 — Draft EntityKind (Phase 1)
+- `bumpDraftNav` + `draftNavRevision` / `draftNavRowPatch` on board context
+- `UniversalNavPanel` Drafts `+` → `requestChronicleEngagement('draft.create')`
+- `ChronicleEngagementSurface` routes success by template slug (draft vs journey/path/moment)
+- `onDraftListRefresh` → `bumpDraftNav` (replaces local list bump)
+
+### 2026-06-20 — Director continuity ("try again")
+- `@keeper/shared/directorContinuity` resolves retry/refer-back phrases to the last delegatable user message
+- `useAgentDialog` sends `taskMessage` on director delegation; API re-resolves from session if omitted
+- Kip synthesis prompts forbid claiming the session starts cold
+
+### 2026-06-18 — Block delegation failure placeholder in UI
+- `isDirectorDelegationFailureContent` — never render "did not respond this turn" in DialogueMessageList
+- API auto-creates Cloud/Rendr agent records when missing (production seed gap)
+
+### 2026-06-17 — Director UX polish (no failure placeholder, Horizon timing)
+- Failed Cloud/Rendr delegation: no "did not respond" beat in bubble — Kip answers directly with stronger fallback prompt
+- Horizon stays on **Cloud is thinking…** for full API wait (instrument phase until response)
+- API: instrument environment resolves with IDE board capability ceiling for infra reads
+
+### 2026-06-17 — Server-side director delegation
+- Cloud/Rendr sub-runs move to API (`directorDelegation` on Kip run) — fixes failed client delegation and synthesis prompt in user bubble
+- Web: single Kip `runAgent` with user `content` + `directorDelegation`; delegation beat from response
+
+### 2026-06-17 — Director dialog: hide orchestration prompts from user bubble
+- `sanitizeUserMessageContent`: session rows saved as synthesis input show the user's words, not `[Director synthesis — Kip]`
+- `buildInstrumentUnavailableDelegationBeat`: Cloud/Rendr beat in Kip bubble when sub-run fails (structure preserved)
+- `useAgentDialog`: passes `userId` to Cloud runAgent; patches last user message after fetch
+
+### 2026-06-17 — Director fallback when Cloud sub-run fails
+- `resolveDirectorInstrument`: pinned chip or `Cloud —` / `Rendr —` prefix in message
+- `buildDirectorFallbackSynthesisPrompt`: Kip still in director mode when instrument reply empty — no "you're talking to Kip" / "hand off to Cloud"
+
+## 📆 Update Log
 
 ### 2026-06-28 — Domain-accessible agents on Agent board Nav (not IDE Nav)
 - **Agent board** Nav lists domain-accessible roster from `GET /api/domains/:id/kip/agents`: domain lead (when set) → Kip → Cloud → Rendr — each configurable in Chronicle.
 - **IDE board** keeps Cloud/Rendr in composer **Tools** only; no Agents section in left Nav.
 - API `loadDomainAccessibleAgents` merges global platform agents (`cloud`, `rendr`) into every domain roster.
+
+### 2026-06-28 — Domain board director mode + domain agent roster
+- `DOMAIN_BOARD_DEF`: `dialogOrchestration: "director"` — Kip owns composer; domain lead (e.g. Ceox) pin-able like Cloud/Rendr on IDE.
+- `UniversalConversation`: loads `GET /api/domains/:id/kip/agents`; `BoardInstrumentsBar` in composer footer on Domain board.
+- `BoardInstrumentSlug` generalized to `string`; director delegation supports any registered agent slug (API + web).
+- Kip environment includes `domainAgents` roster so Lead knows domain lead agents exist.
+
+### 2026-06-17 — Director dialog fixes (delegation beat, Horizon phases, focus)
+- `directorDialog.ts`: stronger delegation/synthesis prompts (no "you're talking to Kip" correction); robust `extractAgentReplyFromRunResult`
+- `useAgentDialog`: `directorConfigRef` + single post-run merge for `delegation` / `actionResults`; `onDirectorPhaseChange` for Horizon
+- `UniversalConversation` → `KeeperDialogFrame`: `thinkingStatusLabel` shows Cloud then Kip while sending
+- `DialogueMessageList`: scroll opacity anchors on bottommost (newest) message, not topmost
+
+### 2026-06-17 — IDE director dialog orchestration
+- `UniversalBoardDefinition`: IDE preset uses `dialogOrchestration: "director"`; Agent preset stays `solo`
+- `directorDialog.ts`: delegation + synthesis prompts, `DirectorDialogConfig`, `extractAgentReplyFromRunResult`
+- `UniversalConversation`: Kip always owns composer on IDE; Cloud/Rendr chips pin `activeBoardInstrument` for delegation only (no agent swap, no Chronicle navigation)
+- `useAgentDialog`: when instrument pinned, runs instrument → Kip synthesis; attaches `delegation` beat on last agent message
+- `DialogueMessageList`: renders instrument delegation above Lead content (echo stays below)
+- `IntegratedServicesBar`: pin/unpin copy for director delegation
+
+### 2026-06-15 — Library Pass 1 polish (nav labels, hero image, config save)
+- `libraryNavUtils`: filename extraction via URL pathname; skip placeholder `display_label` values (e.g. source icon letter); `resolveLibraryHeroAvatar()` for image uploads
+- `UniversalNavPanel`: removed source-type icon letter badges from Library nav rows; consolidated Add URL into card list; filter invalid rows
+- `EntityCoverPresence`: render hero `avatar` as image when value is a URL/data URI
+- `LibraryItemFocusPresence`: stable Manage → config handler; full-height config shell with save bar
+
+### 2026-06-14 — Library EntityKind nav (Domain board, Pass 1)
+- `UniversalBoardDefinition`: `library` nav section on Domain board (`navBlockOrder` includes `library`)
+- `UniversalBoardContext`: `selectedLibraryItemId`, `onLibraryItemSelect`, `bumpLibraryNav` + optimistic row patch
+- `UniversalNavPanel`: Library section with upload (+) and Add URL; labels via shared `libraryItemChronicleTitle()`
+- `UniversalViewPanel`: `library` trail kind routing
+
+### 2026-06-27 — Agent Board: domain-scoped nav + AI Access summary
+- Agent nav uses `GET /api/domains/:domainId/kip/agents` (Kip + domain lead only).
+- **AI Access** nav (`DomainAiAccessNav`): included vs yours whisper — not IDE key registry.
+- Key cover shows **Access: Included / Yours** — never raw `PLATFORM` source.
+
+### 2026-06-27 — Agent Board: domain-scoped nav
+- Agent nav uses `GET /api/domains/:domainId/kip/agents` (Kip + domain lead only).
+- Removed platform Keys / AI Providers from Agent Board def — IDE Board only.
+
+### 2026-06-14 — Nav cleanup (Domain · IDE · Agent boards)
+- Shared nav section titles: larger accent-weight headers in `index.css` (`.keeper-nav-section-title` + SidebarCard titles)
+- `SidebarCard`: optional `collapsible` / `defaultCollapsed` for nav section collapse
+- **Domain Board**: nav order Keeper → Dialogs → Journeys → Boards; Boards section switches workspace via `switchWorkspace` (syncs with top bar)
+- **IDE Board**: removed Dialogs, Journeys, Keepers from nav; Capabilities kind groups collapsed by default; Keys / AI Providers collapse when ≥4 items
+- **Agent Board**: removed Journeys, Keepers, Drafts; added Keys + AI Providers (same sources as IDE)
+
+### 2026-06-13 — Capabilities nav (IDE board, Pass 1)
+- `UniversalNavPanel`: Capabilities section grouped by kind (Infra / Tool / Permission / Action); labels via `capabilityChronicleTitle()`
+- `UniversalBoardContext`: `selectedCapabilityId`, `onCapabilitySelect`, `bumpCapabilityNav` optimistic patch + revision
+
+### 2026-06-13 — Keys nav label aligned with Chronicle
+- `keyNavUtils.ts`: `keyChronicleTitle()` shared with cover; `pickKeyRowForProvider` / `collapseKeyNavRows` prefer `selectedKeyId` over env-first collapse
+- `UniversalNavPanel`: Keys nav uses `keyChronicleTitle`; stores all rows and re-collapses when selection changes; refetches on `keyNavRevision`
+- `UniversalBoardContext`: `bumpKeyNav(patch?)` bumps revision + optional optimistic row patch after Key Config save
 
 ### 2026-06-12 — Optimistic board definition + router/window desync fix
 - V0Shell holds `pendingBoardDefinitionId` — UI updates immediately on nav click before router catches up
@@ -266,6 +400,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - This is documentation-first wiring. Moment 2.2 begins Board reconciliation using this schema as the standard.
 ### 2026-03-31
 - Domain Board (`domain/DomainBoard.tsx`): Brief mode center panel now renders `DomainBrief` (editable domain JSON form) instead of the placeholder; Kip composer unchanged.
+
+### 2026-06-28
+- `requestRewriteDraftPoint` + `draftComposeHint` — Chronicle **Rewrite** opens Dialog with prefilled `draft.point.rewrite` instructions; `draftDiscussIntent: rewrite` in agentContext.
+- `UniversalConversation` forwards `activeDraftId` to Kip runs; prefills composer from `draftComposeHint`.
 
 ### 2026-03-11
 - Created `boards/` directory and `boardRegistry.ts` (Step 3 of designer-to-board migration)

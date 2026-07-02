@@ -16,7 +16,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `DOMAIN_HOME_BOARD_CHECKLIST.md` – Manual verification checklist for domain-home board ensure.
 
 ## 🔄 Data & Behavior
-- Applies `createDomainResolutionMiddleware` so downstream routes receive resolved domain metadata.
+- `POST /api/domains` runs `provisionDomainOnCreate` after create (frame_json, lead agent, keeper, primaryDomainId, home board).
+- `POST /api/domains/:id/provision` — idempotent repair for domains created before seeding (domain admin).
 - `/:domainId/home-board` ensures and returns the canonical `boardType="domain-home"` board with minimal frame metadata.
 - `/by-slug/:slug/home-board` resolves domain by slug, enforces read permission, and returns the same canonical board.
 - `/:domainId/agent/execute` now auto-assigns Kip as the primary agent when missing, then calls `KipAgentService` and surfaces typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, etc.).
@@ -37,6 +38,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-30: **Draft point promote** — `POST .../points/:pointId/promote` with `{ journeyId }` dispatches `draft.point.promote` (UI-only allowlist).
+- 2026-06-28: **Step 1.2 domain seeding** — `provisionDomainOnCreate` on create + `POST /:id/provision` repair (frame_json, `{slug}-lead` agent, keeper, primaryDomainId, home board).
 - 2026-06-27: **Domain key access + tier flags** — `GET /:domainId/key-access` returns tier policy + synced Key presence for Agent Board AI Access nav.
 - 2026-06-27: **Domain-scoped agent list** — `GET /:domainId/kip/agents` returns domain lead (when not Kip) + Kip; not the global registry.
 - 2026-06-27: **Frame operational key freeze + strip** — `session_notes` and `platform_gaps` are frozen on `PATCH`/`publish` and stripped from `GET /:slug/frame` boot payloads via `frameOperationalKeys.ts`. Existing DB values preserved on publish until migrated to session/SOLE/Logbook.

@@ -690,5 +690,68 @@ router.post(
   },
 );
 
+router.post(
+  '/:domainId/kip/drafts/:draftId/points/:pointId/promote',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, draftId, pointId } = req.params;
+    const journeyId = typeof req.body?.journeyId === 'string' ? req.body.journeyId.trim() : '';
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      if (!journeyId) {
+        return res.status(400).json({
+          error: 'VALIDATION_ERROR',
+          message: 'journeyId is required',
+        });
+      }
+
+      const { executeAgentActions } = await import('../kip/agents.js');
+      const domain = await prisma.domain.findUnique({
+        where: { id: domainId },
+        select: { slug: true },
+      });
+
+      const { results } = await executeAgentActions(
+        [{ type: 'draft.point.promote', payload: { draftId, pointId, journeyId } }],
+        {
+          domainId,
+          domainSlug: domain?.slug ?? null,
+          userId: req.user.id,
+          allowlist: new Set(['draft.point.promote']),
+          sessionId: typeof req.body?.sessionId === 'string' ? req.body.sessionId : undefined,
+        },
+      );
+
+      const result = results[0];
+      if (!result || result.status === 'error') {
+        const code = result?.errorCode ?? 'PROMOTE_FAILED';
+        const status =
+          code === 'DRAFT_NOT_FOUND' || code === 'POINT_NOT_FOUND' || code === 'JOURNEY_NOT_FOUND'
+            ? 404
+            : code === 'PATH_PROMOTION_STALE'
+              ? 409
+              : 400;
+        return res.status(status).json({
+          error: code,
+          message: result?.message ?? 'Failed to promote draft point',
+        });
+      }
+
+      return res.json({
+        success: true,
+        idempotent: Boolean(result.data?.idempotent),
+        result,
+      });
+    } catch (error) {
+      logger.error({ err: error, domainId, draftId, pointId }, 'kip draft point promote failed');
+      return res.status(500).json({ error: 'FAILED_TO_PROMOTE_DRAFT_POINT' });
+    }
+  },
+);
+
 export default router;
 

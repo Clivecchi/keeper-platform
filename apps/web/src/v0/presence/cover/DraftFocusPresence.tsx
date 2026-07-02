@@ -4,6 +4,7 @@ import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { KipApi } from "../../../lib/kipApi"
 import { useDraftPointAccept } from "../../../hooks/useDraftPointAccept"
+import { useDraftPointPromote } from "../../../hooks/useDraftPointPromote"
 import type { PresenceMeta } from "../presenceEnrichment"
 import { Cdraft } from "../integrationChronicle/cdraft"
 import { DraftConfigPresence } from "../integrationChronicle/DraftConfigPresence"
@@ -63,6 +64,8 @@ export function DraftFocusPresence({
     [record.title],
   )
 
+  const selectedJourneyId = boardCtx?.selection.selectedJourneyId ?? null
+
   const {
     acceptedDraftPointIds,
     acceptingDraftPointId,
@@ -72,6 +75,19 @@ export function DraftFocusPresence({
     onDraftSelect: boardCtx?.actions.onDraftSelect,
     bumpDraftPresence: boardCtx?.actions.bumpDraftPresence,
     bumpDraftNav: boardCtx?.actions.bumpDraftNav,
+  })
+
+  const {
+    promotingDraftPointId,
+    promotedDraftPointIds,
+    promoteDraftPoint,
+  } = useDraftPointPromote({
+    domainId,
+    journeyId: selectedJourneyId,
+    onDraftSelect: boardCtx?.actions.onDraftSelect,
+    bumpDraftPresence: boardCtx?.actions.bumpDraftPresence,
+    bumpDraftNav: boardCtx?.actions.bumpDraftNav,
+    onJourneyRefresh: boardCtx?.actions.bumpJourneyNav,
   })
 
   React.useEffect(() => {
@@ -155,8 +171,12 @@ export function DraftFocusPresence({
               onAcceptPoint={acceptDraftPoint}
               onDiscussPoint={handleDiscussPoint}
               onRewritePoint={handleRewritePoint}
+              onPromotePoint={promoteDraftPoint}
               acceptingPointId={acceptingDraftPointId}
               acceptedPointIds={acceptedDraftPointIds}
+              promotingPointId={promotingDraftPointId}
+              promotedPointIds={promotedDraftPointIds}
+              selectedJourneyId={selectedJourneyId}
               onDialogSelect={boardCtx?.actions.onDialogSelect}
               onSessionSelect={boardCtx?.actions.onSessionSelect}
             />

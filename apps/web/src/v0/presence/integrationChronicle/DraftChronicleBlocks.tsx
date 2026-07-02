@@ -81,8 +81,13 @@ export interface DraftChronicleBlocksProps {
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
   onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
+  onPromotePoint?: (draftId: string, pointId: string) => void
   acceptingPointId?: string | null
   acceptedPointIds?: Set<string>
+  promotingPointId?: string | null
+  promotedPointIds?: Set<string>
+  draftKind?: string | null
+  selectedJourneyId?: string | null
   onDialogSelect?: (dialogId: string) => void
   onSessionSelect?: (sessionId: string) => void
   manuscript?: boolean
@@ -100,8 +105,13 @@ export function DraftChronicleBlocks({
   onAcceptPoint,
   onDiscussPoint,
   onRewritePoint,
+  onPromotePoint,
   acceptingPointId,
   acceptedPointIds,
+  promotingPointId,
+  promotedPointIds,
+  draftKind,
+  selectedJourneyId,
   onDialogSelect,
   onSessionSelect,
   manuscript = false,
@@ -136,12 +146,17 @@ export function DraftChronicleBlocks({
           <DraftPointsSection
             spec={spec}
             draftId={draftId}
+            draftKind={draftKind}
+            selectedJourneyId={selectedJourneyId}
             pathEmergence={pathEmergence}
             onAcceptPoint={onAcceptPoint}
             onDiscussPoint={onDiscussPoint}
             onRewritePoint={onRewritePoint}
+            onPromotePoint={onPromotePoint}
             acceptingPointId={acceptingPointId}
             acceptedPointIds={acceptedPointIds}
+            promotingPointId={promotingPointId}
+            promotedPointIds={promotedPointIds}
             manuscript
           />
         </div>
@@ -150,11 +165,16 @@ export function DraftChronicleBlocks({
           <DraftPointsSection
             spec={spec}
             draftId={draftId}
+            draftKind={draftKind}
+            selectedJourneyId={selectedJourneyId}
             onAcceptPoint={onAcceptPoint}
             onDiscussPoint={onDiscussPoint}
             onRewritePoint={onRewritePoint}
+            onPromotePoint={onPromotePoint}
             acceptingPointId={acceptingPointId}
             acceptedPointIds={acceptedPointIds}
+            promotingPointId={promotingPointId}
+            promotedPointIds={promotedPointIds}
           />
         </BlockSection>
       )}

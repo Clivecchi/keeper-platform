@@ -3,6 +3,7 @@ import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { writeDomainAudit } from '../lib/audit/domainAudit.js';
 import { ensureDomainAgentPolicy } from '../governance/index.js';
+import { provisionDomainOnCreate } from '../services/domains/provisionDomainOnCreate.js';
 import { domainsManagementRouter } from './domains.management.js';
 import { ensureDomainTableShape } from '../lib/db-guards.js';
 
@@ -168,6 +169,12 @@ domainsRouter.post('/', async (req, res) => {
       console.warn('[domains] Failed to ensure domain agent policy:', err)
     );
 
+    const provisioned = await provisionDomainOnCreate(prisma, { domain: created }).catch((err) => {
+      console.warn('[domains:flat] Domain provision after create failed:', err);
+      return null;
+    });
+    const result = provisioned?.domain ?? created;
+
     await writeDomainAudit({
       action: 'create',
       domainId: created.id,
@@ -175,9 +182,9 @@ domainsRouter.post('/', async (req, res) => {
       actorEmail: user?.email,
       ip, userAgent: ua,
       before: null,
-      after: created,
+      after: result,
     });
-    res.json(created);
+    res.json(result);
   } catch (e) {
     res.status(500).json({ error: 'Internal server error' });
   }

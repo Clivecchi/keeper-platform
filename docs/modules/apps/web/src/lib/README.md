@@ -31,6 +31,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-06-30 — Draft point promotion (Phase 2.2b)
+- Added `KipApi.promoteDraftPoint(domainId, draftId, pointId, { journeyId })` — POST promote route for accepted journey_spec points.
+
 ### 2026-06-22 — Composer draft autosave storage
 - Added `composerDraftStorage.ts` — keyed read/write/clear/migrate for unsent Kip composer text in `sessionStorage`.
 

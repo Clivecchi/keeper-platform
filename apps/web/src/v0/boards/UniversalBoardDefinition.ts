@@ -60,8 +60,22 @@ export interface NavInstrumentDef {
   group?: "infrastructure" | "ai"
 }
 
+/** Left-nav visibility — static shows all enabled sections; contentGated hides empty entity blocks. */
+export type NavMode = "static" | "contentGated"
+
 export interface NavPanelDef {
   sections: NavSectionsDef
+  /**
+   * Nav section visibility strategy.
+   * @default "static" — all enabled sections render (current board behavior).
+   * `contentGated` hides entity sections when their loaded count is 0.
+   */
+  navMode?: NavMode
+  /**
+   * When `navMode` is `contentGated`, these blocks stay visible even with zero items
+   * (e.g. Dialogs always available for new conversations).
+   */
+  navAlwaysShow?: NavRenderBlock[]
   /**
    * When set, this section renders first (when enabled in sections).
    * Other boards omit — default nav order unchanged.

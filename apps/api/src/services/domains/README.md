@@ -19,10 +19,15 @@ On create (and via `POST /api/domains/:id/provision` repair):
 Failures in individual steps log warnings and do not fail domain create.
 
 ## ⚠️ Notes & ToDo
-- [ ] Onboard UI should invoke provision repair for domains created before Step 1.2 seeding.
+- [x] V0Shell auto-repair — `ensureDomainProvisioned` calls `POST /api/domains/:id/provision` for unseeded personal domains.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
+- [ ] Manual repair for pre-1.2 domains (e.g. `chuck-livecchi`) — owner visit or `POST /api/domains/:id/provision`.
 
 ## 📆 Update Log
+
+### 2026-06-30 — Phase 1.2 audit
+- Confirmed primary paths wired: `POST /api/domains` (routes.ts), signup (`/api/kam/auth/register`), repair `POST /api/domains/:id/provision`.
+- Added provisioner to legacy flat `POST /api/domains` (domains.ts) and super-admin `POST /api/admin/domains`.
 
 ### 2026-06-28 — Domain-accessible agent roster (Agent board Nav)
 - `loadDomainScopedAgents.ts` — merges domain lead + Kip + platform agents (`cloud`, `rendr`) for every domain.

@@ -9,6 +9,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/index.ts` – public exports
 - `src/logger.ts` – simple console logger
 - `src/draftPoints.ts` – Draft Point types and `spec_json.points` helpers
+- `src/draftPointPromotion.ts` – `buildDraftPointPromotionPlan` for journey_spec point → Path/Moment mapping
 - `src/glossAnchor.ts` – `GlossAnchor` type + DOM attribute helpers (Gloss-readiness)
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
@@ -25,6 +26,15 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-06-30 — Draft point promotion (Phase 2.2b)
+- `DraftPoint.promotion` JSON refs (`promotedPathId`, `promotedMomentIds`, etc.)
+- Added `draftPointPromotion.ts` — `buildDraftPointPromotionPlan` using `resolveDraftPointStructure`
+
+### 2026-06-29 — Draft point structure + film strip
+- Added `draftPointStructure.ts` — journey_spec PATH/Moments parsing; promotion mapping (point→Path, moments→Moment)
+- `buildDraftSummaryFromAcceptedPoints` builds beat arc, not content concatenation
+- DraftPoint gains optional `moments[]`; propose/rewrite actions accept prelude/closer/moments
 
 ### 2026-06-28 — Draft point rewrite + anchor guard
 - Added `isDraftPointRewritable`, `rewriteDraftPointInSpec`, `summarizeDraftPointsForAgent`.
