@@ -129,8 +129,12 @@ export function applyTierToResolvedProviderKey<T extends TierAwareProviderKey>(
 export function defaultDomainSettingsForCreate(
   existing?: Record<string, unknown> | null,
 ): Record<string, unknown> {
-  return {
+  const merged: Record<string, unknown> = {
     tier: 'free' satisfies DomainTierId,
     ...(existing ?? {}),
   };
+  if (merged.arrivalCompleted === undefined) {
+    merged.arrivalCompleted = false;
+  }
+  return merged;
 }

@@ -4,18 +4,13 @@ import * as React from "react"
 import { ChronicleActPresence } from "../../presence/chronicleConfig/ChronicleActPresence"
 import { useBoardEngagement } from "./useBoardEngagement"
 import type { BoardEngagementIntent } from "./useBoardEngagement"
+import { resolveCreatedEntityId } from "./engagementResultUtils"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 
 export interface ChronicleEngagementSurfaceProps {
   intent: BoardEngagementIntent
   onClose: () => void
   onSuccess?: () => void
-}
-
-function resolveCreatedDraftId(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null
-  const draft = (data as { draft?: { id?: unknown } }).draft
-  return typeof draft?.id === "string" ? draft.id : null
 }
 
 export function ChronicleEngagementSurface({
@@ -32,16 +27,34 @@ export function ChronicleEngagementSurface({
       const slug = intent.template.slug
       if (slug.startsWith("draft.")) {
         boardCtx?.actions.bumpDraftNav()
-        const draftId = resolveCreatedDraftId(result?.data)
+        const draftId = resolveCreatedEntityId(result?.data, "draft")
         if (draftId) {
           boardCtx?.actions.onDraftSelect(draftId)
         }
-      } else if (
-        slug.startsWith("journey.") ||
-        slug.startsWith("path.") ||
-        slug.startsWith("moment.")
-      ) {
+      } else if (slug === "journey.create") {
         boardCtx?.actions.bumpJourneyNav()
+        const journeyId = resolveCreatedEntityId(result?.data, "journey")
+        if (journeyId) {
+          boardCtx?.actions.onJourneySelect(journeyId)
+        }
+      } else if (slug === "journey.addMoment") {
+        boardCtx?.actions.bumpJourneyNav()
+        const momentId = resolveCreatedEntityId(result?.data, "moment")
+        if (momentId) {
+          boardCtx?.actions.onMomentSelect(momentId)
+        }
+      } else if (slug.startsWith("path.")) {
+        boardCtx?.actions.bumpJourneyNav()
+        const pathId = resolveCreatedEntityId(result?.data, "path")
+        if (pathId) {
+          boardCtx?.actions.onPathSelect(pathId)
+        }
+      } else if (slug.startsWith("moment.")) {
+        boardCtx?.actions.bumpJourneyNav()
+        const momentId = resolveCreatedEntityId(result?.data, "moment")
+        if (momentId) {
+          boardCtx?.actions.onMomentSelect(momentId)
+        }
       }
       onClose()
     },

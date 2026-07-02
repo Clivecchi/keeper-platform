@@ -91,6 +91,7 @@ export interface UniversalNavPanelProps {
   // Selection state — controlled by the Board
   selectedDialogId?: string | null
   selectedJourneyId?: string | null
+  selectedPathId?: string | null
   selectedKeeperId?: string | null
   selectedDraftId?: string | null
   selectedAgentId?: string | null
@@ -146,6 +147,7 @@ type JourneyItem = {
   id: string
   name: string
   momentCount?: number
+  keeperId?: string
   updatedAt: string
 }
 
@@ -271,6 +273,7 @@ export function UniversalNavPanel({
   def,
   selectedDialogId,
   selectedJourneyId,
+  selectedPathId,
   selectedKeeperId,
   selectedDraftId,
   selectedAgentId,
@@ -421,6 +424,60 @@ export function UniversalNavPanel({
         : null,
     [keepers, keeperNavRowPatch],
   )
+
+  const resolveEngagementKeeperId = React.useCallback(
+    (journeyKeeperId?: string) =>
+      journeyKeeperId ??
+      boardCtx?.selection.selectedKeeperId ??
+      frameCtx?.selection.activeKeeperId ??
+      keepers?.[0]?.id ??
+      undefined,
+    [
+      boardCtx?.selection.selectedKeeperId,
+      frameCtx?.selection.activeKeeperId,
+      keepers,
+    ],
+  )
+
+  const handlePathCreate = React.useCallback(() => {
+    if (!domainId || !user || !boardCtx || !selectedJourneyId) return
+    const journey = journeys?.find((item) => item.id === selectedJourneyId)
+    void boardCtx.actions.requestChronicleEngagement("path.create", {
+      entityType: "journey",
+      entityId: selectedJourneyId,
+      domainId,
+      journeyId: selectedJourneyId,
+      keeperId: resolveEngagementKeeperId(journey?.keeperId),
+    })
+  }, [
+    boardCtx,
+    domainId,
+    journeys,
+    resolveEngagementKeeperId,
+    selectedJourneyId,
+    user,
+  ])
+
+  const handleMomentCreate = React.useCallback(() => {
+    if (!domainId || !user || !boardCtx || !selectedJourneyId) return
+    const journey = journeys?.find((item) => item.id === selectedJourneyId)
+    void boardCtx.actions.requestChronicleEngagement("moment.create", {
+      entityType: "journey",
+      entityId: selectedJourneyId,
+      domainId,
+      journeyId: selectedJourneyId,
+      pathId: selectedPathId ?? undefined,
+      keeperId: resolveEngagementKeeperId(journey?.keeperId),
+    })
+  }, [
+    boardCtx,
+    domainId,
+    journeys,
+    resolveEngagementKeeperId,
+    selectedJourneyId,
+    selectedPathId,
+    user,
+  ])
 
   // ── Per-section error states ─────────────────────────────────────────────
   const [dialogError, setDialogError] = React.useState<string | null>(null)
@@ -1006,6 +1063,26 @@ export function UniversalNavPanel({
               onTitleClick={() => toggleExpanded("journeys")}
               onAdd={user && domainId ? handleJourneyCreate : undefined}
             />
+            {selectedJourneyId && user && domainId ? (
+              <>
+                <SidebarCard
+                  className="keeper-sidebar-card"
+                  title="Path"
+                  description="Add to selected journey"
+                  onAdd={handlePathCreate}
+                />
+                <SidebarCard
+                  className="keeper-sidebar-card"
+                  title="Moment"
+                  description={
+                    selectedPathId
+                      ? "Add on selected path"
+                      : "Add on selected journey"
+                  }
+                  onAdd={handleMomentCreate}
+                />
+              </>
+            ) : null}
             {journeyError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
                 {journeyError}

@@ -2,11 +2,7 @@
 
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { apiFetch } from "../../../lib/api"
 import { useAuth } from "../../../context/AuthContext"
-import type { EngagementContext } from "../../../components/engagement/EngagementForm"
-import { useBoardEngagement } from "../../boards/engagement/useBoardEngagement"
-import { ChronicleActPresence } from "../chronicleConfig/ChronicleActPresence"
 import type { PresenceMeta } from "../presenceEnrichment"
 import type { RelatedSection } from "../presenceEnrichment"
 import { JourneyChronicleBlocks } from "../integrationChronicle/JourneyChronicleBlocks"
@@ -95,7 +91,9 @@ export function JourneyFocusPresence({
   const isActive = activeJourneyId === objectId
 
   const keeperId =
-    boardCtx?.selection.selectedKeeperId ?? meta?.keeper?.id ?? undefined
+    boardCtx?.selection.selectedKeeperId ??
+    meta?.keeper?.id ??
+    (typeof record.keeperId === "string" ? record.keeperId : undefined)
 
   const fieldValues = React.useMemo(
     () => ({
@@ -115,16 +113,8 @@ export function JourneyFocusPresence({
     [objectId, record, meta, isActive],
   )
 
-  const engagement = useBoardEngagement(() => {
-    onEngagementSuccess?.()
-    boardCtx?.actions.bumpJourneyNav()
-    setCoverMode("cover")
-  })
-
   React.useEffect(() => {
     setCoverMode("cover")
-    engagement.cancel()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objectId])
 
   React.useEffect(() => {
@@ -132,28 +122,18 @@ export function JourneyFocusPresence({
     if (label) onLabelResolved?.(label)
   }, [fieldValues.name, onLabelResolved])
 
-  const buildEngagementContext = React.useCallback(
-    (): EngagementContext => ({
-      entityType: "journey",
-      entityId: objectId,
-      domainId,
-      journeyId: objectId,
-      keeperId,
-    }),
-    [domainId, keeperId, objectId],
-  )
-
   const openEngagementAct = React.useCallback(
-    async (slug: string) => {
-      if (!isAuthenticated) return
-      const response = await apiFetch(
-        `/api/engagement/templates/${encodeURIComponent(slug)}`,
-      )
-      if (!response.success || !response.data) return
-      engagement.activateTemplate(response.data, buildEngagementContext())
-      setCoverMode("act")
+    (slug: string) => {
+      if (!isAuthenticated || !boardCtx) return
+      void boardCtx.actions.requestChronicleEngagement(slug, {
+        entityType: "journey",
+        entityId: objectId,
+        domainId,
+        journeyId: objectId,
+        keeperId,
+      })
     },
-    [buildEngagementContext, engagement, isAuthenticated],
+    [boardCtx, domainId, isAuthenticated, keeperId, objectId],
   )
 
   const coverContent = React.useMemo(
@@ -199,21 +179,6 @@ export function JourneyFocusPresence({
           boardCtx?.actions.clearSelection()
           boardCtx?.actions.bumpJourneyNav()
         }}
-      />
-    )
-  }
-
-  if (coverMode === "act" && engagement.intent) {
-    return (
-      <ChronicleActPresence
-        template={engagement.intent.template}
-        context={engagement.intent.context}
-        onSubmit={engagement.handleSubmit}
-        onClose={() => {
-          engagement.cancel()
-          setCoverMode("cover")
-        }}
-        submitting={engagement.submitting}
       />
     )
   }

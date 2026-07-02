@@ -11,6 +11,7 @@ import type { ChronicleSaveStatus } from "../chronicleConfig/types"
 import type { AgentCoverMode } from "./coverTypes"
 import { coverFromRecord } from "./coverImageUtils"
 import type { ChronicleCoverMedia } from "../chronicleConfig/ChronicleCoverField"
+import { useGuidedArrivalOptional } from "../../guidedArrival/GuidedArrivalContext"
 
 export interface DomainFocusPresenceProps {
   objectId: string
@@ -51,6 +52,7 @@ export function DomainFocusPresence({
   onCoverSaved,
   renderFieldEditor,
 }: DomainFocusPresenceProps) {
+  const guidedArrival = useGuidedArrivalOptional()
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
   const [coverRevision, setCoverRevision] = React.useState(0)
 
@@ -71,16 +73,23 @@ export function DomainFocusPresence({
     return undefined
   }, [record.theme])
 
-  const coverContent = React.useMemo(
-    () =>
-      domainCoverSchema.resolve(
-        record,
-        fieldValues,
-        { objectId },
-        { onConfigure: () => setCoverMode("config"), onOpenSession: () => {} },
-      ),
-    [record, fieldValues, objectId, coverRevision],
-  )
+  const coverContent = React.useMemo(() => {
+    const content = domainCoverSchema.resolve(
+      record,
+      fieldValues,
+      { objectId },
+      { onConfigure: () => setCoverMode("config"), onOpenSession: () => {} },
+    )
+    const arrivalQuote = guidedArrival?.coverGreeting?.trim()
+    if (!arrivalQuote) return content
+    return {
+      ...content,
+      identity: {
+        ...content.identity,
+        voiceQuote: arrivalQuote,
+      },
+    }
+  }, [record, fieldValues, objectId, coverRevision, guidedArrival?.coverGreeting])
 
   return (
     <div className="relative flex flex-col h-full min-h-0">

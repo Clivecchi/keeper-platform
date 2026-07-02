@@ -8,6 +8,8 @@ export * from './integrationChronicleDeclarations.js';
 export * from './serviceBindings.js';
 export * from './directorContinuity.js';
 export * from './domainTier.js';
+export * from './guidedArrival.js';
 export * from './structure/index.js';
 export * from './presenceCover.js';
 export * from './objectTheme.js';
+export * from './domains/domainFrameIdentity.js';

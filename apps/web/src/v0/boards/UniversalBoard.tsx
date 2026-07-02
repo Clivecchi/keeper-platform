@@ -56,6 +56,7 @@ import { useAuth } from "../../context/AuthContext"
 import { PanelErrorBoundary } from "../components/PanelErrorBoundary"
 import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
 import type { WorkspaceBoardId } from "./workspaceBoardNav"
+import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchestrator"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
@@ -355,6 +356,8 @@ function UniversalBoardShell({
 
         {switcherOverlay}
 
+        {def.boardId === "domain" ? <GuidedArrivalOrchestrator /> : null}
+
         {briefOpen && domainFrame && (
           <DomainBriefSlideOver
             domainFrame={domainFrame}
@@ -380,6 +383,7 @@ function UniversalBoardShell({
                           def={def}
                           selectedDialogId={selection.selectedDialogId}
                           selectedJourneyId={selection.selectedJourneyId}
+                          selectedPathId={selection.selectedPathId}
                           selectedKeeperId={selection.selectedKeeperId}
                           selectedDraftId={selection.selectedDraftId}
                           selectedAgentId={selection.selectedAgentId}

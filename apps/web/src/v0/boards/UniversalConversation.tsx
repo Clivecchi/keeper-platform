@@ -66,6 +66,7 @@ import {
 import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
+import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -217,6 +218,8 @@ export function UniversalConversation({
   const { refreshSession, user } = useAuth()
   const audience = shellAudience ?? "keeper"
   const kipMode = def.conversation.kipMode
+  const guidedArrival = useGuidedArrivalOptional()
+  const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
   const agentEcho = def.conversation.agentEcho === true
   const defaultAgentSlug = def.conversation.agentSlug ?? "kip"
   const defaultAgentName = def.conversation.agentName ?? "Kip"
@@ -279,6 +282,7 @@ export function UniversalConversation({
     selectedAgentRecord.slug !== defaultAgentSlug
 
   const isDirectorMode =
+    !guidedArrivalActive &&
     def.conversation.dialogOrchestration === "director" &&
     (kipMode === "ide" || kipMode === "domain")
   const directorAgentSlug = def.conversation.directorAgentSlug ?? defaultAgentSlug
@@ -329,16 +333,20 @@ export function UniversalConversation({
     [directorInstrumentLabels],
   )
 
-  const dialogAgentSlug = isDirectorMode
-    ? directorAgentSlug
-    : usingSelectedNonDefaultAgent && selectedAgentRecord
-      ? selectedAgentRecord.slug
-      : baseAgentSlug
-  const dialogAgentDisplayName = isDirectorMode
-    ? defaultAgentName
-    : usingSelectedNonDefaultAgent && selectedAgentRecord
-      ? selectedAgentRecord.name
-      : def.conversation.agentName
+  const dialogAgentSlug = guidedArrivalActive && guidedArrival
+    ? guidedArrival.leadAgentSlug
+    : isDirectorMode
+      ? directorAgentSlug
+      : usingSelectedNonDefaultAgent && selectedAgentRecord
+        ? selectedAgentRecord.slug
+        : baseAgentSlug
+  const dialogAgentDisplayName = guidedArrivalActive && guidedArrival
+    ? guidedArrival.leadAgentDisplayName
+    : isDirectorMode
+      ? defaultAgentName
+      : usingSelectedNonDefaultAgent && selectedAgentRecord
+        ? selectedAgentRecord.name
+        : def.conversation.agentName
 
   const directorConfig = React.useMemo(
     () =>
@@ -930,6 +938,10 @@ export function UniversalConversation({
     resolvedAgentId:
       usingSelectedNonDefaultAgent && activeDialogAgentId ? activeDialogAgentId : undefined,
     agentDisplayName: dialogAgentDisplayName,
+    greetingMessage:
+      guidedArrivalActive && guidedArrival?.greeting
+        ? guidedArrival.greeting
+        : undefined,
     mode: kipMode,
     dialogBoard: kipMode === "designer" ? "designer" : undefined,
     dialogFrame: kipMode === "designer" ? (designerFocusKey ?? undefined) : undefined,
@@ -990,16 +1002,39 @@ export function UniversalConversation({
   })
 
   const idleMessages = React.useMemo<AgentDialogueMessage[]>(
-    () =>
-      kipMode === "ide"
-        ? [{
-            id: "kip-greeting",
-            role: "agent",
-            content: "I'm here. What are we building?",
-            createdAt: new Date().toISOString(),
-          }]
-        : [],
-    [kipMode],
+    () => {
+      if (kipMode === "ide") {
+        return [{
+          id: "kip-greeting",
+          role: "agent",
+          content: "I'm here. What are we building?",
+          createdAt: new Date().toISOString(),
+        }]
+      }
+      if (guidedArrivalActive && guidedArrival?.greeting) {
+        return [{
+          id: "arrival-greeting",
+          role: "agent",
+          content: guidedArrival.greeting,
+          createdAt: new Date().toISOString(),
+        }]
+      }
+      return []
+    },
+    [kipMode, guidedArrivalActive, guidedArrival?.greeting],
+  )
+
+  const handleDialogSubmit = React.useCallback(
+    async (
+      event: React.FormEvent,
+      payload: { content: string; displayContent?: string },
+    ) => {
+      await sendMessage(event, payload)
+      if (guidedArrivalActive && guidedArrival) {
+        void guidedArrival.acknowledge()
+      }
+    },
+    [sendMessage, guidedArrivalActive, guidedArrival],
   )
 
   useSelectionSessionResume({
@@ -1501,7 +1536,7 @@ export function UniversalConversation({
         dialogueMode={def.conversation.dialogueMode === "domain" ? "domain" : undefined}
         inputValue={input}
         onInputChange={setInput}
-        onSubmit={sendMessage}
+        onSubmit={handleDialogSubmit}
         onComposerFileUpload={domainId && user?.id ? handleComposerFileUpload : undefined}
         onCommitAttachmentsToLibrary={
           domainId && user?.id ? handleCommitAttachmentsToLibrary : undefined

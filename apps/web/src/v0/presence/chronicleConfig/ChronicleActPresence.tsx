@@ -13,6 +13,7 @@ const HIDDEN_CONTEXT_FIELDS = new Set([
   "keeperId",
   "domainId",
   "journeyId",
+  "pathId",
   "dialogId",
   "kind",
 ])

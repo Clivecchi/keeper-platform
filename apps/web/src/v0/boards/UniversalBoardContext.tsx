@@ -34,6 +34,7 @@ import type { VoicePromptSectionKey } from "../presence/cover/voicePromptSection
 import type { BoardEngagementIntent } from "./engagement/useBoardEngagement"
 import type { EngagementContext } from "../../components/engagement/EngagementForm"
 import { apiFetch } from "../../lib/api"
+import { GuidedArrivalProvider } from "../guidedArrival/GuidedArrivalContext"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -154,6 +155,8 @@ export interface UniversalBoardActions {
   ) => void
   clearDraftDiscussAnchor: () => void
   clearDraftComposeHint: () => void
+  /** Prefill Dialog composer once (guided arrival, etc.). */
+  setDraftComposeHint: (hint: string | null) => void
   /** Open an engagement form in Chronicle (right panel), not Nav. */
   requestChronicleEngagement: (slug: string, context: EngagementContext) => Promise<void>
   closeChronicleEngagement: () => void
@@ -638,6 +641,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setDraftComposeHint(null)
   }, [])
 
+  const setDraftComposeHintAction = React.useCallback((hint: string | null) => {
+    setDraftComposeHint(hint)
+  }, [])
+
   const closeChronicleEngagement = React.useCallback(() => {
     setChronicleEngagement(null)
   }, [])
@@ -728,6 +735,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         requestRewriteDraftPoint,
         clearDraftDiscussAnchor,
         clearDraftComposeHint,
+        setDraftComposeHint: setDraftComposeHintAction,
         requestChronicleEngagement,
         closeChronicleEngagement,
         onEnterTrainingMode,
@@ -805,6 +813,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       requestRewriteDraftPoint,
       clearDraftDiscussAnchor,
       clearDraftComposeHint,
+      setDraftComposeHintAction,
       requestChronicleEngagement,
       closeChronicleEngagement,
       onEnterTrainingMode,
@@ -819,7 +828,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   return (
     <UniversalBoardCtx.Provider value={value}>
-      {children}
+      <GuidedArrivalProvider>{children}</GuidedArrivalProvider>
     </UniversalBoardCtx.Provider>
   )
 }

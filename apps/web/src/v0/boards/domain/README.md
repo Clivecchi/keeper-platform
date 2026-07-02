@@ -20,10 +20,12 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 ## ⚠️ Notes & ToDo
 - [x] Default lead agent + keeper seed on domain create (`provisionDomainOnCreate` — Step 1.2).
 - [x] Set `primaryDomainId` when user's first personal domain is created.
+- [x] Phase 2.1 Guided Arrival — first owner visit shows Cover + lead-agent Dialog (`v0/guidedArrival/`).
 - [ ] Domain Board session resumption — allow users to return to a prior Domain session via Chronicle trail.
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+- 2026-07-01: Phase 2.1 Guided Arrival — `GuidedArrivalOrchestrator` on Domain Board; lead agent Dialog + Chronicle Cover greeting for pending owners.
 - 2026-06-30: Phase 1.1 — Extracted `DomainSwitcherOverlay.tsx` + `useDomainSwitcher`; wired in `UniversalBoard` so IDE, Agent, and Design boards get the same top-bar domain switcher as Domain Board.
 - 2026-06-28: `V0Shell` auto-calls `POST /api/domains/:id/provision` when personal domain frame still shows KE3P defaults; reloads frame after repair.
 

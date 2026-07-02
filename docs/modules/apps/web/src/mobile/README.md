@@ -31,7 +31,7 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 ### Same as Universal Board (desktop)
 - Workspace: `?board=domain` (auto on mobile)
 - Keep / edit: `useBoardEngagement` → `/api/engagement/execute` + `ChronicleActPresence`
-- Kip: `useAgentDialog` + `KeeperDialogFrame` (lead agent + arrival greeting when `arrivalCompleted` pending)
+- Kip: `useAgentDialog` + `KeeperDialogFrame`
 - Moment open/close: `onMomentSelect` / `onMomentClear`
 - Active journey: `onSetActiveJourney` (persisted in `FrameContext`)
 
@@ -46,9 +46,6 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 - [ ] Phase 3: offline draft queue, push notifications, app store wrappers
 
 ## 📆 Update Log
-
-### 2026-07-01 — Phase 2.1 Guided Arrival (mobile)
-- `GuidedArrivalOrchestrator` focuses Kip tab on first owner visit; `KipScreen` uses lead agent + greeting + dismissible banner.
 
 ### 2026-06-30 — Realm mobile direction documented
 - Product split locked: mobile/tablet = Realm primary; desktop = admin/dev boards.

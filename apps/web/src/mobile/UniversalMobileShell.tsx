@@ -22,6 +22,7 @@ import { MomentDetailScreen } from "./screens/MomentDetailScreen";
 import { WorldScreen } from "./screens/WorldScreen";
 import { PwaInstallPrompt } from "./pwa";
 import type { MobileTabId } from "./types";
+import { GuidedArrivalOrchestrator } from "../v0/guidedArrival/GuidedArrivalOrchestrator";
 
 export interface UniversalMobileShellProps {
   styleId?: StyleId;
@@ -56,6 +57,10 @@ function UniversalMobileShellBody() {
     closeMoment,
   } = useUniversalMobile();
 
+  const focusKipTab = React.useCallback(() => {
+    setActiveTab("kip");
+  }, [setActiveTab]);
+
   const copy = TAB_COPY[activeTab];
   const isKipTab = activeTab === "kip";
 
@@ -66,6 +71,7 @@ function UniversalMobileShellBody() {
     >
       {!selectedMomentId ? (
         <>
+          <GuidedArrivalOrchestrator focusMobileKipTab={focusKipTab} showBanner={false} />
           {!isKipTab ? (
             <MobileHeader title={copy.title} subtitle={copy.subtitle} />
           ) : null}

@@ -4,6 +4,7 @@ const sessionOkKey = (domainId: string) => `keeper:provision-ok:${domainId}`
 
 export interface EnsureDomainProvisionedResult {
   provisioned: boolean
+  frameWritten?: boolean
   leadAgentSlug?: string | null
 }
 
@@ -23,23 +24,27 @@ export async function ensureDomainProvisioned(
       method: "POST",
     })) as {
       domain?: unknown
-      provision?: { leadAgentSlug?: string | null }
+      provision?: { leadAgentSlug?: string | null; frameWritten?: boolean }
     }
 
     if (!res?.domain) {
       return { provisioned: false }
     }
 
-    if (typeof sessionStorage !== "undefined") {
-      sessionStorage.setItem(sessionOkKey(domainId), "1")
-    }
+    const frameWritten = res.provision?.frameWritten === true
 
     return {
       provisioned: true,
+      frameWritten,
       leadAgentSlug: res.provision?.leadAgentSlug ?? null,
     }
   } catch (error) {
     console.warn("[ensureDomainProvisioned] failed:", error)
     return { provisioned: false }
   }
+}
+
+export function markDomainProvisionSessionOk(domainId: string): void {
+  if (typeof sessionStorage === "undefined") return
+  sessionStorage.setItem(sessionOkKey(domainId), "1")
 }

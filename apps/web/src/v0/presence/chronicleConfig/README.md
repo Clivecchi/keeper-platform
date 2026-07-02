@@ -31,6 +31,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-07-01 — Hidden `pathId` on moment Acts
+- `ChronicleActPresence` merges `pathId` from engagement context into submit payload (with `journeyId`, `keeperId`, `domainId`)
+
 ### 2026-06-30 — Object theme bits + Keeper/Agent avatar upload
 - `@keeper/shared/objectTheme` — each visual upload appends an ordered theme bit; cover/avatar active fields sync to latest bit of that role
 - Keeper Configure: avatar upload via `presenceSchema` (`Keeper.presenceSchema` migration)

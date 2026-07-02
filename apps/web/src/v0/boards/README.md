@@ -26,6 +26,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-01 — Phase 1.3: Journey / Path / Moment engagement templates
+- `UniversalNavPanel`: Journeys `+` → `journey.create`; when a journey is selected, Path `+` → `path.create`, Moment `+` → `moment.create` (includes `pathId` when path is in selection)
+- `JourneyFocusPresence` / `PathFocusPresence`: cover actions call `requestChronicleEngagement` (Chronicle Act shell, not inline duplicate)
+- `ChronicleEngagementSurface`: selects created journey/path/moment after submit
+- API: `POST /api/paths` accepts slug-style `journeyId` / `keeperId`; `POST /api/moments` accepts optional `pathId`
+
 ### 2026-06-30 — Phase 1.1: Domain switcher on all member boards
 - **`domain/DomainSwitcherOverlay.tsx`** — Extracted switcher fetch/open/add/navigate logic from `DomainBoard`.
 - **`UniversalBoard`** — `useDomainSwitcher(def.boardId)` wires top-bar domain click on IDE, Agent, Design, and Domain boards; navigates to same workspace after domain select/create.

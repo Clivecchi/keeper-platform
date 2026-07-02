@@ -32,7 +32,7 @@ import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
-import { ensureDomainProvisioned } from "../lib/ensureDomainProvisioned"
+import { ensureDomainProvisioned, markDomainProvisionSessionOk } from "../lib/ensureDomainProvisioned"
 import { domainFrameLooksUnseeded } from "../lib/domainFrameLooksUnseeded"
 import { resolveAudience } from "../data/resolveAudience"
 import { usePlacementMode } from "./usePlacementMode"
@@ -312,6 +312,9 @@ export function V0Shell() {
         const frame = await loadDomainFrame(slug)
         if (!cancelled) {
           setDomainFrame(frame)
+          if (!domainFrameLooksUnseeded(frame, slug, domainData.name)) {
+            markDomainProvisionSessionOk(domainData.id)
+          }
           console.log("[DomainProvision] Repaired and reloaded frame for:", slug)
         }
       } catch (err) {

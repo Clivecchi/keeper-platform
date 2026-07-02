@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { Prisma, PrismaClient } from '@keeper/database';
-import { defaultDomainSettingsForCreate } from '@keeper/shared';
+import { defaultDomainSettingsForCreate, domainFrameLooksUnseeded } from '@keeper/shared';
 import { ensureDomainHomeBoard } from '../boards/domainManagement.js';
 import { buildInitialDomainFrameJson } from './buildInitialDomainFrameJson.js';
 import { DEFAULT_DOMAIN_THEME_PRIMARY } from './domainFrameFallback.js';
@@ -20,6 +20,7 @@ export interface ProvisionDomainOnCreateResult {
   keeperId: string | null;
   leadAgentId: string | null;
   leadAgentSlug: string | null;
+  frameWritten: boolean;
 }
 
 function isEmptyJson(value: unknown): boolean {
@@ -150,7 +151,15 @@ export async function provisionDomainOnCreate(
     leadAgentSlug = resolved?.slug ?? 'kip';
   }
 
-  const needsFrame = isEmptyJson(domain.frame_json);
+  const existingFrame =
+    domain.frame_json && typeof domain.frame_json === 'object' && !Array.isArray(domain.frame_json)
+      ? (domain.frame_json as Record<string, unknown>)
+      : null;
+
+  const needsFrame =
+    isEmptyJson(domain.frame_json) ||
+    domainFrameLooksUnseeded(existingFrame ?? {}, domain.slug, domain.name);
+
   const frameJson = needsFrame
     ? buildInitialDomainFrameJson({
         name: domain.name,
@@ -252,5 +261,6 @@ export async function provisionDomainOnCreate(
     keeperId,
     leadAgentId,
     leadAgentSlug,
+    frameWritten: frameJson !== null,
   };
 }

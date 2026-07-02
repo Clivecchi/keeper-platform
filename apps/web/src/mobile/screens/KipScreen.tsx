@@ -13,6 +13,8 @@ import { MobileKipResponseToolbar } from "../components/MobileKipResponseToolbar
 import { useMobileKipDialogStage } from "../hooks/useMobileKipDialogStage";
 import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
+import { useGuidedArrival } from "../../v0/guidedArrival/GuidedArrivalContext";
+import { GuidedArrivalBanner } from "../../v0/guidedArrival/GuidedArrivalBanner";
 
 export function KipScreen() {
   const {
@@ -51,6 +53,9 @@ export function KipScreen() {
     };
   }, [kipFocusMomentId]);
 
+  const guidedArrival = useGuidedArrival();
+  const arrivalActive = guidedArrival.isActive;
+
   const agentContext = React.useMemo(() => {
     if (!domainFrame) return undefined;
     const audience = resolvedAudience ?? "keeper";
@@ -80,8 +85,9 @@ export function KipScreen() {
     activeSessionId,
     sendMessage,
   } = useAgentDialog({
-    agentSlug: "kip",
-    agentDisplayName: "Kip",
+    agentSlug: arrivalActive ? guidedArrival.leadAgentSlug : "kip",
+    agentDisplayName: arrivalActive ? guidedArrival.leadAgentDisplayName : "Kip",
+    greetingMessage: arrivalActive ? guidedArrival.greeting : undefined,
     mode: "domain",
     domainSlug,
     domainId,
@@ -112,6 +118,30 @@ export function KipScreen() {
     },
   });
 
+  const dialogMessages = React.useMemo(() => {
+    if (!arrivalActive || !guidedArrival.greeting || messages.length > 0) return messages;
+    return [
+      {
+        id: "arrival-greeting",
+        role: "agent" as const,
+        content: guidedArrival.greeting,
+        createdAt: new Date().toISOString(),
+      },
+      ...messages,
+    ];
+  }, [arrivalActive, guidedArrival.greeting, messages]);
+
+  const handleSubmit = React.useCallback(
+    async (
+      event: React.FormEvent,
+      payload: { content: string; displayContent?: string },
+    ) => {
+      await sendMessage(event, payload);
+      if (arrivalActive) void guidedArrival.acknowledge();
+    },
+    [sendMessage, arrivalActive, guidedArrival],
+  );
+
   const {
     stage,
     responseView,
@@ -119,7 +149,7 @@ export function KipScreen() {
     displayMessages,
     latestAgentMessage,
   } = useMobileKipDialogStage({
-    messages,
+    messages: dialogMessages,
     input,
     isSending,
     composerFocused,
@@ -202,6 +232,15 @@ export function KipScreen() {
 
   return (
     <div className="mobile-kip-screen">
+      {arrivalActive ? (
+        <GuidedArrivalBanner
+          agentName={guidedArrival.leadAgentDisplayName}
+          greeting={guidedArrival.greeting}
+          dismissed={guidedArrival.isBannerDismissed}
+          onDismiss={guidedArrival.dismissBanner}
+          onAcknowledge={() => void guidedArrival.acknowledge()}
+        />
+      ) : null}
       {kipFocusMomentId ? (
         <div className="mobile-kip-focus-bar">
           <p className="truncate text-xs" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
@@ -231,7 +270,7 @@ export function KipScreen() {
           }
           inputValue={input}
           onInputChange={setInput}
-          onSubmit={sendMessage}
+          onSubmit={handleSubmit}
           isSending={isSending}
           error={error}
           thinkingSteps={thinkingSteps}
@@ -239,7 +278,7 @@ export function KipScreen() {
           domainId={domainId}
           activeSessionId={activeSessionId}
           dialogueMode="domain"
-          agentName="Kip"
+          agentName={arrivalActive ? guidedArrival.leadAgentDisplayName : "Kip"}
           onOpenMoment={openMoment}
           showServiceBar={false}
         />

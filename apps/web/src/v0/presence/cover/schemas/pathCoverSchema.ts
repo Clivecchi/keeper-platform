@@ -33,15 +33,27 @@ function statusGlow(momentCount: number): CoverAvatarGlow {
 }
 
 function resolveActions(handlers: CoverActionHandlers): CoverActionDef[] {
-  return [
-    {
-      id: "configure",
-      label: "Edit",
+  const actions: CoverActionDef[] = []
+
+  if (handlers.onEngagementAct) {
+    actions.push({
+      id: "create-moment",
+      label: "New Moment",
       variant: "primary",
-      icon: "gear",
-      onClick: handlers.onConfigure,
-    },
-  ]
+      icon: "play",
+      onClick: () => handlers.onEngagementAct!("moment.create"),
+    })
+  }
+
+  actions.push({
+    id: "configure",
+    label: "Edit",
+    variant: handlers.onEngagementAct ? "secondary" : "primary",
+    icon: "gear",
+    onClick: handlers.onConfigure,
+  })
+
+  return actions
 }
 
 export const pathCoverSchema: EntityCoverSchema<PathCoverRecord> = {

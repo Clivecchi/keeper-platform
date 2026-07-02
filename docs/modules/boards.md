@@ -4,6 +4,7 @@
 V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A Board owns its layout, chrome (top banner, InteractionBar), and context entirely — V0Shell mounts a Board and steps back.
 
 ## 🧱 Key Files
+- `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle); mounts domain switcher overlay for all boards
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
 - `designer/` — The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
@@ -24,6 +25,17 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-07-01 — Phase 1.3: Journey / Path / Moment engagement templates
+- `UniversalNavPanel`: Journeys `+` → `journey.create`; when a journey is selected, Path `+` → `path.create`, Moment `+` → `moment.create` (includes `pathId` when path is in selection)
+- `JourneyFocusPresence` / `PathFocusPresence`: cover actions call `requestChronicleEngagement` (Chronicle Act shell, not inline duplicate)
+- `ChronicleEngagementSurface`: selects created journey/path/moment after submit
+- API: `POST /api/paths` accepts slug-style `journeyId` / `keeperId`; `POST /api/moments` accepts optional `pathId`
+
+### 2026-06-30 — Phase 1.1: Domain switcher on all member boards
+- **`domain/DomainSwitcherOverlay.tsx`** — Extracted switcher fetch/open/add/navigate logic from `DomainBoard`.
+- **`UniversalBoard`** — `useDomainSwitcher(def.boardId)` wires top-bar domain click on IDE, Agent, Design, and Domain boards; navigates to same workspace after domain select/create.
+- **`DomainBoard.tsx`** — Slim entry point only; switcher owned by UniversalBoard.
 
 ### 2026-06-30 — Nav content gating infrastructure (Realm prerequisite)
 - `NavPanelDef`: optional `navMode` (`static` | `contentGated`, default `static`) and `navAlwaysShow` for exceptions.

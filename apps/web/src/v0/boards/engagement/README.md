@@ -8,20 +8,30 @@ Wires KeeperType engagement templates into the Universal Board (Nav + Chronicle)
 
 **Nav triggers, Chronicle renders:** Nav `+` calls `requestChronicleEngagement` on board context. `ChronicleEngagementSurface` → `ChronicleActPresence` (declared shell — same as Config/Manage), never generic `EngagementForm` chrome or inline Nav forms.
 
-Used by `KeeperPresence` moment focus (`PresenceEngagementActions`). Journey focus uses cover actions in `JourneyFocusPresence` → Act mode (`ChronicleActPresence`).
+Journey and Path cover actions also call `requestChronicleEngagement` (same pipeline). Mobile `KeepScreen` uses `useBoardEngagement` + `ChronicleActPresence` for `moment.create`.
 
 ## 🧱 Key Files
 - `useBoardEngagement.ts` — Intent state, template activation, execute + refresh callback
 - `ChronicleEngagementSurface.tsx` — Board wrapper → `ChronicleActPresence`
+- `engagementResultUtils.ts` — Resolve created entity ids from execute responses
 - `ChronicleActPresence.tsx` (in `presence/chronicleConfig/`) — Declared Act surface: `ChronicleConfigShell` + template fields
 - `BoardEngagementForm.tsx` — Inline engagement form for presence focus (chronicle variant)
 - `PresenceEngagementActions.tsx` — Chronicle action bar + inline form wrapper
+- `JourneyChronicleEngagement.tsx` — Legacy EntityEngagementBar wiring (standalone frames)
+
+## Manual verify (Domain Board `?board=domain`)
+1. Seed templates if needed: `journey-path-moment-engagement-templates.seed.ts`
+2. **Journey:** Nav Journeys `+` → Chronicle Act → submit → new journey appears in Nav and Chronicle focus
+3. **Path:** Select a journey in Nav → Path `+` (or Journey cover “New Path”) → submit → path focus opens
+4. **Moment:** With journey selected (and optional path in Chronicle) → Moment `+` or cover “New Moment” → submit → moment focus opens
+5. **Mobile:** Keep tab loads `moment.create` template; submit opens new moment or World tab
 
 ## ⚠️ Notes & ToDo
 - [ ] Toast notifications instead of silent console errors on submit failure
 - [ ] Public Present engagement after member board pass is complete
 
 ## 📆 Update Log
+- **2026-07-01** — Phase 1.3: Nav Path/Moment `+` when journey selected; cover actions route through `requestChronicleEngagement`; post-create nav selection for journey/path/moment; `pathId` hidden context; API path schema accepts slug-style ids; smoke tests + manual verify steps.
 - **2026-06-19** — `useBoardEngagement` passes execute `data` to `onSuccess`; `ChronicleEngagementSurface` bumps draft nav + selects new draft on `draft.create`.
 - **2026-06-19** — `ChronicleActPresence` uses declared `ChronicleConfigShell` (matches Agent Manage); removed bespoke Act header + `EngagementForm`.
 - **2026-06-19** — Initial board-only engagement wiring for Universal Board singular UI.

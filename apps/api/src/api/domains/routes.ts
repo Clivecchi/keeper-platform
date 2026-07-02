@@ -866,6 +866,7 @@ router.post('/:id/provision', authMiddlewareCompat, async (req: Request, res: Re
         keeperId: provisioned.keeperId,
         leadAgentId: provisioned.leadAgentId,
         leadAgentSlug: provisioned.leadAgentSlug,
+        frameWritten: provisioned.frameWritten,
       },
     });
   } catch (error) {

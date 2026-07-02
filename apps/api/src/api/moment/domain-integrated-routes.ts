@@ -27,6 +27,7 @@ const createMomentSchema = z.object({
   narrative: z.string().min(1),
   type: z.enum(['text', 'image', 'video', 'audio', 'link', 'file']).default('text'),
   journeyId: z.string().min(1),
+  pathId: z.string().min(1).optional(),
   keeperId: z.string().min(1),
   domainId: z.string().uuid(),
   isPublic: z.boolean().default(false),
@@ -227,7 +228,7 @@ router.post('/',
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const { domainId, keeperId, journeyId, ...momentData } = req.body;
+      const { domainId, keeperId, journeyId, pathId, ...momentData } = req.body;
 
       const moment = await prisma.moment.create({
         data: {
@@ -235,6 +236,7 @@ router.post('/',
           domainId,
           keeperId,
           journeyId,
+          ...(pathId ? { pathId } : {}),
           ownerId: req.user.id,
         },
         include: {

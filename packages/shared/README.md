@@ -13,6 +13,8 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/glossAnchor.ts` – `GlossAnchor` type + DOM attribute helpers (Gloss-readiness)
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
+- `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
+- `src/domains/domainFrameIdentity.ts` – platform frame marker detection for personal domain `frame_json` repair
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -26,6 +28,13 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-07-01 — Guided Arrival (Phase 2.1)
+- Added `guidedArrival.ts` — `isGuidedArrivalPending`, `GUIDED_ARRIVAL_COMPOSE_HINT`.
+- `defaultDomainSettingsForCreate` seeds `arrivalCompleted: false` for new domains.
+
+### 2026-07-01 — Personal domain frame identity (Phase 1.4)
+- Added `domains/domainFrameIdentity.ts` — shared `domainFrameLooksUnseeded` for API provisioner and web V0Shell auto-repair.
 
 ### 2026-06-30 — Draft point promotion (Phase 2.2b)
 - `DraftPoint.promotion` JSON refs (`promotedPathId`, `promotedMomentIds`, etc.)

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import { useAuth } from "../../../context/AuthContext"
 import type { PresenceBreadcrumb, PresenceMeta, RelatedSection } from "../presenceEnrichment"
 import { PathChronicleBlocks } from "../integrationChronicle/PathChronicleBlocks"
 import { PathConfigPresence } from "../integrationChronicle/PathConfigPresence"
@@ -24,6 +25,25 @@ export interface PathFocusPresenceProps {
   onLabelResolved?: (label: string) => void
   onMomentSelect?: (id: string) => void
   onEngagementSuccess?: () => void
+}
+
+function resolveJourneyId(record: Record<string, unknown>): string | undefined {
+  if (typeof record.journeyId === "string") return record.journeyId
+  const journey = record.Journey as { id?: string } | undefined
+  return typeof journey?.id === "string" ? journey.id : undefined
+}
+
+function resolveKeeperId(
+  record: Record<string, unknown>,
+  meta: PresenceMeta | undefined,
+  boardKeeperId: string | null | undefined,
+): string | undefined {
+  return (
+    boardKeeperId ??
+    meta?.keeper?.id ??
+    (typeof record.keeperId === "string" ? record.keeperId : undefined) ??
+    ((record.Keeper as { id?: string } | undefined)?.id)
+  )
 }
 
 function toPathCoverRecord(
@@ -69,7 +89,15 @@ export function PathFocusPresence({
   onEngagementSuccess,
 }: PathFocusPresenceProps) {
   const boardCtx = useUniversalBoardOptional()
+  const { isAuthenticated } = useAuth()
   const [coverMode, setCoverMode] = React.useState<EntityCoverMode>("cover")
+
+  const journeyId = resolveJourneyId(record)
+  const keeperId = resolveKeeperId(
+    record,
+    meta,
+    boardCtx?.selection.selectedKeeperId,
+  )
 
   const fieldValues = React.useMemo(
     () => ({
@@ -93,6 +121,21 @@ export function PathFocusPresence({
     if (label) onLabelResolved?.(label)
   }, [fieldValues.name, onLabelResolved])
 
+  const openEngagementAct = React.useCallback(
+    (slug: string) => {
+      if (!isAuthenticated || !boardCtx || !journeyId) return
+      void boardCtx.actions.requestChronicleEngagement(slug, {
+        entityType: "journey",
+        entityId: journeyId,
+        domainId,
+        journeyId,
+        pathId: objectId,
+        keeperId,
+      })
+    },
+    [boardCtx, domainId, isAuthenticated, journeyId, keeperId, objectId],
+  )
+
   const coverContent = React.useMemo(
     () =>
       resolvePathCoverContent(
@@ -101,9 +144,10 @@ export function PathFocusPresence({
         { objectId },
         {
           onConfigure: () => setCoverMode("config"),
+          onEngagementAct: isAuthenticated && journeyId ? openEngagementAct : undefined,
         },
       ),
-    [pathRecord, fieldValues, objectId],
+    [pathRecord, fieldValues, objectId, isAuthenticated, journeyId, openEngagementAct],
   )
 
   if (coverMode === "config") {

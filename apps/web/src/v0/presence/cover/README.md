@@ -91,6 +91,13 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `MomentConfigPresence` — title + narrative via `PATCH /api/moments/:id`
 - `MomentChronicleBlocks` — story body below cover; removed inline `PresenceEngagementActions` / autosave for moment focus
 
+## 📆 Update Log
+
+### 2026-07-01 — Phase 1.3 engagement Acts
+- `JourneyFocusPresence`: cover path/moment/add-moment actions → `requestChronicleEngagement` (shared Chronicle Act pipeline)
+- `PathFocusPresence`: cover “New Moment” → `moment.create` with `journeyId` + `pathId` context
+- `pathCoverSchema`: moment.create action when authenticated
+
 ### 2026-06-19 — Journey EntityKind migration
 - Added `journeyCoverSchema.ts`, `JourneyFocusPresence.tsx` (Cover · Config · Act)
 - Engagement actions in cover actions slot; Act mode via `ChronicleActPresence`
