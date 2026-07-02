@@ -2,19 +2,37 @@
 
 import type { MobileTabId } from "../types";
 
-const TABS: Array<{ id: MobileTabId; label: string }> = [
-  { id: "world", label: "World" },
-  { id: "moment", label: "Moment" },
-  { id: "journeys", label: "Journeys" },
-  { id: "kip", label: "Kip" },
-];
+const DOMAIN_TABS: MobileTabId[] = ["realm", "world", "moment", "journeys", "kip"];
+const IN_REALM_TABS: MobileTabId[] = ["world", "moment", "journeys", "kip"];
+
+const DEFAULT_TAB_LABELS: Record<MobileTabId, string> = {
+  realm: "Realm",
+  world: "World",
+  moment: "Moment",
+  journeys: "Journeys",
+  kip: "Kip",
+};
 
 export interface MobileTabBarProps {
   activeTab: MobileTabId;
   onTabChange: (tab: MobileTabId) => void;
+  tabLabels?: Partial<Record<MobileTabId, string>>;
+  /** When true (in-realm Domain Screen), hide the cross-realm picker tab. */
+  inRealmBoard?: boolean;
 }
 
-export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
+export function MobileTabBar({
+  activeTab,
+  onTabChange,
+  tabLabels,
+  inRealmBoard = false,
+}: MobileTabBarProps) {
+  const tabIds = inRealmBoard ? IN_REALM_TABS : DOMAIN_TABS;
+  const tabs = tabIds.map((id) => ({
+    id,
+    label: tabLabels?.[id] ?? DEFAULT_TAB_LABELS[id],
+  }));
+
   return (
     <nav
       className="shrink-0 border-t px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2"
@@ -24,8 +42,10 @@ export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
       }}
       aria-label="Mobile navigation"
     >
-      <div className="grid grid-cols-4 gap-1">
-        {TABS.map((tab) => {
+      <div
+        className={`grid gap-0.5 ${inRealmBoard ? "grid-cols-4" : "grid-cols-5"}`}
+      >
+        {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
           return (
             <button

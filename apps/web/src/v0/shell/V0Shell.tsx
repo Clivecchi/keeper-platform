@@ -20,10 +20,13 @@ import {
   readAuthoritativeSearchParams,
   resolveBoardDefinitionId,
   resolveWorkspaceBoardId,
+  isMemberMobileBoard,
+  isMemberWorkspaceBoard,
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
 import { DomainBoard } from "../boards/domain/DomainBoard"
+import { RealmBoard } from "../boards/realm/RealmBoard"
 import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
 import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
 import { PublicGuestChrome } from "../../mobile/PublicGuestChrome"
@@ -136,15 +139,18 @@ export function V0Shell() {
     const surfaceDesktop = searchParams.get("surface") === "desktop"
     const adminWorkspaceBoards = new Set<WorkspaceBoardId>(["ide", "agent", "designer"])
 
-    // Universal Mobile: authenticated narrow viewports use the domain board only.
-    // Strip legacy ?frame= params — member work lives on ?board=domain, not standalone frames.
+    // Universal Mobile: authenticated narrow viewports use member boards (domain · realm).
+    // Default to realm board — Realm tab is the primary mobile home.
+    // Strip legacy ?frame= params — member work lives on ?board=, not standalone frames.
     if (mobileSurface === "mobile" && !surfaceDesktop) {
       if (board && adminWorkspaceBoards.has(board as WorkspaceBoardId)) return
-      if (board !== "domain" || frame) {
+      const targetBoard =
+        board === "domain" ? "domain" : "realm"
+      if (!isMemberWorkspaceBoard(board) || frame) {
         setSearchParams(
           (prev) => {
             const next = new URLSearchParams(prev)
-            next.set("board", "domain")
+            next.set("board", targetBoard)
             next.delete("frame")
             return next
           },
@@ -158,7 +164,7 @@ export function V0Shell() {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev)
-          next.set("board", "domain")
+          next.set("board", mobileSurface === "mobile" ? "realm" : "domain")
           return next
         },
         { replace: true },
@@ -649,7 +655,7 @@ export function V0Shell() {
         : null
     const useMobileShell =
       mobileSurface === "mobile"
-      && matchedDef.boardId === "domain"
+      && isMemberMobileBoard(matchedDef.boardId)
       && isAuthenticated
 
     return (
@@ -689,6 +695,8 @@ export function V0Shell() {
               </UniversalBoardProvider>
             ) : matchedDef.boardId === "domain" ? (
               <DomainBoard key="domain" />
+            ) : matchedDef.boardId === "realm" ? (
+              <RealmBoard key="realm" />
             ) : (
               <UniversalBoard
                 key={matchedDef.boardId}

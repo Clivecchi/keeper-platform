@@ -12,7 +12,8 @@
  */
 
 import * as React from "react"
-import { PaperAirplaneIcon, PaperClipIcon, XMarkIcon } from "@heroicons/react/24/outline"
+import { PaperAirplaneIcon, PaperClipIcon, MicrophoneIcon, XMarkIcon } from "@heroicons/react/24/outline"
+import type { TalkModeState } from "../../hooks/useTalkMode"
 import { useAuth } from "../../context/AuthContext"
 import {
   buildComposerSubmitContent,
@@ -106,6 +107,13 @@ export interface AgentComposerProps {
   /** Expands composer input for mobile staged layout. */
   composerSize?: "default" | "mobile-expanded" | "mobile-compact"
   feedbackSlot?: React.ReactNode
+  /** Talk mode — mic control; transcript lands in composer for user confirm before send. */
+  talkMode?: boolean
+  talkState?: TalkModeState
+  talkSupported?: boolean
+  onTalkStart?: () => void
+  onTalkStop?: () => void
+  talkError?: string | null
 }
 
 const MIN_ROWS = 4
@@ -149,6 +157,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   submitOnEnter = true,
   onInputFocusChange,
   composerSize = "default",
+  talkMode = false,
+  talkState = "idle",
+  talkSupported = false,
+  onTalkStart,
+  onTalkStop,
+  talkError,
 }) => {
   const fileInputId = React.useId()
   const formRef = React.useRef<HTMLFormElement>(null)
@@ -299,6 +313,23 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const canSend =
     (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled
 
+  const showTalkMic = talkMode && talkSupported
+  const showTalkUnsupported = talkMode && !talkSupported
+  const isTalkListening = talkState === "listening"
+  const isTalkBusy = talkState === "listening" || talkState === "transcribing"
+
+  const handleTalkClick = () => {
+    if (!talkSupported || disabled || isSending) return
+    if (isTalkListening) onTalkStop?.()
+    else onTalkStart?.()
+  }
+
+  const talkMicTitle = isTalkListening
+    ? "Stop listening"
+    : talkState === "transcribing"
+      ? "Transcribing…"
+      : "Talk — speak to fill the composer"
+
   return (
     <div className="flex w-full flex-col gap-1">
       <form
@@ -343,6 +374,36 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {showTalkMic ? (
+              <button
+                type="button"
+                onClick={handleTalkClick}
+                disabled={disabled || isSending || talkState === "transcribing"}
+                className={[
+                  "keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-40",
+                  isTalkListening ? "keeper-composer-talk--active" : "hover:bg-black/5",
+                ].join(" ")}
+                style={{
+                  color: isTalkListening
+                    ? "hsl(var(--theme-focus-ring))"
+                    : SURFACE.inkTertiary,
+                }}
+                title={talkMicTitle}
+                aria-label={talkMicTitle}
+                aria-pressed={isTalkListening}
+              >
+                <MicrophoneIcon className="h-4 w-4" />
+              </button>
+            ) : null}
+            {showTalkUnsupported ? (
+              <span
+                className="keeper-composer-icon-btn flex h-8 w-8 items-center justify-center rounded-md opacity-40"
+                style={{ color: SURFACE.inkTertiary }}
+                title="Speech recognition is not supported in this browser"
+              >
+                <MicrophoneIcon className="h-4 w-4" aria-hidden />
+              </span>
+            ) : null}
             {stageFileUpload && (
               <>
                 <input
@@ -476,6 +537,19 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           {feedbackSlot}
         </div>
       )}
+      {talkMode && (isTalkBusy || talkError) ? (
+        <div
+          className="flex items-center gap-2 px-1 text-xs"
+          style={{ color: talkError ? "hsl(0 65% 45%)" : SURFACE.inkSecondary }}
+          aria-live="polite"
+        >
+          {talkError
+            ? talkError
+            : talkState === "listening"
+              ? "Listening… tap mic when done, then send."
+              : "Transcribing…"}
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -75,6 +75,7 @@ import LibraryPage from './pages/LibraryPage';
 import BoardDemoPage from './pages/BoardDemoPage';
 import V0Page from './pages/V0Page';
 import StyleEditorPage from './pages/StyleEditorPage';
+import { RealmsRedirect } from './mobile/screens/RealmsRedirect';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, authResolved, isLoading } = useAuth();
@@ -258,6 +259,7 @@ const App: React.FC = () => {
       
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
+        <Route path="/realms" element={<RealmsRedirect />} />
         <Route path="/kip" element={<KipAgentBoardPage />} />
         {/* Domain admin: any authenticated user can access; API enforces domain ownership for edits */}
         <Route path="/d/:slug/admin" element={<DomainAdminPage />} />

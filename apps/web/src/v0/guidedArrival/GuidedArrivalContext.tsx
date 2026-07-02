@@ -6,6 +6,7 @@ import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
+import { isMemberMobileBoard } from "../boards/workspaceBoardNav"
 
 export interface GuidedArrivalContextValue {
   /** Owner first visit — arrival UI should activate. */
@@ -66,7 +67,7 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
   const coverGreeting = greeting || domainFrame?.theme?.tagline?.trim() || ""
 
   React.useEffect(() => {
-    if (workspaceBoardId !== "domain" || !isOwner || !domainId) {
+    if (!isMemberMobileBoard(workspaceBoardId) || !isOwner || !domainId) {
       setSettings(null)
       setSettingsLoaded(false)
       return
@@ -118,7 +119,7 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
     !completedLocally &&
     settingsLoaded &&
     isOwner &&
-    workspaceBoardId === "domain" &&
+    isMemberMobileBoard(workspaceBoardId) &&
     isGuidedArrivalPending(settings, domainFrame as Record<string, unknown> | null)
 
   const acknowledge = React.useCallback(async () => {

@@ -166,7 +166,13 @@ type AgentItem = {
   status: string | null
 }
 
-type SectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents"
+type ConnectionNavItem = {
+  id: string
+  label: string
+  description?: string
+}
+
+type SectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "chatter"
 
 const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "dialogs",
@@ -178,16 +184,26 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "aiAccess",
   "capabilities",
   "library",
+  "chatter",
+  "connections",
   "agents",
   "boardDefs",
   "boards",
 ]
 
 const WORKSPACE_BOARD_NAV: { id: WorkspaceBoardId; label: string }[] = [
+  { id: "realm", label: "Realm" },
+  { id: "domain", label: "Domain" },
   { id: "ide", label: "IDE" },
   { id: "designer", label: "Design" },
   { id: "agent", label: "Agent" },
 ]
+
+function resolveWorkspaceBoardNavItems(
+  currentBoardId: WorkspaceBoardId,
+): { id: WorkspaceBoardId; label: string }[] {
+  return WORKSPACE_BOARD_NAV.filter((board) => board.id !== currentBoardId)
+}
 
 function resolveNavBlockOrder(def: UniversalBoardDef): NavRenderBlock[] {
   if (def.nav.navBlockOrder?.length) {
@@ -218,6 +234,17 @@ const PREVIEW_LIMIT: Record<SectionKey, number> = {
   keepers: 4,
   drafts: 5,
   agents: 5,
+  chatter: 3,
+}
+
+function isUnassignedDialog(
+  dialog: DialogItem,
+  journeyIds: Set<string>,
+  keeperIds: Set<string>,
+): boolean {
+  const subject = dialog.context?.subject?.trim()
+  if (!subject) return true
+  return !journeyIds.has(subject) && !keeperIds.has(subject)
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -372,6 +399,10 @@ export function UniversalNavPanel({
   const [libraryError, setLibraryError] = React.useState<string | null>(null)
   const [libraryCreating, setLibraryCreating] = React.useState(false)
   const libraryFileInputRef = React.useRef<HTMLInputElement>(null)
+  const [connectionItems, setConnectionItems] = React.useState<ConnectionNavItem[] | null>(null)
+  const [connectionError, setConnectionError] = React.useState<string | null>(null)
+
+  const showConnectionsNav = def.nav.navBlockOrder?.includes("connections") ?? false
 
   const keys = React.useMemo(
     () => (allKeyRows ? collapseKeyNavRows(allKeyRows, selectedKeyId) : null),
@@ -623,6 +654,40 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.agents, agentListVersion])
 
+  // ── Fetch: Connections — Realm Board only ─────────────────────────────────
+  React.useEffect(() => {
+    if (!domainId || !showConnectionsNav) return
+    let cancelled = false
+    setConnectionItems(null)
+    setConnectionError(null)
+    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/connections`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const payload = res as {
+          connections?: Array<{ userId: string; name: string; role: string }>
+          pendingInvitations?: Array<{ id: string; email: string; role: string }>
+        }
+        const active = (payload.connections ?? []).map((entry) => ({
+          id: entry.userId,
+          label: entry.name?.trim() || entry.userId,
+          description: entry.role,
+        }))
+        const pending = (payload.pendingInvitations ?? []).map((entry) => ({
+          id: entry.id,
+          label: entry.email?.trim() || entry.id,
+          description: `Pending · ${entry.role}`,
+        }))
+        setConnectionItems([...active, ...pending])
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setConnectionError(err instanceof Error ? err.message : "Failed to load connections")
+          setConnectionItems([])
+        }
+      })
+    return () => { cancelled = true }
+  }, [domainId, showConnectionsNav, dialogListVersion])
+
   const showKeysNav = (def.nav.integrations ?? []).some((item) => item.group === "ai")
   const showAiAccessNav = def.nav.aiAccessSummary === true
   const keysDomainRef = React.useRef<string | null>(null)
@@ -822,6 +887,30 @@ export function UniversalNavPanel({
     onClick: () => onDialogSelect?.(d.id),
   }))
 
+  const journeyIdSet = React.useMemo(
+    () => new Set((journeys ?? []).map((j) => j.id)),
+    [journeys],
+  )
+  const keeperIdSet = React.useMemo(
+    () => new Set((keepers ?? []).map((k) => k.id)),
+    [keepers],
+  )
+  const chatterDialogs = React.useMemo(
+    () =>
+      (dialogs ?? []).filter((dialog) =>
+        isUnassignedDialog(dialog, journeyIdSet, keeperIdSet),
+      ),
+    [dialogs, journeyIdSet, keeperIdSet],
+  )
+  const allChatterItems: SidebarCardItem[] = chatterDialogs.map((d) => ({
+    id: d.id,
+    label: d.updated_at
+      ? `${d.title?.trim() || "Untitled dialog"} · ${formatDate(d.updated_at)}`
+      : (d.title?.trim() || "Untitled dialog"),
+    isSelected: d.id === selectedDialogId,
+    onClick: () => onDialogSelect?.(d.id),
+  }))
+
   // Journeys: embed moment count — matches IDE Board's label format
   const allJourneyItems: SidebarCardItem[] = (journeys ?? []).map((j) => ({
     id: j.id,
@@ -908,7 +997,9 @@ export function UniversalNavPanel({
   const aiItems = aiIntegrations.map(toIntegrationItem)
   const integrationItems: SidebarCardItem[] = [...infrastructureItems, ...aiItems]
 
-  const boardNavItems: SidebarCardItem[] = WORKSPACE_BOARD_NAV.map((board) => ({
+  const boardNavItems: SidebarCardItem[] = resolveWorkspaceBoardNavItems(
+    def.boardId as WorkspaceBoardId,
+  ).map((board) => ({
     id: board.id,
     label: board.label,
     isSelected: workspaceBoardId === board.id,
@@ -974,6 +1065,36 @@ export function UniversalNavPanel({
     [showBoardDefs, allBoardDefs, activeBoardDefId, selectBoardDef],
   )
 
+  const navBlockOrder = resolveNavBlockOrder(def)
+
+  const libraryRowCount = (allLibraryRows ?? []).filter(
+    (row) => row.id && row.source_ref?.trim(),
+  ).length
+
+  const navContentCounts = React.useMemo(
+    () => ({
+      dialogs: dialogs?.length ?? null,
+      journeys: journeys?.length ?? null,
+      keepers: keepers?.length ?? null,
+      drafts: patchedDrafts?.length ?? null,
+      agents: agents?.length ?? null,
+      library: allLibraryRows === null ? null : libraryRowCount,
+      chatter: dialogs === null ? null : chatterDialogs.length,
+      connections: connectionItems === null ? null : connectionItems.length,
+    }),
+    [
+      dialogs,
+      journeys,
+      keepers,
+      patchedDrafts,
+      agents,
+      allLibraryRows,
+      libraryRowCount,
+      chatterDialogs.length,
+      connectionItems,
+    ],
+  )
+
   // ── Collapsed state — 36px strip with centered expand chevron ────────────
   if (collapsed) {
     return (
@@ -1001,32 +1122,6 @@ export function UniversalNavPanel({
       </div>
     )
   }
-
-  const navBlockOrder = resolveNavBlockOrder(def)
-
-  const libraryRowCount = (allLibraryRows ?? []).filter(
-    (row) => row.id && row.source_ref?.trim(),
-  ).length
-
-  const navContentCounts = React.useMemo(
-    () => ({
-      dialogs: dialogs?.length ?? null,
-      journeys: journeys?.length ?? null,
-      keepers: keepers?.length ?? null,
-      drafts: patchedDrafts?.length ?? null,
-      agents: agents?.length ?? null,
-      library: allLibraryRows === null ? null : libraryRowCount,
-    }),
-    [
-      dialogs,
-      journeys,
-      keepers,
-      patchedDrafts,
-      agents,
-      allLibraryRows,
-      libraryRowCount,
-    ],
-  )
 
   const renderNavBlock = (block: NavRenderBlock): React.ReactNode => {
     if (!shouldRenderContentGatedBlock(block, def.nav, navContentCounts)) return null
@@ -1110,7 +1205,7 @@ export function UniversalNavPanel({
           </>
         )
       case "boards":
-        if (def.boardId !== "domain") return null
+        if (def.boardId !== "domain" && def.boardId !== "realm") return null
         return (
           <SidebarCard
             className="keeper-sidebar-card"
@@ -1118,6 +1213,54 @@ export function UniversalNavPanel({
             description="Workspace"
             items={boardNavItems}
           />
+        )
+      case "chatter":
+        if (def.boardId !== "realm") return null
+        return (
+          <>
+            <SidebarCard
+              title="Chatter"
+              className="keeper-sidebar-card"
+              description={
+                !domainId
+                  ? "Loading…"
+                  : countLabel(chatterDialogs.length, "unassigned dialog")
+              }
+              items={
+                slice("chatter", allChatterItems).length
+                  ? slice("chatter", allChatterItems)
+                  : undefined
+              }
+              onTitleClick={() => toggleExpanded("chatter")}
+            />
+          </>
+        )
+      case "connections":
+        if (def.boardId !== "realm") return null
+        return (
+          <>
+            <SidebarCard
+              title="Connections"
+              className="keeper-sidebar-card"
+              description={
+                !domainId
+                  ? "Loading…"
+                  : countLabel(connectionItems?.length ?? null, "connection")
+              }
+              items={
+                (connectionItems ?? []).map((entry) => ({
+                  id: entry.id,
+                  label: entry.label,
+                  description: entry.description,
+                }))
+              }
+            />
+            {connectionError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {connectionError}
+              </p>
+            )}
+          </>
         )
       case "drafts":
         if (!showDrafts) return null

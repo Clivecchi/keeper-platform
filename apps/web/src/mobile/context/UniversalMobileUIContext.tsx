@@ -11,6 +11,8 @@ export interface UniversalMobileUIContextValue {
   showInstallPrompt: boolean;
   setActiveTab: (tab: MobileTabId) => void;
   setKipFocusMomentId: (momentId: string | null) => void;
+  submitRealmComposerText: (text: string) => void;
+  consumePendingComposerText: () => string | null;
   clearKipFocus: () => void;
   refreshWorld: () => void;
   notifyMomentKept: () => void;
@@ -24,8 +26,9 @@ export interface UniversalMobileUIProviderProps {
 
 /** Tab navigation, Kip focus chip, World refresh, and PWA install prompt — mobile shell UI only. */
 export function UniversalMobileUIProvider({ children }: UniversalMobileUIProviderProps) {
-  const [activeTab, setActiveTabState] = React.useState<MobileTabId>("world");
+  const [activeTab, setActiveTabState] = React.useState<MobileTabId>("realm");
   const [kipFocusMomentId, setKipFocusMomentId] = React.useState<string | null>(null);
+  const pendingComposerRef = React.useRef<string | null>(null);
   const [worldRefreshKey, setWorldRefreshKey] = React.useState(0);
   const [showInstallPrompt, setShowInstallPrompt] = React.useState(() => {
     if (typeof window === "undefined") return false;
@@ -41,6 +44,18 @@ export function UniversalMobileUIProvider({ children }: UniversalMobileUIProvide
 
   const clearKipFocus = React.useCallback(() => {
     setKipFocusMomentId(null);
+  }, []);
+
+  const submitRealmComposerText = React.useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    pendingComposerRef.current = trimmed;
+  }, []);
+
+  const consumePendingComposerText = React.useCallback(() => {
+    const value = pendingComposerRef.current;
+    pendingComposerRef.current = null;
+    return value;
   }, []);
 
   const refreshWorld = React.useCallback(() => {
@@ -61,6 +76,8 @@ export function UniversalMobileUIProvider({ children }: UniversalMobileUIProvide
       showInstallPrompt,
       setActiveTab,
       setKipFocusMomentId,
+      submitRealmComposerText,
+      consumePendingComposerText,
       clearKipFocus,
       refreshWorld,
       notifyMomentKept,
@@ -71,6 +88,8 @@ export function UniversalMobileUIProvider({ children }: UniversalMobileUIProvide
       worldRefreshKey,
       showInstallPrompt,
       setActiveTab,
+      submitRealmComposerText,
+      consumePendingComposerText,
       clearKipFocus,
       refreshWorld,
       notifyMomentKept,

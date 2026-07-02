@@ -9,5 +9,6 @@ export const BOARD_CAPABILITY_CEILINGS: Record<string, readonly string[]> = {
   ide: [...IDE_BOARD_MCP_CEILING],
   agent: [],
   domain: [],
+  realm: [],
   designer: [],
 };

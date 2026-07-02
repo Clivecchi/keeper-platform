@@ -103,6 +103,7 @@ function getRoleLabel(audience: string | null): string {
 // ─── Board nav config ─────────────────────────────────────────────────────────
 
 const BOARD_LINKS: { id: WorkspaceBoardId; label: string }[] = [
+  { id: "realm",    label: "Realm" },
   { id: "domain",   label: "Domain" },
   { id: "ide",      label: "IDE" },
   { id: "designer", label: "Design" },

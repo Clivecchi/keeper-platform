@@ -221,9 +221,13 @@ export function UniversalConversation({
   const guidedArrival = useGuidedArrivalOptional()
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
   const agentEcho = def.conversation.agentEcho === true
-  const defaultAgentSlug = def.conversation.agentSlug ?? "kip"
+  const frameLeadAgentSlug = domainFrame?.kip?.agent_id?.trim()
+  const baseAgentSlug =
+    def.conversation.agentFromFrame && frameLeadAgentSlug
+      ? frameLeadAgentSlug
+      : (def.conversation.agentSlug ?? "kip")
+  const defaultAgentSlug = baseAgentSlug
   const defaultAgentName = def.conversation.agentName ?? "Kip"
-  const baseAgentSlug = defaultAgentSlug
 
   // ── designer mode: frame key + draft context ───────────────────────────────
   const { selection, actions } = useUniversalBoard()

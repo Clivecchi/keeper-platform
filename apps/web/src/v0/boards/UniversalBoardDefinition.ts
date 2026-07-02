@@ -9,7 +9,7 @@
 
 // ─── Supporting Types ─────────────────────────────────────────────────────────
 
-export type BoardId = "ide" | "agent" | "domain" | "designer" | (string & {})
+export type BoardId = "ide" | "agent" | "domain" | "designer" | "realm" | (string & {})
 
 /** How Dialog coordinates agents on this board — see docs/universal-board-dialog-orchestration.md */
 export type DialogOrchestrationMode =
@@ -34,6 +34,8 @@ export type NavRenderBlock =
   | "aiAccess"
   | "capabilities"
   | "library"
+  | "chatter"
+  | "connections"
   | "boards"
 
 export interface NavSectionsDef {
@@ -106,6 +108,11 @@ export interface NavPanelDef {
 export interface ConversationPanelDef {
   /** Agent slug resolved via KipApi.getLeadAgent. Defaults to "kip". */
   agentSlug?: string
+  /**
+   * When true, lead agent slug resolves from `domainFrame.kip.agent_id` at runtime
+   * (Realm Board and other domain-scoped boards with a frame lead agent).
+   */
+  agentFromFrame?: boolean
   agentName: string
   dialogueMode: "domain" | "agent"
   showServiceBar: boolean
@@ -422,6 +429,45 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
   },
 }
 
+export const REALM_BOARD_DEF: UniversalBoardDef = {
+  boardId: "realm",
+  displayName: "Realm Board",
+  access: { isPrivate: true, isAdminOnly: false },
+  nav: {
+    sections: {
+      dialogs: true,
+      journeys: true,
+      keepers: true,
+      drafts: false,
+      agents: false,
+      library: true,
+      boardDefs: false,
+    },
+    navMode: "contentGated",
+    navAlwaysShow: ["dialogs"],
+    navBlockOrder: ["dialogs", "journeys", "library", "chatter", "connections", "boards"],
+  },
+  conversation: {
+    agentFromFrame: true,
+    agentName: "Kip",
+    dialogueMode: "domain",
+    showServiceBar: false,
+    kipMode: "domain",
+    dialogOrchestration: "solo",
+  },
+  contextSurface: {
+    viewStates: mergeViewStates({
+      keeper:
+        "Keeper present. Cover forward — purpose and presence, not configuration.",
+      domain:
+        "Realm breathing. Cover-first — domain identity and what is alive surfaces. Configuration recedes.",
+      journey:
+        "Journey alive. Paths and moments present. What is moving comes forward.",
+    }),
+    idleSubject: "domain",
+  },
+}
+
 export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   boardId: "designer",
   displayName: "Design Board",
@@ -459,5 +505,6 @@ export const BOARD_DEFINITIONS: Record<string, UniversalBoardDef> = {
   ide: IDE_BOARD_DEF,
   agent: AGENT_BOARD_DEF,
   domain: DOMAIN_BOARD_DEF,
+  realm: REALM_BOARD_DEF,
   designer: DESIGNER_BOARD_DEF,
 }

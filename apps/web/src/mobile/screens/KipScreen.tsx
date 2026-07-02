@@ -22,12 +22,14 @@ export function KipScreen() {
     domainSlug,
     domainId,
     domainName,
+    isRealmBoard,
     activeJourneyId,
     kipFocusMomentId,
     clearKipFocus,
     openMoment,
     notifyMomentKept,
     worldRefreshKey,
+    consumePendingComposerText,
   } = useUniversalMobile();
   const { domainFrame, resolvedAudience } = useV0Shell();
   const { refreshSession, user } = useAuth();
@@ -159,6 +161,14 @@ export function KipScreen() {
   });
 
   React.useEffect(() => {
+    const pending = consumePendingComposerText();
+    if (pending) {
+      setInput(pending);
+      setComposerFocused(true);
+    }
+  }, [consumePendingComposerText, setInput]);
+
+  React.useEffect(() => {
     if (!isSending) setComposerFocused(false);
   }, [isSending]);
 
@@ -229,6 +239,7 @@ export function KipScreen() {
     stage === "response" && responseView === "chronicle" ? (
       <MobileKipChronicleView
         message={latestAgentMessage}
+        agentName={arrivalActive ? guidedArrival.leadAgentDisplayName : isRealmBoard ? "Lead agent" : "Kip"}
         onOpenMoment={openMoment}
       />
     ) : undefined;
@@ -269,7 +280,11 @@ export function KipScreen() {
           mobileDialogStage={stage}
           onComposerFocusChange={setComposerFocused}
           mobileResponseToolbar={
-            <MobileKipResponseToolbar view={responseView} onViewChange={setResponseView} />
+            <MobileKipResponseToolbar
+              view={responseView}
+              onViewChange={setResponseView}
+              chronicleLabel={isRealmBoard ? "Presence" : "Chronicle"}
+            />
           }
           inputValue={input}
           onInputChange={setInput}
@@ -284,6 +299,7 @@ export function KipScreen() {
           agentName={arrivalActive ? guidedArrival.leadAgentDisplayName : "Kip"}
           onOpenMoment={openMoment}
           showServiceBar={false}
+          talkMode
         />
       </div>
     </div>

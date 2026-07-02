@@ -10,6 +10,8 @@ export interface NavContentCountSnapshot {
   drafts: number | null
   agents: number | null
   library: number | null
+  chatter: number | null
+  connections: number | null
 }
 
 const CONTENT_GATED_BLOCKS: NavRenderBlock[] = [
@@ -19,6 +21,8 @@ const CONTENT_GATED_BLOCKS: NavRenderBlock[] = [
   "drafts",
   "agents",
   "library",
+  "chatter",
+  "connections",
 ]
 
 export function resolveNavMode(nav: NavPanelDef): NavMode {
@@ -42,6 +46,10 @@ function getBlockContentCount(
       return counts.agents
     case "library":
       return counts.library
+    case "chatter":
+      return counts.chatter
+    case "connections":
+      return counts.connections
     default:
       return null
   }

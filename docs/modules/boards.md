@@ -7,6 +7,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle); mounts domain switcher overlay for all boards
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
+- `realm/` — Realm Board (`?board=realm`) — personal domain primary workspace
 - `designer/` — The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
 
 ## 🔄 Data & Behavior
@@ -25,6 +26,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-07-01 — Phase 4A: Realm Board (`?board=realm`)
+- **`REALM_BOARD_DEF`** — fifth Universal Board: `contentGated` nav, `chatter` + `connections` blocks, Cover-first Chronicle, solo dialog, `agentFromFrame`
+- **`realm/RealmBoard.tsx`** — thin wrapper; registered in `boardRegistry.ts`, `workspaceBoardNav.ts`, `useBoardDefs`, `KeeperTopBar`
+- **`UniversalNavPanel`** — Chatter (unassigned dialogs), Connections API, workspace board links on Domain + Realm boards
+- **`V0Shell`** — mounts `RealmBoard` for `?board=realm`; guests blocked via `isPrivate`
+- Audiences: Interior (auth owner), Friends (same URL + audience filter), Public (guest story routes — not realm board)
 
 ### 2026-07-01 — Phase 1.3: Journey / Path / Moment engagement templates
 - `UniversalNavPanel`: Journeys `+` → `journey.create`; when a journey is selected, Path `+` → `path.create`, Moment `+` → `moment.create` (includes `pathId` when path is in selection)

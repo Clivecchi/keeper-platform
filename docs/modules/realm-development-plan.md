@@ -164,7 +164,7 @@ Wearables do **not** get a separate data model — they are an input modality on
 | **Wave 1** | 1.1 switcher · 1.2 provisioner · nav contentGating · 2.2b promote | **Complete** (uncommitted) |
 | **Wave 2** | 2.1 Guided Arrival · 1.4 frame_json · 1.3 templates | **Complete** (uncommitted) |
 | **Wave 3** | 3.1–3.3 Connection + Friends + Present | **Complete** (uncommitted) |
-| **Wave 4** | 4A Realm def · 4B Realm Screen · 4C mobile Domain · 4D talk mode | After Phase 3 gate |
+| **Wave 4** | 4A Realm def · 4B Realm Screen · 4C mobile Domain · 4D talk mode | **In progress** |
 
 ---
 

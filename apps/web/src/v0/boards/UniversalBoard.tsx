@@ -55,7 +55,7 @@ import { UniversalConversation } from "./UniversalConversation"
 import { useAuth } from "../../context/AuthContext"
 import { PanelErrorBoundary } from "../components/PanelErrorBoundary"
 import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
-import type { WorkspaceBoardId } from "./workspaceBoardNav"
+import { isMemberMobileBoard, type WorkspaceBoardId } from "./workspaceBoardNav"
 import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchestrator"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
@@ -356,7 +356,7 @@ function UniversalBoardShell({
 
         {switcherOverlay}
 
-        {def.boardId === "domain" ? <GuidedArrivalOrchestrator /> : null}
+        {isMemberMobileBoard(def.boardId) ? <GuidedArrivalOrchestrator /> : null}
 
         {briefOpen && domainFrame && (
           <DomainBriefSlideOver

@@ -10,14 +10,31 @@
  * Do not use `board` for both — that caused IDE workspace vs "IDE Board" spec collisions.
  */
 
-export type WorkspaceBoardId = "domain" | "ide" | "designer" | "agent"
+export type WorkspaceBoardId = "domain" | "realm" | "ide" | "designer" | "agent"
 
 export const WORKSPACE_BOARD_IDS: WorkspaceBoardId[] = [
   "domain",
+  "realm",
   "ide",
   "designer",
   "agent",
 ]
+
+/** Member-facing boards that use Universal Mobile shell on narrow viewports. */
+export const MEMBER_MOBILE_BOARD_IDS = ["domain", "realm"] as const
+export type MemberMobileBoardId = (typeof MEMBER_MOBILE_BOARD_IDS)[number]
+
+export function isMemberMobileBoard(
+  boardId: string | null | undefined,
+): boardId is MemberMobileBoardId {
+  return boardId === "domain" || boardId === "realm"
+}
+
+export function isMemberWorkspaceBoard(
+  board: string | null | undefined,
+): board is MemberMobileBoardId {
+  return isMemberMobileBoard(board)
+}
 
 /** Canonical query key for Design board-definition selection. */
 export const BOARD_DEFINITION_PARAM = "definition"
@@ -29,6 +46,7 @@ export function parseWorkspaceBoardId(
 ): WorkspaceBoardId | null {
   const board = searchParams.get("board")?.toLowerCase()
   if (board === "domain") return "domain"
+  if (board === "realm") return "realm"
   if (board === "ide") return "ide"
   if (board === "designer") return "designer"
   if (board === "agent") return "agent"

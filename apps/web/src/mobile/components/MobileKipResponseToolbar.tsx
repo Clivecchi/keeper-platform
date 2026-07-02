@@ -5,11 +5,13 @@ import type { MobileKipResponseView } from "../hooks/useMobileKipDialogStage";
 export interface MobileKipResponseToolbarProps {
   view: MobileKipResponseView;
   onViewChange: (view: MobileKipResponseView) => void;
+  chronicleLabel?: string;
 }
 
 export function MobileKipResponseToolbar({
   view,
   onViewChange,
+  chronicleLabel = "Chronicle",
 }: MobileKipResponseToolbarProps) {
   return (
     <div
@@ -24,6 +26,7 @@ export function MobileKipResponseToolbar({
       >
         {(["text", "chronicle"] as const).map((option) => {
           const active = view === option;
+          const label = option === "chronicle" ? chronicleLabel : "Text";
           return (
             <button
               key={option}
@@ -41,7 +44,7 @@ export function MobileKipResponseToolbar({
                   : "transparent",
               }}
             >
-              {option}
+              {label}
             </button>
           );
         })}

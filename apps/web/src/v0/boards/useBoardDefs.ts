@@ -10,6 +10,7 @@ import {
   IDE_BOARD_DEF,
   AGENT_BOARD_DEF,
   DOMAIN_BOARD_DEF,
+  REALM_BOARD_DEF,
   DESIGNER_BOARD_DEF,
 } from "./UniversalBoardDefinition"
 import { resolveBoardDefs } from "./resolveBoardDefs"
@@ -22,6 +23,7 @@ export const BOARD_DEFINITIONS_FALLBACK: Record<string, UniversalBoardDef> = {
   ide: IDE_BOARD_DEF,
   agent: AGENT_BOARD_DEF,
   domain: DOMAIN_BOARD_DEF,
+  realm: REALM_BOARD_DEF,
   designer: DESIGNER_BOARD_DEF,
 }
 

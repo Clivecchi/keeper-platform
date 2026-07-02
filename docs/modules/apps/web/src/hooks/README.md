@@ -17,18 +17,25 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - `useAutosave.ts` – Debounced persistence for editable resources.
 - `useViewerContext.ts` – Syncs viewer state with layout shell.
 - `useUserSettings.ts` – Fetches user preference data (themes, toggles) when a bearer token is available.
+- `useTalkMode.ts` — Web Speech API hook for Talk mode (listen → transcript → composer confirm → send). Shared by mobile Kip and future Realm Screen composer.
 
 ## 🔄 Data & Behavior
 - Hooks always read from context/providers (`useAuth`, `useTheme`, etc.) instead of accessing storage directly.
 - `useAgentSessions` keeps a normalized cache of Kip sessions (sorted by `updatedAt`), exposes optimistic creation, and reports transient errors for the board UI.
 - `useUserSettings` now guards against cookie-only sessions; it only hits `/api/kam/settings` when a real bearer token exists to prevent persistent 401 noise.
 - Autosave hook emits debounced save callbacks plus dirty state helpers for editors.
+- `useTalkMode` exposes `idle | listening | transcribing | error` states; `onTranscript` merges into composer via parent — never auto-sends.
 
 ## ⚠️ Notes & ToDo
 - [ ] Port remaining class-based lifecycle code into composable hooks.
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-07-01 — Talk mode STT hook (Phase 4D.1–4D.2)
+- Added `useTalkMode.ts` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`); states `idle | listening | transcribing | error`.
+- Wired via `KeeperDialogFrame` `talkMode` prop → `AgentComposer` mic control; enabled on mobile `KipScreen` and `RealmScreen` composer.
+- Graceful fallback: unsupported browsers show disabled mic with tooltip; no auto-send — user confirms in composer.
 
 ### 2026-06-30 — Draft point promote hook
 - Added `useDraftPointPromote.ts` — calls `KipApi.promoteDraftPoint`; bumps draft + journey nav on success

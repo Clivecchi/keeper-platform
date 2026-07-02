@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useUniversalBoard } from "../../v0/boards/UniversalBoardContext";
 import { useV0Shell } from "../../v0/shell/V0ShellContext";
+import { BOARD_DEFINITIONS } from "../../v0/boards/UniversalBoardDefinition";
+import { isMemberMobileBoard } from "../../v0/boards/workspaceBoardNav";
 import { useUniversalMobileUI } from "../context/UniversalMobileUIContext";
 
 function resolveDomainId(domainData: unknown): string | null {
@@ -16,9 +18,13 @@ function resolveDomainId(domainData: unknown): string | null {
  * Domain identity comes from V0Shell; board state from UniversalBoardContext.
  */
 export function useUniversalMobile() {
-  const { domainSlug, domainData, domainFrame } = useV0Shell();
+  const { domainSlug, domainData, domainFrame, workspaceBoardId } = useV0Shell();
   const { selection, actions } = useUniversalBoard();
   const ui = useUniversalMobileUI();
+
+  const boardId = workspaceBoardId ?? "domain";
+  const boardDef = BOARD_DEFINITIONS[boardId] ?? BOARD_DEFINITIONS.domain;
+  const isRealmBoard = boardId === "realm";
 
   const domainId = resolveDomainId(domainData);
   const domainName = React.useMemo(() => {
@@ -63,6 +69,10 @@ export function useUniversalMobile() {
     domainSlug,
     domainId,
     domainName,
+    boardId,
+    boardDef,
+    isRealmBoard,
+    isMemberMobileBoard: isMemberMobileBoard(boardId),
     activeJourneyId: selection.activeJourneyId,
     selectedMomentId: selection.selectedMomentId,
     activeTab: ui.activeTab,
@@ -77,5 +87,7 @@ export function useUniversalMobile() {
     clearKipFocus: ui.clearKipFocus,
     refreshWorld: ui.refreshWorld,
     notifyMomentKept,
+    submitRealmComposerText: ui.submitRealmComposerText,
+    consumePendingComposerText: ui.consumePendingComposerText,
   };
 }

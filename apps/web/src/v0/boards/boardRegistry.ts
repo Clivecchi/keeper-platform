@@ -11,6 +11,7 @@
 import * as React from "react"
 import { DesignBoard } from "./designer/DesignBoard"
 import { DomainBoard } from "./domain/DomainBoard"
+import { RealmBoard } from "./realm/RealmBoard"
 import { AgentBoard } from "./agent/AgentBoard"
 import { IDEBoard } from "./ide/IDEBoard"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
@@ -18,10 +19,11 @@ import {
   IDE_BOARD_DEF,
   AGENT_BOARD_DEF,
   DOMAIN_BOARD_DEF,
+  REALM_BOARD_DEF,
   DESIGNER_BOARD_DEF,
 } from "./UniversalBoardDefinition"
 
-export type V0BoardKey = "designer" | "domain" | "agent" | "ide"
+export type V0BoardKey = "designer" | "domain" | "realm" | "agent" | "ide"
 
 export interface BoardRegistryEntry {
   component: React.ComponentType<any>
@@ -46,6 +48,13 @@ export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
     isPrivate: true,
     isAdminOnly: false,
     def: DOMAIN_BOARD_DEF,
+  },
+  realm: {
+    component: RealmBoard,
+    displayName: "Realm Board",
+    isPrivate: true,
+    isAdminOnly: false,
+    def: REALM_BOARD_DEF,
   },
   agent: {
     component: AgentBoard,

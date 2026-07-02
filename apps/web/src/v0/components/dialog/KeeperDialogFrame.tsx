@@ -41,6 +41,7 @@ import {
   dialogicRunSummary,
   type DialogThinkingStep,
 } from "./dialogThinking"
+import { useTalkMode } from "../../../hooks/useTalkMode"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -179,6 +180,8 @@ export interface KeeperDialogFrameProps {
   onComposerFocusChange?: (focused: boolean) => void
   /** Renders between Dialog Space and Composer in mobile response stage (e.g. Text / Chronicle toggle). */
   mobileResponseToolbar?: React.ReactNode
+  /** When true, composer shows mic for speech-to-text (confirm before send). */
+  talkMode?: boolean
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -243,6 +246,7 @@ export function KeeperDialogFrame({
   mobileDialogStage,
   onComposerFocusChange,
   mobileResponseToolbar,
+  talkMode = false,
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const broadcastStripRef = React.useRef<HTMLDivElement>(null)
@@ -259,6 +263,26 @@ export function KeeperDialogFrame({
   const toggleDebugPanel = React.useCallback(() => {
     setDebugPanelOpen((open) => !open)
   }, [])
+
+  const mergeTalkTranscript = React.useCallback(
+    (text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed) return
+      const existing = inputValue.trim()
+      onInputChange(existing ? `${existing} ${trimmed}` : trimmed)
+    },
+    [inputValue, onInputChange],
+  )
+
+  const {
+    state: talkState,
+    isSupported: talkSupported,
+    startListening,
+    stopListening,
+    error: talkError,
+  } = useTalkMode({
+    onTranscript: mergeTalkTranscript,
+  })
 
   React.useEffect(() => {
     installConsoleDiagCapture()
@@ -665,6 +689,12 @@ export function KeeperDialogFrame({
             submitOnEnter={!isMobileStaged}
             onInputFocusChange={onComposerFocusChange}
             composerSize={mobileComposerSize}
+            talkMode={talkMode}
+            talkState={talkState}
+            talkSupported={talkSupported}
+            onTalkStart={startListening}
+            onTalkStop={stopListening}
+            talkError={talkError}
           />
           {showComposerFooter && (
             <div className="dialog-composer-footer">

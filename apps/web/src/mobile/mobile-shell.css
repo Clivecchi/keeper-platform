@@ -21,6 +21,22 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.universal-mobile-shell .mobile-realm-screen {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.universal-mobile-shell .mobile-realm-composer {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.universal-mobile-shell .mobile-realm-composer textarea::placeholder {
+  color: hsl(var(--theme-ink-secondary) / 0.75);
+}
+
 .universal-mobile-shell .mobile-kip-screen {
   display: flex;
   min-height: 0;

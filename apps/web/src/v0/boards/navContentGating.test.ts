@@ -13,6 +13,8 @@ const emptyCounts: NavContentCountSnapshot = {
   drafts: 0,
   agents: 0,
   library: 0,
+  chatter: 0,
+  connections: 0,
 }
 
 const staticNav: NavPanelDef = {

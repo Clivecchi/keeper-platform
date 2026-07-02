@@ -1,16 +1,19 @@
 # Universal Mobile
 
 ## 📌 Purpose
-**Universal Mobile** is the narrow-viewport shell for the **Domain Universal Board** — same backend and engagement pipeline as desktop, different layout patterns (tabs instead of Nav · Dialog · Chronicle).
+**Universal Mobile** is the narrow-viewport shell for **Domain** and **Realm** Universal Boards — same backend and engagement pipeline as desktop, different layout patterns (tabs instead of Nav · Dialog · Chronicle).
 
 This is not a separate app, not legacy frame routing, and not a parallel API surface.
 
 ## 🧱 Key Files
-- `UniversalMobileShell.tsx` — tab shell + moment overlay + PWA prompt (authenticated Domain Board only)
+- `UniversalMobileShell.tsx` — tab shell + moment overlay + PWA prompt (authenticated Domain · Realm boards)
+- `screens/RealmScreen.tsx` — cross-realm picker + composer (Domain Board mobile tab)
 - `PublicGuestChrome.tsx` — Sign In / Get Started overlay for guest public story
 - `public-story.css` — mobile-safe layout for Cover / Present (Phase 3.3)
 - `hooks/useUniversalMobile.ts` — composes `UniversalBoardContext` + `UniversalMobileUIContext` + `V0Shell`
 - `context/UniversalMobileUIContext.tsx` — mobile-only UI: tabs, Kip focus chip, World refresh, PWA
+- `screens/RealmScreen.tsx` — Phase 4B cross-domain home: domain list + composer (Realm tab)
+- `screens/RealmsRedirect.tsx` — `/realms` → first domain with `?board=realm`
 - `screens/WorldScreen.tsx` — kept moments stream with pull-to-refresh
 - `screens/KeepScreen.tsx` — `moment.create` via `useBoardEngagement` + `ChronicleActPresence`
 - `screens/JourneysScreen.tsx` — journey list (Nav parity)
@@ -26,12 +29,13 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 | State | Owner |
 |---|---|
 | Active journey, moment selection | `UniversalBoardContext` + `FrameContext` |
-| Domain slug/id/name, frame JSON | `V0Shell` |
-| Tab, Kip focus chip, World refresh key, PWA prompt | `UniversalMobileUIContext` |
+| Board identity (`domain` vs `realm`) | `V0Shell.workspaceBoardId` + `useUniversalMobile().boardDef` |
+| Tab, Kip focus chip, World refresh key, PWA prompt, Realm composer draft | `UniversalMobileUIContext` |
 | Screens | `useUniversalMobile()` hook |
 
 ### Same as Universal Board (desktop)
-- Workspace: `?board=domain` (auto on mobile)
+- Workspace: `?board=realm` (default on mobile) or `?board=domain` (admin-style mobile override)
+- **Realm tab** (default home): cross-domain list + composer — not tied to a single domain's Nav
 - Keep / edit: `useBoardEngagement` → `/api/engagement/execute` + `ChronicleActPresence`
 - Kip: `useAgentDialog` + `KeeperDialogFrame` (lead agent + arrival greeting when `arrivalCompleted` pending)
 - Moment open/close: `onMomentSelect` / `onMomentClear`
@@ -54,14 +58,30 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 4. Tap forward (journey invitation) — lands on `?frame=present&journeyId=…` read-only narrative.
 5. Direct link: `/d/default?frame=present&journeyId=<id>` — Present loads without auth.
 6. Visit `/d/default/board` — redirects to `/d/default` (BoardToShellRedirect), then guest Cover path.
-7. Sign in on mobile — should redirect to `?board=domain` and mount `UniversalMobileShell` tabs.
+7. Sign in on mobile — should redirect to `?board=realm` and mount `UniversalMobileShell` with **Realm** tab active.
+8. Visit `/realms` while signed in — lands on first domain with Realm tab.
 
 ## ⚠️ Notes & ToDo
-- [ ] **Realm mobile (Phase 4B–4C):** Realm Screen (domain list + talk composer) as primary mobile home; in-realm Domain Screen for Dialog · Chronicle — see `docs/realm-development-plan.md`
-- [ ] Talk mode / STT → composer (wearables + mobile); shared hook with Realm Screen
+- [x] **Realm mobile (Phase 4B.1):** Realm Screen tab — domain list + text composer; mic placeholder for talk mode
+- [x] **Phase 4D.1–4D.2:** Talk mode STT on Realm Screen + mobile Kip (`useTalkMode` → composer confirm → send)
+- [ ] **Phase 4B.3:** Quick capture from Realm composer without full board chrome
 - [ ] Phase 3: offline draft queue, push notifications, app store wrappers
 
 ## 📆 Update Log
+
+### 2026-07-01 — Phase 4D Talk mode (Realm + Kip)
+- `useTalkMode` wired on `RealmScreen` composer mic and mobile `KipScreen` via `KeeperDialogFrame` `talkMode` prop.
+- Listen → transcript fills composer → user confirms send (no auto-send). Unsupported browsers show mic tooltip only.
+
+### 2026-07-01 — Phase 4C Mobile Domain Screen (in-realm)
+- `UniversalMobileShell` mounts for `?board=realm` — same architecture as domain board mobile.
+- In-realm tab bar: World · Moment · Journeys · Dialog (no cross-realm picker tab); Realm Screen tab stays on Domain Board mobile only.
+- `MobileKipResponseToolbar` uses **Presence** label on realm board; Guided Arrival + lead agent on realm board.
+- `workspaceBoardNav`: `isMemberMobileBoard` helper; Realm Screen navigates to `?board=realm`.
+
+### 2026-07-01 — Phase 4B Mobile Realm Screen
+- Added `RealmScreen` as first tab (default home); domain list via `fetchDomainSwitcherEntries`; composer → Kip tab.
+- `/realms` route resolves first domain → `?board=realm`. V0Shell mobile default board is `realm`.
 
 ### 2026-07-01 — Phase 3.3 Present / public mobile hardening
 - Added `PublicGuestChrome`, `public-story.css`, and V0Shell guest routing (`guestPublicStory.ts`).
