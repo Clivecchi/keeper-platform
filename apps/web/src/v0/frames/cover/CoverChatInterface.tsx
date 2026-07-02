@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { AudienceRole, DomainFrameCoverChatInterface } from "../../data/domain-frame.types"
+import { isVisibleToAudience } from "@keeper/shared"
 import { getApiBase } from "../../../lib/apiFetch"
 import { issueGuestHandoffKey } from "../../../lib/kipGuestHandoff"
 import { useComposerDraftAutosave } from "../../../hooks/useComposerDraftAutosave"
@@ -61,7 +62,7 @@ export function CoverChatInterface({ chat_interface, domainSlug, audience }: Cov
     ta.style.height = `${Math.min(ta.scrollHeight, 96)}px`
   }, [inputValue])
 
-  if (!enabled || !audience || !available_to.includes(audience)) {
+  if (!enabled || !audience || !isVisibleToAudience(available_to, audience)) {
     return null
   }
 

@@ -26,7 +26,11 @@ import { UniversalBoard } from "../boards/UniversalBoard"
 import { DomainBoard } from "../boards/domain/DomainBoard"
 import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
 import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
+import { PublicGuestChrome } from "../../mobile/PublicGuestChrome"
 import { useMobileSurface } from "../../mobile/hooks/useMobileSurface"
+import { useIsMobile } from "../../mobile/hooks/useIsMobile"
+import "../../mobile/public-story.css"
+import { resolveGuestPublicFrame } from "./guestPublicStory"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
@@ -34,7 +38,7 @@ import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import { ensureDomainProvisioned, markDomainProvisionSessionOk } from "../lib/ensureDomainProvisioned"
 import { domainFrameLooksUnseeded } from "../lib/domainFrameLooksUnseeded"
-import { resolveAudience } from "../data/resolveAudience"
+import { resolveDomainAudience, type DomainAudienceRole } from "@keeper/shared"
 import { usePlacementMode } from "./usePlacementMode"
 import { FrameContextProvider } from "./FrameContext"
 import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
@@ -94,6 +98,35 @@ export function V0Shell() {
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
   const mobileSurface = useMobileSurface(isAuthenticated ?? false)
+  const isNarrowViewport = useIsMobile()
+  const isGuestPublicStory = !isAuthenticated
+
+  // Guests with ?board=* must not enter Universal Board — strip board and land on public story.
+  React.useEffect(() => {
+    if (!authResolved || isAuthenticated) return
+
+    const board = searchParams.get("board")
+    if (!board) return
+
+    const frame = searchParams.get("frame")
+    const nextFrame = resolveGuestPublicFrame(frame, "cover")
+
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("board")
+        next.delete("definition")
+        next.delete("boardDef")
+        if (nextFrame === "cover") {
+          next.delete("frame")
+        } else {
+          next.set("frame", nextFrame)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }, [authResolved, isAuthenticated, searchParams, setSearchParams])
 
   React.useEffect(() => {
     if (!isAuthenticated) return
@@ -191,6 +224,11 @@ export function V0Shell() {
 
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
+  const [domainAudienceContext, setDomainAudienceContext] = React.useState<{
+    domainRole: string | null
+    isOwner: boolean
+    audience: DomainAudienceRole | null
+  } | null>(null)
 
   // Board defs come from domainFrame.boards (seeded per-domain) with fallback to
   // BOARD_DEFINITIONS_FALLBACK for domains whose frame_json has not yet been seeded.
@@ -200,7 +238,14 @@ export function V0Shell() {
     : null
 
   // Resolved once at the Frame level — no child resolves audience independently
-  const resolvedAudience = resolveAudience({ isAuthenticated: isAuthenticated ?? false, isAdmin: isAdmin ?? false })
+  const resolvedAudience: DomainAudienceRole =
+    domainAudienceContext?.audience ??
+    resolveDomainAudience({
+      isAuthenticated: isAuthenticated ?? false,
+      isAdmin: isAdmin ?? false,
+      isOwner: false,
+      domainRole: null,
+    })
   const commitSha =
     (import.meta as any).env?.VERCEL_GIT_COMMIT_SHA ??
     (import.meta as any).env?.VITE_COMMIT_SHA ??
@@ -264,6 +309,34 @@ export function V0Shell() {
       ignore = true
     }
   }, [slug])
+
+  React.useEffect(() => {
+    if (!slug || !authResolved) return
+    let ignore = false
+    setDomainAudienceContext(null)
+    ;(async () => {
+      try {
+        const response = (await apiFetch(`/api/domains/by-slug/${slug}/audience`)) as {
+          audience?: DomainAudienceRole
+          domainRole?: string | null
+          isOwner?: boolean
+        }
+        if (ignore) return
+        setDomainAudienceContext({
+          audience: response.audience ?? null,
+          domainRole: response.domainRole ?? null,
+          isOwner: !!response.isOwner,
+        })
+      } catch (err) {
+        if (ignore) return
+        console.warn("[V0Shell] Audience fetch failed:", err)
+        setDomainAudienceContext(null)
+      }
+    })()
+    return () => {
+      ignore = true
+    }
+  }, [slug, authResolved, isAuthenticated, user?.id, isAdmin])
 
   // Debug: expose domainData so Kip Debug can verify what context receives
   React.useEffect(() => {
@@ -374,12 +447,6 @@ export function V0Shell() {
     }
   }, [authResolved, isAuthenticated, isGuestAgentRequest, slug, location.pathname, location.search, navigate])
 
-  React.useEffect(() => {
-    // Same authResolved guard — prevents premature redirect on page refresh.
-    if (authResolved && matchedDef?.access.isPrivate && !isAuthenticated && slug) {
-      navigate(buildFrameUrl("cover"))
-    }
-  }, [authResolved, matchedDef, isAuthenticated, slug, navigate, buildFrameUrl])
 
   const closeToBoard = () => {
     const params = new URLSearchParams()
@@ -553,8 +620,12 @@ export function V0Shell() {
   const frame = placement.state.frame
   const FrameComponent = FRAME_REGISTRY[frame]
 
+  const shouldRenderWorkspaceBoard =
+    matchedDef &&
+    (isAuthenticated || !matchedDef.access.isPrivate)
+
   // ── Board rendering — takes precedence over frame routing ─────────────────
-  if (matchedDef) {
+  if (shouldRenderWorkspaceBoard && matchedDef) {
     // isAdminOnly guard — render inline, no redirect
     if (matchedDef.access.isAdminOnly && !isAdmin) {
       return (
@@ -569,11 +640,6 @@ export function V0Shell() {
           </div>
         </StyleOverrideProvider>
       )
-    }
-
-    // isPrivate + unauthenticated — redirect handled by useEffect above; render nothing while redirecting
-    if (matchedDef.access.isPrivate && !isAuthenticated) {
-      return null
     }
 
     // Authorised — UniversalBoard owns its layout and chrome; V0Shell mounts it with context and steps back
@@ -666,17 +732,28 @@ export function V0Shell() {
           themeSlug={activeThemeSlug}
           draftId={draftId}
         >
-        {frame === "cover" ? (
-          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainData={domainData} />
-        ) : frame === "moment" ? (
-          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} draftId={draftId} />
-        ) : frame === "moments" ? (
-          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
-        ) : frame === "diagnostics" ? (
-          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}`} />
-        ) : (
-          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
-        )}
+        <div
+          className={
+            isGuestPublicStory
+              ? `public-story-shell presentation-mode${isNarrowViewport ? " public-story-shell--narrow" : ""}`
+              : undefined
+          }
+        >
+          {isGuestPublicStory ? <PublicGuestChrome domainSlug={slug} /> : null}
+          {frame === "cover" ? (
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainData={domainData} />
+          ) : frame === "moment" ? (
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} draftId={draftId} />
+          ) : frame === "moments" ? (
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
+          ) : frame === "present" ? (
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} />
+          ) : frame === "diagnostics" ? (
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}`} />
+          ) : (
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
+          )}
+        </div>
         {showDebugHud && (
           <div
             className="fixed right-3 z-50 rounded-md border border-black/10 bg-white/80 px-2 py-1 text-[10px] font-mono text-gray-700 shadow-sm backdrop-blur"

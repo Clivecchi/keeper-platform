@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { DomainServiceFactory, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
-import { AuthenticatedRequest, authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { AuthenticatedRequest, authMiddlewareCompat, optionalAuthMiddleware } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { getFeatureFlagService } from '@keeper/database';
@@ -39,6 +39,16 @@ import { buildDomainKeyAccessPayload } from '../../routes/key-entity-routes.js';
 import { DOMAIN_FRAME_FALLBACK } from '../../services/domains/domainFrameFallback.js';
 import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
 import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
+import {
+  inviteDomainConnection,
+  listDomainConnections,
+  revokeDomainConnection,
+} from '../../services/domains/domainConnectionInvite.js';
+import {
+  filterContentByAudience,
+  resolveDomainAudience,
+  type DomainAudienceRole,
+} from '@keeper/shared';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -90,6 +100,127 @@ const domainPolicySchema = z.object({
 // ============================================================================
 // PUBLIC ROUTES (Before middleware that requires auth)
 // ============================================================================
+
+function isPlatformAdmin(user: AuthenticatedRequest['user']): boolean {
+  return !!user?.platformRoles?.includes('super-admin');
+}
+
+function buildDomainAudienceContext(
+  user: AuthenticatedRequest['user'] | undefined,
+  domainOwnerId: string,
+  permissionRole?: string,
+): { audience: DomainAudienceRole; domainRole: string | null; isOwner: boolean } {
+  const isOwner = !!user && domainOwnerId === user.id;
+  const domainRole = isOwner ? 'admin' : (permissionRole ?? null);
+  const audience = resolveDomainAudience({
+    isAuthenticated: !!user,
+    isAdmin: isPlatformAdmin(user),
+    isOwner,
+    domainRole,
+  });
+  return { audience, domainRole, isOwner };
+}
+
+// GET /api/domains/by-slug/:slug/audience - Optional auth; resolves visitor audience for frame JSON
+router.get('/by-slug/:slug/audience', optionalAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const domain = await prisma.domain.findUnique({
+      where: { slug },
+      select: { id: true, ownerId: true },
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    let permissionRole: string | undefined;
+    if (req.user) {
+      const permission = await getPermissionService().checkPermission({
+        userId: req.user.id,
+        domainId: domain.id,
+        permission: 'read',
+      });
+      permissionRole = permission.role;
+    }
+
+    const context = buildDomainAudienceContext(req.user, domain.ownerId, permissionRole);
+    return res.json(context);
+  } catch (error) {
+    console.error('[domains:audience:error]', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/domains/by-slug/:slug/friends-content - Auth; journeys/moments visible to friend+ keeper audiences
+router.get('/by-slug/:slug/friends-content', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { slug } = req.params;
+    const domain = await prisma.domain.findUnique({
+      where: { slug },
+      select: { id: true, ownerId: true },
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    const permission = await getPermissionService().checkPermission({
+      userId: req.user.id,
+      domainId: domain.id,
+      permission: 'read',
+    });
+
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { audience } = buildDomainAudienceContext(req.user, domain.ownerId, permission.role);
+    if (audience === 'guest') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const [journeys, moments] = await Promise.all([
+      prisma.journey.findMany({
+        where: { domainId: domain.id },
+        select: {
+          id: true,
+          name: true,
+          forward: true,
+          createdAt: true,
+          updatedAt: true,
+          presenceSchema: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.moment.findMany({
+        where: { domainId: domain.id },
+        select: {
+          id: true,
+          title: true,
+          narrative: true,
+          journeyId: true,
+          createdAt: true,
+          presenceSchema: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    return res.json({
+      audience,
+      journeys: filterContentByAudience(journeys, audience),
+      moments: filterContentByAudience(moments, audience),
+    });
+  } catch (error) {
+    console.error('[domains:friends-content:error]', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // GET /api/domains/by-slug/:slug - Public route for landing pages
 router.get('/by-slug/:slug', async (req: Request, res: Response) => {
@@ -733,6 +864,11 @@ const grantPermissionSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 
+const inviteConnectionSchema = z.object({
+  identifier: z.string().min(1),
+  role: z.enum(['friend', 'connection']).optional(),
+});
+
 const searchDomainsSchema = z.object({
   search: z.string().optional(),
   ownerId: z.string().uuid().optional(),
@@ -1087,6 +1223,151 @@ router.delete('/:id/permissions/:userId', authMiddlewareCompat, async (req: Requ
         return res.status(403).json({ error: error.message });
       }
       if (error.message.includes('Cannot revoke')) {
+        return res.status(400).json({ error: error.message });
+      }
+    }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * Domain Connections (Phase 3.1 — social graph layer)
+ */
+
+async function requireDomainAdminForRoute(req: Request, res: Response, domainId: string): Promise<boolean> {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return false;
+  }
+
+  const permission = await getPermissionService().checkPermission({
+    userId: req.user.id,
+    domainId,
+    permission: 'admin',
+  });
+
+  if (!permission.hasPermission) {
+    res.status(403).json({ error: 'Access denied' });
+    return false;
+  }
+
+  return true;
+}
+
+// GET /api/domains/:id/connections — list active connections + pending invitations
+router.get('/:id/connections', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    if (!(await requireDomainAdminForRoute(req, res, req.params.id))) {
+      return;
+    }
+
+    const result = await listDomainConnections(prisma, req.params.id);
+    return res.json(result);
+  } catch (error) {
+    console.error('Error listing domain connections:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/domains/:id/connections/invite — invite by email or display name
+router.post(
+  '/:id/connections/invite',
+  authMiddlewareCompat,
+  validationMiddleware(inviteConnectionSchema),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      if (!(await requireDomainAdminForRoute(req, res, req.params.id))) {
+        return;
+      }
+
+      const result = await inviteDomainConnection(prisma, getPermissionService(), {
+        domainId: req.params.id,
+        invitedBy: req.user.id,
+        identifier: req.body.identifier,
+        role: req.body.role,
+      });
+
+      if (result.outcome === 'granted') {
+        return res.status(201).json({
+          outcome: 'granted',
+          permission: result.permission,
+        });
+      }
+
+      return res.status(201).json({
+        outcome: 'invited',
+        invitation: {
+          id: result.invitation.id,
+          email: result.invitation.email,
+          role: result.invitation.role,
+          expiresAt: result.invitation.expiresAt,
+        },
+      });
+    } catch (error) {
+      console.error('Error inviting domain connection:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('Insufficient permissions')) {
+          return res.status(403).json({ error: error.message });
+        }
+        if (error.message.includes('Domain not found')) {
+          return res.status(404).json({ error: error.message });
+        }
+        if (error.message.includes('User not found')) {
+          return res.status(404).json({ error: error.message });
+        }
+        if (error.message.includes('Connection not found')) {
+          return res.status(404).json({ error: error.message });
+        }
+        if (error.message.includes('already has a member role')) {
+          return res.status(409).json({ error: error.message });
+        }
+        if (
+          error.message.includes('Domain owner is already a member') ||
+          error.message.includes('Identifier is required')
+        ) {
+          return res.status(400).json({ error: error.message });
+        }
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+// DELETE /api/domains/:id/connections/:userId — revoke a connection
+router.delete('/:id/connections/:userId', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!(await requireDomainAdminForRoute(req, res, req.params.id))) {
+      return;
+    }
+
+    await revokeDomainConnection(prisma, getPermissionService(), {
+      domainId: req.params.id,
+      userId: req.params.userId,
+      revokedBy: req.user.id,
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Error revoking domain connection:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Insufficient permissions')) {
+        return res.status(403).json({ error: error.message });
+      }
+      if (error.message.includes('Connection not found')) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.includes('not a connection')) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error.message.includes('Cannot revoke permissions from domain owner')) {
         return res.status(400).json({ error: error.message });
       }
     }

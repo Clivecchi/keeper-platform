@@ -152,8 +152,9 @@ export function PresentFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         subtitle={journeyLoading ? "Loading this journey…" : journeyError ?? ""}
         themeSwitcherSlot={<ThemeSwitcher />}
         framePaddingTop="0"
+        hideAdminControl
       >
-        <div className="presentation-mode presentation-warm flex flex-1 min-h-[70vh] w-full -mx-4 sm:-mx-6">
+        <div className="presentation-mode presentation-warm flex flex-1 min-h-[60dvh] w-full -mx-4 sm:-mx-6">
           <div className="w-full max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-10 flex flex-col flex-1 min-h-0">
             {journeyLoading && (
               <p className="text-sm text-stone-600" role="status">
@@ -181,8 +182,9 @@ export function PresentFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       title="Present"
       subtitle="A story-first presentation surface for this domain."
       themeSwitcherSlot={<ThemeSwitcher />}
+      hideAdminControl
     >
-      <div className="rounded-2xl border border-black/10 bg-white/80 p-4 shadow-sm">
+      <div className="presentation-mode presentation-warm rounded-2xl border border-black/10 bg-white/80 p-4 shadow-sm min-h-[50dvh]">
         <PresentationBoardRenderer domainSlug={domainSlug} />
       </div>
     </DesignFrame>

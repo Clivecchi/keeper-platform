@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@keeper/database';
 import { rateLimit } from 'express-rate-limit';
+import { filterContentByAudience } from '@keeper/shared';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -42,6 +43,10 @@ router.get(
         return res.status(404).json({ error: 'Journey not found' });
       }
 
+      if (!filterContentByAudience([journey], 'guest').length) {
+        return res.status(404).json({ error: 'Journey not found' });
+      }
+
       const [paths, moments] = await Promise.all([
         prisma.path.findMany({
           where: { journeyId },
@@ -58,10 +63,15 @@ router.get(
             title: true,
             narrative: true,
             createdAt: true,
+            presenceSchema: true,
           },
           orderBy: { createdAt: 'asc' },
         }),
       ]);
+
+      const visibleMoments = filterContentByAudience(moments, 'guest').map(
+        ({ presenceSchema: _presenceSchema, ...moment }) => moment,
+      );
 
       return res.json({
         journey: {
@@ -72,7 +82,7 @@ router.get(
           updatedAt: journey.updatedAt,
         },
         paths,
-        moments,
+        moments: visibleMoments,
       });
     } catch (err) {
       console.error('[public/journeys] detail error', err);
@@ -100,11 +110,16 @@ router.get('/:domainSlug/journeys', publicJourneyRateLimit, async (req: Request,
         id: true,
         name: true,
         createdAt: true,
+        presenceSchema: true,
       },
       orderBy: { createdAt: 'asc' },
     });
 
-    return res.json({ journeys });
+    const visibleJourneys = filterContentByAudience(journeys, 'guest').map(
+      ({ presenceSchema: _presenceSchema, ...journey }) => journey,
+    );
+
+    return res.json({ journeys: visibleJourneys });
   } catch (err) {
     console.error('[public/journeys] list error', err);
     return res.status(500).json({ error: 'Internal server error' });

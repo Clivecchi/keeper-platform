@@ -8,24 +8,19 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 - `V0ShellContext.tsx`
 - `FrameContext.tsx`
 - `AgentComposerContext.tsx` — Provides composer state from AgentBoardFrame to Margin (bottom bar)
+- `guestPublicStory.ts` — guest-allowed frames + URL resolution for public story
 - `usePlacementMode.ts`
-- `useWorkspaceMode.ts`
 - `useWorkspaceView.ts`
 - `useAgentWorkspaceView.ts`
 
 ## 🔄 Data & Behavior
 The shell resolves the domain slug, applies the active theme/style, and routes frames by query param. It exposes navigation helpers so frames can build URLs and return to `/d/:slug/board` with theme preserved.
 
-`FrameContext` implements the **Context Contract**: a single provider that derives auth, domain, active keeper/journey, theme, and frame metadata. Frames consume this via `useFrameContext()` instead of ad-hoc prop/query-param parsing. Keeper and journey selection is persisted per-domain in localStorage.
-
-`useWorkspaceView` manages an open-ended `WorkspaceView` discriminated union serialized to URL search params. It replaces `useWorkspaceMode` for workspaces that need entity-level navigation (e.g. clicking a journey in the sidebar loads its detail view). View kinds: `feed` (activity stream), `entity` (journey/keeper/moment detail), `create` (inline engagement form), `summary` (commons overview). `useWorkspaceMode` remains available for simpler fixed-mode use cases.
-
-## ⚠️ Notes & ToDo
-- [ ] Replace fallback domain data once domain home board wiring is live.
-- [ ] Add theme resolution from Journey/Keeper/Domain hierarchy — **partial:** board hook resolves Moment → Path → Journey → Keeper `theme_id`; domain JSON remains base layer.
-- [ ] Default keeper/journey creation when none exist for a domain.
+Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-01: Phase 3.3 — guests with `?board=*` strip to public story (Cover / Present); no blank screen or UniversalMobileShell; `PublicGuestChrome` + `public-story-shell` wrapper.
+- 2026-07-01: Phase 3.2 — fetches domain audience context from API; `friend` role for connection-scoped members.
 - 2026-06-28: Step 1.2 auto-provision — domain owners loading an unseeded personal domain trigger `POST /api/domains/:id/provision` and frame reload (`v0/lib/ensureDomainProvisioned.ts`).
 - 2026-06-27: Domain workspace (`?board=domain`) now mounts `DomainBoard` (includes live `DomainSwitcher` fetch) instead of bare `UniversalBoard`.
 - 2026-06-15: `FRAME_TO_JSON_KEY` canonical source moved to `@keeper/shared/structure/frameJsonMap`; this file re-exports for backward-compatible imports.

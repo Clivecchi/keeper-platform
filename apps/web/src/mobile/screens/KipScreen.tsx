@@ -15,6 +15,7 @@ import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 import { useGuidedArrival } from "../../v0/guidedArrival/GuidedArrivalContext";
 import { GuidedArrivalBanner } from "../../v0/guidedArrival/GuidedArrivalBanner";
+import { isVisibleToAudience } from "@keeper/shared";
 
 export function KipScreen() {
   const {
@@ -63,8 +64,10 @@ export function KipScreen() {
       audience,
       model: domainFrame.kip.model,
       forward: domainFrame.forward,
-      directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
-      kip_context: domainFrame.kip_context[audience] ?? "",
+      directions: domainFrame.directions.filter((d) =>
+        isVisibleToAudience(d.available_to, audience),
+      ),
+      kip_context: domainFrame.kip_context[audience] ?? domainFrame.kip_context.friend ?? domainFrame.kip_context.keeper ?? "",
     };
     if (!kipFocusMomentId) return base;
     return {

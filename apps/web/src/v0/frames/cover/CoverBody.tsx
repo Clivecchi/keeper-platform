@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { CoverLens, type CoverLensItem } from "../../components/cover-lens"
 import { createDraftMoment } from "../../api/v0Moments"
 import { useV0ShellOptional, type V0FrameKey } from "../../shell/V0ShellContext"
+import { isVisibleToAudience } from "@keeper/shared"
 import { JourneyInvitationSlide } from "../../slides/JourneyInvitationSlide"
 import { useAuth } from "../../../context/AuthContext"
 import { getApiBase } from "../../../lib/apiFetch"
@@ -118,7 +119,9 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
     const resolvedAudience = v0Shell?.resolvedAudience ?? null
     const cardAvailableTo = domainFrame?.cover?.card?.available_to ?? []
     const cardVisible =
-      !resolvedAudience || cardAvailableTo.length === 0 || cardAvailableTo.includes(resolvedAudience)
+      !resolvedAudience ||
+      cardAvailableTo.length === 0 ||
+      isVisibleToAudience(cardAvailableTo, resolvedAudience)
 
     // TODO: Card type variants belong in Universal Board Design View
 
@@ -154,8 +157,8 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
             const list = body.journeys ?? []
             if (list.length > 0) {
               const params = new URLSearchParams()
-              params.set("frame", "journeys")
-              params.set("journey", list[0].id)
+              params.set("frame", "present")
+              params.set("journeyId", list[0].id)
               const theme = searchParams.get("theme")
               const style = searchParams.get("style")
               if (theme) params.set("theme", theme)
@@ -165,12 +168,16 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
             }
           }
         } catch (e) {
-          console.warn("[CoverBody] public journeys fetch failed, falling back to journeys frame", e)
+          console.warn("[CoverBody] public journeys fetch failed, falling back to present frame", e)
         } finally {
           setForwardLoading(false)
         }
 
-        navigateToJourneysFallback()
+        if (v0Shell) {
+          v0Shell.navigateToFrame("present")
+        } else {
+          navigateTo(`/d/${slug}?frame=present`)
+        }
       }
 
       return (

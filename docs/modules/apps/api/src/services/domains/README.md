@@ -6,6 +6,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 ## 🧱 Key Files
 - `domainFrameFallback.ts` — platform frame fallback (shared with GET `/:slug/frame`).
 - `buildInitialDomainFrameJson.ts` — personal domain wordmark/tagline/agent wiring.
+- `domainConnectionInvite.ts` — Phase 3.1 connection invite lookup, list, grant, and revoke helpers.
 - `provisionDomainOnCreate.ts` — idempotent orchestration after `POST /api/domains`.
 - `../scripts/repair-domain-frame.ts` — CLI repair for unseeded personal domains.
 
@@ -16,6 +17,8 @@ On create (and via `POST /api/domains/:id/provision` repair):
 3. Creates default Keeper (`DomainKeeper`) when none exists for the domain.
 4. Sets `users.primaryDomainId` when unset.
 5. Calls `ensureDomainHomeBoard`.
+
+`domainConnectionInvite.ts` resolves invitees by case-insensitive email or display name. Known users receive `friend`/`connection` `DomainPermission` rows immediately; unknown email addresses create or refresh `DomainInvitation` tokens (7-day expiry).
 
 Failures in individual steps log warnings and do not fail domain create.
 
@@ -28,6 +31,10 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+
+### 2026-07-01 — Phase 3.1 Connections
+- Added `domainConnectionInvite.ts` with identifier lookup (email or display name), connection listing, direct grant, invitation upsert, and connection-only revoke.
+- Unit tests in `domainConnectionInvite.test.ts`.
 
 ### 2026-07-01 — Phase 2.1 Guided Arrival
 - `buildInitialDomainFrameJson` seeds `arrival.completed: false` alongside lead agent greeting.

@@ -19,8 +19,13 @@ import { useParams, useNavigate, Navigate, useLocation, useSearchParams } from '
 import { CoverFrame } from '../../v0/components/cover-frame';
 import { MomentFrame } from '../../v0/components/moment-frame';
 import { KeptMomentsFrame } from '../../v0/components/kept-moments-frame';
+import { PresentFrame } from '../../v0/frames/present/PresentFrame';
 import { DiagnosticsFrame } from '../../v0/frames/diagnostics/DiagnosticsFrame';
 import { StyleOverrideProvider } from '../../v0/styles/StyleOverrideProvider';
+import { V0ShellProvider } from '../../v0/shell/V0ShellContext';
+import { FrameContextProvider } from '../../v0/shell/FrameContext';
+import { PublicGuestChrome } from '../../mobile/PublicGuestChrome';
+import '../../mobile/public-story.css';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useWorldMode } from '../../context/WorldModeContext';
@@ -38,12 +43,10 @@ export default function PublicDomainPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { isPresentation } = useWorldMode(); // Ensure we're in Presentation mode
   const [domainData, setDomainData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false); // Start as false for immediate render
   const [error, setError] = useState<string | null>(null);
-  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   // Check frame parameter for V0 routing
   const frame = searchParams.get("frame") || "cover";
@@ -51,6 +54,7 @@ export default function PublicDomainPage() {
   const draftId = searchParams.get("draftId");
   const isMomentFrame = frame === "moment";
   const isMomentsFrame = frame === "moments";
+  const isPresentFrame = frame === "present";
   const isDiagnosticsFrame = frame === "diagnostics";
 
   // Check if this is the /board route (always show board, even when authenticated)
@@ -68,7 +72,7 @@ export default function PublicDomainPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  async function loadDomainFromAPI(slug: string, fallbackData: any) {
+  async function loadDomainFromAPI(slug: string, _fallbackData: any) {
     try {
       const response = await apiFetch(`/api/domains/by-slug/${slug}`);
       if (response && response.id) {
@@ -80,36 +84,6 @@ export default function PublicDomainPage() {
       console.log('[PublicDomainPage] Using fallback data (API not available or failed)');
     }
   }
-
-  const handleEngagementAction = (templateSlug: string, context: any) => {
-    // For public landing, we need to handle engagement actions specially
-    // This will trigger EngagementButton which handles the full flow
-    console.log('Engagement action triggered:', templateSlug, context);
-  };
-
-  const handleEditInWorkshop = () => {
-    if (domainData?.id) {
-      navigate(`/studio/domain/${domainData.id}/board-studio`);
-    }
-  };
-
-  const handleLogin = () => {
-    // Navigate to login with returnTo parameter
-    const returnTo = encodeURIComponent(`/d/${slug}`);
-    navigate(`/login?returnTo=${returnTo}`);
-  };
-
-  const handleLogout = () => {
-    logout();
-    setShowAccountMenu(false);
-  };
-
-  const handleDashboard = () => {
-    console.log('[PublicDomainPage] Dashboard clicked, navigating to /settings');
-    console.log('[PublicDomainPage] Current auth state:', { isAuthenticated, user: user?.email, token: !!user });
-    // Use window.location for full page navigation to ensure auth state is fresh
-    window.location.href = '/settings';
-  };
 
   // Ensure we're in Presentation mode (this route should always be Presentation)
   useEffect(() => {
@@ -151,7 +125,7 @@ export default function PublicDomainPage() {
 
   // When authenticated and NOT on /board route, redirect to Commons (domain board)
   // Allow explicit V0 moment routing to stay on the board surface.
-  if (isAuthenticated && slug && !isBoardRoute && !isMomentFrame && !isMomentsFrame && !isDiagnosticsFrame) {
+  if (isAuthenticated && slug && !isBoardRoute && !isMomentFrame && !isMomentsFrame && !isPresentFrame && !isDiagnosticsFrame) {
     return <Navigate to={`/d/${slug}/board?frame=commons`} replace />;
   }
 
@@ -160,97 +134,94 @@ export default function PublicDomainPage() {
     console.log('[PublicDomainPage] Rendering frame params', { frame, themeSlug, draftId });
   }
   return (
-    <div className="min-h-screen presentation-mode">
-      {/* Overlay header for auth controls */}
-      <div className="absolute top-4 right-4 z-50 pointer-events-auto">
-        <div className="flex gap-2">
-          {isAuthenticated ? (
-            <div className="relative">
-              <button
-                onClick={() => setShowAccountMenu(!showAccountMenu)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-              >
-                {user?.name || user?.email || 'Account'}
-                {user?.name && (
-                  <span className="w-6 h-6 bg-[#C96E59] text-white rounded-full flex items-center justify-center text-xs font-medium">
-                    {user.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </button>
-              {showAccountMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                  <button
-                    onClick={handleDashboard}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={handleLogin}
-                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-              >
-                Get Started
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen presentation-mode public-story-shell public-story-shell--narrow">
+      <PublicGuestChrome domainSlug={slug ?? "default"} />
 
       {/* Render V0 components */}
       <StyleOverrideProvider initialStyleId={undefined}>
-        {frame === "moment" ? (
-          <MomentFrame
-            styleId="neutral"
+        <V0ShellProvider
+          value={{
+            domainSlug: slug ?? "default",
+            frame: (frame as any) ?? "cover",
+            placementMode: "publicStory",
+            placementActions: {
+              openKip: () => {},
+              closeKip: () => {},
+              goCommons: () => {},
+              goAdmin: () => {},
+              goCover: () => {},
+              goIndex: () => {},
+            },
+            themeSlug: themeSlug,
+            styleId: "neutral",
+            draftId,
+            domainData,
+            domainFrame: null,
+            resolvedAudience: "guest",
+            buildFrameUrl: (nextFrame) => `/d/${slug}?frame=${nextFrame}`,
+            navigateToFrame: (nextFrame, options) => {
+              const params = new URLSearchParams();
+              params.set("frame", nextFrame);
+              if (options?.draftId) params.set("draftId", options.draftId);
+              if (options?.themeSlug) params.set("theme", options.themeSlug);
+              navigate(`/d/${slug}?${params.toString()}`);
+            },
+            closeToBoard: () => navigate(`/d/${slug}`),
+            reloadDomainFrame: async () => {},
+            workspaceBoardId: null,
+            boardDefinitionId: null,
+            switchWorkspace: () => {},
+            selectBoardDefinition: () => {},
+            clearBoardDefinition: () => {},
+          }}
+        >
+          <FrameContextProvider
+            domainSlug={slug ?? "default"}
+            frame={(frame as any) ?? "cover"}
+            placementMode="publicStory"
             themeSlug={themeSlug}
-            domainSlug={slug}
             draftId={draftId}
-          />
-        ) : frame === "moments" ? (
-          <KeptMomentsFrame
-            styleId="neutral"
-            themeSlug={themeSlug}
-            domainSlug={slug}
-          />
-        ) : frame === "diagnostics" ? (
-          <DiagnosticsFrame
-            styleId="neutral"
-            themeSlug={themeSlug}
-            domainSlug={slug}
-            returnPath={`/d/${slug}`}
-          />
-        ) : (
-          <CoverFrame
-            styleId="neutral"
-            themeSlug={themeSlug}
-            domainData={domainData ? {
-              name: domainData.name,
-              slug: domainData.slug,
-              description: domainData.description,
-              theme: domainData.theme,
-            } : undefined}
-          />
-        )}
+          >
+            {frame === "moment" ? (
+              <MomentFrame
+                styleId="neutral"
+                themeSlug={themeSlug}
+                domainSlug={slug}
+                draftId={draftId}
+              />
+            ) : frame === "moments" ? (
+              <KeptMomentsFrame
+                styleId="neutral"
+                themeSlug={themeSlug}
+                domainSlug={slug}
+              />
+            ) : frame === "present" ? (
+              <PresentFrame styleId="neutral" themeSlug={themeSlug} />
+            ) : frame === "diagnostics" ? (
+              <DiagnosticsFrame
+                styleId="neutral"
+                themeSlug={themeSlug}
+                domainSlug={slug}
+                returnPath={`/d/${slug}`}
+              />
+            ) : (
+              <CoverFrame
+                styleId="neutral"
+                themeSlug={themeSlug}
+                domainData={domainData ? {
+                  name: domainData.name,
+                  slug: domainData.slug,
+                  description: domainData.description,
+                  theme: domainData.theme,
+                } : undefined}
+              />
+            )}
+          </FrameContextProvider>
+        </V0ShellProvider>
       </StyleOverrideProvider>
 
       {/* Minimal footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/60 backdrop-blur-sm border-t border-gray-200/50 py-2">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/60 backdrop-blur-sm border-t border-gray-200/50 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="max-w-7xl mx-auto px-6 text-center text-gray-400 text-xs">
           Powered by Keeper Platform
         </div>

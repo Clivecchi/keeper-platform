@@ -6,7 +6,7 @@ import { mergeCoverChatInterface } from "../frames/cover/CoverChatInterface"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { apiFetch } from "../../lib/api"
 
-const ALL_ROLES: AudienceRole[] = ["guest", "keeper", "admin"]
+const ALL_ROLES: AudienceRole[] = ["guest", "friend", "keeper", "admin"]
 
 const SECTIONS = ["identity", "theme", "audience", "kip", "cover"] as const
 type SectionId = (typeof SECTIONS)[number]

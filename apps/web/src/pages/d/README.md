@@ -52,6 +52,10 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ## 📆 Update Log
 
+### 2026-07-01 — Phase 3.3 public mobile hardening
+- V0Shell guest path documented: unauthenticated narrow viewports render Cover/Present, not UniversalMobileShell.
+- `PublicDomainPage` aligned with `?frame=present` + shared `PublicGuestChrome` (legacy; canonical route is V0ShellPage).
+
 ### 2026-01-27 - V0 admin surface
 - Rebuilt `DomainAdminPage` with the v0 shell frame, DomainManager, and an embedded profile editor.
 - Non-admin access now redirects back to the domain Commons surface.

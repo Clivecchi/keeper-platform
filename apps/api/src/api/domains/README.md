@@ -18,8 +18,11 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 ## 🔄 Data & Behavior
 - `POST /api/domains` runs `provisionDomainOnCreate` after create (frame_json, lead agent, keeper, primaryDomainId, home board).
 - `POST /api/domains/:id/provision` — idempotent repair for domains created before seeding (domain admin).
+- `GET/POST/DELETE /api/domains/:id/connections` — Phase 3.1 social graph: list `friend`/`connection` permissions + pending invitations; invite by email or display name; revoke connection roles (domain admin only).
 - `/:domainId/home-board` ensures and returns the canonical `boardType="domain-home"` board with minimal frame metadata.
 - `/by-slug/:slug/home-board` resolves domain by slug, enforces read permission, and returns the same canonical board.
+- `GET /by-slug/:slug/audience` (optional auth) returns `{ audience, domainRole, isOwner }` via `@keeper/shared` `resolveDomainAudience`.
+- `GET /by-slug/:slug/friends-content` (auth, read permission) returns journeys/moments filtered by `presenceSchema.realmVisibility` for friend+ audiences.
 - `/:domainId/agent/execute` now auto-assigns Kip as the primary agent when missing, then calls `KipAgentService` and surfaces typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, etc.).
 - Board data routes guard frame IDs via the Domain keeper type template, updating JSON props and flushing cache.
 - Custom domain routes share logic between legacy and `/custom` prefixed paths for compatibility.
@@ -38,6 +41,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-07-01: **Phase 3.1 Connections** — `GET/POST .../connections/invite`/`DELETE .../connections/:userId` for friend/connection roles + pending invitations (domain admin only).
+- 2026-07-01: **Phase 3.2 friend audience** — `GET /by-slug/:slug/audience` (optional auth) and `GET /by-slug/:slug/friends-content` (auth) with shared `resolveDomainAudience` + `filterContentByAudience`.
 - 2026-06-30: **Draft point promote** — `POST .../points/:pointId/promote` with `{ journeyId }` dispatches `draft.point.promote` (UI-only allowlist).
 - 2026-06-28: **Step 1.2 domain seeding** — `provisionDomainOnCreate` on create + `POST /:id/provision` repair (frame_json, `{slug}-lead` agent, keeper, primaryDomainId, home board).
 - 2026-06-27: **Domain key access + tier flags** — `GET /:domainId/key-access` returns tier policy + synced Key presence for Agent Board AI Access nav.

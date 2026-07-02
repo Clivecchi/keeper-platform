@@ -9,7 +9,7 @@
 
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 
-export type AudienceRole = "guest" | "keeper" | "admin"
+export type AudienceRole = "guest" | "friend" | "keeper" | "admin"
 
 export interface DomainFrameTheme {
   wordmark: string
@@ -72,6 +72,7 @@ export interface DomainFrameDirection {
 
 export interface DomainFrameKipContext {
   guest: string
+  friend?: string
   keeper: string
   admin: string
 }
@@ -89,6 +90,7 @@ export interface DomainFrameInteractionBar {
   secondary: string[]
   auth: {
     guest: string[]
+    friend?: string[]
     keeper: string[]
     admin: string[]
   }

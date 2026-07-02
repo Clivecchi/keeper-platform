@@ -7,23 +7,16 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 - `domain-frame.types.ts` — TypeScript interfaces for `DomainFrameJson` and all sub-shapes
 - `domain-frame.default.ts` — Static seed for the "default" domain frame (migrates to DB after Step 6 confirmed)
 - `loadDomainFrame.ts` — Async loader function; currently returns static default, swaps for API fetch after migration
-- `resolveAudience.ts` — Pure function: takes `{ isAuthenticated, isAdmin }`, returns `AudienceRole`
+- `resolveAudience.ts` — Legacy shim delegating to `@keeper/shared` `resolveDomainAudience` (domain role context lives in V0Shell API fetch)
 
 ## 🔄 Data & Behavior
-`loadDomainFrame(domainSlug)` is called in `V0Shell.tsx` once per domain slug. It resolves to a `DomainFrameJson` object that is:
-- Stored in `V0Shell` state as `domainFrame`
-- Logged to the browser console as `[DomainFrame] Loaded for domain: <slug>`
-- Exposed on `window.__keeper_domainFrame` for console verification
-- Passed down to child Frames and Kip in Steps 2–6
-
-## ⚠️ Notes & ToDo
-- [x] `frame_json Json? @default("{}")` added to `Domain` model — migration `20260305_add_domain_frame_json` applied
-- [x] `loadDomainFrame` now fetches from `GET /api/domains/:slug/frame` (database-driven)
-- [x] `domain-frame.default.ts` remains as a static fallback — do not delete
-- [ ] Per-domain frame JSON can now be customised per domain via a DB update to `frame_json`
-- [ ] `DEFAULT_DOMAIN_FRAME` is the fallback if the API is unavailable or returns non-ok
+`AudienceRole` includes `friend` (Phase 3.2). Frame element visibility uses hierarchical `isVisibleToAudience` from `@keeper/shared`.
 
 ## 📆 Update Log
+
+### 2026-07-01 — Phase 3.2 friend audience
+- Added `friend` to `AudienceRole`; optional `friend` on `kip_context` and `interaction_bar.auth`
+- `resolveAudience.ts` delegates to shared `resolveDomainAudience`; V0Shell fetches `/by-slug/:slug/audience`
 
 ### 2026-05-21 — jsonframe Step 3: interaction_bar.labels
 - Added `DomainFrameInteractionBarLabels` and required `labels` on `DomainFrameInteractionBar`

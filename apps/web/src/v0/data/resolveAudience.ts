@@ -1,18 +1,12 @@
 /**
  * resolveAudience
  *
- * Resolves the visitor's audience role once, at the Frame level.
- * Every rendering decision — UI and Kip — flows from this resolved role.
- *
- * Rules (spec: Keeper JsonFrame Spec v0.1):
- *   Not authenticated  → "guest"
- *   Admin flag present → "admin"   (checked before keeper — admin is a subset of authenticated)
- *   Authenticated      → "keeper"
- *
- * Rule: This is called once in V0Shell. No child component resolves audience independently.
+ * @deprecated Use `resolveDomainAudience` from `@keeper/shared` with domain role context.
+ * Legacy helper without friend/connection domain roles.
  */
 
 import type { AudienceRole } from "./domain-frame.types"
+import { resolveDomainAudience } from "@keeper/shared"
 
 export interface AuthState {
   isAuthenticated: boolean
@@ -20,7 +14,10 @@ export interface AuthState {
 }
 
 export function resolveAudience(auth: AuthState): AudienceRole {
-  if (!auth.isAuthenticated) return "guest"
-  if (auth.isAdmin) return "admin"
-  return "keeper"
+  return resolveDomainAudience({
+    isAuthenticated: auth.isAuthenticated,
+    isAdmin: auth.isAdmin,
+    isOwner: false,
+    domainRole: null,
+  })
 }

@@ -43,7 +43,11 @@ function resolveRightButtonIds(
   const bar = domainFrame?.interaction_bar
   if (!bar) return ["kip"]
   const secondary = bar.secondary.filter((id): id is InteractionBarButtonId => id === "kip")
-  const auth = (bar.auth[audience] ?? []).filter(
+  const authSource =
+    audience === "friend"
+      ? (bar.auth.friend ?? bar.auth.keeper ?? [])
+      : (bar.auth[audience] ?? [])
+  const auth = authSource.filter(
     (id): id is InteractionBarButtonId => id === "sign_in" || id === "settings",
   )
   return [...secondary, ...auth]

@@ -54,6 +54,7 @@ import { normalizeActionReceipt } from "../../../components/agent/types"
 import { shortId, extractLinkedCard, patchAcceptedDraftPointInMessages } from "../../../components/agent/helpers"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { uploadLibraryFile } from "../../presence/integrationChronicle/libraryNavCreate"
+import { isVisibleToAudience } from "@keeper/shared"
 
 // =============================================================================
 // Types
@@ -483,8 +484,10 @@ export function AgentBoardFrame({
           audience,
           model: domainFrame.kip.model,
           forward: domainFrame.forward,
-          directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
-          kip_context: domainFrame.kip_context[audience] ?? "",
+          directions: domainFrame.directions.filter((d) =>
+            isVisibleToAudience(d.available_to, audience),
+          ),
+          kip_context: domainFrame.kip_context[audience] ?? domainFrame.kip_context.friend ?? domainFrame.kip_context.keeper ?? "",
         }
       : undefined
 

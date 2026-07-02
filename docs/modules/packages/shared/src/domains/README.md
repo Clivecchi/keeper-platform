@@ -5,13 +5,19 @@ Shared constants and helpers for personal domain `frame_json` identity — detec
 
 ## 🧱 Key Files
 - `domainFrameIdentity.ts` — platform marker constants + `domainFrameLooksUnseeded`.
+- `resolveDomainAudience.ts` — guest | friend | keeper | admin from auth + domain role.
+- `audienceVisibility.ts` — hierarchical `available_to` checks for frame JSON elements.
+- `filterContentByAudience.ts` — `presenceSchema.realmVisibility` filtering for journeys/moments.
 
 ## 🔄 Data & Behavior
 - Marker strings mirror API `DOMAIN_FRAME_FALLBACK` (GET `/api/domains/:slug/frame` empty-row fallback).
 - `domainFrameLooksUnseeded` is used by web `V0Shell` auto-repair and API `provisionDomainOnCreate` re-seed decisions.
+- `resolveDomainAudience` is shared by API `GET /by-slug/:slug/audience` and web `V0Shell` (via API fetch).
+- `filterContentByAudience` gates public vs friends-content journey/moment lists by optional `realmVisibility`.
 
 ## ⚠️ Notes & ToDo
 - [ ] If fallback shape changes, update markers here and in `domainFrameFallback.ts` together.
 
 ## 📆 Update Log
+- 2026-07-01: Phase 3.2 — `friend` audience role, `resolveDomainAudience`, hierarchical frame visibility, realm content filtering.
 - 2026-07-01: Phase 1.4 — shared unseeded detection for wordmark, tagline, keeper_type, and kip defaults.

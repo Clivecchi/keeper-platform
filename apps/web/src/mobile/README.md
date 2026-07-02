@@ -6,7 +6,9 @@
 This is not a separate app, not legacy frame routing, and not a parallel API surface.
 
 ## 🧱 Key Files
-- `UniversalMobileShell.tsx` — tab shell + moment overlay + PWA prompt
+- `UniversalMobileShell.tsx` — tab shell + moment overlay + PWA prompt (authenticated Domain Board only)
+- `PublicGuestChrome.tsx` — Sign In / Get Started overlay for guest public story
+- `public-story.css` — mobile-safe layout for Cover / Present (Phase 3.3)
 - `hooks/useUniversalMobile.ts` — composes `UniversalBoardContext` + `UniversalMobileUIContext` + `V0Shell`
 - `context/UniversalMobileUIContext.tsx` — mobile-only UI: tabs, Kip focus chip, World refresh, PWA
 - `screens/WorldScreen.tsx` — kept moments stream with pull-to-refresh
@@ -40,12 +42,31 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 - `MobileKeeperContext` (removed — was duplicating board state)
 - Duplicate mobile-only active-journey localStorage (uses `FrameContext` keys)
 
+### Guest public story (Phase 3.3)
+- **Unauthenticated** visitors on `/d/:slug` never mount `UniversalMobileShell` — V0Shell renders Cover / Present via `public-story-shell`.
+- `?board=domain` (or any board) is stripped for guests; they land on Cover or preserved public `?frame=` (e.g. `present`).
+- Cover forward CTA loads first public journey into `?frame=present&journeyId=…`.
+
+### Manual verify (Phase 3.3)
+1. Open DevTools → toggle device toolbar (iPhone / narrow viewport). **Sign out** or use incognito.
+2. Visit `/d/default?board=domain` — expect **Cover** (no tab bar, no board chrome). URL should drop `board=`.
+3. Visit `/d/default` — Cover with domain wordmark / forward CTA from frame JSON.
+4. Tap forward (journey invitation) — lands on `?frame=present&journeyId=…` read-only narrative.
+5. Direct link: `/d/default?frame=present&journeyId=<id>` — Present loads without auth.
+6. Visit `/d/default/board` — redirects to `/d/default` (BoardToShellRedirect), then guest Cover path.
+7. Sign in on mobile — should redirect to `?board=domain` and mount `UniversalMobileShell` tabs.
+
 ## ⚠️ Notes & ToDo
 - [ ] **Realm mobile (Phase 4B–4C):** Realm Screen (domain list + talk composer) as primary mobile home; in-realm Domain Screen for Dialog · Chronicle — see `docs/realm-development-plan.md`
 - [ ] Talk mode / STT → composer (wearables + mobile); shared hook with Realm Screen
 - [ ] Phase 3: offline draft queue, push notifications, app store wrappers
 
 ## 📆 Update Log
+
+### 2026-07-01 — Phase 3.3 Present / public mobile hardening
+- Added `PublicGuestChrome`, `public-story.css`, and V0Shell guest routing (`guestPublicStory.ts`).
+- Guests strip `?board=*`; Cover forward CTA opens `?frame=present&journeyId=…`.
+- Manual verify steps documented above.
 
 ### 2026-07-01 — Phase 2.1 Guided Arrival (mobile)
 - `GuidedArrivalOrchestrator` focuses Kip tab on first owner visit; `KipScreen` uses lead agent + greeting + dismissible banner.

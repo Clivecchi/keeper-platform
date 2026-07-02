@@ -1,0 +1,75 @@
+/* Public story — guest Cover / Present on narrow viewports (Phase 3.3) */
+
+.public-story-shell {
+  min-height: 100dvh;
+  min-height: 100vh;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+.public-story-shell.presentation-mode {
+  background: hsl(var(--theme-surface-page, 40 20% 97%));
+}
+
+.public-guest-chrome {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+.public-guest-chrome__button {
+  min-height: 2.5rem;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border-radius: 0.625rem;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.85);
+  background: hsl(var(--theme-surface-paper) / 0.92);
+  color: hsl(var(--theme-ink-primary));
+  box-shadow: var(--theme-shadow-soft, 0 1px 2px rgb(0 0 0 / 0.06));
+  transition: opacity 0.15s ease;
+}
+
+.public-guest-chrome__button:hover {
+  opacity: 0.92;
+}
+
+.public-guest-chrome__button--primary {
+  border-color: hsl(var(--theme-accent-primary) / 0.35);
+  background: hsl(var(--theme-accent-primary));
+  color: hsl(var(--theme-ink-on-accent, 0 0% 100%));
+}
+
+@media (max-width: 767px) {
+  .public-story-shell .design-frame-header {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+
+  .public-story-shell .public-guest-chrome + * {
+    scroll-padding-top: 3.5rem;
+  }
+
+  .public-story-shell .journey-invitation-slide button,
+  .public-story-shell .cover-chat-interface button,
+  .public-story-shell .cover-chat-interface textarea {
+    min-height: 2.75rem;
+  }
+
+  .public-story-shell .presentation-mode.presentation-warm {
+    margin-inline: 0;
+    padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .public-story-shell .design-frame-root {
+    padding-inline: max(0.75rem, env(safe-area-inset-left)) max(0.75rem, env(safe-area-inset-right));
+  }
+}

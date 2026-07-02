@@ -76,7 +76,7 @@ Wearables do **not** get a separate data model — they are an input modality on
 |------|-------------|--------|
 | 1.1 | DomainSwitcher on all member boards | Done |
 | 1.2 | Domain creation + provisioner on all create paths | Done |
-| 1.3 | Engagement templates on Board | Ongoing |
+| 1.3 | Engagement templates on Board | **Done** |
 | 1.4 | Personal `frame_json` (stop KE3P bleed) | **Done** |
 
 **Mobile note:** Phase 1 mobile work stays on Domain Board shell — no Realm Screen yet.
@@ -163,7 +163,7 @@ Wearables do **not** get a separate data model — they are an input modality on
 |------|-------|--------|
 | **Wave 1** | 1.1 switcher · 1.2 provisioner · nav contentGating · 2.2b promote | **Complete** (uncommitted) |
 | **Wave 2** | 2.1 Guided Arrival · 1.4 frame_json · 1.3 templates | **Complete** (uncommitted) |
-| **Wave 3** | 3.1–3.3 Connection + Friends + Present | After Wave 2 |
+| **Wave 3** | 3.1–3.3 Connection + Friends + Present | **Complete** (uncommitted) |
 | **Wave 4** | 4A Realm def · 4B Realm Screen · 4C mobile Domain · 4D talk mode | After Phase 3 gate |
 
 ---
