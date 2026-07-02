@@ -7,14 +7,14 @@ import { markHasKeptMoment } from "../lib/mobileStorage";
 export interface UniversalMobileUIContextValue {
   activeTab: MobileTabId;
   kipFocusMomentId: string | null;
-  worldRefreshKey: number;
+  mobileRefreshKey: number;
   showInstallPrompt: boolean;
   setActiveTab: (tab: MobileTabId) => void;
   setKipFocusMomentId: (momentId: string | null) => void;
-  submitRealmComposerText: (text: string) => void;
+  submitMobileComposerText: (text: string) => void;
   consumePendingComposerText: () => string | null;
   clearKipFocus: () => void;
-  refreshWorld: () => void;
+  bumpMobileRefresh: () => void;
   notifyMomentKept: () => void;
 }
 
@@ -24,12 +24,12 @@ export interface UniversalMobileUIProviderProps {
   children: React.ReactNode;
 }
 
-/** Tab navigation, Kip focus chip, World refresh, and PWA install prompt — mobile shell UI only. */
+/** Tab navigation, Kip focus chip, content refresh, and PWA install prompt — mobile shell UI only. */
 export function UniversalMobileUIProvider({ children }: UniversalMobileUIProviderProps) {
-  const [activeTab, setActiveTabState] = React.useState<MobileTabId>("realm");
+  const [activeTab, setActiveTabState] = React.useState<MobileTabId>("domains");
   const [kipFocusMomentId, setKipFocusMomentId] = React.useState<string | null>(null);
   const pendingComposerRef = React.useRef<string | null>(null);
-  const [worldRefreshKey, setWorldRefreshKey] = React.useState(0);
+  const [mobileRefreshKey, setMobileRefreshKey] = React.useState(0);
   const [showInstallPrompt, setShowInstallPrompt] = React.useState(() => {
     if (typeof window === "undefined") return false;
     return !window.matchMedia("(display-mode: standalone)").matches;
@@ -46,7 +46,7 @@ export function UniversalMobileUIProvider({ children }: UniversalMobileUIProvide
     setKipFocusMomentId(null);
   }, []);
 
-  const submitRealmComposerText = React.useCallback((text: string) => {
+  const submitMobileComposerText = React.useCallback((text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
     pendingComposerRef.current = trimmed;
@@ -58,40 +58,40 @@ export function UniversalMobileUIProvider({ children }: UniversalMobileUIProvide
     return value;
   }, []);
 
-  const refreshWorld = React.useCallback(() => {
-    setWorldRefreshKey((key) => key + 1);
+  const bumpMobileRefresh = React.useCallback(() => {
+    setMobileRefreshKey((key) => key + 1);
   }, []);
 
   const notifyMomentKept = React.useCallback(() => {
     markHasKeptMoment();
     setShowInstallPrompt(true);
-    refreshWorld();
-  }, [refreshWorld]);
+    bumpMobileRefresh();
+  }, [bumpMobileRefresh]);
 
   const value = React.useMemo<UniversalMobileUIContextValue>(
     () => ({
       activeTab,
       kipFocusMomentId,
-      worldRefreshKey,
+      mobileRefreshKey,
       showInstallPrompt,
       setActiveTab,
       setKipFocusMomentId,
-      submitRealmComposerText,
+      submitMobileComposerText,
       consumePendingComposerText,
       clearKipFocus,
-      refreshWorld,
+      bumpMobileRefresh,
       notifyMomentKept,
     }),
     [
       activeTab,
       kipFocusMomentId,
-      worldRefreshKey,
+      mobileRefreshKey,
       showInstallPrompt,
       setActiveTab,
-      submitRealmComposerText,
+      submitMobileComposerText,
       consumePendingComposerText,
       clearKipFocus,
-      refreshWorld,
+      bumpMobileRefresh,
       notifyMomentKept,
     ],
   );

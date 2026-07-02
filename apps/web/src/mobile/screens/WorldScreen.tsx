@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * @deprecated World tab removed from mobile (June 2026). Kept moments are opened from
+ * Moment detail / Journeys — not a separate tab. Do not wire back into UniversalMobileShell.
+ */
 import * as React from "react";
 import { MomentListCard } from "../components/MomentListCard";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
@@ -8,7 +12,7 @@ import { fetchKeptMomentsForWorld } from "../lib/mobileApi";
 import type { KeptMomentSummary } from "../../v0/api/v0Moments";
 
 export function WorldScreen() {
-  const { domainSlug, worldRefreshKey, openMoment, refreshWorld } = useUniversalMobile();
+  const { domainSlug, mobileRefreshKey, openMoment, bumpMobileRefresh } = useUniversalMobile();
   const [moments, setMoments] = React.useState<KeptMomentSummary[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -29,11 +33,11 @@ export function WorldScreen() {
   React.useEffect(() => {
     setLoading(true);
     void loadMoments();
-  }, [loadMoments, worldRefreshKey]);
+  }, [loadMoments, mobileRefreshKey]);
 
   const { containerRef, pullDistance, isRefreshing, touchHandlers } = usePullToRefresh({
     onRefresh: async () => {
-      refreshWorld();
+      bumpMobileRefresh();
       await loadMoments();
     },
     disabled: loading,

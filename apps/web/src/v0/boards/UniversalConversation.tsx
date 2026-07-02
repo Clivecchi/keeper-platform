@@ -67,6 +67,8 @@ import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
+import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -221,7 +223,11 @@ export function UniversalConversation({
   const guidedArrival = useGuidedArrivalOptional()
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
   const agentEcho = def.conversation.agentEcho === true
-  const frameLeadAgentSlug = domainFrame?.kip?.agent_id?.trim()
+  const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame)
+  const frameLeadIdentity = useFrameLeadAgentIdentity(
+    frameLeadAgentSlug,
+    def.conversation.agentName ?? "Kip",
+  )
   const baseAgentSlug =
     def.conversation.agentFromFrame && frameLeadAgentSlug
       ? frameLeadAgentSlug
@@ -344,13 +350,19 @@ export function UniversalConversation({
       : usingSelectedNonDefaultAgent && selectedAgentRecord
         ? selectedAgentRecord.slug
         : baseAgentSlug
+
+  const usesFrameLeadAgent =
+    !!frameLeadAgentSlug && dialogAgentSlug === frameLeadAgentSlug
+
   const dialogAgentDisplayName = guidedArrivalActive && guidedArrival
     ? guidedArrival.leadAgentDisplayName
-    : isDirectorMode
-      ? defaultAgentName
-      : usingSelectedNonDefaultAgent && selectedAgentRecord
-        ? selectedAgentRecord.name
-        : def.conversation.agentName
+    : usesFrameLeadAgent
+      ? frameLeadIdentity.displayName
+      : isDirectorMode
+        ? defaultAgentName
+        : usingSelectedNonDefaultAgent && selectedAgentRecord
+          ? selectedAgentRecord.name
+          : def.conversation.agentName
 
   const directorConfig = React.useMemo(
     () =>

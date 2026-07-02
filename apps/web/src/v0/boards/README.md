@@ -27,6 +27,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-30 — Frame lead agent display name (Universal Dialog)
+- `UniversalConversation` resolves `frame_json.kip.agent_id` → `kip_agents.name` via shared `useFrameLeadAgentIdentity` when the active dialog agent is the domain lead (Realm board + Guided Arrival).
+
 ### 2026-07-01 — Phase 4A: Realm Board (`?board=realm`)
 - **`REALM_BOARD_DEF`** — fifth Universal Board: `contentGated` nav, `chatter` + `connections` blocks, Cover-first Chronicle, solo dialog, `agentFromFrame`
 - **`realm/RealmBoard.tsx`** — thin wrapper; registered in `boardRegistry.ts`, `workspaceBoardNav.ts`, `useBoardDefs`, `KeeperTopBar`

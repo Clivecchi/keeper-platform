@@ -18,7 +18,7 @@ function detectAndroid(): boolean {
 export function PwaInstallPrompt({
   open = true,
   title = "Install Keeper",
-  description = "Add Keeper to your home screen for quick access to your world.",
+  description = "Add Keeper to your home screen for quick access.",
 }: PwaInstallPromptProps) {
   const { canInstall, isInstalled, isIosSafari, isPromptDismissed, promptInstall, dismissPrompt } =
     usePwaInstallContext();

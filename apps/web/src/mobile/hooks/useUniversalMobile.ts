@@ -77,7 +77,7 @@ export function useUniversalMobile() {
     selectedMomentId: selection.selectedMomentId,
     activeTab: ui.activeTab,
     kipFocusMomentId: ui.kipFocusMomentId,
-    worldRefreshKey: ui.worldRefreshKey,
+    mobileRefreshKey: ui.mobileRefreshKey,
     showInstallPrompt: ui.showInstallPrompt,
     setActiveTab: ui.setActiveTab,
     openMoment,
@@ -85,9 +85,9 @@ export function useUniversalMobile() {
     setActiveJourneyId,
     openKipWithMoment,
     clearKipFocus: ui.clearKipFocus,
-    refreshWorld: ui.refreshWorld,
+    bumpMobileRefresh: ui.bumpMobileRefresh,
     notifyMomentKept,
-    submitRealmComposerText: ui.submitRealmComposerText,
+    submitMobileComposerText: ui.submitMobileComposerText,
     consumePendingComposerText: ui.consumePendingComposerText,
   };
 }

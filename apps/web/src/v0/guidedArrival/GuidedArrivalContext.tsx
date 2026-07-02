@@ -3,10 +3,11 @@
 import * as React from "react"
 import { isGuidedArrivalPending } from "@keeper/shared"
 import { apiFetch } from "../../lib/api"
-import { KipApi } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { isMemberMobileBoard } from "../boards/workspaceBoardNav"
+import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 
 export interface GuidedArrivalContextValue {
   /** Owner first visit — arrival UI should activate. */
@@ -49,7 +50,6 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
   const [settingsLoaded, setSettingsLoaded] = React.useState(false)
   const [isBannerDismissed, setIsBannerDismissed] = React.useState(false)
   const [completedLocally, setCompletedLocally] = React.useState(false)
-  const [leadAgentDisplayName, setLeadAgentDisplayName] = React.useState("Kip")
 
   const workspaceBoardId = shell?.workspaceBoardId ?? null
   const domainData = shell?.domainData
@@ -62,7 +62,8 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
     !!ownerId &&
     String(ownerId) === String(user.id)
 
-  const leadAgentSlug = domainFrame?.kip?.agent_id?.trim() || "kip"
+  const leadAgentSlug = readFrameLeadAgentSlug(domainFrame) ?? "kip"
+  const frameLeadIdentity = useFrameLeadAgentIdentity(leadAgentSlug)
   const greeting = domainFrame?.kip?.greeting?.trim() || ""
   const coverGreeting = greeting || domainFrame?.theme?.tagline?.trim() || ""
 
@@ -96,24 +97,6 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
       cancelled = true
     }
   }, [workspaceBoardId, isOwner, domainId])
-
-  React.useEffect(() => {
-    if (!leadAgentSlug || leadAgentSlug === "kip") {
-      setLeadAgentDisplayName("Kip")
-      return
-    }
-    let cancelled = false
-    void KipApi.getAgentBySlug(leadAgentSlug)
-      .then((agent) => {
-        if (!cancelled) setLeadAgentDisplayName(agent.name?.trim() || leadAgentSlug)
-      })
-      .catch(() => {
-        if (!cancelled) setLeadAgentDisplayName(leadAgentSlug)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [leadAgentSlug])
 
   const pending =
     !completedLocally &&
@@ -149,7 +132,7 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
       isBannerDismissed,
       greeting,
       leadAgentSlug,
-      leadAgentDisplayName,
+      leadAgentDisplayName: frameLeadIdentity.displayName,
       coverGreeting,
       dismissBanner,
       acknowledge,
@@ -159,7 +142,7 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
     isBannerDismissed,
     greeting,
     leadAgentSlug,
-    leadAgentDisplayName,
+    frameLeadIdentity.displayName,
     coverGreeting,
     dismissBanner,
     acknowledge,

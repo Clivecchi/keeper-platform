@@ -15,6 +15,8 @@ import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 import { useGuidedArrival } from "../../v0/guidedArrival/GuidedArrivalContext";
 import { GuidedArrivalBanner } from "../../v0/guidedArrival/GuidedArrivalBanner";
+import { readFrameLeadAgentSlug } from "../../v0/lib/frameLeadAgentIdentity";
+import { useFrameLeadAgentIdentity } from "../../v0/hooks/useFrameLeadAgentIdentity";
 import { isVisibleToAudience } from "@keeper/shared";
 
 export function KipScreen() {
@@ -28,7 +30,7 @@ export function KipScreen() {
     clearKipFocus,
     openMoment,
     notifyMomentKept,
-    worldRefreshKey,
+    mobileRefreshKey,
     consumePendingComposerText,
   } = useUniversalMobile();
   const { domainFrame, resolvedAudience } = useV0Shell();
@@ -58,6 +60,17 @@ export function KipScreen() {
 
   const guidedArrival = useGuidedArrival();
   const arrivalActive = guidedArrival.isActive;
+
+  const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame);
+  const frameLeadIdentity = useFrameLeadAgentIdentity(frameLeadAgentSlug, "Kip");
+  const dialogAgentSlug = arrivalActive
+    ? guidedArrival.leadAgentSlug
+    : frameLeadAgentSlug ?? "kip";
+  const dialogAgentDisplayName = arrivalActive
+    ? guidedArrival.leadAgentDisplayName
+    : frameLeadAgentSlug
+      ? frameLeadIdentity.displayName
+      : "Kip";
 
   const agentContext = React.useMemo(() => {
     if (!domainFrame) return undefined;
@@ -90,8 +103,8 @@ export function KipScreen() {
     activeSessionId,
     sendMessage,
   } = useAgentDialog({
-    agentSlug: arrivalActive ? guidedArrival.leadAgentSlug : "kip",
-    agentDisplayName: arrivalActive ? guidedArrival.leadAgentDisplayName : "Kip",
+    agentSlug: dialogAgentSlug,
+    agentDisplayName: dialogAgentDisplayName,
     greetingMessage: arrivalActive ? guidedArrival.greeting : undefined,
     mode: "domain",
     domainSlug,
@@ -208,7 +221,7 @@ export function KipScreen() {
     return () => {
       cancelled = true;
     };
-  }, [domainSlug, worldRefreshKey]);
+  }, [domainSlug, mobileRefreshKey]);
 
   const bannerContext = React.useMemo(() => {
     const df = domainFrame as {
@@ -239,7 +252,7 @@ export function KipScreen() {
     stage === "response" && responseView === "chronicle" ? (
       <MobileKipChronicleView
         message={latestAgentMessage}
-        agentName={arrivalActive ? guidedArrival.leadAgentDisplayName : isRealmBoard ? "Lead agent" : "Kip"}
+        agentName={dialogAgentDisplayName}
         onOpenMoment={openMoment}
       />
     ) : undefined;
@@ -296,7 +309,7 @@ export function KipScreen() {
           domainId={domainId}
           activeSessionId={activeSessionId}
           dialogueMode="domain"
-          agentName={arrivalActive ? guidedArrival.leadAgentDisplayName : "Kip"}
+          agentName={dialogAgentDisplayName}
           onOpenMoment={openMoment}
           showServiceBar={false}
           talkMode

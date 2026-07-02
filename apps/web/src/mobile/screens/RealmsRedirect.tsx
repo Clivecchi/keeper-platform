@@ -6,7 +6,7 @@ import { fetchDomainSwitcherEntries } from "../../v0/boards/domain/domainSwitche
 
 /**
  * Authenticated mobile entry at `/realms` — resolves first domain and lands on
- * Universal Mobile Shell with `?board=domain` (Realm tab is the default home tab).
+ * Universal Mobile Shell with `?board=realm` (Dialog tab is the default home tab).
  */
 export function RealmsRedirect() {
   const [target, setTarget] = React.useState<string | null>(null);
@@ -38,7 +38,7 @@ export function RealmsRedirect() {
         className="flex h-[100dvh] items-center justify-center text-sm"
         style={{ color: "hsl(var(--theme-ink-secondary, 0 0% 45%))" }}
       >
-        Loading your realms…
+        Loading your domains…
       </div>
     );
   }

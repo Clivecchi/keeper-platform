@@ -25,9 +25,6 @@ Screen components for Universal Mobile shell tabs — Domains picker, Moment cap
 ### 2026-06-30 — Mobile naming
 - RealmScreen copy uses **domain** language; World tab removed from shell.
 
-### 2026-06-30 — Frame lead agent display name
-- Mobile `KipScreen` uses frame lead slug + resolved display name (same as desktop Universal Dialog).
-
 ### 2026-07-01 — Phase 4B Realm Screen
 - Added `RealmScreen.tsx` — domain picker parity + bottom composer (text + mic).
 - Added `RealmsRedirect.tsx` for `/realms` authenticated mobile entry.

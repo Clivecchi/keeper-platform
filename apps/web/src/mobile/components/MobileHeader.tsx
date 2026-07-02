@@ -14,14 +14,8 @@ export function MobileHeader({ title, subtitle }: MobileHeaderProps) {
         backgroundColor: "hsl(var(--theme-surface-page, 40 20% 97%))",
       }}
     >
-      <p
-        className="text-[11px] uppercase tracking-[0.22em]"
-        style={{ color: "hsl(var(--theme-ink-secondary))" }}
-      >
-        My World
-      </p>
       <h1
-        className="mt-1 text-lg font-medium"
+        className="text-lg font-medium"
         style={{ color: "hsl(var(--theme-ink-primary))" }}
       >
         {title}

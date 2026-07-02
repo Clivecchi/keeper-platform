@@ -29,7 +29,7 @@ function formatWhen(value: string | null): string {
 }
 
 export function MomentDetailScreen({ momentId, onClose }: MomentDetailScreenProps) {
-  const { domainId, refreshWorld, openKipWithMoment } = useUniversalMobile();
+  const { domainId, bumpMobileRefresh, openKipWithMoment } = useUniversalMobile();
   const [moment, setMoment] = React.useState<MobileMomentDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -57,7 +57,7 @@ export function MomentDetailScreen({ momentId, onClose }: MomentDetailScreenProp
   const engagement = useBoardEngagement(() => {
     setIsEditing(false);
     void loadMoment();
-    refreshWorld();
+    bumpMobileRefresh();
   });
 
   const { activateBySlug, intent, submitting, cancel } = engagement;

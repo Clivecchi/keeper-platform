@@ -77,7 +77,7 @@ export function KeepScreen() {
     if (createdId) {
       openMoment(createdId);
     } else {
-      setActiveTab("world");
+      setActiveTab("kip");
     }
   });
 

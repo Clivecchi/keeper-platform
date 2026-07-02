@@ -121,7 +121,7 @@ function RealmDomainCard({ domain, isCurrent, onSelect }: RealmDomainCardProps) 
         ) : null}
         {isCurrent ? (
           <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-[#6ee7b7]">
-            Current realm
+            Current domain
           </p>
         ) : null}
       </div>
@@ -131,7 +131,7 @@ function RealmDomainCard({ domain, isCurrent, onSelect }: RealmDomainCardProps) 
 
 export function RealmScreen() {
   const navigate = useNavigate();
-  const { domainSlug, setActiveTab, submitRealmComposerText } = useUniversalMobile();
+  const { domainSlug, setActiveTab, submitMobileComposerText } = useUniversalMobile();
 
   const [fetchState, setFetchState] = React.useState<RealmFetchState>("idle");
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([]);
@@ -175,7 +175,7 @@ export function RealmScreen() {
       })
       .catch((error: unknown) => {
         console.error("[RealmScreen] Failed to load domains:", error);
-        setFetchError(error instanceof Error ? error.message : "Could not load your realms.");
+        setFetchError(error instanceof Error ? error.message : "Could not load your domains.");
         setFetchState("error");
       });
   }, []);
@@ -202,10 +202,10 @@ export function RealmScreen() {
   const handleSend = React.useCallback(() => {
     const trimmed = composerText.trim();
     if (!trimmed) return;
-    submitRealmComposerText(trimmed);
+    submitMobileComposerText(trimmed);
     setComposerText("");
     setActiveTab("kip");
-  }, [composerText, setActiveTab, submitRealmComposerText]);
+  }, [composerText, setActiveTab, submitMobileComposerText]);
 
   const handleComposerKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -225,23 +225,23 @@ export function RealmScreen() {
             className="text-[11px] uppercase tracking-[0.22em]"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
-            Your Realms
+            Your Domains
           </p>
           <p className="mt-1 text-xs" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Tap a realm to enter — capture and talk from here.
+            Tap a domain to open the Realm board — capture and talk from there.
           </p>
         </div>
 
         {fetchState === "loading" ? (
           <p className="py-6 text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Loading your realms…
+            Loading your domains…
           </p>
         ) : null}
 
         {fetchState === "error" ? (
           <div className="py-6">
             <p className="text-sm" style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}>
-              {fetchError ?? "Could not load your realms."}
+              {fetchError ?? "Could not load your domains."}
             </p>
             <button
               type="button"
@@ -257,7 +257,7 @@ export function RealmScreen() {
         {fetchState === "ready" && domains.length === 0 ? (
           <div className="py-6">
             <p className="text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-              No realms yet. Add one to begin keeping what matters.
+              No domains yet. Add one to begin keeping what matters.
             </p>
           </div>
         ) : null}
@@ -285,7 +285,7 @@ export function RealmScreen() {
               border: "1px dashed hsl(var(--theme-border-soft) / 0.7)",
               background: "hsl(var(--theme-surface-panel) / 0.45)",
             }}
-            aria-label="Add a realm"
+            aria-label="Add a domain"
           >
             <span
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
@@ -305,7 +305,7 @@ export function RealmScreen() {
               </svg>
             </span>
             <span className="text-sm font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-              Add a realm
+              Add a domain
             </span>
           </button>
         ) : null}

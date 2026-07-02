@@ -2,22 +2,24 @@
 
 import type { MobileTabId } from "../types";
 
-const DOMAIN_TABS: MobileTabId[] = ["realm", "world", "moment", "journeys", "kip"];
-const IN_REALM_TABS: MobileTabId[] = ["world", "moment", "journeys", "kip"];
+/** Cross-domain picker — only on Domain Board mobile (not when already in ?board=realm). */
+const DOMAIN_BOARD_TABS: MobileTabId[] = ["domains", "moment", "journeys", "kip"];
+
+/** In-domain tabs when workspace is the Realm board (?board=realm). */
+const REALM_BOARD_TABS: MobileTabId[] = ["moment", "journeys", "kip"];
 
 const DEFAULT_TAB_LABELS: Record<MobileTabId, string> = {
-  realm: "Realm",
-  world: "World",
+  domains: "Domains",
   moment: "Moment",
   journeys: "Journeys",
-  kip: "Kip",
+  kip: "Dialog",
 };
 
 export interface MobileTabBarProps {
   activeTab: MobileTabId;
   onTabChange: (tab: MobileTabId) => void;
   tabLabels?: Partial<Record<MobileTabId, string>>;
-  /** When true (in-realm Domain Screen), hide the cross-realm picker tab. */
+  /** When true (?board=realm), hide the cross-domain Domains picker tab. */
   inRealmBoard?: boolean;
 }
 
@@ -27,7 +29,7 @@ export function MobileTabBar({
   tabLabels,
   inRealmBoard = false,
 }: MobileTabBarProps) {
-  const tabIds = inRealmBoard ? IN_REALM_TABS : DOMAIN_TABS;
+  const tabIds = inRealmBoard ? REALM_BOARD_TABS : DOMAIN_BOARD_TABS;
   const tabs = tabIds.map((id) => ({
     id,
     label: tabLabels?.[id] ?? DEFAULT_TAB_LABELS[id],
@@ -43,7 +45,7 @@ export function MobileTabBar({
       aria-label="Mobile navigation"
     >
       <div
-        className={`grid gap-0.5 ${inRealmBoard ? "grid-cols-4" : "grid-cols-5"}`}
+        className={`grid gap-0.5 ${inRealmBoard ? "grid-cols-3" : "grid-cols-4"}`}
       >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
