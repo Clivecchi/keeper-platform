@@ -19,7 +19,7 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 
 | Element | Description |
 |---|---|
-| **Trail Bar** | Permanent top. History stack (max 3 visible, `···` compresses older). Feed indicator (soft dot + count, 120s polling, tappable → domain feed). Lateral slide 200ms entry / 140ms exit. |
+| **Trail Bar** | Permanent top. History stack (max 3 visible, `···` compresses older). Feed indicator (soft dot + count, 120s polling via shared journey nav cache, tappable → domain feed). Lateral slide 200ms entry / 140ms exit. |
 | **Panel Body** | Universal — `KeeperPresence` for every subject type, **or** `ChronicleEngagementSurface` when Nav/board requests an Act form. Opacity dissolve on context shift (200ms entry / 140ms exit). Never empty — domain idle uses KeeperPresence. |
 | **Idle State** | `KeeperPresence` objectType=`domain` — ambient feed (recent moments, moving/present journeys). |
 

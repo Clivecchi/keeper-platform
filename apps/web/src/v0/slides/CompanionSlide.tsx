@@ -11,7 +11,7 @@
  *   - Session state is NEVER reset on close — conversation persists
  *   - Cue Cards arrive open, auto-collapse after 4s if untouched
  *   - Cue Cards icon appears in the header only after the first card collapses
- *   - Visual build: static mock content — no Kip API wiring
+ *   - Visual build: domain theme tokens via StyleScope; diary mode on Present
  *
  * Spec: Companion Component (Visual Build) · KE3P March 2026
  */
@@ -22,18 +22,18 @@ import { getApiBase } from "../../lib/apiFetch"
 import { issueGuestHandoffKey } from "../../lib/kipGuestHandoff"
 import { useComposerDraftAutosave } from "../../hooks/useComposerDraftAutosave"
 
-// ─── Brand ────────────────────────────────────────────────────────────────────
+// ─── Theme tokens (domain-resolved via StyleScope) ───────────────────────────
 
-const B = {
-  primary:   "#2d6a7f",
-  cream:     "#fdfaf4",
-  border:    "#e8e0d4",
-  shadow:    "0 8px 32px rgba(26,26,26,0.12)",
-  kipBubble: "#f0ebe2",
-  inkDark:   "#1a1a1a",
-  inkBody:   "#333333",
-  inkMuted:  "#888888",
-  font:      "Outfit, Inter, sans-serif",
+const T = {
+  primary:   "var(--theme-accent-primary, #2d6a7f)",
+  cream:     "hsl(var(--theme-surface-paper))",
+  border:    "var(--theme-border-soft)",
+  shadow:    "var(--theme-shadow-soft, 0 8px 32px rgba(26, 26, 26, 0.12))",
+  kipBubble: "hsl(var(--theme-surface-panel) / 0.88)",
+  inkDark:   "var(--theme-ink-primary)",
+  inkBody:   "var(--theme-ink-secondary)",
+  inkMuted:  "var(--theme-ink-tertiary)",
+  font:      "inherit",
 } as const
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -54,6 +54,8 @@ type ChatItem =
   | { kind: "bubble";   id: string; role: "kip" | "user"; content: string }
   | { kind: "cue_card"; id: string; data: CueCardData }
 
+export type CompanionExperienceSurface = "cover" | "present"
+
 export interface CompanionSlideProps {
   isOpen:             boolean
   onClose:            () => void
@@ -65,6 +67,12 @@ export interface CompanionSlideProps {
   agentId:            string
   onSignIn:           () => void
   agentContext?: Record<string, unknown>
+  /** Guest surface — drives companion API experienceContext. */
+  experienceSurface?: CompanionExperienceSurface
+  journeyId?:         string | null
+  journeyName?:       string | null
+  /** Present frame: travel-diary chrome and prompts. */
+  diaryMode?:         boolean
 }
 
 // ─── Mock seed content (visual build) ─────────────────────────────────────────
@@ -79,20 +87,33 @@ const SEED_CUE_CARD: CueCardData = {
   ],
 }
 
-function buildSeedItems(greeting: string): ChatItem[] {
-  return [
-    { kind: "bubble",   id: "kip-greeting",  role: "kip",  content: greeting },
-    { kind: "cue_card", id: SEED_CUE_CARD.id, data: SEED_CUE_CARD },
-    { kind: "bubble",   id: "user-seed-1",   role: "user", content: "Hey Kip, what's good?" },
-    { kind: "bubble",   id: "kip-seed-1",    role: "kip",  content: "Everything here is worth keeping. What are you working on?" },
+const DIARY_CUE_CARD: CueCardData = {
+  id:      "cue-diary-save",
+  title:   "Keep this thread",
+  content: "Sign in to save your diary notes as you explore this journey.",
+  actions: [
+    { label: "Sign In to Save", action: "auth.signin" },
+    { label: "Keep Reading",   action: "companion.dismiss" },
+  ],
+}
+
+function buildSeedItems(greeting: string, diaryMode: boolean): ChatItem[] {
+  const items: ChatItem[] = [
+    { kind: "bubble", id: "kip-greeting", role: "kip", content: greeting },
   ]
+  if (diaryMode) {
+    items.push({ kind: "cue_card", id: DIARY_CUE_CARD.id, data: DIARY_CUE_CARD })
+  } else {
+    items.push({ kind: "cue_card", id: SEED_CUE_CARD.id, data: SEED_CUE_CARD })
+  }
+  return items
 }
 
 // ─── Placeholder style injection ──────────────────────────────────────────────
 
 const COMPANION_CSS = `
   .kip-companion-input::placeholder {
-    color: #aaaaaa;
+    color: var(--theme-ink-tertiary);
     font-style: italic;
   }
 `
@@ -104,7 +125,7 @@ function SvgChat({ active }: { active: boolean }) {
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
       <path
         d="M2 3.5C2 2.67 2.67 2 3.5 2h9C13.33 2 14 2.67 14 3.5v7C14 11.33 13.33 12 12.5 12H5l-3 2V3.5z"
-        stroke={active ? B.primary : B.inkMuted}
+        stroke={active ? T.primary : T.inkMuted}
         strokeWidth="1.25"
         strokeLinejoin="round"
       />
@@ -113,7 +134,7 @@ function SvgChat({ active }: { active: boolean }) {
 }
 
 function SvgCards({ active }: { active: boolean }) {
-  const stroke = active ? B.primary : B.inkMuted
+  const stroke = active ? T.primary : T.inkMuted
   return (
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
       <rect x="2" y="2.5" width="12" height="4"   rx="1" stroke={stroke} strokeWidth="1.25" />
@@ -125,7 +146,7 @@ function SvgCards({ active }: { active: boolean }) {
 function SvgClose() {
   return (
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M4 4L12 12M12 4L4 12" stroke={B.inkMuted} strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M4 4L12 12M12 4L4 12" stroke={T.inkMuted} strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   )
 }
@@ -142,7 +163,7 @@ function SvgChevron({ down }: { down: boolean }) {
     >
       <path
         d="M3 5L7 9L11 5"
-        stroke={B.inkMuted}
+        stroke={T.inkMuted}
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -156,7 +177,7 @@ function SvgBack() {
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
       <path
         d="M10 12L6 8L10 4"
-        stroke={B.inkMuted}
+        stroke={T.inkMuted}
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -206,13 +227,13 @@ function BubbleItem({ role, content }: { role: "kip" | "user"; content: string }
     <div style={{ display: "flex", justifyContent: isKip ? "flex-start" : "flex-end" }}>
       <div
         style={{
-          fontFamily:      B.font,
+          fontFamily:      T.font,
           fontSize:        "13px",
           lineHeight:      1.5,
           padding:         "8px 12px",
           maxWidth:        "82%",
-          backgroundColor: isKip ? B.kipBubble : B.primary,
-          color:           isKip ? B.inkDark   : "#ffffff",
+          backgroundColor: isKip ? T.kipBubble : T.primary,
+          color:           isKip ? T.inkDark   : "#ffffff",
           borderRadius:    isKip ? "4px 12px 12px 4px" : "12px 4px 4px 12px",
         }}
       >
@@ -237,12 +258,12 @@ function ActionLink({ label, onClick }: { label: string; onClick?: () => void })
         border:         "none",
         padding:        0,
         cursor:         "pointer",
-        fontFamily:     B.font,
+        fontFamily:     T.font,
         fontSize:       "11px",
         fontWeight:     500,
         textTransform:  "uppercase",
         letterSpacing:  "0.06em",
-        color:          B.primary,
+        color:          T.primary,
         textDecoration: hovered ? "underline" : "none",
       }}
     >
@@ -294,7 +315,7 @@ function CueCardItem({
     <div
       style={{
         backgroundColor: "#ffffff",
-        border:          `1px solid ${B.border}`,
+        border:          `1px solid ${T.border}`,
         borderRadius:    "4px",
         overflow:        "hidden",
         opacity:         visible ? 1 : 0,
@@ -315,12 +336,12 @@ function CueCardItem({
           background:     "none",
           border:         "none",
           cursor:         "pointer",
-          fontFamily:     B.font,
+          fontFamily:     T.font,
           fontSize:       "11px",
           fontWeight:     500,
           textTransform:  "uppercase",
           letterSpacing:  "0.08em",
-          color:          B.inkMuted,
+          color:          T.inkMuted,
           textAlign:      "left",
         }}
       >
@@ -339,9 +360,9 @@ function CueCardItem({
         <div style={{ padding: "0 14px 10px" }}>
           <p
             style={{
-              fontFamily: B.font,
+              fontFamily: T.font,
               fontSize:   "13px",
-              color:      B.inkBody,
+              color:      T.inkBody,
               lineHeight: 1.6,
               margin:     "0 0 8px",
             }}
@@ -377,11 +398,15 @@ export function CompanionSlide({
   agentId: _agentId,
   onSignIn,
   agentContext,
+  experienceSurface,
+  journeyId,
+  journeyName,
+  diaryMode = false,
 }: CompanionSlideProps) {
   void _agentId
   void agentContext
   // State is never reset on close — session persists across open/close
-  const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting))
+  const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting, diaryMode))
   const [inputValue,         setInputValue]         = React.useState("")
   const [view,               setView]               = React.useState<"chat" | "cards">("chat")
   const [firstCardCollapsed, setFirstCardCollapsed] = React.useState(false)
@@ -392,7 +417,7 @@ export function CompanionSlide({
   const { clearSavedDraft, restoreSavedDraft } = useComposerDraftAutosave({
     scope: {
       domainSlug,
-      board: "companion",
+      board: diaryMode && journeyId ? `present-diary:${journeyId}` : "companion",
       agentId: "kip",
       sessionId: companionSessionId,
     },
@@ -474,6 +499,15 @@ export function CompanionSlide({
           domainSlug,
           conversationHistory: history,
           ...(companionSessionId ? { sessionId: companionSessionId } : {}),
+          ...(experienceSurface
+            ? {
+                experienceContext: {
+                  surface: experienceSurface,
+                  ...(journeyId ? { journeyId } : {}),
+                  ...(journeyName ? { journeyName } : {}),
+                },
+              }
+            : {}),
         }),
       })
 
@@ -553,14 +587,14 @@ export function CompanionSlide({
           right:           "max(16px, calc((100vw - 64rem) / 2 + 16px))",
           width:           "360px",
           maxHeight:       "480px",
-          backgroundColor: B.cream,
-          border:          `1px solid ${B.border}`,
-          boxShadow:       B.shadow,
+          backgroundColor: T.cream,
+          border:          `1px solid ${T.border}`,
+          boxShadow:       T.shadow,
           borderRadius:    "6px",
           display:         "flex",
           flexDirection:   "column",
           zIndex:          50,
-          fontFamily:      B.font,
+          fontFamily:      T.font,
           overflow:        "hidden",
           // Visibility — hidden when closed but never unmounted
           pointerEvents:   isOpen ? "auto" : "none",
@@ -578,21 +612,38 @@ export function CompanionSlide({
             alignItems:     "center",
             justifyContent: "space-between",
             padding:        "12px 16px",
-            borderBottom:   `1px solid ${B.border}`,
+            borderBottom:   `1px solid ${T.border}`,
             flexShrink:     0,
           }}
         >
-          {/* Left: agent name */}
-          <span
-            style={{
-              fontFamily: B.font,
-              fontSize:   "13px",
-              fontWeight: 500,
-              color:      B.inkMuted,
-            }}
-          >
-            {kipLabel}
-          </span>
+          {/* Left: diary title or agent name */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <span
+              style={{
+                fontFamily: T.font,
+                fontSize:   "13px",
+                fontWeight: 500,
+                color:      T.inkMuted,
+              }}
+            >
+              {diaryMode ? "Your diary" : kipLabel}
+            </span>
+            {diaryMode && journeyName ? (
+              <span
+                style={{
+                  fontFamily: T.font,
+                  fontSize:   "10px",
+                  color:      T.inkBody,
+                  maxWidth:   "220px",
+                  overflow:   "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {journeyName}
+              </span>
+            ) : null}
+          </div>
 
           {/* Right: Chat icon · Cue Cards icon (conditional) · × */}
           <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
@@ -663,8 +714,8 @@ export function CompanionSlide({
                   display:    "flex",
                   alignItems: "center",
                   gap:        "4px",
-                  color:      B.inkMuted,
-                  fontFamily: B.font,
+                  color:      T.inkMuted,
+                  fontFamily: T.font,
                   fontSize:   "11px",
                   padding:    "0 0 2px",
                   marginBottom: "4px",
@@ -677,9 +728,9 @@ export function CompanionSlide({
               {cueCards.length === 0 ? (
                 <p
                   style={{
-                    fontFamily: B.font,
+                    fontFamily: T.font,
                     fontSize:   "13px",
-                    color:      B.inkMuted,
+                    color:      T.inkMuted,
                     textAlign:  "center",
                     padding:    "24px 0",
                   }}
@@ -704,7 +755,7 @@ export function CompanionSlide({
         {/* ── Input area ── */}
         <div
           style={{
-            borderTop:   `1px solid ${B.border}`,
+            borderTop:   `1px solid ${T.border}`,
             padding:     "10px 16px",
             flexShrink:  0,
             display:     "flex",
@@ -726,9 +777,9 @@ export function CompanionSlide({
               border:     "none",
               background: "transparent",
               outline:    "none",
-              fontFamily: B.font,
+              fontFamily: T.font,
               fontSize:   "13px",
-              color:      B.inkDark,
+              color:      T.inkDark,
               lineHeight: 1.5,
               padding:    "2px 0",
               overflow:   "hidden",
@@ -742,12 +793,12 @@ export function CompanionSlide({
               background:    "none",
               border:        "none",
               cursor:        inputValue.trim() && !isSending ? "pointer" : "default",
-              fontFamily:    B.font,
+              fontFamily:    T.font,
               fontSize:      "11px",
               fontWeight:    500,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              color:         inputValue.trim() && !isSending ? B.primary : "#aaaaaa",
+              color:         inputValue.trim() && !isSending ? T.primary : "#aaaaaa",
               padding:       "2px 0",
               flexShrink:    0,
               transition:    "color 0.15s ease",

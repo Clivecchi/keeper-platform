@@ -250,6 +250,7 @@ export function CoverFrame({
         <DesignFrame
           styleId={styleId}
           themeSlug={themeSlug}
+          suppressAtmosphere
           title={coverState === "open" ? coverTitle : undefined}
           subtitle={coverState === "open" ? coverLiner : undefined}
           themeSwitcherSlot={<ThemeSwitcher />}
@@ -257,8 +258,9 @@ export function CoverFrame({
           <div
             className="rounded-xl"
             style={{
-              backgroundColor: "hsl(var(--theme-surface-paper) / 0.92)",
+              backgroundColor: "hsl(var(--theme-surface-paper) / 0.88)",
               padding: "clamp(1.5rem, 4vw, 2.5rem)",
+              boxShadow: "var(--theme-shadow-soft, 0 8px 32px hsl(30 20% 4% / 0.12))",
             }}
           >
             <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} coverState={coverState} />

@@ -31,7 +31,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-07-02 — Board switch performance (no full remount)
 - `V0Shell` mounts one `UniversalBoard` keyed by domain slug only — switching `?board=` updates `def` in place instead of remounting Domain/IDE/Agent shells
 - `boardNavDataCache.ts` — in-memory cache (2 min TTL) for dialogs/journeys/keepers/drafts/agents; survives workspace switches within the same domain
+- `boardEntityNameResolver.ts` — keeper/journey banner titles reuse nav cache (no duplicate list fetches from Dialog)
 - `UniversalNavPanel` stale-while-revalidate from cache; refetch only when list version bumps
+- `UniversalConversation` agents/journey-count/keeper-journey names share nav cache; Chronicle journey poll shares cache
+- `domainShellPrefetch.ts` — hover prefetch frame + by-slug before domain switch
 - `UniversalBoard` clears entity selection on workspace change; panel group key is slug-only (not boardId)
 - `loadDomainFrame` memory cache (5 min TTL) avoids redundant frame fetches
 

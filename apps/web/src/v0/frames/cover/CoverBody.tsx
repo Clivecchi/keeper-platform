@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { CoverLens, type CoverLensItem } from "../../components/cover-lens"
 import { createDraftMoment } from "../../api/v0Moments"
@@ -8,8 +8,16 @@ import { useV0ShellOptional, type V0FrameKey } from "../../shell/V0ShellContext"
 import { isVisibleToAudience } from "@keeper/shared"
 import { JourneyInvitationSlide } from "../../slides/JourneyInvitationSlide"
 import { useAuth } from "../../../context/AuthContext"
-import { getApiBase } from "../../../lib/apiFetch"
 import { CoverChatInterface, mergeCoverChatInterface } from "./CoverChatInterface"
+import {
+  fetchPublicJourneyList,
+  prefetchFirstPublicJourneyDetail,
+} from "../../data/publicJourneyCache"
+import {
+  buildPublicCompanionUrl,
+  buildPublicJourneysBrowseUrl,
+  buildPublicPresentUrl,
+} from "../../data/publicJourneyNavigation"
 
 function isDesignerBoardPreviewShell(
   shell: ReturnType<typeof useV0ShellOptional>,
@@ -37,6 +45,7 @@ interface CoverBodyProps {
 export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "closed" }: CoverBodyProps) {
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
   const [forwardLoading, setForwardLoading] = useState(false)
+  const [publicJourneyCount, setPublicJourneyCount] = useState<number | null>(null)
   const v0Shell = useV0ShellOptional()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -44,6 +53,28 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
   const navigateTo = (path: string) => {
     onNavigate?.(path)
   }
+
+  const guestCoverSlug = domainData?.slug || v0Shell?.domainSlug || "default"
+  const preservedTheme = searchParams.get("theme")
+  const preservedStyle = searchParams.get("style") ?? themeSlug ?? undefined
+
+  useEffect(() => {
+    if (isAuthenticated) return
+    let ignore = false
+    void fetchPublicJourneyList(guestCoverSlug)
+      .then((list) => {
+        if (!ignore) {
+          setPublicJourneyCount(list.length)
+          prefetchFirstPublicJourneyDetail(guestCoverSlug, list)
+        }
+      })
+      .catch(() => {
+        if (!ignore) setPublicJourneyCount(0)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [guestCoverSlug, isAuthenticated])
 
   const handleOpenIndex = () => {
     if (v0Shell) {
@@ -150,22 +181,18 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
 
         setForwardLoading(true)
         try {
-          const base = getApiBase()
-          const res = await fetch(`${base}/api/public/${encodeURIComponent(slug)}/journeys`)
-          if (res.ok) {
-            const body = (await res.json()) as { journeys?: { id: string }[] }
-            const list = body.journeys ?? []
-            if (list.length > 0) {
-              const params = new URLSearchParams()
-              params.set("frame", "present")
-              params.set("journeyId", list[0].id)
-              const theme = searchParams.get("theme")
-              const style = searchParams.get("style")
-              if (theme) params.set("theme", theme)
-              if (style) params.set("style", style)
-              navigate(`/d/${slug}?${params.toString()}`)
-              return
-            }
+          const list = await fetchPublicJourneyList(slug)
+          if (list.length > 0) {
+            prefetchFirstPublicJourneyDetail(slug, list)
+            navigate(
+              buildPublicPresentUrl({
+                domainSlug: slug,
+                journeyId: list[0].id,
+                theme: searchParams.get("theme"),
+                style: preservedStyle,
+              }),
+            )
+            return
           }
         } catch (e) {
           console.warn("[CoverBody] public journeys fetch failed, falling back to present frame", e)
@@ -180,6 +207,27 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
         }
       }
 
+      const openCoverCompanion = () => {
+        navigate(
+          buildPublicCompanionUrl({
+            domainSlug: coverChatSlug,
+            frame: "cover",
+            theme: preservedTheme,
+            style: preservedStyle,
+          }),
+        )
+      }
+
+      const handleBrowseJourneys = () => {
+        navigate(
+          buildPublicJourneysBrowseUrl({
+            domainSlug: coverChatSlug,
+            theme: preservedTheme,
+            style: preservedStyle,
+          }),
+        )
+      }
+
       return (
         <div className="flex w-full flex-col items-center">
           <JourneyInvitationSlide
@@ -190,11 +238,20 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
               void handleForward()
             }}
             forwardDisabled={forwardLoading}
+            browseJourneysLabel={
+              !isAuthenticated && publicJourneyCount !== 0
+                ? "Browse journeys"
+                : undefined
+            }
+            onBrowseJourneys={
+              !isAuthenticated && publicJourneyCount !== 0 ? handleBrowseJourneys : undefined
+            }
           />
           <CoverChatInterface
             chat_interface={chat_interface}
             domainSlug={coverChatSlug}
             audience={resolvedAudience}
+            onOpenCompanion={!isAuthenticated ? openCoverCompanion : undefined}
           />
         </div>
       )
@@ -251,6 +308,20 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
             chat_interface={fallbackChat}
             domainSlug={fallbackChatSlug}
             audience={fallbackAudience}
+            onOpenCompanion={
+              !isAuthenticated
+                ? () => {
+                    navigate(
+                      buildPublicCompanionUrl({
+                        domainSlug: fallbackChatSlug,
+                        frame: "cover",
+                        theme: preservedTheme,
+                        style: preservedStyle,
+                      }),
+                    )
+                  }
+                : undefined
+            }
           />
         ) : null}
       </section>

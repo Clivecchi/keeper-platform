@@ -5,15 +5,17 @@ Renders the V0 cover lens that launches the Moment editor and links to other dom
 
 ## 🧱 Key Files
 - `CoverBody.tsx`
-- `CoverChatInterface.tsx` — `cover.chat_interface` from domain JSON (inline composer; gated by `enabled` and `available_to`).
+- `CoverChatInterface.tsx` — Cover threshold tease (orientation + "Talk to Kip"); opens Companion via `?companion=1`.
 
 ## 🔄 Data & Behavior
-Creates a draft moment on "Write a Moment" and navigates to the Moment frame. Falls back to direct navigation if draft creation fails. Closed cover reads `domainFrame.cover` from shell context; when `chat_interface.enabled` is true and `resolvedAudience` is in `available_to`, `CoverChatInterface` renders below the invitation (or below the fallback identity block) and calls the same companion API as `CompanionSlide`.
+Creates a draft moment on "Write a Moment" and navigates to the Moment frame. Falls back to direct navigation if draft creation fails. Closed cover reads `domainFrame.cover` from shell context; when `chat_interface.enabled` is true and `resolvedAudience` is in `available_to`, `CoverChatInterface` renders below the invitation as a threshold tease (not a full chat thread — diary lives in Companion on Present).
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm draft bootstrap error handling for unauthenticated visitors.
 
 ## 📆 Update Log
+- 2026-07-02: Guest Forward uses `publicJourneyCache`; **Browse journeys** secondary link; Cover chat is threshold tease → Companion panel.
+- 2026-07-02: Public cover no longer flashes Warm Dark — guests use `gray-earth` style; domain theme tokens bootstrap before frame fetch (see V0Shell + `cover-frame.tsx`).
 - 2026-05-21: jsonframe Step 5 — closed cover respects `cover.card.available_to`; journey_invitation path unchanged (theme + forward). TODO: card type variants belong in Universal Board Design View.
 - 2026-03-30: `cover.chat_interface` — added `CoverChatInterface` + `mergeCoverChatInterface`; wired in `CoverBody` with audience from `V0ShellContext.resolvedAudience`. Extended `DomainFrameCover` typing; default domain frame JSON includes sample `chat_interface`.
 - 2026-03-27: CoverBody — guests: Journey Invitation **Forward** fetches `/api/public/:slug/journeys`, navigates to `?frame=journeys&journey=<firstId>`; authenticated users unchanged.

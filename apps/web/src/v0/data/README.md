@@ -8,11 +8,16 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 - `domain-frame.default.ts` — Static seed for the "default" domain frame (migrates to DB after Step 6 confirmed)
 - `loadDomainFrame.ts` — Async loader function; currently returns static default, swaps for API fetch after migration
 - `resolveAudience.ts` — Legacy shim delegating to `@keeper/shared` `resolveDomainAudience` (domain role context lives in V0Shell API fetch)
+- `publicJourneyCache.ts` — Guest public journey list + detail cache (Cover, Present, Journeys browse)
+- `publicJourneyNavigation.ts` — URL builders for public Present / browse / companion deep links
 
 ## 🔄 Data & Behavior
 `AudienceRole` includes `friend` (Phase 3.2). Frame element visibility uses hierarchical `isVisibleToAudience` from `@keeper/shared`.
 
 ## 📆 Update Log
+
+### 2026-07-02 — Public guest journey cache
+- Added `publicJourneyCache.ts` + `publicJourneyNavigation.ts` — shared list/detail fetch for Cover Forward, Present, and browse
 
 ### 2026-07-02 — loadDomainFrame memory cache
 - 5-minute in-memory TTL per slug — avoids redundant frame API calls on re-renders within a session

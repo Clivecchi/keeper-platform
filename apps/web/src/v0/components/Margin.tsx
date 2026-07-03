@@ -14,6 +14,12 @@ import type {
   DomainFrameJson,
 } from "../data/domain-frame.types"
 import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
+import {
+  fetchPublicJourneyList,
+  getCachedPublicJourneyDetail,
+  prefetchFirstPublicJourneyDetail,
+} from "../data/publicJourneyCache"
+import { buildPublicPresentUrl } from "../data/publicJourneyNavigation"
 
 export const V0_MARGIN_HEIGHT = "72px"
 export const V0_MARGIN_HEIGHT_WITH_COMPOSER = "180px"
@@ -268,6 +274,36 @@ export function Margin() {
 
   const handleForward = () => {
     const params = buildPreservedParams(searchParams)
+
+    // Guest on Present: Forward opens the featured journey (or browse when empty)
+    if (audience === "guest" && frame === "present") {
+      void (async () => {
+        try {
+          const list = await fetchPublicJourneyList(v0Shell.domainSlug)
+          const currentJourneyId = searchParams.get("journeyId")
+          const next =
+            list.find((j) => j.id !== currentJourneyId) ?? list[0]
+          if (next) {
+            prefetchFirstPublicJourneyDetail(v0Shell.domainSlug, list)
+            navigate(
+              buildPublicPresentUrl({
+                domainSlug: v0Shell.domainSlug,
+                journeyId: next.id,
+                theme: params.get("theme"),
+                style: params.get("style"),
+              }),
+            )
+            return
+          }
+        } catch {
+          // fall through to cover
+        }
+        params.set("frame", "cover")
+        navigate(`/d/${v0Shell.domainSlug}?${params.toString()}`)
+      })()
+      return
+    }
+
     params.set("coverState", "open")
     if (hasFrame) {
       params.set("frame", "cover")
@@ -310,11 +346,24 @@ export function Margin() {
 
   const marginHeight = showComposer ? V0_MARGIN_HEIGHT_WITH_COMPOSER : V0_MARGIN_HEIGHT
 
-  const companionGreeting =
-    domainFrame?.kip.greeting ??
-    domainFrame?.kip_context?.[audience] ??
-    "Hello. What would you like to keep today?"
+  const journeyId = searchParams.get("journeyId")
+  const cachedJourney =
+    journeyId && v0Shell.domainSlug
+      ? getCachedPublicJourneyDetail(v0Shell.domainSlug, journeyId)
+      : null
+  const journeyName = cachedJourney?.journey.name ?? null
+  const isPresentFrame = frame === "present"
+  const isGuestDiary = audience === "guest" && isPresentFrame && Boolean(journeyId)
+
+  const companionGreeting = isGuestDiary
+    ? journeyName
+      ? `You're reading "${journeyName}". What stays with you?`
+      : "What stays with you as you read?"
+    : (domainFrame?.kip.greeting ??
+      domainFrame?.kip_context?.[audience] ??
+      "Hello. What would you like to keep today?")
   const companionAgentId = domainFrame?.kip.agent_id ?? "kip"
+  const companionExperienceSurface = isPresentFrame ? "present" : frame === "cover" ? "cover" : undefined
 
   // agentContext — Spec Step 6: pass the resolved domain frame context into Kip's environment.
   // Computed here from domainFrame + resolvedAudience so the API can inject it into the system prompt.
@@ -332,6 +381,10 @@ export function Margin() {
         domainSlug={v0Shell.domainSlug}
         agentId={companionAgentId}
         agentContext={agentContext}
+        experienceSurface={companionExperienceSurface}
+        journeyId={journeyId}
+        journeyName={journeyName}
+        diaryMode={isGuestDiary}
         onSignIn={() => {
           setIsCompanionOpen(false)
           handleSignIn()

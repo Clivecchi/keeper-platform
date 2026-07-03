@@ -144,3 +144,36 @@ export function prefetchBoardNavData(domainId: string): void {
 }
 
 export { loadDialogs, loadJourneys, loadKeepers, loadDrafts, loadAgents }
+
+type KeeperNavRow = { id: string; title?: string; display_label?: string | null }
+type JourneyNavRow = { id: string; name?: string }
+
+/** Resolve keeper display title from cached nav list when available. */
+export function lookupKeeperTitleFromCache(
+  domainId: string,
+  keeperId: string,
+): string | null {
+  const list = getCachedBoardNavData<KeeperNavRow[]>(domainId, "keepers")
+  if (!list) return null
+  const keeper = list.find((row) => row.id === keeperId)
+  if (!keeper) return null
+  return (keeper.display_label ?? keeper.title)?.trim() || null
+}
+
+/** Resolve journey name from cached nav list when available. */
+export function lookupJourneyNameFromCache(
+  domainId: string,
+  journeyId: string,
+): string | null {
+  const list = getCachedBoardNavData<JourneyNavRow[]>(domainId, "journeys")
+  if (!list) return null
+  const journey = list.find((row) => row.id === journeyId)
+  return journey?.name?.trim() || null
+}
+
+/** Journey rows with moment counts for feed badge / banner stats. */
+export async function loadJourneyNavRows(domainId: string): Promise<JourneyNavRow[]> {
+  return fetchBoardNavSlice(domainId, "journeys", () =>
+    loadJourneys(domainId),
+  ) as Promise<JourneyNavRow[]>
+}

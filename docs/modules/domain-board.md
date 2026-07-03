@@ -4,12 +4,15 @@
 The public-facing domain overview board. Persisted Kip conversation in the center (sessions created and resumable). Domain feed (recent Moments + active Journeys) lives in Chronicle (right panel) as its ambient idle state. Three-column layout: left board/frame nav, center dialog shell, right Chronicle.
 
 ## 🧱 Key Files
-- `DomainBoard.tsx` — Root board component. Owns switcher open state and live domain list fetch for `DomainSwitcher`. Delegates three-column layout to `UniversalBoard`.
-- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; `createDomain` → `POST /api/domains`.
+- `DomainBoard.tsx` — Root board component; delegates three-column layout to `UniversalBoard`.
+- `DomainSwitcherOverlay.tsx` — Reusable domain switcher overlay (fetch, list, add panel, navigate). Used by `UniversalBoard` on all member boards.
+- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; in-memory + sessionStorage cache (5 min TTL); `createDomain` → `POST /api/domains`.
+- `domainShellPrefetch.ts` — Hover/select prefetch of frame JSON + by-slug before navigate.
 - `DomainAddPanel.tsx` — Create-domain form opened from switcher “Add a domain”.
 - `domainSwitcherTheme.ts` — Fixed light-on-dark ink tokens for picker readability.
 
 ## 🔄 Data & Behavior
+- **Domain switcher**: `UniversalBoard` mounts `useDomainSwitcher` — top-bar domain click opens overlay on IDE, Agent, Design, and Domain boards. Selection navigates to `/d/:slug/board?board=<current workspace>`. List is cached client-side (5 min); picker opens instantly from cache and revalidates in the background. Board mount prefetches the list.
 - **Left panel**: Collapsible board switcher (Domain / Design / Agent) and frame list.
 - **Center panel**: `DomainBanner` at top, then `DomainBoardConversation` — persisted Kip sessions routed through `KipApi.runAgent`. Sessions are created on mount, resumable.
 - **Right panel**: Chronicle (`UniversalViewPanel`). When `domainSlug` is provided (as it is for Domain Board), the idle state shows domain feed content: recent kept Moments + active/present Journeys. Never blank.
@@ -18,10 +21,16 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 ## ⚠️ Notes & ToDo
 - [x] Default lead agent + keeper seed on domain create (`provisionDomainOnCreate` — Step 1.2).
 - [x] Set `primaryDomainId` when user's first personal domain is created.
+- [x] Phase 2.1 Guided Arrival — first owner visit shows Cover + lead-agent Dialog (`v0/guidedArrival/`).
 - [ ] Domain Board session resumption — allow users to return to a prior Domain session via Chronicle trail.
-- [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready).
+- [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+- 2026-07-02: **Domain switch prefetch** — hover/focus on picker cards calls `prefetchDomainShell` (frame + by-slug) before navigate.
+- 2026-07-02: **P1.1 domain picker cache** — `domainSwitcherData.ts` adds memory + sessionStorage cache (5 min TTL), deduped fetch, `prefetchDomainSwitcherEntries` on board mount; overlay uses stale-while-revalidate (instant open from cache, background refresh).
+- 2026-07-01: Phase 2.1 Guided Arrival — `GuidedArrivalOrchestrator` on Domain Board; lead agent Dialog + Chronicle Cover greeting for pending owners.
+- 2026-06-30: Phase 1.1 — Extracted `DomainSwitcherOverlay.tsx` + `useDomainSwitcher`; wired in `UniversalBoard` so IDE, Agent, and Design boards get the same top-bar domain switcher as Domain Board.
+- 2026-06-28: `V0Shell` auto-calls `POST /api/domains/:id/provision` when personal domain frame still shows KE3P defaults; reloads frame after repair.
 
 ### 2026-06-28 — AI Access nav typography + domain copy
 - `DomainAiAccessNav`: provider lines 14px; section uses shared `keeper-nav-section-title` (no 10px override).

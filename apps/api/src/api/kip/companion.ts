@@ -50,6 +50,14 @@ const BoardContextSchema = z.object({
   agents: z.array(BoardContextAgentSchema).max(20).optional(),
 });
 
+const ExperienceContextSchema = z
+  .object({
+    surface: z.enum(["cover", "present"]),
+    journeyId: z.string().uuid().optional(),
+    journeyName: z.string().max(200).optional(),
+  })
+  .optional();
+
 const CompanionRequestSchema = z.object({
   message: z.string().min(1).max(2000),
   domainSlug: z.string().min(1).max(100),
@@ -60,6 +68,7 @@ const CompanionRequestSchema = z.object({
     .default([]),
   sessionId: z.string().uuid().optional(),
   boardContext: BoardContextSchema.optional(),
+  experienceContext: ExperienceContextSchema,
 });
 
 const DEFAULT_MODEL = 'claude-sonnet-4-6';
@@ -82,7 +91,8 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid request.' });
   }
 
-  const { domainSlug, conversationHistory, sessionId: clientSessionId, boardContext } = validation.data;
+  const { domainSlug, conversationHistory, sessionId: clientSessionId, boardContext, experienceContext } =
+    validation.data;
   const rawMessage = stripHtml(validation.data.message);
   if (!rawMessage) {
     return res.status(400).json({ success: false, error: 'Message cannot be empty.' });
@@ -150,6 +160,30 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
         `Your role here: help the domain owner understand, configure, and direct their agents. You know these agents. You don't need to ask what platform this is.`,
       ].join('\n');
       guestContext = `${contextBlock}\n\n${guestContext}`;
+    }
+
+    if (experienceContext) {
+      if (experienceContext.surface === 'present') {
+        const journeyLine = experienceContext.journeyName
+          ? `They are reading the public journey "${experienceContext.journeyName}".`
+          : 'They are reading a public journey story on Present.';
+        guestContext = [
+          `You are the visitor's travel diary companion — warm, personal, and brief.`,
+          journeyLine,
+          `Help them reflect on what they read, ask gentle questions, and note what stays with them.`,
+          `Do not ask them to configure the platform or use admin language.`,
+          ``,
+          guestContext,
+        ].join('\n');
+      } else if (experienceContext.surface === 'cover') {
+        guestContext = [
+          `You are greeting a visitor at the domain cover — the threshold before the story.`,
+          `Orient them: Forward opens the featured journey; they can browse other public journeys.`,
+          `Keep replies short. Invite them into the story without overwhelming.`,
+          ``,
+          guestContext,
+        ].join('\n');
+      }
     }
 
     const priorTurns = conversationHistory.slice(-6).map((h) => ({

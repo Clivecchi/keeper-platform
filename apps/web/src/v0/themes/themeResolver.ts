@@ -32,6 +32,11 @@ export function clearRuntimeTheme(slug: string): void {
   runtimeThemeRegistry.delete(slug)
 }
 
+/** Synchronous read — used by StyleScope to avoid a dark-style flash before async resolve. */
+export function getRuntimeThemeTokens(slug: string): ThemeTokens | null {
+  return runtimeThemeRegistry.get(slug) ?? null
+}
+
 // API timeout for theme fetching (300ms)
 const API_TIMEOUT_MS = 300;
 

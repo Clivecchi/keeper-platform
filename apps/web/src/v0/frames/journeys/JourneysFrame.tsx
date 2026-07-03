@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { X, MapPin, ChevronRight, Plus, Check } from "lucide-react"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
@@ -11,6 +11,8 @@ import { useFrameContextOptional } from "../../shell/FrameContext"
 import { apiFetch } from "../../../lib/api"
 import { useAuth } from "../../../context/AuthContext"
 import { getApiBase } from "../../../lib/apiFetch"
+import { fetchPublicJourneyList } from "../../data/publicJourneyCache"
+import { buildPublicPresentUrl } from "../../data/publicJourneyNavigation"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,6 +64,7 @@ export function JourneysFrame({
   domainSlug?: string
 }) {
   const { closeToBoard, navigateToFrame, domainFrame, domainSlug: shellDomainSlug } = useV0Shell()
+  const navigate = useNavigate()
   const jf = domainFrame?.journeys
   const frameCtx = useFrameContextOptional()
   const domain = frameCtx?.domain
@@ -104,15 +107,7 @@ export function JourneysFrame({
           })),
         )
       } else {
-        const base = getApiBase()
-        const res = await fetch(
-          `${base}/api/public/${encodeURIComponent(effectiveDomainSlug)}/journeys`,
-        )
-        if (!res.ok) {
-          throw new Error(`public journeys ${res.status}`)
-        }
-        const body = (await res.json()) as { journeys?: { id: string; name: string; createdAt: string }[] }
-        const data = body.journeys ?? []
+        const data = await fetchPublicJourneyList(effectiveDomainSlug)
         setJourneys(
           data.map((j) => ({
             id: j.id,
@@ -237,6 +232,18 @@ export function JourneysFrame({
 
   // ---- handlers ----
   const handleSelectJourney = (id: string) => {
+    if (!isAuthenticated) {
+      const params = new URLSearchParams(searchParams)
+      navigate(
+        buildPublicPresentUrl({
+          domainSlug: effectiveDomainSlug,
+          journeyId: id,
+          theme: params.get("theme"),
+          style: params.get("style"),
+        }),
+      )
+      return
+    }
     fetchDetail(id)
   }
 
@@ -279,16 +286,24 @@ export function JourneysFrame({
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-[1fr_1.5fr]">
+      <div className={`grid gap-6 ${isAuthenticated ? "md:grid-cols-[1fr_1.5fr]" : ""}`}>
         {/* ---- Left: Journey List ---- */}
         <div className="space-y-3">
+          {!isAuthenticated ? (
+            <p className="text-xs leading-relaxed" style={{ color: themeInkSecondary }}>
+              Select a journey to open the story in Present.
+            </p>
+          ) : null}
           <div className="flex items-center justify-between">
             <h3
               className="text-xs font-semibold uppercase tracking-wider"
               style={{ color: themeInkSecondary }}
             >
-              {jf?.labels.section_heading ?? "Your Journeys"}
+              {isAuthenticated
+                ? (jf?.labels.section_heading ?? "Your Journeys")
+                : "Public Journeys"}
             </h3>
+            {isAuthenticated ? (
             <button
               type="button"
               onClick={() => navigateToFrame("commons")}
@@ -299,6 +314,7 @@ export function JourneysFrame({
               <Plus className="h-3 w-3" />
               {jf?.labels.new_button ?? "New"}
             </button>
+            ) : null}
           </div>
 
           {isLoadingList ? (
@@ -321,7 +337,10 @@ export function JourneysFrame({
                 {jf?.messaging.empty_states.no_journeys_heading ?? "No journeys yet"}
               </p>
               <p className="mt-1 text-xs">
-                {jf?.messaging.empty_states.no_journeys_body ?? "Start a new journey from the Commons to begin organizing your moments."}
+                {isAuthenticated
+                  ? (jf?.messaging.empty_states.no_journeys_body ??
+                    "Start a new journey from the Commons to begin organizing your moments.")
+                  : "No public journeys are available yet. Check back soon."}
               </p>
             </div>
           ) : (
@@ -390,7 +409,8 @@ export function JourneysFrame({
           )}
         </div>
 
-        {/* ---- Right: Journey Detail ---- */}
+        {/* ---- Right: Journey Detail (members only) ---- */}
+        {isAuthenticated ? (
         <div>
           {isLoadingDetail ? (
             <div
@@ -530,6 +550,7 @@ export function JourneysFrame({
             </div>
           )}
         </div>
+        ) : null}
       </div>
     </DesignFrame>
   )

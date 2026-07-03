@@ -23,6 +23,8 @@ export interface DomainSwitcherProps {
   onSelect: (slug: string) => void
   onAddDomain: () => void
   onClose: () => void
+  /** Warm frame + domain payload before navigate (hover). */
+  onPrefetchDomain?: (slug: string) => void
 }
 
 const COVER_HEIGHT = 72
@@ -58,11 +60,13 @@ function DomainCard({
   isCurrent,
   onSelect,
   onClose,
+  onPrefetchDomain,
 }: {
   domain: DomainEntry
   isCurrent: boolean
   onSelect: (slug: string) => void
   onClose: () => void
+  onPrefetchDomain?: (slug: string) => void
 }) {
   const handleClick = () => {
     onSelect(domain.slug)
@@ -76,6 +80,8 @@ function DomainCard({
     <button
       type="button"
       onClick={handleClick}
+      onMouseEnter={() => onPrefetchDomain?.(domain.slug)}
+      onFocus={() => onPrefetchDomain?.(domain.slug)}
       className="w-full text-left rounded-md overflow-hidden transition-opacity hover:opacity-90"
       style={{
         border: isCurrent ? "1.5px solid #6ee7b7" : "1px solid hsl(var(--theme-border-soft))",
@@ -147,6 +153,7 @@ export function DomainSwitcher({
   onSelect,
   onAddDomain,
   onClose,
+  onPrefetchDomain,
 }: DomainSwitcherProps) {
   // Close on Escape
   React.useEffect(() => {
@@ -220,6 +227,7 @@ export function DomainSwitcher({
               isCurrent={domain.slug === currentSlug}
               onSelect={onSelect}
               onClose={onClose}
+              onPrefetchDomain={onPrefetchDomain}
             />
           ))}
         </div>

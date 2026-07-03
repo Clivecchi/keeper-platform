@@ -27,7 +27,11 @@ import * as React from "react"
 import type { KipDraftStatus } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
-import { getApiBase } from "../../lib/apiFetch"
+import { fetchBoardNavSlice, loadAgents, loadJourneyNavRows } from "./boardNavDataCache"
+import {
+  resolveJourneyDisplayName,
+  resolveKeeperDisplayTitle,
+} from "./boardEntityNameResolver"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
@@ -306,12 +310,11 @@ export function UniversalConversation({
       return
     }
     let cancelled = false
-    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/kip/agents`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const payload = res as { data?: DomainScopedAgent[]; agents?: DomainScopedAgent[] }
-        const list = payload.data ?? payload.agents ?? []
-        setDomainScopedAgents(Array.isArray(list) ? list : [])
+    void fetchBoardNavSlice(domainId, "agents", () => loadAgents(domainId))
+      .then((list) => {
+        if (!cancelled) {
+          setDomainScopedAgents(Array.isArray(list) ? (list as DomainScopedAgent[]) : [])
+        }
       })
       .catch(() => {
         if (!cancelled) setDomainScopedAgents([])
@@ -476,63 +479,48 @@ export function UniversalConversation({
   React.useEffect(() => {
     if (!activeKeeperId) { setKeeperName(null); return }
     let cancelled = false
-    const loadFromList = domainId
-      ? apiFetch(`/api/keepers?domainId=${encodeURIComponent(domainId)}&limit=100`)
-          .then((res: unknown) => {
-            const list =
-              (res as { data?: { keepers?: Array<{ id: string; title?: string }> } })?.data
-                ?.keepers ?? []
-            return list.find((k) => k.id === activeKeeperId)?.title?.trim() ?? null
-          })
-      : Promise.resolve(null)
-
-    void loadFromList
-      .then((fromList) => {
-        if (cancelled) return
-        if (fromList) { setKeeperName(fromList); return }
-        return apiFetch(`/api/keepers/${encodeURIComponent(activeKeeperId)}`)
-          .then((res: unknown) => {
-            if (cancelled) return
-            const k =
-              (res as { keeper?: { title?: string } })?.keeper ??
-              (res as { data?: { title?: string } })?.data
-            setKeeperName((k as { title?: string } | undefined)?.title?.trim() || null)
-          })
+    void resolveKeeperDisplayTitle(domainId, activeKeeperId)
+      .then((name) => {
+        if (!cancelled) setKeeperName(name)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setKeeperName(null)
+      })
     return () => { cancelled = true }
   }, [activeKeeperId, domainId])
 
   React.useEffect(() => {
     if (!activeJourneyId) { setJourneyName(null); return }
     let cancelled = false
-    apiFetch(`/api/journeys/${encodeURIComponent(activeJourneyId)}`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const j = (res as { journey?: { name?: string }; data?: { name?: string } })?.journey
-          ?? (res as { data?: { name?: string } })?.data
-        setJourneyName((j as { name?: string } | undefined)?.name?.trim() || null)
+    void resolveJourneyDisplayName(domainId, activeJourneyId)
+      .then((name) => {
+        if (!cancelled) setJourneyName(name)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setJourneyName(null)
+      })
     return () => { cancelled = true }
-  }, [activeJourneyId])
+  }, [activeJourneyId, domainId])
 
   // ── domain mode: counts for DomainBanner ──────────────────────────────────
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null)
   const [momentCount, setMomentCount] = React.useState<number | null>(null)
 
   React.useEffect(() => {
-    if (kipMode !== "domain" || !domainSlug) return
+    if (kipMode !== "domain" || !domainId) {
+      if (kipMode !== "domain") setJourneyCount(null)
+      return
+    }
     let cancelled = false
-    const base = getApiBase()
-    fetch(`${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((json: { journeys?: unknown[] }) => {
-        if (!cancelled) setJourneyCount(Array.isArray(json?.journeys) ? json.journeys.length : 0)
+    void loadJourneyNavRows(domainId)
+      .then((list) => {
+        if (!cancelled) setJourneyCount(Array.isArray(list) ? list.length : 0)
       })
-      .catch(() => { if (!cancelled) setJourneyCount(null) })
+      .catch(() => {
+        if (!cancelled) setJourneyCount(null)
+      })
     return () => { cancelled = true }
-  }, [kipMode, domainSlug])
+  }, [kipMode, domainId])
 
   // Moment count deferred — avoid eager limit=500 list on domain board idle load.
   // Banner shows "—" until a lighter count endpoint exists or user engages a journey.

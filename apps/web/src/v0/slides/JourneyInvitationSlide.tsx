@@ -26,6 +26,9 @@ interface JourneyInvitationSlideProps {
   onForward: () => void
   /** Disables the Forward button (e.g. while resolving the first public journey). */
   forwardDisabled?: boolean
+  /** Secondary browse affordance for guests with multiple public journeys. */
+  browseJourneysLabel?: string
+  onBrowseJourneys?: () => void
 }
 
 export function JourneyInvitationSlide({
@@ -34,6 +37,8 @@ export function JourneyInvitationSlide({
   forwardLabel,
   onForward,
   forwardDisabled = false,
+  browseJourneysLabel,
+  onBrowseJourneys,
 }: JourneyInvitationSlideProps) {
   return (
     <section
@@ -72,6 +77,17 @@ export function JourneyInvitationSlide({
       >
         {forwardLabel}
       </button>
+
+      {browseJourneysLabel && onBrowseJourneys ? (
+        <button
+          type="button"
+          onClick={onBrowseJourneys}
+          className="text-[11px] font-medium tracking-wide underline-offset-2 transition-opacity hover:opacity-80 hover:underline"
+          style={{ color: "var(--theme-ink-secondary)" }}
+        >
+          {browseJourneysLabel}
+        </button>
+      ) : null}
     </section>
   )
 }

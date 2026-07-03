@@ -13,7 +13,9 @@ SlideTypes receive data from the domain frame JSON and the resolved audience rol
 **CompanionSlide** is triggered when a guest taps Kip in the InteractionBar. It:
 - Renders as a corner-anchored floating panel (bottom-right, ~360×480px) — not a drawer
 - Floats above the InteractionBar without pushing or overlaying main content
-- Shows `domainFrame.kip.greeting` as Kip's first message (bubble)
+- **Diary mode on Present** — header "Your diary" + journey name; `experienceContext` sent to companion API
+- Uses domain theme tokens (not hardcoded brand colors)
+- Shows greeting as Kip's first message (bubble); diary cue card on Present
 - Renders two content types: Chat Bubbles and Cue Cards (structured responses with actions)
 - Session state is never reset on close — conversation persists across open/close cycles
 - Cue Cards auto-collapse after 4s; the Cue Cards icon appears in the header after the first card collapses
@@ -27,6 +29,10 @@ SlideTypes receive data from the domain frame JSON and the resolved audience rol
 - [ ] CompanionSlide CueCard actions: wire `auth.signin` and `companion.dismiss` once sign-in flow is built
 
 ## 📆 Update Log
+
+### 2026-07-02 — Guest diary-on-Present
+- CompanionSlide: domain theme tokens, diary mode, `experienceContext` on companion API; removed mock seed chat
+- JourneyInvitationSlide: optional **Browse journeys** link below Forward
 
 ### 2026-05-21 — jsonframe Steps 4–5
 - CompanionSlide: `kipLabel` from `interaction_bar.labels.kip`; cue card `auth.signin` / `companion.dismiss` wired

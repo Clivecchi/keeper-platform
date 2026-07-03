@@ -13,6 +13,7 @@ import {
   prefetchDomainSwitcherEntries,
   type DomainSwitcherEntry,
 } from "./domainSwitcherData"
+import { prefetchDomainShell } from "./domainShellPrefetch"
 import {
   SWITCHER_INK_MUTED,
   SWITCHER_INK_PRIMARY,
@@ -181,11 +182,19 @@ export function DomainSwitcherOverlay({
     }
   }, [open, fetchAttempt])
 
+  const handlePrefetchDomain = React.useCallback(
+    (slug: string) => {
+      if (slug && slug !== currentSlug) prefetchDomainShell(slug)
+    },
+    [currentSlug],
+  )
+
   const handleDomainSelect = React.useCallback(
     (nextSlug: string) => {
+      if (nextSlug !== currentSlug) prefetchDomainShell(nextSlug)
       navigate(buildBoardPath(nextSlug, targetBoardId))
     },
-    [navigate, targetBoardId],
+    [navigate, targetBoardId, currentSlug],
   )
 
   const closeSwitcher = React.useCallback(() => {
@@ -248,6 +257,7 @@ export function DomainSwitcherOverlay({
         onSelect={handleDomainSelect}
         onAddDomain={openAddDomain}
         onClose={closeSwitcher}
+        onPrefetchDomain={handlePrefetchDomain}
       />
     ) : null
 

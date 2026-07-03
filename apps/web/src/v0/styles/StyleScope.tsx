@@ -3,7 +3,7 @@ import type { StyleId } from './styles'
 import { getStyleDefinition, tokensToCSSVars } from './styleRegistry'
 import type { StyleTokens } from './styleRegistry'
 import { useStyleOverride } from './StyleOverrideProvider'
-import { resolveThemeTokens } from '../themes/themeResolver'
+import { getRuntimeThemeTokens, resolveThemeTokens } from '../themes/themeResolver'
 
 interface StyleScopeProps {
   styleId: StyleId
@@ -22,13 +22,32 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
   }, [styleId, setCurrentStyle])
 
   // Resolve theme tokens if themeSlug is provided
-  const [themeTokens, setThemeTokens] = React.useState<Record<string, string> | null>(null)
-  const [themeLoading, setThemeLoading] = React.useState(false)
+  const [themeTokens, setThemeTokens] = React.useState<Record<string, string> | null>(() => {
+    if (!themeSlug) return null
+    const runtime = getRuntimeThemeTokens(themeSlug)
+    return runtime ? (runtime as unknown as Record<string, string>) : null
+  })
+  const [themeLoading, setThemeLoading] = React.useState(() => {
+    if (!themeSlug) return false
+    return getRuntimeThemeTokens(themeSlug) === null
+  })
 
   React.useEffect(() => {
-    if (themeSlug) {
-      setThemeLoading(true)
-      resolveThemeTokens(themeSlug)
+    if (!themeSlug) {
+      setThemeTokens(null)
+      setThemeLoading(false)
+      return
+    }
+
+    const runtime = getRuntimeThemeTokens(themeSlug)
+    if (runtime) {
+      setThemeTokens(runtime as unknown as Record<string, string>)
+      setThemeLoading(false)
+      return
+    }
+
+    setThemeLoading(true)
+    resolveThemeTokens(themeSlug)
         .then((tokens) => {
           setThemeTokens(tokens)
           setThemeLoading(false)
@@ -38,10 +57,6 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
           setThemeTokens(null)
           setThemeLoading(false)
         })
-    } else {
-      setThemeTokens(null)
-      setThemeLoading(false)
-    }
   }, [themeSlug])
 
   // Get base tokens - merge theme with style registry so dialogue tokens are always present

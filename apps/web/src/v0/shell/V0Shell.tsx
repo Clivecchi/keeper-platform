@@ -4,7 +4,9 @@ import * as React from "react"
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
-import type { StyleId } from "../styles/styles"
+import type { StyleId } from '../styles/styles'
+import { DEFAULT_BASE_THEME_SLUG } from '../themes/constants'
+import { DEFAULT_DOMAIN_FRAME } from '../data/domain-frame.default'
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CORE_FRAME_MAP } from "./frameRegistryMap"
 import { resolveBoardDefs } from "../boards/resolveBoardDefs"
@@ -216,18 +218,35 @@ export function V0Shell() {
   // When present it takes full precedence over domain-resolved theme.
   const urlThemeSlug = searchParams.get("theme")
   const urlStyleId = searchParams.get("style") as StyleId | null
-
-  const styleId = (urlStyleId || "neutral") as StyleId
   const draftId = searchParams.get("draftId")
+
+  const defaultStyleId: StyleId =
+    authResolved && isGuestPublicStory ? DEFAULT_BASE_THEME_SLUG : "neutral"
+  const styleId = (urlStyleId || defaultStyleId) as StyleId
 
   // initialStyleId: passed to StyleOverrideProvider.
   // When any theme slug is active (URL or domain), omit the initial style so
   // StyleOverrideProvider starts clean and StyleScope handles token merging.
+  // Public guests still seed gray-earth so Warm Dark never flashes on Cover.
   const activeThemeSlug = urlThemeSlug ?? DOMAIN_THEME_SLUG
-  const initialStyleId = activeThemeSlug ? undefined : styleId
+  const initialStyleId = activeThemeSlug
+    ? (authResolved && isGuestPublicStory ? DEFAULT_BASE_THEME_SLUG : undefined)
+    : styleId
 
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
+
+  // Synchronous bootstrap — StyleScope reads domain-resolved on first paint (before frame fetch).
+  if (resolvedSlug) {
+    registerRuntimeTheme(
+      DOMAIN_THEME_SLUG,
+      resolveDomainThemeSync(
+        domainFrame?.theme ?? DEFAULT_DOMAIN_FRAME.theme,
+        colorScheme,
+      ),
+    )
+  }
+
   const [domainAudienceContext, setDomainAudienceContext] = React.useState<{
     domainRole: string | null
     isOwner: boolean
