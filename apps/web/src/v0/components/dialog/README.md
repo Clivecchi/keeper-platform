@@ -44,9 +44,9 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 - **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
 - **Dialog Space**: Scrollable messages above the dissolve. Top + bottom **mask fade** softens edges. Messages dim slightly while working. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Broadcast Strip (working)**: CRT lower third — phosphor live line (`▶` marker + cursor) + prior beats as ellipsis ticker. Collapses after reply.
-- **Broadcast Strip (uploads)**: Staged attachment tiles while composing.
+- **Broadcast Strip (uploads)**: Staged attachment tiles and **Pasted** supporting-document tiles while composing.
 - **Post-run summary**: One-line dialogic bridge (`.dialog-composer-horizon`) atop Composer — ends with `…` via `dialogicRunSummary()`.
-- **Composer**: `AgentComposer` input + toolbar; ephemeral **Pasted** supporting-document tiles above the input; footer row with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode).
+- **Composer**: `AgentComposer` input + toolbar; footer row with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode). Large paste renders as **Pasted** tiles in Broadcast Strip (Thinking Space), not in the user bubble.
 
 ### Readability
 Board scope (`.keeper-board-scope`) bumps message body to 17px and composer input to match. Global `data-density` on `<html>` (`compact` | `default` | `comfortable`) exists for Design Board; a user-facing **Readable** setting for all boards is TODO.
@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-07-02: **P4.1 paste in Thinking Space** — `DialogUploadStream` renders `SupportingDocumentTile` for pasted context; Broadcast Strip shows paste + file uploads; composer textarea stays clean on Dialog boards.
 - 2026-06-29: **Post-run Horizon** — `Consulting …` and other in-flight beats are meta steps; composer summary no longer sticks on "Consulting vecch.io…" after a text-only reply with no action receipts.
 - 2026-06-28: **Broadcast Strip** — merged Horizon live status + Thinking Space into `.dialog-broadcast-strip` (phosphor live line, ticker, CRT scanlines). Horizon band is dissolve-only; post-run summary unchanged on composer.
 - 2026-06-27: **Debug overlay** — bug icon opens `DialogDebugOverlay` over Horizon/Thinking/Composer (Copy + X). Logs no longer cleared on send; capture re-wraps console after HMR and includes window errors.

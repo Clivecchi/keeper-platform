@@ -4,6 +4,7 @@ import * as React from "react"
 import { DocumentIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import type { PendingAttachment } from "../../../components/agent/AgentComposer"
 import { isPastedSupportingDoc } from "../../../components/agent/composerSupporting"
+import { SupportingDocumentTile } from "../../../components/agent/SupportingDocumentTile"
 
 interface DialogUploadStreamProps {
   attachments: PendingAttachment[]
@@ -60,17 +61,32 @@ export function DialogUploadStream({ attachments, onRemove }: DialogUploadStream
     return null
   }
 
+  const pastedDocs = attachments.filter(isPastedSupportingDoc)
+  const uploadDocs = attachments.filter((a) => !isPastedSupportingDoc(a))
+
   return (
     <div className="dialog-upload-stream">
-      <div className="dialog-upload-tiles" aria-label="Files ready to send">
-        {attachments.map((attachment) => (
-          <UploadTile
-            key={attachment.id}
-            attachment={attachment}
-            onRemove={() => onRemove(attachment.id)}
-          />
-        ))}
-      </div>
+      {pastedDocs.length > 0 && (
+        <div
+          className="dialog-upload-stream-pasted"
+          aria-label="Pasted supporting documents ready to send"
+        >
+          {pastedDocs.map((doc) => (
+            <SupportingDocumentTile key={doc.id} document={doc} onRemove={onRemove} />
+          ))}
+        </div>
+      )}
+      {uploadDocs.length > 0 && (
+        <div className="dialog-upload-tiles" aria-label="Files ready to send">
+          {uploadDocs.map((attachment) => (
+            <UploadTile
+              key={attachment.id}
+              attachment={attachment}
+              onRemove={() => onRemove(attachment.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthContext"
 import {
   buildComposerSubmitContent,
   isPastedSupportingDoc,
+  pastedDocumentTitle,
   shouldCapturePaste,
 } from "./composerSupporting"
 import { SupportingDocumentTile } from "./SupportingDocumentTile"
@@ -175,7 +176,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const pastedSupporting = attachments.filter(isPastedSupportingDoc)
   const uploadAttachments = attachments.filter((a) => !isPastedSupportingDoc(a))
   const showAttachmentBar = attachmentDisplay === "composer" && uploadAttachments.length > 0
-  const showSupportingDocs = pastedSupporting.length > 0
+  /** Thinking-space boards show pasted docs in Broadcast Strip, not above the textarea. */
+  const showSupportingDocs =
+    attachmentDisplay === "composer" && pastedSupporting.length > 0
 
   const TEXT_TYPES = ["text/plain", "text/markdown", "text/csv", "application/json"]
   const TEXT_EXT = /\.(txt|md|json|csv|pdf)$/i
@@ -261,7 +264,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       ...prev,
       {
         id: crypto.randomUUID(),
-        name: "Pasted text",
+        name: pastedDocumentTitle(text),
         url: "",
         type: "text",
         source: "paste",

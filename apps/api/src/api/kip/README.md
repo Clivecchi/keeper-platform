@@ -19,7 +19,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - POST `/api/kip/agents` (action=run) now resolves env-v1 context via KAM and injects it (with debug canary) into Kip model input without changing response shapes.
   - Env now includes domain slug/name, agent identity, and per-run debug.canary UUID.
 - Failed agent runs return `success: false` with `errorCode` plus provider/model/retryability details when an AI model provider fails, allowing the UI to show overload, timeout, quota, key, and model-configuration guidance.
-- Kip agent runs instruct the model to return structured JSON (`response` + optional `actions`), validate actions against policy allowlist, and execute draft actions server-side with domain/user scoping and failure guardrails. Unsupported or invented action types are logged/skipped instead of surfaced as user-facing policy errors.
+- Kip agent runs instruct the model to return structured JSON (`response` + optional `actions`), validate actions against policy allowlist, and execute draft actions server-side with domain/user scoping and failure guardrails. All action outcomes (success, error, skipped including `NOT_ALLOWED`) are returned to the client; failed/skipped turns append human-readable summaries to `response` text before persistence.
 
 ## ⚠️ Notes & ToDo
 - [ ] Expand mock set as needed
@@ -28,6 +28,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-07-02: **P4.2 file attachments** — `callAIModel` inlines text/markdown/json/csv file bodies from blob URLs; other files append name + URL; images stay multimodal. **P2.3 director delegation** — API returns `directorDelegation` with `status: failed|empty` when Cloud/Rendr sub-run fails; client shows visible routing notice.
+- 2026-07-02: **P2.1 silent action failure fixes** — stopped filtering `NOT_ALLOWED` skipped actions from run-agent `actions` payload; draft mutation failures and all-failed turns append summaries to response text via `buildDraftMutationFailureNotice` / `buildAllActionsFailedSummary`; mutation deferral follow-up now considers post-execution `actionResults` (retries when draft actions failed but model deferred).
 - 2026-06-29: **Mutation deferral follow-up** — when user asks for draft work and the model defers without draft actions ("give me a moment"), server runs a second turn via `shouldRunMutationDeferralFollowUp` / `buildMutationDeferralFollowUpInput`. Prompt forbids future-tense draft promises without same-turn actions.
 - 2026-06-28: **draft.point.rewrite** — agents can rewrite proposed/pending points by exact `pointId`; accepted (kept) points are anchors (blocked). Active draft environment now includes `activeDraft.points` index (id, status, preview, rewritable). `mergeDraftSpecPatch` preserves accepted anchor content on agent overwrite attempts.
 - 2026-06-28: **image.generate reliability** — handler now reads domain `image_model` from `frame_json.kip` (server-side default per system prompt contract); `ModelProviderService.generateImage` uses Together SDK with automatic 5xx retries.

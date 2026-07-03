@@ -19,12 +19,21 @@ import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 function visibleDelegationBeat(
   delegation: DialogResponseEcho | undefined,
 ): DialogResponseEcho | null {
-  const content = delegation?.content?.trim()
+  if (!delegation) return null
+  const content = delegation.content?.trim()
+  if (delegation.status === "failed" || delegation.status === "empty") {
+    return {
+      ...delegation,
+      content:
+        content ||
+        `${delegation.attributedTo ?? "Agent"} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+    }
+  }
   if (!content || isDirectorDelegationFailureContent(content)) return null
-  return delegation ?? null
+  return delegation
 }
 
-type AgentBubbleVariant = "lead" | "collaborator" | "echo"
+type AgentBubbleVariant = "lead" | "collaborator" | "echo" | "delegation-failed"
 
 function agentBubbleSurface(variant: AgentBubbleVariant): React.CSSProperties {
   switch (variant) {
@@ -42,6 +51,13 @@ function agentBubbleSurface(variant: AgentBubbleVariant): React.CSSProperties {
         backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))",
         color: "var(--theme-ink-primary-color)",
         border: "1px solid hsl(var(--theme-border-soft) / 0.85)",
+        boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.04)",
+      }
+    case "delegation-failed":
+      return {
+        backgroundColor: "hsl(38 90% 94%)",
+        color: "hsl(38 55% 28%)",
+        border: "1px solid hsl(38 60% 80%)",
         boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.04)",
       }
     case "lead":
@@ -169,7 +185,11 @@ function AgentMessageTurn({
         {delegation && (
           <AgentChatBubble
             grouped
-            variant="collaborator"
+            variant={
+              delegation.status === "failed" || delegation.status === "empty"
+                ? "delegation-failed"
+                : "collaborator"
+            }
             name={delegation.attributedTo ?? "Agent"}
             content={delegation.content}
           />
@@ -442,7 +462,10 @@ const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
 function isVisibleActionResult(actionResult: NonNullable<AgentDialogueMessage["actionResults"]>[number]): boolean {
   if (!actionResult || typeof actionResult !== "object") return false
   const receipt = normalizeActionReceipt(actionResult)
-  return receipt.errorCode !== "NOT_ALLOWED"
+  if (receipt.status === "skipped" || receipt.status === "error") {
+    return Boolean(receipt.message?.trim())
+  }
+  return true
 }
 
 const SkeletonBubble: React.FC<{ alignment: "left" | "right" }> = ({

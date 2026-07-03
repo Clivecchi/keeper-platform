@@ -255,8 +255,7 @@ export function KeeperDialogFrame({
   const [debugPanelOpen, setDebugPanelOpen] = React.useState(false)
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
-  const hasUploads =
-    pendingAttachments.some((a) => !isPastedSupportingDoc(a)) || isFileUploading
+  const hasUploads = pendingAttachments.length > 0 || isFileUploading
   const isWorking = isSending || isFileUploading
   const showBroadcastStrip = mode !== "feed" && (isWorking || hasUploads)
   const showComposerFooter = mode !== "feed"
@@ -654,7 +653,7 @@ export function KeeperDialogFrame({
               />
             ) : (
               <DialogUploadStream
-                attachments={pendingAttachments.filter((a) => !isPastedSupportingDoc(a))}
+                attachments={pendingAttachments}
                 onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
               />
             )}

@@ -3,12 +3,14 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { KipApi } from "../../../lib/kipApi"
+import { apiFetch } from "../../../lib/api"
 import { useDraftPointAccept } from "../../../hooks/useDraftPointAccept"
 import { useDraftPointPromote } from "../../../hooks/useDraftPointPromote"
 import type { PresenceMeta } from "../presenceEnrichment"
 import { Cdraft } from "../integrationChronicle/cdraft"
 import { DraftConfigPresence } from "../integrationChronicle/DraftConfigPresence"
 import { draftChronicleTitle } from "./schemas/draftCoverSchema"
+import { parseTargetJourneyIdFromSpec } from "../integrationChronicle/draftManuscriptUtils"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { EntityCoverMode } from "./coverTypes"
 import { PresentMotionProvider } from "../../presents/usePresentMotion"
@@ -65,6 +67,39 @@ export function DraftFocusPresence({
   )
 
   const selectedJourneyId = boardCtx?.selection.selectedJourneyId ?? null
+  const draftSpec = record.spec ?? record.spec_json
+  const targetJourneyIdFromSpec = React.useMemo(
+    () => parseTargetJourneyIdFromSpec(draftSpec),
+    [draftSpec],
+  )
+  const resolvedJourneyId = selectedJourneyId ?? targetJourneyIdFromSpec
+  const [targetJourneyName, setTargetJourneyName] = React.useState<string | null>(null)
+  const [promoteError, setPromoteError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!targetJourneyIdFromSpec) {
+      setTargetJourneyName(null)
+      return
+    }
+    let cancelled = false
+    void apiFetch(`/api/journeys/${encodeURIComponent(targetJourneyIdFromSpec)}`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const payload = res as { name?: string; data?: { name?: string; journey?: { name?: string } } }
+        const name =
+          payload.name?.trim() ||
+          payload.data?.name?.trim() ||
+          payload.data?.journey?.name?.trim() ||
+          null
+        setTargetJourneyName(name)
+      })
+      .catch(() => {
+        if (!cancelled) setTargetJourneyName(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [targetJourneyIdFromSpec])
 
   const {
     acceptedDraftPointIds,
@@ -84,10 +119,12 @@ export function DraftFocusPresence({
   } = useDraftPointPromote({
     domainId,
     journeyId: selectedJourneyId,
+    resolveJourneyId: () => targetJourneyIdFromSpec,
     onDraftSelect: boardCtx?.actions.onDraftSelect,
     bumpDraftPresence: boardCtx?.actions.bumpDraftPresence,
     bumpDraftNav: boardCtx?.actions.bumpDraftNav,
     onJourneyRefresh: boardCtx?.actions.bumpJourneyNav,
+    setError: setPromoteError,
   })
 
   React.useEffect(() => {
@@ -176,7 +213,11 @@ export function DraftFocusPresence({
               acceptedPointIds={acceptedDraftPointIds}
               promotingPointId={promotingDraftPointId}
               promotedPointIds={promotedDraftPointIds}
-              selectedJourneyId={selectedJourneyId}
+              selectedJourneyId={resolvedJourneyId}
+              targetJourneyId={targetJourneyIdFromSpec}
+              targetJourneyName={targetJourneyName}
+              promoteError={promoteError}
+              onJourneySelect={boardCtx?.actions.onJourneySelect}
               onDialogSelect={boardCtx?.actions.onDialogSelect}
               onSessionSelect={boardCtx?.actions.onSessionSelect}
             />

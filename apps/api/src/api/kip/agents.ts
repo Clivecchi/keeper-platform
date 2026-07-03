@@ -53,6 +53,8 @@ import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
 import { promoteDraftPointInTransaction } from '../../services/kip/promoteDraftPoint.js';
 import {
+  buildAllActionsFailedSummary,
+  buildDraftMutationFailureNotice,
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
   shouldRunMutationDeferralFollowUp,
@@ -707,6 +709,40 @@ async function buildInstrumentRunEnvironment(params: {
   }
 
   return env;
+}
+
+const TEXT_ATTACHMENT_EXT = /\.(txt|md|markdown|json|csv)$/i;
+const MAX_ATTACHMENT_TEXT_CHARS = 80_000;
+
+/** Inline text/markdown/json/csv file bodies; otherwise name + URL for the model. */
+async function resolveFileAttachmentContext(
+  attachments: { url: string; name: string; type: 'image' | 'file' }[],
+): Promise<string> {
+  const fileAttachments = attachments.filter((a) => a.type === 'file' && a.url?.trim());
+  if (!fileAttachments.length) return '';
+
+  const blocks: string[] = [];
+  for (const file of fileAttachments) {
+    const url = file.url.trim();
+    if (TEXT_ATTACHMENT_EXT.test(file.name)) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const text = await res.text();
+          const trimmed = text.trim().slice(0, MAX_ATTACHMENT_TEXT_CHARS);
+          if (trimmed) {
+            blocks.push(`[Attached file: ${file.name}]\n${trimmed}`);
+            continue;
+          }
+        }
+      } catch (err) {
+        console.warn('[kip/agents] Failed to fetch attachment text:', file.name, err);
+      }
+    }
+    blocks.push(`[Attached file: ${file.name}]\nURL: ${url}`);
+  }
+
+  return blocks.join('\n\n');
 }
 
 function slugifyKey(input: string) {
@@ -4133,7 +4169,15 @@ export class KipAgentService {
       // Add current user message (multimodal when images are attached)
       const attachments = promptOptions?.attachments ?? [];
       const imageAttachments = attachments.filter((a) => a.type === 'image');
-      const textContent = typeof modelInput.input === 'string' ? modelInput.input : JSON.stringify(modelInput.input);
+      let textContent =
+        typeof modelInput.input === 'string' ? modelInput.input : JSON.stringify(modelInput.input);
+
+      const fileContext = await resolveFileAttachmentContext(attachments);
+      if (fileContext) {
+        textContent = textContent.trim()
+          ? `${textContent.trim()}\n\n---\nAttached files:\n\n${fileContext}`
+          : fileContext;
+      }
 
       if (imageAttachments.length > 0) {
         const parts: ModelContentPart[] = [];
@@ -4386,6 +4430,12 @@ export class KipAgentService {
               instrument: dd.instrumentSlug,
               error: error instanceof Error ? error.message : error,
             });
+            directorDelegationResult = {
+              attributedTo: instLabel,
+              content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+              status: 'failed',
+              error: error instanceof Error ? error.message : String(error),
+            };
           }
 
           if (instrumentReply) {
@@ -4405,6 +4455,13 @@ export class KipAgentService {
               directorName: dd.directorDisplayName,
             });
           } else {
+            if (!directorDelegationResult) {
+              directorDelegationResult = {
+                attributedTo: instLabel,
+                content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+                status: 'empty',
+              };
+            }
             leadModelInput = buildDirectorFallbackSynthesisPrompt({
               userMessage: dd.userMessage,
               taskMessage:
@@ -4593,21 +4650,23 @@ export class KipAgentService {
               requestId,
               skipActionTypes: options?.skipActionTypes,
             });
-            actionResults = execution.results.filter((result) => {
-              const skippedUnsupportedAction =
-                result.status === 'skipped' &&
-                result.errorCode === 'NOT_ALLOWED';
-              return !skippedUnsupportedAction;
-            });
+            actionResults = execution.results;
 
-            const failedDraftAction = execution.results.find((result) =>
-              result.status === 'error' && result.type.startsWith('draft.')
+            const draftFailureNotice = buildDraftMutationFailureNotice(
+              execution.results,
+              structured.responseText,
             );
-            if (failedDraftAction) {
-              const failureMessage = failedDraftAction.message || 'Unknown draft error';
+            if (draftFailureNotice) {
+              finalResponseText = draftFailureNotice;
+            } else if (execution.failedMessage) {
               finalResponseText = structured.responseText
-                ? `${structured.responseText} I attempted to update a draft, but the draft action failed: ${failureMessage}`
-                : `I attempted to update a draft, but the draft action failed: ${failureMessage}`;
+                ? `${structured.responseText} I attempted an action, but it failed: ${execution.failedMessage}`
+                : `I attempted an action, but it failed: ${execution.failedMessage}`;
+            }
+
+            const allFailedSummary = buildAllActionsFailedSummary(execution.results);
+            if (allFailedSummary && !draftFailureNotice) {
+              finalResponseText = (finalResponseText || '') + allFailedSummary;
             }
 
             // Post-exec governance: append failure template if required action failed
@@ -4689,6 +4748,7 @@ export class KipAgentService {
             userInput: input,
             responseText: finalResponseText,
             actions: structured.actions,
+            actionResults,
           })
         ) {
           const followUpInput = buildMutationDeferralFollowUpInput({
@@ -4807,7 +4867,7 @@ export class KipAgentService {
             model_response_raw: response,
             draftIntent: options?.draftIntentResult ?? null,
             timestamp: new Date().toISOString(),
-            ...(directorDelegationResult?.status === 'ok'
+            ...(directorDelegationResult
               ? { directorDelegation: directorDelegationResult }
               : {}),
           }
@@ -5019,10 +5079,23 @@ export class KipAgentService {
               });
               finalResponseText =
                 followUpStructured.responseText?.trim() || followUpResult.content.trim() || finalResponseText;
-            } else if (execution.failedMessage) {
-              finalResponseText = structured.responseText
-                ? `${structured.responseText} I attempted to save but it failed: ${execution.failedMessage}`
-                : `I attempted to save but it failed: ${execution.failedMessage}`;
+            } else {
+              const draftFailureNotice = buildDraftMutationFailureNotice(
+                execution.results,
+                structured.responseText,
+              );
+              if (draftFailureNotice) {
+                finalResponseText = draftFailureNotice;
+              } else if (execution.failedMessage) {
+                finalResponseText = structured.responseText
+                  ? `${structured.responseText} I attempted to save but it failed: ${execution.failedMessage}`
+                  : `I attempted to save but it failed: ${execution.failedMessage}`;
+              }
+
+              const allFailedSummary = buildAllActionsFailedSummary(execution.results);
+              if (allFailedSummary && !draftFailureNotice) {
+                finalResponseText = (finalResponseText || '') + allFailedSummary;
+              }
             }
           }
         }

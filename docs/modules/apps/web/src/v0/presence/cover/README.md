@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-07-02 — P3.2 Draft–Journey connection
+- **`DraftFocusPresence`**: passes `targetJourneyId` from spec + Nav `selectedJourneyId` into promote hook and `Cdraft` breadcrumb.
+
 ### 2026-06-30 — Merged cover header (Phase A)
 - `EntityCoverPresence.tsx`: replaced separate `HeroSlot` + `IdentitySlot` with `UnifiedCoverHeader` — identity left, image right
 - Ambient blur wash from uploaded cover/avatar; image bleeds past right edge with accent-tinted scrim for text legibility

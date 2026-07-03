@@ -27,6 +27,21 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-02 — P3.1 Draft Nav grouping
+- **`UniversalNavPanel`**: Drafts grouped by `kind` (sub-cards when multiple kinds); labels show `kind · status` for generic/repeated titles; selected draft first, then `updated_at` desc; client-side hide for `promoted`/`archived` if API returns them.
+- **`draftNavUtils.ts`**: shared filter, sort, group, and label helpers.
+
+### 2026-07-02 — P2.3 Cloud routing visibility
+- Failed/empty instrument delegation returns `directorDelegation` with `status: failed|empty` from API and client fallback beat.
+- `DialogueMessageList` shows amber routing notice when Cloud/Rendr was targeted but did not respond (replaces silent hide).
+
+### 2026-07-02 — P1.2 nav perf (drafts + conversation)
+- **`UniversalNavPanel`**: Drafts fetch deferred until section expanded or `selectedDraftId` set; uses `KipApi.listDrafts` with `limit=50` and `excludeStatus=promoted,archived`.
+- **`UniversalConversation`**: Removed eager `limit=500` moments fetch on domain idle; moment stat shows `—` until keeper/journey selection triggers a capped fetch.
+
+### 2026-06-30 — Frame lead agent display name (Universal Dialog)
+- `UniversalConversation` resolves `frame_json.kip.agent_id` → `kip_agents.name` via shared `useFrameLeadAgentIdentity` when the active dialog agent is the domain lead (Realm board + Guided Arrival).
+
 ### 2026-07-01 — Phase 4A: Realm Board (`?board=realm`)
 - **`REALM_BOARD_DEF`** — fifth Universal Board: `contentGated` nav, `chatter` + `connections` blocks, Cover-first Chronicle, solo dialog, `agentFromFrame`
 - **`realm/RealmBoard.tsx`** — thin wrapper; registered in `boardRegistry.ts`, `workspaceBoardNav.ts`, `useBoardDefs`, `KeeperTopBar`

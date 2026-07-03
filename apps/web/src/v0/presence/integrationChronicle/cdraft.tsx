@@ -27,6 +27,10 @@ export interface CdraftProps {
   promotingPointId?: string | null
   promotedPointIds?: Set<string>
   selectedJourneyId?: string | null
+  targetJourneyId?: string | null
+  targetJourneyName?: string | null
+  promoteError?: string | null
+  onJourneySelect?: (journeyId: string) => void
   onDialogSelect?: (dialogId: string) => void
   onSessionSelect?: (sessionId: string) => void
 }
@@ -67,6 +71,10 @@ export function Cdraft({
   promotingPointId,
   promotedPointIds,
   selectedJourneyId,
+  targetJourneyId = null,
+  targetJourneyName = null,
+  promoteError = null,
+  onJourneySelect,
   onDialogSelect,
   onSessionSelect,
 }: CdraftProps) {
@@ -86,12 +94,33 @@ export function Cdraft({
   const queueCount = points.length - anchorCount
   const pathEmergence = React.useMemo(() => parseDraftPathEmergence(spec), [spec])
 
-  const journeyLabel =
-    meta?.keeper?.title?.trim() ||
-    (typeof record.journeyName === "string" ? record.journeyName : undefined) ||
-    (typeof record.journey_name === "string" ? record.journey_name : undefined)
+  const linkedJourneyId = targetJourneyId ?? selectedJourneyId ?? null
+  const linkedJourneyLabel =
+    targetJourneyName?.trim() ||
+    (typeof record.journeyName === "string" ? record.journeyName.trim() : undefined) ||
+    (typeof record.journey_name === "string" ? record.journey_name.trim() : undefined) ||
+    (linkedJourneyId ? "Linked journey" : undefined)
 
-  const breadcrumb = [journeyLabel, kindLabel].filter(Boolean).join(" · ")
+  const breadcrumbParts: React.ReactNode[] = []
+  if (linkedJourneyId && linkedJourneyLabel) {
+    if (onJourneySelect) {
+      breadcrumbParts.push(
+        <button
+          key="journey"
+          type="button"
+          className="cdraft-breadcrumb-link"
+          onClick={() => onJourneySelect(linkedJourneyId)}
+        >
+          {linkedJourneyLabel}
+        </button>,
+      )
+    } else {
+      breadcrumbParts.push(<span key="journey">{linkedJourneyLabel}</span>)
+    }
+  }
+  if (kindLabel) {
+    breadcrumbParts.push(<span key="kind">{kindLabel}</span>)
+  }
 
   const updatedLabel =
     meta?.line?.split("·").pop()?.trim() ||
@@ -123,8 +152,21 @@ export function Cdraft({
 
         <h1 className="cdraft-title">{title}</h1>
 
-        {breadcrumb ? (
-          <p className="cdraft-breadcrumb">{breadcrumb}</p>
+        {breadcrumbParts.length > 0 ? (
+          <p className="cdraft-breadcrumb">
+            {breadcrumbParts.map((part, index) => (
+              <React.Fragment key={index}>
+                {index > 0 ? <span aria-hidden> · </span> : null}
+                {part}
+              </React.Fragment>
+            ))}
+          </p>
+        ) : null}
+
+        {promoteError ? (
+          <p className="cdraft-promote-error" role="alert">
+            {promoteError}
+          </p>
         ) : null}
 
         <div className="cdraft-meta-strip">

@@ -933,10 +933,20 @@ export class KipApi {
   }
 
   /**
-   * Drafts (domain-scoped, optionally filtered by keeper)
+   * Drafts (domain-scoped, optionally filtered by keeper / limit / status)
    */
-  static async listDrafts(domainId: string, keeperId?: string | null): Promise<KipDraftSummary[]> {
-    const query = keeperId ? `?keeperId=${encodeURIComponent(keeperId)}` : '';
+  static async listDrafts(
+    domainId: string,
+    keeperId?: string | null,
+    options?: { limit?: number; excludeStatus?: string[] },
+  ): Promise<KipDraftSummary[]> {
+    const params = new URLSearchParams();
+    if (keeperId) params.set('keeperId', keeperId);
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+    if (options?.excludeStatus?.length) {
+      params.set('excludeStatus', options.excludeStatus.join(','));
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
     const response = await apiFetch(`/api/domains/${domainId}/kip/drafts${query}`);
     if (response?.drafts) {
       return response.drafts as KipDraftSummary[];

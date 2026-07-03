@@ -185,3 +185,15 @@ export function formatDraftKindLabel(kind: string | undefined): string {
   if (!kind) return "Draft"
   return kind.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+/** Reads targetJourneyId from draft spec_json when Nav has no Journey selected. */
+export function parseTargetJourneyIdFromSpec(spec: unknown): string | null {
+  if (!isRecord(spec)) return null
+  const id = spec.targetJourneyId
+  if (typeof id === "string" && id.trim()) return id.trim()
+  return null
+}

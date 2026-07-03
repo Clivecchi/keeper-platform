@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildAllActionsFailedSummary,
+  buildDraftMutationFailureNotice,
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
   shouldRunMutationDeferralFollowUp,
@@ -70,6 +72,39 @@ describe('actionFollowUp', () => {
         actions: [{ type: 'draft.create' }],
       }),
     ).toBe(false);
+  });
+
+  it('runs mutation deferral follow-up when draft actions failed and model deferred', () => {
+    expect(
+      shouldRunMutationDeferralFollowUp({
+        userInput: 'Move platform gap into a new draft and keep the opening sequence clean.',
+        responseText: "So here's what I'm doing — pulling everything into a separate draft. Give me a moment.",
+        actions: [{ type: 'draft.create' }],
+        actionResults: [
+          { type: 'draft.create', status: 'error', message: 'Draft key already exists' },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('builds all-actions-failed summary when every action failed or skipped', () => {
+    const summary = buildAllActionsFailedSummary([
+      { type: 'draft.create', status: 'error', message: 'Validation failed' },
+      { type: 'sole.save', status: 'skipped', message: 'Not allowed', },
+    ]);
+    expect(summary).toContain('could not complete the requested actions');
+    expect(summary).toContain('draft.create (failed)');
+    expect(summary).toContain('sole.save (skipped)');
+  });
+
+  it('builds draft mutation failure notice when no draft action succeeded', () => {
+    const notice = buildDraftMutationFailureNotice(
+      [{ type: 'draft.update', status: 'error', message: 'Draft not found' }],
+      'Working on it now.',
+    );
+    expect(notice).toContain('Working on it now.');
+    expect(notice).toContain('draft work, but it did not complete');
+    expect(notice).toContain('Draft not found');
   });
 
   it('builds mutation deferral input that forbids another deferral', () => {

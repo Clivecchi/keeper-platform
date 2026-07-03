@@ -610,7 +610,7 @@ export function UniversalViewPanel({
     }
 
     poll()
-    const interval = setInterval(poll, 60_000)
+    const interval = setInterval(poll, 120_000)
     return () => {
       cancelled = true
       clearInterval(interval)

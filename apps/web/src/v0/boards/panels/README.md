@@ -19,7 +19,7 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 
 | Element | Description |
 |---|---|
-| **Trail Bar** | Permanent top. History stack (max 3 visible, `···` compresses older). Feed indicator (soft dot + count, 60s polling, tappable → domain feed). Lateral slide 200ms entry / 140ms exit. |
+| **Trail Bar** | Permanent top. History stack (max 3 visible, `···` compresses older). Feed indicator (soft dot + count, 120s polling, tappable → domain feed). Lateral slide 200ms entry / 140ms exit. |
 | **Panel Body** | Universal — `KeeperPresence` for every subject type, **or** `ChronicleEngagementSurface` when Nav/board requests an Act form. Opacity dissolve on context shift (200ms entry / 140ms exit). Never empty — domain idle uses KeeperPresence. |
 | **Idle State** | `KeeperPresence` objectType=`domain` — ambient feed (recent moments, moving/present journeys). |
 
@@ -127,6 +127,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 ### 2026-05-23 — Gate 1: selection drives both panels
 - `resolveKindId` includes `dialog` when `selectedDialogId` is set
 - Trail Bar navigation re-dispatches board selection actions so history matches context
+
+### 2026-07-02 — P1.2 journey poll interval
+- **`UniversalViewPanel`**: Trail Bar feed journey poll interval increased from 60s to 120s (nav panel already loads journeys on expand).
 
 ### 2026-05-30 — Rendr treatment correction (warm dark register)
 - Chronicle panel: `.keeper-chronicle-panel` at 76% opacity, left border only, 12px blur

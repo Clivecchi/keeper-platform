@@ -19,7 +19,7 @@ export type DirectorDelegationRequest = {
 export type DirectorDelegationResult = {
   attributedTo: string;
   content: string;
-  status: 'ok' | 'empty' | 'error';
+  status: 'ok' | 'empty' | 'failed' | 'error';
   error?: string;
 };
 

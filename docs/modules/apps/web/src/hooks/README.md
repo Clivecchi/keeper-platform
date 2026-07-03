@@ -32,6 +32,13 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-02 — P3.2 Draft–Journey promote fallback
+- **`useDraftPointPromote`**: optional `resolveJourneyId` when Nav has no selected Journey; surfaces error on promote without resolvable target.
+
+### 2026-07-02 — P4.1 paste transcript + P2.3 Cloud routing visibility
+- `sendMessage` uses `displayContent` when patching session messages (supporting paste no longer appears raw in user bubble).
+- `extractRunAgentPayload` accepts `directorDelegation.status` of `failed` | `empty`; attaches `buildInstrumentUnavailableDelegationBeat` when Cloud/Rendr was targeted but API returned no beat.
+
 ### 2026-07-01 — Talk mode STT hook (Phase 4D.1–4D.2)
 - Added `useTalkMode.ts` — Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`); states `idle | listening | transcribing | error`.
 - Wired via `KeeperDialogFrame` `talkMode` prop → `AgentComposer` mic control; enabled on mobile `KipScreen` and `RealmScreen` composer.

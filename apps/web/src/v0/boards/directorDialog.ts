@@ -139,7 +139,8 @@ export function buildInstrumentUnavailableDelegationBeat(params: {
 }): DirectorDelegationBeat {
   return {
     attributedTo: params.instrumentLabel,
-    content: `${params.instrumentLabel} did not respond this turn. Kip’s reply below draws on platform knowledge.`,
+    status: "failed",
+    content: `${params.instrumentLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
   }
 }
 

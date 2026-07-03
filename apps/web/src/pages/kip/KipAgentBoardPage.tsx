@@ -170,7 +170,10 @@ interface AgentDialogueMessage {
 
 function isVisibleLegacyActionResult(actionResult: NonNullable<AgentDialogueMessage['actionResults']>[number]): boolean {
   const receipt = normalizeActionReceipt(actionResult);
-  return receipt.errorCode !== 'NOT_ALLOWED';
+  if (receipt.status === 'skipped' || receipt.status === 'error') {
+    return Boolean(receipt.message?.trim());
+  }
+  return true;
 }
 
 

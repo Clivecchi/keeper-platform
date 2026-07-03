@@ -76,6 +76,13 @@ import {
 } from "../presence/integrationChronicle/keeperNavUtils"
 import { applyAgentNavRowPatch } from "../presence/integrationChronicle/agentNavUtils"
 import { addLibraryUploadFromFile, createLibraryItem } from "../presence/integrationChronicle/libraryNavCreate"
+import {
+  countDraftNavTitles,
+  draftNavLabel,
+  filterVisibleDraftNavRows,
+  groupDraftsByKind,
+} from "../presence/integrationChronicle/draftNavUtils"
+import { formatDraftKindLabel } from "../presence/integrationChronicle/draftManuscriptUtils"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -599,14 +606,18 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.keepers, keeperListVersion])
 
-  // ── Fetch: Drafts — only when def.nav.sections.drafts is true ──────────
+  const showDrafts = def.nav.sections.drafts
+
+  // ── Fetch: Drafts — capped list; promoted/archived excluded via API ─────────
   React.useEffect(() => {
-    if (!domainId) return
-    if (!def.nav.sections.drafts) return
+    if (!domainId || !showDrafts) return
     let cancelled = false
     setDrafts(null)
     setDraftError(null)
-    KipApi.listDrafts(domainId)
+    KipApi.listDrafts(domainId, undefined, {
+      limit: 50,
+      excludeStatus: ["promoted", "archived"],
+    })
       .then((list) => {
         if (!cancelled) setDrafts(list)
       })
@@ -617,7 +628,7 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, def.nav.sections.drafts, draftListVersion])
+  }, [domainId, showDrafts, draftListVersion])
 
   const patchedDrafts = React.useMemo(() => {
     if (!drafts || !draftNavRowPatch) return drafts
@@ -630,6 +641,32 @@ export function UniversalNavPanel({
         : draft,
     )
   }, [drafts, draftNavRowPatch])
+
+  const visibleDrafts = React.useMemo(
+    () => filterVisibleDraftNavRows(patchedDrafts ?? []),
+    [patchedDrafts],
+  )
+
+  const draftNavGroups = React.useMemo(
+    () => groupDraftsByKind(visibleDrafts, selectedDraftId),
+    [visibleDrafts, selectedDraftId],
+  )
+
+  const draftNavTitleCounts = React.useMemo(
+    () => countDraftNavTitles(visibleDrafts),
+    [visibleDrafts],
+  )
+
+  const buildDraftNavItems = React.useCallback(
+    (groupDrafts: KipDraftSummary[]): SidebarCardItem[] =>
+      groupDrafts.map((draft) => ({
+        id: draft.id,
+        label: draftNavLabel(draft, draftNavTitleCounts),
+        isSelected: draft.id === selectedDraftId,
+        onClick: () => onDraftSelect?.(draft.id),
+      })),
+    [draftNavTitleCounts, selectedDraftId, onDraftSelect],
+  )
 
   // ── Fetch: Agents — domain-accessible roster (lead + Kip + Cloud + Rendr) ──
   React.useEffect(() => {
@@ -927,27 +964,6 @@ export function UniversalNavPanel({
     onClick: () => onKeeperSelect?.(k.id),
   }))
 
-  // Drafts: embed keeper name when available — matches IDE Board's label format
-  const allDraftItems: SidebarCardItem[] = (patchedDrafts ?? []).map((d) => {
-    const keeperName = d.keeperId
-      ? keeperChronicleTitle(
-          (patchedKeepers ?? []).find((k) => k.id === d.keeperId) ?? {
-            id: d.keeperId,
-            title: "Keeper",
-            display_label: null,
-          },
-        )
-      : null
-    return {
-      id: d.id,
-      label: keeperName
-        ? `${d.title?.trim() || "Untitled draft"} · ${keeperName}`
-        : (d.title?.trim() || "Untitled draft"),
-      isSelected: d.id === selectedDraftId,
-      onClick: () => onDraftSelect?.(d.id),
-    }
-  })
-
   // Agents: embed model name when available
   const allAgentItems: SidebarCardItem[] = React.useMemo(() => {
     const patched = applyAgentNavRowPatch(agents ?? [], agentNavRowPatch)
@@ -961,7 +977,6 @@ export function UniversalNavPanel({
     }))
   }, [agents, agentNavRowPatch, selectedAgentId, onAgentSelect])
 
-  const showDrafts = def.nav.sections.drafts
   const showAgents = def.nav.sections.agents
   const showDialogs = def.nav.sections.dialogs
   const showJourneys = def.nav.sections.journeys
@@ -1076,7 +1091,7 @@ export function UniversalNavPanel({
       dialogs: dialogs?.length ?? null,
       journeys: journeys?.length ?? null,
       keepers: keepers?.length ?? null,
-      drafts: patchedDrafts?.length ?? null,
+      drafts: patchedDrafts === null ? null : visibleDrafts.length,
       agents: agents?.length ?? null,
       library: allLibraryRows === null ? null : libraryRowCount,
       chatter: dialogs === null ? null : chatterDialogs.length,
@@ -1087,6 +1102,7 @@ export function UniversalNavPanel({
       journeys,
       keepers,
       patchedDrafts,
+      visibleDrafts.length,
       agents,
       allLibraryRows,
       libraryRowCount,
@@ -1264,35 +1280,100 @@ export function UniversalNavPanel({
         )
       case "drafts":
         if (!showDrafts) return null
-        return (
-          <>
-            <SidebarCard
-              className="keeper-sidebar-card"
-              title="Drafts"
-              description={!domainId ? "Loading…" : countLabel(patchedDrafts?.length ?? null, "draft")}
-              items={
-                allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
-                  ? allDraftItems
-                  : slice("drafts", allDraftItems).length
-                    ? slice("drafts", allDraftItems)
-                    : undefined
-              }
-              collapsible={allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
-              defaultCollapsed={allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
-              onTitleClick={
-                allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
-                  ? undefined
-                  : () => toggleExpanded("drafts")
-              }
-              onAdd={handleDraftCreate}
-            />
-            {draftError && (
-              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-                {draftError}
-              </p>
-            )}
-          </>
-        )
+        {
+          const multiKindDraftGroups = draftNavGroups.length > 1
+          if (draftNavGroups.length === 0) {
+            return (
+              <>
+                <SidebarCard
+                  className="keeper-sidebar-card"
+                  title="Drafts"
+                  description={
+                    !domainId
+                      ? "Loading…"
+                      : countLabel(patchedDrafts === null ? null : 0, "draft")
+                  }
+                  onAdd={handleDraftCreate}
+                />
+                {draftError && (
+                  <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                    {draftError}
+                  </p>
+                )}
+              </>
+            )
+          }
+
+          if (!multiKindDraftGroups) {
+            const groupItems = buildDraftNavItems(draftNavGroups[0].drafts)
+            return (
+              <>
+                <SidebarCard
+                  className="keeper-sidebar-card"
+                  title="Drafts"
+                  description={
+                    !domainId ? "Loading…" : countLabel(visibleDrafts.length, "draft")
+                  }
+                  items={
+                    groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
+                      ? groupItems
+                      : slice("drafts", groupItems).length
+                        ? slice("drafts", groupItems)
+                        : undefined
+                  }
+                  collapsible={groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+                  defaultCollapsed={groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+                  onTitleClick={
+                    groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
+                      ? undefined
+                      : () => toggleExpanded("drafts")
+                  }
+                  onAdd={handleDraftCreate}
+                />
+                {draftError && (
+                  <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                    {draftError}
+                  </p>
+                )}
+              </>
+            )
+          }
+
+          return (
+            <>
+              <div className="flex flex-col gap-3">
+                <SidebarCard
+                  className="keeper-sidebar-card"
+                  title="Drafts"
+                  description={
+                    !domainId ? "Loading…" : countLabel(visibleDrafts.length, "draft")
+                  }
+                  onAdd={handleDraftCreate}
+                />
+                {draftNavGroups.map(({ kind, drafts: groupDrafts }) => {
+                  const groupItems = buildDraftNavItems(groupDrafts)
+                  const kindLabel = formatDraftKindLabel(kind)
+                  return (
+                    <SidebarCard
+                      key={kind}
+                      className="keeper-sidebar-card"
+                      title={kindLabel}
+                      description={countLabel(groupDrafts.length, "draft")}
+                      items={groupItems.length ? groupItems : undefined}
+                      collapsible={groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+                      defaultCollapsed={groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+                    />
+                  )
+                })}
+              </div>
+              {draftError && (
+                <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                  {draftError}
+                </p>
+              )}
+            </>
+          )
+        }
       case "integrations":
         if (integrationItems.length === 0) return null
         return (

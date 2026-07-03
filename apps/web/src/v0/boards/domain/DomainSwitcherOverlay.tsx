@@ -7,7 +7,12 @@ import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../workspaceBoardNav"
 import { DomainAddPanel } from "./DomainAddPanel"
-import { fetchDomainSwitcherEntries, type DomainSwitcherEntry } from "./domainSwitcherData"
+import {
+  fetchDomainSwitcherEntries,
+  getCachedDomainSwitcherEntries,
+  prefetchDomainSwitcherEntries,
+  type DomainSwitcherEntry,
+} from "./domainSwitcherData"
 import {
   SWITCHER_INK_MUTED,
   SWITCHER_INK_PRIMARY,
@@ -138,15 +143,23 @@ export function DomainSwitcherOverlay({
 
   React.useEffect(() => {
     if (!open) {
-      setFetchState("idle")
       setSwitcherView("list")
       return
     }
 
     let cancelled = false
-    setFetchState("loading")
+    const cached = getCachedDomainSwitcherEntries()
+    const hasCachedList = cached !== null
+    const forceRefresh = fetchAttempt > 0 || hasCachedList
 
-    fetchDomainSwitcherEntries()
+    if (hasCachedList) {
+      setDomains(cached)
+      setFetchState("ready")
+    } else {
+      setFetchState("loading")
+    }
+
+    fetchDomainSwitcherEntries({ forceRefresh })
       .then((rows) => {
         if (cancelled) return
         setDomains(rows)
@@ -155,6 +168,10 @@ export function DomainSwitcherOverlay({
       .catch((error) => {
         console.error("[DomainSwitcherOverlay] Failed to load domains:", error)
         if (cancelled) return
+        if (hasCachedList) {
+          setFetchState("ready")
+          return
+        }
         setDomains([])
         setFetchState("error")
       })
@@ -248,6 +265,10 @@ export interface UseDomainSwitcherResult {
 export function useDomainSwitcher(targetBoardId: WorkspaceBoardId): UseDomainSwitcherResult {
   const { domainSlug } = useV0Shell()
   const [open, setOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    prefetchDomainSwitcherEntries()
+  }, [])
 
   const openSwitcher = React.useCallback(() => {
     setOpen(true)

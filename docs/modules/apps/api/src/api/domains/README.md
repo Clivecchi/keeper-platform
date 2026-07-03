@@ -41,6 +41,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-07-02: **P1.2 draft list perf** — `GET /:domainId/kip/drafts` accepts optional `limit` (default 50, max 100) and `excludeStatus` (comma-separated; defaults to `promoted,archived` when any filter param is present). No query params → returns all drafts (backward compatible).
 - 2026-07-01: **Phase 3.1 Connections** — `GET/POST .../connections/invite`/`DELETE .../connections/:userId` for friend/connection roles + pending invitations (domain admin only).
 - 2026-07-01: **Phase 3.2 friend audience** — `GET /by-slug/:slug/audience` (optional auth) and `GET /by-slug/:slug/friends-content` (auth) with shared `resolveDomainAudience` + `filterContentByAudience`.
 - 2026-06-30: **Draft point promote** — `POST .../points/:pointId/promote` with `{ journeyId }` dispatches `draft.point.promote` (UI-only allowlist).

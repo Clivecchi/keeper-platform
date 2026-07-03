@@ -31,6 +31,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-02 — P1.2 draft list query params
+- `KipApi.listDrafts` accepts optional `{ limit, excludeStatus }` for capped nav fetches (`limit=50&excludeStatus=promoted,archived`).
+
 ### 2026-06-30 — Draft point promotion (Phase 2.2b)
 - Added `KipApi.promoteDraftPoint(domainId, draftId, pointId, { journeyId })` — POST promote route for accepted journey_spec points.
 

@@ -7,6 +7,8 @@ import { KipApi } from "../lib/kipApi"
 export interface UseDraftPointPromoteOptions {
   domainId: string | null | undefined
   journeyId: string | null | undefined
+  /** Fallback when Nav has no selected Journey — e.g. draft spec `targetJourneyId`. */
+  resolveJourneyId?: () => string | null | undefined
   onDraftSelect?: (draftId: string) => void
   bumpDraftPresence?: () => void
   bumpDraftNav?: () => void
@@ -20,9 +22,13 @@ export interface UseDraftPointPromoteResult {
   promoteDraftPoint: (draftId: string, pointId: string) => void
 }
 
+const MISSING_JOURNEY_PROMOTE_MESSAGE =
+  "Select a Journey in Nav or set targetJourneyId on the draft before promoting."
+
 export function useDraftPointPromote({
   domainId,
   journeyId,
+  resolveJourneyId,
   onDraftSelect,
   bumpDraftPresence,
   bumpDraftNav,
@@ -36,10 +42,15 @@ export function useDraftPointPromote({
 
   const promoteDraftPoint = React.useCallback(
     (draftId: string, pointId: string) => {
-      if (!domainId || !journeyId) return
+      if (!domainId) return
+      const resolvedJourneyId = journeyId ?? resolveJourneyId?.() ?? null
+      if (!resolvedJourneyId) {
+        setError?.(MISSING_JOURNEY_PROMOTE_MESSAGE)
+        return
+      }
       setPromotingDraftPointId(pointId)
       setError?.(null)
-      void KipApi.promoteDraftPoint(domainId, draftId, pointId, { journeyId })
+      void KipApi.promoteDraftPoint(domainId, draftId, pointId, { journeyId: resolvedJourneyId })
         .then(() => {
           setPromotedDraftPointIds((prev) => new Set(prev).add(pointId))
           onDraftSelect?.(draftId)
@@ -61,6 +72,7 @@ export function useDraftPointPromote({
     [
       domainId,
       journeyId,
+      resolveJourneyId,
       onDraftSelect,
       bumpDraftPresence,
       bumpDraftNav,

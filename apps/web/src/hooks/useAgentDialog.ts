@@ -9,6 +9,7 @@ import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components
 import { extractLinkedCard } from "../components/agent/helpers"
 import { apiFetch } from "../lib/api"
 import {
+  buildInstrumentUnavailableDelegationBeat,
   extractAgentReplyFromRunResult,
   isDirectorDelegationFailureContent,
   resolveDirectorInstrument,
@@ -234,14 +235,24 @@ export function extractRunAgentPayload(result: unknown): {
   let directorDelegation: DirectorDelegationBeat | undefined
   if (delegationRaw && typeof delegationRaw === "object") {
     const d = delegationRaw as Record<string, unknown>
-    const status = d.status
+    const rawStatus = d.status
+    const status =
+      rawStatus === "ok" || rawStatus === "failed" || rawStatus === "empty"
+        ? rawStatus
+        : undefined
     const content = typeof d.content === "string" ? d.content.trim() : ""
-    const isOk = status === undefined || status === "ok"
-    if (isOk && content && !isDirectorDelegationFailureContent(content)) {
+    const attributedTo = typeof d.attributedTo === "string" ? d.attributedTo : undefined
+
+    if (status === "failed" || status === "empty") {
       directorDelegation = {
-        content,
-        attributedTo: typeof d.attributedTo === "string" ? d.attributedTo : undefined,
+        content:
+          content ||
+          `${attributedTo ?? "Agent"} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+        attributedTo,
+        status,
       }
+    } else if (content && !isDirectorDelegationFailureContent(content)) {
+      directorDelegation = { content, attributedTo, status: status ?? "ok" }
     }
   }
   return {
@@ -555,6 +566,9 @@ export function useAgentDialog({
 
       setThinkingSteps([])
       appendThinkingStep("Received your message")
+      if (displayContent && displayContent.trim() !== content.trim()) {
+        appendThinkingStep("Including pasted supporting context…")
+      }
       if (attachments?.length) {
         appendThinkingStep(
           attachments.length === 1
@@ -663,15 +677,28 @@ export function useAgentDialog({
         const {
           actions: actionsArr,
           sessionId: returnedSessionId,
-          directorDelegation,
+          directorDelegation: extractedDelegation,
         } = extractRunAgentPayload(result)
+
+        let directorDelegation = extractedDelegation
+        if (
+          liveDirectorConfig &&
+          instrument &&
+          content.trim() &&
+          !directorDelegation
+        ) {
+          directorDelegation = buildInstrumentUnavailableDelegationBeat({
+            instrumentLabel:
+              liveDirectorConfig.instrumentLabels[instrument] ?? instrument,
+          })
+        }
 
         if (liveDirectorConfig && instrument && content.trim()) {
           onDirectorPhaseChange?.("director")
         }
 
         const mergeOntoLastAgent = (list: AgentDialogueMessage[]): AgentDialogueMessage[] => {
-          const withUser = patchLastUserContent(list, content)
+          const withUser = patchLastUserContent(list, transcriptContent)
           if (!directorDelegation && !actionsArr?.length) return withUser
           const updated = [...withUser]
           const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
@@ -703,7 +730,7 @@ export function useAgentDialog({
                     {
                       id: `user-${ts}`,
                       role: "user" as const,
-                      content: content || "[attachment]",
+                      content: transcriptContent,
                       createdAt: new Date(ts).toISOString(),
                     },
                   ]

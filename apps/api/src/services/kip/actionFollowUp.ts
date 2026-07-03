@@ -173,13 +173,60 @@ export function responseDefersDraftWork(responseText: string): boolean {
   return RESPONSE_DEFERRAL_PATTERNS.some((pattern) => pattern.test(text));
 }
 
-/** When the user asked for draft work but the model deferred without draft actions. */
+export function hasSuccessfulDraftMutationResults(results: ActionResultLike[]): boolean {
+  return results.some(
+    (result) => isDraftMutationActionType(result.type) && result.status === 'success',
+  );
+}
+
+/** When every action in the turn failed or was skipped — surface a summary in response text. */
+export function buildAllActionsFailedSummary(results: ActionResultLike[]): string | null {
+  if (!results.length) return null;
+  if (results.some((result) => result.status === 'success')) return null;
+
+  const lines = results.map((result) => {
+    const label = result.status === 'skipped' ? 'skipped' : 'failed';
+    return `- ${result.type} (${label}): ${result.message}`;
+  });
+  return `\n\nI could not complete the requested actions:\n${lines.join('\n')}`;
+}
+
+/** When draft mutation actions were attempted but none succeeded. */
+export function buildDraftMutationFailureNotice(
+  results: ActionResultLike[],
+  priorResponseText?: string,
+): string | null {
+  const draftResults = results.filter((result) => isDraftMutationActionType(result.type));
+  if (!draftResults.length) return null;
+  if (draftResults.some((result) => result.status === 'success')) return null;
+
+  const failures = draftResults.filter(
+    (result) => result.status === 'error' || result.status === 'skipped',
+  );
+  if (!failures.length) return null;
+
+  const detail = failures.map((result) => `${result.type}: ${result.message}`).join('; ');
+  const notice = `I attempted draft work, but it did not complete: ${detail}`;
+  return priorResponseText?.trim() ? `${priorResponseText.trim()} ${notice}` : notice;
+}
+
+/**
+ * When the user asked for draft work and the model deferred without completing draft mutations.
+ * Uses post-execution results when available so failed/skipped draft actions still trigger follow-up.
+ */
 export function shouldRunMutationDeferralFollowUp(params: {
   userInput: string;
   responseText: string;
   actions: Array<{ type: string }>;
+  actionResults?: ActionResultLike[];
 }): boolean {
-  if (params.actions.some((action) => isDraftMutationActionType(action.type))) {
+  if (params.actionResults?.length && hasSuccessfulDraftMutationResults(params.actionResults)) {
+    return false;
+  }
+  if (
+    !params.actionResults?.length
+    && params.actions.some((action) => isDraftMutationActionType(action.type))
+  ) {
     return false;
   }
   if (!userRequestedDraftWork(params.userInput)) return false;

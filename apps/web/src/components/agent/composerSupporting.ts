@@ -10,7 +10,24 @@ export function shouldCapturePaste(text: string): boolean {
   if (!trimmed) return false
   if (trimmed.length >= PASTE_CAPTURE_MIN_CHARS) return true
   const lineCount = trimmed.split(/\r?\n/).length
-  return lineCount >= PASTE_CAPTURE_MIN_LINES && trimmed.length >= PASTE_CAPTURE_MIN_LINES_CHARS
+  if (lineCount >= PASTE_CAPTURE_MIN_LINES && trimmed.length >= PASTE_CAPTURE_MIN_LINES_CHARS) {
+    return true
+  }
+  // Markdown blocks (headings, tables) — route as supporting doc, not raw inline text
+  if (trimmed.length >= 80 && (/^#{1,6}\s/m.test(trimmed) || /\|.+\|/.test(trimmed))) {
+    return true
+  }
+  return false
+}
+
+export function pastedDocumentTitle(text: string): string {
+  const trimmed = text.trim()
+  const heading = trimmed.match(/^#{1,6}\s+(.+)$/m)
+  if (heading?.[1]?.trim()) {
+    const title = heading[1].trim()
+    return title.length > 48 ? `${title.slice(0, 47)}…` : title
+  }
+  return "Pasted document"
 }
 
 export function isPastedSupportingDoc(attachment: PendingAttachment): boolean {

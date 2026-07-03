@@ -5,10 +5,14 @@
 
 import type { LinkedCardProps } from "../../types/props"
 
+export type DirectorDelegationStatus = "ok" | "failed" | "empty"
+
 /** Agent echo — Dialog Response attached beneath another agent's message. */
 export interface DialogResponseEcho {
   content: string
   attributedTo?: string
+  /** Director routing — ok = instrument replied; failed/empty = visible routing notice. */
+  status?: DirectorDelegationStatus
 }
 
 /** Board instrument reply shown above Lead content in director mode. */

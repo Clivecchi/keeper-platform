@@ -534,21 +534,32 @@ export function UniversalConversation({
     return () => { cancelled = true }
   }, [kipMode, domainSlug])
 
+  // Moment count deferred — avoid eager limit=500 list on domain board idle load.
+  // Banner shows "—" until a lighter count endpoint exists or user engages a journey.
   React.useEffect(() => {
-    if (kipMode !== "domain" || !domainSlug) return
+    if (kipMode !== "domain" || !domainSlug) {
+      setMomentCount(null)
+      return
+    }
+    if (!activeJourneyId && !activeKeeperId) {
+      setMomentCount(null)
+      return
+    }
     let cancelled = false
-    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=500`)
+    apiFetch(
+      `/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=50`,
+    )
       .then((json: unknown) => {
         if (!cancelled) {
           const n = Array.isArray((json as { data?: unknown[] })?.data)
             ? (json as { data: unknown[] }).data.length
             : 0
-          setMomentCount(n >= 500 ? 500 : n)
+          setMomentCount(n >= 50 ? 50 : n)
         }
       })
       .catch(() => { if (!cancelled) setMomentCount(null) })
     return () => { cancelled = true }
-  }, [kipMode, domainSlug])
+  }, [kipMode, domainSlug, activeJourneyId, activeKeeperId])
 
   // ── Adapter: hooks require (string | null) but centerProps callbacks take (string) ──
   const handleSessionChange = React.useCallback(
@@ -1316,7 +1327,7 @@ export function UniversalConversation({
         const tagline = df?.cover?.card?.tagLine?.trim() || df?.theme?.tagline?.trim() || undefined
         const primaryAccent = df?.theme?.colors?.primary?.trim() || undefined
         const statJourneys = journeyCount === null ? "—" : String(journeyCount)
-        const statMoments = momentCount === null ? "—" : momentCount >= 500 ? "500+" : String(momentCount)
+        const statMoments = momentCount === null ? "—" : momentCount >= 50 ? "50+" : String(momentCount)
         return {
           primary: wordmark,
           ...(tagline ? { tagline } : {}),

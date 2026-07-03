@@ -9,6 +9,103 @@ export interface DomainSwitcherEntry {
   coverImageUrl?: string | null
 }
 
+/** Align with server domain list cache (~5 min). */
+export const DOMAIN_SWITCHER_CACHE_TTL_MS = 5 * 60 * 1000
+
+const SESSION_CACHE_KEY = "keeper.domainSwitcher.v1"
+
+interface DomainSwitcherCacheSnapshot {
+  fetchedAt: number
+  entries: DomainSwitcherEntry[]
+}
+
+let memoryCache: DomainSwitcherCacheSnapshot | null = null
+let inflightFetch: Promise<DomainSwitcherEntry[]> | null = null
+
+function readSessionCache(): DomainSwitcherCacheSnapshot | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = sessionStorage.getItem(SESSION_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as DomainSwitcherCacheSnapshot
+    if (
+      !parsed ||
+      typeof parsed.fetchedAt !== "number" ||
+      !Array.isArray(parsed.entries)
+    ) {
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeSessionCache(snapshot: DomainSwitcherCacheSnapshot): void {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(snapshot))
+  } catch {
+    /* quota / private mode — memory cache still works */
+  }
+}
+
+function isCacheFresh(snapshot: DomainSwitcherCacheSnapshot, now = Date.now()): boolean {
+  return now - snapshot.fetchedAt < DOMAIN_SWITCHER_CACHE_TTL_MS
+}
+
+function commitCache(entries: DomainSwitcherEntry[]): DomainSwitcherCacheSnapshot {
+  const snapshot: DomainSwitcherCacheSnapshot = {
+    fetchedAt: Date.now(),
+    entries,
+  }
+  memoryCache = snapshot
+  writeSessionCache(snapshot)
+  return snapshot
+}
+
+/** Returns cached domain list when still within TTL (memory, then sessionStorage). */
+export function getCachedDomainSwitcherEntries(): DomainSwitcherEntry[] | null {
+  const now = Date.now()
+  if (memoryCache && isCacheFresh(memoryCache, now)) {
+    return memoryCache.entries
+  }
+
+  const fromSession = readSessionCache()
+  if (fromSession && isCacheFresh(fromSession, now)) {
+    memoryCache = fromSession
+    return fromSession.entries
+  }
+
+  return null
+}
+
+/** Clear client domain list cache (e.g. after create). */
+export function invalidateDomainSwitcherCache(): void {
+  memoryCache = null
+  inflightFetch = null
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.removeItem(SESSION_CACHE_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+export interface FetchDomainSwitcherOptions {
+  /** Bypass TTL and always hit the network. */
+  forceRefresh?: boolean
+}
+
+/** Warm the cache in the background — safe to call from board mount. */
+export function prefetchDomainSwitcherEntries(): void {
+  if (getCachedDomainSwitcherEntries()) return
+  if (inflightFetch) return
+  inflightFetch = fetchDomainSwitcherEntries().finally(() => {
+    inflightFetch = null
+  })
+}
+
 interface ApiDomainRow {
   slug: string
   name: string
@@ -75,10 +172,33 @@ async function fetchUserDomainsList(): Promise<ApiDomainRow[]> {
   return Array.isArray(data) ? data : []
 }
 
-export async function fetchDomainSwitcherEntries(): Promise<DomainSwitcherEntry[]> {
-  const rows = await fetchUserDomainsList()
+export async function fetchDomainSwitcherEntries(
+  options?: FetchDomainSwitcherOptions,
+): Promise<DomainSwitcherEntry[]> {
+  if (!options?.forceRefresh) {
+    const cached = getCachedDomainSwitcherEntries()
+    if (cached) return cached
+  }
 
-  return rows.filter(isVisibleUserDomain).map(mapApiDomainToSwitcherEntry)
+  if (inflightFetch && !options?.forceRefresh) {
+    return inflightFetch
+  }
+
+  const run = async (): Promise<DomainSwitcherEntry[]> => {
+    const rows = await fetchUserDomainsList()
+    const entries = rows.filter(isVisibleUserDomain).map(mapApiDomainToSwitcherEntry)
+    commitCache(entries)
+    return entries
+  }
+
+  if (options?.forceRefresh) {
+    return run()
+  }
+
+  inflightFetch = run().finally(() => {
+    inflightFetch = null
+  })
+  return inflightFetch
 }
 
 export function suggestDomainSlug(name: string): string {
@@ -120,5 +240,6 @@ export async function createDomain(payload: CreateDomainPayload): Promise<ApiDom
     throw new Error(message)
   }
 
+  invalidateDomainSwitcherCache()
   return data.domain
 }

@@ -69,6 +69,38 @@ const setActiveDraftSchema = z.object({
 
 const mapDraftSpec = (spec: unknown) => normalizeDraftSpecJson(spec);
 
+const DRAFT_LIST_DEFAULT_LIMIT = 50;
+const DRAFT_LIST_MAX_LIMIT = 100;
+const DRAFT_LIST_DEFAULT_EXCLUDE_STATUS = ['promoted', 'archived'] as const;
+
+function parseDraftListQuery(query: AuthenticatedRequest['query']): {
+  applyFilters: boolean;
+  limit?: number;
+  excludeStatuses: string[];
+} {
+  const hasLimit = query.limit !== undefined;
+  const hasExcludeStatus = query.excludeStatus !== undefined;
+  const applyFilters = hasLimit || hasExcludeStatus;
+
+  if (!applyFilters) {
+    return { applyFilters: false, excludeStatuses: [] };
+  }
+
+  const parsedLimit = hasLimit ? Number.parseInt(String(query.limit), 10) : DRAFT_LIST_DEFAULT_LIMIT;
+  const limit = Number.isFinite(parsedLimit)
+    ? Math.min(Math.max(parsedLimit, 1), DRAFT_LIST_MAX_LIMIT)
+    : DRAFT_LIST_DEFAULT_LIMIT;
+
+  const excludeStatuses = hasExcludeStatus
+    ? String(query.excludeStatus)
+        .split(',')
+        .map((status) => status.trim())
+        .filter(Boolean)
+    : [...DRAFT_LIST_DEFAULT_EXCLUDE_STATUS];
+
+  return { applyFilters: true, limit, excludeStatuses };
+}
+
 const mapDraftSummary = (draft: any) => ({
   id: draft.id,
   kind: draft.kind,
@@ -119,11 +151,16 @@ router.get(
 
       const { domainId } = req.params;
       const keeperId = typeof req.query.keeperId === 'string' ? req.query.keeperId : undefined;
+      const { applyFilters, limit, excludeStatuses } = parseDraftListQuery(req.query);
+
       const drafts = await prisma.kip_drafts.findMany({
         where: {
           domain_id: domainId,
           owner_id: req.user.id,
           ...(keeperId ? { keeper_id: keeperId } : {}),
+          ...(applyFilters && excludeStatuses.length
+            ? { status: { notIn: excludeStatuses } }
+            : {}),
         },
         select: {
           id: true,
@@ -139,6 +176,7 @@ router.get(
           { keeper_id: 'desc' },
           { updated_at: 'desc' },
         ],
+        ...(applyFilters && limit !== undefined ? { take: limit } : {}),
       });
 
       const mappedDrafts = drafts.map(mapDraftSummary);

@@ -13,6 +13,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `KeyConfigPresence.tsx` — Key Config Mode CRUD surface
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
+- `agentNavUtils.ts` — optimistic Agents nav row patch after agent Config save
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
 - `ServiceBindingConfigPresence.tsx` — infra service binding Config Mode (GitHub repo + branch)
 - `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
@@ -22,7 +23,8 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
 - `DraftChronicleBlocks.tsx` — Summary, points (Accept + Discuss), versions, linked dialog sessions
 - `cdraft.tsx` — Manuscript Chronicle treatment (header, manage bar, warm charcoal canvas)
-- `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering
+- `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering, `parseTargetJourneyIdFromSpec`
+- `draftNavUtils.ts` — Draft nav filter/sort/group + disambiguated labels
 - `DraftVersionStrip.tsx` — Read-only last N versions from `GET .../versions`
 - `DraftSessionsBlock.tsx` — Sessions on linked Dialog; highlights `active_draft_id` below draft cover
 - `PathChronicleBlocks.tsx` — Prelude + moments below path cover
@@ -39,6 +41,27 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-29 — Draft film strip + structured path points
+- `draftPointStructure.ts` (shared) — parse `PATH N: NAME — Subtitle` content; prelude → Path.prelude, moments → Moment.title on promote
+- `buildDraftSummaryFromAcceptedPoints` — short beat arc (`A → B → C`), not full content dump
+- `DraftFilmStrip.tsx` — horizontal accepted-frame journey; moment sub-frames in focus panel
+- `DraftPointRow` manuscript — prelude from parsed subtitle; moment chips; no generic "An idea forming"
+- Agent `draft.update.propose` / `draft.point.rewrite` accept optional `prelude`, `closer`, `moments`
+
+### 2026-06-28 — Draft script-IDE rewrite queue
+- **Rewrite** on proposed/pending points → Dialog prefilled for `draft.point.rewrite` (via `requestRewriteDraftPoint`)
+- Manuscript **Anchors** collapsible when >2 accepted; **Rewrite queue** section for pending points
+- Cdraft meta strip: anchor count + queue count
+
+### 2026-06-27 — Domain tier key flags (AI Access)
+- `domainKeyAccessSummary.ts` — tier-aware collapse; BYOK gated on `keeper`+ tiers
+- `fetchDomainKeyAccess()` — loads `GET /api/domains/:id/key-access`
+- `DomainAiAccessNav` — shows tier label; hides "Add your key" on Free tier
+
+### 2026-06-27 — Domain AI access summary (included vs yours)
+- `domainKeyAccessSummary.ts` — soft labels (`Included`, `Yours`); never raw `platform` in UI.
+- Agent Board `DomainAiAccessNav` — count + brief provider lines; IDE keeps full key registry.
 
 ### 2026-06-27 — GitHub service binding (Chronicle Manage)
 - Added `ServiceBindingConfigPresence` — GitHub repo + default branch on connected GitHub service (Manage action on cover)
@@ -85,6 +108,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `used_by` reads `AgentCapability` rows; Config mode grant CRUD via POST/DELETE `/api/capabilities/:id/grants`
 - `CapabilityUsedByGrantsBlock` in Config mode — add/remove agents (source: manual)
 
+## 📆 Update Log
+
+### 2026-06-28 — Agents nav patch after Config save
+- Added `agentNavUtils.ts` — `applyAgentNavRowPatch()` for optimistic Nav label sync when agent `name` or `model` is saved in Chronicle Config.
+
 ### 2026-06-13 — Capability EntityKind Pass 1 (registry)
 - Added `CapabilityFeed.tsx`, `CapabilityConfigPresence.tsx`, `capabilityNavUtils.ts`, `blocks/capabilityBlocks.tsx` (`definition`, `used_by`)
 - `DeclarationChronicleBlocks` `variant="capability"`; `used_by` cross-references `kip_agents` arrays (read-only)
@@ -103,6 +131,13 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - Removed `FeedComponent` from `serviceConfig.tsx` and legacy `AIModelFeed` cover UI component
 - Trimmed redundant feed state (`keyInput`, `keySaveSuccess`) — metadata save is Config mode only; credentials stay on POST routes
 - Cover + Config pattern documented: declaration blocks always; `chroniclePatch` for metadata; credentials separate
+
+## 📆 Update Log
+
+### 2026-07-02 — P3.1 + P3.2 draft nav / journey link
+- **`draftNavUtils.ts`**: filter promoted/archived, group by kind, sort selected-first + recency, disambiguated labels.
+- **`cdraft.tsx`**: breadcrumb journey link from spec `targetJourneyId`; promote error display.
+- **`draftManuscriptUtils.ts`**: `parseTargetJourneyIdFromSpec`.
 
 ### 2026-06-13 — Cover body unification (Phase 4)
 - `IntegrationFocusPresence` / `KeyFocusPresence`: always render `DeclarationChronicleBlocks`; removed `FeedComponent` fork
