@@ -58,6 +58,7 @@ import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
 import { isMemberMobileBoard, type WorkspaceBoardId } from "./workspaceBoardNav"
 import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchestrator"
 import { prefetchBoardNavData } from "./boardNavDataCache"
+import { getCachedDomainBySlug } from "./domain/domainShellCache"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
@@ -206,11 +207,28 @@ function UniversalBoardShell({
   const slug = domainSlug ?? ""
 
   const prevBoardIdRef = React.useRef(def.boardId)
+  const prevSlugRef = React.useRef(slug)
   React.useEffect(() => {
     if (prevBoardIdRef.current === def.boardId) return
     prevBoardIdRef.current = def.boardId
     actions.clearSelection()
   }, [def.boardId, actions])
+
+  React.useEffect(() => {
+    if (prevSlugRef.current === slug) return
+    prevSlugRef.current = slug
+    setBriefOpen(false)
+
+    const cached = getCachedDomainBySlug(slug)
+    if (cached?.id && !String(cached.id).startsWith("fallback-")) {
+      setDomainId(cached.id)
+      const name = (cached.displayName ?? cached.name ?? "").trim()
+      if (name) setDomainName(name)
+      prefetchBoardNavData(cached.id)
+    } else {
+      setDomainId(null)
+    }
+  }, [slug])
 
   // ── domainId resolution — single point, never delegated to panels ──────────
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.
@@ -381,7 +399,6 @@ function UniversalBoardShell({
         <div className="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <KeeperBoardPanelGroup
-              key={`board-panels-${slug || "default"}`}
               boardKind={boardKind}
               domainSlug={slug}
               left={

@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-02 — Domain board load performance
+- `useAgentDialog`: `resolveLeadAgentId` for slug lookup (404 → `kip`); domain mode defers session history via `requestIdleCallback` so nav/frame paint first.
+
 ### 2026-07-02 — P3.2 Draft–Journey promote fallback
 - **`useDraftPointPromote`**: optional `resolveJourneyId` when Nav has no selected Journey; surfaces error on promote without resolvable target.
 

@@ -649,6 +649,22 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setChronicleEngagement(null)
   }, [])
 
+  const prevDomainSlugRef = React.useRef(shell?.domainSlug ?? "")
+  React.useEffect(() => {
+    const nextSlug = shell?.domainSlug ?? ""
+    if (!nextSlug || prevDomainSlugRef.current === nextSlug) return
+    prevDomainSlugRef.current = nextSlug
+    clearSelection()
+    closeChronicleEngagement()
+    setActiveSessionId(null)
+    setDraftDiscussAnchor(null)
+    setDraftDiscussIntent(null)
+    setDraftComposeHint(null)
+    setTrainingMode(false)
+    setActiveBoardInstrument(null)
+    shell?.clearBoardDefinition()
+  }, [shell?.domainSlug, shell, clearSelection, closeChronicleEngagement])
+
   const requestChronicleEngagement = React.useCallback(
     async (slug: string, context: EngagementContext) => {
       const response = await apiFetch(

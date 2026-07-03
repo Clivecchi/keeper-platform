@@ -6,7 +6,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 ## 🧱 Key Files
 - `DomainBoard.tsx` — Root board component; delegates three-column layout to `UniversalBoard`.
 - `DomainSwitcherOverlay.tsx` — Reusable domain switcher overlay (fetch, list, add panel, navigate). Used by `UniversalBoard` on all member boards.
-- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; in-memory + sessionStorage cache (5 min TTL); `createDomain` → `POST /api/domains`; `resolvePostLoginDomainSlug` for auth landing.
+- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; in-memory + sessionStorage cache (5 min TTL); `createDomain` → `POST /api/domains`.
 - `domainShellCache.ts` — Per-slug by-slug + audience cache; `prefetchDomainShell` (frame, domain, audience).
 - `domainShellPrefetch.ts` — Re-export of `prefetchDomainShell` (legacy import path).
 - `DomainAddPanel.tsx` — Create-domain form opened from switcher “Add a domain”.
@@ -27,7 +27,6 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
-- 2026-07-02: `resolvePostLoginDomainSlug` — login lands on primary owned domain (`isPrimary` from `/api/domains/my`), not hardcoded `default`.
 - 2026-07-02: **Soft domain switch** — no `UniversalBoard` remount on slug change; `domainShellCache` seeds by-slug/frame/audience; board selection + Chronicle Acts reset in place; panel split persists per workspace.
 - 2026-07-02: **Domain switch prefetch** — hover/focus on picker cards calls `prefetchDomainShell` (frame + by-slug) before navigate.
 - 2026-07-02: **P1.1 domain picker cache** — `domainSwitcherData.ts` adds memory + sessionStorage cache (5 min TTL), deduped fetch, `prefetchDomainSwitcherEntries` on board mount; overlay uses stale-while-revalidate (instant open from cache, background refresh).

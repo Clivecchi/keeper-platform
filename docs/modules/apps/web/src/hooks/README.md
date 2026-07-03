@@ -5,8 +5,7 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 🧱 Key Files
 - `useDraftPointAccept.ts` — Shared Accept handler for draft points (Dialog receipts + Chronicle blocks).
-- `useDraftPointPromote.ts` — Promote accepted journey_spec points to the Nav-selected Journey (Path + Moments).
-- `useDraftPointPromote.ts` — Promote accepted journey_spec points to Nav-selected Journey (Chronicle).
+- `useDraftPointPromote.ts` — Promote accepted journey_spec points to Journey (Nav selection or spec `targetJourneyId`).
 - `useAgentDialog.ts` — Parameterized agent session hook (`agentSlug` / `agentDisplayName`). Used by IDE, Agent, and Domain boards.
 - `useComposerDraftAutosave.ts` — SessionStorage-backed unsent composer recovery for all Kip dialog surfaces.
 - `useKipSession.ts` — Deprecated alias for `useAgentDialog`. Re-exported for backward compatibility only.
@@ -31,6 +30,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-07-02 — Domain board load performance
+- `useAgentDialog`: `resolveLeadAgentId` for slug lookup (404 → `kip`); domain mode defers session history via `requestIdleCallback` so nav/frame paint first.
 
 ### 2026-07-02 — P3.2 Draft–Journey promote fallback
 - **`useDraftPointPromote`**: optional `resolveJourneyId` when Nav has no selected Journey; surfaces error on promote without resolvable target.

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
 import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
+import { resolvePostLoginDomainSlug } from '@/v0/boards/domain/domainSwitcherData';
 
 interface AuthFormProps {
   isRegister?: boolean;
@@ -53,7 +54,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
         // from session-expiry redirects (AgentBoardFrame, KipChatDrawer, etc.)
         // were returning users to the wrong board. Domain Board is the correct
         // home surface after authentication.
-        navigate('/d/default?board=domain');
+        const domainSlug = await resolvePostLoginDomainSlug('default');
+        navigate(`/d/${encodeURIComponent(domainSlug)}?board=domain`);
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }

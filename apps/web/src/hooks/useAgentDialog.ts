@@ -26,6 +26,7 @@ import {
   type RunAgentActionInput,
 } from "../v0/components/dialog/dialogThinking"
 import { useComposerDraftAutosave } from "./useComposerDraftAutosave"
+import { resolveLeadAgentId } from "../v0/lib/frameLeadAgentIdentity"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
 export type AgentContext = NonNullable<Parameters<typeof KipApi.runAgent>[4]>["agentContext"]
@@ -382,9 +383,9 @@ export function useAgentDialog({
     }
     setAgentId(null)
     let cancelled = false
-    KipApi.getAgentBySlug(agentSlug)
-      .then((agent) => {
-        if (!cancelled) setAgentId(agent.id)
+    resolveLeadAgentId(agentSlug)
+      .then((id) => {
+        if (!cancelled) setAgentId(id)
       })
       .catch(() => {
         if (!cancelled) setAgentId(null)
@@ -512,8 +513,29 @@ export function useAgentDialog({
 
   React.useEffect(() => {
     if (!activeSessionId) return
+
+    // Domain board: defer session history so nav/frame work can paint first.
+    if (mode === "domain") {
+      let cancelled = false
+      const run = () => {
+        if (!cancelled) void fetchMessages(activeSessionId)
+      }
+      if (typeof requestIdleCallback !== "undefined") {
+        const idleId = requestIdleCallback(run, { timeout: 1500 })
+        return () => {
+          cancelled = true
+          cancelIdleCallback(idleId)
+        }
+      }
+      const timeoutId = window.setTimeout(run, 150)
+      return () => {
+        cancelled = true
+        window.clearTimeout(timeoutId)
+      }
+    }
+
     void fetchMessages(activeSessionId)
-  }, [activeSessionId, fetchMessages])
+  }, [activeSessionId, fetchMessages, mode])
 
   const sendMessage = React.useCallback(
     async (

@@ -6,6 +6,7 @@ import { apiFetch } from "../../lib/api"
 import type { V0FrameKey } from "./V0ShellContext"
 import type { PlacementMode } from "./usePlacementMode"
 import { useV0ShellOptional } from "./V0ShellContext"
+import { loadJourneyNavRows } from "../boards/boardNavDataCache"
 
 // =============================================================================
 // Types — the Context Contract
@@ -203,9 +204,9 @@ export function FrameContextProvider({
       try {
         const persisted = getPersistedSelection(domainSlug)
 
-        const [keepersRes, journeysRes] = await Promise.all([
+        const [keepersRes, journeys] = await Promise.all([
           apiFetch(`/api/keepers?domainId=${domain.id}`).catch(() => null),
-          apiFetch(`/api/journeys?domainId=${domain.id}`).catch(() => null),
+          loadJourneyNavRows(domain.id).catch(() => [] as { id: string }[]),
         ])
         if (ignore) return
 
@@ -213,10 +214,7 @@ export function FrameContextProvider({
           (keepersRes as any)?.data?.keepers ??
           (keepersRes as any)?.keepers ??
           (Array.isArray(keepersRes) ? keepersRes : [])
-        const journeys: { id: string }[] =
-          (journeysRes as any)?.data?.journeys ??
-          (journeysRes as any)?.journeys ??
-          (Array.isArray(journeysRes) ? journeysRes : [])
+        const journeyRows = Array.isArray(journeys) ? journeys : []
 
         // Resolve keeper: persisted → first available
         let resolvedKeeper = persisted.keeperId
@@ -229,11 +227,11 @@ export function FrameContextProvider({
 
         // Resolve journey: persisted → first available
         let resolvedJourney = persisted.journeyId
-        if (resolvedJourney && !journeys.some((j) => j.id === resolvedJourney)) {
+        if (resolvedJourney && !journeyRows.some((j) => j.id === resolvedJourney)) {
           resolvedJourney = null
         }
-        if (!resolvedJourney && journeys.length > 0) {
-          resolvedJourney = journeys[0].id
+        if (!resolvedJourney && journeyRows.length > 0) {
+          resolvedJourney = journeyRows[0].id
         }
 
         if (!ignore) {

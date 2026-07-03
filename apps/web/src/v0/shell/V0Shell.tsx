@@ -37,7 +37,14 @@ import { resolveGuestPublicFrame } from "./guestPublicStory"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
-import { loadDomainFrame } from "../data/loadDomainFrame"
+import { loadDomainFrame, peekDomainFrame } from "../data/loadDomainFrame"
+import {
+  fetchDomainAudience,
+  fetchDomainBySlug,
+  getCachedDomainAudience,
+  getCachedDomainBySlug,
+  peekDomainShellFrame,
+} from "../boards/domain/domainShellCache"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import { ensureDomainProvisioned, markDomainProvisionSessionOk } from "../lib/ensureDomainProvisioned"
 import { domainFrameLooksUnseeded } from "../lib/domainFrameLooksUnseeded"
@@ -313,25 +320,26 @@ export function V0Shell() {
   React.useEffect(() => {
     if (!slug) return
     let ignore = false
-    setDomainData((prev: { slug?: string; id?: string } | null) => {
-      if (prev?.slug === slug && prev?.id && !String(prev.id).startsWith("fallback-")) {
-        return prev
-      }
-      return { ...getDomainFallback(slug), slug }
-    })
-    ;(async () => {
-      try {
-        const response = await apiFetch(`/api/domains/by-slug/${slug}`)
+
+    const cachedDomain = getCachedDomainBySlug(slug)
+    if (cachedDomain) {
+      setDomainData({ ...cachedDomain, slug })
+    } else {
+      setDomainData({ ...getDomainFallback(slug), slug })
+    }
+
+    void fetchDomainBySlug(slug)
+      .then((response) => {
+        if (!ignore) setDomainData({ ...response, slug })
+      })
+      .catch((err) => {
         if (ignore) return
-        if (response?.id) {
-          setDomainData({ ...response, slug })
+        if (!getCachedDomainBySlug(slug)) {
+          setDomainData({ ...getDomainFallback(slug), slug })
         }
-      } catch (err) {
-        if (ignore) return
-        setDomainData({ ...getDomainFallback(slug), slug })
         console.warn("[V0Shell] Domain fetch failed:", err)
-      }
-    })()
+      })
+
     return () => {
       ignore = true
     }
@@ -340,25 +348,24 @@ export function V0Shell() {
   React.useEffect(() => {
     if (!slug || !authResolved) return
     let ignore = false
-    ;(async () => {
-      try {
-        const response = (await apiFetch(`/api/domains/by-slug/${slug}/audience`)) as {
-          audience?: DomainAudienceRole
-          domainRole?: string | null
-          isOwner?: boolean
+
+    const cachedAudience = getCachedDomainAudience(slug)
+    if (cachedAudience) {
+      setDomainAudienceContext(cachedAudience)
+    }
+
+    void fetchDomainAudience(slug)
+      .then((response) => {
+        if (!ignore) setDomainAudienceContext(response)
+      })
+      .catch((err) => {
+        if (ignore) return
+        if (!getCachedDomainAudience(slug)) {
+          setDomainAudienceContext(null)
         }
-        if (ignore) return
-        setDomainAudienceContext({
-          audience: response.audience ?? null,
-          domainRole: response.domainRole ?? null,
-          isOwner: !!response.isOwner,
-        })
-      } catch (err) {
-        if (ignore) return
         console.warn("[V0Shell] Audience fetch failed:", err)
-        setDomainAudienceContext(null)
-      }
-    })()
+      })
+
     return () => {
       ignore = true
     }
@@ -384,15 +391,25 @@ export function V0Shell() {
   React.useEffect(() => {
     if (!slug) return
     let ignore = false
-    loadDomainFrame(slug).then((frame) => {
-      if (ignore) return
-      setDomainFrame(frame)
-      console.log("[DomainFrame] Loaded for domain:", slug, frame)
-    }).catch((err) => {
-      if (ignore) return
-      console.warn("[DomainFrame] Failed to load:", err)
-    })
-    return () => { ignore = true }
+
+    const cachedFrame = peekDomainShellFrame(slug) ?? peekDomainFrame(slug)
+    if (cachedFrame) {
+      setDomainFrame(cachedFrame)
+    }
+
+    loadDomainFrame(slug)
+      .then((frame) => {
+        if (ignore) return
+        setDomainFrame(frame)
+        console.log("[DomainFrame] Loaded for domain:", slug, frame)
+      })
+      .catch((err) => {
+        if (ignore) return
+        console.warn("[DomainFrame] Failed to load:", err)
+      })
+    return () => {
+      ignore = true
+    }
   }, [slug])
 
   // Step 1.2 — auto-repair unseeded personal domains (frame_json, lead agent, keeper).
@@ -715,7 +732,6 @@ export function V0Shell() {
               </UniversalBoardProvider>
             ) : (
               <UniversalBoard
-                key={resolvedSlug}
                 def={matchedDef}
               />
             )}

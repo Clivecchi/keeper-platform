@@ -6,12 +6,14 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 ## 🧱 Key Files
 - `DomainBoard.tsx` — Root board component; delegates three-column layout to `UniversalBoard`.
 - `DomainSwitcherOverlay.tsx` — Reusable domain switcher overlay (fetch, list, add panel, navigate). Used by `UniversalBoard` on all member boards.
-- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; in-memory + sessionStorage cache (5 min TTL); `createDomain` → `POST /api/domains`.
+- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; in-memory + sessionStorage cache (5 min TTL); `createDomain` → `POST /api/domains`; `resolvePostLoginDomainSlug` for auth landing.
+- `domainShellCache.ts` — Per-slug by-slug + audience cache; `prefetchDomainShell` (frame, domain, audience).
+- `domainShellPrefetch.ts` — Re-export of `prefetchDomainShell` (legacy import path).
 - `DomainAddPanel.tsx` — Create-domain form opened from switcher “Add a domain”.
 - `domainSwitcherTheme.ts` — Fixed light-on-dark ink tokens for picker readability.
 
 ## 🔄 Data & Behavior
-- **Domain switcher**: `UniversalBoard` mounts `useDomainSwitcher` — top-bar domain click opens overlay on IDE, Agent, Design, and Domain boards. Selection navigates to `/d/:slug/board?board=<current workspace>`. List is cached client-side (5 min); picker opens instantly from cache and revalidates in the background. Board mount prefetches the list.
+- **Domain switcher**: `UniversalBoard` mounts `useDomainSwitcher` — top-bar domain click opens overlay on IDE, Agent, Design, and Domain boards. Selection navigates to `/d/:slug?board=<current workspace>` (soft switch — shell stays mounted). List is cached client-side (5 min); hover prefetches domain shell data (frame + by-slug + audience). Nav lists use stale-while-revalidate per `domainId`.
 - **Left panel**: Collapsible board switcher (Domain / Design / Agent) and frame list.
 - **Center panel**: `DomainBanner` at top, then `DomainBoardConversation` — persisted Kip sessions routed through `KipApi.runAgent`. Sessions are created on mount, resumable.
 - **Right panel**: Chronicle (`UniversalViewPanel`). When `domainSlug` is provided (as it is for Domain Board), the idle state shows domain feed content: recent kept Moments + active/present Journeys. Never blank.
@@ -25,6 +27,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+- 2026-07-02: `resolvePostLoginDomainSlug` — login lands on primary owned domain (`isPrimary` from `/api/domains/my`), not hardcoded `default`.
+- 2026-07-02: **Soft domain switch** — no `UniversalBoard` remount on slug change; `domainShellCache` seeds by-slug/frame/audience; board selection + Chronicle Acts reset in place; panel split persists per workspace.
+- 2026-07-02: **Domain switch prefetch** — hover/focus on picker cards calls `prefetchDomainShell` (frame + by-slug) before navigate.
 - 2026-07-02: **P1.1 domain picker cache** — `domainSwitcherData.ts` adds memory + sessionStorage cache (5 min TTL), deduped fetch, `prefetchDomainSwitcherEntries` on board mount; overlay uses stale-while-revalidate (instant open from cache, background refresh).
 - 2026-07-01: Phase 2.1 Guided Arrival — `GuidedArrivalOrchestrator` on Domain Board; lead agent Dialog + Chronicle Cover greeting for pending owners.
 - 2026-06-30: Phase 1.1 — Extracted `DomainSwitcherOverlay.tsx` + `useDomainSwitcher`; wired in `UniversalBoard` so IDE, Agent, and Design boards get the same top-bar domain switcher as Domain Board.

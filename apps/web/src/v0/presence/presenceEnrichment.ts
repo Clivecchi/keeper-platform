@@ -8,6 +8,8 @@
 
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
+import { loadJourneyNavRows } from "../boards/boardNavDataCache"
+import { fetchDomainKeptMoments } from "../data/domainMomentsCache"
 import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
 import { BOARD_FRAMES } from "../boards/frameCatalog"
 import { FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
@@ -888,22 +890,15 @@ async function enrichDomain(
   }
 
   try {
-    const journeysRes = await apiFetch(
-      `/api/journeys?domainId=${encodeURIComponent(domainId)}`,
-    )
-    const journeyList =
-      (journeysRes as { data?: { journeys?: JourneyBrief[] } })?.data?.journeys ?? []
-    const journeys = Array.isArray(journeyList) ? journeyList : []
+    const journeyList = await loadJourneyNavRows(domainId).catch(() => [] as JourneyBrief[])
+    const journeys = (Array.isArray(journeyList) ? journeyList : []) as JourneyBrief[]
     const moving = journeys.filter((j) => (j.momentCount ?? 0) > 0)
     const settled = journeys.filter((j) => !j.momentCount || j.momentCount === 0)
 
     if (ctx?.domainSlug) {
       try {
-        const momentsRes = await apiFetch(
-          `/api/v0/moments?domainSlug=${encodeURIComponent(ctx.domainSlug)}&status=kept&limit=12`,
-        )
-        const moments = (momentsRes as { data?: RecentMoment[] })?.data ?? []
-        if (Array.isArray(moments) && moments.length > 0) {
+        const moments = await fetchDomainKeptMoments(ctx.domainSlug, { limit: 12 })
+        if (moments.length > 0) {
           relatedSections.push({
             title: "Recent Moments",
             items: moments.map((m) => ({

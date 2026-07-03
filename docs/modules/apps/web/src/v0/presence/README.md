@@ -59,6 +59,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-07-02 — Domain feed fetch dedupe
+- Domain idle Chronicle uses `loadJourneyNavRows` + `fetchDomainKeptMoments` — shares cache with Nav/Conversation/banner
+
 ### 2026-06-30 — Draft point Promote in Chronicle
 - `DraftPointRow` — Promote button on accepted `journey_spec` points (requires Nav-selected Journey)
 - Wired through `DraftPointsSection`, `DraftChronicleBlocks`, `cdraft`, `DraftFocusPresence`

@@ -6,6 +6,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ## 🧱 Key Files
 - `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle); mounts domain switcher overlay for all boards
 - `boardNavDataCache.ts` — In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
+- `domain/domainShellCache.ts` — Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
 - `realm/` — Realm Board (`?board=realm`) — personal domain primary workspace
@@ -28,8 +29,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-02 — Soft domain switch
+- Domain picker no longer remounts `UniversalBoard` or `KeeperBoardPanelGroup` — slug/context swap in place
+- `domainShellCache.ts` seeds by-slug, audience, and frame JSON on navigate; selection and Chronicle Acts reset via `UniversalBoardContext`
+
 ### 2026-07-02 — Board switch performance (no full remount)
-- `V0Shell` mounts one `UniversalBoard` keyed by domain slug only — switching `?board=` updates `def` in place instead of remounting Domain/IDE/Agent shells
+- `V0Shell` mounts one `UniversalBoard` — switching `?board=` updates `def` in place instead of remounting Domain/IDE/Agent shells
 - `boardNavDataCache.ts` — in-memory cache (2 min TTL) for dialogs/journeys/keepers/drafts/agents; survives workspace switches within the same domain
 - `boardEntityNameResolver.ts` — keeper/journey banner titles reuse nav cache (no duplicate list fetches from Dialog)
 - `UniversalNavPanel` stale-while-revalidate from cache; refetch only when list version bumps

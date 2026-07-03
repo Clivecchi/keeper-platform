@@ -114,6 +114,7 @@ interface ApiDomainRow {
   theme?: unknown
   isActive?: boolean
   deletedAt?: string | null
+  isPrimary?: boolean
 }
 
 function parseTheme(theme: unknown): { coverImage?: string; tagline?: string } {
@@ -199,6 +200,21 @@ export async function fetchDomainSwitcherEntries(
     inflightFetch = null
   })
   return inflightFetch
+}
+
+/** Best slug for post-login landing — primary owned domain, else first visible, else fallback. */
+export async function resolvePostLoginDomainSlug(fallback = "default"): Promise<string> {
+  try {
+    const rows = await fetchUserDomainsList()
+    const visible = rows.filter(isVisibleUserDomain)
+    const primary = visible.find((d) => d.isPrimary)
+    if (primary?.slug?.trim()) return primary.slug.trim()
+    const first = visible[0]
+    if (first?.slug?.trim()) return first.slug.trim()
+  } catch {
+    /* fall through */
+  }
+  return fallback
 }
 
 export function suggestDomainSlug(name: string): string {

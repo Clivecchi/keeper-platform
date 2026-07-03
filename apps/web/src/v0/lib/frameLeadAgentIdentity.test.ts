@@ -5,6 +5,7 @@ import {
   getCachedFrameLeadAgentDisplayName,
   KIP_FALLBACK_DISPLAY_NAME,
   readFrameLeadAgentSlug,
+  resolveLeadAgentId,
 } from "./frameLeadAgentIdentity"
 
 vi.mock("../../lib/kipApi", () => ({
@@ -23,6 +24,7 @@ describe("frameLeadAgentIdentity", () => {
 
   it("readFrameLeadAgentSlug returns null for kip default", () => {
     expect(readFrameLeadAgentSlug({ kip: { agent_id: "kip" } })).toBeNull()
+    expect(readFrameLeadAgentSlug({ kip: { agent_id: "kip-default" } })).toBeNull()
     expect(readFrameLeadAgentSlug(null)).toBeNull()
   })
 
@@ -49,5 +51,18 @@ describe("frameLeadAgentIdentity", () => {
   it("fetchFrameLeadAgentDisplayName falls back for kip slug", async () => {
     await expect(fetchFrameLeadAgentDisplayName("kip")).resolves.toBe(KIP_FALLBACK_DISPLAY_NAME)
     expect(KipApi.getAgentBySlug).not.toHaveBeenCalled()
+  })
+
+  it("resolveLeadAgentId falls back to kip when domain lead is missing", async () => {
+    vi.mocked(KipApi.getAgentBySlug)
+      .mockRejectedValueOnce(new Error("not found"))
+      .mockResolvedValueOnce({
+        id: "kip-uuid",
+        slug: "kip",
+        name: "Kip",
+      } as Awaited<ReturnType<typeof KipApi.getAgentBySlug>>)
+
+    await expect(resolveLeadAgentId("chuck-livecchi-lead")).resolves.toBe("kip-uuid")
+    expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(2)
   })
 })

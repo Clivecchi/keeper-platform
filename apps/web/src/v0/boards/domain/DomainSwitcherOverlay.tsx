@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../workspaceBoardNav"
@@ -13,7 +13,7 @@ import {
   prefetchDomainSwitcherEntries,
   type DomainSwitcherEntry,
 } from "./domainSwitcherData"
-import { prefetchDomainShell } from "./domainShellPrefetch"
+import { prefetchDomainShell } from "./domainShellCache"
 import {
   SWITCHER_INK_MUTED,
   SWITCHER_INK_PRIMARY,
@@ -126,8 +126,18 @@ export interface DomainSwitcherOverlayProps {
   currentSlug: string
 }
 
-function buildBoardPath(slug: string, boardId: WorkspaceBoardId): string {
-  return `/d/${encodeURIComponent(slug)}/board?board=${boardId}`
+function buildDomainBoardUrl(
+  slug: string,
+  boardId: WorkspaceBoardId,
+  preservedSearch: URLSearchParams,
+): string {
+  const params = new URLSearchParams()
+  params.set("board", boardId)
+  const theme = preservedSearch.get("theme")
+  const style = preservedSearch.get("style")
+  if (theme) params.set("theme", theme)
+  if (style) params.set("style", style)
+  return `/d/${encodeURIComponent(slug)}?${params.toString()}`
 }
 
 export function DomainSwitcherOverlay({
@@ -137,6 +147,7 @@ export function DomainSwitcherOverlay({
   currentSlug,
 }: DomainSwitcherOverlayProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [switcherView, setSwitcherView] = React.useState<SwitcherView>("list")
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([])
   const [fetchState, setFetchState] = React.useState<SwitcherFetchState>("idle")
@@ -192,9 +203,10 @@ export function DomainSwitcherOverlay({
   const handleDomainSelect = React.useCallback(
     (nextSlug: string) => {
       if (nextSlug !== currentSlug) prefetchDomainShell(nextSlug)
-      navigate(buildBoardPath(nextSlug, targetBoardId))
+      const preserved = new URLSearchParams(location.search)
+      navigate(buildDomainBoardUrl(nextSlug, targetBoardId, preserved))
     },
-    [navigate, targetBoardId, currentSlug],
+    [navigate, targetBoardId, currentSlug, location.search],
   )
 
   const closeSwitcher = React.useCallback(() => {
@@ -210,9 +222,10 @@ export function DomainSwitcherOverlay({
     (nextSlug: string) => {
       closeSwitcher()
       setFetchAttempt((value) => value + 1)
-      navigate(buildBoardPath(nextSlug, targetBoardId))
+      const preserved = new URLSearchParams(location.search)
+      navigate(buildDomainBoardUrl(nextSlug, targetBoardId, preserved))
     },
-    [closeSwitcher, navigate, targetBoardId],
+    [closeSwitcher, navigate, targetBoardId, location.search],
   )
 
   const retryFetch = React.useCallback(() => {

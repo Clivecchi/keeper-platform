@@ -27,6 +27,7 @@ import * as React from "react"
 import type { KipDraftStatus } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
+import { fetchDomainKeptMoments } from "../data/domainMomentsCache"
 import { fetchBoardNavSlice, loadAgents, loadJourneyNavRows } from "./boardNavDataCache"
 import {
   resolveJourneyDisplayName,
@@ -71,7 +72,7 @@ import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
-import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { readFrameLeadAgentSlug, resolveDialogAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 
 type ToolSlug = "cloud" | "rendr"
@@ -232,10 +233,9 @@ export function UniversalConversation({
     frameLeadAgentSlug,
     def.conversation.agentName ?? "Kip",
   )
-  const baseAgentSlug =
-    def.conversation.agentFromFrame && frameLeadAgentSlug
-      ? frameLeadAgentSlug
-      : (def.conversation.agentSlug ?? "kip")
+  const baseAgentSlug = def.conversation.agentFromFrame
+    ? resolveDialogAgentSlug(domainFrame)
+    : (def.conversation.agentSlug ?? "kip")
   const defaultAgentSlug = baseAgentSlug
   const defaultAgentName = def.conversation.agentName ?? "Kip"
 
@@ -534,14 +534,10 @@ export function UniversalConversation({
       return
     }
     let cancelled = false
-    apiFetch(
-      `/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=50`,
-    )
-      .then((json: unknown) => {
+    void fetchDomainKeptMoments(domainSlug, { limit: 50 })
+      .then((rows) => {
         if (!cancelled) {
-          const n = Array.isArray((json as { data?: unknown[] })?.data)
-            ? (json as { data: unknown[] }).data.length
-            : 0
+          const n = rows.length
           setMomentCount(n >= 50 ? 50 : n)
         }
       })

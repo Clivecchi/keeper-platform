@@ -15,6 +15,18 @@ import { DEFAULT_DOMAIN_FRAME } from "./domain-frame.default"
 const frameCache = new Map<string, { fetchedAt: number; frame: DomainFrameJson }>()
 const FRAME_CACHE_TTL_MS = 5 * 60 * 1000
 
+export function getCachedDomainFrame(domainSlug: string): DomainFrameJson | null {
+  const cached = frameCache.get(domainSlug)
+  if (!cached) return null
+  if (Date.now() - cached.fetchedAt >= FRAME_CACHE_TTL_MS) return null
+  return cached.frame
+}
+
+/** Stale-allowed read for soft domain switch (prefetch may have just populated). */
+export function peekDomainFrame(domainSlug: string): DomainFrameJson | null {
+  return frameCache.get(domainSlug)?.frame ?? null
+}
+
 function normalizeDomainFrame(frame: DomainFrameJson): DomainFrameJson {
   return {
     ...frame,
