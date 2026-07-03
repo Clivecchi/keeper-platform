@@ -25,8 +25,6 @@ import {
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
-import { DomainBoard } from "../boards/domain/DomainBoard"
-import { RealmBoard } from "../boards/realm/RealmBoard"
 import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
 import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
 import { PublicGuestChrome } from "../../mobile/PublicGuestChrome"
@@ -295,19 +293,23 @@ export function V0Shell() {
 
   React.useEffect(() => {
     if (!slug) return
-    const fallback = getDomainFallback(slug)
-    setDomainData(fallback)
     let ignore = false
+    setDomainData((prev: { slug?: string; id?: string } | null) => {
+      if (prev?.slug === slug && prev?.id && !String(prev.id).startsWith("fallback-")) {
+        return prev
+      }
+      return { ...getDomainFallback(slug), slug }
+    })
     ;(async () => {
       try {
         const response = await apiFetch(`/api/domains/by-slug/${slug}`)
         if (ignore) return
         if (response?.id) {
-          setDomainData(response)
+          setDomainData({ ...response, slug })
         }
       } catch (err) {
         if (ignore) return
-        setDomainData(fallback)
+        setDomainData({ ...getDomainFallback(slug), slug })
         console.warn("[V0Shell] Domain fetch failed:", err)
       }
     })()
@@ -319,7 +321,6 @@ export function V0Shell() {
   React.useEffect(() => {
     if (!slug || !authResolved) return
     let ignore = false
-    setDomainAudienceContext(null)
     ;(async () => {
       try {
         const response = (await apiFetch(`/api/domains/by-slug/${slug}/audience`)) as {
@@ -693,13 +694,9 @@ export function V0Shell() {
                   themeSlug={activeThemeSlug}
                 />
               </UniversalBoardProvider>
-            ) : matchedDef.boardId === "domain" ? (
-              <DomainBoard key="domain" />
-            ) : matchedDef.boardId === "realm" ? (
-              <RealmBoard key="realm" />
             ) : (
               <UniversalBoard
-                key={matchedDef.boardId}
+                key={resolvedSlug}
                 def={matchedDef}
               />
             )}

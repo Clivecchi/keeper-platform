@@ -29,10 +29,9 @@
 
 import * as React from "react"
 import { apiFetch } from "../../lib/api"
-import { KipApi } from "../../lib/kipApi"
+import type { KipDraftSummary } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
-import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { KeyNavRowPatch, DraftNavRowPatch, AgentNavRowPatch } from "./UniversalBoardContext"
@@ -83,6 +82,15 @@ import {
   groupDraftsByKind,
 } from "../presence/integrationChronicle/draftNavUtils"
 import { formatDraftKindLabel } from "../presence/integrationChronicle/draftManuscriptUtils"
+import {
+  fetchBoardNavSlice,
+  getCachedBoardNavData,
+  loadAgents,
+  loadDialogs,
+  loadDrafts,
+  loadJourneys,
+  loadKeepers,
+} from "./boardNavDataCache"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -411,6 +419,12 @@ export function UniversalNavPanel({
 
   const showConnectionsNav = def.nav.navBlockOrder?.includes("connections") ?? false
 
+  const dialogVersionRef = React.useRef(dialogListVersion ?? 0)
+  const journeyVersionRef = React.useRef(journeyListVersion)
+  const keeperVersionRef = React.useRef(keeperListVersion)
+  const draftVersionRef = React.useRef(draftListVersion)
+  const agentVersionRef = React.useRef(agentListVersion)
+
   const keys = React.useMemo(
     () => (allKeyRows ? collapseKeyNavRows(allKeyRows, selectedKeyId) : null),
     [allKeyRows, selectedKeyId],
@@ -547,18 +561,26 @@ export function UniversalNavPanel({
   React.useEffect(() => {
     if (!domainId || !def.nav.sections.dialogs) return
     let cancelled = false
-    setDialogs(null)
+    const cached = getCachedBoardNavData<DialogItem[]>(domainId, "dialogs")
+    if (cached) setDialogs(cached)
+    else setDialogs(null)
     setDialogError(null)
-    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/kip/dialogs`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const list = (res as { dialogs?: DialogItem[] })?.dialogs ?? []
-        setDialogs(Array.isArray(list) ? (list as DialogItem[]) : [])
+    const dialogVersion = dialogListVersion ?? 0
+    const forceRefresh = dialogVersion > dialogVersionRef.current
+    dialogVersionRef.current = dialogVersion
+    void fetchBoardNavSlice(
+      domainId,
+      "dialogs",
+      () => loadDialogs(domainId) as Promise<DialogItem[]>,
+      { forceRefresh },
+    )
+      .then((list) => {
+        if (!cancelled) setDialogs(list)
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setDialogError(err instanceof Error ? err.message : "Failed to load dialogs")
-          setDialogs([])
+          if (!cached) setDialogs([])
         }
       })
     return () => { cancelled = true }
@@ -568,18 +590,25 @@ export function UniversalNavPanel({
   React.useEffect(() => {
     if (!domainId || !def.nav.sections.journeys) return
     let cancelled = false
-    setJourneys(null)
+    const cached = getCachedBoardNavData<JourneyItem[]>(domainId, "journeys")
+    if (cached) setJourneys(cached)
+    else setJourneys(null)
     setJourneyError(null)
-    apiFetch(`/api/journeys?domainId=${encodeURIComponent(domainId)}`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const list = (res as { data?: { journeys?: JourneyItem[] } })?.data?.journeys ?? []
-        setJourneys(Array.isArray(list) ? (list as JourneyItem[]) : [])
+    const forceRefresh = journeyListVersion > journeyVersionRef.current
+    journeyVersionRef.current = journeyListVersion
+    void fetchBoardNavSlice(
+      domainId,
+      "journeys",
+      () => loadJourneys(domainId) as Promise<JourneyItem[]>,
+      { forceRefresh },
+    )
+      .then((list) => {
+        if (!cancelled) setJourneys(list)
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setJourneyError(err instanceof Error ? err.message : "Failed to load journeys")
-          setJourneys([])
+          if (!cached) setJourneys([])
         }
       })
     return () => { cancelled = true }
@@ -589,18 +618,25 @@ export function UniversalNavPanel({
   React.useEffect(() => {
     if (!domainId || !def.nav.sections.keepers) return
     let cancelled = false
-    setKeepers(null)
+    const cached = getCachedBoardNavData<KeeperItem[]>(domainId, "keepers")
+    if (cached) setKeepers(cached)
+    else setKeepers(null)
     setKeeperError(null)
-    apiFetch(`/api/keepers?domainId=${encodeURIComponent(domainId)}`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const list = (res as { data?: { keepers?: KeeperItem[] } })?.data?.keepers ?? []
-        setKeepers(Array.isArray(list) ? (list as KeeperItem[]) : [])
+    const forceRefresh = keeperListVersion > keeperVersionRef.current
+    keeperVersionRef.current = keeperListVersion
+    void fetchBoardNavSlice(
+      domainId,
+      "keepers",
+      () => loadKeepers(domainId) as Promise<KeeperItem[]>,
+      { forceRefresh },
+    )
+      .then((list) => {
+        if (!cancelled) setKeepers(list)
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setKeeperError(err instanceof Error ? err.message : "Failed to load keepers")
-          setKeepers([])
+          if (!cached) setKeepers([])
         }
       })
     return () => { cancelled = true }
@@ -612,19 +648,25 @@ export function UniversalNavPanel({
   React.useEffect(() => {
     if (!domainId || !showDrafts) return
     let cancelled = false
-    setDrafts(null)
+    const cached = getCachedBoardNavData<KipDraftSummary[]>(domainId, "drafts")
+    if (cached) setDrafts(cached)
+    else setDrafts(null)
     setDraftError(null)
-    KipApi.listDrafts(domainId, undefined, {
-      limit: 50,
-      excludeStatus: ["promoted", "archived"],
-    })
+    const forceRefresh = draftListVersion > draftVersionRef.current
+    draftVersionRef.current = draftListVersion
+    void fetchBoardNavSlice(
+      domainId,
+      "drafts",
+      () => loadDrafts(domainId),
+      { forceRefresh },
+    )
       .then((list) => {
         if (!cancelled) setDrafts(list)
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setDraftError(err instanceof Error ? err.message : "Failed to load drafts")
-          setDrafts([])
+          if (!cached) setDrafts([])
         }
       })
     return () => { cancelled = true }
@@ -673,19 +715,25 @@ export function UniversalNavPanel({
     if (!domainId) return
     if (!def.nav.sections.agents) return
     let cancelled = false
-    setAgents(null)
+    const cached = getCachedBoardNavData<AgentItem[]>(domainId, "agents")
+    if (cached) setAgents(cached)
+    else setAgents(null)
     setAgentError(null)
-    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/kip/agents`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const payload = res as { data?: AgentItem[]; agents?: AgentItem[] }
-        const list = payload.data ?? payload.agents ?? []
-        setAgents(Array.isArray(list) ? list : [])
+    const forceRefresh = agentListVersion > agentVersionRef.current
+    agentVersionRef.current = agentListVersion
+    void fetchBoardNavSlice(
+      domainId,
+      "agents",
+      () => loadAgents(domainId) as Promise<AgentItem[]>,
+      { forceRefresh },
+    )
+      .then((list) => {
+        if (!cancelled) setAgents(list)
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setAgentError(err instanceof Error ? err.message : "Failed to load agents")
-          setAgents([])
+          if (!cached) setAgents([])
         }
       })
     return () => { cancelled = true }

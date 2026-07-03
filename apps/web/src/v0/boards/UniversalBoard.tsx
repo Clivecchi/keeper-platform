@@ -57,6 +57,7 @@ import { PanelErrorBoundary } from "../components/PanelErrorBoundary"
 import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
 import { isMemberMobileBoard, type WorkspaceBoardId } from "./workspaceBoardNav"
 import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchestrator"
+import { prefetchBoardNavData } from "./boardNavDataCache"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
@@ -204,6 +205,13 @@ function UniversalBoardShell({
 
   const slug = domainSlug ?? ""
 
+  const prevBoardIdRef = React.useRef(def.boardId)
+  React.useEffect(() => {
+    if (prevBoardIdRef.current === def.boardId) return
+    prevBoardIdRef.current = def.boardId
+    actions.clearSelection()
+  }, [def.boardId, actions])
+
   // ── domainId resolution — single point, never delegated to panels ──────────
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.
   React.useEffect(() => {
@@ -214,6 +222,11 @@ function UniversalBoardShell({
     const name = (r.displayName ?? r.name ?? "").trim()
     if (name) setDomainName(name)
   }, [slug, domainData])
+
+  React.useEffect(() => {
+    if (!isResolvedDomainId(domainId)) return
+    prefetchBoardNavData(domainId)
+  }, [domainId])
 
   // Sync domain name from frame/domain data when available — avoids extra round trip
   React.useEffect(() => {
@@ -368,7 +381,7 @@ function UniversalBoardShell({
         <div className="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <KeeperBoardPanelGroup
-              key={`universal-board-${def.boardId}-${slug || "default"}`}
+              key={`board-panels-${slug || "default"}`}
               boardKind={boardKind}
               domainSlug={slug}
               left={

@@ -14,6 +14,9 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 
 ## 📆 Update Log
 
+### 2026-07-02 — loadDomainFrame memory cache
+- 5-minute in-memory TTL per slug — avoids redundant frame API calls on re-renders within a session
+
 ### 2026-07-01 — Phase 3.2 friend audience
 - Added `friend` to `AudienceRole`; optional `friend` on `kip_context` and `interaction_bar.auth`
 - `resolveAudience.ts` delegates to shared `resolveDomainAudience`; V0Shell fetches `/by-slug/:slug/audience`

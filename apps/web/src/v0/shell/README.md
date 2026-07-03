@@ -19,6 +19,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-02: Board workspace switch performance — `UniversalBoard` keyed by slug only (not `boardId`); domain by-slug fetch keeps prior data while reloading; audience context no longer cleared on every auth tick.
 - 2026-07-01: Phase 4B — mobile auth default `?board=realm`; Realm tab is primary home in `UniversalMobileShell`; `/realms` entry route.
 - 2026-07-01: Phase 3.3 — guests with `?board=*` strip to public story (Cover / Present); no blank screen or UniversalMobileShell; `PublicGuestChrome` + `public-story-shell` wrapper.
 - 2026-07-01: Phase 3.2 — fetches domain audience context from API; `friend` role for connection-scoped members.

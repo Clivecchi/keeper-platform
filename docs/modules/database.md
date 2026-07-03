@@ -321,6 +321,7 @@ This package was created during the monorepo migration to centralize all databas
 - **2025-09-03**: Removed TS path alias to `@keeper/shared/src` to fix Vercel/Railway builds. Now `@keeper/database` depends on compiled `@keeper/shared` output.
 - **2025-01-13**: Fixed Moment model schema - added @default(cuid()) to id field and @updatedAt to updatedAt field to fix Railway build TypeScript errors.
 - **2025-01-13**: Removed status column from Moment model to resolve production database schema mismatch. Status is now derived from keptAt field (null = draft, set = kept).
+- **2026-07-02**: Added `scripts/wait-for-database.js` — retries PostgreSQL connectivity before `prisma migrate deploy` on Railway startup (avoids transient P1001).
 
 ---
 

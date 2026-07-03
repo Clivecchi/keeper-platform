@@ -12,6 +12,9 @@ import type { DomainFrameJson } from "./domain-frame.types"
 import { getApiBase } from "../../lib/apiFetch"
 import { DEFAULT_DOMAIN_FRAME } from "./domain-frame.default"
 
+const frameCache = new Map<string, { fetchedAt: number; frame: DomainFrameJson }>()
+const FRAME_CACHE_TTL_MS = 5 * 60 * 1000
+
 function normalizeDomainFrame(frame: DomainFrameJson): DomainFrameJson {
   return {
     ...frame,
@@ -25,7 +28,16 @@ function normalizeDomainFrame(frame: DomainFrameJson): DomainFrameJson {
   }
 }
 
-export async function loadDomainFrame(domainSlug: string): Promise<DomainFrameJson> {
+export async function loadDomainFrame(
+  domainSlug: string,
+  options?: { forceRefresh?: boolean },
+): Promise<DomainFrameJson> {
+  const now = Date.now()
+  const cached = frameCache.get(domainSlug)
+  if (!options?.forceRefresh && cached && now - cached.fetchedAt < FRAME_CACHE_TTL_MS) {
+    return cached.frame
+  }
+
   try {
     const base = getApiBase()
     const response = await fetch(`${base}/api/domains/${domainSlug}/frame`)
@@ -35,6 +47,7 @@ export async function loadDomainFrame(domainSlug: string): Promise<DomainFrameJs
       return DEFAULT_DOMAIN_FRAME
     }
     const frame = normalizeDomainFrame(await response.json() as DomainFrameJson)
+    frameCache.set(domainSlug, { fetchedAt: Date.now(), frame })
     console.log(`[DomainFrame] Loaded for domain: ${domainSlug}`)
     return frame
   } catch (err) {
