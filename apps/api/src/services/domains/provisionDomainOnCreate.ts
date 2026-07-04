@@ -21,6 +21,7 @@ export interface ProvisionDomainOnCreateResult {
   leadAgentId: string | null;
   leadAgentSlug: string | null;
   frameWritten: boolean;
+  frameAgentSynced: boolean;
 }
 
 function isEmptyJson(value: unknown): boolean {
@@ -34,6 +35,36 @@ function isEmptyJson(value: unknown): boolean {
 function leadAgentSlugForDomain(domainSlug: string): string {
   const base = `${domainSlug.trim()}-lead`.slice(0, 48);
   return base.replace(/[^a-z0-9-]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'domain-lead';
+}
+
+const PLACEHOLDER_LEAD_AGENT_SLUGS = new Set(['kip', 'kip-default']);
+
+/** Custom lead slug from frame_json, excluding platform placeholders. */
+function readFrameLeadAgentSlug(frame: Record<string, unknown> | null): string | null {
+  const kip = frame?.kip;
+  if (!kip || typeof kip !== 'object') return null;
+  const raw = (kip as Record<string, unknown>).agent_id;
+  if (typeof raw !== 'string') return null;
+  const slug = raw.trim();
+  if (!slug || PLACEHOLDER_LEAD_AGENT_SLUGS.has(slug)) return null;
+  return slug;
+}
+
+function patchFrameLeadAgentSlug(
+  frame: Record<string, unknown>,
+  leadAgentSlug: string,
+): Record<string, unknown> {
+  const kip =
+    frame.kip && typeof frame.kip === 'object'
+      ? { ...(frame.kip as Record<string, unknown>) }
+      : {};
+  return {
+    ...frame,
+    kip: {
+      ...kip,
+      agent_id: leadAgentSlug,
+    },
+  };
 }
 
 async function createDomainLeadAgent(
@@ -109,15 +140,48 @@ export async function provisionDomainOnCreate(
   const existingPrimaryAgentId =
     typeof existingSettings.primaryAgentId === 'string' ? existingSettings.primaryAgentId : null;
 
-  let leadAgentId: string | null = existingPrimaryAgentId;
+  const existingFrame =
+    domain.frame_json && typeof domain.frame_json === 'object' && !Array.isArray(domain.frame_json)
+      ? (domain.frame_json as Record<string, unknown>)
+      : null;
+
+  const frameLeadSlug = readFrameLeadAgentSlug(existingFrame);
+
+  let leadAgentId: string | null = null;
   let leadAgentSlug: string | null = null;
 
-  if (leadAgentId) {
-    const existingLead = await prisma.kip_agents.findUnique({
-      where: { id: leadAgentId },
-      select: { slug: true },
+  // frame_json agent_id wins — repair when the row is missing (common on older domains).
+  if (frameLeadSlug) {
+    const frameLead = await prisma.kip_agents.findUnique({
+      where: { slug: frameLeadSlug },
+      select: { id: true, slug: true },
     });
-    leadAgentSlug = existingLead?.slug ?? null;
+    if (frameLead) {
+      leadAgentId = frameLead.id;
+      leadAgentSlug = frameLead.slug;
+    } else {
+      const created = await createDomainLeadAgent(prisma, {
+        name: domain.name,
+        slug: domain.slug,
+        description: domain.description,
+        ownerId: domain.ownerId,
+      });
+      if (created) {
+        leadAgentId = created.id;
+        leadAgentSlug = created.slug;
+      }
+    }
+  }
+
+  if (!leadAgentId && existingPrimaryAgentId) {
+    const settingsLead = await prisma.kip_agents.findUnique({
+      where: { id: existingPrimaryAgentId },
+      select: { id: true, slug: true },
+    });
+    if (settingsLead) {
+      leadAgentId = settingsLead.id;
+      leadAgentSlug = settingsLead.slug;
+    }
   }
 
   if (!leadAgentId) {
@@ -151,16 +215,11 @@ export async function provisionDomainOnCreate(
     leadAgentSlug = resolved?.slug ?? 'kip';
   }
 
-  const existingFrame =
-    domain.frame_json && typeof domain.frame_json === 'object' && !Array.isArray(domain.frame_json)
-      ? (domain.frame_json as Record<string, unknown>)
-      : null;
-
   const needsFrame =
     isEmptyJson(domain.frame_json) ||
     domainFrameLooksUnseeded(existingFrame ?? {}, domain.slug, domain.name);
 
-  const frameJson = needsFrame
+  let frameJson: Record<string, unknown> | null = needsFrame
     ? buildInitialDomainFrameJson({
         name: domain.name,
         slug: domain.slug,
@@ -169,9 +228,23 @@ export async function provisionDomainOnCreate(
       })
     : null;
 
+  let frameAgentSynced = false;
+  if (!frameJson && existingFrame && leadAgentSlug) {
+    const currentAgentId =
+      existingFrame.kip &&
+      typeof existingFrame.kip === 'object' &&
+      typeof (existingFrame.kip as Record<string, unknown>).agent_id === 'string'
+        ? ((existingFrame.kip as Record<string, unknown>).agent_id as string).trim()
+        : '';
+    if (currentAgentId !== leadAgentSlug) {
+      frameJson = patchFrameLeadAgentSlug(existingFrame, leadAgentSlug);
+      frameAgentSynced = true;
+    }
+  }
+
   const mergedSettings = defaultDomainSettingsForCreate({
     ...existingSettings,
-    ...(leadAgentId && !existingPrimaryAgentId ? { primaryAgentId: leadAgentId } : {}),
+    ...(leadAgentId ? { primaryAgentId: leadAgentId } : {}),
     ...(typeof existingSettings.keeperTypeKey !== 'string'
       ? { keeperTypeKey: DEFAULT_KEEPER_TYPE }
       : {}),
@@ -262,5 +335,6 @@ export async function provisionDomainOnCreate(
     leadAgentId,
     leadAgentSlug,
     frameWritten: frameJson !== null,
+    frameAgentSynced,
   };
 }

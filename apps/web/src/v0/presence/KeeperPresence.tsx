@@ -845,6 +845,7 @@ export function KeeperPresence({
     (objectType === "capability" && layout === "focus") ||
     (objectType === "library" && layout === "focus") ||
     (objectType === "keeper" && layout === "focus") ||
+    (objectType === "agent" && layout === "focus") ||
     (objectType === "journey" && layout === "focus") ||
     (objectType === "moment" && layout === "focus") ||
     (objectType === "path" && layout === "focus") ||

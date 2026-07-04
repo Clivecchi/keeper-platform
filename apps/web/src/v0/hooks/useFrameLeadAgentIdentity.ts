@@ -2,10 +2,12 @@
 
 import * as React from "react"
 import {
-  fetchFrameLeadAgentDisplayName,
   getCachedFrameLeadAgentDisplayName,
+  getCachedLeadAgentIdentity,
+  isMissingLeadAgentSlug,
   KIP_FALLBACK_DISPLAY_NAME,
   KIP_FALLBACK_SLUG,
+  resolveFrameLeadAgentIdentity,
 } from "../lib/frameLeadAgentIdentity"
 
 export interface FrameLeadAgentIdentity {
@@ -36,8 +38,15 @@ export function useFrameLeadAgentIdentity(
   )
 
   React.useEffect(() => {
-    if (!resolvedSlug) {
+    if (!resolvedSlug || isMissingLeadAgentSlug(resolvedSlug)) {
       setDisplayName(KIP_FALLBACK_DISPLAY_NAME)
+      setIsLoading(false)
+      return
+    }
+
+    const identityCached = getCachedLeadAgentIdentity(resolvedSlug)
+    if (identityCached) {
+      setDisplayName(identityCached.displayName)
       setIsLoading(false)
       return
     }
@@ -53,9 +62,13 @@ export function useFrameLeadAgentIdentity(
     setIsLoading(true)
     let cancelled = false
 
-    void fetchFrameLeadAgentDisplayName(resolvedSlug).then((name) => {
+    void resolveFrameLeadAgentIdentity(resolvedSlug).then((identity) => {
       if (cancelled) return
-      setDisplayName(name)
+      setDisplayName(identity.displayName)
+      setIsLoading(false)
+    }).catch(() => {
+      if (cancelled) return
+      setDisplayName(KIP_FALLBACK_DISPLAY_NAME)
       setIsLoading(false)
     })
 

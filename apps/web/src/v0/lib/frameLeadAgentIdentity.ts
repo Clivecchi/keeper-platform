@@ -31,6 +31,75 @@ export function getCachedFrameLeadAgentDisplayName(slug: string): string | null 
 export function clearFrameLeadAgentDisplayNameCache(): void {
   displayNameCache.clear()
   missingLeadSlugs.clear()
+  resolvedLeadIdentity.clear()
+  leadIdentityInflight.clear()
+}
+
+export interface ResolvedLeadAgentIdentity {
+  id: string
+  slug: string
+  displayName: string
+}
+
+const resolvedLeadIdentity = new Map<string, ResolvedLeadAgentIdentity>()
+const leadIdentityInflight = new Map<string, Promise<ResolvedLeadAgentIdentity>>()
+
+export function isMissingLeadAgentSlug(slug: string | null | undefined): boolean {
+  const trimmed = slug?.trim()
+  if (!trimmed) return false
+  return missingLeadSlugs.has(trimmed)
+}
+
+export function getCachedLeadAgentIdentity(
+  slug: string,
+): ResolvedLeadAgentIdentity | null {
+  const primary = normalizeLeadAgentSlug(slug)
+  if (missingLeadSlugs.has(primary) && primary !== KIP_FALLBACK_SLUG) {
+    return resolvedLeadIdentity.get(KIP_FALLBACK_SLUG) ?? null
+  }
+  return resolvedLeadIdentity.get(primary) ?? null
+}
+
+/** Singleflight: resolve lead agent id + display name; falls back to platform `kip`. */
+export async function resolveFrameLeadAgentIdentity(
+  slug: string,
+): Promise<ResolvedLeadAgentIdentity> {
+  const primary = normalizeLeadAgentSlug(slug)
+
+  if (missingLeadSlugs.has(primary) && primary !== KIP_FALLBACK_SLUG) {
+    return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
+  }
+
+  const cached = resolvedLeadIdentity.get(primary)
+  if (cached) return cached
+
+  const pending = leadIdentityInflight.get(primary)
+  if (pending) return pending
+
+  const promise = (async (): Promise<ResolvedLeadAgentIdentity> => {
+    try {
+      const agent = await KipApi.getAgentBySlug(primary)
+      const result: ResolvedLeadAgentIdentity = {
+        id: agent.id,
+        slug: primary,
+        displayName: agent.name?.trim() || KIP_FALLBACK_DISPLAY_NAME,
+      }
+      displayNameCache.set(primary, result.displayName)
+      resolvedLeadIdentity.set(primary, result)
+      return result
+    } catch {
+      if (primary === KIP_FALLBACK_SLUG) {
+        throw new Error("Platform Kip agent not found")
+      }
+      missingLeadSlugs.add(primary)
+      return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
+    }
+  })().finally(() => {
+    leadIdentityInflight.delete(primary)
+  })
+
+  leadIdentityInflight.set(primary, promise)
+  return promise
 }
 
 export async function fetchFrameLeadAgentDisplayName(slug: string): Promise<string> {
@@ -47,12 +116,9 @@ export async function fetchFrameLeadAgentDisplayName(slug: string): Promise<stri
   if (cached) return cached
 
   try {
-    const agent = await KipApi.getAgentBySlug(trimmed)
-    const name = agent.name?.trim() || trimmed
-    displayNameCache.set(trimmed, name)
-    return name
+    const resolved = await resolveFrameLeadAgentIdentity(trimmed)
+    return resolved.displayName
   } catch {
-    missingLeadSlugs.add(trimmed)
     return KIP_FALLBACK_DISPLAY_NAME
   }
 }
@@ -76,22 +142,6 @@ export function resolveDialogAgentSlug(
 
 /** Resolve agent UUID for dialog — falls back to platform `kip` when domain lead is missing. */
 export async function resolveLeadAgentId(slug: string): Promise<string> {
-  const primary = normalizeLeadAgentSlug(slug)
-  if (primary === KIP_FALLBACK_SLUG) {
-    const agent = await KipApi.getAgentBySlug(KIP_FALLBACK_SLUG)
-    return agent.id
-  }
-  if (missingLeadSlugs.has(primary)) {
-    const agent = await KipApi.getAgentBySlug(KIP_FALLBACK_SLUG)
-    return agent.id
-  }
-  try {
-    const agent = await KipApi.getAgentBySlug(primary)
-    return agent.id
-  } catch (primaryError) {
-    missingLeadSlugs.add(primary)
-    if (primary === KIP_FALLBACK_SLUG) throw primaryError
-    const agent = await KipApi.getAgentBySlug(KIP_FALLBACK_SLUG)
-    return agent.id
-  }
+  const resolved = await resolveFrameLeadAgentIdentity(slug)
+  return resolved.id
 }

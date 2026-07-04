@@ -1003,6 +1003,7 @@ router.post('/:id/provision', authMiddlewareCompat, async (req: Request, res: Re
         leadAgentId: provisioned.leadAgentId,
         leadAgentSlug: provisioned.leadAgentSlug,
         frameWritten: provisioned.frameWritten,
+        frameAgentSynced: provisioned.frameAgentSynced,
       },
     });
   } catch (error) {

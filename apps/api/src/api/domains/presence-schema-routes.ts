@@ -60,7 +60,12 @@ router.get(
       })
 
       if (!record) {
-        return res.status(404).json({ error: 'NOT_FOUND' })
+        // 200 + empty fields — client uses platform defaults without a console 404.
+        return res.json({
+          objectType,
+          fields: null,
+          source: "platform_default",
+        })
       }
 
       return res.json({
