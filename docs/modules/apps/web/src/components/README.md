@@ -16,6 +16,7 @@ Components here focus on reusable UI state, composition, and cross-feature inter
 - [ ] Confirm which shared components should be migrated into v0-specific folders.
 
 ## 📆 Update Log
+- 2026-07-03: Post-login and register redirect to `/home` (user Home shell); honors `returnTo` when present. Root `/` sends authenticated members to `/home`.
 - 2026-07-02: Post-login redirect uses `resolvePostLoginDomainSlug` → `/d/:primarySlug?board=domain` (was hardcoded `default`).
 - 2026-06-22: Universal Board panel isolation lives in `v0/components/PanelErrorBoundary.tsx` (Nav · Dialog · Chronicle).
 - 2026-01-25: Added component-level README and made auth form headings optional for login layout refresh.

@@ -27,10 +27,20 @@ import {
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import {
+  HOME_SHELL_BOARD,
   isPlatformDomainSlug,
   isWorkspaceBoardAvailableForDomain,
   resolveDefaultWorkspaceBoardId,
 } from "../boards/domainWorkspaceBoards"
+import { resolvePostLoginDomainSlug } from "../boards/domain/domainSwitcherData"
+import {
+  buildDomainBoardPath,
+  buildHomePath,
+  DEFAULT_HOME_DISPLAY_NAME,
+  HOME_PATH,
+  type V0ShellMode,
+} from "./shellMode"
+import { fetchUserHomeDisplayName } from "../lib/userHomeSettings"
 import { UniversalBoard } from "../boards/UniversalBoard"
 import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
 import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
@@ -73,9 +83,18 @@ const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
   ...CORE_FRAME_MAP,
 }
 
-export function V0Shell() {
+export interface V0ShellProps {
+  mode?: V0ShellMode
+}
+
+export function V0Shell({ mode = "domain" }: V0ShellProps) {
   const { slug } = useParams<{ slug: string }>()
-  const resolvedSlug = slug ?? ""
+  const isHomeShell = mode === "home"
+  const routeSlug = slug ?? ""
+  const resolvedSlug = isHomeShell ? "" : routeSlug
+  const [anchorDomainSlug, setAnchorDomainSlug] = React.useState<string | null>(null)
+  const [homeDisplayName, setHomeDisplayName] = React.useState<string>(DEFAULT_HOME_DISPLAY_NAME)
+  const effectiveSlug = isHomeShell ? (anchorDomainSlug ?? "") : routeSlug
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated, isAdmin, authResolved, user } = useAuth()
@@ -95,7 +114,8 @@ export function V0Shell() {
     () => resolveWorkspaceBoardId(routerSearch, windowSearch),
     [routerSearch, windowSearch],
   )
-  const workspaceBoardId = pendingWorkspaceBoardId ?? urlWorkspaceBoardId
+  const urlOrPendingBoardId = pendingWorkspaceBoardId ?? urlWorkspaceBoardId
+  const workspaceBoardId = isHomeShell ? HOME_SHELL_BOARD : urlOrPendingBoardId
 
   const urlBoardDefinitionId = React.useMemo(
     () =>
@@ -144,20 +164,29 @@ export function V0Shell() {
     )
   }, [authResolved, isAuthenticated, searchParams, setSearchParams])
 
+  // Legacy ?board=realm on domain URLs → user Home at /home.
   React.useEffect(() => {
-    if (!isAuthenticated) return
+    if (isHomeShell || !isAuthenticated) return
+    if (searchParams.get("board")?.toLowerCase() !== "realm") return
+    const params = new URLSearchParams(searchParams)
+    params.delete("board")
+    params.delete("boardDef")
+    params.delete("definition")
+    navigate(buildHomePath(params), { replace: true })
+  }, [isHomeShell, isAuthenticated, searchParams, navigate])
+
+  React.useEffect(() => {
+    if (!isAuthenticated || isHomeShell) return
 
     const board = searchParams.get("board")
     const frame = searchParams.get("frame")
     const surfaceDesktop = searchParams.get("surface") === "desktop"
 
-    // Universal Mobile: authenticated narrow viewports use member boards (domain · realm).
-    // Default to realm board — Realm tab is the primary mobile home.
+    // Universal Mobile on domain URLs: default to Domain board; Home lives at /home.
     // Strip legacy ?frame= params — member work lives on ?board=, not standalone frames.
     if (mobileSurface === "mobile" && !surfaceDesktop) {
       if (board && isWorkspaceBoardAvailableForDomain(board, resolvedSlug)) return
-      const targetBoard =
-        board === "domain" ? "domain" : "realm"
+      const targetBoard = resolveDefaultWorkspaceBoardId(resolvedSlug)
       if (!isMemberWorkspaceBoard(board) || frame) {
         setSearchParams(
           (prev) => {
@@ -176,13 +205,35 @@ export function V0Shell() {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev)
-          next.set("board", mobileSurface === "mobile" ? "realm" : "domain")
+          next.set("board", resolveDefaultWorkspaceBoardId(resolvedSlug))
           return next
         },
         { replace: true },
       )
     }
-  }, [isAuthenticated, mobileSurface, searchParams, setSearchParams, resolvedSlug])
+  }, [isAuthenticated, isHomeShell, mobileSurface, searchParams, setSearchParams, resolvedSlug])
+
+  React.useEffect(() => {
+    if (!isHomeShell || !authResolved || !isAuthenticated) return
+    let cancelled = false
+    void resolvePostLoginDomainSlug().then((resolved) => {
+      if (!cancelled) setAnchorDomainSlug(resolved)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [isHomeShell, authResolved, isAuthenticated])
+
+  React.useEffect(() => {
+    if (!isHomeShell || !authResolved || !isAuthenticated) return
+    let cancelled = false
+    void fetchUserHomeDisplayName().then((name) => {
+      if (!cancelled) setHomeDisplayName(name)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [isHomeShell, authResolved, isAuthenticated])
 
   // Stale ?definition= on non-Design workspaces — use authoritative search.
   React.useEffect(() => {
@@ -249,7 +300,7 @@ export function V0Shell() {
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
 
   // Synchronous bootstrap — StyleScope reads domain-resolved on first paint (before frame fetch).
-  if (resolvedSlug) {
+  if (effectiveSlug) {
     registerRuntimeTheme(
       DOMAIN_THEME_SLUG,
       resolveDomainThemeSync(
@@ -268,9 +319,10 @@ export function V0Shell() {
   // Board defs come from domainFrame.boards (seeded per-domain) with fallback to
   // BOARD_DEFINITIONS_FALLBACK for domains whose frame_json has not yet been seeded.
   const boardDefs: UniversalBoardDef[] = resolveBoardDefs(domainFrame?.boards)
-  const effectiveWorkspaceBoardId =
-    workspaceBoardId &&
-    isWorkspaceBoardAvailableForDomain(workspaceBoardId, resolvedSlug)
+  const effectiveWorkspaceBoardId = isHomeShell
+    ? HOME_SHELL_BOARD
+    : workspaceBoardId &&
+        isWorkspaceBoardAvailableForDomain(workspaceBoardId, resolvedSlug)
       ? workspaceBoardId
       : null
   const matchedDef: UniversalBoardDef | null = effectiveWorkspaceBoardId
@@ -328,24 +380,24 @@ export function V0Shell() {
   ) : null
 
   React.useEffect(() => {
-    if (!slug) return
+    if (!effectiveSlug) return
     let ignore = false
 
-    const cachedDomain = getCachedDomainBySlug(slug)
+    const cachedDomain = getCachedDomainBySlug(effectiveSlug)
     if (cachedDomain) {
-      setDomainData({ ...cachedDomain, slug })
+      setDomainData({ ...cachedDomain, slug: effectiveSlug })
     } else {
-      setDomainData({ ...getDomainFallback(slug), slug })
+      setDomainData({ ...getDomainFallback(effectiveSlug), slug: effectiveSlug })
     }
 
-    void fetchDomainBySlug(slug)
+    void fetchDomainBySlug(effectiveSlug)
       .then((response) => {
-        if (!ignore) setDomainData({ ...response, slug })
+        if (!ignore) setDomainData({ ...response, slug: effectiveSlug })
       })
       .catch((err) => {
         if (ignore) return
-        if (!getCachedDomainBySlug(slug)) {
-          setDomainData({ ...getDomainFallback(slug), slug })
+        if (!getCachedDomainBySlug(effectiveSlug)) {
+          setDomainData({ ...getDomainFallback(effectiveSlug), slug: effectiveSlug })
         }
         console.warn("[V0Shell] Domain fetch failed:", err)
       })
@@ -353,24 +405,24 @@ export function V0Shell() {
     return () => {
       ignore = true
     }
-  }, [slug])
+  }, [effectiveSlug])
 
   React.useEffect(() => {
-    if (!slug || !authResolved) return
+    if (!effectiveSlug || !authResolved) return
     let ignore = false
 
-    const cachedAudience = getCachedDomainAudience(slug)
+    const cachedAudience = getCachedDomainAudience(effectiveSlug)
     if (cachedAudience) {
       setDomainAudienceContext(cachedAudience)
     }
 
-    void fetchDomainAudience(slug)
+    void fetchDomainAudience(effectiveSlug)
       .then((response) => {
         if (!ignore) setDomainAudienceContext(response)
       })
       .catch((err) => {
         if (ignore) return
-        if (!getCachedDomainAudience(slug)) {
+        if (!getCachedDomainAudience(effectiveSlug)) {
           setDomainAudienceContext(null)
         }
         console.warn("[V0Shell] Audience fetch failed:", err)
@@ -379,7 +431,7 @@ export function V0Shell() {
     return () => {
       ignore = true
     }
-  }, [slug, authResolved, isAuthenticated, user?.id, isAdmin])
+  }, [effectiveSlug, authResolved, isAuthenticated, user?.id, isAdmin])
 
   // Debug: expose domainData so Kip Debug can verify what context receives
   React.useEffect(() => {
@@ -399,19 +451,19 @@ export function V0Shell() {
 
   // ── Load domain frame JSON ──
   React.useEffect(() => {
-    if (!slug) return
+    if (!effectiveSlug) return
     let ignore = false
 
-    const cachedFrame = peekDomainShellFrame(slug) ?? peekDomainFrame(slug)
+    const cachedFrame = peekDomainShellFrame(effectiveSlug) ?? peekDomainFrame(effectiveSlug)
     if (cachedFrame) {
       setDomainFrame(cachedFrame)
     }
 
-    loadDomainFrame(slug)
+    loadDomainFrame(effectiveSlug)
       .then((frame) => {
         if (ignore) return
         setDomainFrame(frame)
-        console.log("[DomainFrame] Loaded for domain:", slug, frame)
+        console.log("[DomainFrame] Loaded for domain:", effectiveSlug, frame)
       })
       .catch((err) => {
         if (ignore) return
@@ -420,11 +472,11 @@ export function V0Shell() {
     return () => {
       ignore = true
     }
-  }, [slug])
+  }, [effectiveSlug])
 
   // Step 1.2 — auto-repair missing lead agent / frame drift for domain owners.
   React.useEffect(() => {
-    if (!authResolved || !isAuthenticated || !user?.id || !slug || !domainData?.id) return
+    if (!authResolved || !isAuthenticated || !user?.id || !effectiveSlug || !domainData?.id) return
     if (String(domainData.id).startsWith("fallback-")) return
     if (domainData.ownerId !== user.id && !isAdmin) return
 
@@ -439,13 +491,13 @@ export function V0Shell() {
       const result = await ensureDomainProvisioned(domainData.id, { force: forceRepair })
       if (cancelled || !result.provisioned) return
       try {
-        const frame = await loadDomainFrame(slug)
+        const frame = await loadDomainFrame(effectiveSlug)
         if (!cancelled) {
           setDomainFrame(frame)
-          if (!domainFrameLooksUnseeded(frame, slug, domainData.name)) {
+          if (!domainFrameLooksUnseeded(frame, effectiveSlug, domainData.name)) {
             markDomainProvisionSessionOk(domainData.id)
           }
-          console.log("[DomainProvision] Repaired and reloaded frame for:", slug)
+          console.log("[DomainProvision] Repaired and reloaded frame for:", effectiveSlug)
         }
       } catch (err) {
         console.warn("[DomainProvision] Frame reload after provision failed:", err)
@@ -454,7 +506,7 @@ export function V0Shell() {
     return () => {
       cancelled = true
     }
-  }, [authResolved, isAuthenticated, user?.id, isAdmin, slug, domainData, domainFrame])
+  }, [authResolved, isAuthenticated, user?.id, isAdmin, effectiveSlug, domainData, domainFrame])
 
   // ── Domain theme resolution ──
   // Runs whenever domainFrame or colorScheme changes.
@@ -468,10 +520,6 @@ export function V0Shell() {
     console.log("[DomainTheme] Resolved and registered:", colorScheme, tokens)
   }, [domainFrame, colorScheme])
 
-  if (!slug) {
-    return null
-  }
-
   // buildFrameUrl uses urlThemeSlug (not DOMAIN_THEME_SLUG) so that generated URLs
   // only carry ?theme= when the developer has explicitly set an override.
   // Canonical URL form: /d/:slug?frame=... (no /board segment)
@@ -484,33 +532,37 @@ export function V0Shell() {
     if (resolvedTheme) params.set("theme", resolvedTheme)
     if (resolvedStyle) params.set("style", resolvedStyle)
     if (resolvedDraft) params.set("draftId", resolvedDraft)
-    return `/d/${slug}?${params.toString()}`
-  }, [draftId, slug, styleId, urlThemeSlug])
+    return `/d/${effectiveSlug}?${params.toString()}`
+  }, [draftId, effectiveSlug, styleId, urlThemeSlug])
 
   React.useEffect(() => {
     // Only redirect after auth has resolved — avoids bouncing authenticated
     // users who have a stored token but whose session API call hasn't returned yet.
-    if (authResolved && !isAuthenticated && isPrivateRequest && slug) {
+    if (authResolved && !isAuthenticated && isPrivateRequest && effectiveSlug) {
       navigate(buildFrameUrl("cover"))
     }
-  }, [authResolved, isAuthenticated, isPrivateRequest, slug, navigate, buildFrameUrl])
+  }, [authResolved, isAuthenticated, isPrivateRequest, effectiveSlug, navigate, buildFrameUrl])
 
   React.useEffect(() => {
-    if (authResolved && !isAuthenticated && isGuestAgentRequest && slug) {
+    if (authResolved && !isAuthenticated && isGuestAgentRequest && effectiveSlug) {
       const params = new URLSearchParams(location.search)
       params.set("frame", "cover")
       params.set("companion", "1")
       navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true })
     }
-  }, [authResolved, isAuthenticated, isGuestAgentRequest, slug, location.pathname, location.search, navigate])
+  }, [authResolved, isAuthenticated, isGuestAgentRequest, effectiveSlug, location.pathname, location.search, navigate])
 
 
   const closeToBoard = () => {
+    if (isHomeShell) {
+      navigate(HOME_PATH)
+      return
+    }
     const params = new URLSearchParams()
     if (urlThemeSlug) params.set("theme", urlThemeSlug)
     if (styleId) params.set("style", styleId)
     const suffix = params.toString()
-    navigate(`/d/${slug}${suffix ? `?${suffix}` : ""}`)
+    navigate(`/d/${effectiveSlug}${suffix ? `?${suffix}` : ""}`)
   }
 
   const navigateToFrame = (nextFrame: V0FrameKey, options?: { draftId?: string | null; themeSlug?: string | null; styleId?: StyleId | null }) => {
@@ -518,14 +570,26 @@ export function V0Shell() {
   }
 
   const reloadDomainFrame = React.useCallback(async () => {
-    if (!slug) return
+    if (!effectiveSlug) return
     try {
-      const frame = await loadDomainFrame(slug)
+      const frame = await loadDomainFrame(effectiveSlug)
       setDomainFrame(frame)
     } catch (err) {
       console.warn("[DomainFrame] Reload failed:", err)
     }
-  }, [slug])
+  }, [effectiveSlug])
+
+  const navigateHome = React.useCallback(() => {
+    navigate(HOME_PATH)
+  }, [navigate])
+
+  const openDomainWorkspace = React.useCallback(
+    (boardId: WorkspaceBoardId) => {
+      if (!effectiveSlug) return
+      navigate(buildDomainBoardPath(effectiveSlug, boardId))
+    },
+    [effectiveSlug, navigate],
+  )
 
   const commitBoardSearch = React.useCallback(
     (mutate: (params: URLSearchParams) => URLSearchParams) => {
@@ -603,6 +667,11 @@ export function V0Shell() {
 
   const switchWorkspace = React.useCallback(
     (boardId: WorkspaceBoardId) => {
+      if (isHomeShell) {
+        if (boardId === HOME_SHELL_BOARD) return
+        openDomainWorkspace(boardId)
+        return
+      }
       const target = isWorkspaceBoardAvailableForDomain(boardId, resolvedSlug)
         ? boardId
         : resolveDefaultWorkspaceBoardId(resolvedSlug)
@@ -622,16 +691,16 @@ export function V0Shell() {
         }),
       )
     },
-    [commitBoardSearch, location.search, resolvedSlug],
+    [commitBoardSearch, isHomeShell, location.search, openDomainWorkspace, resolvedSlug],
   )
 
   React.useEffect(() => {
-    if (!resolvedSlug || !workspaceBoardId) return
-    if (isWorkspaceBoardAvailableForDomain(workspaceBoardId, resolvedSlug)) return
+    if (isHomeShell || !resolvedSlug || !urlOrPendingBoardId) return
+    if (isWorkspaceBoardAvailableForDomain(urlOrPendingBoardId, resolvedSlug)) return
     const fallback = resolveDefaultWorkspaceBoardId(resolvedSlug)
     setPendingWorkspaceBoardId(fallback)
     commitBoardSearch((params) => applyWorkspaceBoardSwitch(params, fallback))
-  }, [resolvedSlug, workspaceBoardId, commitBoardSearch])
+  }, [isHomeShell, resolvedSlug, urlOrPendingBoardId, commitBoardSearch])
 
   const selectBoardDefinition = React.useCallback(
     (definitionId: string) => {
@@ -674,15 +743,25 @@ export function V0Shell() {
 
   const shellWorkspaceNav = React.useMemo(
     () => ({
-      workspaceBoardId,
+      workspaceBoardId: isHomeShell ? HOME_SHELL_BOARD : urlOrPendingBoardId,
       boardDefinitionId,
+      shellMode: isHomeShell ? ("home" as const) : ("domain" as const),
+      homeDisplayName,
+      anchorDomainSlug: isHomeShell ? anchorDomainSlug : null,
+      navigateHome,
+      openDomainWorkspace,
       switchWorkspace,
       selectBoardDefinition,
       clearBoardDefinition,
     }),
     [
-      workspaceBoardId,
+      isHomeShell,
+      urlOrPendingBoardId,
       boardDefinitionId,
+      homeDisplayName,
+      anchorDomainSlug,
+      navigateHome,
+      openDomainWorkspace,
       switchWorkspace,
       selectBoardDefinition,
       clearBoardDefinition,
@@ -690,7 +769,7 @@ export function V0Shell() {
   )
 
   const placement = usePlacementMode({
-    domainSlug: resolvedSlug,
+    domainSlug: effectiveSlug,
     pathname: location.pathname,
     isAuthenticated,
     isAdmin,
@@ -698,6 +777,18 @@ export function V0Shell() {
     buildFrameUrl,
     navigate
   })
+
+  if (!effectiveSlug) {
+    if (isHomeShell && authResolved && isAuthenticated) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-neutral-50">
+          <p className="text-sm text-neutral-500">Loading Home…</p>
+        </div>
+      )
+    }
+    return null
+  }
+
   const frame = placement.state.frame
   const FrameComponent = FRAME_REGISTRY[frame]
 
@@ -737,7 +828,7 @@ export function V0Shell() {
       <StyleOverrideProvider initialStyleId={initialStyleId}>
         <V0ShellProvider
           value={{
-            domainSlug: slug,
+            domainSlug: effectiveSlug,
             frame,
             placementMode: placement.state.mode,
             placementActions: placement.actions,
@@ -755,7 +846,7 @@ export function V0Shell() {
           }}
         >
           <FrameContextProvider
-            domainSlug={slug}
+            domainSlug={effectiveSlug}
             frame={frame}
             placementMode={placement.state.mode}
             themeSlug={activeThemeSlug}
@@ -784,7 +875,7 @@ export function V0Shell() {
     <StyleOverrideProvider initialStyleId={initialStyleId}>
       <V0ShellProvider
         value={{
-          domainSlug: slug,
+          domainSlug: effectiveSlug,
           frame,
           placementMode: placement.state.mode,
           placementActions: placement.actions,
@@ -804,7 +895,7 @@ export function V0Shell() {
         }}
       >
         <FrameContextProvider
-          domainSlug={slug}
+          domainSlug={effectiveSlug}
           frame={frame}
           placementMode={placement.state.mode}
           themeSlug={activeThemeSlug}
@@ -817,19 +908,19 @@ export function V0Shell() {
               : undefined
           }
         >
-          {isGuestPublicStory ? <PublicGuestChrome domainSlug={slug} /> : null}
+          {isGuestPublicStory ? <PublicGuestChrome domainSlug={effectiveSlug} /> : null}
           {frame === "cover" ? (
             <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainData={domainData} />
           ) : frame === "moment" ? (
-            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} draftId={draftId} />
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={effectiveSlug} draftId={draftId} />
           ) : frame === "moments" ? (
-            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={effectiveSlug} />
           ) : frame === "present" ? (
             <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} />
           ) : frame === "diagnostics" ? (
-            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}`} />
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={effectiveSlug} returnPath={`/d/${effectiveSlug}`} />
           ) : (
-            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={effectiveSlug} />
           )}
         </div>
         {showDebugHud && (

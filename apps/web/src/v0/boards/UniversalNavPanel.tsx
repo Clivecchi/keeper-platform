@@ -390,7 +390,7 @@ export function UniversalNavPanel({
   ])
 
   // ── designer board definitions — live from location.search ─────────────────
-  const { selectBoardDefinition, switchWorkspace, workspaceBoardId } = useV0Shell()
+  const { selectBoardDefinition, switchWorkspace, workspaceBoardId, shellMode: contextShellMode, openDomainWorkspace: contextOpenDomainWorkspace, anchorDomainSlug } = useV0Shell()
   const boardDefinitionId = useBoardDefinitionFromUrl()
   const allBoardDefs = useBoardDefs()
 
@@ -1055,14 +1055,24 @@ export function UniversalNavPanel({
   const aiItems = aiIntegrations.map(toIntegrationItem)
   const integrationItems: SidebarCardItem[] = [...infrastructureItems, ...aiItems]
 
+  const shellMode = contextShellMode ?? "domain"
+  const isHomeShell = shellMode === "home"
+  const boardNavDomainSlug = isHomeShell ? (anchorDomainSlug ?? domainSlug) : domainSlug
+
   const boardNavItems: SidebarCardItem[] = resolveSidebarWorkspaceBoardNavItems(
-    domainSlug,
+    boardNavDomainSlug,
     def.boardId as WorkspaceBoardId,
   ).map((board) => ({
     id: board.id,
     label: board.label,
     isSelected: workspaceBoardId === board.id,
-    onClick: () => switchWorkspace(board.id),
+    onClick: () => {
+      if (isHomeShell && contextOpenDomainWorkspace) {
+        contextOpenDomainWorkspace(board.id)
+      } else {
+        switchWorkspace(board.id)
+      }
+    },
   }))
 
   const keeperSectionTitle = def.nav.keeperSectionTitle ?? "Keepers"

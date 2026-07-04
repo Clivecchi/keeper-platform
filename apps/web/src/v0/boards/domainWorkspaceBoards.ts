@@ -13,21 +13,23 @@ import type { WorkspaceBoardId } from "./workspaceBoardNav"
 export const PLATFORM_DOMAIN_SLUG = "default" as const
 
 const PLATFORM_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
-  "realm",
   "domain",
   "ide",
   "designer",
   "agent",
 ]
 
+/** Member domain workspaces — no Home here; Home lives at `/home`. */
 const MEMBER_DOMAIN_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
-  "realm",
   "domain",
   "agent",
 ]
 
+/** User Home shell at `/home` — always Realm board experience. */
+export const HOME_SHELL_BOARD: WorkspaceBoardId = "realm"
+
 const WORKSPACE_BOARD_LABELS: Record<WorkspaceBoardId, string> = {
-  realm: "Realm",
+  realm: "Home",
   domain: "Domain",
   ide: "IDE",
   designer: "Design",

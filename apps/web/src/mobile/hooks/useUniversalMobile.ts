@@ -18,11 +18,12 @@ function resolveDomainId(domainData: unknown): string | null {
  * Domain identity comes from V0Shell; board state from UniversalBoardContext.
  */
 export function useUniversalMobile() {
-  const { domainSlug, domainData, domainFrame, workspaceBoardId } = useV0Shell();
+  const { domainSlug, domainData, domainFrame, workspaceBoardId, shellMode } = useV0Shell();
   const { selection, actions } = useUniversalBoard();
   const ui = useUniversalMobileUI();
 
-  const boardId = workspaceBoardId ?? "domain";
+  const boardId =
+    workspaceBoardId ?? (shellMode === "home" ? "realm" : "domain");
   const boardDef = BOARD_DEFINITIONS[boardId] ?? BOARD_DEFINITIONS.domain;
   const isRealmBoard = boardId === "realm";
 

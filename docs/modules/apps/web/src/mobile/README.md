@@ -5,16 +5,16 @@
 
 This is not a separate app, not legacy frame routing, and not a parallel API surface.
 
+**Realm** is a board name only (`?board=realm`), not a product synonym for Domain. Mobile copy uses **Domains** for the cross-domain picker tab.
+
 ## 🧱 Key Files
 - `UniversalMobileShell.tsx` — tab shell + moment overlay + PWA prompt (authenticated Domain · Realm boards)
-- `screens/RealmScreen.tsx` — cross-realm picker + composer (Domain Board mobile tab)
+- `screens/RealmScreen.tsx` — cross-domain picker + composer (Domain Board mobile **Domains** tab)
 - `PublicGuestChrome.tsx` — Sign In / Get Started overlay for guest public story
 - `public-story.css` — mobile-safe layout for Cover / Present (Phase 3.3)
 - `hooks/useUniversalMobile.ts` — composes `UniversalBoardContext` + `UniversalMobileUIContext` + `V0Shell`
-- `context/UniversalMobileUIContext.tsx` — mobile-only UI: tabs, Kip focus chip, World refresh, PWA
-- `screens/RealmScreen.tsx` — Phase 4B cross-domain home: domain list + composer (Realm tab)
-- `screens/RealmsRedirect.tsx` — `/realms` → first domain with `?board=realm`
-- `screens/WorldScreen.tsx` — kept moments stream with pull-to-refresh
+- `context/UniversalMobileUIContext.tsx` — mobile-only UI: tabs, Kip focus chip, content refresh, PWA
+- `screens/RealmsRedirect.tsx` — `/realms` → user Home at `/home`
 - `screens/KeepScreen.tsx` — `moment.create` via `useBoardEngagement` + `ChronicleActPresence`
 - `screens/JourneysScreen.tsx` — journey list (Nav parity)
 - `screens/KipScreen.tsx` — Dialog parity: `useAgentDialog` + `KeeperDialogFrame`
@@ -30,12 +30,19 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 |---|---|
 | Active journey, moment selection | `UniversalBoardContext` + `FrameContext` |
 | Board identity (`domain` vs `realm`) | `V0Shell.workspaceBoardId` + `useUniversalMobile().boardDef` |
-| Tab, Kip focus chip, World refresh key, PWA prompt, Realm composer draft | `UniversalMobileUIContext` |
+| Tab, Kip focus chip, mobile refresh key, PWA prompt, composer draft | `UniversalMobileUIContext` |
 | Screens | `useUniversalMobile()` hook |
 
+### Mobile tabs
+| Board / surface | Tabs |
+|---|---|
+| `/home` (user Home — realm workspace) | Moment · Journeys · Dialog (no Domains picker) |
+| `/d/:slug?board=domain` | **Domains** · Moment · Journeys · Kip |
+
 ### Same as Universal Board (desktop)
-- Workspace: `?board=realm` (default on mobile) or `?board=domain` (admin-style mobile override)
-- **Realm tab** (default home): cross-domain list + composer — not tied to a single domain's Nav
+- **User Home** at `/home` — realm board experience (Dialog tab primary on mobile)
+- **Domain workspace** at `/d/:slug?board=domain` (default on mobile for domain URLs)
+- **Domains tab** (Domain board only): cross-domain list + composer — opens selected domain on `?board=domain`
 - Keep / edit: `useBoardEngagement` → `/api/engagement/execute` + `ChronicleActPresence`
 - Kip: `useAgentDialog` + `KeeperDialogFrame` (lead agent + arrival greeting when `arrivalCompleted` pending)
 - Moment open/close: `onMomentSelect` / `onMomentClear`
@@ -43,6 +50,7 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 
 ### Not used
 - Legacy standalone frames (`?frame=*`)
+- **World tab** (removed — kept moments via moment detail / journeys)
 - `MobileKeeperContext` (removed — was duplicating board state)
 - Duplicate mobile-only active-journey localStorage (uses `FrameContext` keys)
 
@@ -51,23 +59,29 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 - `?board=domain` (or any board) is stripped for guests; they land on Cover or preserved public `?frame=` (e.g. `present`).
 - Cover forward CTA loads first public journey into `?frame=present&journeyId=…`.
 
-### Manual verify (Phase 3.3)
-1. Open DevTools → toggle device toolbar (iPhone / narrow viewport). **Sign out** or use incognito.
-2. Visit `/d/default?board=domain` — expect **Cover** (no tab bar, no board chrome). URL should drop `board=`.
-3. Visit `/d/default` — Cover with domain wordmark / forward CTA from frame JSON.
-4. Tap forward (journey invitation) — lands on `?frame=present&journeyId=…` read-only narrative.
-5. Direct link: `/d/default?frame=present&journeyId=<id>` — Present loads without auth.
-6. Visit `/d/default/board` — redirects to `/d/default` (BoardToShellRedirect), then guest Cover path.
-7. Sign in on mobile — should redirect to `?board=realm` and mount `UniversalMobileShell` with **Realm** tab active.
-8. Visit `/realms` while signed in — lands on first domain with Realm tab.
+### Manual verify
+1. Sign in on mobile — lands on `/home` with **Dialog** tab active (3 tabs: Moment · Journeys · Dialog).
+2. Open `/d/:slug?board=domain` — **Domains** tab shows domain picker; no World tab.
+3. Visit `/realms` while signed in — redirects to `/home`.
 
 ## ⚠️ Notes & ToDo
-- [x] **Realm mobile (Phase 4B.1):** Realm Screen tab — domain list + text composer; mic placeholder for talk mode
-- [x] **Phase 4D.1–4D.2:** Talk mode STT on Realm Screen + mobile Kip (`useTalkMode` → composer confirm → send)
-- [ ] **Phase 4B.3:** Quick capture from Realm composer without full board chrome
+- [x] **Realm mobile (Phase 4B.1):** Domains tab — domain list + text composer; mic via talk mode
+- [x] **Phase 4D.1–4D.2:** Talk mode STT on Domains composer + mobile Kip
+- [ ] **Phase 4B.3:** Quick capture from composer without full board chrome
 - [ ] Phase 3: offline draft queue, push notifications, app store wrappers
 
 ## 📆 Update Log
+
+### 2026-07-03 — User Home at `/home` (mobile shell)
+- Realm board mobile experience lives at `/home` (`V0Shell mode="home"`, `workspaceBoardId=realm` via context).
+- Domain URLs default mobile to `?board=domain`; Domains picker navigates to `/d/:slug?board=domain`.
+- `/realms` redirects to `/home`; legacy `/d/:slug?board=realm` redirects to `/home`.
+
+### 2026-06-30 — Mobile Realm naming fix
+- Removed **World** tab from mobile shell; tab id `realm` → **`domains`** for cross-domain picker.
+- User-facing copy: domains (not realms/world); Realm board mobile uses Dialog tab label.
+- Removed **My World** eyebrow from `MobileHeader`; `worldRefreshKey` → `mobileRefreshKey`.
+- `WorldScreen.tsx` deprecated (not mounted).
 
 ### 2026-07-01 — Phase 4D Talk mode (Realm + Kip)
 - `useTalkMode` wired on `RealmScreen` composer mic and mobile `KipScreen` via `KeeperDialogFrame` `talkMode` prop.
@@ -75,12 +89,12 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 
 ### 2026-07-01 — Phase 4C Mobile Domain Screen (in-realm)
 - `UniversalMobileShell` mounts for `?board=realm` — same architecture as domain board mobile.
-- In-realm tab bar: World · Moment · Journeys · Dialog (no cross-realm picker tab); Realm Screen tab stays on Domain Board mobile only.
+- In-realm tab bar: Moment · Journeys · Dialog (no cross-domain picker tab).
 - `MobileKipResponseToolbar` uses **Presence** label on realm board; Guided Arrival + lead agent on realm board.
 - `workspaceBoardNav`: `isMemberMobileBoard` helper; Realm Screen navigates to `?board=realm`.
 
 ### 2026-07-01 — Phase 4B Mobile Realm Screen
-- Added `RealmScreen` as first tab (default home); domain list via `fetchDomainSwitcherEntries`; composer → Kip tab.
+- Added `RealmScreen` as Domains tab on Domain board; domain list via `fetchDomainSwitcherEntries`; composer → Kip tab.
 - `/realms` route resolves first domain → `?board=realm`. V0Shell mobile default board is `realm`.
 
 ### 2026-07-01 — Phase 3.3 Present / public mobile hardening
@@ -92,8 +106,8 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 - `GuidedArrivalOrchestrator` focuses Kip tab on first owner visit; `KipScreen` uses lead agent + greeting + dismissible banner.
 
 ### 2026-06-30 — Realm mobile direction documented
-- Product split locked: mobile/tablet = Realm primary; desktop = admin/dev boards.
-- Two surfaces: **Realm Screen** (picker + composer + talk) and **Domain Screen** (staged Dialog + Chronicle, same Universal Board architecture).
+- Product split locked: mobile/tablet = Realm board primary; desktop = admin/dev boards.
+- Two surfaces: **Domains picker** (Domain board tab) and **Realm board** (in-domain tabs).
 - Full phase map in `docs/realm-development-plan.md`.
 
 ### 2026-06-25 — Mobile moment capture + install fixes

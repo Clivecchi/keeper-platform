@@ -6,6 +6,8 @@ import type { PlacementActions, PlacementMode } from "./usePlacementMode"
 import type { AudienceRole, DomainFrameJson } from "../data/domain-frame.types"
 
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
+import type { V0ShellMode } from "./shellMode"
+import { HOME_PATH, buildDomainBoardPath } from "./shellMode"
 
 export type V0FrameKey =
   | "cover"
@@ -58,8 +60,18 @@ export interface V0ShellContextValue {
   closeToBoard: () => void
   /** Re-fetch the domain frame JSON from the API and refresh all state derived from it */
   reloadDomainFrame: () => Promise<void>
-  /** Active workspace from ?board= (null when not on a board surface). */
+  /** Active workspace from ?board= (null on `/home`). */
   workspaceBoardId: WorkspaceBoardId | null
+  /** `home` = `/home` user surface; `domain` = `/d/:slug` workspace. */
+  shellMode: V0ShellMode
+  /** User-named Home label (Home shell only). */
+  homeDisplayName: string
+  /** Anchor domain slug for API/session context on Home shell. */
+  anchorDomainSlug: string | null
+  /** Navigate to user Home (`/home`). */
+  navigateHome: () => void
+  /** Open a domain workspace board from Home. */
+  openDomainWorkspace: (boardId: WorkspaceBoardId) => void
   /** Design workspace: selected board definition spec from ?definition= */
   boardDefinitionId: string | null
   /** Top bar — switch workspace; clears ?definition= */

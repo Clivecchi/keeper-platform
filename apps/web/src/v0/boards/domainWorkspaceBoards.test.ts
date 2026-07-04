@@ -13,9 +13,8 @@ describe("domainWorkspaceBoards", () => {
     expect(isPlatformDomainSlug("livecchi")).toBe(false)
   })
 
-  it("platform domain includes IDE and Design", () => {
+  it("platform domain includes IDE and Design (no Home tab)", () => {
     expect(resolveAvailableWorkspaceBoardIds("default")).toEqual([
-      "realm",
       "domain",
       "ide",
       "designer",
@@ -23,9 +22,8 @@ describe("domainWorkspaceBoards", () => {
     ])
   })
 
-  it("member domains get Domain and Agent only (plus Realm home)", () => {
+  it("member domains get Domain and Agent only", () => {
     expect(resolveAvailableWorkspaceBoardIds("livecchi")).toEqual([
-      "realm",
       "domain",
       "agent",
     ])

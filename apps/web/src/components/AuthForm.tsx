@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
 import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
-import { resolvePostLoginDomainSlug } from '@/v0/boards/domain/domainSwitcherData';
+import { HOME_PATH } from '@/v0/shell/shellMode';
 
 interface AuthFormProps {
   isRegister?: boolean;
@@ -50,12 +50,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
         apiFetch('/api/kam/me', { method: 'GET' })
           .then(() => console.log('SystemStatus: /api/kam/me ok'))
           .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
-        // Always land on Domain Board after login — ?next= / returnTo params
-        // from session-expiry redirects (AgentBoardFrame, KipChatDrawer, etc.)
-        // were returning users to the wrong board. Domain Board is the correct
-        // home surface after authentication.
-        const domainSlug = await resolvePostLoginDomainSlug('default');
-        navigate(`/d/${encodeURIComponent(domainSlug)}?board=domain`);
+        // Primary member landing is user Home — not a domain slug URL.
+        navigate(returnTo ?? HOME_PATH);
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }

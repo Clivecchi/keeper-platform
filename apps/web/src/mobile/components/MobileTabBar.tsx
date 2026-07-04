@@ -2,10 +2,10 @@
 
 import type { MobileTabId } from "../types";
 
-/** Cross-domain picker — only on Domain Board mobile (not when already in ?board=realm). */
+/** Cross-domain picker — only on Domain Board mobile (not on user Home / realm workspace). */
 const DOMAIN_BOARD_TABS: MobileTabId[] = ["domains", "moment", "journeys", "kip"];
 
-/** In-domain tabs when workspace is the Realm board (?board=realm). */
+/** In-domain tabs when workspace is the Realm board (user Home at `/home`). */
 const REALM_BOARD_TABS: MobileTabId[] = ["moment", "journeys", "kip"];
 
 const DEFAULT_TAB_LABELS: Record<MobileTabId, string> = {
@@ -19,7 +19,7 @@ export interface MobileTabBarProps {
   activeTab: MobileTabId;
   onTabChange: (tab: MobileTabId) => void;
   tabLabels?: Partial<Record<MobileTabId, string>>;
-  /** When true (?board=realm), hide the cross-domain Domains picker tab. */
+  /** When true (user Home / realm workspace), hide the cross-domain Domains picker tab. */
   inRealmBoard?: boolean;
 }
 

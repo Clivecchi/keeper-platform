@@ -76,6 +76,8 @@ import BoardDemoPage from './pages/BoardDemoPage';
 import V0Page from './pages/V0Page';
 import StyleEditorPage from './pages/StyleEditorPage';
 import { RealmsRedirect } from './mobile/screens/RealmsRedirect';
+import HomeShellPage from './pages/home/HomeShellPage';
+import { RealmBoardRedirectFromParams } from './pages/home/RealmBoardRedirect';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, authResolved, isLoading } = useAuth();
@@ -119,10 +121,23 @@ const RequireAdminRoute: React.FC = () => {
 
 const RootRedirect: React.FC = () => {
   const location = useLocation();
+  const { isAuthenticated, authResolved, isLoading } = useAuth();
   const params = new URLSearchParams(location.search);
-  // Default to Domain Board. V0Shell guards isPrivate boards behind authResolved,
-  // so authenticated users land on Domain Board and unauthenticated users are
-  // redirected to cover — without a premature redirect on page refresh.
+
+  if (isLoading || !authResolved) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  }
+
+  // Guests: default to Domain Board. V0Shell guards isPrivate boards behind authResolved,
+  // so unauthenticated users are redirected to cover — without a premature redirect on refresh.
   if (!params.get("board") && !params.get("frame")) {
     params.set("board", "domain");
   }
@@ -139,12 +154,20 @@ const V1ToDRedirect: React.FC = () => {
   return <Navigate to={`/d/${slug}${search}`} replace />;
 };
 
-/** Redirect /d/:slug/board to /d/:slug — /board suffix is no longer needed */
+/** Redirect /d/:slug/board to /d/:slug — or /home when ?board=realm */
 const BoardToShellRedirect: React.FC = () => {
   const location = useLocation();
   const match = location.pathname.match(/^\/d\/([^/]+)\/board/);
   if (!match) return null;
   const [, slug] = match;
+  const params = new URLSearchParams(location.search);
+  if (params.get("board")?.toLowerCase() === "realm") {
+    params.delete("board");
+    params.delete("boardDef");
+    params.delete("definition");
+    const q = params.toString();
+    return <Navigate to={q ? `/home?${q}` : "/home"} replace />;
+  }
   const search = location.search || '';
   return <Navigate to={`/d/${slug}${search}`} replace />;
 };
@@ -259,6 +282,7 @@ const App: React.FC = () => {
       
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
+        <Route path="/home" element={<HomeShellPage />} />
         <Route path="/realms" element={<RealmsRedirect />} />
         <Route path="/kip" element={<KipAgentBoardPage />} />
         {/* Domain admin: any authenticated user can access; API enforces domain ownership for edits */}
@@ -293,7 +317,7 @@ const App: React.FC = () => {
         <Route path="/d/:slug/agent" element={<LegacyDomainRedirect />} />
         {/* Domain shell — canonical URL is /d/:slug, all params via ?frame= / ?board= */}
         <Route path="/d/:slug" element={<V0ShellPage />} />
-        {/* Backward compat: /d/:slug/board → /d/:slug (preserves query string) */}
+        {/* Legacy: realm board on domain URL → user Home */}
         <Route path="/d/:slug/board" element={<BoardToShellRedirect />} />
         {/* Manifesto Pages - Clean, distraction-free reading */}
         <Route path="/manifestos/clean-surface-doctrine" element={<CleanSurfaceDoctrinePage />} />

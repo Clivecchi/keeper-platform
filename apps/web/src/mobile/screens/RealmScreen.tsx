@@ -8,13 +8,14 @@ import {
 } from "../../v0/boards/domain/domainSwitcherData";
 import { DomainAddPanel } from "../../v0/boards/domain/DomainAddPanel";
 import { useTalkMode } from "../../hooks/useTalkMode";
+import { buildDomainBoardPath } from "../../v0/shell/shellMode";
 import { useUniversalMobile } from "../hooks/useUniversalMobile";
 
 type RealmFetchState = "idle" | "loading" | "ready" | "error";
 type RealmView = "list" | "add";
 
-/** Target workspace when entering a domain from Realm Screen. */
-const REALM_ENTRY_BOARD = "realm" as const;
+/** Target workspace when entering a domain from the Domains picker. */
+const DOMAIN_ENTRY_BOARD = "domain" as const;
 
 function hashSlug(slug: string): number {
   let hash = 0;
@@ -39,8 +40,8 @@ function domainInitials(name: string): string {
   return (parts[0]?.slice(0, 1) ?? "?").toUpperCase();
 }
 
-function buildRealmBoardPath(slug: string): string {
-  return `/d/${encodeURIComponent(slug)}/board?board=${REALM_ENTRY_BOARD}`;
+function buildDomainEntryPath(slug: string): string {
+  return buildDomainBoardPath(slug, DOMAIN_ENTRY_BOARD);
 }
 
 interface RealmDomainCardProps {
@@ -186,7 +187,7 @@ export function RealmScreen() {
 
   const handleSelectDomain = React.useCallback(
     (slug: string) => {
-      navigate(buildRealmBoardPath(slug));
+      navigate(buildDomainEntryPath(slug));
     },
     [navigate],
   );
@@ -194,7 +195,7 @@ export function RealmScreen() {
   const handleDomainCreated = React.useCallback(
     (slug: string) => {
       setView("list");
-      navigate(buildRealmBoardPath(slug));
+      navigate(buildDomainEntryPath(slug));
     },
     [navigate],
   );
@@ -228,7 +229,7 @@ export function RealmScreen() {
             Your Domains
           </p>
           <p className="mt-1 text-xs" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Tap a domain to open the Realm board — capture and talk from there.
+            Tap a domain to open its Domain board — capture and talk from there.
           </p>
         </div>
 

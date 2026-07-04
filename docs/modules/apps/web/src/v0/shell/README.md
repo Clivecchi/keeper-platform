@@ -19,6 +19,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-03: **User Home at `/home`** — `mode="home"` resolves anchor domain slug, mounts realm board (`HOME_SHELL_BOARD`) without `?board=` in URL; mobile domain URLs default to `?board=domain`; legacy `?board=realm` on `/d/:slug` redirects to `/home`.
 - 2026-07-03: `KeeperTopBar` board links filtered by domain — IDE/Design only on platform slug `default` (KE3P).
 - 2026-07-03: **Lead agent + Design board fixes** — auto-provision runs for domain owners when lead agent row is missing (not only unseeded frames); Design workspace auto-selects `?definition=domain` when none set; router/window mismatch warnings dev-only.
 - 2026-07-02: **FrameContext** journey resolution uses `loadJourneyNavRows` (board nav cache) instead of raw `/api/journeys` — dedupes with Nav/Conversation/Chronicle.

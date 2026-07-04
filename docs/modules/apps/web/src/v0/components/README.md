@@ -30,7 +30,9 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
-- 2026-07-02: `DomainSwitcher` — optional `onPrefetchDomain` on card hover/focus (warms frame + domain before switch).
+- 2026-07-03: `KeeperTopBar` — decoupled Home at `/home`: domain mode prepends `{homeDisplayName}` link via `navigateHome()`; home mode shows user Home label as wordmark with optional anchor-domain workspace link; Brief hidden on Home shell; fallbacks when shell context fields not yet wired.
+- 2026-07-03: `KeeperTopBar` — workspace tabs filtered by domain slug (`domainWorkspaceBoards`; IDE/Design on KE3P / `default` only).
+- 2026-07-02: **Public cover dark flash fix** — guests default to `gray-earth` (not Warm Dark `neutral`); V0Shell bootstraps `domain-resolved` tokens synchronously from default frame JSON before async fetch; `DesignFrame` uses `suppressAtmosphere` (single StyleScope); cover card uses lighter glass surface.
 - 2026-06-27: `DomainSwitcher` — Step 1.2 add-domain form (`DomainAddPanel`); fixed picker ink via `domainSwitcherTheme.ts`.
 - 2026-06-27: `DomainSwitcher` — cover thumbs (72px), slug-hash placeholder gradient + initials watermark, dark panel surfaces, light-on-cover typography.
 - 2026-06-27: `DomainSwitcher` — fixed unreadable text (`--theme-ink-*-color` tokens instead of raw HSL component vars); scrollable domain list when long.

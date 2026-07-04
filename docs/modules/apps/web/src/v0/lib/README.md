@@ -7,6 +7,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - `domainFrameLooksUnseeded.ts` — thin wrapper over `@keeper/shared` unseeded detection.
 - `ensureDomainProvisioned.ts` — calls `POST /api/domains/:id/provision` (idempotent Step 1.2 repair).
 - `frameLeadAgentIdentity.ts` — resolve `frame_json.kip.agent_id` slug → agent display name (cached).
+- `userHomeSettings.ts` — user Home display name (localStorage until API persistence).
 
 ## 🔄 Data & Behavior
 - `V0Shell` runs auto-provision when an authenticated domain owner loads a personal domain whose frame still shows platform defaults; reloads frame JSON after success.
@@ -18,6 +19,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
+- 2026-07-03: Added `userHomeSettings.ts` — Home label fetch/save (localStorage; `/api/kam/settings` read when available).
 - 2026-07-03: Missing lead slugs cached in sessionStorage; `resolveDialogAgentSlug` skips known-missing slugs (uses `kip` without extra 404). Provision repair uses 5min cooldown, not sessionStorage skip.
 - 2026-07-03: `resolveFrameLeadAgentIdentity` singleflight — dialog + display name share one slug lookup (one 404 max per missing lead).
 - 2026-07-02: `kip-default` treated as platform default; `resolveLeadAgentId` falls back to `kip` on 404.

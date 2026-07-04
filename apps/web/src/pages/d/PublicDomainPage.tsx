@@ -23,6 +23,7 @@ import { PresentFrame } from '../../v0/frames/present/PresentFrame';
 import { DiagnosticsFrame } from '../../v0/frames/diagnostics/DiagnosticsFrame';
 import { StyleOverrideProvider } from '../../v0/styles/StyleOverrideProvider';
 import { V0ShellProvider } from '../../v0/shell/V0ShellContext';
+import { BOARD_WORKSPACE_NAV_STUB } from '../../v0/boards/workspaceBoardNav';
 import { FrameContextProvider } from '../../v0/shell/FrameContext';
 import { PublicGuestChrome } from '../../mobile/PublicGuestChrome';
 import '../../mobile/public-story.css';
@@ -168,11 +169,7 @@ export default function PublicDomainPage() {
             },
             closeToBoard: () => navigate(`/d/${slug}`),
             reloadDomainFrame: async () => {},
-            workspaceBoardId: null,
-            boardDefinitionId: null,
-            switchWorkspace: () => {},
-            selectBoardDefinition: () => {},
-            clearBoardDefinition: () => {},
+            ...BOARD_WORKSPACE_NAV_STUB,
           }}
         >
           <FrameContextProvider

@@ -184,10 +184,15 @@ export function buildWorkspaceBoardPath(
   return `/d/${encodeURIComponent(domainSlug)}${search ? `?${search}` : ""}`
 }
 
-/** No-op workspace nav for frame preview shells that override V0ShellProvider. */
+/** No-op workspace + home nav for frame preview shells that override V0ShellProvider. */
 export const BOARD_WORKSPACE_NAV_STUB = {
   workspaceBoardId: null as WorkspaceBoardId | null,
   boardDefinitionId: null as string | null,
+  shellMode: "domain" as const,
+  homeDisplayName: "Home",
+  anchorDomainSlug: null as string | null,
+  navigateHome: () => undefined,
+  openDomainWorkspace: () => undefined,
   switchWorkspace: () => undefined,
   selectBoardDefinition: () => undefined,
   clearBoardDefinition: () => undefined,
