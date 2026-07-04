@@ -16,7 +16,10 @@ const CUSTOM_DOMAIN_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}$/
 
 export interface DomainAddressesSectionProps {
   domainId: string
-  domainSlug: string
+  /** Platform-unique domain tag (maps to slug). Saved via Configure Save bar. */
+  domainTag: string
+  onDomainTagChange: (value: string) => void
+  domainTagError?: string
   customDomain?: string | null
   customDomainVerified?: boolean
   onAddressesUpdated?: (patch: {
@@ -59,7 +62,9 @@ const actionButtonStyle: React.CSSProperties = {
 
 export function DomainAddressesSection({
   domainId,
-  domainSlug,
+  domainTag,
+  onDomainTagChange,
+  domainTagError,
   customDomain: customDomainProp,
   customDomainVerified: customDomainVerifiedProp = false,
   onAddressesUpdated,
@@ -81,8 +86,8 @@ export function DomainAddressesSection({
   const [success, setSuccess] = React.useState<string | null>(null)
 
   const keeperHostname = React.useMemo(
-    () => buildKeeperTenantHostname(domainSlug),
-    [domainSlug],
+    () => buildKeeperTenantHostname(domainTag),
+    [domainTag],
   )
 
   React.useEffect(() => {
@@ -255,13 +260,44 @@ export function DomainAddressesSection({
       </p>
 
       <div className="mb-4">
-        <p className="keeper-presence-field-label mb-1.5">Keeper subdomain</p>
-        <div className="rounded-md px-3 py-2 text-sm font-mono" style={readOnlyBoxStyle}>
+        <p className="keeper-presence-field-label mb-1.5">Domain tag</p>
+        <input
+          type="text"
+          value={domainTag}
+          onChange={(e) => onDomainTagChange(e.target.value)}
+          placeholder="chuck-livecchi"
+          className="w-full rounded-md px-3 py-2 text-sm font-mono"
+          style={inputStyle}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {domainTagError ? (
+          <p
+            className="text-[12px] mt-1"
+            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+          >
+            {domainTagError}
+          </p>
+        ) : null}
+        <p className="text-[11px] mt-1" style={sectionLabelStyle}>
+          Unique across Keeper — lowercase letters, numbers, and hyphens. Use Save to apply
+          changes.
+        </p>
+      </div>
+
+      <div className="mb-4">
+        <p className="keeper-presence-field-label mb-1.5">Keeper address</p>
+        <div
+          className="rounded-md px-3 py-2 text-sm font-mono opacity-90"
+          style={readOnlyBoxStyle}
+          aria-readonly
+        >
           https://{keeperHostname}
         </div>
         <p className="text-[11px] mt-1" style={sectionLabelStyle}>
-          Follows your slug. Attach <span className="font-mono">{keeperHostname}</span> in Vercel
-          when you are ready for tenant hosting.
+          Derived from your domain tag. Attach{" "}
+          <span className="font-mono">{keeperHostname}</span> in Vercel when you are ready for
+          tenant hosting.
         </p>
       </div>
 
@@ -401,7 +437,7 @@ export function DomainAddressesSection({
           </div>
         )}
         <p className="text-[11px] mt-2" style={sectionLabelStyle}>
-          Public brand URL (e.g. livecchi.us). Separate from your Keeper subdomain above.
+          Optional public brand URL (e.g. livecchi.us). Separate from your Keeper address above.
         </p>
       </div>
 

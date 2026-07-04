@@ -44,14 +44,14 @@ export interface DomainConfigPresenceProps {
     def: FieldDefinition,
     placeholder?: string,
   ) => React.ReactNode
-  /** IDE Board adds build-context fields on top of domain config. */
   ideBuildContextFields?: [string, FieldDefinition][]
 }
 
-const DOMAIN_FIELD_ORDER = [
-  "name",
-  "slug",
-  "tagline",
+/** Display name + brand line — not platform addressing. */
+const IDENTITY_FIELD_ORDER = ["name", "tagline"] as const
+
+/** How the domain presents on Keeper — character, intent, look, access. */
+const PRESENCE_FIELD_ORDER = [
   "keeperType",
   "purpose",
   "theme_color",
@@ -65,6 +65,76 @@ const IDE_BUILD_FIELD_ORDER = [
   "activeBranch",
   "environment",
 ] as const
+
+const sectionLabelStyle: React.CSSProperties = {
+  color: "hsl(var(--theme-ink-tertiary))",
+}
+
+const fieldPlaceholders: Record<string, string> = {
+  name: "Domain name",
+  tagline: "Short identity line",
+  keeperType: "e.g. the Co-op Brand Builder",
+  purpose: "What this domain is for",
+  theme_color: "Theme color token",
+  visibility: "public or private",
+  buildContextName: "Build context name",
+  buildContextDescription: "What this build context covers",
+  activeRepository: DEFAULT_GITHUB_REPOSITORY,
+  activeBranch: DEFAULT_GITHUB_BRANCH,
+  environment: "development, preview, production…",
+}
+
+const fieldLabels: Record<string, string> = {
+  keeperType: "Character",
+  purpose: "Purpose",
+  theme_color: "Theme color",
+  visibility: "Visibility",
+}
+
+function ConfigFieldGroup({
+  keys,
+  fieldMap,
+  fieldErrors,
+  placeholders,
+  labels,
+  renderFieldEditor,
+}: {
+  keys: readonly string[]
+  fieldMap: Map<string, FieldDefinition>
+  fieldErrors: Record<string, string>
+  placeholders: Record<string, string>
+  labels?: Record<string, string>
+  renderFieldEditor: DomainConfigPresenceProps["renderFieldEditor"]
+}) {
+  return (
+    <>
+      {keys.map((key) => {
+        const def = fieldMap.get(key)
+        if (!def) return null
+        const label = labels?.[key] ?? resolveFieldLabel(key, def)
+        return (
+          <div key={key} className="mb-4">
+            <p className="keeper-presence-field-label mb-1.5">{label}</p>
+            {renderFieldEditor(key, def, placeholders[key])}
+            {fieldErrors[key] ? (
+              <p
+                className="text-[12px] mt-1"
+                style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+              >
+                {fieldErrors[key]}
+              </p>
+            ) : null}
+            {key === "keeperType" ? (
+              <p className="text-[11px] mt-1" style={sectionLabelStyle}>
+                How this domain shows up in Keeper — type, role, or persona line.
+              </p>
+            ) : null}
+          </div>
+        )
+      })}
+    </>
+  )
+}
 
 export function DomainConfigPresence({
   domainId,
@@ -94,23 +164,11 @@ export function DomainConfigPresence({
     [ideBuildContextFields],
   )
 
-  const orderedKeys = DOMAIN_FIELD_ORDER.filter((key) => fieldMap.has(key))
+  const identityKeys = IDENTITY_FIELD_ORDER.filter((key) => fieldMap.has(key))
+  const presenceKeys = PRESENCE_FIELD_ORDER.filter((key) => fieldMap.has(key))
   const ideKeys = IDE_BUILD_FIELD_ORDER.filter((key) => ideFieldMap.has(key))
 
-  const placeholders: Record<string, string> = {
-    name: "Domain name",
-    slug: "chuck-livecchi",
-    tagline: "Short identity line",
-    keeperType: "Keeper type / character",
-    purpose: "What this domain is for",
-    theme_color: "Theme color token",
-    visibility: "public or private",
-    buildContextName: "Build context name",
-    buildContextDescription: "What this build context covers",
-    activeRepository: DEFAULT_GITHUB_REPOSITORY,
-    activeBranch: DEFAULT_GITHUB_BRANCH,
-    environment: "development, preview, production…",
-  }
+  const domainTag = fieldValues.slug?.trim() || domainSlug
 
   return (
     <ChronicleConfigShell
@@ -137,75 +195,68 @@ export function DomainConfigPresence({
         onSaved={onCoverSaved}
       />
 
-      {orderedKeys.map((key) => {
-        const def = fieldMap.get(key)
-        if (!def) return null
-        return (
-          <div key={key} className="mb-4">
-            <p className="keeper-presence-field-label mb-1.5">
-              {key === "keeperType"
-                ? "Character"
-                : key === "purpose"
-                  ? "Purpose"
-                  : resolveFieldLabel(key, def)}
-            </p>
-            {renderFieldEditor(key, def, placeholders[key])}
-            {fieldErrors[key] && (
-              <p
-                className="text-[12px] mt-1"
-                style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-              >
-                {fieldErrors[key]}
-              </p>
-            )}
-            {key === "slug" && (
-              <p
-                className="text-[11px] mt-1"
-                style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-              >
-                Sets your keeper.domains address — e.g. livecchi → livecchi.keeper.domains
-              </p>
-            )}
-          </div>
-        )
-      })}
+      <ConfigFieldGroup
+        keys={identityKeys}
+        fieldMap={fieldMap}
+        fieldErrors={fieldErrors}
+        placeholders={fieldPlaceholders}
+        renderFieldEditor={renderFieldEditor}
+      />
 
       <DomainAddressesSection
         domainId={domainId}
-        domainSlug={fieldValues.slug?.trim() || domainSlug}
+        domainTag={domainTag}
+        domainTagError={fieldErrors.slug}
+        onDomainTagChange={(value) => onFieldChange("slug", value)}
         customDomain={customDomain}
         customDomainVerified={customDomainVerified}
         onAddressesUpdated={onAddressesUpdated}
       />
 
-      <DomainPeopleSection domainId={domainId} />
-
-      {ideKeys.length > 0 && (
-        <div className="mt-2 mb-4">
+      {presenceKeys.length > 0 ? (
+        <div
+          className="mt-6 mb-4 pt-5 border-t"
+          style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+        >
           <p
             className="text-[11px] font-semibold uppercase tracking-widest mb-3"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            style={sectionLabelStyle}
           >
-            Build Context
+            Presence
           </p>
-          {ideKeys.map((key) => {
-            const def = ideFieldMap.get(key)
-            if (!def) return null
-            const label =
-              key === "buildContextName"
-                ? "Name"
-                : key === "buildContextDescription"
-                  ? "Description"
-                  : resolveFieldLabel(key, def)
-            return (
-              <div key={key} className="mb-4">
-                <p className="keeper-presence-field-label mb-1.5">{label}</p>
-                {renderFieldEditor(key, def, placeholders[key])}
-              </div>
-            )
-          })}
+          <ConfigFieldGroup
+            keys={presenceKeys}
+            fieldMap={fieldMap}
+            fieldErrors={fieldErrors}
+            placeholders={fieldPlaceholders}
+            labels={fieldLabels}
+            renderFieldEditor={renderFieldEditor}
+          />
         </div>
-      )}
+      ) : null}
+
+      <DomainPeopleSection domainId={domainId} />
+
+      {ideKeys.length > 0 ? (
+        <div
+          className="mt-6 mb-4 pt-5 border-t"
+          style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+        >
+          <p
+            className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+            style={sectionLabelStyle}
+          >
+            Build context
+          </p>
+          <ConfigFieldGroup
+            keys={ideKeys}
+            fieldMap={ideFieldMap}
+            fieldErrors={fieldErrors}
+            placeholders={fieldPlaceholders}
+            renderFieldEditor={renderFieldEditor}
+          />
+        </div>
+      ) : null}
     </ChronicleConfigShell>
   )
 }

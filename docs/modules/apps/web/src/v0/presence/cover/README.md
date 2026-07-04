@@ -148,6 +148,20 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - Cover actions: Verify + Add Key (invalid) or Manage (valid) → Config Mode
 - Config Mode: rotate/update valid credentials via KeyHealthBlock `allowValidRotate`; revoke when declared
 
+### 2026-07-04 — Domain Tag + Presence sections
+- **Domain tag** (slug) moved to Addresses — editable; **Keeper address** is derived read-only preview
+- **Presence** section groups Character, Purpose, Theme color, Visibility
+- Top identity fields: Name + Tagline only
+
+### 2026-07-04 — Domain people section (Phase 4)
+- `DomainPeopleSection.tsx` — members list, invite search, role PATCH, remove in Chronicle Configure
+
+### 2026-07-04 — Domain addresses section (Phases 2–3)
+- `DomainAddressesSection.tsx` — keeper subdomain preview, custom domain, Vercel + DNS in Chronicle Configure
+
+### 2026-07-04 — Domain Configure slug field
+- `DomainConfigPresence` field order: name → **slug** → tagline; helper text for keeper.domains addressing
+
 ### 2026-06-09 — Agent name in Training Mode instructions
 - Training prompt UI now uses the active agent's name (Cloud, Rendr, Kip, etc.) instead of hardcoded "Kip"
 - Added `agentNameHighlight.tsx` for bold accent-colored agent name in field subtitles and proposal scaffolds
