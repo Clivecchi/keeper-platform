@@ -68,7 +68,14 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,ttf}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/favicon/,
+          /^\/pwa-/,
+          /^\/icons\//,
+          /^\/apple-touch-icon/,
+          /\.(ico|png|svg|webp|woff2?|js|css)$/,
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),

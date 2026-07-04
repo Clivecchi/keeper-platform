@@ -30,6 +30,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - 2026-07-02: `resolvePostLoginDomainSlug` — login lands on primary owned domain (`isPrimary` from `/api/domains/my`), not hardcoded `default`.
 - 2026-07-02: **Soft domain switch** — no `UniversalBoard` remount on slug change; `domainShellCache` seeds by-slug/frame/audience; board selection + Chronicle Acts reset in place; panel split persists per workspace.
 - 2026-07-02: **Domain switch prefetch** — hover/focus on picker cards calls `prefetchDomainShell` (frame + by-slug) before navigate.
+- 2026-07-03 (pm): Home shell domain picker navigates to `/home?domain=:slug` (anchor switch); member boards unchanged.
 - 2026-07-02: **P1.1 domain picker cache** — `domainSwitcherData.ts` adds memory + sessionStorage cache (5 min TTL), deduped fetch, `prefetchDomainSwitcherEntries` on board mount; overlay uses stale-while-revalidate (instant open from cache, background refresh).
 - 2026-07-01: Phase 2.1 Guided Arrival — `GuidedArrivalOrchestrator` on Domain Board; lead agent Dialog + Chronicle Cover greeting for pending owners.
 - 2026-06-30: Phase 1.1 — Extracted `DomainSwitcherOverlay.tsx` + `useDomainSwitcher`; wired in `UniversalBoard` so IDE, Agent, and Design boards get the same top-bar domain switcher as Domain Board.

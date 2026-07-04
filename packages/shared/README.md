@@ -14,7 +14,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
 - `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
-- `src/domains/domainFrameIdentity.ts` – platform frame marker detection for personal domain `frame_json` repair
+- `src/recordNaming.ts` – `shapeRecordTitle` / `shapeRecordDescription` for short labels vs long body text
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -28,6 +28,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-07-03 — Record naming
+- Added `recordNaming.ts` — `shapeRecordTitle` (short labels) and `shapeRecordDescription` (long body) used by Library archive, moments, and Nav display.
 
 ### 2026-07-01 — Guided Arrival (Phase 2.1)
 - Added `guidedArrival.ts` — `isGuidedArrivalPending`, `GUIDED_ARRIVAL_COMPOSE_HINT`.

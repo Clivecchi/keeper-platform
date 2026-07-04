@@ -22,6 +22,7 @@ Client-rendered UI using React. Styling via Tailwind CSS. Built with Vite. Integ
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-07-03: Fix favicon 404 noise — Vercel SPA rewrite skips paths with file extensions; Workbox navigateFallback denylist includes favicon/PWA assets.
 - 2026-06-22: Keeper turtle app icon — source `public/icons/keeper-app-icon.png`; run `pnpm --filter keeper-web run generate:pwa-icons` to regenerate favicon.ico and PWA assets.
 - 2026-06-22: Phase 0 mobile PWA scaffold — `vite-plugin-pwa`, manifest, service worker, install hooks under `src/mobile/pwa/`.
 - 2026-01-19: Added build-time stamp injection via Vite define for v0 shell stamp.
