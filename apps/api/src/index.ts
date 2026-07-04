@@ -252,6 +252,7 @@ const ALLOWLIST_ARRAY = [
   ...buildCorsAllowlist(),
   'https://www.ke3p.com',
   'https://ke3p.com',
+  'https://staging.keeper.domains',
   process.env.PUBLIC_WEB_ORIGIN || '',
   process.env.APP_ORIGIN || '',
 ].filter(Boolean);

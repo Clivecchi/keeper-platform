@@ -570,7 +570,9 @@ export class DomainResolutionMiddleware {
     // Base platform domains always considered "platform" (no domain context required)
     const hostOnly = baseDomain.split(':')[0];
     const platformDomains = [
-      // TODO(domains): enable *.keeper.domains after MVP
+      // keeper.domains platform hosts (staging first; wildcard TODO remains separate)
+      'keeper.domains',
+      'staging.keeper.domains',
       // Use env-driven public web origin host if available; keep localhost variants
       (process.env.PUBLIC_WEB_ORIGIN ? new URL(process.env.PUBLIC_WEB_ORIGIN).host : ''),
       // API server hostname — must be recognized as platform so domain-scoped routes work

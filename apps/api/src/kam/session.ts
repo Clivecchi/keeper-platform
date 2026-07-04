@@ -7,8 +7,27 @@ import jwt from 'jsonwebtoken';
 
 const COOKIE_NAME = 'keeper_session';
 const COOKIE_CANDIDATES = [COOKIE_NAME, 'keeper_token', 'token', 'auth_token'];
-const DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com'; // works for www.ke3p.com and api.ke3p.com
+const KE3P_COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com'; // www.ke3p.com + api.ke3p.com
+const KEEPER_DOMAINS_COOKIE_DOMAIN =
+  process.env.KEEPER_DOMAINS_COOKIE_DOMAIN || '.keeper.domains';
 const JWT_SECRET = process.env.JWT_SECRET!; // ensure set in Railway
+
+function isKeeperDomainsOrigin(req: Request): boolean {
+  const originOrReferer = req.headers.origin || req.headers.referer || '';
+  if (!originOrReferer) return false;
+  try {
+    const url = new URL(originOrReferer);
+    const host = url.hostname;
+    return host === 'keeper.domains' || host.endsWith('.keeper.domains');
+  } catch {
+    return false;
+  }
+}
+
+/** Cookie Domain attribute for the incoming request origin. */
+export function resolveCookieDomain(req: Request): string {
+  return isKeeperDomainsOrigin(req) ? KEEPER_DOMAINS_COOKIE_DOMAIN : KE3P_COOKIE_DOMAIN;
+}
 
 // Check if request is from a Vercel preview deployment
 function isPreviewOrigin(req: Request): boolean {
@@ -30,12 +49,13 @@ function isPreviewOrigin(req: Request): boolean {
 // Set secure HttpOnly session cookie (preview-aware)
 export function setSessionCookie(req: Request, res: Response, token: string) {
   const isPreview = isPreviewOrigin(req);
-  
+  const cookieDomain = resolveCookieDomain(req);
+
   // Build cookie string manually to ensure it's set correctly
   const maxAge = 7 * 24 * 3600; // 7 days in seconds
   const cookieValue = [
     `${COOKIE_NAME}=${token}`,
-    `Domain=${DOMAIN}`,
+    `Domain=${cookieDomain}`,
     'Path=/',
     'HttpOnly',
     'Secure',
@@ -46,7 +66,7 @@ export function setSessionCookie(req: Request, res: Response, token: string) {
   // Set cookie header directly
   res.setHeader('Set-Cookie', cookieValue);
   
-  console.log('[session] Cookie set manually:', { domain: DOMAIN, origin: req.headers.origin, isPreview });
+  console.log('[session] Cookie set manually:', { domain: cookieDomain, origin: req.headers.origin, isPreview });
   
   if (isPreview) {
     console.log('[session] Set preview cookie (SameSite=None) for origin:', req.headers.origin);
@@ -56,14 +76,20 @@ export function setSessionCookie(req: Request, res: Response, token: string) {
 // Clear session cookie on logout
 // CRITICAL: sameSite must match the value used when setting the cookie (SameSite=None)
 // otherwise the browser won't clear it correctly
-export function clearSessionCookie(res: Response) {
-  res.clearCookie(COOKIE_NAME, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    domain: DOMAIN,
-    path: '/',
-  });
+export function clearSessionCookie(res: Response, req?: Request) {
+  const domains = req
+    ? [resolveCookieDomain(req)]
+    : [KE3P_COOKIE_DOMAIN, KEEPER_DOMAINS_COOKIE_DOMAIN];
+
+  for (const domain of domains) {
+    res.clearCookie(COOKIE_NAME, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain,
+      path: '/',
+    });
+  }
 }
 
 function readCookieToken(req: Request): string | undefined {
@@ -111,6 +137,8 @@ export function csrfGuard(req: Request, res: Response, next: NextFunction) {
   const okProd =
     origin.endsWith('.ke3p.com') ||
     referer.includes('.ke3p.com') ||
+    origin.endsWith('.keeper.domains') ||
+    referer.includes('.keeper.domains') ||
     !origin; // Allow server-to-server (no Origin header)
 
   // Check preview origins (if enabled)
