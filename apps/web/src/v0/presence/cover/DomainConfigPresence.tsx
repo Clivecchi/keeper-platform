@@ -41,6 +41,7 @@ export interface DomainConfigPresenceProps {
 
 const DOMAIN_FIELD_ORDER = [
   "name",
+  "slug",
   "tagline",
   "keeperType",
   "purpose",
@@ -85,6 +86,7 @@ export function DomainConfigPresence({
 
   const placeholders: Record<string, string> = {
     name: "Domain name",
+    slug: "chuck-livecchi",
     tagline: "Short identity line",
     keeperType: "Keeper type / character",
     purpose: "What this domain is for",
@@ -141,6 +143,14 @@ export function DomainConfigPresence({
                 style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
               >
                 {fieldErrors[key]}
+              </p>
+            )}
+            {key === "slug" && (
+              <p
+                className="text-[11px] mt-1"
+                style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              >
+                Sets your keeper.domains address — e.g. livecchi → livecchi.keeper.domains
               </p>
             )}
           </div>

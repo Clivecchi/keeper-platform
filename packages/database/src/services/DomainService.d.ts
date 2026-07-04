@@ -26,6 +26,7 @@ export interface CreateDomainRequest {
 }
 export interface UpdateDomainRequest {
     name?: string;
+    slug?: string;
     description?: string;
     isPublic?: boolean;
     allowRequests?: boolean;

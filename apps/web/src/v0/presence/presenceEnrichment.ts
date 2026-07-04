@@ -962,10 +962,10 @@ async function enrichDomain(
       record,
       meta: { line: metaParts.join(" · ") || undefined },
       relatedSections,
-      hiddenFields: ["slug", "status"],
+      hiddenFields: ["status"],
     }
   } catch {
-    return { record, relatedSections, hiddenFields: ["slug", "status"] }
+    return { record, relatedSections, hiddenFields: ["status"] }
   }
 }
 

@@ -13,6 +13,7 @@ import {
   fetchDomainSwitcherEntries,
   getCachedDomainSwitcherEntries,
   prefetchDomainSwitcherEntries,
+  subscribeDomainSwitcherCache,
   type DomainSwitcherEntry,
 } from "./domainSwitcherData"
 import { prefetchDomainShell } from "./domainShellCache"
@@ -155,6 +156,13 @@ export function DomainSwitcherOverlay({
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([])
   const [fetchState, setFetchState] = React.useState<SwitcherFetchState>("idle")
   const [fetchAttempt, setFetchAttempt] = React.useState(0)
+
+  React.useEffect(() => {
+    return subscribeDomainSwitcherCache(() => {
+      const cached = getCachedDomainSwitcherEntries()
+      if (cached) setDomains(cached)
+    })
+  }, [])
 
   React.useEffect(() => {
     if (!open) {

@@ -147,6 +147,23 @@ export async function fetchDomainAudience(
   return promise
 }
 
+export function invalidateDomainShellCache(slug?: string): void {
+  if (slug) {
+    const key = normalizeSlug(slug)
+    domainStore.delete(key)
+    audienceStore.delete(key)
+    domainInflight.delete(key)
+    audienceInflight.delete(key)
+    prefetchInflight.delete(slug.trim())
+  } else {
+    domainStore.clear()
+    audienceStore.clear()
+    domainInflight.clear()
+    audienceInflight.clear()
+    prefetchInflight.clear()
+  }
+}
+
 /** Warm shell data before navigation (hover / select on domain switcher). */
 export function prefetchDomainShell(slug: string): void {
   const normalized = slug.trim()

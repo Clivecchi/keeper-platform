@@ -26,6 +26,8 @@ export interface UseChronicleConfigOptions {
   validate?: () => string | null
   patchKeys?: () => string[]
   onSaved?: (field: string, value: unknown) => void
+  /** Called after a successful save with the payload that was sent. */
+  onSaveComplete?: (savedPatch: Record<string, unknown>) => void
   onRefresh?: () => void
 }
 
@@ -54,6 +56,7 @@ export function useChronicleConfig({
   validate,
   patchKeys,
   onSaved,
+  onSaveComplete,
   onRefresh,
 }: UseChronicleConfigOptions): UseChronicleConfigResult {
   const [saveStatus, setSaveStatus] = React.useState<ChronicleSaveStatus>("idle")
@@ -177,6 +180,7 @@ export function useChronicleConfig({
       if (onSaved) {
         for (const [k, v] of Object.entries(rawPayload)) onSaved(k, v)
       }
+      onSaveComplete?.(rawPayload)
       onRefresh?.()
     }
   }, [
@@ -188,6 +192,7 @@ export function useChronicleConfig({
     validate,
     patchKeys,
     onSaved,
+    onSaveComplete,
     onRefresh,
     clearDirty,
   ])

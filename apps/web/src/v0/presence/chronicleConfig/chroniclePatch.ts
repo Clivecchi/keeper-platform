@@ -36,6 +36,10 @@ export function parseChroniclePatchFieldErrors(
     }
   }
 
+  if (patchKeys.includes("slug") && (status === 409 || message.toLowerCase().includes("slug"))) {
+    errors.slug = message
+  }
+
   if (Object.keys(errors).length === 0 && patchKeys.length > 0) {
     errors[patchKeys[0]] = message
   }
@@ -134,12 +138,19 @@ export function splitDomainChroniclePatch(
       case "name":
         domainBody.name = value
         break
+      case "slug":
+        domainBody.slug = value
+        break
       case "purpose":
         domainBody.description = value
         break
       case "tagline":
         frameBody.theme = {
           ...(frameBody.theme as Record<string, unknown> | undefined),
+          tagline: value,
+        }
+        domainBody.theme = {
+          ...(domainBody.theme as Record<string, unknown> | undefined),
           tagline: value,
         }
         break

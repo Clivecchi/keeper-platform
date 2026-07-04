@@ -164,7 +164,7 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
       theme_color: { role: 'ambient',   minDensity: 'standard',           editable: true,  label: 'Theme Color' },
       visibility:  { role: 'quiet',     minDensity: 'standard',           editable: true,  label: 'Visibility' },
       status:      { role: 'quiet',     always: true,                     editable: false },
-      slug:        { role: 'ambient',   minDensity: 'comfortable',        editable: false },
+      slug:        { role: 'ambient',   minDensity: 'comfortable',        editable: true,  label: 'Slug' },
       buildContextName:        { role: 'secondary', minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Build Context Name' },
       buildContextDescription: { role: 'body',      minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Description' },
       activeRepository:        { role: 'ambient',   minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Active Repository' },

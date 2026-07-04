@@ -21,6 +21,25 @@ interface DomainSwitcherCacheSnapshot {
 
 let memoryCache: DomainSwitcherCacheSnapshot | null = null
 let inflightFetch: Promise<DomainSwitcherEntry[]> | null = null
+const cacheListeners = new Set<() => void>()
+
+function notifyDomainSwitcherCacheListeners(): void {
+  cacheListeners.forEach((listener) => {
+    try {
+      listener()
+    } catch {
+      /* listener errors should not break cache updates */
+    }
+  })
+}
+
+/** Subscribe to in-memory domain switcher cache updates (e.g. after Chronicle save). */
+export function subscribeDomainSwitcherCache(listener: () => void): () => void {
+  cacheListeners.add(listener)
+  return () => {
+    cacheListeners.delete(listener)
+  }
+}
 
 function readSessionCache(): DomainSwitcherCacheSnapshot | null {
   if (typeof window === "undefined") return null
@@ -61,7 +80,32 @@ function commitCache(entries: DomainSwitcherEntry[]): DomainSwitcherCacheSnapsho
   }
   memoryCache = snapshot
   writeSessionCache(snapshot)
+  notifyDomainSwitcherCacheListeners()
   return snapshot
+}
+
+export type DomainSwitcherCachePatch = Partial<
+  Pick<DomainSwitcherEntry, "name" | "tagline" | "coverImageUrl" | "slug">
+>
+
+/** Patch one cached switcher row in place — keeps picker cards fresh after Chronicle saves. */
+export function patchDomainSwitcherCacheEntry(
+  slug: string,
+  patch: DomainSwitcherCachePatch,
+): void {
+  const snapshot = memoryCache ?? readSessionCache()
+  if (!snapshot) return
+
+  const normalized = slug.trim().toLowerCase()
+  let found = false
+  const entries = snapshot.entries.map((entry) => {
+    if (entry.slug.trim().toLowerCase() !== normalized) return entry
+    found = true
+    return { ...entry, ...patch }
+  })
+
+  if (!found) return
+  commitCache(entries)
 }
 
 /** Returns cached domain list when still within TTL (memory, then sessionStorage). */
@@ -90,6 +134,7 @@ export function invalidateDomainSwitcherCache(): void {
   } catch {
     /* ignore */
   }
+  notifyDomainSwitcherCacheListeners()
 }
 
 export interface FetchDomainSwitcherOptions {
@@ -134,8 +179,8 @@ export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitche
     slug: domain.slug,
     name: domain.name,
     tagline:
-      domain.description?.trim() ||
       theme.tagline?.trim() ||
+      domain.description?.trim() ||
       domain.customDomain?.trim() ||
       domain.slug,
     coverImageUrl: rawCover ? getBlobProxyUrl(rawCover) : null,

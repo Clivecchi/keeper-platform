@@ -11,8 +11,15 @@
  */
 
 import * as React from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
+import {
+  patchDomainSwitcherCacheEntry,
+  invalidateDomainSwitcherCache,
+} from "../boards/domain/domainSwitcherData"
+import { invalidateDomainShellCache } from "../boards/domain/domainShellCache"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { usePresenceSchema } from "./usePresenceSchema"
 import {
   fetchPresenceRecord,
@@ -92,6 +99,8 @@ export interface KeeperPresenceProps {
 }
 
 const AGENT_PROMPT_FIELD_KEYS = new Set(["lensSystemPrompt", "composedSystemPrompt"])
+
+const DOMAIN_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 function buildDomainFieldPatch(
   schema: ReturnType<typeof usePresenceSchema>["schema"],
@@ -744,6 +753,9 @@ export function KeeperPresence({
   domainDisplayName,
   boardId: boardIdProp,
 }: KeeperPresenceProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const v0Shell = useV0ShellOptional()
   const effectivePresent = resolvePresentForObject(objectType, present)
   const motionInstanceKey = React.useMemo(
     () => toPresentInstanceKey(objectType, objectId, domainSlug),
@@ -835,6 +847,80 @@ export function KeeperPresence({
     setPresenceRefresh((n) => n + 1)
   }, [])
 
+  const applyDomainConfigSaveLocally = React.useCallback(
+    (patch: Record<string, unknown>) => {
+      setRecord((prev) => {
+        if (!prev) return prev
+        const next = { ...prev }
+        if (typeof patch.name === "string") next.name = patch.name
+        if (typeof patch.slug === "string") next.slug = patch.slug
+        if (typeof patch.purpose === "string") {
+          next.purpose = patch.purpose
+          next.description = patch.purpose
+        }
+        if (typeof patch.tagline === "string") next.tagline = patch.tagline
+        if (typeof patch.keeperType === "string") next.keeperType = patch.keeperType
+        if (typeof patch.theme_color === "string") next.theme_color = patch.theme_color
+        if (typeof patch.visibility === "string") next.visibility = patch.visibility
+        return next
+      })
+      if (onLabelResolved && typeof patch.name === "string") {
+        const label = patch.name.trim()
+        if (label) onLabelResolved(label)
+      }
+    },
+    [onLabelResolved],
+  )
+
+  const handleDomainConfigSaveComplete = React.useCallback(
+    (savedPatch: Record<string, unknown>) => {
+      applyDomainConfigSaveLocally(savedPatch)
+
+      const currentSlug = domainSlug ?? ""
+      const nextSlug =
+        typeof savedPatch.slug === "string" ? savedPatch.slug.trim() : currentSlug
+      const switcherPatch: {
+        name?: string
+        tagline?: string
+        slug?: string
+      } = {}
+
+      if (typeof savedPatch.name === "string") switcherPatch.name = savedPatch.name
+      if (typeof savedPatch.tagline === "string") {
+        switcherPatch.tagline = savedPatch.tagline
+      }
+      if (nextSlug && nextSlug !== currentSlug) switcherPatch.slug = nextSlug
+
+      if (currentSlug && Object.keys(switcherPatch).length > 0) {
+        patchDomainSwitcherCacheEntry(currentSlug, switcherPatch)
+      }
+
+      if (
+        typeof savedPatch.tagline === "string" ||
+        typeof savedPatch.name === "string" ||
+        typeof savedPatch.theme_color === "string"
+      ) {
+        void v0Shell?.reloadDomainFrame()
+      }
+
+      if (nextSlug && currentSlug && nextSlug !== currentSlug) {
+        invalidateDomainSwitcherCache()
+        invalidateDomainShellCache(currentSlug)
+        const preserved = new URLSearchParams(location.search)
+        navigate(`/d/${encodeURIComponent(nextSlug)}?${preserved.toString()}`, {
+          replace: true,
+        })
+      }
+    },
+    [
+      applyDomainConfigSaveLocally,
+      domainSlug,
+      location.search,
+      navigate,
+      v0Shell,
+    ],
+  )
+
   const objectSchemaOverride =
     record?.presenceSchema && typeof record.presenceSchema === "object"
       ? (record.presenceSchema as Record<string, unknown>)
@@ -898,6 +984,7 @@ export function KeeperPresence({
           boardId === "ide"
             ? [
                 "name",
+                "slug",
                 "tagline",
                 "keeperType",
                 "purpose",
@@ -909,7 +996,7 @@ export function KeeperPresence({
                 "activeBranch",
                 "environment",
               ]
-            : ["name", "tagline", "keeperType", "purpose", "theme_color", "visibility"]
+            : ["name", "slug", "tagline", "keeperType", "purpose", "theme_color", "visibility"]
         const patch: Record<string, string> = {}
         for (const key of keys) {
           if (fieldValuesRef.current[key] !== undefined) {
@@ -922,6 +1009,16 @@ export function KeeperPresence({
       return null
     },
     validate: () => {
+      if (objectType === "domain") {
+        const slugValue = fieldValuesRef.current.slug?.trim() ?? ""
+        if (slugValue && !DOMAIN_SLUG_PATTERN.test(slugValue)) {
+          return "Slug must use lowercase letters, numbers, and hyphens only."
+        }
+        if (slugValue.length > 0 && slugValue.length < 2) {
+          return "Slug must be at least 2 characters."
+        }
+        return null
+      }
       if (objectType !== "agent") return null
       const lensTrimmed = fieldValuesRef.current.lensSystemPrompt?.trim() ?? ""
       if (lensTrimmed.length > 0 && lensTrimmed.length < 10) {
@@ -951,7 +1048,9 @@ export function KeeperPresence({
         })
       }
     },
-    onRefresh: handlePresenceRefresh,
+    onSaveComplete:
+      objectType === "domain" ? handleDomainConfigSaveComplete : undefined,
+    onRefresh: objectType === "domain" ? undefined : handlePresenceRefresh,
   })
 
   const [autoSaveStatus, setAutoSaveStatus] = React.useState<

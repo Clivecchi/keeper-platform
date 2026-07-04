@@ -36,6 +36,7 @@ export interface CreateDomainRequest {
 
 export interface UpdateDomainRequest {
   name?: string;
+  slug?: string;
   description?: string;
   isPublic?: boolean;
   allowRequests?: boolean;
@@ -279,6 +280,23 @@ export class DomainService {
 
     // Handle optional fields
     if (request.name !== undefined) updateData.name = request.name;
+    if (request.slug !== undefined) {
+      const { slug: finalSlug, validation } = SlugValidationService.validateAndSanitize(
+        request.slug,
+      );
+      if (!validation.isValid) {
+        throw new Error(`Invalid slug: ${validation.reason}`);
+      }
+      if (finalSlug !== existingDomain.slug) {
+        const conflict = await this.prisma.domain.findUnique({
+          where: { slug: finalSlug },
+        });
+        if (conflict && conflict.id !== domainId) {
+          throw new Error(`Domain with slug "${finalSlug}" already in use`);
+        }
+        updateData.slug = finalSlug;
+      }
+    }
     if (request.description !== undefined) updateData.description = request.description;
     if (request.customDomain !== undefined) updateData.customDomain = request.customDomain;
     if (request.customDomainVerified !== undefined) updateData.customDomainVerified = request.customDomainVerified;
