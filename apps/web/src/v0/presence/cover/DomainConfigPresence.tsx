@@ -168,7 +168,7 @@ export function DomainConfigPresence({
             )}
           </div>
         )
-      }      )}
+      })}
 
       <DomainAddressesSection
         domainId={domainId}
