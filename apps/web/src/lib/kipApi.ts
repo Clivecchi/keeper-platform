@@ -843,6 +843,27 @@ export class KipApi {
   }
 
   /**
+   * Merge metadata onto an existing kip_message (e.g. gloss thread persistence).
+   */
+  static async updateMessageMetadata(
+    messageId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void> {
+    const response = await apiFetch('/api/kip/agents', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'updateMessageMetadata',
+        messageId,
+        metadata,
+      }),
+    })
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to update message metadata')
+    }
+  }
+
+  /**
    * Get action pack (tools/actions the agent can use) for a given agent and domain
    */
   static async getActionPack(

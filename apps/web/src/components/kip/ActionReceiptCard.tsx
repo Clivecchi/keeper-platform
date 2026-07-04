@@ -8,7 +8,8 @@
  */
 
 import React from "react"
-import { shapeRecordTitle } from "@keeper/shared"
+import { shapeRecordTitle, buildMessageGlossAnchor, type GlossThread } from "@keeper/shared"
+import { GlossSurface } from "../gloss/GlossSurface"
 
 export interface ActionReceipt {
   type: string
@@ -38,6 +39,10 @@ export interface ActionReceiptCardProps {
   receipt: ActionReceipt
   /** Agent message text surrounding this receipt — included in the kept moment body. */
   contextNarrative?: string
+  /** Parent chat message id — enables Gloss on receipt nodes */
+  glossMessageId?: string
+  glossReceiptIndex?: number
+  glossThreads?: readonly GlossThread[]
   onOpenDraft?: (draftId: string) => void
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
@@ -213,6 +218,9 @@ function ImageReceiptCard({
   libraryItemId,
   contextNarrative,
   onKeepAsMoment,
+  glossMessageId,
+  glossReceiptIndex,
+  glossThreads,
 }: {
   imageUrl: string
   imagePrompt?: string
@@ -220,6 +228,9 @@ function ImageReceiptCard({
   libraryItemId?: string
   contextNarrative?: string
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
+  glossMessageId?: string
+  glossReceiptIndex?: number
+  glossThreads?: readonly GlossThread[]
 }) {
   const [keeping, setKeeping] = React.useState(false)
   const [keepError, setKeepError] = React.useState<string | null>(null)
@@ -249,30 +260,83 @@ function ImageReceiptCard({
   }
 
   return (
-    <div
-      className="overflow-hidden rounded-xl border"
-      style={{
-        borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
-        backgroundColor: "hsl(var(--theme-surface-paper) / 0.95)",
+    <GlossSurface
+      messageId={glossMessageId ?? "unknown"}
+      enabled={Boolean(glossMessageId)}
+      anchor={
+        libraryItemId
+          ? {
+              entityKind: "library",
+              entityId: libraryItemId,
+              nodeId: "card",
+              messageId: glossMessageId,
+              receiptIndex: glossReceiptIndex,
+            }
+          : buildMessageGlossAnchor(glossMessageId ?? "unknown", "card", {
+              receiptIndex: glossReceiptIndex,
+            })
+      }
+      glossThreads={glossThreads}
+      snapshot={{
+        label: "generated image",
+        text: imagePrompt ?? subject,
+        imageUrl,
       }}
     >
       <div
-        className="flex items-center gap-1.5 border-b px-3 py-1.5"
+        className="overflow-hidden rounded-xl border"
         style={{
           borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
-          background: "hsl(var(--theme-surface-elevated) / 0.6)",
+          backgroundColor: "hsl(var(--theme-surface-paper) / 0.95)",
         }}
       >
-        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          Generated image
-        </span>
-      </div>
-      <img src={imageUrl} alt={subject ?? "Generated image"} className="w-full object-cover" loading="lazy" />
-      {imagePrompt && (
-        <p className="px-3 py-2 text-xs leading-relaxed" style={{ color: "var(--theme-ink-tertiary-color)" }}>
-          {imagePrompt}
-        </p>
-      )}
+        <div
+          className="flex items-center gap-1.5 border-b px-3 py-1.5"
+          style={{
+            borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+            background: "hsl(var(--theme-surface-elevated) / 0.6)",
+          }}
+        >
+          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            Generated image
+          </span>
+        </div>
+        <GlossSurface
+          messageId={glossMessageId ?? "unknown"}
+          enabled={Boolean(glossMessageId)}
+          anchor={
+            libraryItemId
+              ? {
+                  entityKind: "library",
+                  entityId: libraryItemId,
+                  nodeId: "image",
+                  messageId: glossMessageId,
+                  receiptIndex: glossReceiptIndex,
+                }
+              : buildMessageGlossAnchor(glossMessageId ?? "unknown", "image", {
+                  receiptIndex: glossReceiptIndex,
+                })
+          }
+          glossThreads={glossThreads}
+          snapshot={{ label: "image", imageUrl, text: subject ?? imagePrompt }}
+        >
+          <img src={imageUrl} alt={subject ?? "Generated image"} className="w-full object-cover" loading="lazy" />
+        </GlossSurface>
+        {imagePrompt ? (
+          <GlossSurface
+            messageId={glossMessageId ?? "unknown"}
+            enabled={Boolean(glossMessageId)}
+            anchor={buildMessageGlossAnchor(glossMessageId ?? "unknown", "caption", {
+              receiptIndex: glossReceiptIndex,
+            })}
+            glossThreads={glossThreads}
+            snapshot={{ label: "caption", text: imagePrompt }}
+          >
+            <p className="px-3 py-2 text-xs leading-relaxed" style={{ color: "var(--theme-ink-tertiary-color)" }}>
+              {imagePrompt}
+            </p>
+          </GlossSurface>
+        ) : null}
       {libraryItemId ? (
         <p className="border-t px-3 py-2 text-xs" style={{ borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))", color: "hsl(var(--theme-ink-secondary))" }}>
           Saved to Library — see the Library list in Nav.
@@ -302,18 +366,41 @@ function ImageReceiptCard({
           )}
         </div>
       )}
-    </div>
+      </div>
+    </GlossSurface>
   )
 }
 
 function MomentReceiptCard({
   moment,
   onOpen,
+  glossMessageId,
+  glossReceiptIndex,
+  glossThreads,
 }: {
   moment: { id: string; title: string; narrative?: string | null; journeyId?: string | null }
   onOpen?: () => void
+  glossMessageId?: string
+  glossReceiptIndex?: number
+  glossThreads?: readonly GlossThread[]
 }) {
   return (
+    <GlossSurface
+      messageId={glossMessageId ?? "unknown"}
+      enabled={Boolean(glossMessageId)}
+      anchor={{
+        entityKind: "moment",
+        entityId: moment.id,
+        nodeId: "card",
+        messageId: glossMessageId,
+        receiptIndex: glossReceiptIndex,
+      }}
+      glossThreads={glossThreads}
+      snapshot={{
+        label: "moment",
+        text: [moment.title, moment.narrative?.trim()].filter(Boolean).join(" — "),
+      }}
+    >
     <div
       className="rounded-xl border overflow-hidden"
       style={{
@@ -359,6 +446,7 @@ function MomentReceiptCard({
         )}
       </div>
     </div>
+    </GlossSurface>
   )
 }
 
@@ -425,6 +513,9 @@ function SoleMemoryReceiptCard({
 export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   receipt,
   contextNarrative,
+  glossMessageId,
+  glossReceiptIndex,
+  glossThreads,
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
@@ -477,6 +568,9 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
           libraryItemId={libraryItemId}
           contextNarrative={contextNarrative}
           onKeepAsMoment={onKeepAsMoment}
+          glossMessageId={glossMessageId}
+          glossReceiptIndex={glossReceiptIndex}
+          glossThreads={glossThreads}
         />
       )
     }
@@ -503,6 +597,9 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
       <MomentReceiptCard
         moment={moment}
         onOpen={onOpenMoment ? () => onOpenMoment(moment.id) : undefined}
+        glossMessageId={glossMessageId}
+        glossReceiptIndex={glossReceiptIndex}
+        glossThreads={glossThreads}
       />
     )
   }

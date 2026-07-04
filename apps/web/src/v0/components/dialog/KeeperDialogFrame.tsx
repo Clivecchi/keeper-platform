@@ -42,6 +42,9 @@ import {
   type DialogThinkingStep,
 } from "./dialogThinking"
 import { useTalkMode } from "../../../hooks/useTalkMode"
+import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
+import type { GlossThread } from "@keeper/shared"
+import "../../../components/gloss/gloss.css"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -185,6 +188,11 @@ export interface KeeperDialogFrameProps {
   mobileResponseToolbar?: React.ReactNode
   /** When true, composer shows mic for speech-to-text (confirm before send). */
   talkMode?: boolean
+
+  /** Inline Gloss — anchored sub-dialog on discrete message content */
+  glossConfig?: GlossRunConfig & {
+    onUpdateMessageThreads: (messageId: string, threads: GlossThread[]) => void
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -252,6 +260,7 @@ export function KeeperDialogFrame({
   onComposerFocusChange,
   mobileResponseToolbar,
   talkMode = false,
+  glossConfig,
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const broadcastStripRef = React.useRef<HTMLDivElement>(null)
@@ -590,6 +599,41 @@ export function KeeperDialogFrame({
                   className="dialog-column pt-2"
                   style={{ paddingBottom: dialogScrollInset }}
                 >
+                  {glossConfig ? (
+                    <GlossProvider
+                      config={{
+                        agentId: glossConfig.agentId,
+                        sessionId: glossConfig.sessionId,
+                        domainId: glossConfig.domainId,
+                        domainSlug: glossConfig.domainSlug,
+                        agentContext: glossConfig.agentContext,
+                        agentName: glossConfig.agentName,
+                      }}
+                      onUpdateMessageThreads={glossConfig.onUpdateMessageThreads}
+                    >
+                      <DialogueMessageList
+                        isLoading={false}
+                        messages={messages}
+                        isSending={isSending}
+                        error={error}
+                        agentName={agentName}
+                        echoAgentName={echoAgentName}
+                        onOpenDraft={onOpenDraft}
+                        onOpenMoment={onOpenMoment}
+                        onOpenJourney={onOpenJourney}
+                        onKeepAsMoment={onKeepAsMoment}
+                        onOpenSoleMemory={onOpenSoleMemory}
+                        onConfirmDraftUpdate={onConfirmDraftUpdate}
+                        onAcceptDraftPoint={onAcceptDraftPoint}
+                        acceptedDraftPointIds={acceptedDraftPointIds}
+                        acceptingDraftPointId={acceptingDraftPointId}
+                        agentBubbleFullWidth={agentBubbleFullWidth}
+                        agentBoardMessaging={agentBoardMessaging}
+                        scrollContainerRef={scrollRef}
+                        horizonThinking
+                      />
+                    </GlossProvider>
+                  ) : (
                   <DialogueMessageList
                     isLoading={false}
                     messages={messages}
@@ -611,6 +655,7 @@ export function KeeperDialogFrame({
                     scrollContainerRef={scrollRef}
                     horizonThinking
                   />
+                  )}
                 </div>
               )
           }

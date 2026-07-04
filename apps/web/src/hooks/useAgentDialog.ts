@@ -7,6 +7,7 @@ import type { KipMessage } from "../lib/kipApi"
 import type { AgentAttachment } from "../components/agent/AgentComposer"
 import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components/agent/types"
 import { extractLinkedCard } from "../components/agent/helpers"
+import { parseGlossThreads } from "@keeper/shared"
 import { apiFetch } from "../lib/api"
 import {
   buildInstrumentUnavailableDelegationBeat,
@@ -49,6 +50,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const meta = message.metadata as Record<string, unknown> | null | undefined
   const actionResults = Array.isArray(meta?.actionResults) ? meta.actionResults : undefined
   const linkedCard = extractLinkedCard(meta)
+  const glossThreads = parseGlossThreads(meta?.glossThreads)
   const rawContent = typeof message.content === "string" ? message.content : ""
   return {
     id: message.id,
@@ -57,6 +59,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
     ...(linkedCard ? { linkedCard } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
+    ...(glossThreads.length ? { glossThreads } : {}),
   }
 }
 

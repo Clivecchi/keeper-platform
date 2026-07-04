@@ -10,7 +10,8 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/logger.ts` – simple console logger
 - `src/draftPoints.ts` – Draft Point types and `spec_json.points` helpers
 - `src/draftPointPromotion.ts` – `buildDraftPointPromotionPlan` for journey_spec point → Path/Moment mapping
-- `src/glossAnchor.ts` – `GlossAnchor` type + DOM attribute helpers (Gloss-readiness)
+- `src/glossAnchor.ts` – `GlossAnchor` type + DOM attribute helpers
+- `src/glossThread.ts` – `GlossThread` types, thread keys, metadata upsert helpers
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
 - `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
@@ -58,6 +59,10 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 ### 2026-06-19 — Draft spec merge safety (points preservation)
 - `mergeDraftSpecPatch` merges points by id; empty `points: []` no longer wipes existing points; non-content spec keys preserved on merge.
 - `appendDraftPointToSpec` / `updateDraftPointInSpec` preserve extra spec keys (paths, purpose, etc.).
+
+### 2026-07-03 — Gloss thread types + extended anchors
+- Extended `GlossAnchor` with `message`, `library`, `messageId`, `receiptIndex`, `GlossContentSnapshot`
+- Added `glossThread.ts` for inline gloss persistence on `kip_messages.metadata`
 
 ### 2026-06-19 — GlossAnchor types (Phase 1b)
 - Added `glossAnchor.ts` — `GlossAnchor`, `buildGlossAnchorDataAttribute`, `glossAnchorToDraftDiscuss`

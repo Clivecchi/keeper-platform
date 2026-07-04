@@ -64,6 +64,7 @@ import {
 } from "../../lib/kipDialogSession"
 import { createDraftMoment, keepMoment } from "../api/v0Moments"
 import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
+import type { GlossThread } from "@keeper/shared"
 import {
   BOARD_INSTRUMENT_LABELS,
   type DirectorSendPhase,
@@ -1638,6 +1639,15 @@ export function UniversalConversation({
     ],
   )
 
+  const handleGlossThreadUpdate = React.useCallback(
+    (messageId: string, threads: GlossThread[]) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, glossThreads: threads } : m)),
+      )
+    },
+    [setMessages],
+  )
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -1705,6 +1715,15 @@ export function UniversalConversation({
         }
         activeSessionId={dialogSessionId}
         disabled={composerDisabled}
+        glossConfig={{
+          agentId: dialogAgentId,
+          sessionId: dialogSessionId,
+          domainId: domainId ?? null,
+          domainSlug: domainSlug ?? null,
+          agentContext: agentContext as Record<string, unknown> | undefined,
+          agentName: dialogAgentDisplayName,
+          onUpdateMessageThreads: handleGlossThreadUpdate,
+        }}
       />
     </div>
   )

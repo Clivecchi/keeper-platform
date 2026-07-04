@@ -4,6 +4,7 @@
  */
 
 import type { LinkedCardProps } from "../../types/props"
+import type { GlossThread } from "@keeper/shared"
 
 export type DirectorDelegationStatus = "ok" | "failed" | "empty"
 
@@ -49,6 +50,8 @@ export interface AgentDialogueMessage {
       [key: string]: unknown
     }
   }>
+  /** Inline gloss sub-conversations anchored to nodes within this message */
+  glossThreads?: GlossThread[]
 }
 
 export interface DialogueMetaItem {

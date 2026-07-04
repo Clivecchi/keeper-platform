@@ -28,6 +28,7 @@ import {
   resolveDirectorDelegationMessage,
   type DraftDiscussContext,
   shapeRecordTitle,
+  isGlossAnchor,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
@@ -608,7 +609,7 @@ async function enrichEnvironmentActiveDraft(
 function buildDraftDiscussPrompt(
   agentContext: Record<string, unknown> | undefined,
 ): string | null {
-  if (!agentContext) return null;
+  if (!agentContext || agentContext.glossMode === true) return null;
   const draftDiscuss = agentContext.draftDiscuss as DraftDiscussContext | undefined;
   if (!draftDiscuss?.draftId || !draftDiscuss.pointId) return null;
   const intent = agentContext.draftDiscussIntent === 'rewrite' ? 'rewrite' : 'discuss';
@@ -627,6 +628,66 @@ function buildDraftDiscussPrompt(
     '- To revise this point, use draft.point.rewrite with the exact pointId above.',
     '- Accepted points on this draft are anchors — treat their text as fixed context.',
   ].join('\n');
+}
+
+function isGlossMode(agentContext: Record<string, unknown> | undefined | null): boolean {
+  return agentContext?.glossMode === true;
+}
+
+function buildGlossDiscussPrompt(
+  agentContext: Record<string, unknown> | undefined,
+): string | null {
+  if (!agentContext || agentContext.glossMode !== true) return null;
+  const anchorRaw = agentContext.glossAnchor;
+  if (!isGlossAnchor(anchorRaw)) return null;
+
+  const parts: string[] = [
+    'GLOSS — inline focused exchange on one specific piece of content in the Dialog stream:',
+    `- Anchor: ${JSON.stringify(anchorRaw)}`,
+    '- The user is discussing exactly this anchored item — stay on it unless they redirect.',
+    '- Keep replies concise; this is a margin note, not a new main thread.',
+    '- Do not repeat the entire parent message unless needed for clarity.',
+  ];
+
+  const glossContent = agentContext.glossContent as
+    | { label?: string; text?: string; imageUrl?: string }
+    | undefined;
+  if (glossContent?.label) parts.push(`- Label: ${glossContent.label}`);
+  if (glossContent?.text?.trim()) parts.push(`- Content:\n${glossContent.text.trim()}`);
+  if (glossContent?.imageUrl) parts.push(`- Image: ${glossContent.imageUrl}`);
+
+  const history = agentContext.glossThreadHistory as
+    | Array<{ role?: string; content?: string }>
+    | undefined;
+  if (Array.isArray(history) && history.length > 1) {
+    parts.push('- Prior gloss exchanges on this anchor:');
+    for (const turn of history.slice(0, -1)) {
+      const role = turn.role === 'user' ? 'User' : 'Agent';
+      const content = typeof turn.content === 'string' ? turn.content.trim() : '';
+      if (content) parts.push(`  ${role}: ${content}`);
+    }
+  }
+
+  if (anchorRaw.entityKind === 'draft' && anchorRaw.nodeId) {
+    parts.push(
+      `- Draft point: draft ${anchorRaw.entityId}, pointId ${anchorRaw.nodeId}.`,
+      '- To revise this point, use draft.point.rewrite with the exact pointId.',
+    );
+  } else if (anchorRaw.entityKind === 'moment') {
+    parts.push(`- Moment id: ${anchorRaw.entityId}. Use moment.read if you need full details.`);
+  } else if (anchorRaw.entityKind === 'library') {
+    parts.push(`- Library item id: ${anchorRaw.entityId}.`);
+  } else if (anchorRaw.entityKind === 'message') {
+    parts.push('- In-stream message node — refer to gloss content above.');
+  }
+
+  return parts.join('\n');
+}
+
+function buildContextFocusPrompt(
+  agentContext: Record<string, unknown> | undefined,
+): string | null {
+  return buildGlossDiscussPrompt(agentContext) ?? buildDraftDiscussPrompt(agentContext);
 }
 
 function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
@@ -3391,6 +3452,48 @@ export class KipAgentService {
   }
 
   /**
+   * Merge metadata onto an existing kip_message (e.g. gloss thread persistence).
+   */
+  static async updateMessageMetadata(
+    messageId: string,
+    userId: string,
+    metadataPatch: Record<string, unknown>,
+  ): Promise<void> {
+    if (!messageId || !userId) {
+      throw new Error('Message ID and user ID are required');
+    }
+    if (!metadataPatch || typeof metadataPatch !== 'object') {
+      throw new Error('Metadata patch is required');
+    }
+
+    const message = await prisma.kip_messages.findUnique({
+      where: { id: messageId },
+      include: {
+        kip_sessions: { select: { user_id: true } },
+      },
+    });
+
+    if (!message || message.kip_sessions.user_id !== userId) {
+      throw new Error('Message not found');
+    }
+
+    const existing =
+      message.metadata && typeof message.metadata === 'object' && !Array.isArray(message.metadata)
+        ? (message.metadata as Record<string, unknown>)
+        : {};
+
+    await prisma.kip_messages.update({
+      where: { id: messageId },
+      data: {
+        metadata: {
+          ...existing,
+          ...metadataPatch,
+        } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  /**
    * Generate Lead agent response with memory context (Legacy - for fallback)
    */
   static generateLeadAgentResponseWithMemory(agent: TypedAgent, input: string, previousMessages: KipMessageWithRelations[]): string {
@@ -3524,7 +3627,7 @@ export class KipAgentService {
       const agentContextRecord =
         (environment as { agentContext?: Record<string, unknown> }).agentContext
         ?? (options as { agentContext?: Record<string, unknown> }).agentContext;
-      const draftDiscussPrompt = buildDraftDiscussPrompt(agentContextRecord);
+      const draftDiscussPrompt = buildContextFocusPrompt(agentContextRecord);
       if (draftDiscussPrompt) {
         systemParts.push(draftDiscussPrompt);
       }
@@ -3880,7 +3983,7 @@ export class KipAgentService {
 
         const agentContextRecord =
           (environmentContext as { agentContext?: Record<string, unknown> }).agentContext;
-        const draftDiscussPrompt = buildDraftDiscussPrompt(agentContextRecord);
+        const draftDiscussPrompt = buildContextFocusPrompt(agentContextRecord);
         if (draftDiscussPrompt) {
           messages.push({
             role: 'system',
@@ -4367,8 +4470,8 @@ export class KipAgentService {
             }
           }
           
-          // Save user message to memory if we have a session
-          if (currentSessionId) {
+          // Save user message to memory if we have a session (skip gloss sub-turns — persisted on parent message)
+          if (currentSessionId && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)) {
             try {
               const textToSave =
                 input?.trim()
@@ -4855,8 +4958,12 @@ export class KipAgentService {
           }
         }
 
-        // Save agent response to memory if we have a session (include actionResults in metadata for persistence)
-        if (agent.memory_enabled && currentSessionId) {
+        // Save agent response to memory if we have a session (skip gloss sub-turns)
+        if (
+          agent.memory_enabled
+          && currentSessionId
+          && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)
+        ) {
           try {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
@@ -4995,7 +5102,7 @@ export class KipAgentService {
             const textToSave =
               input?.trim() ||
               (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
-            if (textToSave) {
+            if (textToSave && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)) {
               await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId,
@@ -5126,7 +5233,7 @@ export class KipAgentService {
           }
         }
 
-        if (currentSessionId) {
+        if (currentSessionId && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)) {
           try {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
@@ -5681,6 +5788,42 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           domain: resolvedDomain,
         });
         
+        if (action === 'updateMessageMetadata') {
+          const messageId = typeof (req.body as { messageId?: unknown }).messageId === 'string'
+            ? (req.body as { messageId: string }).messageId
+            : null;
+          const metadata =
+            (req.body as { metadata?: unknown }).metadata
+            && typeof (req.body as { metadata?: unknown }).metadata === 'object'
+            && !Array.isArray((req.body as { metadata?: unknown }).metadata)
+              ? ((req.body as { metadata: Record<string, unknown> }).metadata)
+              : null;
+
+          if (!messageId || !metadata) {
+            return respond(400, {
+              success: false,
+              error: 'messageId and metadata object are required',
+            });
+          }
+
+          const resolvedUserId = resolvedUser.userId;
+          if (!resolvedUserId) {
+            return respond(401, {
+              success: false,
+              error: { code: 'UNAUTHORIZED', message: 'Missing user context' },
+            });
+          }
+
+          try {
+            await KipAgentService.updateMessageMetadata(messageId, resolvedUserId, metadata);
+            return respond(200, { success: true });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update message metadata';
+            const isNotFound = /not found/i.test(message);
+            return respond(isNotFound ? 404 : 500, { success: false, error: message });
+          }
+        }
+
         if (action === 'run') {
           // Validate using Zod schema
           const validation = AgentRunSchema.safeParse({

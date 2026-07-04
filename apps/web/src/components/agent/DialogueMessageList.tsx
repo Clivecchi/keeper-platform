@@ -15,6 +15,8 @@ import { formatTime } from "./helpers"
 import { getAgentErrorPresentation } from "./errorPresentation"
 import { isDirectorDelegationFailureContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
+import { GlossSurface } from "../gloss/GlossSurface"
+import { buildMessageGlossAnchor } from "@keeper/shared"
 
 function visibleDelegationBeat(
   delegation: DialogResponseEcho | undefined,
@@ -158,7 +160,14 @@ function AgentMessageTurn({
           boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
         }}
       >
-        <p className="whitespace-pre-line">{message.content}</p>
+        <GlossSurface
+          messageId={message.id}
+          anchor={buildMessageGlossAnchor(message.id, "body")}
+          glossThreads={message.glossThreads}
+          snapshot={{ label: "message", text: message.content.trim().slice(0, 280) }}
+        >
+          <p className="whitespace-pre-line">{message.content}</p>
+        </GlossSurface>
         <MessageAttachments
           message={message}
           onOpenDraft={onOpenDraft}
@@ -283,6 +292,9 @@ function MessageAttachments({
               <ActionReceiptCard
                 key={idx}
                 receipt={receipt}
+                glossMessageId={message.id}
+                glossReceiptIndex={idx}
+                glossThreads={message.glossThreads}
                 contextNarrative={message.role === "agent" ? message.content : undefined}
                 onOpenDraft={
                   receipt.data?.draft?.id ? (draftId) => onOpenDraft?.(draftId) : undefined
@@ -387,7 +399,14 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                   backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
                 }}
               >
-                <p className="whitespace-pre-line">{message.content}</p>
+                <GlossSurface
+                  messageId={message.id}
+                  anchor={buildMessageGlossAnchor(message.id, "body")}
+                  glossThreads={message.glossThreads}
+                  snapshot={{ label: "your message", text: message.content.trim().slice(0, 280) }}
+                >
+                  <p className="whitespace-pre-line">{message.content}</p>
+                </GlossSurface>
                 <span className="mt-2 block text-xs" style={{ color: "rgba(255,255,255,0.8)" }}>
                   {formatTime(message.createdAt)}
                 </span>
