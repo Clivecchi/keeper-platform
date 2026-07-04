@@ -74,8 +74,16 @@ export type AgentAttachment = {
   type: "image" | "file"
 }
 
+export type ComposerAgentChip = {
+  slug: string
+  label: string
+}
+
 export interface AgentComposerProps {
   agentName: string
+  /** Invoked collaborators on the composer toolbar (lead agent, etc.) — each chip has an X to return to the footer bar. */
+  composerAgents?: ReadonlyArray<ComposerAgentChip>
+  onRemoveComposerAgent?: (slug: string) => void
   agentId: string | null
   domainId: string | null
   keeperId?: string | null
@@ -137,6 +145,8 @@ export function inferAttachmentType(file: File): PendingAttachment["type"] {
 
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   agentName,
+  composerAgents,
+  onRemoveComposerAgent,
   domainId,
   keeperId,
   journeyId,
@@ -350,31 +360,60 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           className="keeper-composer-toolbar flex items-center justify-between gap-2 rounded-t-[10px] border-b px-3 py-2"
           style={{ borderColor: SURFACE.border, backgroundColor: SURFACE.toolbarBg }}
         >
-          <div className="flex shrink-0 items-center">
-            <div
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1"
-              style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.6)" }}
-            >
-              <span className="text-xs" aria-hidden style={{ color: SURFACE.inkSecondary }}>
-                ∞
-              </span>
-              <span className="text-xs font-medium" style={{ color: SURFACE.inkPrimary }}>
-                {agentName}
-              </span>
-              {onModeChange && (
-                <select
-                  value={dialogueMode}
-                  onChange={(e) => onModeChange(e.target.value as "domain" | "debug")}
-                  disabled={disabled}
-                  className="ml-1 cursor-pointer border-0 bg-transparent p-0 text-xs font-medium focus:outline-none focus:ring-0 disabled:opacity-50"
-                  style={{ color: SURFACE.inkSecondary }}
-                  aria-label="Agent mode"
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            {composerAgents && composerAgents.length > 0 ? (
+              composerAgents.map(({ slug, label }) => (
+                <div
+                  key={slug}
+                  className="flex items-center gap-1 rounded-lg pl-2.5 pr-1 py-1"
+                  style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.6)" }}
                 >
-                  <option value="domain">Domain</option>
-                  <option value="debug">Debug</option>
-                </select>
-              )}
-            </div>
+                  <span className="text-xs" aria-hidden style={{ color: SURFACE.inkSecondary }}>
+                    ∞
+                  </span>
+                  <span className="text-xs font-medium" style={{ color: SURFACE.inkPrimary }}>
+                    {label}
+                  </span>
+                  {onRemoveComposerAgent ? (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveComposerAgent(slug)}
+                      className="flex h-5 w-5 items-center justify-center rounded-md transition-colors hover:bg-black/5"
+                      style={{ color: SURFACE.inkTertiary }}
+                      aria-label={`Remove ${label} from composer`}
+                      title={`Remove ${label} — returns to Agents bar`}
+                    >
+                      <XMarkIcon className="h-3 w-3" strokeWidth={2} />
+                    </button>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <div
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1"
+                style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.6)" }}
+              >
+                <span className="text-xs" aria-hidden style={{ color: SURFACE.inkSecondary }}>
+                  ∞
+                </span>
+                <span className="text-xs font-medium" style={{ color: SURFACE.inkPrimary }}>
+                  {agentName}
+                </span>
+              </div>
+            )}
+            {onModeChange && (
+              <select
+                value={dialogueMode}
+                onChange={(e) => onModeChange(e.target.value as "domain" | "debug")}
+                disabled={disabled}
+                className="cursor-pointer rounded-lg border-0 bg-transparent px-2 py-1 text-xs font-medium focus:outline-none focus:ring-0 disabled:opacity-50"
+                style={{ color: SURFACE.inkSecondary }}
+                aria-label="Agent mode"
+              >
+                <option value="domain">Domain</option>
+                <option value="debug">Debug</option>
+              </select>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {showTalkMic ? (

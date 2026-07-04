@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-03 — Domain/Realm composer session bootstrap
+- `useAgentDialog` — when Universal Board controls session id, domain/agent board init now calls `onControlledSessionIdChange(sessionId)` after `resumeOrCreateBoardSession` (matches IDE). Fixes composer locked with "Create a session to start chatting" after controlled-session regression.
+
 ### 2026-07-03 — Session accuracy + resume scope
 - `useAgentDialog` — controlled boards ignore stale internal session ids; reset transcript on board key change.
 - `useSelectionSessionResume` — Agent Board agent nav uses board-scoped session resolve.

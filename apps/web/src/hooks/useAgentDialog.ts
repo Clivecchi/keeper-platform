@@ -443,7 +443,12 @@ export function useAgentDialog({
           domainSlug,
           sessionName: name,
         })
-        if (!cancelled) setInternalSessionId(sessionId)
+        if (cancelled) return
+        if (onControlledSessionIdChange) {
+          if (!activeSessionIdRef.current) onControlledSessionIdChange(sessionId)
+        } else {
+          setInternalSessionId(sessionId)
+        }
       } catch {
         /* composer stays disabled */
       }
@@ -452,7 +457,19 @@ export function useAgentDialog({
     return () => {
       cancelled = true
     }
-  }, [mode, agentId, manageSessionExternally, domainSlug, domainId, resolvedAudience, dialogBoard, dialogFrame, dialogSubject, sessionDisplayName])
+  }, [
+    mode,
+    agentId,
+    manageSessionExternally,
+    domainSlug,
+    domainId,
+    resolvedAudience,
+    dialogBoard,
+    dialogFrame,
+    dialogSubject,
+    sessionDisplayName,
+    onControlledSessionIdChange,
+  ])
 
   // ide: controlled session bootstrap
   React.useEffect(() => {

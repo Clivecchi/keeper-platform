@@ -72,8 +72,10 @@ import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
-import { readFrameLeadAgentSlug, resolveDialogAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS } from "../lib/frameLeadAgentIdentity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
+import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
+import type { ComposerAgentChip } from "../../components/agent/AgentComposer"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -337,14 +339,110 @@ export function UniversalConversation({
     return {}
   }, [kipMode, domainScopedAgents])
 
-  const domainBoardInstruments = React.useMemo(
-    () =>
-      Object.entries(directorInstrumentLabels).map(([slug, label]) => ({
-        slug,
-        label,
-      })),
-    [directorInstrumentLabels],
-  )
+  const normalizedDomainLeadSlug = React.useMemo(() => {
+    const raw = frameLeadAgentSlug?.trim()
+    if (!raw || PLACEHOLDER_LEAD_AGENT_SLUGS.has(raw)) return null
+    return raw
+  }, [frameLeadAgentSlug])
+
+  const domainLeadDisplayName =
+    normalizedDomainLeadSlug && frameLeadIdentity.displayName
+      ? frameLeadIdentity.displayName
+      : null
+
+  const [composerLeadSlug, setComposerLeadSlug] = React.useState<string | null>(null)
+  const defaultLeadPinnedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (kipMode !== "domain" || !isDirectorMode) {
+      setComposerLeadSlug(null)
+      defaultLeadPinnedRef.current = false
+      return
+    }
+    if (normalizedDomainLeadSlug && domainLeadDisplayName) {
+      setComposerLeadSlug((prev) => prev ?? normalizedDomainLeadSlug)
+    }
+  }, [kipMode, isDirectorMode, normalizedDomainLeadSlug, domainLeadDisplayName])
+
+  React.useEffect(() => {
+    if (kipMode !== "domain" || !isDirectorMode) return
+    if (defaultLeadPinnedRef.current || activeBoardInstrument !== null) return
+    if (
+      normalizedDomainLeadSlug &&
+      directorInstrumentLabels[normalizedDomainLeadSlug]
+    ) {
+      actions.onSetActiveBoardInstrument(normalizedDomainLeadSlug)
+      defaultLeadPinnedRef.current = true
+    }
+  }, [
+    kipMode,
+    isDirectorMode,
+    normalizedDomainLeadSlug,
+    directorInstrumentLabels,
+    activeBoardInstrument,
+    actions,
+  ])
+
+  const domainDirectorBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
+    if (kipMode !== "domain" || !isDirectorMode) return []
+    const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
+    const instruments: BoardInstrumentChip[] = [
+      {
+        slug: directorAgentSlug,
+        label: defaultAgentName,
+        isDirector: true,
+      },
+    ]
+    if (
+      normalizedDomainLeadSlug &&
+      composerLeadSlug !== normalizedDomainLeadSlug &&
+      domainLeadDisplayName
+    ) {
+      instruments.push({
+        slug: normalizedDomainLeadSlug,
+        label: domainLeadDisplayName,
+      })
+    }
+    for (const agent of domainScopedAgents) {
+      if (
+        platformComposerSlugs.has(agent.slug) ||
+        agent.slug === normalizedDomainLeadSlug ||
+        agent.slug === directorAgentSlug
+      ) {
+        continue
+      }
+      instruments.push({ slug: agent.slug, label: agent.name })
+    }
+    return instruments
+  }, [
+    kipMode,
+    isDirectorMode,
+    directorAgentSlug,
+    defaultAgentName,
+    normalizedDomainLeadSlug,
+    composerLeadSlug,
+    domainLeadDisplayName,
+    domainScopedAgents,
+  ])
+
+  const composerAgentChips = React.useMemo((): ComposerAgentChip[] => {
+    if (
+      kipMode !== "domain" ||
+      !isDirectorMode ||
+      !composerLeadSlug ||
+      !domainLeadDisplayName ||
+      composerLeadSlug !== normalizedDomainLeadSlug
+    ) {
+      return []
+    }
+    return [{ slug: composerLeadSlug, label: domainLeadDisplayName }]
+  }, [
+    kipMode,
+    isDirectorMode,
+    composerLeadSlug,
+    domainLeadDisplayName,
+    normalizedDomainLeadSlug,
+  ])
 
   const dialogAgentSlug = guidedArrivalActive && guidedArrival
     ? guidedArrival.leadAgentSlug
@@ -359,13 +457,15 @@ export function UniversalConversation({
 
   const dialogAgentDisplayName = guidedArrivalActive && guidedArrival
     ? guidedArrival.leadAgentDisplayName
-    : usesFrameLeadAgent
-      ? frameLeadIdentity.displayName
-      : isDirectorMode
-        ? defaultAgentName
-        : usingSelectedNonDefaultAgent && selectedAgentRecord
-          ? selectedAgentRecord.name
-          : def.conversation.agentName
+    : composerAgentChips.length > 0
+      ? composerAgentChips[0].label
+      : usesFrameLeadAgent
+        ? frameLeadIdentity.displayName
+        : isDirectorMode
+          ? defaultAgentName
+          : usingSelectedNonDefaultAgent && selectedAgentRecord
+            ? selectedAgentRecord.name
+            : def.conversation.agentName
 
   const directorConfig = React.useMemo(
     () =>
@@ -1086,10 +1186,36 @@ export function UniversalConversation({
   const handleBoardInstrumentInvoke = React.useCallback(
     (slug: string) => {
       if (!isDirectorMode) return
+      if (slug === directorAgentSlug) {
+        actions.onSetActiveBoardInstrument(null)
+        return
+      }
+      if (normalizedDomainLeadSlug && slug === normalizedDomainLeadSlug) {
+        setComposerLeadSlug(slug)
+        actions.onSetActiveBoardInstrument(slug)
+        return
+      }
       const next = activeBoardInstrument === slug ? null : slug
       actions.onSetActiveBoardInstrument(next)
     },
-    [isDirectorMode, activeBoardInstrument, actions],
+    [
+      isDirectorMode,
+      directorAgentSlug,
+      normalizedDomainLeadSlug,
+      activeBoardInstrument,
+      actions,
+    ],
+  )
+
+  const handleRemoveComposerAgent = React.useCallback(
+    (slug: string) => {
+      if (slug !== composerLeadSlug) return
+      setComposerLeadSlug(null)
+      if (activeBoardInstrument === slug) {
+        actions.onSetActiveBoardInstrument(null)
+      }
+    },
+    [composerLeadSlug, activeBoardInstrument, actions],
   )
 
   const handleToolInvoke = React.useCallback(
@@ -1525,12 +1651,18 @@ export function UniversalConversation({
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
         onToolInvoke={isDirectorMode && kipMode === "ide" ? handleToolInvoke : undefined}
         activeToolSlug={isDirectorMode && kipMode === "ide" ? activeBoardInstrument : null}
-        boardInstruments={isDirectorMode && kipMode === "domain" ? domainBoardInstruments : undefined}
+        boardInstruments={
+          isDirectorMode && kipMode === "domain" ? domainDirectorBoardInstruments : undefined
+        }
         onBoardInstrumentInvoke={
           isDirectorMode && kipMode === "domain" ? handleBoardInstrumentInvoke : undefined
         }
         activeBoardInstrumentSlug={
           isDirectorMode && kipMode === "domain" ? activeBoardInstrument : null
+        }
+        composerAgents={composerAgentChips.length > 0 ? composerAgentChips : undefined}
+        onRemoveComposerAgent={
+          composerAgentChips.length > 0 ? handleRemoveComposerAgent : undefined
         }
         thinkingStatusLabel={horizonThinkingLabel}
         thinkingSteps={thinkingSteps}

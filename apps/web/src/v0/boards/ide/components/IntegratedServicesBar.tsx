@@ -13,8 +13,10 @@ export interface IntegratedServicesBarProps {
   onOpen: (service?: ServiceSlug) => void
   /** Pins Cloud or Rendr for director delegation (does not swap composer agent or Chronicle). */
   onToolInvoke?: (tool: ToolSlug) => void
-  /** Currently pinned instrument — highlights the active tool chip. */
+  /** Currently pinned instrument — highlights the active agent chip. */
   activeToolSlug?: ToolSlug | null
+  /** Eyebrow for invokable agent chips — matches Domain board `BoardInstrumentsBar`. */
+  agentsEyebrow?: string
   railwayStatus: ServiceStatus
   vercelStatus: ServiceStatus
   githubStatus: ServiceStatus
@@ -43,6 +45,7 @@ export function IntegratedServicesBar({
   onOpen,
   onToolInvoke,
   activeToolSlug = null,
+  agentsEyebrow = "Agents",
   railwayStatus,
   vercelStatus,
   githubStatus,
@@ -81,14 +84,14 @@ export function IntegratedServicesBar({
           width: "100%",
         }}
       >
-        {/* Tools — invokable agents, visually distinct from navigational services */}
+        {/* Agents — invokable board agents, visually distinct from navigational services */}
         {onToolInvoke && (
           <>
-            <BarEyebrow label="Tools" />
+            <BarEyebrow label={agentsEyebrow} />
             <BarRule />
             <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 16 }}>
               {TOOLS.map(({ slug, label }) => (
-                <ToolChip
+                <AgentChip
                   key={slug}
                   slug={slug}
                   label={label}
@@ -183,7 +186,7 @@ function ChipDivider() {
   )
 }
 
-function ToolChip({
+function AgentChip({
   slug,
   label,
   isActive,

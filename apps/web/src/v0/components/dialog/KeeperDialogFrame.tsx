@@ -134,6 +134,9 @@ export interface KeeperDialogFrameProps {
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
   agentName?: string
+  /** Invoked collaborators on composer toolbar (Domain lead agent, etc.). */
+  composerAgents?: AgentComposerProps["composerAgents"]
+  onRemoveComposerAgent?: AgentComposerProps["onRemoveComposerAgent"]
   /** Echo attribution fallback — board def agentName (def.conversation.agentName) */
   echoAgentName?: string
   agentBubbleFullWidth?: boolean
@@ -223,6 +226,8 @@ export function KeeperDialogFrame({
   acceptedDraftPointIds,
   acceptingDraftPointId,
   agentName = "Kip",
+  composerAgents,
+  onRemoveComposerAgent,
   echoAgentName,
   agentBubbleFullWidth = true,
   agentBoardMessaging,
@@ -671,6 +676,8 @@ export function KeeperDialogFrame({
           )}
           <AgentComposer
             agentName={agentName}
+            composerAgents={composerAgents}
+            onRemoveComposerAgent={onRemoveComposerAgent}
             agentId={agentId}
             domainId={domainId}
             dialogueMode={dialogueMode}
