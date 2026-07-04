@@ -37,6 +37,7 @@ import {
   buildDomainBoardPath,
   buildHomePath,
   DEFAULT_HOME_DISPLAY_NAME,
+  HOME_DOMAIN_PARAM,
   HOME_PATH,
   type V0ShellMode,
 } from "./shellMode"
@@ -215,14 +216,15 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
 
   React.useEffect(() => {
     if (!isHomeShell || !authResolved || !isAuthenticated) return
+    const domainParam = searchParams.get(HOME_DOMAIN_PARAM)?.trim().toLowerCase() || null
     let cancelled = false
     void resolvePostLoginDomainSlug().then((resolved) => {
-      if (!cancelled) setAnchorDomainSlug(resolved)
+      if (!cancelled) setAnchorDomainSlug(domainParam || resolved)
     })
     return () => {
       cancelled = true
     }
-  }, [isHomeShell, authResolved, isAuthenticated])
+  }, [isHomeShell, authResolved, isAuthenticated, searchParams])
 
   React.useEffect(() => {
     if (!isHomeShell || !authResolved || !isAuthenticated) return

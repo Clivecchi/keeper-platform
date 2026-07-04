@@ -9,6 +9,9 @@ export type V0ShellMode = "domain" | "home"
 
 export const HOME_PATH = "/home" as const
 
+/** Optional anchor domain on `/home` — `?domain=:slug` */
+export const HOME_DOMAIN_PARAM = "domain" as const
+
 export const DEFAULT_HOME_DISPLAY_NAME = "Home" as const
 
 export function buildHomePath(search?: URLSearchParams | string): string {

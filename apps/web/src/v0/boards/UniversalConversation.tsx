@@ -773,6 +773,16 @@ export function UniversalConversation({
         })
         if (savedGeneratedImage) {
           actions.bumpLibraryNav()
+          for (const ar of actionResults) {
+            const receipt = normalizeActionReceipt(
+              ar as Parameters<typeof normalizeActionReceipt>[0],
+            )
+            const libraryItemId = receipt.data?.libraryItemId
+            if (typeof libraryItemId === "string") {
+              actions.onLibraryItemSelect(libraryItemId)
+              break
+            }
+          }
         }
       }
 
@@ -1598,10 +1608,11 @@ export function UniversalConversation({
           domainSlug,
           journeyId: selectedJourneyId ?? undefined,
           keeperId: selectedKeeperId ?? undefined,
-          imageUrl: payload.imageUrl,
+          imageUrl: payload.libraryItemId ? undefined : payload.imageUrl,
+          libraryItemId: payload.libraryItemId,
         })
         actions.bumpLibraryNav?.()
-        const libraryItemId = kept.data.libraryItemId
+        const libraryItemId = payload.libraryItemId ?? kept.data.libraryItemId
         if (libraryItemId) {
           actions.onLibraryItemSelect(libraryItemId)
         }

@@ -1,4 +1,5 @@
 import { apiFetch } from "../../../lib/apiFetch"
+import { shapeRecordTitle } from "@keeper/shared"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
 import { loadLibraryNavRows } from "../../boards/boardNavDataCache"
 
@@ -80,7 +81,7 @@ export function deriveLibraryItemName(
 export function libraryItemChronicleTitle(
   row: Pick<LibraryNavRow, "source_type" | "source_ref" | "display_label">,
 ): string {
-  return deriveLibraryItemName(row)
+  return shapeRecordTitle(deriveLibraryItemName(row), "Untitled")
 }
 
 export function librarySourceIconLetter(sourceType: string): string {

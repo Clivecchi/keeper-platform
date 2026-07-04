@@ -8,6 +8,7 @@
  */
 
 import React from "react"
+import { shapeRecordTitle } from "@keeper/shared"
 
 export interface ActionReceipt {
   type: string
@@ -29,6 +30,8 @@ export interface KeepAsMomentPayload {
   title: string
   narrative: string
   imageUrl?: string
+  /** When image.generate already archived to Library — reuse, do not duplicate. */
+  libraryItemId?: string
 }
 
 export interface ActionReceiptCardProps {
@@ -197,16 +200,10 @@ function deriveKeepTitle(
   imagePrompt: string | undefined,
   contextNarrative: string | undefined,
 ): string {
-  if (subject?.trim()) return subject.trim()
-  if (imagePrompt?.trim()) {
-    const trimmed = imagePrompt.trim()
-    return trimmed.length > 72 ? `${trimmed.slice(0, 69)}…` : trimmed
-  }
-  const firstLine = contextNarrative?.split("\n").find((line) => line.trim())?.trim()
-  if (firstLine) {
-    return firstLine.length > 72 ? `${firstLine.slice(0, 69)}…` : firstLine
-  }
-  return "Captured moment"
+  return shapeRecordTitle(
+    subject?.trim() || imagePrompt?.trim() || contextNarrative?.trim(),
+    "Captured moment",
+  )
 }
 
 function ImageReceiptCard({
@@ -237,6 +234,7 @@ function ImageReceiptCard({
         title: deriveKeepTitle(subject, imagePrompt, contextNarrative),
         narrative: contextNarrative?.trim() ?? "",
         imageUrl,
+        libraryItemId,
       })
       setKept(true)
     } catch (err) {
@@ -277,7 +275,7 @@ function ImageReceiptCard({
       )}
       {libraryItemId ? (
         <p className="border-t px-3 py-2 text-xs" style={{ borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))", color: "hsl(var(--theme-ink-secondary))" }}>
-          Saved to Library — find it under Generated items in Nav.
+          Saved to Library — see the Library list in Nav.
         </p>
       ) : null}
       {onKeepAsMoment && (

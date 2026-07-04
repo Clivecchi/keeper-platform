@@ -6,6 +6,8 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../workspaceBoardNav"
+import { HOME_SHELL_BOARD } from "../domainWorkspaceBoards"
+import { buildHomePath, HOME_DOMAIN_PARAM } from "../../shell/shellMode"
 import { DomainAddPanel } from "./DomainAddPanel"
 import {
   fetchDomainSwitcherEntries,
@@ -148,6 +150,7 @@ export function DomainSwitcherOverlay({
 }: DomainSwitcherOverlayProps) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { shellMode } = useV0Shell()
   const [switcherView, setSwitcherView] = React.useState<SwitcherView>("list")
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([])
   const [fetchState, setFetchState] = React.useState<SwitcherFetchState>("idle")
@@ -200,13 +203,27 @@ export function DomainSwitcherOverlay({
     [currentSlug],
   )
 
-  const handleDomainSelect = React.useCallback(
+  const navigateAfterDomainPick = React.useCallback(
     (nextSlug: string) => {
       if (nextSlug !== currentSlug) prefetchDomainShell(nextSlug)
       const preserved = new URLSearchParams(location.search)
+      if (shellMode === "home" || targetBoardId === HOME_SHELL_BOARD) {
+        preserved.set(HOME_DOMAIN_PARAM, nextSlug)
+        preserved.delete("board")
+        navigate(buildHomePath(preserved), { replace: true })
+        return
+      }
       navigate(buildDomainBoardUrl(nextSlug, targetBoardId, preserved))
     },
-    [navigate, targetBoardId, currentSlug, location.search],
+    [navigate, targetBoardId, currentSlug, location.search, shellMode],
+  )
+
+  const handleDomainSelect = React.useCallback(
+    (nextSlug: string) => {
+      navigateAfterDomainPick(nextSlug)
+      onClose()
+    },
+    [navigateAfterDomainPick, onClose],
   )
 
   const closeSwitcher = React.useCallback(() => {
@@ -222,10 +239,9 @@ export function DomainSwitcherOverlay({
     (nextSlug: string) => {
       closeSwitcher()
       setFetchAttempt((value) => value + 1)
-      const preserved = new URLSearchParams(location.search)
-      navigate(buildDomainBoardUrl(nextSlug, targetBoardId, preserved))
+      navigateAfterDomainPick(nextSlug)
     },
-    [closeSwitcher, navigate, targetBoardId, location.search],
+    [closeSwitcher, navigateAfterDomainPick],
   )
 
   const retryFetch = React.useCallback(() => {

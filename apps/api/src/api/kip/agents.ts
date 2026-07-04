@@ -27,6 +27,7 @@ import {
   type DirectorContinuityMessage,
   resolveDirectorDelegationMessage,
   type DraftDiscussContext,
+  shapeRecordTitle,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
@@ -2537,7 +2538,8 @@ export async function executeAgentActions(
                     sourceUrl: imageResult.url,
                     userId: ctx.userId,
                     domainId: ctx.domainId,
-                    displayLabel: `Generated · ${subject}`,
+                    displayLabel: shapeRecordTitle(subject, 'Generated image'),
+                    description: prompt,
                     keeperId: ctx.keeperId ?? null,
                   });
                   imageUrl = persisted.persistedUrl;

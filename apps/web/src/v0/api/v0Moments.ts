@@ -42,6 +42,8 @@ interface DomainScopedOptions {
   keeperId?: string;
   /** Generated image URL to archive into Library on keep */
   imageUrl?: string;
+  /** Existing library row from image.generate — do not duplicate on keep */
+  libraryItemId?: string;
 }
 
 interface DraftRequestOptions extends DomainScopedOptions {
@@ -235,6 +237,7 @@ export async function keepMoment(
   if (options?.journeyId) body.journeyId = options.journeyId;
   if (options?.keeperId) body.keeperId = options.keeperId;
   if (options?.imageUrl) body.imageUrl = options.imageUrl;
+  if (options?.libraryItemId) body.libraryItemId = options.libraryItemId;
 
   const response = await fetch(url, {
     method: 'POST',

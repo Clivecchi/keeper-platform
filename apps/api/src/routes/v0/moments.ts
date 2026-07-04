@@ -10,6 +10,7 @@ import {
   persistImageToLibrary,
   replaceMarkdownImageUrl,
 } from '../../services/imageArchiveService.js';
+import { shapeRecordTitle } from '@keeper/shared';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -246,7 +247,10 @@ router.post('/drafts', optionalAuthMiddleware, domainResolutionMiddleware, async
     const ownerId = req.user?.id ?? null;
 
     // Ensure required fields are not empty
-    const safeTitle = (title || '').trim() || 'Untitled Moment';
+    const safeTitle = shapeRecordTitle(
+      (title || '').trim() || (body || '').trim(),
+      'Untitled Moment',
+    );
     const safeNarrative = (body || '').trim() || '';
 
     console.log('[v0:moments] Creating domain-scoped draft:', {
@@ -438,6 +442,8 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
     const journeyId = typeof req.body?.journeyId === 'string' ? req.body.journeyId : undefined;
     const keeperId = typeof req.body?.keeperId === 'string' ? req.body.keeperId : undefined;
     const imageUrl = typeof req.body?.imageUrl === 'string' ? req.body.imageUrl.trim() : undefined;
+    const existingLibraryItemId =
+      typeof req.body?.libraryItemId === 'string' ? req.body.libraryItemId.trim() : undefined;
 
     // Get domain from resolved context - required for keeping
     const domainId = await resolveDomainId(req);
@@ -505,13 +511,38 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
     const sourceImageUrl =
       imageUrl || extractMarkdownImageUrl(existingMomentFull.narrative) || undefined;
 
-    if (sourceImageUrl && req.user?.id) {
+    const momentTitle = shapeRecordTitle(existingMomentFull.title, 'Captured moment');
+
+    if (existingLibraryItemId && req.user?.id) {
+      const existingItem = await prisma.libraryItem.findFirst({
+        where: { id: existingLibraryItemId, domain_id: domainId },
+      });
+      if (existingItem) {
+        libraryItemId = existingItem.id;
+        persistedCoverUrl = existingItem.source_ref;
+        await prisma.libraryItem.update({
+          where: { id: existingItem.id },
+          data: {
+            display_label: momentTitle,
+            ...(keeperId ? { assigned_keeper_id: keeperId } : {}),
+          },
+        });
+        if (sourceImageUrl) {
+          nextNarrative = replaceMarkdownImageUrl(nextNarrative, persistedCoverUrl);
+          nextPresenceSchema = mergePresenceSchemaCover(
+            nextPresenceSchema,
+            persistedCoverUrl,
+          ) as typeof nextPresenceSchema;
+        }
+      }
+    } else if (sourceImageUrl && req.user?.id) {
       try {
         const persisted = await persistImageToLibrary({
           sourceUrl: sourceImageUrl,
           userId: req.user.id,
           domainId,
-          displayLabel: existingMomentFull.title,
+          displayLabel: momentTitle,
+          description: existingMomentFull.narrative?.trim() || null,
           keeperId,
         });
         libraryItemId = persisted.libraryItemId;
@@ -538,6 +569,7 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
       where: { id },
       data: {
         domainId,
+        title: momentTitle,
         keptAt: new Date(),
         updatedAt: new Date(),
         narrative: nextNarrative,

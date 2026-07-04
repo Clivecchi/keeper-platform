@@ -2,14 +2,10 @@
 
 import * as React from "react"
 import clsx from "clsx"
-import { FileText } from "lucide-react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { FileText, ChevronDown } from "lucide-react"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
-import {
-  resolveWorkspaceBoardLinks,
-} from "../boards/domainWorkspaceBoards"
-import { HOME_PATH, DEFAULT_HOME_DISPLAY_NAME } from "../shell/shellMode"
+import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
@@ -51,16 +47,11 @@ function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef 
       aria-label="Profile menu"
       className="keeper-topbar-popover"
     >
-      {/* Identity block */}
       <div className="px-3 py-3">
         <p className="keeper-topbar-popover-name truncate">{displayName}</p>
         <p className="keeper-topbar-popover-role">{roleLabel}</p>
       </div>
-
-      {/* Hairline divider */}
       <div className="keeper-topbar-popover-divider" aria-hidden />
-
-      {/* Menu items — add Profile, Settings, etc. as additional <li> entries */}
       <ul role="none" style={{ margin: 0, padding: "4px 0", listStyle: "none" }}>
         <li role="none">
           <button
@@ -77,15 +68,11 @@ function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef 
   )
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface KeeperTopBarProps {
   onDomainClick: () => void
   onBriefClick: () => void
   isBriefOpen?: boolean
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getInitials(name: string | null, email: string | null): string {
   if (name?.trim()) {
@@ -105,55 +92,23 @@ function getRoleLabel(audience: string | null): string {
   return "Guest"
 }
 
-// ─── Board nav config ─────────────────────────────────────────────────────────
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: KeeperTopBarProps) {
-  const shell = useV0Shell()
   const {
     domainSlug,
     domainFrame,
     resolvedAudience,
     workspaceBoardId,
     switchWorkspace,
-    shellMode: contextShellMode,
-    homeDisplayName: contextHomeDisplayName,
-    anchorDomainSlug,
-    navigateHome: contextNavigateHome,
-    openDomainWorkspace: contextOpenDomainWorkspace,
-  } = shell
-  const navigate = useNavigate()
-  const location = useLocation()
+    shellMode,
+  } = useV0Shell()
   const { user, logout } = useAuth()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
-  const shellMode =
-    contextShellMode ?? (location.pathname === HOME_PATH ? "home" : "domain")
   const isHomeShell = shellMode === "home"
-  const homeLabel =
-    contextHomeDisplayName?.trim() || DEFAULT_HOME_DISPLAY_NAME
 
-  const handleNavigateHome =
-    contextNavigateHome ?? (() => navigate(HOME_PATH))
-
-  const handleOpenDomainWorkspace = React.useCallback(
-    (boardId: WorkspaceBoardId) => {
-      if (contextOpenDomainWorkspace) {
-        contextOpenDomainWorkspace(boardId)
-        return
-      }
-      switchWorkspace(boardId)
-    },
-    [contextOpenDomainWorkspace, switchWorkspace],
-  )
-
-  // ── Data ──
   const domainWordmark = domainFrame?.theme?.wordmark?.trim() || domainSlug
-  const wordmark = isHomeShell ? homeLabel : domainWordmark
   const tagline = (() => {
-    if (isHomeShell) return ""
     const card = domainFrame?.cover?.card as { tagLine?: string } | undefined
     return card?.tagLine?.trim() || domainFrame?.theme?.tagline?.trim() || ""
   })()
@@ -162,14 +117,10 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   const displayName = user?.name?.trim() || user?.email?.trim() || "Guest"
   const roleLabel = getRoleLabel(resolvedAudience)
 
-  const activeBoardId = workspaceBoardId
-
   const boardLinks = React.useMemo(
     () => (isHomeShell ? [] : resolveWorkspaceBoardLinks(domainSlug)),
     [domainSlug, isHomeShell],
   )
-
-  const domainWorkspaceLabel = domainWordmark || anchorDomainSlug || "Domain"
 
   const handleBoardClick = (id: WorkspaceBoardId) => {
     switchWorkspace(id)
@@ -185,46 +136,33 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
     logout()
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <div
-      className="keeper-platform-top-bar relative z-50 shrink-0"
-    >
-      {/* Row 1: domain identity + user */}
+    <div className="keeper-platform-top-bar relative z-50 shrink-0">
       <div className="keeper-topbar-identity-row">
-        {/* Left: identity — Home label on `/home`, domain wordmark on workspace */}
-        {isHomeShell ? (
-          <div className="keeper-topbar-identity" aria-label={homeLabel}>
-            <span
-              className="keeper-topbar-primary keeper-topbar-wordmark font-serif font-semibold truncate max-w-[320px]"
-            >
-              {wordmark}
+        <button
+          type="button"
+          onClick={onDomainClick}
+          className="keeper-topbar-identity group text-left"
+          aria-label={`Domain: ${domainWordmark}. Choose domain`}
+          aria-haspopup="dialog"
+        >
+          <span className="flex min-w-0 items-center gap-1">
+            <span className="keeper-topbar-primary keeper-topbar-wordmark font-serif font-semibold truncate max-w-[320px]">
+              {domainWordmark}
             </span>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onDomainClick}
-            className="keeper-topbar-identity"
-            aria-label={`Domain: ${wordmark}`}
-          >
-            <span
-              className="keeper-topbar-primary keeper-topbar-wordmark font-serif font-semibold truncate max-w-[320px]"
-            >
-              {wordmark}
+            <ChevronDown
+              className="keeper-topbar-secondary shrink-0 opacity-60 transition-opacity group-hover:opacity-100"
+              style={{ width: 14, height: 14 }}
+              aria-hidden
+            />
+          </span>
+          {tagline ? (
+            <span className="keeper-topbar-tagline text-[12px] leading-snug truncate max-w-[320px]">
+              {tagline}
             </span>
-            {tagline ? (
-              <span
-                className="keeper-topbar-tagline text-[12px] leading-snug truncate max-w-[320px]"
-              >
-                {tagline}
-              </span>
-            ) : null}
-          </button>
-        )}
+          ) : null}
+        </button>
 
-        {/* Right: user name, role, avatar — vertically centered as one unit */}
         <div className="keeper-topbar-user">
           <div className="keeper-topbar-user-meta">
             <p
@@ -248,8 +186,6 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
           >
             {initials}
           </button>
-
-          {/* Profile popover */}
           {profileOpen && resolvedAudience !== "guest" && (
             <ProfilePopover
               displayName={displayName}
@@ -262,39 +198,10 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
         </div>
       </div>
 
-      {/* Row 2: Home link + board tabs (domain) or Places link (home) + Brief */}
       <div className="keeper-topbar-nav-row">
         <nav className="flex items-center gap-0.5" aria-label="Board navigation">
-          {!isHomeShell && (
-            <>
-              <button
-                type="button"
-                onClick={handleNavigateHome}
-                className="keeper-topbar-secondary text-[13px] transition-colors py-0.5"
-              >
-                {homeLabel}
-              </button>
-              {boardLinks.length > 0 && (
-                <span
-                  className="keeper-topbar-secondary select-none px-1.5 text-[13px]"
-                  aria-hidden
-                >
-                  ·
-                </span>
-              )}
-            </>
-          )}
-          {isHomeShell && anchorDomainSlug ? (
-            <button
-              type="button"
-              onClick={() => handleOpenDomainWorkspace("domain")}
-              className="keeper-topbar-secondary text-[13px] transition-colors py-0.5"
-            >
-              {domainWorkspaceLabel}
-            </button>
-          ) : null}
           {boardLinks.map(({ id, label }, idx) => {
-            const isActive = activeBoardId === id
+            const isActive = workspaceBoardId === id
             return (
               <React.Fragment key={id}>
                 {idx > 0 && (
@@ -321,21 +228,19 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
           })}
         </nav>
 
-        {!isHomeShell && (
-          <button
-            type="button"
-            onClick={onBriefClick}
-            className={clsx(
-              "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
-              isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
-            )}
-            aria-label="Open domain brief"
-            aria-pressed={isBriefOpen}
-          >
-            <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
-            <span className="text-[13px]">Brief</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onBriefClick}
+          className={clsx(
+            "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
+            isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+          )}
+          aria-label="Open domain brief"
+          aria-pressed={isBriefOpen}
+        >
+          <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
+          <span className="text-[13px]">Brief</span>
+        </button>
       </div>
     </div>
   )

@@ -5,7 +5,7 @@
 import { put } from '@vercel/blob';
 import { prisma } from '@keeper/database';
 import { contextualizeLibraryItem } from './LibraryItemIngestionService.js';
-import { resolveLibraryChronicleDefaults } from '@keeper/shared';
+import { resolveLibraryChronicleDefaults, shapeRecordDescription, shapeRecordTitle } from '@keeper/shared';
 
 const IMAGE_CONTENT_TYPES = new Set([
   'image/jpeg',
@@ -108,13 +108,19 @@ export async function persistImageToLibrary(params: {
   userId: string;
   domainId: string;
   displayLabel?: string | null;
+  description?: string | null;
   keeperId?: string | null;
 }): Promise<{ libraryItemId: string; persistedUrl: string }> {
+  const title = shapeRecordTitle(params.displayLabel, 'Generated image');
+  const description =
+    params.description?.trim()
+    ?? shapeRecordDescription(params.displayLabel, title);
+
   const archived = await archiveRemoteImageToBlob({
     sourceUrl: params.sourceUrl,
     userId: params.userId,
     domainId: params.domainId,
-    filenameHint: params.displayLabel ?? 'kip-generated',
+    filenameHint: title,
   });
 
   const defaults = resolveLibraryChronicleDefaults();
@@ -123,7 +129,8 @@ export async function persistImageToLibrary(params: {
       domain_id: params.domainId,
       source_type: 'upload',
       source_ref: archived.url,
-      display_label: params.displayLabel?.trim() || 'Generated image',
+      display_label: title,
+      description,
       assigned_keeper_id: params.keeperId ?? null,
       chronicle_blocks: defaults.chronicle_blocks,
       chronicle_actions: defaults.chronicle_actions,
