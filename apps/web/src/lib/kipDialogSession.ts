@@ -29,6 +29,8 @@ function sessionTimestamp(session: DialogSessionRow): number {
 
 function sessionMessageCount(session: DialogSessionRow): number {
   if (typeof session.messageCount === "number") return session.messageCount
+  const countFromMeta = (session as { _count?: { kip_messages?: number } })._count?.kip_messages
+  if (typeof countFromMeta === "number") return countFromMeta
   if (Array.isArray(session.kip_messages)) return session.kip_messages.length
   return 0
 }

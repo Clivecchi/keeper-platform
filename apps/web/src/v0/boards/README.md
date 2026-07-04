@@ -29,6 +29,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-03 — Board session reset + load performance
+- `UniversalBoard.tsx` — switching `?board=` now clears `activeSessionId`, Chronicle engagement, and nav selection (fixes wrong dialog session after Domain ↔ IDE ↔ Agent tab changes).
+- `useAgentDialog.ts` — controlled session mode no longer falls back to stale `internalSessionId`; board key change resets transcript bootstrap.
+- `useSelectionSessionResume.ts` — Agent nav uses board-scoped `resumeOrCreateBoardSession` instead of agent-wide session lists.
+- `UniversalConversation.tsx` — removed duplicate 600ms message refetch; bumps Library nav when `image.generate` archives to Library.
+- `kip-dialogs.ts` — `resolve/active` and dialog GET return session `messageCount` only (no full `kip_messages` hydration on bootstrap).
+
 ### 2026-07-02 — Soft domain switch
 - Domain picker no longer remounts `UniversalBoard` or `KeeperBoardPanelGroup` — slug/context swap in place
 - `domainShellCache.ts` seeds by-slug, audience, and frame JSON on navigate; selection and Chronicle Acts reset via `UniversalBoardContext`

@@ -660,6 +660,22 @@ export function UniversalConversation({
         actions.clearDraftDiscussAnchor()
       }
 
+      if (Array.isArray(actionResults)) {
+        const savedGeneratedImage = actionResults.some((ar) => {
+          const receipt = normalizeActionReceipt(
+            ar as Parameters<typeof normalizeActionReceipt>[0],
+          )
+          return (
+            receipt.status === "success"
+            && receipt.type === "image.generate"
+            && typeof receipt.data?.libraryItemId === "string"
+          )
+        })
+        if (savedGeneratedImage) {
+          actions.bumpLibraryNav()
+        }
+      }
+
       if (kipMode === "designer" && designerFocusKey) {
         if (Array.isArray(actionResults)) {
           for (const ar of actionResults) {
@@ -1065,17 +1081,6 @@ export function UniversalConversation({
     setMessages,
     idleMessages,
   })
-
-  // Safety net: session exists but transcript empty — defer so useAgentDialog idle fetch runs first.
-  React.useEffect(() => {
-    if (isSending || !dialogSessionId) return
-    if (messages.length > 0) return
-    if (kipMode === "designer") return
-    const timeoutId = window.setTimeout(() => {
-      void fetchMessages(dialogSessionId)
-    }, 600)
-    return () => window.clearTimeout(timeoutId)
-  }, [kipMode, dialogSessionId, messages.length, isSending, fetchMessages])
 
   // ── Director mode: pin board instruments for dialog delegation only ─────────
   const handleBoardInstrumentInvoke = React.useCallback(

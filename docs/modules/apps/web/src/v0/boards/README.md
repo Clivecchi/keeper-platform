@@ -5,6 +5,8 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 🧱 Key Files
 - `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle); mounts domain switcher overlay for all boards
+- `boardNavDataCache.ts` — In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
+- `domain/domainShellCache.ts` — Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
 - `realm/` — Realm Board (`?board=realm`) — personal domain primary workspace
@@ -26,6 +28,27 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-07-03 — Board session reset + load performance
+- `UniversalBoard.tsx` — switching `?board=` now clears `activeSessionId`, Chronicle engagement, and nav selection (fixes wrong dialog session after Domain ↔ IDE ↔ Agent tab changes).
+- `useAgentDialog.ts` — controlled session mode no longer falls back to stale `internalSessionId`; board key change resets transcript bootstrap.
+- `useSelectionSessionResume.ts` — Agent nav uses board-scoped `resumeOrCreateBoardSession` instead of agent-wide session lists.
+- `UniversalConversation.tsx` — removed duplicate 600ms message refetch; bumps Library nav when `image.generate` archives to Library.
+- `kip-dialogs.ts` — `resolve/active` and dialog GET return session `messageCount` only (no full `kip_messages` hydration on bootstrap).
+
+### 2026-07-02 — Soft domain switch
+- Domain picker no longer remounts `UniversalBoard` or `KeeperBoardPanelGroup` — slug/context swap in place
+- `domainShellCache.ts` seeds by-slug, audience, and frame JSON on navigate; selection and Chronicle Acts reset via `UniversalBoardContext`
+
+### 2026-07-02 — Board switch performance (no full remount)
+- `V0Shell` mounts one `UniversalBoard` — switching `?board=` updates `def` in place instead of remounting Domain/IDE/Agent shells
+- `boardNavDataCache.ts` — in-memory cache (2 min TTL) for dialogs/journeys/keepers/drafts/agents; survives workspace switches within the same domain
+- `boardEntityNameResolver.ts` — keeper/journey banner titles reuse nav cache (no duplicate list fetches from Dialog)
+- `UniversalNavPanel` stale-while-revalidate from cache; refetch only when list version bumps
+- `UniversalConversation` agents/journey-count/keeper-journey names share nav cache; Chronicle journey poll shares cache
+- `domainShellPrefetch.ts` — hover prefetch frame + by-slug before domain switch
+- `UniversalBoard` clears entity selection on workspace change; panel group key is slug-only (not boardId)
+- `loadDomainFrame` memory cache (5 min TTL) avoids redundant frame fetches
 
 ### 2026-07-02 — P3.1 Draft Nav grouping
 - **`UniversalNavPanel`**: Drafts grouped by `kind` (sub-cards when multiple kinds); labels show `kind · status` for generic/repeated titles; selected draft first, then `updated_at` desc; client-side hide for `promoted`/`archived` if API returns them.

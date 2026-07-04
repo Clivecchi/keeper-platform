@@ -293,9 +293,11 @@ export function useAgentDialog({
   userId,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
-  // Use controlledSessionId when it has been driven to a real value (non-null).
-  // Fall back to internalSessionId for boards whose session lifecycle starts internally.
-  const activeSessionId = controlledSessionId ?? internalSessionId
+  const isSessionControlled = onControlledSessionIdChange != null
+  // When Universal Board drives session via context, do not fall back to stale internal ids.
+  const activeSessionId = isSessionControlled
+    ? (controlledSessionId ?? null)
+    : (controlledSessionId ?? internalSessionId)
 
   // Stable greeting computed from params — only changes when slug/message change.
   const greeting = React.useMemo<AgentDialogueMessage>(
@@ -321,6 +323,16 @@ export function useAgentDialog({
   const ideSessionInitDoneRef = React.useRef(false)
   const activeSessionIdRef = React.useRef<string | null>(activeSessionId)
   activeSessionIdRef.current = activeSessionId
+
+  const boardSessionKey = dialogBoard ?? mode
+  const prevBoardSessionKeyRef = React.useRef(boardSessionKey)
+  React.useEffect(() => {
+    if (prevBoardSessionKeyRef.current === boardSessionKey) return
+    prevBoardSessionKeyRef.current = boardSessionKey
+    setInternalSessionId(null)
+    ideSessionInitDoneRef.current = false
+    setMessages(boardSessionKey === "ide" ? [greeting] : [])
+  }, [boardSessionKey, greeting])
 
   // Always-current snapshot of messages — lets sendMessage build conversation
   // history without adding `messages` to its dep array.

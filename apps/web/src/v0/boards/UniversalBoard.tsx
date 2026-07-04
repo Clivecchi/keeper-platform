@@ -212,6 +212,8 @@ function UniversalBoardShell({
     if (prevBoardIdRef.current === def.boardId) return
     prevBoardIdRef.current = def.boardId
     actions.clearSelection()
+    actions.onSessionSelect(null)
+    actions.closeChronicleEngagement()
   }, [def.boardId, actions])
 
   React.useEffect(() => {

@@ -252,19 +252,23 @@ export function useSelectionSessionResume({
             (s) => sessionKeeperId(s) === selectedKeeperId,
           )
         } else if (selectedAgentId) {
-          sessionId = pickMostRecentSessionId(
-            sessions.map((s) => ({
-              id: s.id,
-              updated_at:
-                s.updated_at instanceof Date
-                  ? s.updated_at.toISOString()
-                  : String(s.updated_at ?? ""),
-              created_at:
-                s.created_at instanceof Date
-                  ? s.created_at.toISOString()
-                  : String(s.created_at ?? ""),
-            })),
-          )
+          if (kipMode === "agent") {
+            sessionId = await resumeAgentBoardSession(agentForLookup)
+          } else {
+            sessionId = pickMostRecentSessionId(
+              sessions.map((s) => ({
+                id: s.id,
+                updated_at:
+                  s.updated_at instanceof Date
+                    ? s.updated_at.toISOString()
+                    : String(s.updated_at ?? ""),
+                created_at:
+                  s.created_at instanceof Date
+                    ? s.created_at.toISOString()
+                    : String(s.created_at ?? ""),
+              })),
+            )
+          }
         }
 
         if (sessionId) {

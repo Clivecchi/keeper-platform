@@ -49,6 +49,7 @@ import { getModelCapabilities } from '../../config/index.js';
 import { ensureKipAgentOutputEnvelope } from '../../services/structure/ensureStructuredOutput.js';
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
+import { persistImageToLibrary } from '../../services/imageArchiveService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
 import { promoteDraftPointInTransaction } from '../../services/kip/promoteDraftPoint.js';
@@ -2528,16 +2529,39 @@ export async function executeAgentActions(
 
               const imageResult = await ModelProviderService.generateImage(brief, ctx.userId);
 
+              let imageUrl = imageResult.url;
+              let libraryItemId: string | undefined;
+              if (ctx.domainId && ctx.userId) {
+                try {
+                  const persisted = await persistImageToLibrary({
+                    sourceUrl: imageResult.url,
+                    userId: ctx.userId,
+                    domainId: ctx.domainId,
+                    displayLabel: `Generated · ${subject}`,
+                    keeperId: ctx.keeperId ?? null,
+                  });
+                  imageUrl = persisted.persistedUrl;
+                  libraryItemId = persisted.libraryItemId;
+                } catch (archiveError) {
+                  logger.warn({
+                    requestId,
+                    actionType: action.type,
+                    error: archiveError instanceof Error ? archiveError.message : 'archive failed',
+                  }, '[kip.actions] image.generate archive failed — using ephemeral URL');
+                }
+              }
+
               results.push({
                 type: action.type,
                 status: 'success',
                 message: 'Image generated',
                 data: {
-                  imageUrl:    imageResult.url,
+                  imageUrl,
                   imagePrompt: imageResult.prompt,
                   imageModel:  imageResult.model,
                   subject,
                   aspectRatio,
+                  ...(libraryItemId ? { libraryItemId } : {}),
                 },
               });
             } catch (error) {

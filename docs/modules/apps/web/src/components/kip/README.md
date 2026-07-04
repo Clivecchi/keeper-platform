@@ -14,6 +14,9 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-07-03 (pm): `image.generate` auto-archives to Vercel Blob + Library (`Generated · {subject}` label); stable `imageUrl` + `libraryItemId` in action receipts so chat images survive reload.
+- 2026-06-28 (pm): `ImageReceiptCard` — surfaces keep errors; success state when image archives to Library. Keep flow opens Library item in Chronicle when `libraryItemId` returns.
+
 - 2026-06-28: `image.generate` receipts — `ImageReceiptCard` with **Keep as Moment →**; `onKeepAsMoment` + `contextNarrative` props; Domain Board wires draft+keep via `v0Moments` and opens Chronicle.
 - 2026-05-27: Added `DraftPointProposeCard` for point-based `draft.update.propose` receipts (content + type + Accept). Wired in `DialogueMessageList`.
 - 2026-04-25: ActionReceiptCard: major uplift. Journey creation (`journey.create/update`) renders as a rich `JourneyReceiptCard` with name, forward, and "Open Journey →" tap target. Path creation (`path.create/update`) renders as `PathReceiptCard` with name and prelude. Moment creation (`moment.create/keep/capture`) renders as `MomentReceiptCard` with title, narrative, and "Open Moment →" tap target. Added `onOpenJourney` prop. All entity cards follow the same styled header chip + body pattern. Generic compact receipt is retained as fallback for other action types.

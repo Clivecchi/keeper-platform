@@ -14,6 +14,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-07-03 (pm): `image.generate` auto-archives to Vercel Blob + Library (`Generated · {subject}` label); stable `imageUrl` + `libraryItemId` in action receipts so chat images survive reload.
 - 2026-06-28 (pm): `ImageReceiptCard` — surfaces keep errors; success state when image archives to Library. Keep flow opens Library item in Chronicle when `libraryItemId` returns.
 
 - 2026-06-28: `image.generate` receipts — `ImageReceiptCard` with **Keep as Moment →**; `onKeepAsMoment` + `contextNarrative` props; Domain Board wires draft+keep via `v0Moments` and opens Chronicle.

@@ -200,8 +200,8 @@ router.get(
           sessions: {
             orderBy: { created_at: 'asc' },
             include: {
-              kip_messages: {
-                orderBy: { created_at: 'asc' },
+              _count: {
+                select: { kip_messages: true },
               },
             },
           },
@@ -209,7 +209,20 @@ router.get(
         orderBy: { updated_at: 'desc' },
       });
 
-      return res.json({ dialog: dialog ?? null });
+      const payload = dialog
+        ? {
+            ...dialog,
+            sessions: dialog.sessions.map((session) => {
+              const { _count, ...rest } = session;
+              return {
+                ...rest,
+                messageCount: _count.kip_messages,
+              };
+            }),
+          }
+        : null;
+
+      return res.json({ dialog: payload });
     } catch (error) {
       logger.error({ err: error, domainId }, '[kip-dialogs] resolve active failed');
       return res.status(500).json({ error: 'FAILED_TO_RESOLVE_DIALOG' });
@@ -246,8 +259,8 @@ router.get(
           sessions: {
             orderBy: { created_at: 'asc' },
             include: {
-              kip_messages: {
-                orderBy: { created_at: 'asc' },
+              _count: {
+                select: { kip_messages: true },
               },
             },
           },
@@ -258,7 +271,18 @@ router.get(
         return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
       }
 
-      return res.json({ dialog });
+      const payload = {
+        ...dialog,
+        sessions: dialog.sessions.map((session) => {
+          const { _count, ...rest } = session;
+          return {
+            ...rest,
+            messageCount: _count.kip_messages,
+          };
+        }),
+      };
+
+      return res.json({ dialog: payload });
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] get failed');
       return res.status(500).json({ error: 'FAILED_TO_GET_DIALOG' });

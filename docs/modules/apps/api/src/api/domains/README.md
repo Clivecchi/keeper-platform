@@ -41,6 +41,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-07-03: **`kip-dialogs` bootstrap perf** — `resolve/active` and dialog GET return session metadata + `messageCount` only (no full `kip_messages` on board load; messages load via `/api/kip/agents?messages=true`).
 - 2026-07-03: **provision repair** — `POST /:id/provision` creates missing `frame_json.kip.agent_id` lead row even when `settings.primaryAgentId` already points at platform `kip`; syncs frame agent_id when out of date.
 - 2026-07-03: **presence-schema GET** — missing domain row returns `200` + `{ fields: null, source: "platform_default" }` instead of `404` (Chronicle uses platform defaults; avoids console noise).
 - 2026-07-02: **P1.2 draft list perf** — `GET /:domainId/kip/drafts` accepts optional `limit` (default 50, max 100) and `excludeStatus` (comma-separated; defaults to `promoted,archived` when any filter param is present). No query params → returns all drafts (backward compatible).

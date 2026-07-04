@@ -213,12 +213,14 @@ function ImageReceiptCard({
   imageUrl,
   imagePrompt,
   subject,
+  libraryItemId,
   contextNarrative,
   onKeepAsMoment,
 }: {
   imageUrl: string
   imagePrompt?: string
   subject?: string
+  libraryItemId?: string
   contextNarrative?: string
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
 }) {
@@ -273,6 +275,11 @@ function ImageReceiptCard({
           {imagePrompt}
         </p>
       )}
+      {libraryItemId ? (
+        <p className="border-t px-3 py-2 text-xs" style={{ borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))", color: "hsl(var(--theme-ink-secondary))" }}>
+          Saved to Library — find it under Generated items in Nav.
+        </p>
+      ) : null}
       {onKeepAsMoment && (
         <div className="border-t px-3 py-2.5" style={{ borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))" }}>
           {keepError ? (
@@ -460,6 +467,8 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
     const imageUrl = data?.imageUrl as string | undefined
     const imagePrompt = data?.imagePrompt as string | undefined
     const subject = data?.subject as string | undefined
+    const libraryItemId =
+      typeof data?.libraryItemId === "string" ? data.libraryItemId : undefined
 
     if (imageUrl) {
       return (
@@ -467,6 +476,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
           imageUrl={imageUrl}
           imagePrompt={imagePrompt}
           subject={subject}
+          libraryItemId={libraryItemId}
           contextNarrative={contextNarrative}
           onKeepAsMoment={onKeepAsMoment}
         />

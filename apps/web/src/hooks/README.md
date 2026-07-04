@@ -31,6 +31,10 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-03 — Session accuracy + resume scope
+- `useAgentDialog` — controlled boards ignore stale internal session ids; reset transcript on board key change.
+- `useSelectionSessionResume` — Agent Board agent nav uses board-scoped session resolve.
+
 ### 2026-07-03 — First-load dedupe pass
 - `domainMomentsCache`: single fetch per slug (limit 50), callers slice — fixes limit=12 vs limit=50 double fetch
 - `boardNavDataCache`: library slice + board-aware prefetch (Domain board skips drafts)
