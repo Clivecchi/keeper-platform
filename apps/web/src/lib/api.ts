@@ -2,7 +2,7 @@
  * Unified API client - single source of truth
  * Re-exports from apiFetch.ts which handles:
  * - Base URL resolution (VITE_API_URL)
- * - Same-origin /api when on ke3p.com (Vercel rewrites to Railway)
+ * - Same-origin /api when on ke3p.com or *.keeper.domains (Vercel rewrites to Railway)
  * - Explicit keeper_token injection
  * - credentials: 'include' for CORS
  * - JSON body/header defaults
@@ -15,7 +15,7 @@ export function SystemStatus(): Promise<any> {
   return apiFetch('/api/health', { method: 'GET' });
 }
 
-// Back-compat: API_BASE for legacy imports. '' when on ke3p.com (use relative /api).
+// Back-compat: API_BASE for legacy imports. '' on same-origin API hosts (use relative /api).
 export const API_BASE: string = getApiBase();
 
 // Back-compat: expose simple api.{get,post} wrapper used by older pages

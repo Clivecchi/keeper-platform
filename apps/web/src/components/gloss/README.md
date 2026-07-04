@@ -22,4 +22,5 @@ Universal gesture for focused Dialog exchange on discrete chat content — hover
 - [ ] Journey / Path receipt cards
 
 ## 📆 Update Log
+- **2026-07-04** — Deepest-hover wins single affordance; highlight border + instructive tooltip per gloss target.
 - **2026-07-03** — Initial Gloss MVP: GlossSurface, inline GlossThread, chat receipt wiring, API gloss prompts + metadata persistence.

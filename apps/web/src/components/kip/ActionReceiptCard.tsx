@@ -263,6 +263,7 @@ function ImageReceiptCard({
     <GlossSurface
       messageId={glossMessageId ?? "unknown"}
       enabled={Boolean(glossMessageId)}
+      depth={0}
       anchor={
         libraryItemId
           ? {
@@ -304,6 +305,7 @@ function ImageReceiptCard({
         <GlossSurface
           messageId={glossMessageId ?? "unknown"}
           enabled={Boolean(glossMessageId)}
+          depth={1}
           anchor={
             libraryItemId
               ? {
@@ -326,6 +328,7 @@ function ImageReceiptCard({
           <GlossSurface
             messageId={glossMessageId ?? "unknown"}
             enabled={Boolean(glossMessageId)}
+            depth={1}
             anchor={buildMessageGlossAnchor(glossMessageId ?? "unknown", "caption", {
               receiptIndex: glossReceiptIndex,
             })}

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
 import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
-import { HOME_PATH } from '@/v0/shell/shellMode';
+import { resolvePostAuthPath } from '@/lib/platformHost';
 
 interface AuthFormProps {
   isRegister?: boolean;
@@ -50,8 +50,12 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
         apiFetch('/api/kam/me', { method: 'GET' })
           .then(() => console.log('SystemStatus: /api/kam/me ok'))
           .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
-        // Primary member landing is user Home — not a domain slug URL.
-        navigate(returnTo ?? HOME_PATH);
+        const landing =
+          returnTo ??
+          (typeof window !== 'undefined'
+            ? resolvePostAuthPath(window.location.hostname)
+            : '/home');
+        navigate(landing);
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }

@@ -4,13 +4,19 @@
 // In DEV: Can inject Authorization header from localStorage for testing
 // MUST be loaded first in main.tsx before any other imports
 
+import { usesSameOriginApi } from '../lib/platformHost';
+
 (function installKeeperFetchShim() {
   // Guard: don't double-install
   if ((window as any).__keeper?.fetchShimInstalled) return;
 
   const ORIG = window.fetch.bind(window);
   const DEBUG = Boolean((import.meta as any)?.env?.VITE_FETCH_SHIM_DEBUG);
-  const API_BASE = ((import.meta as any)?.env?.VITE_API_URL || '').replace(/\/$/, '');
+  const sameOriginApi =
+    typeof window !== 'undefined' && usesSameOriginApi(window.location.hostname);
+  const API_BASE = sameOriginApi
+    ? ''
+    : ((import.meta as any)?.env?.VITE_API_URL || '').replace(/\/$/, '');
   const ALLOW_HEADER = !!((import.meta as any)?.env?.VITE_ALLOW_HEADER_AUTH); // opt-in for local troubleshooting
   const IS_PROD = (import.meta as any)?.env?.PROD && !ALLOW_HEADER;
   const DEBUG_MAX = 50;

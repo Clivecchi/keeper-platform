@@ -1,9 +1,16 @@
 .gloss-surface {
   border-radius: 0.375rem;
+  transition: outline-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gloss-surface--highlight {
+  outline: 1px solid hsl(var(--theme-dialogue-user-bg, 14 60% 56%) / 0.5);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px hsl(var(--theme-dialogue-user-bg, 14 60% 56%) / 0.08);
 }
 
 .gloss-surface--open {
-  outline: 1px solid hsl(var(--theme-focus-ring, 152 45% 42%) / 0.35);
+  outline: 1px solid hsl(var(--theme-focus-ring, 152 45% 42%) / 0.45);
   outline-offset: 2px;
 }
 
@@ -11,7 +18,7 @@
   position: absolute;
   top: 0.25rem;
   right: 0.25rem;
-  z-index: 2;
+  z-index: 4;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -23,17 +30,19 @@
   font-size: 10px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
-  transform: translateY(-2px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  box-shadow: 0 1px 3px hsl(var(--theme-ink-primary) / 0.08);
+  box-shadow: 0 1px 3px hsl(var(--theme-ink-primary) / 0.1);
+  animation: gloss-affordance-in 0.12s ease-out;
 }
 
-.gloss-surface:hover .gloss-affordance,
-.gloss-surface--open .gloss-affordance,
-.gloss-surface--pressing .gloss-affordance {
-  opacity: 1;
-  transform: translateY(0);
+@keyframes gloss-affordance-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .gloss-affordance__mark {

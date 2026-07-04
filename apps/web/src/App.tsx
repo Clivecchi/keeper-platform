@@ -78,6 +78,12 @@ import StyleEditorPage from './pages/StyleEditorPage';
 import { RealmsRedirect } from './mobile/screens/RealmsRedirect';
 import HomeShellPage from './pages/home/HomeShellPage';
 import { RealmBoardRedirectFromParams } from './pages/home/RealmBoardRedirect';
+import { HostnameSlugGuard } from './components/HostnameSlugGuard';
+import {
+  isKeeperPlatformWebHost,
+  resolveDefaultDomainSlugFromHostname,
+} from './lib/platformHost';
+import { getApiBase } from './lib/apiFetch';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, authResolved, isLoading } = useAuth();
@@ -123,6 +129,9 @@ const RootRedirect: React.FC = () => {
   const location = useLocation();
   const { isAuthenticated, authResolved, isLoading } = useAuth();
   const params = new URLSearchParams(location.search);
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const defaultSlug = resolveDefaultDomainSlugFromHostname(hostname);
+  const isPlatformHost = isKeeperPlatformWebHost(hostname);
 
   if (isLoading || !authResolved) {
     return (
@@ -132,16 +141,23 @@ const RootRedirect: React.FC = () => {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && isPlatformHost) {
     return <Navigate to="/home" replace />;
+  }
+
+  if (isAuthenticated && !isPlatformHost && defaultSlug !== 'default') {
+    if (!params.get('board') && !params.get('frame')) {
+      params.set('board', 'domain');
+    }
+    return <Navigate to={`/d/${defaultSlug}?${params.toString()}`} replace />;
   }
 
   // Guests: default to Domain Board. V0Shell guards isPrivate boards behind authResolved,
   // so unauthenticated users are redirected to cover — without a premature redirect on refresh.
-  if (!params.get("board") && !params.get("frame")) {
-    params.set("board", "domain");
+  if (!params.get('board') && !params.get('frame')) {
+    params.set('board', 'domain');
   }
-  return <Navigate to={`/d/default?${params.toString()}`} replace />;
+  return <Navigate to={`/d/${defaultSlug}?${params.toString()}`} replace />;
 };
 
 /** Redirect /v1/:slug and /v1/:slug/board to /d/:slug (typo: v1 vs d) */
@@ -177,7 +193,8 @@ const App: React.FC = () => {
   // Temporary SystemStatus health ping - remove after validation
   React.useEffect(() => {
     const controller = new AbortController();
-    const endpoint = 'https://api.ke3p.com/api/health';
+    const base = getApiBase();
+    const endpoint = `${base}/api/health`;
     fetch(endpoint, { method: 'GET', signal: controller.signal })
       .then((res) => {
         if (res.ok) {
@@ -193,6 +210,7 @@ const App: React.FC = () => {
   }, []);
   
   return (
+    <HostnameSlugGuard>
     <Routes>
       {/* Admin-only Routes */}
       <Route element={<RequireAdminRoute />}>
@@ -326,6 +344,7 @@ const App: React.FC = () => {
       {/* Dynamic Lead Agent Routes - Must be last to avoid conflicts */}
       <Route path="/:agentSlug" element={<LeadAgentPage />} />
     </Routes>
+    </HostnameSlugGuard>
   );
 };
 

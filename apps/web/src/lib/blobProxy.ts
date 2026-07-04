@@ -5,7 +5,7 @@
  * background-image from www.ke3p.com. The proxy is same-origin, so
  * the browser requests our API; our server fetches the blob (no CORS).
  *
- * On ke3p.com uses relative /api/uploads/proxy (Vercel rewrites to API).
+ * On ke3p.com and *.keeper.domains uses relative /api/uploads/proxy (Vercel rewrites to API).
  */
 
 import { getApiBase } from './apiFetch';
@@ -13,7 +13,7 @@ import { getApiBase } from './apiFetch';
 const BLOB_HOST_PATTERN = /\.(public|private)\.blob\.vercel-storage\.com/;
 
 function getProxyBase(): string {
-  return getApiBase(); // '' on ke3p.com (relative /api), else env or api.ke3p.com
+  return getApiBase(); // '' on same-origin API hosts (relative /api), else env or api.ke3p.com
 }
 
 export function getBlobProxyUrl(url: string): string {

@@ -7,6 +7,7 @@
 // - Throws Error on failure (with parsed error message if available)
 
 import { getAuthToken } from './authTokenStore';
+import { usesSameOriginApi } from './platformHost';
 
 type FetchOptions = RequestInit & { headers?: Record<string, string> };
 
@@ -18,11 +19,12 @@ type ApiErrorPayload = {
   request_id?: string;
 };
 
-/** Resolve API base: use relative /api when on ke3p.com (Vercel rewrites to Railway); else env or fallback. Exported for api.ts. */
+/** Resolve API base: use relative /api on platform hosts (Vercel rewrites to Railway); else env or fallback. */
 export function getApiBase(): string {
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    if (host === 'www.ke3p.com' || host === 'ke3p.com') return ''; // Same-origin: /api → Vercel rewrite
+    if (usesSameOriginApi(window.location.hostname)) {
+      return ''; // Same-origin: /api → Vercel rewrite
+    }
   }
   const env = (import.meta as any)?.env?.VITE_API_URL;
   return (env || 'https://api.ke3p.com').replace(/\/$/, '');
@@ -33,7 +35,7 @@ const RAW_BASE = getApiBase();
 function toApiUrl(input: string | URL): string {
   const u = typeof input === 'string' ? input : input.toString();
   if (u.startsWith('http')) return u; // Already absolute
-  if (u.startsWith('/api/')) return RAW_BASE ? `${RAW_BASE}${u}` : u; // Relative when on ke3p.com
+  if (u.startsWith('/api/')) return RAW_BASE ? `${RAW_BASE}${u}` : u; // Relative on same-origin API hosts
   return RAW_BASE ? `${RAW_BASE}${u}` : u;
 }
 
@@ -108,5 +110,5 @@ function pickApiErrorMessage(errorData: ApiErrorPayload | null, response: Respon
 
 // Log API base in development
 if ((import.meta as any)?.env?.DEV) {
-  try { console.log('[Keeper] API base =', (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com'); } catch {}
+  try { console.log('[Keeper] API base =', getApiBase() || '(relative /api)'); } catch {}
 }

@@ -4,8 +4,9 @@
 Core utility functions and API clients for the Keeper web application, including authentication-aware API calls and service integrations.
 
 ## 🧱 Key Files
+- `platformHost.ts` - ke3p.com / `*.keeper.domains` host detection, tenant slug from hostname
+- `apiFetch.ts` - API base resolution (same-origin `/api` on platform + tenant keeper.domains hosts)
 - `nangoConnect.ts` - Integration Connect: Services open Nango UI; Custom (railway) uses token verify only
-- `api.ts` - Core API client with authentication error handling
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
 - `kipDialogSession.ts` - Board-scoped Dialog session resume (`resolve/active`, reuse empty sessions)
@@ -30,6 +31,10 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-07-04 — keeper.domains same-origin API + hostname slug
+- `platformHost.ts` — `usesSameOriginApi`, `resolveTenantSlugFromHostname`, `resolvePostAuthPath`.
+- `apiFetch.ts` / `fetch-shim.ts` — `*.keeper.domains` uses relative `/api` (Vercel rewrite), same as ke3p.com.
 
 ### 2026-07-02 — P1.2 draft list query params
 - `KipApi.listDrafts` accepts optional `{ limit, excludeStatus }` for capped nav fetches (`limit=50&excludeStatus=promoted,archived`).

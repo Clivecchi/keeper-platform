@@ -23,8 +23,12 @@ export interface GlossRunConfig {
 }
 
 export interface GlossContextValue {
+  /** Thread key of the deepest currently hovered gloss surface */
+  hoveredKey: string | null
   activeKey: string | null
   sendingKey: string | null
+  registerHover: (key: string, depth: number) => void
+  unregisterHover: (key: string) => void
   openGloss: (messageId: string, anchor: GlossAnchor, snapshot?: GlossContentSnapshot) => void
   closeGloss: () => void
   sendGloss: (params: {
@@ -56,6 +60,41 @@ export function GlossProvider({
 }: GlossProviderProps) {
   const [activeKey, setActiveKey] = React.useState<string | null>(null)
   const [sendingKey, setSendingKey] = React.useState<string | null>(null)
+  const [hoveredKey, setHoveredKey] = React.useState<string | null>(null)
+  const hoverStackRef = React.useRef<Array<{ key: string; depth: number }>>([])
+
+  const recomputeHoveredKey = React.useCallback(() => {
+    const stack = hoverStackRef.current
+    if (!stack.length) {
+      setHoveredKey(null)
+      return
+    }
+    let winner = stack[0]
+    for (const entry of stack) {
+      if (entry.depth >= winner.depth) {
+        winner = entry
+      }
+    }
+    setHoveredKey(winner.key)
+  }, [])
+
+  const registerHover = React.useCallback(
+    (key: string, depth: number) => {
+      const stack = hoverStackRef.current.filter((entry) => entry.key !== key)
+      stack.push({ key, depth })
+      hoverStackRef.current = stack
+      recomputeHoveredKey()
+    },
+    [recomputeHoveredKey],
+  )
+
+  const unregisterHover = React.useCallback(
+    (key: string) => {
+      hoverStackRef.current = hoverStackRef.current.filter((entry) => entry.key !== key)
+      recomputeHoveredKey()
+    },
+    [recomputeHoveredKey],
+  )
 
   const closeGloss = React.useCallback(() => {
     setActiveKey(null)
@@ -159,14 +198,27 @@ export function GlossProvider({
 
   const value = React.useMemo<GlossContextValue>(
     () => ({
+      hoveredKey,
       activeKey,
       sendingKey,
+      registerHover,
+      unregisterHover,
       openGloss,
       closeGloss,
       sendGloss,
       getThread,
     }),
-    [activeKey, sendingKey, openGloss, closeGloss, sendGloss, getThread],
+    [
+      hoveredKey,
+      activeKey,
+      sendingKey,
+      registerHover,
+      unregisterHover,
+      openGloss,
+      closeGloss,
+      sendGloss,
+      getThread,
+    ],
   )
 
   return <GlossContext.Provider value={value}>{children}</GlossContext.Provider>
