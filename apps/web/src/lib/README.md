@@ -32,6 +32,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-04 — keeper.domains tenant hostname helper
+- `platformHost.ts` — `buildKeeperTenantHostname(slug)` for Chronicle domain addresses preview.
+
 ### 2026-07-04 — keeper.domains same-origin API + hostname slug
 - `platformHost.ts` — `usesSameOriginApi`, `resolveTenantSlugFromHostname`, `resolvePostAuthPath`.
 - `apiFetch.ts` / `fetch-shim.ts` — `*.keeper.domains` uses relative `/api` (Vercel rewrite), same as ke3p.com.

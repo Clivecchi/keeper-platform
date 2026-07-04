@@ -921,6 +921,23 @@ export function KeeperPresence({
     ],
   )
 
+  const handleAddressesUpdated = React.useCallback(
+    (patch: { customDomain?: string | null; customDomainVerified?: boolean }) => {
+      setRecord((prev) => {
+        if (!prev) return prev
+        const next = { ...prev }
+        if (patch.customDomain !== undefined) {
+          next.customDomain = patch.customDomain
+        }
+        if (patch.customDomainVerified !== undefined) {
+          next.customDomainVerified = patch.customDomainVerified
+        }
+        return next
+      })
+    },
+    [],
+  )
+
   const objectSchemaOverride =
     record?.presenceSchema && typeof record.presenceSchema === "object"
       ? (record.presenceSchema as Record<string, unknown>)
@@ -1597,6 +1614,7 @@ function KeeperPresenceSurface({
       <DomainFocusPresence
         objectId={objectId}
         domainId={domainId}
+        domainSlug={domainSlug}
         record={record}
         fieldValues={fieldValues}
         fieldErrors={fieldErrors}
@@ -1609,6 +1627,7 @@ function KeeperPresenceSurface({
         onSave={() => void onChronicleSave?.()}
         onFieldChange={handleFieldChange}
         onCoverSaved={handlePresenceRefresh}
+        onAddressesUpdated={handleAddressesUpdated}
         renderFieldEditor={renderFieldEditor}
       />
     )

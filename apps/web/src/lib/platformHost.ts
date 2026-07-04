@@ -51,6 +51,12 @@ export function resolveTenantSlugFromHostname(hostname: string): string | null {
   return subdomain;
 }
 
+export function buildKeeperTenantHostname(slug: string): string {
+  const normalized = slug.trim().toLowerCase()
+  if (!normalized) return KEEPER_DOMAINS_SUFFIX
+  return `${normalized}.${KEEPER_DOMAINS_SUFFIX}`
+}
+
 /** Default domain board slug for the current host. */
 export function resolveDefaultDomainSlugFromHostname(hostname: string): string {
   return resolveTenantSlugFromHostname(hostname) ?? 'default';

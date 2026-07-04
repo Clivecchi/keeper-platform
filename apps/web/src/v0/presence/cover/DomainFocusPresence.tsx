@@ -28,6 +28,11 @@ export interface DomainFocusPresenceProps {
   onSave: () => void | Promise<void>
   onFieldChange: (key: string, value: string) => void
   onCoverSaved?: () => void
+  domainSlug?: string
+  onAddressesUpdated?: (patch: {
+    customDomain?: string | null
+    customDomainVerified?: boolean
+  }) => void
   renderFieldEditor: (
     key: string,
     def: FieldDefinition,
@@ -50,6 +55,8 @@ export function DomainFocusPresence({
   onSave,
   onFieldChange,
   onCoverSaved,
+  domainSlug,
+  onAddressesUpdated,
   renderFieldEditor,
 }: DomainFocusPresenceProps) {
   const guidedArrival = useGuidedArrivalOptional()
@@ -149,6 +156,15 @@ export function DomainFocusPresence({
           <DomainConfigPresence
             key="config"
             domainId={domainId}
+            domainSlug={
+              fieldValues.slug?.trim() ||
+              (typeof record.slug === "string" ? record.slug : domainSlug ?? "")
+            }
+            customDomain={
+              typeof record.customDomain === "string" ? record.customDomain : null
+            }
+            customDomainVerified={record.customDomainVerified === true}
+            onAddressesUpdated={onAddressesUpdated}
             existingTheme={existingTheme}
             coverMedia={coverMedia}
             fieldValues={fieldValues}

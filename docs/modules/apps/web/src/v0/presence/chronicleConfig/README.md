@@ -28,18 +28,22 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 ## ⚠️ Notes & ToDo
 - [ ] Wire FrameConfigPresence prop edits through explicit save bar (Design Board — props still save on add)
 - [ ] BoardDefConfigPresence remains read-only — no targeted save route for board defs
-- [ ] **Domain ops migration (Phase 2):** custom domain, Vercel DNS attach/verify, members — port from `DomainManager` into Chronicle `DomainConfigPresence` sections; retire `?frame=admin` DomainManager path
+- [ ] **Domain ops migration (Phase 4):** members — port from `DomainManager`; retire `?frame=admin` DomainManager path
 
 ### Domain Management migration plan (Universal Chronicle)
 | Phase | Surface | Fields / actions |
 |-------|---------|------------------|
 | **1 (done)** | Chronicle Configure | name, slug, tagline, character, purpose, theme color, visibility, cover; targeted post-save (no journey/moment re-fetch); switcher tagline sync |
-| **2** | Chronicle Configure — Addresses | `customDomain`, keeper.domains hint, read-only hostname preview |
-| **3** | Chronicle Configure — DNS | Vercel attach, verify, status badges (from `DomainDetailForm` + `/api/domains/custom/*`) |
+| **2 (done)** | Chronicle Configure — Addresses | `customDomain`, keeper.domains hostname preview (`DomainAddressesSection`) |
+| **3 (done)** | Chronicle Configure — DNS | Vercel attach, verify, DNS records (ported from `DomainDetailForm`) |
 | **4** | Chronicle Configure — People | members list, invite, role PATCH |
 | **5** | Retire legacy | Remove standalone `DomainManager` from `?frame=admin`; keep `/admin/domains` for platform admins only |
 
 ## 📆 Update Log
+
+### 2026-07-04 — Domain addresses in Chronicle Configure (Phases 2–3)
+- `DomainAddressesSection`: keeper subdomain preview, custom domain (`livecchi.us`), Vercel attach/verify, DNS panel
+- `buildKeeperTenantHostname` in `platformHost.ts`; `enrichDomain` loads `customDomain` + verified flag
 
 ### 2026-07-04 — Domain slug + fast save + switcher tagline
 - Chronicle Domain Configure: editable **slug** (PATCH domain + navigate on rename)

@@ -148,6 +148,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - Cover actions: Verify + Add Key (invalid) or Manage (valid) → Config Mode
 - Config Mode: rotate/update valid credentials via KeyHealthBlock `allowValidRotate`; revoke when declared
 
+### 2026-07-04 — Domain addresses section (Phases 2–3)
+- `DomainAddressesSection.tsx` — keeper subdomain preview, custom domain, Vercel + DNS in Chronicle Configure
+
 ### 2026-07-04 — Domain Configure slug field
 - `DomainConfigPresence` field order: name → **slug** → tagline; helper text for keeper.domains addressing
 

@@ -814,6 +814,10 @@ async function enrichDomain(
       record.slug = domain.slug ?? record.slug
       record.status = domain.status ?? record.status
       record.visibility = domain.isPublic === true ? "public" : "private"
+      if (typeof domain.customDomain === "string") {
+        record.customDomain = domain.customDomain
+      }
+      record.customDomainVerified = domain.customDomainVerified === true
 
       const theme =
         domain.theme && typeof domain.theme === "object"

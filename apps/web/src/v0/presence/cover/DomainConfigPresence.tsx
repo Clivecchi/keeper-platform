@@ -15,9 +15,17 @@ import {
   type ChronicleCoverMedia,
 } from "../chronicleConfig/ChronicleCoverField"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { DomainAddressesSection } from "./DomainAddressesSection"
 
 export interface DomainConfigPresenceProps {
   domainId: string
+  domainSlug: string
+  customDomain?: string | null
+  customDomainVerified?: boolean
+  onAddressesUpdated?: (patch: {
+    customDomain?: string | null
+    customDomainVerified?: boolean
+  }) => void
   existingTheme?: Record<string, unknown>
   coverMedia: ChronicleCoverMedia
   fieldValues: Record<string, string>
@@ -59,6 +67,10 @@ const IDE_BUILD_FIELD_ORDER = [
 
 export function DomainConfigPresence({
   domainId,
+  domainSlug,
+  customDomain,
+  customDomainVerified,
+  onAddressesUpdated,
   existingTheme,
   coverMedia,
   fieldValues,
@@ -155,7 +167,15 @@ export function DomainConfigPresence({
             )}
           </div>
         )
-      })}
+      }      )}
+
+      <DomainAddressesSection
+        domainId={domainId}
+        domainSlug={fieldValues.slug?.trim() || domainSlug}
+        customDomain={customDomain}
+        customDomainVerified={customDomainVerified}
+        onAddressesUpdated={onAddressesUpdated}
+      />
 
       {ideKeys.length > 0 && (
         <div className="mt-2 mb-4">
