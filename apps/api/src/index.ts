@@ -111,6 +111,7 @@ import { getPlatformRolesForUser } from './kam/auth.js';
 import { setSessionCookie as setSessionCookieShared, clearSessionCookie } from './kam/session.js';
 // MCP routes (OpenAI Agent integration)
 import mcpRouter from './mcp/index.js';
+import { isKeeperDomainsTenantOrigin } from './lib/keeperDomainsCors.js';
 
 // Defer database migrations until after the server starts to avoid blocking healthchecks
 
@@ -252,7 +253,6 @@ const ALLOWLIST_ARRAY = [
   ...buildCorsAllowlist(),
   'https://www.ke3p.com',
   'https://ke3p.com',
-  'https://staging.keeper.domains',
   process.env.PUBLIC_WEB_ORIGIN || '',
   process.env.APP_ORIGIN || '',
 ].filter(Boolean);
@@ -270,6 +270,9 @@ function isOriginAllowed(origin: string | undefined): boolean {
   if (CORS_ALLOWLIST.size === 0 && CORS_WILDCARDS.length === 0) return true; // no restriction configured
   if (CORS_ALLOWLIST.has(origin)) return true;
   if (CORS_WILDCARDS.some(rx => rx.test(origin))) return true;
+
+  // Tenant web origins: https://{slug}.keeper.domains (excludes reserved infra subdomains)
+  if (isKeeperDomainsTenantOrigin(origin)) return true;
 
   // Check for preview origins (if enabled)
   if (process.env.WEB_PREVIEW_ALLOW === '1') {

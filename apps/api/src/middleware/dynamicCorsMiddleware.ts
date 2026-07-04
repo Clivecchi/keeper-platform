@@ -8,6 +8,10 @@ import { PrismaClient } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../lib/redis.js';
 import { DomainCacheService } from '@keeper/database';
 import cors from 'cors';
+import {
+  buildKeeperDomainsTenantOrigin,
+  isKeeperDomainsTenantOrigin,
+} from '../lib/keeperDomainsCors.js';
 
 const prisma = new PrismaClient();
 const redis = getRedis();
@@ -165,9 +169,10 @@ export class DynamicCorsMiddleware {
         ];
       }
 
-      // TODO(domains): enable *.keeper.domains after MVP
-      // Skip dynamic subdomain origin for single-domain MVP
-      config.allowedOrigins = config.allowedOrigins || [...this.defaultConfig.allowedOrigins!];
+      config.allowedOrigins = [
+        ...(config.allowedOrigins || this.defaultConfig.allowedOrigins!),
+        buildKeeperDomainsTenantOrigin(domain.slug),
+      ];
 
       // Dev-only localhost exceptions are handled in defaultConfig
 
@@ -191,6 +196,12 @@ export class DynamicCorsMiddleware {
 
       // Check if origin is in allowed list
       if (config.allowedOrigins?.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Tenant web origins on keeper.domains (any valid slug; excludes reserved infra)
+      if (isKeeperDomainsTenantOrigin(origin)) {
         callback(null, true);
         return;
       }
@@ -235,12 +246,15 @@ export class DynamicCorsMiddleware {
       }
     }
 
-      // TODO(domains): support slug subdomains when multi-tenancy is enabled
+    // Tenant slug origin on keeper.domains
+    if (origin === buildKeeperDomainsTenantOrigin(domain.slug)) {
+      return true;
+    }
 
-    // Check for wildcard subdomains (if enabled)
-    if (domain.settings?.cors?.allowWildcardSubdomains) {
-      const baseDomain = domain.customDomain || `${domain.slug}.keeper.tools`;
-      const wildcardPattern = new RegExp(`^https://[a-zA-Z0-9-]+\\.${baseDomain.replace('.', '\\.')}$`);
+    // Check for wildcard subdomains on custom domain (if enabled)
+    if (domain.settings?.cors?.allowWildcardSubdomains && domain.customDomain) {
+      const escaped = domain.customDomain.replace(/\./g, '\\.');
+      const wildcardPattern = new RegExp(`^https://[a-zA-Z0-9-]+\\.${escaped}$`);
       if (wildcardPattern.test(origin)) {
         return true;
       }

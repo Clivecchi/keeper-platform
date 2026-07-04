@@ -4,10 +4,14 @@
 Shared utilities and service clients used across Express routes and middleware.
 
 ## 🧱 Key Files
+- `keeperDomainsCors.ts` — tenant `https://{slug}.keeper.domains` CORS origin validation (mirrors web `platformHost.ts` reserved subdomains)
 - `nango.ts` — lazy singleton for `@nangohq/node` (self-hosted Nango)
 - `nangoConfig.ts` — `DEFAULT_NANGO_HOST`, `resolveNangoIntegrationId()`, Nango error formatting
 - `integrationCustomConnect.ts` — Custom integration token verification (Railway + Vercel probes)
 - `resolveServiceBinding.ts` — domain-scoped GitHub binding resolver for MCP tools, agent context, and Chronicle PATCH
+- `loadDomainTier.ts` — reads `domain.settings.tier` and key policy flags
+- `resolveDomainProviderApiKey.ts` — tier-gated provider key resolution for domain runtime
+- `resolveProviderApiKey.ts` — env → user → platform key resolution (presence sync)
 - `env.ts` — database/redis disable helpers
 - `redis.ts` — Redis client helpers
 - `errors/DomainError.ts` — domain-scoped API errors
@@ -21,6 +25,14 @@ Shared utilities and service clients used across Express routes and middleware.
 - [ ] Webhook HMAC verification before public launch
 
 ## 📆 Update Log
+
+### 2026-07-04 — keeper.domains tenant CORS
+- Added `keeperDomainsCors.ts` + tests — validates `https://{slug}.keeper.domains` origins; excludes reserved infrastructure subdomains
+
+### 2026-06-27 — Domain tier key flags
+- `domainTier.ts` in `@keeper/shared` — `free` / `keeper` / `studio` tiers gate included vs BYOK
+- `loadDomainTier.ts` + `resolveDomainProviderApiKey.ts` — runtime resolver respects tier policy
+- `GET /api/domains/:domainId/key-access` — tier + synced Key presence for Agent Board AI Access nav
 
 ### 2026-06-27 — Service binding resolver
 - Added `resolveServiceBinding.ts` — resolves GitHub repo/branch from `domain.settings.serviceBindings`, legacy `ideBuildContext`, integration metadata, or env default; persists binding on integration PATCH

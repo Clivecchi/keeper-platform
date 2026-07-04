@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import express from 'express';
 import cors from 'cors';
 import request from 'supertest';
+import { isKeeperDomainsTenantOrigin } from '../lib/keeperDomainsCors.js';
 
 describe('MVP CORS and Domain Fallback', () => {
   beforeAll(() => {
@@ -65,6 +66,50 @@ describe('MVP CORS and Domain Fallback', () => {
       .set('Origin', 'https://www.ke3p.com');
     expect(res.headers['access-control-allow-origin']).toBe('https://www.ke3p.com');
     expect(res.headers['access-control-allow-origin']).not.toBe('*');
+  });
+
+  it('allows keeper.domains tenant origins with specific ACAO (not *)', async () => {
+    const tenantOrigin = 'https://staging.keeper.domains';
+    expect(isKeeperDomainsTenantOrigin(tenantOrigin)).toBe(true);
+
+    const app = express();
+    app.use(cors({
+      origin(origin, cb) {
+        if (!origin) return cb(null, true);
+        if (isKeeperDomainsTenantOrigin(origin)) return cb(null, true);
+        return cb(new Error('Not allowed by CORS'));
+      },
+      credentials: true,
+    }));
+    app.get('/ping', (_req, res) => res.send('pong'));
+
+    const res = await request(app)
+      .get('/ping')
+      .set('Origin', tenantOrigin);
+    expect(res.status).toBe(200);
+    expect(res.headers['access-control-allow-origin']).toBe(tenantOrigin);
+    expect(res.headers['access-control-allow-origin']).not.toBe('*');
+  });
+
+  it('rejects reserved keeper.domains infrastructure subdomains', async () => {
+    expect(isKeeperDomainsTenantOrigin('https://api.keeper.domains')).toBe(false);
+
+    const app = express();
+    app.use(cors({
+      origin(origin, cb) {
+        if (!origin) return cb(null, true);
+        if (isKeeperDomainsTenantOrigin(origin)) return cb(null, true);
+        return cb(new Error('Not allowed by CORS'));
+      },
+      credentials: true,
+    }));
+    app.get('/ping', (_req, res) => res.send('pong'));
+
+    const res = await request(app)
+      .get('/ping')
+      .set('Origin', 'https://api.keeper.domains');
+    expect(res.status).toBe(500);
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
 

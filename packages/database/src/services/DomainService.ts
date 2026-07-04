@@ -517,10 +517,12 @@ export class DomainService {
     // Check against reserved domains
     const reservedDomains = [
       'localhost',
-      'keeper.tools',
-      'api.keeper.tools',
-      'admin.keeper.tools',
-      'studio.keeper.tools',
+      'keeper.domains',
+      'api.keeper.domains',
+      'app.keeper.domains',
+      'www.keeper.domains',
+      'studio.keeper.domains',
+      'services.keeper.domains',
     ];
 
     if (reservedDomains.some(reserved => 

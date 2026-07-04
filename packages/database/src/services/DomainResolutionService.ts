@@ -4,6 +4,12 @@
  */
 
 import type { Domain } from '@prisma/client';
+import {
+  KEEPER_DOMAINS_SUFFIX,
+  buildKeeperTenantOrigin,
+  isKeeperDomainsNonTenantHostname,
+  resolveTenantSlugFromHostname,
+} from '@keeper/shared';
 import { DomainService } from './DomainService.js';
 import { DomainCacheService } from './DomainCacheService.js';
 import { getFeatureFlagService } from './FeatureFlagService.js';
@@ -40,17 +46,23 @@ export class DomainResolutionService {
   private cacheService: DomainCacheService;
   private featureFlags = getFeatureFlagService();
   
-  // Platform domains that should resolve to default behavior
+  // Platform hosts that resolve without a tenant Domain record
   private readonly PLATFORM_DOMAINS = [
-    // Use env-driven platform base domain only
-    // TODO(domains): restore keeper.domains and subdomain handling after MVP
     (() => {
       const origin = process.env.PUBLIC_WEB_ORIGIN || process.env.APP_ORIGIN || '';
       try { return origin ? new URL(origin).host : ''; } catch { return ''; }
     })(),
+    'ke3p.com',
+    'www.ke3p.com',
+    'api.ke3p.com',
+    KEEPER_DOMAINS_SUFFIX,
+    `www.${KEEPER_DOMAINS_SUFFIX}`,
     'localhost',
     '127.0.0.1',
   ].filter(Boolean);
+
+  /** Base domains that support {slug}.base → getDomainBySlug */
+  private readonly SLUG_BASE_DOMAINS: string[] = [KEEPER_DOMAINS_SUFFIX];
 
   // Default CORS origins for development
   private readonly DEFAULT_ORIGINS = [
@@ -89,7 +101,7 @@ export class DomainResolutionService {
         }
       }
 
-      // 3. Try subdomain slug resolution (subdomain.keeper.tools)
+      // 3. Try subdomain slug resolution ({slug}.keeper.domains)
       const subdomainResult = await this.resolveSubdomain(normalizedHostname);
       if (subdomainResult.domain) {
         return subdomainResult;
@@ -132,14 +144,12 @@ export class DomainResolutionService {
   }
 
   /**
-   * Resolve subdomain (e.g., myfamily.keeper.tools)
+   * Resolve subdomain (e.g., myfamily.keeper.domains)
    */
   private async resolveSubdomain(hostname: string): Promise<DomainResolutionResult> {
     const { subdomain, baseDomain } = this.parseSubdomain(hostname);
-    
-    // Single-domain MVP: skip subdomain resolution
-    // TODO(domains): enable slug resolution when multi-tenancy is active
-    if (!subdomain || !this.isPlatformDomain(baseDomain)) {
+
+    if (!subdomain || !this.isSlugBaseDomain(baseDomain)) {
       return this.createNotFoundResult(hostname);
     }
 
@@ -230,8 +240,10 @@ export class DomainResolutionService {
       origins.push(`http://${hostname}`);
     }
 
-    // Add domain slug origin
-    // TODO(domains): add slug subdomain origin when multi-tenancy enabled
+    // Tenant origin on keeper.domains
+    if (domain.slug) {
+      origins.push(buildKeeperTenantOrigin(domain.slug));
+    }
 
     // Add custom domain if verified
     if (domain.customDomain && domain.customDomainVerified) {
@@ -379,26 +391,59 @@ export class DomainResolutionService {
   }
 
   private isPlatformDomain(hostname: string): boolean {
-    return this.PLATFORM_DOMAINS.some(domain => 
-      hostname === domain || hostname.endsWith(`.${domain}`)
-    );
+    if (this.PLATFORM_DOMAINS.some(domain => hostname === domain)) {
+      return true;
+    }
+
+    // Tenant slug hosts on keeper.domains are not platform hosts
+    if (resolveTenantSlugFromHostname(hostname)) {
+      return false;
+    }
+
+    if (isKeeperDomainsNonTenantHostname(hostname)) {
+      return true;
+    }
+
+    const envHost = this.getEnvPlatformHost();
+    if (envHost && (hostname === envHost || hostname.endsWith(`.${envHost}`))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private isSlugBaseDomain(baseDomain: string): boolean {
+    return this.SLUG_BASE_DOMAINS.includes(baseDomain);
+  }
+
+  private getEnvPlatformHost(): string {
+    const origin = process.env.PUBLIC_WEB_ORIGIN || process.env.APP_ORIGIN || '';
+    try {
+      return origin ? new URL(origin).host : '';
+    } catch {
+      return '';
+    }
   }
 
   private parseSubdomain(hostname: string): { subdomain?: string; baseDomain: string } {
+    const tenantSlug = resolveTenantSlugFromHostname(hostname);
+    if (tenantSlug) {
+      return { subdomain: tenantSlug, baseDomain: KEEPER_DOMAINS_SUFFIX };
+    }
+
     const parts = hostname.split('.');
-    
+
     if (parts.length <= 2) {
       return { baseDomain: hostname };
     }
-    
-    // Check if it matches our platform domains
+
     for (const platformDomain of this.PLATFORM_DOMAINS) {
       if (hostname.endsWith(`.${platformDomain}`)) {
         const subdomain = hostname.replace(`.${platformDomain}`, '');
         return { subdomain, baseDomain: platformDomain };
       }
     }
-    
+
     return { baseDomain: hostname };
   }
 

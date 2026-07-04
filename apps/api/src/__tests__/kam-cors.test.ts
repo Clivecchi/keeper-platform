@@ -40,6 +40,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
     process.env.DISABLE_REDIS = 'true';
     process.env.JWT_SECRET = TEST_JWT_SECRET;
     process.env.NODE_ENV = 'test';
+    process.env.CORS_ALLOWLIST = 'https://keeper.domains,https://www.keeper.domains,https://www.ke3p.com';
 
     // Create test app
     testApp = express();
@@ -89,6 +90,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
     delete process.env.DISABLE_REDIS;
     delete process.env.JWT_SECRET;
     delete process.env.NODE_ENV;
+    delete process.env.CORS_ALLOWLIST;
 
     console.log('🧹 KAM-CORS test cleanup complete');
   });
@@ -98,7 +100,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       it('should return 401 when accessing protected route without JWT', async () => {
         const response = await request(testApp)
           .get('/api/protected')
-          .set('Host', `${testDomain.slug}.keeper.tools`);
+          .set('Host', `${testDomain.slug}.keeper.domains`);
 
         expect(response.status).toBe(401);
         expect(response.body).toMatchObject({
@@ -109,7 +111,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       it('should return 401 when accessing domain-protected route without JWT', async () => {
         const response = await request(testApp)
           .get('/api/domain-protected')
-          .set('Host', `${testDomain.slug}.keeper.tools`);
+          .set('Host', `${testDomain.slug}.keeper.domains`);
 
         expect(response.status).toBe(401);
         expect(response.body).toMatchObject({
@@ -122,7 +124,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       it('should return 403 when JWT user does not have domain access', async () => {
         const response = await request(testApp)
           .get('/api/domain-protected')
-          .set('Host', `${testDomain.slug}.keeper.tools`)
+          .set('Host', `${testDomain.slug}.keeper.domains`)
           .set('Authorization', `Bearer ${validTokenWrongDomain}`);
 
         expect(response.status).toBe(403);
@@ -136,7 +138,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       it('should include domain context in permission denial', async () => {
         const response = await request(testApp)
           .get('/api/domain-protected')
-          .set('Host', `${testDomain.slug}.keeper.tools`)
+          .set('Host', `${testDomain.slug}.keeper.domains`)
           .set('Authorization', `Bearer ${validTokenWrongDomain}`);
 
         expect(response.status).toBe(403);
@@ -149,7 +151,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       it('should return 200 when JWT user has correct domain access', async () => {
         const response = await request(testApp)
           .get('/api/domain-protected')
-          .set('Host', `${testDomain.slug}.keeper.tools`)
+          .set('Host', `${testDomain.slug}.keeper.domains`)
           .set('Authorization', `Bearer ${validToken}`);
 
         expect(response.status).toBe(200);
@@ -170,7 +172,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       it('should set appropriate response headers', async () => {
         const response = await request(testApp)
           .get('/api/domain-protected')
-          .set('Host', `${testDomain.slug}.keeper.tools`)
+          .set('Host', `${testDomain.slug}.keeper.domains`)
           .set('Authorization', `Bearer ${validToken}`);
 
         expect(response.status).toBe(200);
@@ -213,9 +215,9 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
 
     beforeAll(() => {
       allowedOrigins = [
-        'https://keeper.tools',
-        'https://app.keeper.tools',
-        `https://${testDomain.slug}.keeper.tools`,
+        'https://keeper.domains',
+        'https://www.keeper.domains',
+        `https://${testDomain.slug}.keeper.domains`,
         'http://localhost:3000',
         'http://localhost:5173'
       ];
@@ -229,7 +231,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
 
     describe('Allowed Origins', () => {
       it('should set ACAO header for platform origins', async () => {
-        const platformOrigins = ['https://keeper.tools', 'https://app.keeper.tools'];
+        const platformOrigins = ['https://keeper.domains', 'https://www.keeper.domains'];
 
         for (const origin of platformOrigins) {
           const response = await request(testApp)
@@ -246,7 +248,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       });
 
       it('should set ACAO header for subdomain origin', async () => {
-        const subdomainOrigin = `https://test.keeper.tools`;
+        const subdomainOrigin = `https://${testDomain.slug}.keeper.domains`;
         const response = await request(testApp)
           .options('/api/cors-test')
           .set('Origin', subdomainOrigin)
@@ -299,7 +301,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
     describe('Production Safety', () => {
       it('should NOT use wildcard "*" in ACAO header', async () => {
         // Test platform origins to ensure none return "*"
-        const platformOrigins = ['https://keeper.tools', 'https://app.keeper.tools'];
+        const platformOrigins = ['https://keeper.domains', 'https://www.keeper.domains'];
         for (const origin of platformOrigins) {
           const response = await request(testApp)
             .options('/api/cors-test')
@@ -314,7 +316,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       it('should have reasonable CORS max-age', async () => {
         const response = await request(testApp)
           .options('/api/cors-test')
-          .set('Origin', 'https://keeper.tools')
+          .set('Origin', 'https://keeper.domains')
           .set('Access-Control-Request-Method', 'GET');
 
         const maxAge = parseInt(response.headers['access-control-max-age']);
@@ -366,7 +368,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
   describe('Integration Scenarios', () => {
     describe('Complete Request Flow', () => {
       it('should handle authenticated request with proper CORS headers', async () => {
-        const allowedOrigin = 'https://keeper.tools';
+        const allowedOrigin = 'https://keeper.domains';
 
         const response = await request(testApp)
           .get('/api/protected')
@@ -379,7 +381,7 @@ describe('KAM (Keeper Authentication Manager) and Domain-scoped CORS', () => {
       });
 
       it('should reject unauthenticated request even with allowed origin', async () => {
-        const allowedOrigin = 'https://keeper.tools';
+        const allowedOrigin = 'https://keeper.domains';
 
         const response = await request(testApp)
           .get('/api/protected')
@@ -398,7 +400,7 @@ function setupMockData() {
   // Mock test data for when database is not available
   testUser = {
     id: 'mock-user-id',
-    email: 'test-user@keeper.tools',
+    email: 'test-user@keeper.domains',
     name: 'Test User'
   };
 
@@ -435,7 +437,7 @@ async function setupTestData() {
   // Create test user
   testUser = await prisma.user.create({
     data: {
-      email: 'test-user@keeper.tools',
+      email: 'test-user@keeper.domains',
       hashedPassword: 'hashed-password',
       name: 'Test User',
       isActive: true,

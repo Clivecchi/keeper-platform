@@ -40,7 +40,7 @@ describe('Domain Permission Integration', () => {
 
       const response = await request(app)
         .get('/api/domains')
-        .set('Host', `${domain.slug}.keeper.tools`)
+        .set('Host', `${domain.slug}.keeper.domains`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 

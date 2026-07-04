@@ -34,7 +34,7 @@ const domainMiddleware = (req: Request, res: Response, next: NextFunction) => {
   (req as any).domainContext = {
     domain: context,
     isCustomDomain: false,
-    originalHostname: 'test.keeper.tools',
+    originalHostname: 'test.keeper.domains',
     resolvedSlug: context.domainId,
   };
 

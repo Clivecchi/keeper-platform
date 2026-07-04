@@ -4,6 +4,7 @@
 Shared utilities and service clients used across Express routes and middleware.
 
 ## 🧱 Key Files
+- `keeperDomainsCors.ts` — tenant `https://{slug}.keeper.domains` CORS origin validation (mirrors web `platformHost.ts` reserved subdomains)
 - `nango.ts` — lazy singleton for `@nangohq/node` (self-hosted Nango)
 - `nangoConfig.ts` — `DEFAULT_NANGO_HOST`, `resolveNangoIntegrationId()`, Nango error formatting
 - `integrationCustomConnect.ts` — Custom integration token verification (Railway + Vercel probes)
@@ -24,6 +25,9 @@ Shared utilities and service clients used across Express routes and middleware.
 - [ ] Webhook HMAC verification before public launch
 
 ## 📆 Update Log
+
+### 2026-07-04 — keeper.domains tenant CORS
+- Added `keeperDomainsCors.ts` + tests — validates `https://{slug}.keeper.domains` origins; excludes reserved infrastructure subdomains
 
 ### 2026-06-27 — Domain tier key flags
 - `domainTier.ts` in `@keeper/shared` — `free` / `keeper` / `studio` tiers gate included vs BYOK

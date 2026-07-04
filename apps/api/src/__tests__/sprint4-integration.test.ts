@@ -114,7 +114,7 @@ describe('Sprint 4: Custom Domain Support & CORS Integration', () => {
       );
 
       expect(config.method).toBe('DNS_CNAME');
-      expect(config.expectedValue).toBe('domains.keeper.tools');
+      expect(config.expectedValue).toBe('domains.keeper.domains');
       expect(config.instructions).toContain('CNAME record for example.com');
     });
 
@@ -154,7 +154,7 @@ describe('Sprint 4: Custom Domain Support & CORS Integration', () => {
       await expect(
         verificationService.initiateVerification(
           testDomain.id,
-          'keeper.tools',
+          'keeper.domains',
           'DNS_TXT'
         )
       ).rejects.toThrow('Domain is reserved and cannot be used');

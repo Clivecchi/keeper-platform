@@ -65,9 +65,9 @@ export class DomainVerificationService {
 
   // Platform domains and IPs for verification
   private readonly KEEPER_DOMAINS = [
-    'keeper.tools',
-    'domains.keeper.tools',
-    'app.keeper.tools',
+    'keeper.domains',
+    'domains.keeper.domains',
+    'app.keeper.domains',
   ];
 
   private readonly KEEPER_IPS = [
@@ -401,7 +401,7 @@ export class DomainVerificationService {
         instructions = `Add a TXT record to _keeper-verification.${customDomain} with value: ${expectedValue}`;
         break;
       case 'DNS_CNAME':
-        expectedValue = 'domains.keeper.tools';
+        expectedValue = 'domains.keeper.domains';
         instructions = `Add a CNAME record for ${customDomain} pointing to: ${expectedValue}`;
         break;
       case 'HTTP_FILE':
@@ -546,7 +546,7 @@ export class DomainVerificationService {
     }
 
     // Check against reserved domains
-    const reservedDomains = ['keeper.tools', 'localhost', 'example.com', 'test.com'];
+    const reservedDomains = ['keeper.domains', 'localhost', 'example.com', 'test.com'];
     if (reservedDomains.some(reserved => 
       domain === reserved || domain.endsWith(`.${reserved}`)
     )) {
