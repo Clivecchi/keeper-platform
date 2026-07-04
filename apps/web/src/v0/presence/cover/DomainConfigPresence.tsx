@@ -16,6 +16,7 @@ import {
 } from "../chronicleConfig/ChronicleCoverField"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
 import { DomainAddressesSection } from "./DomainAddressesSection"
+import { DomainPeopleSection } from "./DomainPeopleSection"
 
 export interface DomainConfigPresenceProps {
   domainId: string
@@ -176,6 +177,8 @@ export function DomainConfigPresence({
         customDomainVerified={customDomainVerified}
         onAddressesUpdated={onAddressesUpdated}
       />
+
+      <DomainPeopleSection domainId={domainId} />
 
       {ideKeys.length > 0 && (
         <div className="mt-2 mb-4">
