@@ -243,8 +243,18 @@ function UniversalBoardShell({
 
   React.useEffect(() => {
     if (!isResolvedDomainId(domainId)) return
-    prefetchBoardNavData(domainId)
-  }, [domainId])
+    prefetchBoardNavData(domainId, {
+      journeys: !!def.nav.sections.journeys,
+      keepers: !!def.nav.sections.keepers,
+      dialogs: !!def.nav.sections.dialogs,
+      drafts: !!def.nav.sections.drafts,
+      agents:
+        !!def.nav.sections.agents ||
+        (def.conversation.kipMode === "domain" &&
+          def.conversation.dialogOrchestration === "director"),
+      library: !!def.nav.sections.library,
+    })
+  }, [domainId, def])
 
   // Sync domain name from frame/domain data when available — avoids extra round trip
   React.useEffect(() => {

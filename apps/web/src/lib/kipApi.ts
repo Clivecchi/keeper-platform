@@ -28,6 +28,9 @@ export { normalizeDraftSpecJson };
 const shouldUseMockFallback = (error: unknown): boolean =>
   error instanceof TypeError && Boolean((import.meta as any)?.env?.DEV);
 
+const agentBySlugInflight = new Map<string, Promise<KipAgent>>();
+const sessionMessagesInflight = new Map<string, Promise<KipMessage[]>>();
+
 const pickErrorMessage = (response: any, fallback: string): string =>
   response?.message ||
   (typeof response?.error === 'string' ? response.error : response?.error?.message) ||
@@ -654,23 +657,34 @@ export class KipApi {
    * Get a specific agent by slug
    */
   static async getAgentBySlug(slug: string): Promise<KipAgent> {
-    try {
-      const response = await apiFetch(`/api/kip/agents?slug=${slug}`);
-      if (response.success) {
-        return response.data;
-      }
-      throw new Error(response.error || 'Agent not found');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Agent not found';
-      if (shouldUseMockFallback(error)) {
-        console.warn('API connection failed, using mock data:', error);
-        const mockAgent = mockAgents.find(agent => agent.slug === slug);
-        if (mockAgent) {
-          return mockAgent;
+    const key = slug.trim()
+    const pending = agentBySlugInflight.get(key)
+    if (pending) return pending
+
+    const promise = (async () => {
+      try {
+        const response = await apiFetch(`/api/kip/agents?slug=${encodeURIComponent(key)}`);
+        if (response.success) {
+          return response.data;
         }
+        throw new Error(response.error || 'Agent not found');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Agent not found';
+        if (shouldUseMockFallback(error)) {
+          console.warn('API connection failed, using mock data:', error);
+          const mockAgent = mockAgents.find(agent => agent.slug === key);
+          if (mockAgent) {
+            return mockAgent;
+          }
+        }
+        throw new Error(message);
       }
-      throw new Error(message);
-    }
+    })().finally(() => {
+      agentBySlugInflight.delete(key);
+    })
+
+    agentBySlugInflight.set(key, promise)
+    return promise
   }
 
   /**
@@ -1373,18 +1387,29 @@ export class KipApi {
    * Get all messages for a session
    */
   static async getSessionMessages(sessionId: string): Promise<KipMessage[]> {
-    try {
-      const response = await apiFetch(`/api/kip/agents?messages=true&sessionId=${sessionId}`);
-      if (response.success) {
-        return response.data;
+    const key = sessionId.trim()
+    const pending = sessionMessagesInflight.get(key)
+    if (pending) return pending
+
+    const promise = (async () => {
+      try {
+        const response = await apiFetch(`/api/kip/agents?messages=true&sessionId=${encodeURIComponent(key)}`);
+        if (response.success) {
+          return response.data;
+        }
+        const message = pickErrorMessage(response, 'Failed to fetch session messages');
+        throw enrichApiError(new Error(message), 'Failed to fetch session messages');
+      } catch (error) {
+        const enriched = enrichApiError(error, 'Failed to fetch session messages');
+        console.error('Error fetching session messages:', enriched);
+        throw enriched;
       }
-      const message = pickErrorMessage(response, 'Failed to fetch session messages');
-      throw enrichApiError(new Error(message), 'Failed to fetch session messages');
-    } catch (error) {
-      const enriched = enrichApiError(error, 'Failed to fetch session messages');
-      console.error('Error fetching session messages:', enriched);
-      throw enriched;
-    }
+    })().finally(() => {
+      sessionMessagesInflight.delete(key);
+    })
+
+    sessionMessagesInflight.set(key, promise)
+    return promise
   }
 
   /**

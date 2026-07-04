@@ -14,6 +14,16 @@ export type BoardNavCacheKey =
   | "keepers"
   | "drafts"
   | "agents"
+  | "library"
+
+export interface BoardNavPrefetchSections {
+  journeys?: boolean
+  keepers?: boolean
+  dialogs?: boolean
+  drafts?: boolean
+  agents?: boolean
+  library?: boolean
+}
 
 interface CacheEntry<T> {
   fetchedAt: number
@@ -123,19 +133,43 @@ async function loadAgents(domainId: string) {
   return Array.isArray(list) ? list : []
 }
 
+async function loadLibrary(domainId: string) {
+  const rows = await apiFetch(
+    `/api/library-items?domainId=${encodeURIComponent(domainId)}`,
+  )
+  return Array.isArray(rows) ? rows : []
+}
+
 const LOADERS: Record<BoardNavCacheKey, (domainId: string) => Promise<unknown>> = {
   dialogs: loadDialogs,
   journeys: loadJourneys,
   keepers: loadKeepers,
   drafts: loadDrafts,
   agents: loadAgents,
+  library: loadLibrary,
+}
+
+function resolvePrefetchKeys(sections?: BoardNavPrefetchSections): BoardNavCacheKey[] {
+  if (!sections) {
+    return ["journeys", "keepers"]
+  }
+  const keys: BoardNavCacheKey[] = []
+  if (sections.journeys) keys.push("journeys")
+  if (sections.keepers) keys.push("keepers")
+  if (sections.dialogs) keys.push("dialogs")
+  if (sections.drafts) keys.push("drafts")
+  if (sections.agents) keys.push("agents")
+  if (sections.library) keys.push("library")
+  return keys
 }
 
 /** Warm shared nav slices when a board mounts — best-effort, respects TTL. */
-export function prefetchBoardNavData(domainId: string): void {
+export function prefetchBoardNavData(
+  domainId: string,
+  sections?: BoardNavPrefetchSections,
+): void {
   if (!domainId) return
-  const keys: BoardNavCacheKey[] = ["journeys", "keepers", "dialogs", "drafts"]
-  for (const key of keys) {
+  for (const key of resolvePrefetchKeys(sections)) {
     if (getCachedBoardNavData(domainId, key)) continue
     void fetchBoardNavSlice(domainId, key, () => LOADERS[key](domainId)).catch(() => {
       /* prefetch is best-effort */
@@ -176,4 +210,14 @@ export async function loadJourneyNavRows(domainId: string): Promise<JourneyNavRo
   return fetchBoardNavSlice(domainId, "journeys", () =>
     loadJourneys(domainId),
   ) as Promise<JourneyNavRow[]>
+}
+
+export async function loadKeeperNavRows(domainId: string): Promise<KeeperNavRow[]> {
+  return fetchBoardNavSlice(domainId, "keepers", () =>
+    loadKeepers(domainId),
+  ) as Promise<KeeperNavRow[]>
+}
+
+export async function loadLibraryNavRows(domainId: string): Promise<unknown[]> {
+  return fetchBoardNavSlice(domainId, "library", () => loadLibrary(domainId))
 }

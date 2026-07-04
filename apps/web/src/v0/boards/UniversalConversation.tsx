@@ -1066,12 +1066,15 @@ export function UniversalConversation({
     idleMessages,
   })
 
-  // Safety net: session exists but transcript was cleared (e.g. stale openIdle) — refetch once.
+  // Safety net: session exists but transcript empty — defer so useAgentDialog idle fetch runs first.
   React.useEffect(() => {
     if (isSending || !dialogSessionId) return
     if (messages.length > 0) return
     if (kipMode === "designer") return
-    void fetchMessages(dialogSessionId)
+    const timeoutId = window.setTimeout(() => {
+      void fetchMessages(dialogSessionId)
+    }, 600)
+    return () => window.clearTimeout(timeoutId)
   }, [kipMode, dialogSessionId, messages.length, isSending, fetchMessages])
 
   // ── Director mode: pin board instruments for dialog delegation only ─────────

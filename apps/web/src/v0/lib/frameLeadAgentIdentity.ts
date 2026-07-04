@@ -1,6 +1,7 @@
 import { KipApi } from "../../lib/kipApi"
 
 const displayNameCache = new Map<string, string>()
+const missingLeadSlugs = new Set<string>()
 
 export const KIP_FALLBACK_SLUG = "kip" as const
 export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
@@ -29,11 +30,16 @@ export function getCachedFrameLeadAgentDisplayName(slug: string): string | null 
 
 export function clearFrameLeadAgentDisplayNameCache(): void {
   displayNameCache.clear()
+  missingLeadSlugs.clear()
 }
 
 export async function fetchFrameLeadAgentDisplayName(slug: string): Promise<string> {
   const trimmed = slug.trim()
   if (!trimmed || PLACEHOLDER_LEAD_AGENT_SLUGS.has(trimmed)) {
+    return KIP_FALLBACK_DISPLAY_NAME
+  }
+
+  if (missingLeadSlugs.has(trimmed)) {
     return KIP_FALLBACK_DISPLAY_NAME
   }
 
@@ -46,6 +52,7 @@ export async function fetchFrameLeadAgentDisplayName(slug: string): Promise<stri
     displayNameCache.set(trimmed, name)
     return name
   } catch {
+    missingLeadSlugs.add(trimmed)
     return KIP_FALLBACK_DISPLAY_NAME
   }
 }
@@ -70,10 +77,19 @@ export function resolveDialogAgentSlug(
 /** Resolve agent UUID for dialog — falls back to platform `kip` when domain lead is missing. */
 export async function resolveLeadAgentId(slug: string): Promise<string> {
   const primary = normalizeLeadAgentSlug(slug)
+  if (primary === KIP_FALLBACK_SLUG) {
+    const agent = await KipApi.getAgentBySlug(KIP_FALLBACK_SLUG)
+    return agent.id
+  }
+  if (missingLeadSlugs.has(primary)) {
+    const agent = await KipApi.getAgentBySlug(KIP_FALLBACK_SLUG)
+    return agent.id
+  }
   try {
     const agent = await KipApi.getAgentBySlug(primary)
     return agent.id
   } catch (primaryError) {
+    missingLeadSlugs.add(primary)
     if (primary === KIP_FALLBACK_SLUG) throw primaryError
     const agent = await KipApi.getAgentBySlug(KIP_FALLBACK_SLUG)
     return agent.id

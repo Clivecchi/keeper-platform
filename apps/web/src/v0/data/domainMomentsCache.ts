@@ -11,11 +11,14 @@ interface CacheEntry<T> {
   data: T
 }
 
+/** Single fetch size — callers slice to their display limit. */
+const DOMAIN_MOMENTS_FETCH_LIMIT = 50
+
 const store = new Map<string, CacheEntry<unknown>>()
 const inflight = new Map<string, Promise<unknown>>()
 
-function cacheKey(domainSlug: string, limit: number, status: string): string {
-  return `${domainSlug.trim().toLowerCase()}:${status}:${limit}`
+function cacheKey(domainSlug: string, status: string): string {
+  return `${domainSlug.trim().toLowerCase()}:${status}`
 }
 
 function isFresh(entry: CacheEntry<unknown>, now = Date.now()): boolean {
@@ -37,18 +40,22 @@ export async function fetchDomainKeptMoments(
   const slug = domainSlug.trim()
   if (!slug) return []
 
-  const limit = options?.limit ?? 50
-  const key = cacheKey(slug, limit, "kept")
+  const displayLimit = options?.limit ?? DOMAIN_MOMENTS_FETCH_LIMIT
+  const key = cacheKey(slug, "kept")
 
   if (!options?.forceRefresh) {
     const cached = store.get(key) as CacheEntry<DomainMomentRow[]> | undefined
-    if (cached && isFresh(cached)) return cached.data
+    if (cached && isFresh(cached)) {
+      return cached.data.slice(0, displayLimit)
+    }
     const pending = inflight.get(key) as Promise<DomainMomentRow[]> | undefined
-    if (pending) return pending
+    if (pending) {
+      return pending.then((rows) => rows.slice(0, displayLimit))
+    }
   }
 
   const promise = apiFetch(
-    `/api/v0/moments?domainSlug=${encodeURIComponent(slug)}&status=kept&limit=${limit}`,
+    `/api/v0/moments?domainSlug=${encodeURIComponent(slug)}&status=kept&limit=${DOMAIN_MOMENTS_FETCH_LIMIT}`,
   )
     .then((json: unknown) => {
       const data = (json as { data?: DomainMomentRow[] })?.data ?? []
@@ -61,5 +68,5 @@ export async function fetchDomainKeptMoments(
     })
 
   inflight.set(key, promise)
-  return promise
+  return promise.then((rows) => rows.slice(0, displayLimit))
 }

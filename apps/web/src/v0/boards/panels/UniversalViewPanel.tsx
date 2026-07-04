@@ -30,7 +30,7 @@ import * as React from "react"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
-import { loadJourneyNavRows } from "../boardNavDataCache"
+import { loadJourneyNavRows, getCachedBoardNavData } from "../boardNavDataCache"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
 import { useBoardDefinitionFromUrl } from "../useBoardDefinitionFromUrl"
@@ -594,6 +594,13 @@ export function UniversalViewPanel({
     let cancelled = false
 
     function poll() {
+      type JourneyBrief = { momentCount?: number }
+      const cached = getCachedBoardNavData<JourneyBrief[]>(pollDomainId!, "journeys")
+      if (cached) {
+        const count = cached.filter((j) => (j.momentCount ?? 0) > 0).length
+        setFeedCount(count)
+        return
+      }
       void loadJourneyNavRows(pollDomainId!)
         .then((list) => {
           if (cancelled) return

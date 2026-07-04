@@ -31,7 +31,12 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
-### 2026-07-02 — Domain board load performance
+### 2026-07-03 — First-load dedupe pass
+- `domainMomentsCache`: single fetch per slug (limit 50), callers slice — fixes limit=12 vs limit=50 double fetch
+- `boardNavDataCache`: library slice + board-aware prefetch (Domain board skips drafts)
+- `FrameContext`: keepers via shared nav cache
+- `KipApi`: inflight dedupe for `getAgentBySlug` + `getSessionMessages`
+- `frameLeadAgentIdentity`: remember missing lead slugs — one 404 then fallback to `kip`
 - `useAgentDialog`: `resolveLeadAgentId` for slug lookup (404 → `kip`); domain mode defers session history via `requestIdleCallback` so nav/frame paint first.
 
 ### 2026-07-02 — P3.2 Draft–Journey promote fallback

@@ -1,5 +1,6 @@
 import { apiFetch } from "../../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
+import { loadLibraryNavRows } from "../../boards/boardNavDataCache"
 
 export type LibraryNavRow = {
   id: string
@@ -116,12 +117,9 @@ export function resolveLibraryHeroAvatar(
 }
 
 export async function fetchDomainLibraryNavRows(domainId: string): Promise<LibraryNavRow[]> {
-  const rows = (await apiFetch(
-    `/api/library-items?domainId=${encodeURIComponent(domainId)}`,
-  )) as LibraryNavRow[]
-
+  const rows = await loadLibraryNavRows(domainId)
   if (!Array.isArray(rows)) return []
-  return rows
+  return rows as LibraryNavRow[]
 }
 
 export function applyLibraryNavRowPatch(

@@ -6,7 +6,7 @@ import { apiFetch } from "../../lib/api"
 import type { V0FrameKey } from "./V0ShellContext"
 import type { PlacementMode } from "./usePlacementMode"
 import { useV0ShellOptional } from "./V0ShellContext"
-import { loadJourneyNavRows } from "../boards/boardNavDataCache"
+import { loadJourneyNavRows, loadKeeperNavRows } from "../boards/boardNavDataCache"
 
 // =============================================================================
 // Types — the Context Contract
@@ -204,25 +204,22 @@ export function FrameContextProvider({
       try {
         const persisted = getPersistedSelection(domainSlug)
 
-        const [keepersRes, journeys] = await Promise.all([
-          apiFetch(`/api/keepers?domainId=${domain.id}`).catch(() => null),
+        const [keepers, journeys] = await Promise.all([
+          loadKeeperNavRows(domain.id).catch(() => [] as { id: string }[]),
           loadJourneyNavRows(domain.id).catch(() => [] as { id: string }[]),
         ])
         if (ignore) return
 
-        const keepers: { id: string }[] =
-          (keepersRes as any)?.data?.keepers ??
-          (keepersRes as any)?.keepers ??
-          (Array.isArray(keepersRes) ? keepersRes : [])
+        const keeperRows = Array.isArray(keepers) ? keepers : []
         const journeyRows = Array.isArray(journeys) ? journeys : []
 
         // Resolve keeper: persisted → first available
         let resolvedKeeper = persisted.keeperId
-        if (resolvedKeeper && !keepers.some((k) => k.id === resolvedKeeper)) {
+        if (resolvedKeeper && !keeperRows.some((k) => k.id === resolvedKeeper)) {
           resolvedKeeper = null
         }
-        if (!resolvedKeeper && keepers.length > 0) {
-          resolvedKeeper = keepers[0].id
+        if (!resolvedKeeper && keeperRows.length > 0) {
+          resolvedKeeper = keeperRows[0].id
         }
 
         // Resolve journey: persisted → first available
