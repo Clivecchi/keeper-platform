@@ -163,6 +163,8 @@ type RunAgentOptions = {
   activeJourneyId?: string | null;
   activeKeeperId?: string | null;
   attachments?: AgentAttachmentInput[];
+  /** Gloss / draft-discuss context from the frontend (domain frame JSON). */
+  agentContext?: Record<string, unknown>;
   /** IDE / Domain director mode — run board instrument before Lead synthesis. */
   directorDelegation?: DirectorDelegationRequest;
 };
@@ -4471,7 +4473,7 @@ export class KipAgentService {
           }
           
           // Save user message to memory if we have a session (skip gloss sub-turns — persisted on parent message)
-          if (currentSessionId && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)) {
+          if (currentSessionId && !isGlossMode(options?.agentContext)) {
             try {
               const textToSave =
                 input?.trim()
@@ -4962,7 +4964,7 @@ export class KipAgentService {
         if (
           agent.memory_enabled
           && currentSessionId
-          && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)
+          && !isGlossMode(options?.agentContext)
         ) {
           try {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
@@ -5102,7 +5104,7 @@ export class KipAgentService {
             const textToSave =
               input?.trim() ||
               (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
-            if (textToSave && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)) {
+            if (textToSave && !isGlossMode(options?.agentContext)) {
               await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId,
@@ -5233,7 +5235,7 @@ export class KipAgentService {
           }
         }
 
-        if (currentSessionId && !isGlossMode(options?.agentContext as Record<string, unknown> | undefined)) {
+        if (currentSessionId && !isGlossMode(options?.agentContext)) {
           try {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
@@ -5975,6 +5977,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               name: a.name,
               type: a.type,
             })) ?? undefined,
+            agentContext: validation.data.agentContext,
           };
           if (validation.data.directorDelegation) {
             const dd = validation.data.directorDelegation;
