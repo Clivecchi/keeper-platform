@@ -9,6 +9,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `domain/domainShellCache.ts` — Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
+- `domainWorkspaceBoards.ts` — Per-domain allowed workspace boards (KE3P vs member domains)
 - `realm/` — Realm Board (`?board=realm`) — personal domain primary workspace
 - `designer/` — The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
 
@@ -161,6 +162,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `buildDirectorFallbackSynthesisPrompt`: Kip still in director mode when instrument reply empty — no "you're talking to Kip" / "hand off to Cloud"
 
 ## 📆 Update Log
+
+### 2026-07-03 — Per-domain workspace board sets
+- **`domainWorkspaceBoards.ts`** — platform slug `default` (KE3P): Realm · Domain · IDE · Design · Agent; all other domains: Realm · Domain · Agent only.
+- Top bar, sidebar Boards section, and `V0Shell` redirect deep links that request IDE/Design on member domains.
 
 ### 2026-07-03 — Collaborative agent surfacing (Domain + IDE label)
 - **Domain board:** Domain lead agent on composer toolbar (× dismisses to Agents bar); Kip on footer as always-invoked director collaborator; lead pinned for delegation by default.

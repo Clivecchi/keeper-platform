@@ -42,6 +42,7 @@ import { useBoardDefs } from "./useBoardDefs"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "./workspaceBoardNav"
+import { resolveWorkspaceBoardNavItems } from "./domainWorkspaceBoards"
 import {
   collapseKeyNavRows,
   fetchAllDomainKeyRows,
@@ -206,18 +207,11 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "boards",
 ]
 
-const WORKSPACE_BOARD_NAV: { id: WorkspaceBoardId; label: string }[] = [
-  { id: "realm", label: "Realm" },
-  { id: "domain", label: "Domain" },
-  { id: "ide", label: "IDE" },
-  { id: "designer", label: "Design" },
-  { id: "agent", label: "Agent" },
-]
-
-function resolveWorkspaceBoardNavItems(
+function resolveSidebarWorkspaceBoardNavItems(
+  domainSlug: string,
   currentBoardId: WorkspaceBoardId,
 ): { id: WorkspaceBoardId; label: string }[] {
-  return WORKSPACE_BOARD_NAV.filter((board) => board.id !== currentBoardId)
+  return resolveWorkspaceBoardNavItems(domainSlug, currentBoardId)
 }
 
 function resolveNavBlockOrder(def: UniversalBoardDef): NavRenderBlock[] {
@@ -1061,7 +1055,8 @@ export function UniversalNavPanel({
   const aiItems = aiIntegrations.map(toIntegrationItem)
   const integrationItems: SidebarCardItem[] = [...infrastructureItems, ...aiItems]
 
-  const boardNavItems: SidebarCardItem[] = resolveWorkspaceBoardNavItems(
+  const boardNavItems: SidebarCardItem[] = resolveSidebarWorkspaceBoardNavItems(
+    domainSlug,
     def.boardId as WorkspaceBoardId,
   ).map((board) => ({
     id: board.id,

@@ -26,6 +26,11 @@ import {
   isMemberWorkspaceBoard,
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
+import {
+  isPlatformDomainSlug,
+  isWorkspaceBoardAvailableForDomain,
+  resolveDefaultWorkspaceBoardId,
+} from "../boards/domainWorkspaceBoards"
 import { UniversalBoard } from "../boards/UniversalBoard"
 import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
 import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
@@ -145,13 +150,12 @@ export function V0Shell() {
     const board = searchParams.get("board")
     const frame = searchParams.get("frame")
     const surfaceDesktop = searchParams.get("surface") === "desktop"
-    const adminWorkspaceBoards = new Set<WorkspaceBoardId>(["ide", "agent", "designer"])
 
     // Universal Mobile: authenticated narrow viewports use member boards (domain · realm).
     // Default to realm board — Realm tab is the primary mobile home.
     // Strip legacy ?frame= params — member work lives on ?board=, not standalone frames.
     if (mobileSurface === "mobile" && !surfaceDesktop) {
-      if (board && adminWorkspaceBoards.has(board as WorkspaceBoardId)) return
+      if (board && isWorkspaceBoardAvailableForDomain(board, resolvedSlug)) return
       const targetBoard =
         board === "domain" ? "domain" : "realm"
       if (!isMemberWorkspaceBoard(board) || frame) {
@@ -178,7 +182,7 @@ export function V0Shell() {
         { replace: true },
       )
     }
-  }, [isAuthenticated, mobileSurface, searchParams, setSearchParams])
+  }, [isAuthenticated, mobileSurface, searchParams, setSearchParams, resolvedSlug])
 
   // Stale ?definition= on non-Design workspaces — use authoritative search.
   React.useEffect(() => {
@@ -264,8 +268,13 @@ export function V0Shell() {
   // Board defs come from domainFrame.boards (seeded per-domain) with fallback to
   // BOARD_DEFINITIONS_FALLBACK for domains whose frame_json has not yet been seeded.
   const boardDefs: UniversalBoardDef[] = resolveBoardDefs(domainFrame?.boards)
-  const matchedDef: UniversalBoardDef | null = workspaceBoardId
-    ? boardDefs.find((d) => d.boardId === workspaceBoardId) ?? null
+  const effectiveWorkspaceBoardId =
+    workspaceBoardId &&
+    isWorkspaceBoardAvailableForDomain(workspaceBoardId, resolvedSlug)
+      ? workspaceBoardId
+      : null
+  const matchedDef: UniversalBoardDef | null = effectiveWorkspaceBoardId
+    ? boardDefs.find((d) => d.boardId === effectiveWorkspaceBoardId) ?? null
     : null
 
   // Resolved once at the Frame level — no child resolves audience independently
@@ -594,27 +603,39 @@ export function V0Shell() {
 
   const switchWorkspace = React.useCallback(
     (boardId: WorkspaceBoardId) => {
-      setPendingWorkspaceBoardId(boardId)
+      const target = isWorkspaceBoardAvailableForDomain(boardId, resolvedSlug)
+        ? boardId
+        : resolveDefaultWorkspaceBoardId(resolvedSlug)
+      setPendingWorkspaceBoardId(target)
       setPendingBoardDefinitionId(null)
       commitBoardSearch((params) =>
-        applyWorkspaceBoardSwitch(params, boardId),
+        applyWorkspaceBoardSwitch(params, target),
       )
       console.log(
         "[WorkspaceNav]",
         JSON.stringify({
           action: "switch",
-          requested: boardId,
+          requested: target,
           windowSearch:
             typeof window !== "undefined" ? window.location.search : null,
           routerSearch: location.search,
         }),
       )
     },
-    [commitBoardSearch, location.search],
+    [commitBoardSearch, location.search, resolvedSlug],
   )
+
+  React.useEffect(() => {
+    if (!resolvedSlug || !workspaceBoardId) return
+    if (isWorkspaceBoardAvailableForDomain(workspaceBoardId, resolvedSlug)) return
+    const fallback = resolveDefaultWorkspaceBoardId(resolvedSlug)
+    setPendingWorkspaceBoardId(fallback)
+    commitBoardSearch((params) => applyWorkspaceBoardSwitch(params, fallback))
+  }, [resolvedSlug, workspaceBoardId, commitBoardSearch])
 
   const selectBoardDefinition = React.useCallback(
     (definitionId: string) => {
+      if (!isPlatformDomainSlug(resolvedSlug)) return
       setPendingWorkspaceBoardId("designer")
       setPendingBoardDefinitionId(definitionId)
       commitBoardSearch((params) => {
@@ -635,7 +656,7 @@ export function V0Shell() {
         }),
       )
     },
-    [commitBoardSearch, location.search],
+    [commitBoardSearch, location.search, resolvedSlug],
   )
 
   const clearBoardDefinition = React.useCallback(() => {
@@ -645,10 +666,11 @@ export function V0Shell() {
 
   // Design workspace: default to Domain board spec when none selected — enables Kip session bootstrap.
   React.useEffect(() => {
+    if (!isPlatformDomainSlug(resolvedSlug)) return
     if (workspaceBoardId !== "designer") return
     if (boardDefinitionId) return
     selectBoardDefinition("domain")
-  }, [workspaceBoardId, boardDefinitionId, selectBoardDefinition])
+  }, [resolvedSlug, workspaceBoardId, boardDefinitionId, selectBoardDefinition])
 
   const shellWorkspaceNav = React.useMemo(
     () => ({

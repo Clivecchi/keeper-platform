@@ -5,6 +5,9 @@ import clsx from "clsx"
 import { FileText } from "lucide-react"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
+import {
+  resolveWorkspaceBoardLinks,
+} from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
@@ -102,14 +105,6 @@ function getRoleLabel(audience: string | null): string {
 
 // ─── Board nav config ─────────────────────────────────────────────────────────
 
-const BOARD_LINKS: { id: WorkspaceBoardId; label: string }[] = [
-  { id: "realm",    label: "Realm" },
-  { id: "domain",   label: "Domain" },
-  { id: "ide",      label: "IDE" },
-  { id: "designer", label: "Design" },
-  { id: "agent",    label: "Agent" },
-]
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: KeeperTopBarProps) {
@@ -136,6 +131,11 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   const roleLabel = getRoleLabel(resolvedAudience)
 
   const activeBoardId = workspaceBoardId
+
+  const boardLinks = React.useMemo(
+    () => resolveWorkspaceBoardLinks(domainSlug),
+    [domainSlug],
+  )
 
   const handleBoardClick = (id: WorkspaceBoardId) => {
     switchWorkspace(id)
@@ -222,7 +222,7 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
       <div className="keeper-topbar-nav-row">
         {/* Board links */}
         <nav className="flex items-center gap-0.5" aria-label="Board navigation">
-          {BOARD_LINKS.map(({ id, label }, idx) => {
+          {boardLinks.map(({ id, label }, idx) => {
             const isActive = activeBoardId === id
             return (
               <React.Fragment key={id}>
