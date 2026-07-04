@@ -108,7 +108,9 @@ async function loadDialogs(domainId: string) {
 }
 
 async function loadJourneys(domainId: string) {
-  const res = await apiFetch(`/api/journeys?domainId=${encodeURIComponent(domainId)}`)
+  const res = await apiFetch(
+    `/api/journeys?domainId=${encodeURIComponent(domainId)}&nav=true&limit=50`,
+  )
   const list = (res as { data?: { journeys?: unknown[] } })?.data?.journeys ?? []
   return Array.isArray(list) ? list : []
 }

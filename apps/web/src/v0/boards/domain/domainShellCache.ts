@@ -68,14 +68,22 @@ export function setCachedDomainAudience(slug: string, data: DomainAudienceRecord
   audienceStore.set(normalizeSlug(slug), { fetchedAt: Date.now(), data })
 }
 
-async function loadDomainBySlug(slug: string): Promise<DomainBySlugRecord> {
-  const response = (await apiFetch(`/api/domains/by-slug/${encodeURIComponent(slug)}`)) as DomainBySlugRecord
-  if (!response?.id) {
-    throw new Error(`Domain not found: ${slug}`)
+async function loadDomainBySlug(slug: string, attempt = 0): Promise<DomainBySlugRecord> {
+  try {
+    const response = (await apiFetch(`/api/domains/by-slug/${encodeURIComponent(slug)}`)) as DomainBySlugRecord
+    if (!response?.id) {
+      throw new Error(`Domain not found: ${slug}`)
+    }
+    const record = { ...response, slug: response.slug ?? slug }
+    setCachedDomainBySlug(slug, record)
+    return record
+  } catch (error) {
+    if (attempt < 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 400))
+      return loadDomainBySlug(slug, attempt + 1)
+    }
+    throw error
   }
-  const record = { ...response, slug: response.slug ?? slug }
-  setCachedDomainBySlug(slug, record)
-  return record
 }
 
 async function loadDomainAudience(slug: string): Promise<DomainAudienceRecord> {

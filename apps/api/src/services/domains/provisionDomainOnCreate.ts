@@ -69,9 +69,16 @@ function patchFrameLeadAgentSlug(
 
 async function createDomainLeadAgent(
   prisma: PrismaClient,
-  input: { name: string; slug: string; description?: string | null; ownerId: string },
+  input: {
+    name: string;
+    slug: string;
+    description?: string | null;
+    ownerId: string;
+    /** When frame_json references a specific slug, create that row exactly. */
+    preferredSlug?: string | null;
+  },
 ): Promise<{ id: string; slug: string } | null> {
-  let agentSlug = leadAgentSlugForDomain(input.slug);
+  let agentSlug = input.preferredSlug?.trim() || leadAgentSlugForDomain(input.slug);
   const purpose =
     input.description?.trim() ||
     `Lead agent for ${input.name.trim()} — guides keepers in this domain.`;
@@ -165,6 +172,7 @@ export async function provisionDomainOnCreate(
         slug: domain.slug,
         description: domain.description,
         ownerId: domain.ownerId,
+        preferredSlug: frameLeadSlug,
       });
       if (created) {
         leadAgentId = created.id;
@@ -337,4 +345,63 @@ export async function provisionDomainOnCreate(
     frameWritten: frameJson !== null,
     frameAgentSynced,
   };
+}
+
+/**
+ * Repair a missing domain lead agent row referenced by frame_json or slug lookup.
+ * Used by GET /api/kip/agents?slug= when production drift left frame ahead of kip_agents.
+ */
+export async function ensureDomainLeadAgentBySlug(
+  prisma: PrismaClient,
+  agentSlug: string,
+): Promise<{ id: string; slug: string } | null> {
+  const trimmed = agentSlug.trim();
+  if (!trimmed) return null;
+
+  const existing = await prisma.kip_agents.findUnique({
+    where: { slug: trimmed },
+    select: { id: true, slug: true },
+  });
+  if (existing) return existing;
+
+  const domainSlugCandidates = new Set<string>();
+  if (trimmed.endsWith('-lead')) {
+    domainSlugCandidates.add(trimmed.slice(0, -'-lead'.length));
+  }
+  domainSlugCandidates.add(trimmed);
+
+  for (const domainSlug of domainSlugCandidates) {
+    if (!domainSlug) continue;
+    const domain = await prisma.domain.findFirst({
+      where: { slug: domainSlug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        ownerId: true,
+        frame_json: true,
+      },
+    });
+    if (!domain) continue;
+
+    const frameLead = readFrameLeadAgentSlug(
+      domain.frame_json as Record<string, unknown> | null,
+    );
+    const preferredSlug =
+      frameLead && (frameLead === trimmed || !frameLead.endsWith('-lead'))
+        ? frameLead
+        : trimmed;
+
+    const created = await createDomainLeadAgent(prisma, {
+      name: domain.name,
+      slug: domain.slug,
+      description: domain.description,
+      ownerId: domain.ownerId,
+      preferredSlug,
+    });
+    if (created) return created;
+  }
+
+  return null;
 }

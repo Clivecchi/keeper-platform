@@ -1034,6 +1034,7 @@ export function UniversalNavPanel({
 
   React.useEffect(() => {
     if (!showBoardDefs) return
+    if (!(import.meta as any).env?.DEV) return
     console.log(
       "[UniversalNavPanel]",
       JSON.stringify({

@@ -1,11 +1,19 @@
 import { apiFetch } from "../../lib/api"
 
 const sessionOkKey = (domainId: string) => `keeper:provision-ok:${domainId}`
+const PROVISION_COOLDOWN_MS = 5 * 60 * 1000
+const lastProvisionAttempt = new Map<string, number>()
 
 export interface EnsureDomainProvisionedResult {
   provisioned: boolean
   frameWritten?: boolean
   leadAgentSlug?: string | null
+}
+
+export function clearDomainProvisionSessionOk(domainId: string): void {
+  if (typeof sessionStorage === "undefined") return
+  sessionStorage.removeItem(sessionOkKey(domainId))
+  lastProvisionAttempt.delete(domainId)
 }
 
 /**
@@ -14,10 +22,15 @@ export interface EnsureDomainProvisionedResult {
  */
 export async function ensureDomainProvisioned(
   domainId: string,
+  options?: { force?: boolean },
 ): Promise<EnsureDomainProvisionedResult> {
-  if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(sessionOkKey(domainId))) {
+  const now = Date.now()
+  const lastAttempt = lastProvisionAttempt.get(domainId) ?? 0
+  if (!options?.force && now - lastAttempt < PROVISION_COOLDOWN_MS) {
     return { provisioned: false }
   }
+
+  lastProvisionAttempt.set(domainId, now)
 
   try {
     const res = (await apiFetch(`/api/domains/${encodeURIComponent(domainId)}/provision`, {

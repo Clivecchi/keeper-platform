@@ -18,6 +18,11 @@ const journeyQuerySchema = z.object({
   keeperId: z.string().optional(),
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),
+  /** Nav list mode — ids, names, counts only (no nested paths/moments/themes). */
+  nav: z
+    .union([z.literal('true'), z.literal('1'), z.literal('')])
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
 });
 
 /**
@@ -25,7 +30,7 @@ const journeyQuerySchema = z.object({
  */
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    const { domainId, keeperId, limit, offset } = journeyQuerySchema.parse(req.query);
+    const { domainId, keeperId, limit, offset, nav } = journeyQuerySchema.parse(req.query);
     const userId = (req as any).user?.id;
 
     if (!userId) {
@@ -38,6 +43,62 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     }
     if (keeperId) {
       where.keeperId = keeperId;
+    }
+
+    if (nav) {
+      const journeys = await prisma.journey.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          forward: true,
+          ownerId: true,
+          domainId: true,
+          keeperId: true,
+          createdAt: true,
+          updatedAt: true,
+          Keeper: {
+            select: {
+              id: true,
+              title: true,
+              keeperType: true,
+            },
+          },
+          _count: {
+            select: {
+              Path: true,
+              Moment: true,
+            },
+          },
+        },
+      });
+
+      const total = await prisma.journey.count({ where });
+
+      return res.json({
+        success: true,
+        data: {
+          journeys: journeys.map((journey) => ({
+            id: journey.id,
+            name: journey.name,
+            forward: journey.forward,
+            ownerId: journey.ownerId,
+            domainId: journey.domainId,
+            keeperId: journey.keeperId,
+            createdAt: journey.createdAt,
+            updatedAt: journey.updatedAt,
+            keeper: journey.Keeper,
+            pathCount: journey._count.Path,
+            momentCount: journey._count.Moment,
+          })),
+          total,
+          page: Math.floor(offset / limit) + 1,
+          limit,
+        },
+      });
     }
 
     const journeys = await prisma.journey.findMany({

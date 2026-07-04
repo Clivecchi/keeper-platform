@@ -45,3 +45,29 @@ export async function getKipAgentBySlugEnsured(slug: string): Promise<kip_agents
     },
   });
 }
+
+/**
+ * Resolve agent by slug for API reads — repairs missing domain lead rows inline
+ * so boards do not 404 when frame_json.agent_id exists without a kip_agents row.
+ */
+export async function resolveKipAgentBySlugForLoad(slug: string): Promise<kip_agents | null> {
+  const trimmed = slug.trim();
+  if (!trimmed) return null;
+
+  let agent = await getKipAgentBySlugEnsured(trimmed);
+  if (agent) return agent;
+
+  const { ensureDomainLeadAgentBySlug } = await import('../domains/provisionDomainOnCreate.js');
+  const repaired = await ensureDomainLeadAgentBySlug(prisma, trimmed);
+  if (repaired) {
+    agent = await getKipAgentBySlugEnsured(repaired.slug);
+    if (agent) return agent;
+  }
+
+  // Last resort: domain-scoped lead slug with no repair path — fall back to platform Kip.
+  if (trimmed !== 'kip' && (trimmed.endsWith('-lead') || trimmed.includes('-'))) {
+    return getKipAgentBySlugEnsured('kip');
+  }
+
+  return null;
+}

@@ -19,6 +19,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-03: **Lead agent + Design board fixes** — auto-provision runs for domain owners when lead agent row is missing (not only unseeded frames); Design workspace auto-selects `?definition=domain` when none set; router/window mismatch warnings dev-only.
 - 2026-07-02: **FrameContext** journey resolution uses `loadJourneyNavRows` (board nav cache) instead of raw `/api/journeys` — dedupes with Nav/Conversation/Chronicle.
 - 2026-07-02: **Soft domain switch** — slug changes apply cached domain/frame/audience immediately; `UniversalBoard` no longer remounts on domain pick.
 - 2026-07-02: Public guest cover uses `gray-earth` default style (not Warm Dark `neutral`); synchronous `domain-resolved` theme bootstrap from default frame JSON before async fetch.

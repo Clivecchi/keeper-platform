@@ -193,6 +193,7 @@ type DialogSessionRow = {
   session_name?: string | null
   created_at?: string
   updated_at?: string
+  messageCount?: number
   kip_messages?: Array<{ role?: string; content?: string; created_at?: string }>
 }
 
@@ -238,6 +239,10 @@ function normalizeDialogSessions(record: Record<string, unknown>): DialogSession
         session_name: typeof s.session_name === "string" ? s.session_name : null,
         created_at: typeof s.created_at === "string" ? s.created_at : undefined,
         updated_at: typeof s.updated_at === "string" ? s.updated_at : undefined,
+        messageCount:
+          typeof s.messageCount === "number"
+            ? s.messageCount
+            : undefined,
         kip_messages: Array.isArray(s.kip_messages)
           ? (s.kip_messages as DialogSessionRow["kip_messages"])
           : [],
@@ -277,7 +282,10 @@ function extractDialogExchangePreview(session: DialogSessionRow): string | undef
 }
 
 function dialogSessionSub(session: DialogSessionRow): string | undefined {
-  const count = session.kip_messages?.length ?? 0
+  const count =
+    session.messageCount ??
+    session.kip_messages?.length ??
+    0
   const activityIso = dialogSessionActivityIso(session)
   const when = activityIso ? formatRelativeKept(null, activityIso) : undefined
   const countLabel =
@@ -706,7 +714,9 @@ async function enrichDialog(record: Record<string, unknown>): Promise<Enrichment
   const sessions = normalizeDialogSessions(record)
   const relatedSections: RelatedSection[] = []
 
-  const sessionsWithMessages = sessions.filter((s) => (s.kip_messages?.length ?? 0) > 0)
+  const sessionsWithMessages = sessions.filter(
+    (s) => (s.messageCount ?? s.kip_messages?.length ?? 0) > 0,
+  )
   const arcItems = sessionsWithMessages.slice(0, 4).map((session) => ({
     id: session.id,
     label: dialogSessionLabel(session),

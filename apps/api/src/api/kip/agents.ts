@@ -2682,8 +2682,8 @@ const getKipAgentBySlug = async (slug: string) => {
 };
 
 const getKipAgentBySlugForLoad = async (slug: string) => {
-  const { getKipAgentBySlugEnsured } = await import('../../services/kip/ensureKnownLeadAgent.js');
-  return getKipAgentBySlugEnsured(slug);
+  const { resolveKipAgentBySlugForLoad } = await import('../../services/kip/ensureKnownLeadAgent.js');
+  return resolveKipAgentBySlugForLoad(slug);
 };
 
 const createKipAgent = async (data: AgentInput) => {

@@ -3,6 +3,40 @@ import { KipApi } from "../../lib/kipApi"
 const displayNameCache = new Map<string, string>()
 const missingLeadSlugs = new Set<string>()
 
+const MISSING_LEAD_STORAGE_KEY = "keeper:missing-lead-slugs"
+
+function hydrateMissingLeadSlugsFromStorage(): void {
+  if (typeof sessionStorage === "undefined") return
+  try {
+    const raw = sessionStorage.getItem(MISSING_LEAD_STORAGE_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return
+    for (const entry of parsed) {
+      if (typeof entry === "string" && entry.trim()) {
+        missingLeadSlugs.add(entry.trim())
+      }
+    }
+  } catch {
+    /* ignore corrupt storage */
+  }
+}
+
+function persistMissingLeadSlug(slug: string): void {
+  missingLeadSlugs.add(slug)
+  if (typeof sessionStorage === "undefined") return
+  try {
+    sessionStorage.setItem(
+      MISSING_LEAD_STORAGE_KEY,
+      JSON.stringify([...missingLeadSlugs]),
+    )
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
+hydrateMissingLeadSlugsFromStorage()
+
 export const KIP_FALLBACK_SLUG = "kip" as const
 export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
 
@@ -33,6 +67,13 @@ export function clearFrameLeadAgentDisplayNameCache(): void {
   missingLeadSlugs.clear()
   resolvedLeadIdentity.clear()
   leadIdentityInflight.clear()
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      sessionStorage.removeItem(MISSING_LEAD_STORAGE_KEY)
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 export interface ResolvedLeadAgentIdentity {
@@ -91,7 +132,7 @@ export async function resolveFrameLeadAgentIdentity(
       if (primary === KIP_FALLBACK_SLUG) {
         throw new Error("Platform Kip agent not found")
       }
-      missingLeadSlugs.add(primary)
+      persistMissingLeadSlug(primary)
       return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
     }
   })().finally(() => {
@@ -137,6 +178,9 @@ export function resolveDialogAgentSlug(
   domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
 ): string {
   const custom = readFrameLeadAgentSlug(domainFrame)
+  if (custom && isMissingLeadAgentSlug(custom)) {
+    return KIP_FALLBACK_SLUG
+  }
   return custom ?? KIP_FALLBACK_SLUG
 }
 

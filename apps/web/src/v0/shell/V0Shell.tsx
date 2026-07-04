@@ -46,8 +46,9 @@ import {
   peekDomainShellFrame,
 } from "../boards/domain/domainShellCache"
 import type { DomainFrameJson } from "../data/domain-frame.types"
-import { ensureDomainProvisioned, markDomainProvisionSessionOk } from "../lib/ensureDomainProvisioned"
+import { ensureDomainProvisioned, clearDomainProvisionSessionOk, markDomainProvisionSessionOk } from "../lib/ensureDomainProvisioned"
 import { domainFrameLooksUnseeded } from "../lib/domainFrameLooksUnseeded"
+import { isMissingLeadAgentSlug, readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { resolveDomainAudience, type DomainAudienceRole } from "@keeper/shared"
 import { usePlacementMode } from "./usePlacementMode"
 import { FrameContextProvider } from "./FrameContext"
@@ -412,17 +413,21 @@ export function V0Shell() {
     }
   }, [slug])
 
-  // Step 1.2 — auto-repair unseeded personal domains (frame_json, lead agent, keeper).
+  // Step 1.2 — auto-repair missing lead agent / frame drift for domain owners.
   React.useEffect(() => {
     if (!authResolved || !isAuthenticated || !user?.id || !slug || !domainData?.id) return
     if (String(domainData.id).startsWith("fallback-")) return
     if (domainData.ownerId !== user.id && !isAdmin) return
-    if (!domainFrame) return
-    if (!domainFrameLooksUnseeded(domainFrame, slug, domainData.name)) return
+
+    const frameLead = readFrameLeadAgentSlug(domainFrame)
+    if (frameLead && isMissingLeadAgentSlug(frameLead)) {
+      clearDomainProvisionSessionOk(domainData.id)
+    }
 
     let cancelled = false
     void (async () => {
-      const result = await ensureDomainProvisioned(domainData.id)
+      const forceRepair = !!(frameLead && isMissingLeadAgentSlug(frameLead))
+      const result = await ensureDomainProvisioned(domainData.id, { force: forceRepair })
       if (cancelled || !result.provisioned) return
       try {
         const frame = await loadDomainFrame(slug)
@@ -556,23 +561,27 @@ export function V0Shell() {
       readUrlSearchParams(windowSearch),
     )
     if (windowBoard && routerBoard && windowBoard !== routerBoard) {
-      console.warn("[WorkspaceNav] router/window mismatch", {
-        windowBoard,
-        routerBoard,
-        pending: pendingWorkspaceBoardId,
-        effective: workspaceBoardId,
-      })
+      if ((import.meta as any).env?.DEV) {
+        console.warn("[WorkspaceNav] router/window mismatch", {
+          windowBoard,
+          routerBoard,
+          pending: pendingWorkspaceBoardId,
+          effective: workspaceBoardId,
+        })
+      }
     }
     if (workspaceBoardId !== "designer") return
     const routerDef = parseBoardDefinitionId(readUrlSearchParams(routerSearch))
     const windowDef = parseBoardDefinitionId(readUrlSearchParams(windowSearch))
     if (windowDef && routerDef && windowDef !== routerDef) {
-      console.warn("[BoardDefinitionNav] router/window mismatch", {
-        windowDef,
-        routerDef,
-        pending: pendingBoardDefinitionId,
-        effective: boardDefinitionId,
-      })
+      if ((import.meta as any).env?.DEV) {
+        console.warn("[BoardDefinitionNav] router/window mismatch", {
+          windowDef,
+          routerDef,
+          pending: pendingBoardDefinitionId,
+          effective: boardDefinitionId,
+        })
+      }
     }
   }, [
     routerSearch,
@@ -633,6 +642,13 @@ export function V0Shell() {
     setPendingBoardDefinitionId(null)
     commitBoardSearch((params) => clearBoardDefinitionParams(params))
   }, [commitBoardSearch])
+
+  // Design workspace: default to Domain board spec when none selected — enables Kip session bootstrap.
+  React.useEffect(() => {
+    if (workspaceBoardId !== "designer") return
+    if (boardDefinitionId) return
+    selectBoardDefinition("domain")
+  }, [workspaceBoardId, boardDefinitionId, selectBoardDefinition])
 
   const shellWorkspaceNav = React.useMemo(
     () => ({

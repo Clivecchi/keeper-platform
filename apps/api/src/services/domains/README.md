@@ -31,6 +31,7 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+- 2026-07-03: **`ensureDomainLeadAgentBySlug`** — repairs missing `kip_agents` rows when `frame_json.kip.agent_id` references a slug without a DB row; used by `GET /api/kip/agents?slug=`. `createDomainLeadAgent` accepts `preferredSlug` for exact frame slug match.
 
 ### 2026-07-01 — Phase 3.1 Connections
 - Added `domainConnectionInvite.ts` with identifier lookup (email or display name), connection listing, direct grant, invitation upsert, and connection-only revoke.

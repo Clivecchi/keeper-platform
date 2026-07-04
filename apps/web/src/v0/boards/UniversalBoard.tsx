@@ -245,7 +245,8 @@ function UniversalBoardShell({
 
   React.useEffect(() => {
     if (!isResolvedDomainId(domainId)) return
-    prefetchBoardNavData(domainId, {
+
+    const slices = {
       journeys: !!def.nav.sections.journeys,
       keepers: !!def.nav.sections.keepers,
       dialogs: !!def.nav.sections.dialogs,
@@ -255,7 +256,17 @@ function UniversalBoardShell({
         (def.conversation.kipMode === "domain" &&
           def.conversation.dialogOrchestration === "director"),
       library: !!def.nav.sections.library,
-    })
+    }
+
+    const run = () => prefetchBoardNavData(domainId, slices)
+
+    if (typeof requestIdleCallback !== "undefined") {
+      const idleId = requestIdleCallback(run, { timeout: 2500 })
+      return () => cancelIdleCallback(idleId)
+    }
+
+    const timeoutId = window.setTimeout(run, 150)
+    return () => window.clearTimeout(timeoutId)
   }, [domainId, def])
 
   // Sync domain name from frame/domain data when available — avoids extra round trip
