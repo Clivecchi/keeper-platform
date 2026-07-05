@@ -709,6 +709,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                       <div className="mt-4">
                         <DnsInfoPanel
                           records={dnsRecords}
+                          customDomain={domain.customDomain ?? undefined}
                           currentNameServers={nameServers}
                           intendedNameServers={dnsStatus?.intendedNameServers}
                           configuredBy={dnsStatus?.configuredBy}

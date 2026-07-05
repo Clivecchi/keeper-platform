@@ -429,18 +429,15 @@ export function DomainAddressesSection({
               ) : null}
             </div>
 
-            {vercelAttached &&
-            (dnsStatus?.records?.length ||
-              dnsStatus?.currentNameServers?.length ||
-              dnsStatus?.nameServers?.length ||
-              dnsStatus?.intendedNameServers?.length) ? (
+            {vercelAttached ? (
               <DnsInfoPanel
-                records={dnsStatus.records ?? []}
+                records={dnsStatus?.records ?? []}
+                customDomain={savedCustomDomain}
                 currentNameServers={
-                  dnsStatus.currentNameServers ?? dnsStatus.nameServers ?? []
+                  dnsStatus?.currentNameServers ?? dnsStatus?.nameServers ?? []
                 }
-                intendedNameServers={dnsStatus.intendedNameServers}
-                configuredBy={dnsStatus.configuredBy}
+                intendedNameServers={dnsStatus?.intendedNameServers}
+                configuredBy={dnsStatus?.configuredBy}
                 configured={dnsConfigured}
                 verified={dnsVerified}
                 compact

@@ -112,6 +112,7 @@ Switched to shared `apiFetch` utility and consolidated list endpoint to `/api/do
 - Added DomainGovernanceCard: active contract name/version, enforcement mode dropdown (strict | warn | off), View Contract modal, Manage Lenses placeholder.
 - Rendered in DomainAdminPage when domain?.id exists. Uses GET/PATCH /api/domains/:domainId/governance.
 
-### 2026-07-04 - DNS panel clarity (registrar vs Vercel NS)
-- `DnsInfoPanel` distinguishes **Add at your registrar** (A/CNAME records), **Current nameservers (detected)**, and **Alternative: Vercel nameservers**
-- API status returns `currentNameServers`, `intendedNameServers`, `configuredBy` from Vercel domain config + domain info
+### 2026-07-04 - DNS panel Chronicle theme + registrar records always visible
+- Compact `DnsInfoPanel` uses theme tokens (no white/green Tailwind blocks)
+- Verified domains show **DNS at your registrar** with fallback A/CNAME defaults when Vercel returns no records
+- Current nameservers hidden after verification (setup-only)

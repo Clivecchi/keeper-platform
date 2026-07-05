@@ -211,6 +211,7 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
                   <div className="mt-3">
                     <DnsInfoPanel
                       records={domain.dnsStatus.records || []}
+                      customDomain={domain.customDomain ?? undefined}
                       currentNameServers={
                         domain.dnsStatus.currentNameServers ||
                         domain.dnsStatus.nameServers ||

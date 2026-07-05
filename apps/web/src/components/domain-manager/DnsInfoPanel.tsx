@@ -18,6 +18,12 @@ export const VERCEL_DELEGATION_NAMESERVERS = [
   'ns2.vercel-dns.com',
 ] as const;
 
+/** Standard Vercel records when API returns none (common after verification). */
+export const DEFAULT_VERCEL_REGISTRAR_RECORDS: DNSRecord[] = [
+  { type: 'A', domain: '@', value: '76.76.21.21' },
+  { type: 'CNAME', domain: 'www', value: 'cname.vercel-dns.com' },
+];
+
 export function isVercelDelegationNameserver(ns: string): boolean {
   return ns.trim().toLowerCase().endsWith('.vercel-dns.com');
 }
@@ -29,8 +35,18 @@ export function usesVercelNameserverDelegation(nameServers: string[]): boolean {
   );
 }
 
+export function resolveRegistrarDnsRecords(
+  apiRecords: DNSRecord[],
+  customDomain?: string,
+): DNSRecord[] {
+  if (apiRecords.length > 0) return apiRecords;
+  if (!customDomain?.trim()) return DEFAULT_VERCEL_REGISTRAR_RECORDS;
+  return DEFAULT_VERCEL_REGISTRAR_RECORDS;
+}
+
 export interface DnsInfoPanelProps {
   records: DNSRecord[];
+  customDomain?: string;
   /** Authoritative NS Vercel detected (registrar DNS). */
   currentNameServers?: string[];
   /** NS for full delegation to Vercel — optional alternative to DNS records. */
@@ -55,9 +71,92 @@ function resolveNameServers(props: DnsInfoPanelProps): {
   return { current, intended };
 }
 
+type StatusTone = 'success' | 'warning' | 'error';
+
+interface ThemeStyles {
+  panel: React.CSSProperties;
+  statusRow: React.CSSProperties;
+  statusText: React.CSSProperties;
+  sectionTitle: React.CSSProperties;
+  sectionHint: React.CSSProperties;
+  row: React.CSSProperties;
+  rowText: React.CSSProperties;
+  copyBtn: React.CSSProperties;
+  iconSuccess: React.CSSProperties;
+  iconWarning: React.CSSProperties;
+  iconError: React.CSSProperties;
+}
+
+function chronicleTheme(tone: StatusTone): ThemeStyles {
+  const statusVar =
+    tone === 'success'
+      ? '--theme-status-success'
+      : tone === 'warning'
+        ? '--theme-status-warning'
+        : '--theme-status-error';
+
+  return {
+    panel: {
+      border: `1px solid hsl(var(${statusVar}) / 0.35)`,
+      background: `hsl(var(--theme-surface-elevated) / 0.42)`,
+      borderRadius: '0.375rem',
+      padding: '0.75rem',
+    },
+    statusRow: {
+      borderBottom: '1px solid hsl(var(--theme-border-soft) / 0.35)',
+      paddingBottom: '0.625rem',
+      marginBottom: '0.625rem',
+    },
+    statusText: {
+      color: `hsl(var(${statusVar}))`,
+      fontSize: '0.8125rem',
+      lineHeight: 1.45,
+    },
+    sectionTitle: {
+      color: 'hsl(var(--theme-ink-primary))',
+      fontSize: '0.6875rem',
+      fontWeight: 600,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase' as const,
+      marginBottom: '0.25rem',
+    },
+    sectionHint: {
+      color: 'hsl(var(--theme-ink-secondary))',
+      fontSize: '0.6875rem',
+      lineHeight: 1.45,
+      marginBottom: '0.5rem',
+    },
+    row: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      border: '1px solid hsl(var(--theme-border-soft) / 0.5)',
+      background: 'hsl(var(--theme-surface-paper) / 0.55)',
+      borderRadius: '0.375rem',
+      padding: '0.375rem 0.5rem',
+      marginBottom: '0.25rem',
+    },
+    rowText: {
+      flex: 1,
+      fontFamily: 'ui-monospace, monospace',
+      fontSize: '0.6875rem',
+      color: 'hsl(var(--theme-ink-primary))',
+      wordBreak: 'break-all' as const,
+    },
+    copyBtn: {
+      color: 'hsl(var(--theme-ink-secondary))',
+      flexShrink: 0,
+    },
+    iconSuccess: { color: 'hsl(var(--theme-status-success))' },
+    iconWarning: { color: 'hsl(var(--theme-status-warning))' },
+    iconError: { color: 'hsl(var(--theme-status-error))' },
+  };
+}
+
 const DnsInfoPanel: React.FC<DnsInfoPanelProps> = (props) => {
   const {
-    records,
+    records: apiRecords,
+    customDomain,
     configuredBy,
     configured,
     verified,
@@ -68,12 +167,12 @@ const DnsInfoPanel: React.FC<DnsInfoPanelProps> = (props) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const usesVercelNs = usesVercelNameserverDelegation(currentNameServers);
-  const showRecords = records.length > 0;
-  const showCurrentNs = currentNameServers.length > 0 && !usesVercelNs;
+  const registrarRecords = resolveRegistrarDnsRecords(apiRecords, customDomain);
+  const showRegistrarRecords = !usesVercelNs && registrarRecords.length > 0;
+  const showCurrentNs =
+    !verified && currentNameServers.length > 0 && !usesVercelNs;
   const showIntendedNs =
-    !usesVercelNs &&
-    intendedNameServers.length > 0 &&
-    (!verified || records.length === 0);
+    !verified && !usesVercelNs && intendedNameServers.length > 0;
 
   const copyToClipboard = async (text: string, fieldName: string) => {
     try {
@@ -85,88 +184,95 @@ const DnsInfoPanel: React.FC<DnsInfoPanelProps> = (props) => {
     }
   };
 
-  const getStatusInfo = () => {
+  const getStatus = (): { tone: StatusTone; text: string; icon: React.ReactNode } => {
     if (verified) {
       return {
-        icon: <CheckCircleIcon className="w-5 h-5 text-green-600" />,
+        tone: 'success',
         text: usesVercelNs
           ? 'Domain verified — DNS is delegated to Vercel.'
-          : 'Domain verified — SSL will be issued automatically.',
-        color: 'text-green-700',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200',
+          : 'Domain verified — SSL will issue automatically.',
+        icon: <CheckCircleIcon className="w-4 h-4 shrink-0" />,
       };
     }
     if (configured) {
       return {
-        icon: <InformationCircleIcon className="w-5 h-5 text-yellow-600" />,
+        tone: 'warning',
         text: 'DNS detected — click Verify when ready.',
-        color: 'text-yellow-700',
-        bgColor: 'bg-yellow-50',
-        borderColor: 'border-yellow-200',
+        icon: <InformationCircleIcon className="w-4 h-4 shrink-0" />,
       };
     }
     return {
-      icon: <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />,
-      text: showRecords
-        ? 'Add the DNS records below at your registrar, then click Verify.'
-        : 'Point DNS to Vercel (records or nameservers), then click Verify.',
-      color: 'text-red-700',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200',
+      tone: 'error',
+      text: 'Add the DNS records below at your registrar, then click Verify.',
+      icon: <ExclamationTriangleIcon className="w-4 h-4 shrink-0" />,
     };
   };
 
-  const statusInfo = getStatusInfo();
+  const status = getStatus();
+  const themed = compact ? chronicleTheme(status.tone) : null;
+  const iconStyle =
+    status.tone === 'success'
+      ? themed?.iconSuccess
+      : status.tone === 'warning'
+        ? themed?.iconWarning
+        : themed?.iconError;
 
-  const sectionTitleClass = compact
-    ? 'text-xs font-semibold uppercase tracking-wide mb-1'
-    : 'text-sm font-medium mb-2';
-  const sectionHintClass = compact ? 'text-[11px] mb-2' : 'text-xs text-gray-500 mb-2';
-  const rowClass = compact
-    ? 'flex items-center gap-2 text-xs font-mono bg-white p-1 rounded'
-    : 'flex items-center gap-2 bg-white p-2 rounded border';
-  const mutedHintStyle: React.CSSProperties = compact
-    ? { color: 'hsl(var(--theme-ink-tertiary))' }
-    : { color: '#6b7280' };
-
-  const renderCopyButton = (text: string, fieldName: string, compactBtn = false) => (
+  const renderCopyButton = (
+    text: string,
+    fieldName: string,
+    style?: React.CSSProperties,
+  ) => (
     <button
       type="button"
       onClick={() => void copyToClipboard(text, fieldName)}
-      className={`text-gray-500 hover:text-gray-700 ${compactBtn ? '' : 'p-1 rounded'}`}
-      title="Copy to clipboard"
+      className="hover:opacity-80"
+      style={style}
+      title="Copy"
     >
       {copiedField === fieldName ? (
-        <ClipboardDocumentCheckIcon className={compactBtn ? 'w-3 h-3' : 'w-4 h-4'} />
+        <ClipboardDocumentCheckIcon className="w-3.5 h-3.5" />
       ) : (
-        <ClipboardDocumentIcon className={compactBtn ? 'w-3 h-3' : 'w-4 h-4'} />
+        <ClipboardDocumentIcon className="w-3.5 h-3.5" />
       )}
     </button>
   );
 
-  const renderRecordsSection = (primary = false) => (
+  const renderRecordsSection = () => (
     <div>
-      <p className={sectionTitleClass} style={primary ? undefined : mutedHintStyle}>
-        {primary ? 'Add at your registrar' : 'DNS records'}
+      <p
+        className={compact ? undefined : 'text-sm font-medium mb-2'}
+        style={themed?.sectionTitle}
+      >
+        {verified ? 'DNS at your registrar' : 'Add at your registrar'}
       </p>
-      <p className={sectionHintClass} style={mutedHintStyle}>
-        Add these in your registrar&apos;s DNS settings (e.g. Squarespace → DNS Settings).
-        Keep your existing nameservers — do not change them unless you choose full Vercel
-        delegation below.
+      <p
+        className={compact ? undefined : 'text-xs text-gray-500 mb-2'}
+        style={themed?.sectionHint}
+      >
+        {verified
+          ? `These records point ${customDomain?.trim() || 'your domain'} to Vercel. Keep your registrar nameservers unchanged.`
+          : 'Add these in your registrar DNS settings (e.g. Squarespace → DNS). Keep your existing nameservers unless you choose Vercel delegation below.'}
+        {apiRecords.length === 0 ? ' Values below are Vercel defaults.' : ''}
       </p>
-      <div className={compact ? 'space-y-1' : 'space-y-2'}>
-        {records.map((record, index) => (
-          <div key={`${record.type}-${record.domain}-${index}`} className={rowClass}>
-            <span className="flex-1">
+      <div>
+        {registrarRecords.map((record, index) => (
+          <div
+            key={`${record.type}-${record.domain}-${index}`}
+            style={themed?.row}
+            className={
+              compact
+                ? undefined
+                : 'flex items-center gap-2 bg-white p-2 rounded border mb-1'
+            }
+          >
+            <span
+              style={themed?.rowText}
+              className={compact ? undefined : 'text-sm font-mono flex-1'}
+            >
               <span className="font-semibold">{record.type}</span> {record.domain} →{' '}
               {record.value}
             </span>
-            {renderCopyButton(
-              `${record.type} ${record.domain} ${record.value}`,
-              `record-${index}`,
-              compact,
-            )}
+            {renderCopyButton(record.value, `record-${index}`, themed?.copyBtn)}
           </div>
         ))}
       </div>
@@ -178,80 +284,102 @@ const DnsInfoPanel: React.FC<DnsInfoPanelProps> = (props) => {
     keyPrefix: string,
     readOnly = false,
   ) => (
-    <div className={compact ? 'space-y-1' : 'space-y-2'}>
+    <div>
       {servers.map((ns, index) => (
-        <div key={`${keyPrefix}-${ns}`} className={rowClass}>
-          <span className={`flex-1 ${compact ? '' : 'text-sm font-mono'}`}>{ns}</span>
-          {!readOnly ? renderCopyButton(ns, `${keyPrefix}-${index}`, compact) : null}
+        <div
+          key={`${keyPrefix}-${ns}`}
+          style={themed?.row}
+          className={
+            compact ? undefined : 'flex items-center gap-2 bg-white p-2 rounded border mb-1'
+          }
+        >
+          <span
+            style={themed?.rowText}
+            className={compact ? undefined : 'text-sm font-mono flex-1'}
+          >
+            {ns}
+          </span>
+          {!readOnly
+            ? renderCopyButton(ns, `${keyPrefix}-${index}`, themed?.copyBtn)
+            : null}
         </div>
       ))}
     </div>
   );
 
+  const renderSectionTitle = (text: string) => (
+    <p
+      className={compact ? undefined : 'text-sm font-medium mb-2'}
+      style={themed?.sectionTitle}
+    >
+      {text}
+    </p>
+  );
+
+  const renderSectionHint = (text: string) => (
+    <p
+      className={compact ? undefined : 'text-xs text-gray-500 mb-2'}
+      style={themed?.sectionHint}
+    >
+      {text}
+    </p>
+  );
+
   const body = (
-    <>
-      {showRecords && !verified ? renderRecordsSection(true) : null}
-      {showRecords && verified ? (
-        <p className={sectionHintClass} style={mutedHintStyle}>
-          DNS is managed at your registrar
-          {configuredBy ? ` (${configuredBy})` : ''} — no nameserver change needed.
-        </p>
-      ) : null}
+    <div className="space-y-3">
+      {showRegistrarRecords ? renderRecordsSection() : null}
 
       {showCurrentNs ? (
         <div>
-          <p className={sectionTitleClass} style={mutedHintStyle}>
-            Current nameservers (detected)
-          </p>
-          <p className={sectionHintClass} style={mutedHintStyle}>
-            These are what Vercel sees today. You usually keep these and add DNS records above.
-          </p>
+          {renderSectionTitle('Current nameservers (detected)')}
+          {renderSectionHint(
+            'Informational only — Vercel detected these at your registrar. Do not change unless switching to full Vercel DNS.',
+          )}
           {renderNameserverList(currentNameServers, 'current', true)}
         </div>
       ) : null}
 
-      {showIntendedNs && !verified ? (
+      {showIntendedNs ? (
         <div>
-          <p className={sectionTitleClass} style={mutedHintStyle}>
-            Alternative: Vercel nameservers
-          </p>
-          <p className={sectionHintClass} style={mutedHintStyle}>
-            Optional — only if you want Vercel to manage all DNS. At your registrar, replace
-            nameservers with:
-          </p>
+          {renderSectionTitle('Alternative: Vercel nameservers')}
+          {renderSectionHint(
+            'Optional — replace registrar nameservers only if you want Vercel to manage all DNS.',
+          )}
           {renderNameserverList(intendedNameServers, 'intended')}
         </div>
       ) : null}
 
-      {!configured && !showRecords && !showCurrentNs && !showIntendedNs ? (
-        <p className={sectionHintClass} style={mutedHintStyle}>
-          DNS information will appear here after adding the domain to Vercel.
-        </p>
+      {usesVercelNs && configuredBy ? (
+        renderSectionHint(`Configured via Vercel nameserver delegation (${configuredBy}).`)
       ) : null}
-    </>
+    </div>
   );
 
-  if (compact) {
+  if (compact && themed) {
     return (
-      <div
-        className={`${statusInfo.bgColor} ${statusInfo.borderColor} border rounded-md p-3 space-y-3`}
-      >
-        <div className="flex items-center gap-2">
-          {statusInfo.icon}
-          <span className={`text-sm ${statusInfo.color}`}>{statusInfo.text}</span>
+      <div style={themed.panel} className="space-y-0">
+        <div style={themed.statusRow} className="flex items-start gap-2">
+          <span style={iconStyle}>{status.icon}</span>
+          <span style={themed.statusText}>{status.text}</span>
         </div>
         {body}
       </div>
     );
   }
 
+  const legacyStatus = getStatus();
+  const legacyBg =
+    legacyStatus.tone === 'success'
+      ? 'bg-green-50 border-green-200 text-green-700'
+      : legacyStatus.tone === 'warning'
+        ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
+        : 'bg-red-50 border-red-200 text-red-700';
+
   return (
     <div className="bg-gray-50 p-4 rounded-md space-y-4">
-      <div
-        className={`${statusInfo.bgColor} ${statusInfo.borderColor} border rounded-md p-3 flex items-center gap-2`}
-      >
-        {statusInfo.icon}
-        <span className={`text-sm ${statusInfo.color}`}>{statusInfo.text}</span>
+      <div className={`border rounded-md p-3 flex items-center gap-2 ${legacyBg}`}>
+        {legacyStatus.icon}
+        <span className="text-sm">{legacyStatus.text}</span>
       </div>
       {body}
     </div>
