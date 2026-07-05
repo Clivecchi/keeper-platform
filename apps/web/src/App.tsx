@@ -81,8 +81,9 @@ import { RealmBoardRedirectFromParams } from './pages/home/RealmBoardRedirect';
 import { HostnameSlugGuard } from './components/HostnameSlugGuard';
 import {
   isKeeperPlatformWebHost,
-  resolveDefaultDomainSlugFromHostname,
 } from './lib/platformHost';
+import { buildDefaultPathForHost } from './lib/resolveHostDomain';
+import { useResolvedHostDomain } from './hooks/useResolvedHostDomain';
 import { getApiBase } from './lib/apiFetch';
 
 const ProtectedRoute: React.FC = () => {
@@ -130,10 +131,10 @@ const RootRedirect: React.FC = () => {
   const { isAuthenticated, authResolved, isLoading } = useAuth();
   const params = new URLSearchParams(location.search);
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  const defaultSlug = resolveDefaultDomainSlugFromHostname(hostname);
   const isPlatformHost = isKeeperPlatformWebHost(hostname);
+  const { loading: hostLoading } = useResolvedHostDomain();
 
-  if (isLoading || !authResolved) {
+  if (isLoading || !authResolved || hostLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading...</div>
@@ -145,19 +146,8 @@ const RootRedirect: React.FC = () => {
     return <Navigate to="/home" replace />;
   }
 
-  if (isAuthenticated && !isPlatformHost && defaultSlug !== 'ke3p' && defaultSlug !== 'default') {
-    if (!params.get('board') && !params.get('frame')) {
-      params.set('board', 'domain');
-    }
-    return <Navigate to={`/d/${defaultSlug}?${params.toString()}`} replace />;
-  }
-
-  // Guests: default to Domain Board. V0Shell guards isPrivate boards behind authResolved,
-  // so unauthenticated users are redirected to cover — without a premature redirect on refresh.
-  if (!params.get('board') && !params.get('frame')) {
-    params.set('board', 'domain');
-  }
-  return <Navigate to={`/d/${defaultSlug}?${params.toString()}`} replace />;
+  const target = buildDefaultPathForHost(hostname, !!isAuthenticated, params);
+  return <Navigate to={target} replace />;
 };
 
 /** Redirect /v1/:slug and /v1/:slug/board to /d/:slug (typo: v1 vs d) */

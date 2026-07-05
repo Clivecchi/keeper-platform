@@ -5,7 +5,8 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 🧱 Key Files
 - `platformHost.ts` - ke3p.com / `*.keeper.domains` host detection, tenant slug from hostname
-- `apiFetch.ts` - API base resolution (same-origin `/api` on platform + tenant keeper.domains hosts)
+- `resolveHostDomain.ts` - verified custom domain hostname → slug (`GET /api/domains/resolve-host/:hostname`)
+- `apiFetch.ts` - API base resolution (same-origin `/api` on platform + tenant + production custom domains)
 - `nangoConnect.ts` - Integration Connect: Services open Nango UI; Custom (railway) uses token verify only
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
@@ -31,6 +32,12 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-07-05 — Custom brand domain routing (livecchi.us → /d/livecchi)
+- `resolveHostDomain.ts` + `useResolvedHostDomain` — resolve verified custom domain host to domain slug
+- `platformHost.ts` — production custom domains use same-origin `/api` (Vercel rewrite)
+- `HostnameSlugGuard` / `RootRedirect` / `AuthForm` — redirect wrong slugs; login lands on brand domain board
+- API `GET /api/domains/resolve-host/:hostname` — public slug lookup for verified custom domains
 
 ### 2026-07-04 — keeper.domains tenant hostname helper
 - `platformHost.ts` — `buildKeeperTenantHostname(slug)` for Chronicle domain addresses preview.

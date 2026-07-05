@@ -4,8 +4,10 @@
 Core utility functions and API clients for the Keeper web application, including authentication-aware API calls and service integrations.
 
 ## 🧱 Key Files
+- `platformHost.ts` - ke3p.com / `*.keeper.domains` host detection, tenant slug from hostname
+- `resolveHostDomain.ts` - verified custom domain hostname → slug (`GET /api/domains/resolve-host/:hostname`)
+- `apiFetch.ts` - API base resolution (same-origin `/api` on platform + tenant + production custom domains)
 - `nangoConnect.ts` - Integration Connect: Services open Nango UI; Custom (railway) uses token verify only
-- `api.ts` - Core API client with authentication error handling
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
 - `kipDialogSession.ts` - Board-scoped Dialog session resume (`resolve/active`, reuse empty sessions)
@@ -30,6 +32,19 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-07-05 — Custom brand domain routing (livecchi.us → /d/livecchi)
+- `resolveHostDomain.ts` + `useResolvedHostDomain` — resolve verified custom domain host to domain slug
+- `platformHost.ts` — production custom domains use same-origin `/api` (Vercel rewrite)
+- `HostnameSlugGuard` / `RootRedirect` / `AuthForm` — redirect wrong slugs; login lands on brand domain board
+- API `GET /api/domains/resolve-host/:hostname` — public slug lookup for verified custom domains
+
+### 2026-07-04 — keeper.domains tenant hostname helper
+- `platformHost.ts` — `buildKeeperTenantHostname(slug)` for Chronicle domain addresses preview.
+
+### 2026-07-04 — keeper.domains same-origin API + hostname slug
+- `platformHost.ts` — `usesSameOriginApi`, `resolveTenantSlugFromHostname`, `resolvePostAuthPath`.
+- `apiFetch.ts` / `fetch-shim.ts` — `*.keeper.domains` uses relative `/api` (Vercel rewrite), same as ke3p.com.
 
 ### 2026-07-02 — P1.2 draft list query params
 - `KipApi.listDrafts` accepts optional `{ limit, excludeStatus }` for capped nav fetches (`limit=50&excludeStatus=promoted,archived`).

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
 import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
-import { resolvePostAuthPath } from '@/lib/platformHost';
+import { resolveLandingPathAfterAuth } from '@/lib/resolveHostDomain';
 
 interface AuthFormProps {
   isRegister?: boolean;
@@ -53,7 +53,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
         const landing =
           returnTo ??
           (typeof window !== 'undefined'
-            ? resolvePostAuthPath(window.location.hostname)
+            ? resolveLandingPathAfterAuth(window.location.hostname, returnTo)
             : '/home');
         navigate(landing);
       } else {

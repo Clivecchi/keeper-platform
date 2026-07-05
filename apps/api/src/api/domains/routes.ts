@@ -122,6 +122,35 @@ function buildDomainAudienceContext(
   return { audience, domainRole, isOwner };
 }
 
+// GET /api/domains/resolve-host/:hostname — public; verified custom domain → slug
+router.get('/resolve-host/:hostname', async (req: Request, res: Response) => {
+  try {
+    const raw = req.params.hostname ?? '';
+    const normalized = raw.trim().toLowerCase().split(':')[0]?.replace(/^www\./, '') ?? '';
+    if (!normalized || normalized.length > 253) {
+      return res.status(400).json({ error: 'INVALID_HOSTNAME', message: 'Invalid hostname' });
+    }
+
+    const domain = await getDomainService().getDomainByHostname(normalized);
+    if (!domain) {
+      return res.status(404).json({
+        error: 'DOMAIN_NOT_FOUND',
+        message: `No verified custom domain for host "${normalized}"`,
+      });
+    }
+
+    return res.json({
+      slug: domain.slug,
+      id: domain.id,
+      name: domain.name,
+      customDomain: domain.customDomain,
+    });
+  } catch (error) {
+    console.error('[domains:resolve-host:error]', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/domains/by-slug/:slug/audience - Optional auth; resolves visitor audience for frame JSON
 router.get('/by-slug/:slug/audience', optionalAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {

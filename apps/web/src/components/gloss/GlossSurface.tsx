@@ -7,6 +7,8 @@ import { useGloss } from "./GlossProvider"
 import { GlossThreadPanel } from "./GlossThreadPanel"
 import { describeGlossHint } from "./glossHints"
 
+export type GlossAffordancePlacement = "above" | "overlay"
+
 export interface GlossSurfaceProps {
   anchor: GlossAnchor
   messageId: string
@@ -16,10 +18,24 @@ export interface GlossSurfaceProps {
   depth?: number
   /** Override tooltip; defaults to describeGlossHint() */
   hoverHint?: string
+  /** Text nodes default to above; images/cards default to overlay */
+  affordancePlacement?: GlossAffordancePlacement
   /** When false, only children render unchanged */
   enabled?: boolean
   className?: string
   children: React.ReactNode
+}
+
+function resolveAffordancePlacement(
+  anchor: GlossAnchor,
+  explicit?: GlossAffordancePlacement,
+): GlossAffordancePlacement {
+  if (explicit) return explicit
+  const node = anchor.nodeId ?? "content"
+  if (node === "body" || node === "caption" || node === "title" || node === "narrative") {
+    return "above"
+  }
+  return "overlay"
 }
 
 export function GlossSurface({
@@ -29,6 +45,7 @@ export function GlossSurface({
   glossThreads = [],
   depth = 0,
   hoverHint,
+  affordancePlacement: affordancePlacementProp,
   enabled = true,
   className,
   children,
@@ -41,6 +58,7 @@ export function GlossSurface({
   const isSending = gloss?.sendingKey === threadKey
   const isHoverWinner = gloss?.hoveredKey === threadKey
   const hint = hoverHint ?? describeGlossHint(anchor, snapshot)
+  const affordancePlacement = resolveAffordancePlacement(anchor, affordancePlacementProp)
 
   const clearPressTimer = React.useCallback(() => {
     if (pressTimer.current) {
@@ -90,6 +108,30 @@ export function GlossSurface({
   const showAffordance = isHoverWinner || isOpen || pressing
   const showHighlight = isHoverWinner || isOpen
 
+  const affordanceButton = showAffordance ? (
+    <button
+      type="button"
+      className={[
+        "gloss-affordance",
+        affordancePlacement === "above" ? "gloss-affordance--above" : "gloss-affordance--overlay",
+      ].join(" ")}
+      aria-label={hint}
+      title={hint}
+      onClick={(e) => {
+        e.stopPropagation()
+        handleOpen()
+      }}
+    >
+      <span className="gloss-affordance__mark" aria-hidden>
+        ✦
+      </span>
+      <span className="gloss-affordance__label">Gloss</span>
+      {messageCount > 0 ? (
+        <span className="gloss-affordance__count">{messageCount}</span>
+      ) : null}
+    </button>
+  ) : null
+
   return (
     <div
       className={[
@@ -109,28 +151,13 @@ export function GlossSurface({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
+      {affordancePlacement === "above" && affordanceButton ? (
+        <div className="gloss-affordance-row">{affordanceButton}</div>
+      ) : null}
+
       {children}
 
-      {showAffordance ? (
-        <button
-          type="button"
-          className="gloss-affordance"
-          aria-label={hint}
-          title={hint}
-          onClick={(e) => {
-            e.stopPropagation()
-            handleOpen()
-          }}
-        >
-          <span className="gloss-affordance__mark" aria-hidden>
-            ✦
-          </span>
-          <span className="gloss-affordance__label">Gloss</span>
-          {messageCount > 0 ? (
-            <span className="gloss-affordance__count">{messageCount}</span>
-          ) : null}
-        </button>
-      ) : null}
+      {affordancePlacement === "overlay" && affordanceButton}
 
       {isOpen ? (
         <GlossThreadPanel

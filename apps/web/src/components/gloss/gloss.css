@@ -15,11 +15,13 @@
     0 0 10px hsl(var(--theme-focus-ring, 152 45% 42%) / 0.1);
 }
 
+.gloss-affordance-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.35rem;
+}
+
 .gloss-affordance {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  z-index: 4;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -35,6 +37,17 @@
   cursor: pointer;
   box-shadow: 0 1px 4px hsl(var(--theme-focus-ring, 152 45% 42%) / 0.22);
   animation: gloss-affordance-in 0.12s ease-out;
+}
+
+.gloss-affordance--overlay {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  z-index: 4;
+}
+
+.gloss-affordance--above {
+  position: static;
 }
 
 .gloss-affordance:hover {

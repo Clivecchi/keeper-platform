@@ -398,7 +398,9 @@ export function DomainAddressesSection({
               {vercelAttached ? (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-start gap-2">
-                    {dnsConfigured ? (
+                    {dnsVerified ? (
+                      <CheckCircleIcon className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    ) : dnsConfigured ? (
                       <CheckCircleIcon className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     ) : (
                       <ClockIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }} />

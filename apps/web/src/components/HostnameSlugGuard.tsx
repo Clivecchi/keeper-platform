@@ -1,23 +1,37 @@
 import * as React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { resolveTenantSlugFromHostname } from '../lib/platformHost';
+import { useResolvedHostDomain } from '../hooks/useResolvedHostDomain';
+import { normalizeBrandHostname } from '../lib/resolveHostDomain';
+import { isKeeperPlatformWebHost, resolveTenantSlugFromHostname } from '../lib/platformHost';
 
 /**
- * When the browser host is `{slug}.keeper.domains`, keep `/d/:slug` aligned with the hostname.
+ * Keeps `/d/:slug` aligned with the browser hostname:
+ * - `{slug}.keeper.domains` → tenant slug
+ * - verified custom domains (e.g. livecchi.us) → domain slug
  */
 export function HostnameSlugGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const tenantSlug =
-    typeof window !== 'undefined'
-      ? resolveTenantSlugFromHostname(window.location.hostname)
-      : null;
+  const { domain, loading } = useResolvedHostDomain();
 
-  if (!tenantSlug) return <>{children}</>;
+  const hostname =
+    typeof window !== 'undefined' ? normalizeBrandHostname(window.location.hostname) : '';
+  const tenantSlug = hostname ? resolveTenantSlugFromHostname(hostname) : null;
+  const canonicalSlug = tenantSlug ?? (domain?.source === 'custom_domain' ? domain.slug : null);
+
+  if (loading && !tenantSlug && !isKeeperPlatformWebHost(hostname)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-sm opacity-70">Loading…</div>
+      </div>
+    );
+  }
+
+  if (!canonicalSlug) return <>{children}</>;
 
   const match = location.pathname.match(/^\/d\/([^/]+)/);
-  if (match && match[1] !== tenantSlug) {
+  if (match && match[1].toLowerCase() !== canonicalSlug.toLowerCase()) {
     const search = location.search || '';
-    return <Navigate to={`/d/${tenantSlug}${search}`} replace />;
+    return <Navigate to={`/d/${encodeURIComponent(canonicalSlug)}${search}`} replace />;
   }
 
   return <>{children}</>;

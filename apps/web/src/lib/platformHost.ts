@@ -29,7 +29,13 @@ export function isKeeperDomainsHost(hostname: string): boolean {
 
 /** Hosts that use same-origin `/api` (Vercel rewrite → Railway). */
 export function usesSameOriginApi(hostname: string): boolean {
-  return isKe3pPlatformHost(hostname) || isKeeperDomainsHost(hostname);
+  const host = hostname.toLowerCase();
+  if (isKe3pPlatformHost(host) || isKeeperDomainsHost(host)) return true;
+  // Custom domains on the same Vercel project share /api rewrites (see vercel.json).
+  if (typeof import.meta !== 'undefined' && import.meta.env?.PROD && !host.includes('localhost')) {
+    return true;
+  }
+  return false;
 }
 
 export function isKeeperPlatformWebHost(hostname: string): boolean {

@@ -8,7 +8,7 @@ export function describeGlossHint(
   const node = anchor.nodeId ?? "content"
 
   if (node === "body") {
-    return "Discuss this message — Kip's words in this turn."
+    return "Discuss message"
   }
 
   if (node === "image") {
