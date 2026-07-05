@@ -8,7 +8,7 @@ import type { Domain, DomainPermission } from '@prisma/client';
 import { SlugValidationService } from './SlugValidationService.js';
 import { DomainCacheService } from './DomainCacheService.js';
 import { getFeatureFlagService } from './FeatureFlagService.js';
-import { defaultDomainSettingsForCreate } from '@keeper/shared';
+import { defaultDomainSettingsForCreate, expandPlatformDomainSlugCandidates } from '@keeper/shared';
 
 // Define the Domain with includes type using Prisma-derived types
 export type DomainWithIncludes = Prisma.DomainGetPayload<{
@@ -204,16 +204,19 @@ export class DomainService {
    * Get domain by slug
    */
   async getDomainBySlug(slug: string): Promise<DomainWithIncludes | null> {
-    const domain = await this.prisma.domain.findUnique({
-      where: { slug },
-      include: {
-        keepers: true,
-        journeys: true,
-        DomainPermission: true
-      }
-    });
+    for (const candidate of expandPlatformDomainSlugCandidates(slug)) {
+      const domain = await this.prisma.domain.findUnique({
+        where: { slug: candidate },
+        include: {
+          keepers: true,
+          journeys: true,
+          DomainPermission: true,
+        },
+      });
+      if (domain) return domain;
+    }
 
-    return domain;
+    return null;
   }
 
   /**

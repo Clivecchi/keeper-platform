@@ -13,6 +13,7 @@ describe('domainTier', () => {
 
   it('defaults platform canonical slug to studio', () => {
     expect(parseDomainTier({ slug: 'default' })).toBe('studio');
+    expect(parseDomainTier({ slug: 'ke3p' })).toBe('studio');
   });
 
   it('reads tier from settings over slug fallback', () => {

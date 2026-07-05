@@ -3,14 +3,23 @@
  * ---------------------
  * Which workspace boards (`?board=`) are available for a domain slug.
  *
- * Platform (KE3P / slug `default`): build surfaces — IDE + Design (+ member boards).
+ * Platform (KE3P / slug `ke3p`): build surfaces — IDE + Design (+ member boards).
  * All other domains: Domain + Agent (+ Realm home) — no IDE or Design.
  */
 
+import {
+  isPlatformDomainSlugAlias,
+  LEGACY_PLATFORM_DOMAIN_SLUG,
+  normalizePlatformDomainSlug,
+  PLATFORM_DOMAIN_SLUG,
+} from "@keeper/shared"
 import type { WorkspaceBoardId } from "./workspaceBoardNav"
 
-/** Canonical platform hub slug (ke3p.com → `/d/default`). */
-export const PLATFORM_DOMAIN_SLUG = "default" as const
+export {
+  LEGACY_PLATFORM_DOMAIN_SLUG,
+  normalizePlatformDomainSlug,
+  PLATFORM_DOMAIN_SLUG,
+} from "@keeper/shared"
 
 const PLATFORM_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
   "domain",
@@ -37,7 +46,7 @@ const WORKSPACE_BOARD_LABELS: Record<WorkspaceBoardId, string> = {
 }
 
 export function isPlatformDomainSlug(slug: string | null | undefined): boolean {
-  return slug?.trim().toLowerCase() === PLATFORM_DOMAIN_SLUG
+  return isPlatformDomainSlugAlias(slug)
 }
 
 export function resolveAvailableWorkspaceBoardIds(

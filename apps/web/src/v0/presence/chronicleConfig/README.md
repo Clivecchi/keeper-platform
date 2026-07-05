@@ -41,6 +41,10 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-07-04 — Platform slug rename save fix
+- Domain save: frame PATCH uses slug returned from domain PATCH (fixes `default` → `ke3p` "Domain not found")
+- API resolves `ke3p` ↔ `default` alias during platform migration
+
 ### 2026-07-04 — Domain people in Chronicle Configure (Phase 4)
 - `DomainPeopleSection`: member list, user search invite, role update, remove
 

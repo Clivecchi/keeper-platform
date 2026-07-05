@@ -145,7 +145,7 @@ const RootRedirect: React.FC = () => {
     return <Navigate to="/home" replace />;
   }
 
-  if (isAuthenticated && !isPlatformHost && defaultSlug !== 'default') {
+  if (isAuthenticated && !isPlatformHost && defaultSlug !== 'ke3p' && defaultSlug !== 'default') {
     if (!params.get('board') && !params.get('frame')) {
       params.set('board', 'domain');
     }

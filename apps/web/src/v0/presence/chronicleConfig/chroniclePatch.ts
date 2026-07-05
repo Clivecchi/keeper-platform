@@ -36,7 +36,10 @@ export function parseChroniclePatchFieldErrors(
     }
   }
 
-  if (patchKeys.includes("slug") && (status === 409 || message.toLowerCase().includes("slug"))) {
+  if (
+    patchKeys.includes("slug") &&
+    (status === 409 || status === 404 || message.toLowerCase().includes("slug") || message.toLowerCase().includes("domain not found"))
+  ) {
     errors.slug = message
   }
 
@@ -226,17 +229,24 @@ export async function handleChronicleSave(
   try {
     if (entityKind === "domain") {
       const endpoint = resolveChroniclePatchEndpoint("domain", entityId, ctx.domainId)
+      let frameSlug = ctx.domainSlug?.trim().toLowerCase() || ""
 
       if (Object.keys(payload).length > 0) {
-        await apiFetch(endpoint, {
+        const domainRes = (await apiFetch(endpoint, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        })
+        })) as { domain?: { slug?: string } }
+
+        if (domainRes?.domain?.slug) {
+          frameSlug = domainRes.domain.slug
+        } else if (typeof payload.slug === "string") {
+          frameSlug = payload.slug.trim().toLowerCase()
+        }
       }
 
-      if (options?.framePayload && ctx.domainSlug) {
-        await apiFetch(resolveChronicleFramePatchEndpoint(ctx.domainSlug), {
+      if (options?.framePayload && frameSlug) {
+        await apiFetch(resolveChronicleFramePatchEndpoint(frameSlug), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(options.framePayload),

@@ -166,7 +166,7 @@ export const defaultDiagnosticsFrame: DiagnosticsFrameJson = {
 }
 
 export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
-  domain: "default",
+  domain: "ke3p",
   keeper_type: "platform",
 
   theme: {

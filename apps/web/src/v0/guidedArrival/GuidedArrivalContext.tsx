@@ -8,6 +8,7 @@ import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { isMemberMobileBoard } from "../boards/workspaceBoardNav"
 import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
+import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 
 export interface GuidedArrivalContextValue {
   /** Owner first visit — arrival UI should activate. */
@@ -45,6 +46,7 @@ function resolveDomainId(domainData: unknown): string | null {
 
 export function GuidedArrivalProvider({ children }: { children: React.ReactNode }) {
   const shell = useV0ShellOptional()
+  const isMobile = useIsMobile()
   const { user, isAuthenticated } = useAuth()
   const [settings, setSettings] = React.useState<Record<string, unknown> | null>(null)
   const [settingsLoaded, setSettingsLoaded] = React.useState(false)
@@ -99,6 +101,7 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
   }, [workspaceBoardId, isOwner, domainId])
 
   const pending =
+    isMobile &&
     !completedLocally &&
     settingsLoaded &&
     isOwner &&

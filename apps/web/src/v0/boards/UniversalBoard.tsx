@@ -57,6 +57,7 @@ import { PanelErrorBoundary } from "../components/PanelErrorBoundary"
 import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
 import { isMemberMobileBoard, type WorkspaceBoardId } from "./workspaceBoardNav"
 import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchestrator"
+import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { prefetchBoardNavData } from "./boardNavDataCache"
 import { getCachedDomainBySlug } from "./domain/domainShellCache"
 
@@ -181,6 +182,7 @@ function UniversalBoardShell({
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
   const { isAdmin } = useAuth()
+  const isMobile = useIsMobile()
 
   const targetBoardId = def.boardId as WorkspaceBoardId
   const { openSwitcher, switcherOverlay } = useDomainSwitcher(targetBoardId)
@@ -410,7 +412,7 @@ function UniversalBoardShell({
 
         {switcherOverlay}
 
-        {isMemberMobileBoard(def.boardId) ? <GuidedArrivalOrchestrator /> : null}
+        {isMobile && isMemberMobileBoard(def.boardId) ? <GuidedArrivalOrchestrator /> : null}
 
         {briefOpen && domainFrame && (
           <DomainBriefSlideOver

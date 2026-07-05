@@ -84,7 +84,7 @@ export function parseDomainTier(input: ParseDomainTierInput): DomainTierId {
   const fromFeatures = readTierFromRecord(input.features);
   if (fromFeatures) return fromFeatures;
 
-  if (input.slug === 'default') return 'studio';
+  if (input.slug === 'default' || input.slug === 'ke3p') return 'studio';
 
   return 'free';
 }

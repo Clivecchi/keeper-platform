@@ -15,7 +15,7 @@ const DEFAULT_IDE_BUILD_CONTEXT = {
 // Shape: DomainFrameJson · Keeper JsonFrame Spec v0.1 · March 2026
 // Do not modify the shape here — change domain-frame.default.ts first, then sync.
 const DEFAULT_DOMAIN_FRAME_JSON = {
-  domain: 'default',
+  domain: 'ke3p',
   keeper_type: 'platform',
   theme: {
     wordmark: 'KE3P',
@@ -134,31 +134,42 @@ export default async function seedDomain() {
     await prisma.users.update({ where: { id: owner.id }, data: { primaryDomainId: undefined } }).catch(() => {});
   }
 
-  // Ensure the 'default' domain exists.
+  // Ensure the platform domain exists (canonical slug `ke3p`; migrate legacy `default`).
   // frame_json is only set on CREATE — never overwritten on UPDATE.
-  // Once the domain exists, frame_json is owned by the Designer Board and Kip.
-  // Overwriting it here would wipe any JSON authored via the platform.
-  await prisma.domain.upsert({
-    where: { slug: 'default' },
-    update: {
-      // Intentionally no frame_json here — preserve whatever is in the database.
-      updatedAt: new Date(),
-    },
-    create: {
-      id: randomUUID(),
-      name: 'Default',
-      slug: 'default',
-      status: 'active',
-      isActive: true,
-      isPublic: true,
-      ownerId: owner.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      features: {},
-      settings: { ideBuildContext: DEFAULT_IDE_BUILD_CONTEXT },
-      frame_json: DEFAULT_DOMAIN_FRAME_JSON,
-    },
-  });
+  const legacyPlatform = await prisma.domain.findUnique({ where: { slug: 'default' } })
+  const canonicalPlatform = await prisma.domain.findUnique({ where: { slug: 'ke3p' } })
+
+  if (legacyPlatform && !canonicalPlatform) {
+    await prisma.domain.update({
+      where: { id: legacyPlatform.id },
+      data: {
+        slug: 'ke3p',
+        name: legacyPlatform.name === 'Default' ? 'KE3P' : legacyPlatform.name,
+        updatedAt: new Date(),
+      },
+    })
+  } else {
+    await prisma.domain.upsert({
+      where: { slug: 'ke3p' },
+      update: {
+        updatedAt: new Date(),
+      },
+      create: {
+        id: randomUUID(),
+        name: 'KE3P',
+        slug: 'ke3p',
+        status: 'active',
+        isActive: true,
+        isPublic: true,
+        ownerId: owner.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        features: {},
+        settings: { ideBuildContext: DEFAULT_IDE_BUILD_CONTEXT },
+        frame_json: DEFAULT_DOMAIN_FRAME_JSON,
+      },
+    })
+  }
 }
 
 

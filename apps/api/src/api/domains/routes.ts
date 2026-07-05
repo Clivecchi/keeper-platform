@@ -37,6 +37,7 @@ import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION } from '../../policy/pol
 import { loadDomainAgentPolicy, ensureDomainAgentPolicy } from '../../governance/index.js';
 import { buildDomainKeyAccessPayload } from '../../routes/key-entity-routes.js';
 import { DOMAIN_FRAME_FALLBACK } from '../../services/domains/domainFrameFallback.js';
+import { expandPlatformDomainSlugCandidates } from '@keeper/shared';
 import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
 import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
 import {
@@ -125,9 +126,9 @@ function buildDomainAudienceContext(
 router.get('/by-slug/:slug/audience', optionalAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { slug } = req.params;
-    const domain = await prisma.domain.findUnique({
-      where: { slug },
-      select: { id: true, ownerId: true },
+    const domain = await findDomainRecordBySlug<{ id: string; ownerId: string }>(slug, {
+      id: true,
+      ownerId: true,
     });
 
     if (!domain) {
@@ -160,9 +161,9 @@ router.get('/by-slug/:slug/friends-content', authMiddlewareCompat, async (req: A
     }
 
     const { slug } = req.params;
-    const domain = await prisma.domain.findUnique({
-      where: { slug },
-      select: { id: true, ownerId: true },
+    const domain = await findDomainRecordBySlug<{ id: string; ownerId: string }>(slug, {
+      id: true,
+      ownerId: true,
     });
 
     if (!domain) {
@@ -227,19 +228,26 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
     
-    const domain = await prisma.domain.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        isPublic: true,
-        customDomain: true,
-        customDomainVerified: true,
-        ownerId: true,
-        theme: true,
-      }
+    const domain = await findDomainRecordBySlug<{
+      id: string
+      name: string
+      slug: string
+      description: string | null
+      isPublic: boolean
+      customDomain: string | null
+      customDomainVerified: boolean
+      ownerId: string
+      theme: unknown
+    }>(slug, {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      isPublic: true,
+      customDomain: true,
+      customDomainVerified: true,
+      ownerId: true,
+      theme: true,
     });
 
     if (!domain) {
@@ -258,13 +266,26 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
 // Falls back to the default frame shape if frame_json is null or empty on the record.
 const DEFAULT_FRAME_FALLBACK = DOMAIN_FRAME_FALLBACK;
 
+async function findDomainRecordBySlug<T extends { id: string }>(
+  slug: string,
+  select: Record<string, boolean>,
+): Promise<T | null> {
+  for (const candidate of expandPlatformDomainSlugCandidates(slug)) {
+    const domain = await prisma.domain.findUnique({
+      where: { slug: candidate },
+      select,
+    });
+    if (domain) return domain as T;
+  }
+  return null;
+}
+
 router.get('/:slug/frame', async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
 
-    const domain = await prisma.domain.findUnique({
-      where: { slug },
-      select: { frame_json: true },
+    const domain = await findDomainRecordBySlug<{ frame_json: unknown }>(slug, {
+      frame_json: true,
     });
 
     if (!domain) {
@@ -298,9 +319,9 @@ router.patch('/:slug/frame', authMiddlewareCompat, async (req: Request, res: Res
     }
 
     const { slug } = req.params;
-    const domain = await prisma.domain.findUnique({
-      where: { slug },
-      select: { id: true, frame_json: true },
+    const domain = await findDomainRecordBySlug<{ id: string; frame_json: unknown }>(slug, {
+      id: true,
+      frame_json: true,
     });
     if (!domain) {
       return res.status(404).json({ error: 'Domain not found' });
@@ -704,7 +725,7 @@ router.get('/by-slug/:slug/home-board', authMiddlewareCompat, async (req: Authen
     if (!req.user) return res.status(401).json({ error: 'Authentication required', reqId });
 
     const { slug } = req.params;
-    const domain = await prisma.domain.findUnique({ where: { slug } });
+    const domain = await findDomainRecordBySlug<{ id: string }>(slug, { id: true });
     if (!domain) return res.status(404).json({ error: 'Domain not found', reqId });
 
     const permission = await getPermissionService().checkPermission({

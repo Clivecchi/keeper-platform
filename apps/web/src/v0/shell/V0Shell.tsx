@@ -30,6 +30,8 @@ import {
   HOME_SHELL_BOARD,
   isPlatformDomainSlug,
   isWorkspaceBoardAvailableForDomain,
+  LEGACY_PLATFORM_DOMAIN_SLUG,
+  normalizePlatformDomainSlug,
   resolveDefaultWorkspaceBoardId,
 } from "../boards/domainWorkspaceBoards"
 import { resolvePostLoginDomainSlug } from "../boards/domain/domainSwitcherData"
@@ -92,10 +94,10 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
   const { slug } = useParams<{ slug: string }>()
   const isHomeShell = mode === "home"
   const routeSlug = slug ?? ""
-  const resolvedSlug = isHomeShell ? "" : routeSlug
+  const resolvedSlug = isHomeShell ? "" : (normalizePlatformDomainSlug(routeSlug) ?? routeSlug)
   const [anchorDomainSlug, setAnchorDomainSlug] = React.useState<string | null>(null)
   const [homeDisplayName, setHomeDisplayName] = React.useState<string>(DEFAULT_HOME_DISPLAY_NAME)
-  const effectiveSlug = isHomeShell ? (anchorDomainSlug ?? "") : routeSlug
+  const effectiveSlug = isHomeShell ? (anchorDomainSlug ?? "") : resolvedSlug
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated, isAdmin, authResolved, user } = useAuth()
@@ -164,6 +166,14 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
       { replace: true },
     )
   }, [authResolved, isAuthenticated, searchParams, setSearchParams])
+
+  // Legacy platform URL `/d/default` → canonical `/d/ke3p`.
+  React.useEffect(() => {
+    if (isHomeShell) return
+    if (routeSlug.trim().toLowerCase() !== LEGACY_PLATFORM_DOMAIN_SLUG) return
+    const preserved = new URLSearchParams(searchParams)
+    navigate(`/d/${resolvedSlug}?${preserved.toString()}`, { replace: true })
+  }, [isHomeShell, routeSlug, resolvedSlug, searchParams, navigate])
 
   // Legacy ?board=realm on domain URLs → user Home at /home.
   React.useEffect(() => {

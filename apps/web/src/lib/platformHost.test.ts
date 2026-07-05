@@ -35,8 +35,8 @@ describe('platformHost', () => {
 
   it('resolves default domain slug', () => {
     expect(resolveDefaultDomainSlugFromHostname('staging.keeper.domains')).toBe('staging');
-    expect(resolveDefaultDomainSlugFromHostname('www.ke3p.com')).toBe('default');
-    expect(resolveDefaultDomainSlugFromHostname('www.keeper.domains')).toBe('default');
+    expect(resolveDefaultDomainSlugFromHostname('www.ke3p.com')).toBe('ke3p');
+    expect(resolveDefaultDomainSlugFromHostname('www.keeper.domains')).toBe('ke3p');
   });
 
   it('resolves post-auth path for tenant hosts', () => {

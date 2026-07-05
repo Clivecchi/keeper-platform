@@ -59,7 +59,7 @@ export function buildKeeperTenantHostname(slug: string): string {
 
 /** Default domain board slug for the current host. */
 export function resolveDefaultDomainSlugFromHostname(hostname: string): string {
-  return resolveTenantSlugFromHostname(hostname) ?? 'default';
+  return resolveTenantSlugFromHostname(hostname) ?? 'ke3p';
 }
 
 /** Post-login landing when no explicit returnTo is provided. */

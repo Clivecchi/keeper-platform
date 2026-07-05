@@ -40,10 +40,10 @@ export function domainFrameLooksUnseeded(
   domainSlug: string,
   domainName?: string | null,
 ): boolean {
-  if (domainSlug === 'default') return false;
+  if (domainSlug === 'default' || domainSlug === 'ke3p') return false;
 
   if (frame.keeper_type === 'platform') return true;
-  if (frame.domain === 'default') return true;
+  if (frame.domain === 'default' || frame.domain === 'ke3p') return true;
 
   const wordmark = frame.theme?.wordmark?.trim();
   if (!wordmark || isPlatformFrameWordmark(wordmark)) return true;

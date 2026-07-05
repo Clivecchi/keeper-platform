@@ -19,4 +19,5 @@ export * from './domains/resolveDomainAudience.js';
 export * from './domains/audienceVisibility.js';
 export * from './domains/filterContentByAudience.js';
 export * from './domains/keeperDomainsHost.js';
+export * from './platformDomainSlug.js';
 export * from './recordNaming.js';
