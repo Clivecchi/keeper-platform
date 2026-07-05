@@ -266,7 +266,7 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
 // Falls back to the default frame shape if frame_json is null or empty on the record.
 const DEFAULT_FRAME_FALLBACK = DOMAIN_FRAME_FALLBACK;
 
-async function findDomainRecordBySlug<T extends { id: string }>(
+async function findDomainRecordBySlug<T>(
   slug: string,
   select: Record<string, boolean>,
 ): Promise<T | null> {
@@ -275,7 +275,7 @@ async function findDomainRecordBySlug<T extends { id: string }>(
       where: { slug: candidate },
       select,
     });
-    if (domain) return domain as T;
+    if (domain) return domain as unknown as T;
   }
   return null;
 }
