@@ -623,7 +623,10 @@ router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (r
 
     let records: any[] = [];
     let configured = false;
-    let nameServers: string[] = [];
+    let configuredBy: string | null = null;
+    let misconfigured = false;
+    let currentNameServers: string[] = [];
+    let intendedNameServers: string[] = [];
     let error = null;
     let errorCode = null;
 
@@ -632,14 +635,19 @@ router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (r
         const cfg = await svc.getDomainConfig(domain.customDomain);
         records = cfg.records;
         configured = cfg.configured;
-        nameServers = cfg.nameServers || [];
+        configuredBy = cfg.configuredBy;
+        misconfigured = cfg.misconfigured;
+        currentNameServers = cfg.currentNameServers;
+        intendedNameServers = cfg.intendedNameServers;
         
         console.log('API: Domain config loaded:', {
           domainId,
           customDomain: domain.customDomain,
           configured,
+          configuredBy,
           recordsCount: records.length,
-          nameServersCount: nameServers.length
+          currentNameServersCount: currentNameServers.length,
+          intendedNameServersCount: intendedNameServers.length,
         });
       } catch (configError) {
         console.error('API: Failed to get domain config:', {
@@ -667,8 +675,13 @@ router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (r
       attached: status.attached,
       verified: status.verified,
       configured,
+      configuredBy,
+      misconfigured,
       records,
-      nameServers,
+      currentNameServers,
+      intendedNameServers,
+      /** @deprecated Use currentNameServers */
+      nameServers: currentNameServers,
       error,
       errorCode,
       details: status.details

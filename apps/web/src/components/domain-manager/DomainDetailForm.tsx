@@ -669,36 +669,6 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                               }
                             </p>
                           </div>
-                          
-                          {/* Show target nameservers when DNS is not configured */}
-                          {!dnsStatus?.configured && (
-                            <div className="mt-3 p-3 bg-white rounded border">
-                              <h6 className="font-medium text-sm mb-2">Required Nameservers:</h6>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">ns1.vercel-dns.com</span>
-                                  <button
-                                    onClick={() => navigator.clipboard.writeText('ns1.vercel-dns.com')}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    <ClipboardDocumentIcon className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">ns2.vercel-dns.com</span>
-                                  <button
-                                    onClick={() => navigator.clipboard.writeText('ns2.vercel-dns.com')}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    <ClipboardDocumentIcon className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-                              <p className="text-xs text-gray-600 mt-2">
-                                Update your domain's nameservers at your registrar to these Vercel nameservers.
-                              </p>
-                            </div>
-                          )}
                         </div>
                       )}
 
@@ -739,7 +709,9 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                       <div className="mt-4">
                         <DnsInfoPanel
                           records={dnsRecords}
-                          nameServers={nameServers}
+                          currentNameServers={nameServers}
+                          intendedNameServers={dnsStatus?.intendedNameServers}
+                          configuredBy={dnsStatus?.configuredBy}
                           configured={dnsStatus?.configured === true || false}
                           verified={!!domain.customDomainVerified}
                         />

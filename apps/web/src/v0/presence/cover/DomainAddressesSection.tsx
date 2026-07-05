@@ -32,7 +32,11 @@ interface DnsStatusPayload {
   attached?: boolean
   configured?: boolean
   verified?: boolean
+  configuredBy?: string | null
   records?: Array<{ type: string; domain: string; value: string }>
+  currentNameServers?: string[]
+  intendedNameServers?: string[]
+  /** @deprecated Use currentNameServers */
   nameServers?: string[]
   error?: string
   errorCode?: string
@@ -425,10 +429,18 @@ export function DomainAddressesSection({
               ) : null}
             </div>
 
-            {vercelAttached && (dnsStatus?.records?.length || dnsStatus?.nameServers?.length) ? (
+            {vercelAttached &&
+            (dnsStatus?.records?.length ||
+              dnsStatus?.currentNameServers?.length ||
+              dnsStatus?.nameServers?.length ||
+              dnsStatus?.intendedNameServers?.length) ? (
               <DnsInfoPanel
                 records={dnsStatus.records ?? []}
-                nameServers={dnsStatus.nameServers ?? []}
+                currentNameServers={
+                  dnsStatus.currentNameServers ?? dnsStatus.nameServers ?? []
+                }
+                intendedNameServers={dnsStatus.intendedNameServers}
+                configuredBy={dnsStatus.configuredBy}
                 configured={dnsConfigured}
                 verified={dnsVerified}
                 compact

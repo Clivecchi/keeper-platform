@@ -125,6 +125,7 @@ export function GlossSurface({
           <span className="gloss-affordance__mark" aria-hidden>
             ✦
           </span>
+          <span className="gloss-affordance__label">Gloss</span>
           {messageCount > 0 ? (
             <span className="gloss-affordance__count">{messageCount}</span>
           ) : null}

@@ -153,6 +153,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - **Presence** section groups Character, Purpose, Theme color, Visibility
 - Top identity fields: Name + Tagline only
 
+### 2026-07-04 — Domain addresses DNS copy (registrar vs Vercel NS)
+- `DomainAddressesSection` passes `currentNameServers`, `intendedNameServers`, `configuredBy` to `DnsInfoPanel` — clarifies Squarespace/registrar DNS vs optional Vercel delegation
+
 ### 2026-07-04 — Domain people section (Phase 4)
 - `DomainPeopleSection.tsx` — members list, invite search, role PATCH, remove in Chronicle Configure
 

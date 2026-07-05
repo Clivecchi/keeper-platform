@@ -18,8 +18,12 @@ interface DomainWithDns extends Domain {
     attached: boolean;
     configured: boolean;
     verified: boolean;
-    records: any[];
-    nameServers: string[];
+    configuredBy?: string | null;
+    records: Array<{ type: string; domain: string; value: string }>;
+    currentNameServers?: string[];
+    intendedNameServers?: string[];
+    /** @deprecated */
+    nameServers?: string[];
   };
 }
 
@@ -207,7 +211,13 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
                   <div className="mt-3">
                     <DnsInfoPanel
                       records={domain.dnsStatus.records || []}
-                      nameServers={domain.dnsStatus.nameServers || []}
+                      currentNameServers={
+                        domain.dnsStatus.currentNameServers ||
+                        domain.dnsStatus.nameServers ||
+                        []
+                      }
+                      intendedNameServers={domain.dnsStatus.intendedNameServers}
+                      configuredBy={domain.dnsStatus.configuredBy}
                       configured={!!domain.dnsStatus.configured}
                       verified={!!domain.customDomainVerified}
                       compact={true}

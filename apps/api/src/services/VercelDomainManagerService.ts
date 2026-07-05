@@ -4,7 +4,23 @@ interface DNSRecord {
   type: string;
   domain: string;
   value: string;
-  ttl: number;
+  ttl?: number;
+}
+
+export const VERCEL_DELEGATION_NAMESERVERS = [
+  'ns1.vercel-dns.com',
+  'ns2.vercel-dns.com',
+] as const;
+
+export interface VercelDomainConfigResult {
+  configured: boolean;
+  configuredBy: string | null;
+  misconfigured: boolean;
+  records: DNSRecord[];
+  /** Authoritative NS Vercel detected (often registrar DNS, e.g. Google/Squarespace). */
+  currentNameServers: string[];
+  /** NS to use only when delegating full DNS to Vercel. */
+  intendedNameServers: string[];
 }
 
 interface VercelDomainStatus {
@@ -162,13 +178,55 @@ export class VercelDomainManagerService {
     }
   }
 
+  /** Get domain NS metadata (current vs intended Vercel delegation). */
+  private async getDomainNameserverInfo(
+    domain: string,
+  ): Promise<{ currentNameServers: string[]; intendedNameServers: string[] }> {
+    const params = this.teamId ? `?teamId=${this.teamId}` : '';
+    const url = `${this.baseUrl}/v5/domains/${domain}${params}`;
+
+    try {
+      const res = await fetch(url, { headers: this.headers });
+      const responseText = await res.text();
+      if (!res.ok) {
+        console.warn('Vercel: Domain info unavailable:', { domain, status: res.status });
+        return {
+          currentNameServers: [],
+          intendedNameServers: [...VERCEL_DELEGATION_NAMESERVERS],
+        };
+      }
+
+      const data = JSON.parse(responseText) as {
+        nameservers?: string[];
+        intendedNameservers?: string[];
+      };
+
+      return {
+        currentNameServers: data.nameservers ?? [],
+        intendedNameServers:
+          data.intendedNameservers?.length
+            ? data.intendedNameservers
+            : [...VERCEL_DELEGATION_NAMESERVERS],
+      };
+    } catch (err) {
+      console.warn('Vercel: Failed to load domain nameserver info:', err);
+      return {
+        currentNameServers: [],
+        intendedNameServers: [...VERCEL_DELEGATION_NAMESERVERS],
+      };
+    }
+  }
+
   /** Get DNS configuration requirements for a domain */
-  async getDomainConfig(domain: string): Promise<{ configured: boolean; records: DNSRecord[]; nameServers: string[] }> {
+  async getDomainConfig(domain: string): Promise<VercelDomainConfigResult> {
     const url = `${this.baseUrl}/v4/domains/${domain}/config`;
     
     console.log('Vercel: Getting domain config:', { domain, url });
     
-    const res = await fetch(url, { headers: this.headers });
+    const [res, nsInfo] = await Promise.all([
+      fetch(url, { headers: this.headers }),
+      this.getDomainNameserverInfo(domain),
+    ]);
     const responseText = await res.text();
     
     console.log('Vercel: Domain config response:', {
@@ -187,24 +245,44 @@ export class VercelDomainManagerService {
     }
     
     try {
-      const data = JSON.parse(responseText) as any;
+      const data = JSON.parse(responseText) as {
+        misconfigured?: boolean;
+        configuredBy?: string | null;
+        records?: DNSRecord[];
+        nameservers?: string[];
+        nameServers?: string[];
+      };
       
-      // Fix: Check the correct fields for DNS configuration
-      const configured = !data.misconfigured && (data.configuredBy || data.nameservers?.length > 0);
+      const configNameServers = data.nameservers ?? data.nameServers ?? [];
+      const currentNameServers =
+        configNameServers.length > 0 ? configNameServers : nsInfo.currentNameServers;
+      const configuredBy = data.configuredBy ?? null;
+      const configured =
+        !data.misconfigured &&
+        (configuredBy === 'A' ||
+          configuredBy === 'CNAME' ||
+          configuredBy === 'http-01' ||
+          configuredBy === 'dns-01' ||
+          configuredBy === 'NS' ||
+          configuredBy === 'nameservers');
       
       console.log('Vercel: Domain config parsed:', {
         domain,
         configured,
         misconfigured: data.misconfigured,
-        configuredBy: data.configuredBy,
+        configuredBy,
         recordsCount: data.records?.length || 0,
-        nameServersCount: (data.nameservers || data.nameServers)?.length || 0
+        currentNameServersCount: currentNameServers.length,
+        intendedNameServersCount: nsInfo.intendedNameServers.length,
       });
       
       return {
-        configured: configured,
-        records: data.records || [],
-        nameServers: data.nameservers || data.nameServers || []
+        configured,
+        configuredBy,
+        misconfigured: data.misconfigured ?? false,
+        records: data.records ?? [],
+        currentNameServers,
+        intendedNameServers: nsInfo.intendedNameServers,
       };
     } catch (parseError: unknown) {
       console.error('Vercel: Failed to parse domain config:', parseError);
