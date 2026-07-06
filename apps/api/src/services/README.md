@@ -8,6 +8,7 @@ Central location for API service-layer modules used by route handlers.
 - `PlatformApiKeyService.ts`
 - `SoleMemoryService.ts`
 - `VercelDomainManagerService.ts`
+- `customDomainVerificationSync.ts`
 - `boards/domainManagement.ts`
 
 ## 🔄 Data & Behavior
@@ -18,7 +19,11 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
-- 2026-06-28: **Together AI image generation hardened** — `TogetherProvider.generateImage()` uses official `together-ai` SDK with 3 automatic retries + 120s timeout (fixes transient 500 `server_error` from raw fetch). Added `resolveImageModel()` / `DEFAULT_IMAGE_MODEL` exports; rejects free-tier FLUX Schnell model id.
+### 2026-07-06 — Custom domain DB sync when Vercel already verified
+- `customDomainVerificationSync.ts` — persist `customDomainVerified` when Vercel DNS is verified but Keeper DB flag was false (fixes livecchi.us → ke3p fallback).
+- `resolve-host` and custom-domain status routes call sync; Chronicle Addresses auto-calls verify when Vercel reports verified.
+
+### 2026-06-28 - Together AI image generation hardened — `TogetherProvider.generateImage()` uses official `together-ai` SDK with 3 automatic retries + 120s timeout (fixes transient 500 `server_error` from raw fetch). Added `resolveImageModel()` / `DEFAULT_IMAGE_MODEL` exports; rejects free-tier FLUX Schnell model id.
 - 2026-06-26: **Cloud MCP timeouts** — `fetchWithTimeout` helper; Railway/Vercel HTTP clients and `executeMcpCallAction` fail fast (25–30s) instead of hanging mid-run when infra APIs stall.
 - 2026-06-20: **Director continuity** — `directorDialog.ts` + `@keeper/shared/directorContinuity` resolve "try again" / refer-back into prior delegatable tasks; Kip synthesis forbids "session starts cold" copy.
 - 2026-06-18: Added `IntegrationMcpService.ts` and `ResendService.ts` — platform integration/Nango status and Resend read-only MCP helpers for Cloud.

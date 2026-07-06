@@ -132,7 +132,7 @@ const RootRedirect: React.FC = () => {
   const params = new URLSearchParams(location.search);
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const isPlatformHost = isKeeperPlatformWebHost(hostname);
-  const { loading: hostLoading } = useResolvedHostDomain();
+  const { domain, loading: hostLoading } = useResolvedHostDomain();
 
   if (isLoading || !authResolved || hostLoading) {
     return (
@@ -142,11 +142,29 @@ const RootRedirect: React.FC = () => {
     );
   }
 
+  if (domain?.source === 'unresolved') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 px-6 text-center">
+        <p className="text-lg">This address is not connected to a Keeper realm yet.</p>
+        <p className="text-sm opacity-70">
+          Finish custom domain setup in Configure, or use your Keeper address instead.
+        </p>
+      </div>
+    );
+  }
+
   if (isAuthenticated && isPlatformHost) {
     return <Navigate to="/home" replace />;
   }
 
   const target = buildDefaultPathForHost(hostname, !!isAuthenticated, params);
+  if (!target) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 text-center">
+        <p className="text-lg">Loading realm…</p>
+      </div>
+    );
+  }
   return <Navigate to={target} replace />;
 };
 

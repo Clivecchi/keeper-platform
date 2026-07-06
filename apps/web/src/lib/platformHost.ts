@@ -63,9 +63,29 @@ export function buildKeeperTenantHostname(slug: string): string {
   return `${normalized}.${KEEPER_DOMAINS_SUFFIX}`
 }
 
+/** Hosts that default to the platform ke3p slug without an API lookup. */
+export function usesPlatformDefaultSlug(hostname: string): boolean {
+  return isKeeperPlatformWebHost(hostname) || isKe3pPlatformHost(hostname);
+}
+
+/**
+ * Brand URL (e.g. livecchi.us) — same realm as `{slug}.keeper.domains`, resolved via API.
+ * Must never fall back to the platform ke3p slug.
+ */
+export function isBrandCustomHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host.includes('localhost') || host.includes('127.0.0.1')) return false;
+  if (resolveTenantSlugFromHostname(host)) return false;
+  if (usesPlatformDefaultSlug(host)) return false;
+  return true;
+}
+
 /** Default domain board slug for the current host. */
-export function resolveDefaultDomainSlugFromHostname(hostname: string): string {
-  return resolveTenantSlugFromHostname(hostname) ?? 'ke3p';
+export function resolveDefaultDomainSlugFromHostname(hostname: string): string | null {
+  const tenantSlug = resolveTenantSlugFromHostname(hostname);
+  if (tenantSlug) return tenantSlug;
+  if (usesPlatformDefaultSlug(hostname)) return 'ke3p';
+  return null;
 }
 
 /** Post-login landing when no explicit returnTo is provided. */

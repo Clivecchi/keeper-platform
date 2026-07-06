@@ -111,6 +111,15 @@ export function DomainAddressesSection({
       )) as DnsStatusPayload
       setDnsStatus(status)
       if (status.verified) {
+        if (!customDomainVerifiedProp) {
+          try {
+            await apiFetch(`/api/domains/custom/${domainId}/custom-domain/verify`, {
+              method: "POST",
+            })
+          } catch {
+            // Status may show verified before DB sync; resolve-host will retry on public traffic.
+          }
+        }
         setCustomDomainVerified(true)
         onAddressesUpdated?.({ customDomainVerified: true })
       }
@@ -124,7 +133,7 @@ export function DomainAddressesSection({
     } finally {
       setLoadingDns(false)
     }
-  }, [domainId, savedCustomDomain, onAddressesUpdated])
+  }, [domainId, savedCustomDomain, onAddressesUpdated, customDomainVerifiedProp])
 
   React.useEffect(() => {
     if (savedCustomDomain) {

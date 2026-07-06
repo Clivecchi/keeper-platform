@@ -7,7 +7,7 @@ import {
   normalizeBrandHostname,
   type ResolvedHostDomain,
 } from '../lib/resolveHostDomain';
-import { isKeeperPlatformWebHost, resolveTenantSlugFromHostname } from '../lib/platformHost';
+import { isBrandCustomHost, isKeeperPlatformWebHost, resolveTenantSlugFromHostname } from '../lib/platformHost';
 
 export interface UseResolvedHostDomainResult {
   domain: ResolvedHostDomain | null;
@@ -26,6 +26,7 @@ export function useResolvedHostDomain(): UseResolvedHostDomainResult {
     if (resolveTenantSlugFromHostname(hostname) || isKeeperPlatformWebHost(hostname)) {
       return false;
     }
+    if (isBrandCustomHost(hostname)) return true;
     return !getCachedHostDomain(hostname);
   });
 

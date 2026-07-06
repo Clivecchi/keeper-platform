@@ -37,6 +37,7 @@ describe('platformHost', () => {
     expect(resolveDefaultDomainSlugFromHostname('staging.keeper.domains')).toBe('staging');
     expect(resolveDefaultDomainSlugFromHostname('www.ke3p.com')).toBe('ke3p');
     expect(resolveDefaultDomainSlugFromHostname('www.keeper.domains')).toBe('ke3p');
+    expect(resolveDefaultDomainSlugFromHostname('livecchi.us')).toBeNull();
   });
 
   it('resolves post-auth path for tenant hosts', () => {

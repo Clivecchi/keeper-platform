@@ -342,6 +342,15 @@ export class DomainService {
       }
     });
 
+    if (
+      request.customDomain !== undefined ||
+      request.customDomainVerified !== undefined ||
+      request.slug !== undefined
+    ) {
+      await this.cacheService.invalidateDomain(domainId);
+      await this.cacheService.cacheDomain(updatedDomain as Domain);
+    }
+
     // Return domain with proper type casting
     return updatedDomain as Domain;
   }

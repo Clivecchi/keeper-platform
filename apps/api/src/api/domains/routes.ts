@@ -23,6 +23,7 @@ import { createDomainResolutionMiddleware } from '../../middleware/domainResolut
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
 import { ensureDomainHomeBoard, ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
+import { resolveDomainForCustomHostname } from '../../services/customDomainVerificationSync.js';
 import {
   omitOperationalFrameKeysFromPatch,
   patchTouchesFrozenFrameKeys,
@@ -131,7 +132,26 @@ router.get('/resolve-host/:hostname', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'INVALID_HOSTNAME', message: 'Invalid hostname' });
     }
 
-    const domain = await getDomainService().getDomainByHostname(normalized);
+    const domain = await resolveDomainForCustomHostname(
+      getDomainService(),
+      cacheService,
+      normalized,
+      async (host) =>
+        prisma.domain.findFirst({
+          where: {
+            customDomain: host,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            customDomain: true,
+            customDomainVerified: true,
+          },
+        }),
+    );
+
     if (!domain) {
       return res.status(404).json({
         error: 'DOMAIN_NOT_FOUND',

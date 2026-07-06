@@ -24,6 +24,7 @@ import {
 import { rateLimit } from 'express-rate-limit';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { VercelDomainManagerService } from '../../services/VercelDomainManagerService.js';
+import { syncCustomDomainVerificationIfReady } from '../../services/customDomainVerificationSync.js';
 
 function getVercelService(): VercelDomainManagerService {
   const token = process.env.VERCEL_TOKEN;
@@ -596,6 +597,10 @@ router.post('/:domainId/custom-domain/verify', requireDomainAdminCompat, async (
 
     await getVercelService().verifyDomain(domain.customDomain);
     const updated = await domainService.updateDomain(domainId, { customDomainVerified: true });
+    if (cacheService) {
+      await cacheService.invalidateDomain(domainId);
+      await cacheService.cacheDomain(updated);
+    }
     return res.json({ success: true, domain: updated });
   } catch (err) {
     console.error('Verify custom domain error:', err);
@@ -671,9 +676,20 @@ router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (r
       });
     }
 
+    let dbVerified = domain.customDomainVerified === true;
+    if (!dbVerified && (status.verified || configured)) {
+      const synced = await syncCustomDomainVerificationIfReady(
+        domainService,
+        cacheService,
+        domain,
+      );
+      dbVerified = synced?.customDomainVerified === true;
+    }
+
     const response = {
       attached: status.attached,
-      verified: status.verified,
+      verified: status.verified || dbVerified,
+      dbVerified,
       configured,
       configuredBy,
       misconfigured,

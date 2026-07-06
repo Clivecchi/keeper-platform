@@ -5,9 +5,8 @@ import { normalizeBrandHostname } from '../lib/resolveHostDomain';
 import { isKeeperPlatformWebHost, resolveTenantSlugFromHostname } from '../lib/platformHost';
 
 /**
- * Keeps `/d/:slug` aligned with the browser hostname:
- * - `{slug}.keeper.domains` → tenant slug
- * - verified custom domains (e.g. livecchi.us) → domain slug
+ * Safety net only: if a bookmarked URL has the wrong `/d/:slug` on a tenant host,
+ * align it with the hostname. Primary routing resolves the correct slug at `/` — no ke3p detour.
  */
 export function HostnameSlugGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -16,7 +15,11 @@ export function HostnameSlugGuard({ children }: { children: React.ReactNode }) {
   const hostname =
     typeof window !== 'undefined' ? normalizeBrandHostname(window.location.hostname) : '';
   const tenantSlug = hostname ? resolveTenantSlugFromHostname(hostname) : null;
-  const canonicalSlug = tenantSlug ?? (domain?.source === 'custom_domain' ? domain.slug : null);
+  const canonicalSlug =
+    tenantSlug ??
+    (domain?.source === 'custom_domain' || domain?.source === 'tenant_subdomain'
+      ? domain.slug
+      : null);
 
   if (loading && !tenantSlug && !isKeeperPlatformWebHost(hostname)) {
     return (

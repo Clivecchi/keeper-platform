@@ -5,6 +5,7 @@
 
 import { getApiBase } from './apiFetch';
 import {
+  isBrandCustomHost,
   isKeeperPlatformWebHost,
   resolveDefaultDomainSlugFromHostname,
   resolvePostAuthPath,
@@ -16,7 +17,7 @@ export interface ResolvedHostDomain {
   id?: string;
   name?: string;
   customDomain?: string | null;
-  source: 'tenant_subdomain' | 'platform' | 'custom_domain' | 'fallback';
+  source: 'tenant_subdomain' | 'platform' | 'custom_domain' | 'fallback' | 'unresolved';
 }
 
 interface HostSlugCacheEntry {
@@ -40,6 +41,9 @@ function resolveSyncHostDomain(hostname: string): ResolvedHostDomain | null {
   }
   if (isKeeperPlatformWebHost(normalized)) {
     return { slug: 'ke3p', source: 'platform' };
+  }
+  if (isBrandCustomHost(normalized)) {
+    return null;
   }
   return null;
 }
@@ -67,9 +71,13 @@ export async function fetchHostDomain(hostname: string): Promise<ResolvedHostDom
       `${base}/api/domains/resolve-host/${encodeURIComponent(normalized)}`,
     );
     if (!response.ok) {
+      if (isBrandCustomHost(normalized)) {
+        return { slug: '', source: 'unresolved' };
+      }
       hostSlugCache = { hostname: normalized, domain: null };
+      const fallbackSlug = resolveDefaultDomainSlugFromHostname(normalized);
       return {
-        slug: resolveDefaultDomainSlugFromHostname(normalized),
+        slug: fallbackSlug ?? 'ke3p',
         source: 'fallback',
       };
     }
@@ -82,9 +90,13 @@ export async function fetchHostDomain(hostname: string): Promise<ResolvedHostDom
     };
 
     if (!data.slug) {
+      if (isBrandCustomHost(normalized)) {
+        return { slug: '', source: 'unresolved' };
+      }
       hostSlugCache = { hostname: normalized, domain: null };
+      const fallbackSlug = resolveDefaultDomainSlugFromHostname(normalized);
       return {
-        slug: resolveDefaultDomainSlugFromHostname(normalized),
+        slug: fallbackSlug ?? 'ke3p',
         source: 'fallback',
       };
     }
@@ -99,8 +111,12 @@ export async function fetchHostDomain(hostname: string): Promise<ResolvedHostDom
     hostSlugCache = { hostname: normalized, domain: resolved };
     return resolved;
   } catch {
+    if (isBrandCustomHost(normalized)) {
+      return { slug: '', source: 'unresolved' };
+    }
+    const fallbackSlug = resolveDefaultDomainSlugFromHostname(normalized);
     return {
-      slug: resolveDefaultDomainSlugFromHostname(normalized),
+      slug: fallbackSlug ?? 'ke3p',
       source: 'fallback',
     };
   }
@@ -122,17 +138,25 @@ export function buildDefaultPathForHost(
   hostname: string,
   isAuthenticated: boolean,
   searchParams: URLSearchParams,
-): string {
+): string | null {
   const cached = getCachedHostDomain(hostname);
-  const slug =
-    cached?.slug ?? resolveDefaultDomainSlugFromHostname(normalizeBrandHostname(hostname));
+  const normalized = normalizeBrandHostname(hostname);
+
+  if (cached?.source === 'unresolved') return null;
+
+  const slug = cached?.slug ?? resolveDefaultDomainSlugFromHostname(normalized);
+  if (!slug) return null;
+
   const params = new URLSearchParams(searchParams);
 
-  if (isAuthenticated && isKeeperPlatformWebHost(normalizeBrandHostname(hostname))) {
+  if (isAuthenticated && isKeeperPlatformWebHost(normalized)) {
     return '/home';
   }
 
-  if (cached?.source === 'custom_domain' && !isAuthenticated) {
+  const isTenantOrBrand =
+    cached?.source === 'custom_domain' || cached?.source === 'tenant_subdomain';
+
+  if (isTenantOrBrand && !isAuthenticated) {
     if (!params.get('board') && !params.get('frame')) {
       params.delete('board');
       params.set('frame', 'cover');
