@@ -79,6 +79,7 @@ import { RealmsRedirect } from './mobile/screens/RealmsRedirect';
 import HomeShellPage from './pages/home/HomeShellPage';
 import { RealmBoardRedirectFromParams } from './pages/home/RealmBoardRedirect';
 import { HostnameSlugGuard } from './components/HostnameSlugGuard';
+import { RealmRoot } from './components/RealmRoot';
 import {
   isKeeperPlatformWebHost,
 } from './lib/platformHost';
@@ -315,8 +316,8 @@ const App: React.FC = () => {
         <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
       </Route>
       
-      {/* Root redirect: single clean navigation without mounting PublicLayout */}
-      <Route path="/" element={<RootRedirect />} />
+      {/* Root: brand hosts render at `/`; platform hosts redirect to `/d/:slug` or `/home` */}
+      <Route path="/" element={<RealmRoot platformRedirect={<RootRedirect />} />} />
       
       {/* Public Routes - No Authentication Required */}
       <Route element={<PublicLayout />}>

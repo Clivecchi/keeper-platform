@@ -10,6 +10,8 @@
  * Do not use `board` for both — that caused IDE workspace vs "IDE Board" spec collisions.
  */
 
+import { buildRealmShellPath } from "../../lib/realmPaths"
+
 export type WorkspaceBoardId = "domain" | "realm" | "ide" | "designer" | "agent"
 
 export const WORKSPACE_BOARD_IDS: WorkspaceBoardId[] = [
@@ -180,8 +182,7 @@ export function buildWorkspaceBoardPath(
   domainSlug: string,
   searchParams: URLSearchParams,
 ): string {
-  const search = searchParams.toString()
-  return `/d/${encodeURIComponent(domainSlug)}${search ? `?${search}` : ""}`
+  return buildRealmShellPath(domainSlug, searchParams)
 }
 
 /** No-op workspace + home nav for frame preview shells that override V0ShellProvider. */

@@ -35,14 +35,8 @@ import {
   resolveDefaultWorkspaceBoardId,
 } from "../boards/domainWorkspaceBoards"
 import { resolvePostLoginDomainSlug } from "../boards/domain/domainSwitcherData"
-import {
-  buildDomainBoardPath,
-  buildHomePath,
-  DEFAULT_HOME_DISPLAY_NAME,
-  HOME_DOMAIN_PARAM,
-  HOME_PATH,
-  type V0ShellMode,
-} from "./shellMode"
+import { buildDomainBoardPath, buildHomePath, DEFAULT_HOME_DISPLAY_NAME, HOME_DOMAIN_PARAM, HOME_PATH, type V0ShellMode } from "./shellMode"
+import { buildRealmShellPath } from "../../lib/realmPaths"
 import { fetchUserHomeDisplayName } from "../lib/userHomeSettings"
 import { UniversalBoard } from "../boards/UniversalBoard"
 import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
@@ -88,16 +82,23 @@ const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
 
 export interface V0ShellProps {
   mode?: V0ShellMode
+  /** Required when mode is `brand` — slug from hostname, not URL. */
+  brandSlug?: string
 }
 
-export function V0Shell({ mode = "domain" }: V0ShellProps) {
+export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   const { slug } = useParams<{ slug: string }>()
   const isHomeShell = mode === "home"
-  const routeSlug = slug ?? ""
+  const isBrandShell = mode === "brand"
+  const routeSlug = isBrandShell ? "" : (slug ?? "")
   const resolvedSlug = isHomeShell ? "" : (normalizePlatformDomainSlug(routeSlug) ?? routeSlug)
   const [anchorDomainSlug, setAnchorDomainSlug] = React.useState<string | null>(null)
   const [homeDisplayName, setHomeDisplayName] = React.useState<string>(DEFAULT_HOME_DISPLAY_NAME)
-  const effectiveSlug = isHomeShell ? (anchorDomainSlug ?? "") : resolvedSlug
+  const effectiveSlug = isHomeShell
+    ? (anchorDomainSlug ?? "")
+    : isBrandShell
+      ? (brandSlug ?? "")
+      : resolvedSlug
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated, isAdmin, authResolved, user } = useAuth()
@@ -167,13 +168,13 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
     )
   }, [authResolved, isAuthenticated, searchParams, setSearchParams])
 
-  // Legacy platform URL `/d/default` → canonical `/d/ke3p`.
+  // Legacy platform URL `/d/default` → canonical `/d/ke3p` (platform hosts only).
   React.useEffect(() => {
-    if (isHomeShell) return
+    if (isHomeShell || isBrandShell) return
     if (routeSlug.trim().toLowerCase() !== LEGACY_PLATFORM_DOMAIN_SLUG) return
     const preserved = new URLSearchParams(searchParams)
-    navigate(`/d/${resolvedSlug}?${preserved.toString()}`, { replace: true })
-  }, [isHomeShell, routeSlug, resolvedSlug, searchParams, navigate])
+    navigate(buildRealmShellPath(resolvedSlug, preserved), { replace: true })
+  }, [isHomeShell, isBrandShell, routeSlug, resolvedSlug, searchParams, navigate])
 
   // Legacy ?board=realm on domain URLs → user Home at /home.
   React.useEffect(() => {
@@ -544,7 +545,7 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
     if (resolvedTheme) params.set("theme", resolvedTheme)
     if (resolvedStyle) params.set("style", resolvedStyle)
     if (resolvedDraft) params.set("draftId", resolvedDraft)
-    return `/d/${effectiveSlug}?${params.toString()}`
+    return buildRealmShellPath(effectiveSlug, params)
   }, [draftId, effectiveSlug, styleId, urlThemeSlug])
 
   React.useEffect(() => {
@@ -574,7 +575,7 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
     if (urlThemeSlug) params.set("theme", urlThemeSlug)
     if (styleId) params.set("style", styleId)
     const suffix = params.toString()
-    navigate(`/d/${effectiveSlug}${suffix ? `?${suffix}` : ""}`)
+    navigate(buildRealmShellPath(effectiveSlug, params))
   }
 
   const navigateToFrame = (nextFrame: V0FrameKey, options?: { draftId?: string | null; themeSlug?: string | null; styleId?: StyleId | null }) => {
@@ -757,7 +758,7 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
     () => ({
       workspaceBoardId: isHomeShell ? HOME_SHELL_BOARD : urlOrPendingBoardId,
       boardDefinitionId,
-      shellMode: isHomeShell ? ("home" as const) : ("domain" as const),
+      shellMode: isHomeShell ? ("home" as const) : isBrandShell ? ("brand" as const) : ("domain" as const),
       homeDisplayName,
       anchorDomainSlug: isHomeShell ? anchorDomainSlug : null,
       navigateHome,
@@ -768,6 +769,7 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
     }),
     [
       isHomeShell,
+      isBrandShell,
       urlOrPendingBoardId,
       boardDefinitionId,
       homeDisplayName,
@@ -930,7 +932,7 @@ export function V0Shell({ mode = "domain" }: V0ShellProps) {
           ) : frame === "present" ? (
             <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} />
           ) : frame === "diagnostics" ? (
-            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={effectiveSlug} returnPath={`/d/${effectiveSlug}`} />
+            <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={effectiveSlug} returnPath={buildRealmShellPath(effectiveSlug)} />
           ) : (
             <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={effectiveSlug} />
           )}

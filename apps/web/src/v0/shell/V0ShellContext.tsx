@@ -62,7 +62,7 @@ export interface V0ShellContextValue {
   reloadDomainFrame: () => Promise<void>
   /** Active workspace from ?board= (null on `/home`). */
   workspaceBoardId: WorkspaceBoardId | null
-  /** `home` = `/home` user surface; `domain` = `/d/:slug` workspace. */
+  /** `home` | `brand` | `domain` shell routing mode. */
   shellMode: V0ShellMode
   /** User-named Home label (Home shell only). */
   homeDisplayName: string

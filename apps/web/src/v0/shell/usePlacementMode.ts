@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import type { NavigateFunction } from "react-router-dom"
+import { buildRealmShellPath } from "../../lib/realmPaths"
 import type { V0FrameKey } from "./V0ShellContext"
 
 export type PlacementMode = "publicStory" | "commons" | "kipFocus" | "admin"
@@ -77,7 +78,7 @@ export function usePlacementMode({
           const params = new URLSearchParams()
           params.set("frame", "cover")
           params.set("companion", "1")
-          navigate(`/d/${domainSlug}?${params.toString()}`)
+          navigate(buildRealmShellPath(domainSlug, params))
           return
         }
         navigate(buildFrameUrl("agent"))

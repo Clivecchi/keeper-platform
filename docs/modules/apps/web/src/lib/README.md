@@ -6,6 +6,7 @@ Core utility functions and API clients for the Keeper web application, including
 ## 🧱 Key Files
 - `platformHost.ts` - ke3p.com / `*.keeper.domains` host detection, tenant slug from hostname
 - `resolveHostDomain.ts` - verified custom domain hostname → slug (`GET /api/domains/resolve-host/:hostname`)
+- `realmPaths.ts` - brand hosts render at `/`; platform hosts use `/d/:slug`
 - `apiFetch.ts` - API base resolution (same-origin `/api` on platform + tenant + production custom domains)
 - `nangoConnect.ts` - Integration Connect: Services open Nango UI; Custom (railway) uses token verify only
 - `themeApi.ts` - Theme fetching and management
@@ -32,6 +33,10 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-07-06 — Clean brand URLs (`livecchi.us` stays at `/`)
+- `realmPaths.ts` — `buildRealmShellPath`, `usesCleanRealmPaths`; brand + tenant `*.keeper.domains` use `/` not `/d/:slug`
+- `BrandRealmShellPage` / `RealmRoot` — render V0Shell at root on brand hosts
 
 ### 2026-07-05 — Custom brand domain routing (livecchi.us → /d/livecchi)
 - `resolveHostDomain.ts` + `useResolvedHostDomain` — resolve verified custom domain host to domain slug

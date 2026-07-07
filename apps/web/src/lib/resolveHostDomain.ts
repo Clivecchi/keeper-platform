@@ -4,6 +4,7 @@
  */
 
 import { getApiBase } from './apiFetch';
+import { buildRealmBoardPath, buildRealmShellPath } from './realmPaths';
 import {
   isBrandCustomHost,
   isKeeperPlatformWebHost,
@@ -128,8 +129,8 @@ export function resolveLandingPathAfterAuth(
 ): string {
   if (returnTo?.trim()) return returnTo.trim();
   const cached = getCachedHostDomain(hostname);
-  if (cached?.source === 'custom_domain') {
-    return `/d/${encodeURIComponent(cached.slug)}?board=domain`;
+  if (cached?.source === 'custom_domain' || cached?.source === 'tenant_subdomain') {
+    return buildRealmBoardPath(cached.slug, 'domain', undefined, hostname);
   }
   return resolvePostAuthPath(hostname);
 }
@@ -159,13 +160,13 @@ export function buildDefaultPathForHost(
   if (isTenantOrBrand && !isAuthenticated) {
     if (!params.get('board') && !params.get('frame')) {
       params.delete('board');
-      params.set('frame', 'cover');
+      params.delete('frame');
     }
-    return `/d/${encodeURIComponent(slug)}?${params.toString()}`;
+    return buildRealmShellPath(slug, params, normalized);
   }
 
   if (!params.get('board') && !params.get('frame')) {
     params.set('board', 'domain');
   }
-  return `/d/${encodeURIComponent(slug)}?${params.toString()}`;
+  return buildRealmShellPath(slug, params, normalized);
 }

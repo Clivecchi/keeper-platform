@@ -5,7 +5,8 @@ Shared UI building blocks that are reused across pages, frames, and layouts.
 
 ## 🧱 Key Files
 - `AuthForm.tsx`
-- `HostnameSlugGuard.tsx` — aligns `/d/:slug` with `{slug}.keeper.domains` hostname
+- `HostnameSlugGuard.tsx` — on brand hosts, strips legacy `/d/:slug` to `/`
+- `RealmRoot.tsx` — `/` renders brand realm shell or platform redirect
 - `ErrorBoundary.tsx`
 - `PanelErrorBoundary.tsx` (re-export path: `v0/components/PanelErrorBoundary.tsx` — Universal Board panels)
 - `DebugButton.tsx`
@@ -17,6 +18,7 @@ Components here focus on reusable UI state, composition, and cross-feature inter
 - [ ] Confirm which shared components should be migrated into v0-specific folders.
 
 ## 📆 Update Log
+- 2026-07-06: **Clean brand URLs** — `RealmRoot` + `BrandRealmShellPage`; `livecchi.us` renders at `/` (HostnameSlugGuard strips `/d/*` on brand hosts).
 - 2026-07-04: **keeper.domains hostname routing** — `HostnameSlugGuard` redirects `/d/:wrongSlug` to tenant slug from hostname; `AuthForm` post-login uses `resolvePostAuthPath` (tenant host → `/d/:slug?board=domain`, platform → `/home`).
 - 2026-07-03: Post-login and register redirect to `/home` (user Home shell); honors `returnTo` when present. Root `/` sends authenticated members to `/home`.
 - 2026-07-02: Post-login redirect uses `resolvePostLoginDomainSlug` → `/d/:primarySlug?board=domain` (was hardcoded `default`).

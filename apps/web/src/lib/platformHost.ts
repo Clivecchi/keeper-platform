@@ -69,6 +69,15 @@ export function usesPlatformDefaultSlug(hostname: string): boolean {
 }
 
 /**
+ * Brand URL (e.g. livecchi.us) or tenant `*.keeper.domains` — realm renders at `/`, not `/d/:slug`.
+ */
+export function usesCleanRealmPaths(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host.includes('localhost') || host.includes('127.0.0.1')) return false;
+  return !!resolveTenantSlugFromHostname(host) || isBrandCustomHost(host);
+}
+
+/**
  * Brand URL (e.g. livecchi.us) — same realm as `{slug}.keeper.domains`, resolved via API.
  * Must never fall back to the platform ke3p slug.
  */
@@ -93,6 +102,7 @@ export function resolvePostAuthPath(hostname: string, returnTo?: string): string
   if (returnTo?.trim()) return returnTo;
   const tenantSlug = resolveTenantSlugFromHostname(hostname);
   if (tenantSlug) {
+    if (usesCleanRealmPaths(hostname)) return '/?board=domain';
     return `/d/${encodeURIComponent(tenantSlug)}?board=domain`;
   }
   return '/home';

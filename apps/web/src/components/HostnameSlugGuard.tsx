@@ -1,40 +1,23 @@
 import * as React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useResolvedHostDomain } from '../hooks/useResolvedHostDomain';
-import { normalizeBrandHostname } from '../lib/resolveHostDomain';
-import { isKeeperPlatformWebHost, resolveTenantSlugFromHostname } from '../lib/platformHost';
+import { usesCleanRealmPaths } from '../lib/realmPaths';
 
 /**
- * Safety net only: if a bookmarked URL has the wrong `/d/:slug` on a tenant host,
- * align it with the hostname. Primary routing resolves the correct slug at `/` — no ke3p detour.
+ * On brand hosts, strip legacy `/d/:slug` paths — realm lives at `/`.
+ * Platform hosts keep `/d/:slug` alignment via tenant subdomain rules.
  */
 export function HostnameSlugGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { domain, loading } = useResolvedHostDomain();
-
   const hostname =
-    typeof window !== 'undefined' ? normalizeBrandHostname(window.location.hostname) : '';
-  const tenantSlug = hostname ? resolveTenantSlugFromHostname(hostname) : null;
-  const canonicalSlug =
-    tenantSlug ??
-    (domain?.source === 'custom_domain' || domain?.source === 'tenant_subdomain'
-      ? domain.slug
-      : null);
+    typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
 
-  if (loading && !tenantSlug && !isKeeperPlatformWebHost(hostname)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-sm opacity-70">Loading…</div>
-      </div>
-    );
-  }
-
-  if (!canonicalSlug) return <>{children}</>;
-
-  const match = location.pathname.match(/^\/d\/([^/]+)/);
-  if (match && match[1].toLowerCase() !== canonicalSlug.toLowerCase()) {
-    const search = location.search || '';
-    return <Navigate to={`/d/${encodeURIComponent(canonicalSlug)}${search}`} replace />;
+  if (usesCleanRealmPaths(hostname)) {
+    const legacyMatch = location.pathname.match(/^\/d\/[^/]+/);
+    if (legacyMatch) {
+      const search = location.search || '';
+      return <Navigate to={search || '/'} replace />;
+    }
+    return <>{children}</>;
   }
 
   return <>{children}</>;

@@ -41,7 +41,7 @@ describe('platformHost', () => {
   });
 
   it('resolves post-auth path for tenant hosts', () => {
-    expect(resolvePostAuthPath('staging.keeper.domains')).toBe('/d/staging?board=domain');
+    expect(resolvePostAuthPath('staging.keeper.domains')).toBe('/?board=domain');
     expect(resolvePostAuthPath('www.ke3p.com')).toBe('/home');
     expect(resolvePostAuthPath('staging.keeper.domains', '/settings')).toBe('/settings');
   });
