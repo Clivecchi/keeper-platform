@@ -37,6 +37,10 @@ import { useBoardDefinitionFromUrl } from "../useBoardDefinitionFromUrl"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
 import { ChronicleEngagementSurface } from "../engagement/ChronicleEngagementSurface"
+import {
+  resolveDomainTreatment,
+  type ResolvedDomainTreatment,
+} from "../../treatment/resolveDomainTreatment"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
@@ -225,6 +229,7 @@ interface ChronicleRecordViewProps {
   onSessionSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
   trailKey: string
+  treatment: ResolvedDomainTreatment
 }
 
 function ChronicleRecordView({
@@ -242,6 +247,7 @@ function ChronicleRecordView({
   onKeySelect,
   onLabelResolved,
   trailKey,
+  treatment,
 }: ChronicleRecordViewProps & { onKeySelect?: (id: string) => void }) {
   if (!domainId) {
     return (
@@ -263,6 +269,7 @@ function ChronicleRecordView({
       boardId={boardId}
       layout={layout}
       density="standard"
+      treatment={treatment}
       onLabelResolved={(label) => onLabelResolved(trailKey, label)}
       onJourneySelect={onJourneySelect}
       onPathSelect={onPathSelect}
@@ -290,6 +297,7 @@ interface PanelBodyProps {
   onMomentSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
   onLabelResolved: (subjectKey: string, label: string) => void
+  treatment: ResolvedDomainTreatment
 }
 
 function PanelBody({
@@ -304,6 +312,7 @@ function PanelBody({
   onMomentSelect,
   onSessionSelect,
   onLabelResolved,
+  treatment,
 }: PanelBodyProps) {
   const boardCtx = useUniversalBoardOptional()
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]
@@ -337,6 +346,7 @@ function PanelBody({
         onKeySelect={boardCtx?.actions.onKeySelect}
         onLabelResolved={onLabelResolved}
         trailKey={subjectKey}
+        treatment={treatment}
       />
     )
   }
@@ -405,6 +415,10 @@ export function UniversalViewPanel({
 }: UniversalViewPanelProps) {
   const boardCtx = useUniversalBoardOptional()
   const shell = useV0ShellOptional()
+  const chronicleTreatment = React.useMemo(
+    () => resolveDomainTreatment(shell?.domainFrame ?? null),
+    [shell?.domainFrame],
+  )
   const urlBoardDefinitionId = useBoardDefinitionFromUrl()
   const boardDefinitionId =
     def.boardId === "designer" ? urlBoardDefinitionId : null
@@ -681,6 +695,7 @@ export function UniversalViewPanel({
             onMomentSelect={handleMomentSelect}
             onSessionSelect={handleSessionSelect}
             onLabelResolved={handleLabelResolved}
+            treatment={chronicleTreatment}
           />
         )}
       </div>

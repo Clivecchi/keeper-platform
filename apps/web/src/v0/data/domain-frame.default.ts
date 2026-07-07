@@ -184,6 +184,17 @@ export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
     },
   },
 
+  treatment: {
+    name: "Standard",
+    palette: {
+      background: "#f5f0e8",
+      accent: "#2d6a7f",
+    },
+    font: {
+      family: "Georgia, serif",
+    },
+  },
+
   kip: {
     agent_id: "kip-default",
     model: "claude-sonnet-4-6",

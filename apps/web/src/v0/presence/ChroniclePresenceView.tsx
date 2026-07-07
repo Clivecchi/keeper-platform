@@ -15,6 +15,8 @@ import { SoleMemoryPresence } from "./SoleMemoryPresence"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
 import type { PresentName, RenderContext } from "../presents/types"
+import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
+import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 
 export interface ChroniclePresenceViewProps {
   objectType: string
@@ -27,6 +29,7 @@ export interface ChroniclePresenceViewProps {
   context?: RenderContext
   layout?: PresenceLayout
   density?: DensityLevel
+  treatment?: ResolvedDomainTreatment
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
   onPathSelect?: (id: string) => void
@@ -47,6 +50,7 @@ export function ChroniclePresenceView({
   context = "chronicle",
   layout = "focus",
   density = "standard",
+  treatment,
   onLabelResolved,
   onJourneySelect,
   onPathSelect,
@@ -66,16 +70,21 @@ export function ChroniclePresenceView({
   }
 
   if (objectType === "soleMemory") {
-    return (
+    const soleBody = (
       <SoleMemoryPresence
         memoryCardId={objectId}
         domainId={domainId}
         onLabelResolved={onLabelResolved}
       />
     )
+    return treatment ? (
+      <ChronicleTreatmentShell treatment={treatment}>{soleBody}</ChronicleTreatmentShell>
+    ) : (
+      soleBody
+    )
   }
 
-  return (
+  const presenceBody = (
     <KeeperPresence
       objectType={objectType}
       objectId={objectId}
@@ -95,5 +104,11 @@ export function ChroniclePresenceView({
       onKeySelect={onKeySelect}
       onSessionSelect={onSessionSelect}
     />
+  )
+
+  if (!treatment) return presenceBody
+
+  return (
+    <ChronicleTreatmentShell treatment={treatment}>{presenceBody}</ChronicleTreatmentShell>
   )
 }

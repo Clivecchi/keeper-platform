@@ -893,6 +893,34 @@ async function enrichDomain(
         if (typeof kip.visibility === "string") {
           record.visibility = kip.visibility
         }
+        const treatment =
+          frame.treatment && typeof frame.treatment === "object"
+            ? (frame.treatment as Record<string, unknown>)
+            : null
+        if (treatment) {
+          if (typeof treatment.name === "string") {
+            record.treatmentName = treatment.name
+          }
+          const palette =
+            treatment.palette && typeof treatment.palette === "object"
+              ? (treatment.palette as Record<string, unknown>)
+              : null
+          if (palette) {
+            if (typeof palette.background === "string") {
+              record.treatmentBackground = palette.background
+            }
+            if (typeof palette.accent === "string") {
+              record.treatmentAccent = palette.accent
+            }
+          }
+          const font =
+            treatment.font && typeof treatment.font === "object"
+              ? (treatment.font as Record<string, unknown>)
+              : null
+          if (font && typeof font.family === "string") {
+            record.treatmentFontFamily = font.family
+          }
+        }
       }
     } catch {
       /* frame optional */

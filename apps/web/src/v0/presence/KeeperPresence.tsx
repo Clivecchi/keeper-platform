@@ -102,6 +102,13 @@ const AGENT_PROMPT_FIELD_KEYS = new Set(["lensSystemPrompt", "composedSystemProm
 
 const DOMAIN_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+const DOMAIN_TREATMENT_FIELD_KEYS = [
+  "treatmentName",
+  "treatmentBackground",
+  "treatmentAccent",
+  "treatmentFontFamily",
+] as const
+
 function buildDomainFieldPatch(
   schema: ReturnType<typeof usePresenceSchema>["schema"],
   fieldValues: Record<string, string>,
@@ -862,6 +869,14 @@ export function KeeperPresence({
         if (typeof patch.keeperType === "string") next.keeperType = patch.keeperType
         if (typeof patch.theme_color === "string") next.theme_color = patch.theme_color
         if (typeof patch.visibility === "string") next.visibility = patch.visibility
+        if (typeof patch.treatmentName === "string") next.treatmentName = patch.treatmentName
+        if (typeof patch.treatmentBackground === "string") {
+          next.treatmentBackground = patch.treatmentBackground
+        }
+        if (typeof patch.treatmentAccent === "string") next.treatmentAccent = patch.treatmentAccent
+        if (typeof patch.treatmentFontFamily === "string") {
+          next.treatmentFontFamily = patch.treatmentFontFamily
+        }
         return next
       })
       if (onLabelResolved && typeof patch.name === "string") {
@@ -898,7 +913,11 @@ export function KeeperPresence({
       if (
         typeof savedPatch.tagline === "string" ||
         typeof savedPatch.name === "string" ||
-        typeof savedPatch.theme_color === "string"
+        typeof savedPatch.theme_color === "string" ||
+        typeof savedPatch.treatmentName === "string" ||
+        typeof savedPatch.treatmentBackground === "string" ||
+        typeof savedPatch.treatmentAccent === "string" ||
+        typeof savedPatch.treatmentFontFamily === "string"
       ) {
         void v0Shell?.reloadDomainFrame()
       }
@@ -1007,13 +1026,23 @@ export function KeeperPresence({
                 "purpose",
                 "theme_color",
                 "visibility",
+                ...DOMAIN_TREATMENT_FIELD_KEYS,
                 "buildContextName",
                 "buildContextDescription",
                 "activeRepository",
                 "activeBranch",
                 "environment",
               ]
-            : ["name", "slug", "tagline", "keeperType", "purpose", "theme_color", "visibility"]
+            : [
+                "name",
+                "slug",
+                "tagline",
+                "keeperType",
+                "purpose",
+                "theme_color",
+                "visibility",
+                ...DOMAIN_TREATMENT_FIELD_KEYS,
+              ]
         const patch: Record<string, string> = {}
         for (const key of keys) {
           if (fieldValuesRef.current[key] !== undefined) {
@@ -1567,6 +1596,10 @@ function KeeperPresenceSurface({
     lensSystemPrompt: "Domain lens — shapes voice and behavior…",
     avatar: "Avatar URL or emoji…",
     theme_color: "Accent color token or hex…",
+    treatmentName: "e.g. Warm Minimal",
+    treatmentBackground: "#f5f0e8",
+    treatmentAccent: "#2d6a7f",
+    treatmentFontFamily: "Georgia, serif",
     tools: "Capability tags, comma-separated…",
     model: "Model identifier…",
     model_provider: "openai, anthropic, together-ai…",

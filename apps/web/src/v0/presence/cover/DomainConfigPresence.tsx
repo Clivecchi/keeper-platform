@@ -58,6 +58,14 @@ const PRESENCE_FIELD_ORDER = [
   "visibility",
 ] as const
 
+/** Chronicle Treatment — stored in frame_json.treatment; affects right panel only. */
+const TREATMENT_FIELD_ORDER = [
+  "treatmentName",
+  "treatmentBackground",
+  "treatmentAccent",
+  "treatmentFontFamily",
+] as const
+
 const IDE_BUILD_FIELD_ORDER = [
   "buildContextName",
   "buildContextDescription",
@@ -77,6 +85,10 @@ const fieldPlaceholders: Record<string, string> = {
   purpose: "What this domain is for",
   theme_color: "Theme color token",
   visibility: "public or private",
+  treatmentName: "Warm Minimal",
+  treatmentBackground: "#f5f0e8",
+  treatmentAccent: "#2d6a7f",
+  treatmentFontFamily: "Georgia, serif",
   buildContextName: "Build context name",
   buildContextDescription: "What this build context covers",
   activeRepository: DEFAULT_GITHUB_REPOSITORY,
@@ -89,6 +101,10 @@ const fieldLabels: Record<string, string> = {
   purpose: "Purpose",
   theme_color: "Theme color",
   visibility: "Visibility",
+  treatmentName: "Treatment name",
+  treatmentBackground: "Chronicle background",
+  treatmentAccent: "Chronicle accent",
+  treatmentFontFamily: "Chronicle font",
 }
 
 function ConfigFieldGroup({
@@ -166,6 +182,7 @@ export function DomainConfigPresence({
 
   const identityKeys = IDENTITY_FIELD_ORDER.filter((key) => fieldMap.has(key))
   const presenceKeys = PRESENCE_FIELD_ORDER.filter((key) => fieldMap.has(key))
+  const treatmentKeys = TREATMENT_FIELD_ORDER.filter((key) => fieldMap.has(key))
   const ideKeys = IDE_BUILD_FIELD_ORDER.filter((key) => ideFieldMap.has(key))
 
   const domainTag = fieldValues.slug?.trim() || domainSlug
@@ -226,6 +243,32 @@ export function DomainConfigPresence({
           </p>
           <ConfigFieldGroup
             keys={presenceKeys}
+            fieldMap={fieldMap}
+            fieldErrors={fieldErrors}
+            placeholders={fieldPlaceholders}
+            labels={fieldLabels}
+            renderFieldEditor={renderFieldEditor}
+          />
+        </div>
+      ) : null}
+
+      {treatmentKeys.length > 0 ? (
+        <div
+          className="mt-6 mb-4 pt-5 border-t"
+          style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+        >
+          <p
+            className="text-[11px] font-semibold uppercase tracking-widest mb-1"
+            style={sectionLabelStyle}
+          >
+            Treatment
+          </p>
+          <p className="text-[11px] mb-3" style={sectionLabelStyle}>
+            How Chronicle feels on this domain — background, accent, and type. Does not change the
+            center dialog or navigation.
+          </p>
+          <ConfigFieldGroup
+            keys={treatmentKeys}
             fieldMap={fieldMap}
             fieldErrors={fieldErrors}
             placeholders={fieldPlaceholders}

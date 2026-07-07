@@ -26,6 +26,22 @@ export interface DomainFrameTheme {
   }
 }
 
+/** Named presence configuration — Rendr output target; Chronicle reads at runtime. */
+export interface DomainFrameTreatmentPalette {
+  background: string
+  accent: string
+}
+
+export interface DomainFrameTreatmentFont {
+  family: string
+}
+
+export interface DomainFrameTreatment {
+  name: string
+  palette: DomainFrameTreatmentPalette
+  font: DomainFrameTreatmentFont
+}
+
 export interface DomainFrameKip {
   agent_id: string
   model: string
@@ -585,6 +601,8 @@ export interface DomainFrameJson {
   domain: string
   keeper_type: string
   theme: DomainFrameTheme
+  /** Chronicle presence character — distinct from brand `theme`. */
+  treatment?: DomainFrameTreatment
   kip: DomainFrameKip
   audience_roles: AudienceRole[]
   cover: DomainFrameCover

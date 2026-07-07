@@ -99,6 +99,45 @@ export function resolveChronicleFramePatchEndpoint(domainSlug: string): string {
   return `/api/domains/${encodeURIComponent(domainSlug)}/frame`
 }
 
+function mergeTreatmentFramePatch(
+  frameBody: Record<string, unknown>,
+  partial: {
+    name?: string
+    palette?: { background?: string; accent?: string }
+    font?: { family?: string }
+  },
+): void {
+  const existing =
+    frameBody.treatment &&
+    typeof frameBody.treatment === "object" &&
+    !Array.isArray(frameBody.treatment)
+      ? (frameBody.treatment as Record<string, unknown>)
+      : {}
+  const existingPalette =
+    existing.palette &&
+    typeof existing.palette === "object" &&
+    !Array.isArray(existing.palette)
+      ? (existing.palette as Record<string, unknown>)
+      : {}
+  const existingFont =
+    existing.font && typeof existing.font === "object" && !Array.isArray(existing.font)
+      ? (existing.font as Record<string, unknown>)
+      : {}
+
+  frameBody.treatment = {
+    ...existing,
+    ...(partial.name !== undefined ? { name: partial.name } : {}),
+    palette: {
+      ...existingPalette,
+      ...(partial.palette ?? {}),
+    },
+    font: {
+      ...existingFont,
+      ...(partial.font ?? {}),
+    },
+  }
+}
+
 export interface ChronicleSaveContext {
   domainId: string
   domainSlug?: string
@@ -186,6 +225,18 @@ export function splitDomainChroniclePatch(
         break
       case "environment":
         ideBuildContext.environment = value
+        break
+      case "treatmentName":
+        mergeTreatmentFramePatch(frameBody, { name: value })
+        break
+      case "treatmentBackground":
+        mergeTreatmentFramePatch(frameBody, { palette: { background: value } })
+        break
+      case "treatmentAccent":
+        mergeTreatmentFramePatch(frameBody, { palette: { accent: value } })
+        break
+      case "treatmentFontFamily":
+        mergeTreatmentFramePatch(frameBody, { font: { family: value } })
         break
       default:
         break

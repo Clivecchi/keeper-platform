@@ -55,9 +55,57 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 ## ⚠️ Notes & ToDo
 - [ ] Prop edit/reorder/delete in FrameConfigPresence (PropManager-grade CRUD)
 - [ ] `density` prop can be driven by Treatment JSON at board level
+- [x] Treatment v0 — `frame_json.treatment` drives Chronicle background, font, accent (see `../treatment/README.md`)
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-07-06 — Treatment v0 (Chronicle-only)
+- Domain Config Chronicle saves `frame_json.treatment` (name, background, accent, font)
+- `ChroniclePresenceView` wraps KeeperPresence in `ChronicleTreatmentShell`
+
+### 2026-07-02 — Domain feed fetch dedupe
+- Domain idle Chronicle uses `loadJourneyNavRows` + `fetchDomainKeptMoments` — shares cache with Nav/Conversation/banner
+
+### 2026-06-30 — Draft point Promote in Chronicle
+- `DraftPointRow` — Promote button on accepted `journey_spec` points (requires Nav-selected Journey)
+- Wired through `DraftPointsSection`, `DraftChronicleBlocks`, `cdraft`, `DraftFocusPresence`
+
+### 2026-06-22 — Chronicle header card visibility
+- `KeeperPresence`: `draftPresenceRevision` reload only when `objectType === "draft"` — accepting draft points in Dialog no longer unmounts journey/domain cover cards
+- See `cover/README.md` for `coverMotion` entrance safety fix on `EntityCoverPresence`
+
+### 2026-06-19 — Draft Phase 1b (PointRow + Discuss)
+- `DraftPointRow.tsx` — shared point row with Accept, Discuss, `data-gloss-anchor`
+- `DraftPointsSection.tsx` — delegates to `DraftPointRow`
+
+### 2026-06-14 — Library EntityKind presence (Pass 1)
+- `LibraryItemFocusPresence` — Cover ↔ Config orchestration; feed via `GET /api/library-items/:id`
+- `LibraryItemConfigPresence` — editable metadata + assignment selects; `onSaved` → `bumpLibraryNav`
+- `declarationChronicle.tsx`: `variant="library"` with `definition` + `agent_perspective` blocks
+- `libraryItemCoverSchema.ts` + `libraryNavUtils.ts`: shared `libraryItemChronicleTitle()` for Cover and Nav
+- `KeeperPresence`: `library` focus branch + `skipPresenceSchemaFetch`
+- `presenceEnrichment.ts`: `fetchPresenceRecord` case for `library`
+- `chroniclePatch.ts`: `library` → `PATCH /api/library-items/:id`
+
+### 2026-06-13 — Phase 6 cleanup
+- Removed `FeedComponent` from `serviceConfig.tsx`; legacy cover feed UI deleted; feed hooks credential-only on cover
+- READMEs updated for unified Cover (declaration blocks) + Config (metadata PATCH) pattern
+
+### 2026-06-13 — Cover body unification (Phase 4)
+- `IntegrationFocusPresence`: removed `FeedComponent` fork; always `DeclarationChronicleBlocks` with client-side declaration defaults
+- `KeyFocusPresence`: always renders key declaration blocks (no empty-body when DB blocks missing)
+
+### 2026-06-13 — Integration/Key Chronicle config save (Phase 3)
+- `chroniclePatch.ts`: `service`/`integration` → `PATCH /api/integrations/:entityId`; `key` → `PATCH /api/keys/:entityId`
+- `IntegrationConfigPresence` / `KeyConfigPresence`: `useChronicleConfig` with real `isDirty`; Save bar for metadata (`display_label`, `description`, `connect_copy` / key fields)
+- Credential actions (verify, rotate, revoke) remain inline block operations, not routed through `handleChronicleSave`
+- Browser verified: display_label save on Anthropic integration and key via IDE board Manage → Config
+
+### 2026-06-13 — Orphan cleanup + Key declaration blocks
+- Deleted unused `AgentIdentityCard.tsx`, `integrationChronicle/IntegrationChronicle.tsx`, `integrationChronicle/blocks/BlockPrimitivesPreview.tsx` (no imports)
+- `declarationChronicle.tsx`: `DeclarationChronicleBlocks` supports `variant="key"` with `connection_status`, `key_health`, `linked_agents` from Key feed
+- `KeyFocusPresence` wired to declaration blocks (same pattern as `IntegrationFocusPresence`)
 
 ### 2026-06-12 — Delete retired Key/Integration presence wrappers
 - Removed dead code: `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx`, `integrationChronicle/index.tsx`, `IntegrationPresence.tsx`
@@ -161,6 +209,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - Journey focus layout: title + inline forward narrative, meta row (keeper, created, moment count), paths with prelude, tappable moments, Set as Active via `UniversalBoardContext`
 - Config layout: surface tint, comfortable density, "Configuring" whisper
 - Enrichment: path prelude, relative kept dates, paths-before-moments section order, structured journey meta
+
+### 2026-06-12 — boardDef / domain presence-schema noise fix
+- `KeeperPresence` skips domain schema fetch for `boardDef`, `frame` config, and `domain` focus — uses platform defaults / dedicated presence components; avoids 400 on `boardDef` and redundant 404 on `domain`
 
 ### 2026-06-10 — Key presence-schema 400 fix
 - `usePresenceSchema` accepts optional `skipDomainFetch` to skip `GET /presence-schema/:objectType` when a dedicated focus component owns rendering

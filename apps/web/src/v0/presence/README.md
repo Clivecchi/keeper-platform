@@ -55,9 +55,14 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 ## ⚠️ Notes & ToDo
 - [ ] Prop edit/reorder/delete in FrameConfigPresence (PropManager-grade CRUD)
 - [ ] `density` prop can be driven by Treatment JSON at board level
+- [x] Treatment v0 — `frame_json.treatment` drives Chronicle background, font, accent (see `../treatment/README.md`)
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-07-06 — Treatment v0 (Chronicle-only)
+- Domain Config Chronicle saves `frame_json.treatment` (name, background, accent, font)
+- `ChroniclePresenceView` wraps KeeperPresence in `ChronicleTreatmentShell`
 
 ### 2026-07-02 — Domain feed fetch dedupe
 - Domain idle Chronicle uses `loadJourneyNavRows` + `fetchDomainKeptMoments` — shares cache with Nav/Conversation/banner
