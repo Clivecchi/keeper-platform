@@ -4,9 +4,15 @@
 Core utility functions and API clients for the Keeper web application, including authentication-aware API calls and service integrations.
 
 ## 🧱 Key Files
-- `api.ts` - Core API client with authentication error handling
+- `platformHost.ts` - ke3p.com / `*.keeper.domains` host detection, tenant slug from hostname
+- `resolveHostDomain.ts` - verified custom domain hostname → slug (`GET /api/domains/resolve-host/:hostname`)
+- `realmPaths.ts` - brand hosts render at `/`; platform hosts use `/d/:slug`
+- `apiFetch.ts` - API base resolution (same-origin `/api` on platform + tenant + production custom domains)
+- `nangoConnect.ts` - Integration Connect: Services open Nango UI; Custom (railway) uses token verify only
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
+- `kipDialogSession.ts` - Board-scoped Dialog session resume (`resolve/active`, reuse empty sessions)
+- `composerDraftStorage.ts` - SessionStorage helpers for unsent composer draft autosave
 - `agentRegistry.ts` - Agent registration and discovery
 - `governanceApi.ts` - Domain governance, contracts, compliance metrics
 
@@ -27,6 +33,47 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-07-06 — platformHost: guard undefined hostname
+- `resolveWebHostname()` — defaults to `window.location.hostname` when callers omit hostname
+- Fixes production crash (`toLowerCase` on undefined) when `buildRealmShellPath(slug, params)` runs without a third argument
+
+### 2026-07-06 — Clean brand URLs (`livecchi.us` stays at `/`)
+- `realmPaths.ts` — `buildRealmShellPath`, `usesCleanRealmPaths`; brand + tenant `*.keeper.domains` use `/` not `/d/:slug`
+- `BrandRealmShellPage` / `RealmRoot` — render V0Shell at root on brand hosts
+
+### 2026-07-05 — Custom brand domain routing (livecchi.us → /d/livecchi)
+- `resolveHostDomain.ts` + `useResolvedHostDomain` — resolve verified custom domain host to domain slug
+- `platformHost.ts` — production custom domains use same-origin `/api` (Vercel rewrite)
+- `HostnameSlugGuard` / `RootRedirect` / `AuthForm` — redirect wrong slugs; login lands on brand domain board
+- API `GET /api/domains/resolve-host/:hostname` — public slug lookup for verified custom domains
+
+### 2026-07-04 — keeper.domains tenant hostname helper
+- `platformHost.ts` — `buildKeeperTenantHostname(slug)` for Chronicle domain addresses preview.
+
+### 2026-07-04 — keeper.domains same-origin API + hostname slug
+- `platformHost.ts` — `usesSameOriginApi`, `resolveTenantSlugFromHostname`, `resolvePostAuthPath`.
+- `apiFetch.ts` / `fetch-shim.ts` — `*.keeper.domains` uses relative `/api` (Vercel rewrite), same as ke3p.com.
+
+### 2026-07-02 — P1.2 draft list query params
+- `KipApi.listDrafts` accepts optional `{ limit, excludeStatus }` for capped nav fetches (`limit=50&excludeStatus=promoted,archived`).
+
+### 2026-06-30 — Draft point promotion (Phase 2.2b)
+- Added `KipApi.promoteDraftPoint(domainId, draftId, pointId, { journeyId })` — POST promote route for accepted journey_spec points.
+
+### 2026-06-22 — Composer draft autosave storage
+- Added `composerDraftStorage.ts` — keyed read/write/clear/migrate for unsent Kip composer text in `sessionStorage`.
+
+### 2026-06-22 — Dialog-scoped session resume
+- Added `kipDialogSession.ts` with `pickBestDialogSessionId` (prefer sessions with messages, else reuse newest empty) and `resumeOrCreateBoardSession` for IDE/Agent/Domain/Designer boards.
+
+
+### 2026-06-02 — Integration connect UX: named OAuth window + manual auth link
+- **nangoConnect.ts**: Named popup `keeper_integration_oauth`, placeholder page before redirect, `buildNangoOAuthConnectUrl` + `onSessionReady`, `openIntegrationOAuthTab` fallback, host-aware popup-blocked message.
+- **integrationChronicle/shared.tsx**: In-panel “Waiting for {service}” guidance; link to open Nango authorize URL when popup lands on GitHub Settings instead of Install/Authorize.
+
+### 2026-06-02 — Popup OAuth: sync popup on click + oauth-callback persist
+- **nangoConnect.ts**: `beginIntegrationOAuthPopup()` in click handler (before await); AuthorizationModal + `/oauth/connect` (no iframe); `POST /api/integrations/oauth-callback` after success.
 
 ### 2026-06-02 — Integrations Phase A: Custom connect (no Nango UI for railway)
 - **nangoConnect.ts**: When `/api/integrations/session` returns `{ connected: true }`, invokes `onConnected` without opening Nango Connect UI.

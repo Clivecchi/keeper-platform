@@ -5,6 +5,7 @@ import {
   resolveDefaultDomainSlugFromHostname,
   resolvePostAuthPath,
   resolveTenantSlugFromHostname,
+  usesCleanRealmPaths,
   usesSameOriginApi,
 } from './platformHost';
 
@@ -44,5 +45,11 @@ describe('platformHost', () => {
     expect(resolvePostAuthPath('staging.keeper.domains')).toBe('/?board=domain');
     expect(resolvePostAuthPath('www.ke3p.com')).toBe('/home');
     expect(resolvePostAuthPath('staging.keeper.domains', '/settings')).toBe('/settings');
+  });
+
+  it('does not throw when hostname is omitted', () => {
+    expect(() => usesCleanRealmPaths(undefined)).not.toThrow();
+    expect(() => resolveTenantSlugFromHostname(undefined)).not.toThrow();
+    expect(resolveTenantSlugFromHostname(undefined)).toBeNull();
   });
 });
