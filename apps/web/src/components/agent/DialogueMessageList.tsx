@@ -9,6 +9,8 @@ import clsx from "clsx"
 import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard, type KeepAsMomentPayload } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
+import { TreatmentProposeCard } from "../kip/TreatmentProposeCard"
+import type { DomainFrameTreatment } from "../../v0/data/domain-frame.types"
 import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
@@ -132,6 +134,8 @@ function AgentMessageTurn({
   onOpenJourney,
   onKeepAsMoment,
   onConfirmDraftUpdate,
+  onApplyTreatmentProposal,
+  applyingTreatmentProposal,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -141,6 +145,8 @@ function AgentMessageTurn({
   onOpenJourney?: (journeyId: string) => void
   onKeepAsMoment?: DialogueMessageListProps["onKeepAsMoment"]
   onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
+  onApplyTreatmentProposal?: DialogueMessageListProps["onApplyTreatmentProposal"]
+  applyingTreatmentProposal?: boolean
 }) {
   const delegation = visibleDelegationBeat(message.delegation)
   const echo =
@@ -175,6 +181,8 @@ function AgentMessageTurn({
           onOpenJourney={onOpenJourney}
           onKeepAsMoment={onKeepAsMoment}
           onConfirmDraftUpdate={onConfirmDraftUpdate}
+          onApplyTreatmentProposal={onApplyTreatmentProposal}
+          applyingTreatmentProposal={applyingTreatmentProposal}
         />
         <span
           className="mt-2 block text-xs"
@@ -222,6 +230,8 @@ function AgentMessageTurn({
         onOpenJourney={onOpenJourney}
         onKeepAsMoment={onKeepAsMoment}
         onConfirmDraftUpdate={onConfirmDraftUpdate}
+        onApplyTreatmentProposal={onApplyTreatmentProposal}
+        applyingTreatmentProposal={applyingTreatmentProposal}
       />
       <span className="block text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>
         {formatTime(message.createdAt)}
@@ -237,6 +247,8 @@ function MessageAttachments({
   onOpenJourney,
   onKeepAsMoment,
   onConfirmDraftUpdate,
+  onApplyTreatmentProposal,
+  applyingTreatmentProposal,
 }: {
   message: AgentDialogueMessage
   onOpenDraft?: (draftId: string) => void
@@ -244,6 +256,8 @@ function MessageAttachments({
   onOpenJourney?: (journeyId: string) => void
   onKeepAsMoment?: DialogueMessageListProps["onKeepAsMoment"]
   onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
+  onApplyTreatmentProposal?: DialogueMessageListProps["onApplyTreatmentProposal"]
+  applyingTreatmentProposal?: boolean
 }) {
   return (
     <>
@@ -268,11 +282,18 @@ function MessageAttachments({
           {message.actionResults.filter(isVisibleActionResult).map((actionResult, idx) => {
             const receipt = normalizeActionReceipt(actionResult)
             const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
+            const isTreatmentPropose =
+              receipt.type === "treatment.propose" && receipt.status === "success"
             const proposeData = receipt.data as {
               draftId?: string
               draftTitle?: string
               summary?: string
               proposedPayload?: { id: string; title?: string; summary?: string; status?: string; spec?: unknown }
+            } | undefined
+            const treatmentData = receipt.data as {
+              summary?: string
+              rationale?: string
+              proposal?: DomainFrameTreatment
             } | undefined
             if (isPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
               return (
@@ -285,6 +306,23 @@ function MessageAttachments({
                   onConfirm={onConfirmDraftUpdate}
                   onReject={() => {}}
                   onOpenDraft={onOpenDraft}
+                />
+              )
+            }
+            if (
+              isTreatmentPropose
+              && treatmentData?.proposal
+              && onApplyTreatmentProposal
+            ) {
+              return (
+                <TreatmentProposeCard
+                  key={idx}
+                  summary={treatmentData.summary ?? "Treatment update"}
+                  rationale={treatmentData.rationale}
+                  proposal={treatmentData.proposal}
+                  onApply={onApplyTreatmentProposal}
+                  onDismiss={() => {}}
+                  isApplying={applyingTreatmentProposal}
                 />
               )
             }
@@ -332,6 +370,10 @@ export interface DialogueMessageListProps {
   onOpenJourney?: (journeyId: string) => void
   /** Callback when user confirms a proposed draft update */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
+  /** Callback when user applies a Rendr Treatment proposal on Design Board */
+  onApplyTreatmentProposal?: (proposal: DomainFrameTreatment) => void
+  /** True while a Treatment proposal is being saved */
+  applyingTreatmentProposal?: boolean
   /** Callback when user keeps dialog content (e.g. generated image) as a moment */
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
@@ -363,6 +405,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenJourney,
   onKeepAsMoment,
   onConfirmDraftUpdate,
+  onApplyTreatmentProposal,
+  applyingTreatmentProposal,
   agentName = "Agent",
   echoAgentName,
   agentBoardMessaging,
@@ -426,6 +470,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               onOpenJourney={onOpenJourney}
               onKeepAsMoment={onKeepAsMoment}
               onConfirmDraftUpdate={onConfirmDraftUpdate}
+              onApplyTreatmentProposal={onApplyTreatmentProposal}
+              applyingTreatmentProposal={applyingTreatmentProposal}
             />
           </div>
         )

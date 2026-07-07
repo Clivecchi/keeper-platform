@@ -377,7 +377,7 @@ export function useAgentDialog({
     async (sessionId: string) => {
       try {
         const msgs: KipMessage[] = await KipApi.getSessionMessages(sessionId)
-        if (mode === "ide") {
+        if (mode === "ide" || mode === "designer") {
           setMessages(msgs.length ? msgs.map(normalizeMessage) : [greeting])
         } else {
           setMessages(msgs.map(normalizeMessage))

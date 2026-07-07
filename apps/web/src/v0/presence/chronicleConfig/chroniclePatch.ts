@@ -100,6 +100,17 @@ export function resolveChronicleFramePatchEndpoint(domainSlug: string): string {
   return `/api/domains/${encodeURIComponent(domainSlug)}/frame`
 }
 
+export async function patchDomainTreatment(
+  domainSlug: string,
+  treatment: Record<string, unknown>,
+): Promise<void> {
+  await apiFetch(resolveChronicleFramePatchEndpoint(domainSlug), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ treatment }),
+  })
+}
+
 function mergeTreatmentFramePatch(
   frameBody: Record<string, unknown>,
   partial: {

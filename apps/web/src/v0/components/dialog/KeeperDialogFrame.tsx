@@ -133,6 +133,10 @@ export interface KeeperDialogFrameProps {
     draftId: string,
     payload: { title?: string; summary?: string; status?: string; spec?: unknown },
   ) => void
+  onApplyTreatmentProposal?: (
+    proposal: import("../../data/domain-frame.types").DomainFrameTreatment,
+  ) => void
+  applyingTreatmentProposal?: boolean
   onAcceptDraftPoint?: (draftId: string, pointId: string) => void
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
@@ -230,6 +234,8 @@ export function KeeperDialogFrame({
   onOpenSoleMemory,
   onKeepAsMoment,
   onConfirmDraftUpdate,
+  onApplyTreatmentProposal,
+  applyingTreatmentProposal,
   onAcceptDraftPoint,
   acceptedDraftPointIds,
   acceptingDraftPointId,
@@ -624,6 +630,8 @@ export function KeeperDialogFrame({
                         onKeepAsMoment={onKeepAsMoment}
                         onOpenSoleMemory={onOpenSoleMemory}
                         onConfirmDraftUpdate={onConfirmDraftUpdate}
+                        onApplyTreatmentProposal={onApplyTreatmentProposal}
+                        applyingTreatmentProposal={applyingTreatmentProposal}
                         onAcceptDraftPoint={onAcceptDraftPoint}
                         acceptedDraftPointIds={acceptedDraftPointIds}
                         acceptingDraftPointId={acceptingDraftPointId}
@@ -647,6 +655,8 @@ export function KeeperDialogFrame({
                     onKeepAsMoment={onKeepAsMoment}
                     onOpenSoleMemory={onOpenSoleMemory}
                     onConfirmDraftUpdate={onConfirmDraftUpdate}
+                    onApplyTreatmentProposal={onApplyTreatmentProposal}
+                    applyingTreatmentProposal={applyingTreatmentProposal}
                     onAcceptDraftPoint={onAcceptDraftPoint}
                     acceptedDraftPointIds={acceptedDraftPointIds}
                     acceptingDraftPointId={acceptingDraftPointId}

@@ -114,6 +114,8 @@ export interface ConversationPanelDef {
    */
   agentFromFrame?: boolean
   agentName: string
+  /** Optional first message shown when the dialog session has no history. */
+  greetingMessage?: string
   dialogueMode: "domain" | "agent"
   showServiceBar: boolean
   /** Which KipSession mode the conversation uses. Drives context injection and session behavior. */
@@ -483,8 +485,10 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
     },
   },
   conversation: {
-    agentSlug: "kip",
-    agentName: "Kip",
+    agentSlug: "rendr",
+    agentName: "Rendr",
+    greetingMessage:
+      "I'm Rendr — I tune how Chronicle feels on this domain. Tell me the mood you want (warmer, quieter, more contrast) or ask for a specific background, accent, or font.",
     dialogueMode: "domain",
     showServiceBar: false,
     kipMode: "designer",

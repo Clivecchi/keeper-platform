@@ -98,6 +98,10 @@ import {
   type ActionPack,
 } from '../../policy/policyPack.js';
 import {
+  buildTreatmentProposalSummary,
+  normalizeTreatmentProposal,
+} from '../../services/treatment/normalizeTreatmentProposal.js';
+import {
   parseActionsOrThrow,
   safeParseActions,
   isActionParseSuccess,
@@ -692,6 +696,33 @@ function buildContextFocusPrompt(
   return buildGlossDiscussPrompt(agentContext) ?? buildDraftDiscussPrompt(agentContext);
 }
 
+function buildRendrDesignBoardPrompt(
+  agentContext: Record<string, unknown> | undefined,
+): string | null {
+  const designBoard = agentContext?.designBoard as {
+    currentTreatment?: unknown;
+    focusKey?: string;
+  } | undefined;
+  if (!designBoard?.currentTreatment) return null;
+
+  return [
+    'DESIGN BOARD — TREATMENT v0',
+    'You are Rendr on the Design Board. Tune Chronicle Treatment — how the right Chronicle panel looks and feels.',
+    `Current Treatment:\n${JSON.stringify(designBoard.currentTreatment, null, 2)}`,
+    'Treatment fields:',
+    '- name: label for this look (string)',
+    '- palette.background: hex color with # prefix (e.g. #f5f0e8)',
+    '- palette.accent: hex accent / left border color (e.g. #2d6a7f)',
+    '- font.family: CSS font-family (e.g. "Georgia, serif" or "Inter, sans-serif")',
+    '',
+    'When the human asks for mood, warmth, contrast, typography — propose concrete values using treatment.propose in the same response.',
+    'treatment.propose payload: { rationale?: string, treatment: { name?, palette?: { background?, accent? }, font?: { family? } } }',
+    'Include every field you intend to change; server merges with current Treatment and normalizes hex colors.',
+    'Do NOT write Treatment directly — propose only. The human taps Apply in the dialog.',
+    'Do NOT use draft.create for Treatment on Design Board.',
+  ].join('\n');
+}
+
 function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
   const pack = buildPolicyPackFromEnvironment(environment);
   const allow = new Set(Array.isArray(pack?.actions?.allow) ? pack.actions.allow : DEFAULT_POLICY_PACK_V1.actions.allow);
@@ -701,6 +732,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('image.generate');
   allow.add('draft.update');
   allow.add('draft.update.propose');
+  allow.add('treatment.propose');
   allow.add('draft.point.accept');
   allow.add('draft.point.rewrite');
   allow.add('draft.delete');
@@ -1008,6 +1040,7 @@ export async function executeAgentActions(
     'draft.read',
     'draft.setActive',
     'image.generate',
+    'treatment.propose',
     'moment.create',
     'sole.save',
     'sole.read',
@@ -1348,6 +1381,54 @@ export async function executeAgentActions(
                   key: draft.key,
                 },
                 links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
+              },
+            });
+            break;
+          }
+          case 'treatment.propose': {
+            const payload = action.payload ?? {};
+            const rawTreatment = payload.treatment;
+            if (!rawTreatment || typeof rawTreatment !== 'object' || Array.isArray(rawTreatment)) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'treatment object is required',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            const domain = await tx.domain.findUnique({
+              where: { id: ctx.domainId },
+              select: { frame_json: true },
+            });
+            if (!domain) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Domain not found',
+                errorCode: 'DOMAIN_NOT_FOUND',
+              });
+              break;
+            }
+
+            const frame = domain.frame_json as Record<string, unknown> | null;
+            const proposal = normalizeTreatmentProposal(
+              frame?.treatment,
+              rawTreatment as Record<string, unknown>,
+            );
+            const rationale =
+              typeof payload.rationale === 'string' ? payload.rationale.trim() : '';
+            const summary = buildTreatmentProposalSummary(proposal);
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: 'Proposed Treatment — tap Apply to update Chronicle',
+              data: {
+                rationale: rationale || summary,
+                summary,
+                proposal,
               },
             });
             break;
@@ -3634,6 +3715,11 @@ export class KipAgentService {
         systemParts.push(draftDiscussPrompt);
       }
 
+      const rendrDesignPrompt = buildRendrDesignBoardPrompt(agentContextRecord);
+      if (rendrDesignPrompt) {
+        systemParts.push(rendrDesignPrompt);
+      }
+
       // Domain contract (matches callAIModel injection)
       if (options.domainId) {
         try {
@@ -3993,6 +4079,14 @@ export class KipAgentService {
           });
         }
 
+        const rendrDesignPrompt = buildRendrDesignBoardPrompt(agentContextRecord);
+        if (rendrDesignPrompt) {
+          messages.push({
+            role: 'system',
+            content: rendrDesignPrompt,
+          });
+        }
+
         // --- Domain contract injection (wires contract rules to Kip) ---
         const suppressKipPrompt =
           (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
@@ -4097,7 +4191,9 @@ export class KipAgentService {
             ...(suppressKipPromptForActions
               ? [
                   mcpToolPrompt,
-                  'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed.',
+                  agent.slug === 'rendr'
+                    ? 'You are Rendr — a design and presence agent. Use treatment.propose for Chronicle Treatment changes on Design Board. Do not use draft.create for Treatment.'
+                    : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed.',
                 ]
               : [
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
@@ -5900,6 +5996,10 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               draftsDirectory: [],
               debug: environmentDebug,
             };
+            if (validation.data.agentContext) {
+              (environment as { agentContext?: Record<string, unknown> }).agentContext =
+                validation.data.agentContext;
+            }
           }
 
           const actionPack = environment?.actionPack ?? buildActionPackFromEnvironment(environment);

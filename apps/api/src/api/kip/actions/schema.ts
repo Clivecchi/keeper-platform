@@ -197,6 +197,26 @@ export const imageGeneratePayloadSchema = z.object({
 
 export type ImageGenerateAction = z.infer<typeof imageGeneratePayloadSchema> & { type: 'image.generate' };
 
+const treatmentPaletteSchema = z.object({
+  background: z.string().min(1).optional(),
+  accent: z.string().min(1).optional(),
+});
+
+const treatmentFontSchema = z.object({
+  family: z.string().min(1).optional(),
+});
+
+const treatmentProposePayloadSchema = z.object({
+  rationale: z.string().optional(),
+  treatment: z.object({
+    name: z.string().min(1).optional(),
+    palette: treatmentPaletteSchema.optional(),
+    font: treatmentFontSchema.optional(),
+  }),
+});
+
+export type TreatmentProposeAction = z.infer<typeof treatmentProposePayloadSchema> & { type: 'treatment.propose' };
+
 const mcpCallPayloadSchema = z.object({
   name: z.string().min(1, 'name is required'),
   args: z.record(z.unknown()).optional().default({}),
@@ -226,6 +246,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'moment.read': momentReadPayloadSchema,
   'keeper.read': keeperReadPayloadSchema,
   'image.generate': imageGeneratePayloadSchema,
+  'treatment.propose': treatmentProposePayloadSchema,
   'mcp.call': mcpCallPayloadSchema,
 };
 

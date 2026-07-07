@@ -53,7 +53,9 @@ import { useDesignerDraftOptional } from "./DesignerDraftContext"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
 import { loadDomainFrame } from "../data/loadDomainFrame"
-import type { DomainFrameJson } from "../data/domain-frame.types"
+import type { DomainFrameJson, DomainFrameTreatment } from "../data/domain-frame.types"
+import { resolveDomainTreatment } from "../treatment/resolveDomainTreatment"
+import { patchDomainTreatment } from "../presence/chronicleConfig/chroniclePatch"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
 import { commitComposerAttachmentsToLibrary, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
@@ -222,7 +224,7 @@ export function UniversalConversation({
   onDraftListRefresh,
   onJourneyListRefresh,
 }: UniversalConversationProps) {
-  const { domainFrame, resolvedAudience: shellAudience } = useV0Shell()
+  const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame } = useV0Shell()
   const boardDefinitionId = useBoardDefinitionFromUrl()
   const frameCtx = useFrameContextOptional()
   const { refreshSession, user } = useAuth()
@@ -483,8 +485,9 @@ export function UniversalConversation({
   const [directorSendPhase, setDirectorSendPhase] = React.useState<DirectorSendPhase | null>(null)
 
   const selectedBoardDefId = kipMode === "designer" ? boardDefinitionId : null
-  /** Design board focus — board definition from ?definition= (replaces removed frame nav). */
-  const designerFocusKey = kipMode === "designer" ? selectedBoardDefId : null
+  /** Design board focus — defaults to domain so Rendr is talkable without Nav selection. */
+  const designerFocusKey =
+    kipMode === "designer" ? (selectedBoardDefId ?? "domain") : null
   const designerDraftCtx = useDesignerDraftOptional()
 
   // ── agentContext — computed once, shared across all modes ─────────────
@@ -526,11 +529,23 @@ export function UniversalConversation({
       }
     }
 
+    if (kipMode === "designer" && designerFocusKey) {
+      const currentTreatment = resolveDomainTreatment(domainFrame)
+      merged = {
+        ...(merged ?? {}),
+        designBoard: {
+          focusKey: designerFocusKey,
+          currentTreatment,
+        },
+      }
+    }
+
     return merged as AgentContext | undefined
   }, [
     domainFrame,
     audience,
     kipMode,
+    designerFocusKey,
     selection.trainingMode,
     selection.activeTrainingFrame,
     selection.draftDiscussAnchor,
@@ -1079,7 +1094,9 @@ export function UniversalConversation({
     greetingMessage:
       guidedArrivalActive && guidedArrival?.greeting
         ? guidedArrival.greeting
-        : undefined,
+        : kipMode === "designer" && def.conversation.greetingMessage
+          ? def.conversation.greetingMessage
+          : undefined,
     mode: kipMode,
     dialogBoard: kipMode === "designer" ? "designer" : undefined,
     dialogFrame: kipMode === "designer" ? (designerFocusKey ?? undefined) : undefined,
@@ -1533,6 +1550,23 @@ export function UniversalConversation({
     [domainId, onDraftListRefresh, onDraftSelect, actions],
   )
 
+  const [applyingTreatmentProposal, setApplyingTreatmentProposal] = React.useState(false)
+
+  const handleApplyTreatmentProposal = React.useCallback(
+    async (proposal: DomainFrameTreatment) => {
+      if (!domainSlug) return
+      setApplyingTreatmentProposal(true)
+      try {
+        await patchDomainTreatment(domainSlug, proposal)
+        await reloadDomainFrame()
+        actions.bumpDraftPresence()
+      } finally {
+        setApplyingTreatmentProposal(false)
+      }
+    },
+    [domainSlug, reloadDomainFrame, actions],
+  )
+
   const {
     acceptedDraftPointIds,
     acceptingDraftPointId,
@@ -1699,6 +1733,10 @@ export function UniversalConversation({
         onKeepAsMoment={domainSlug ? handleKeepAsMoment : undefined}
         onOpenSoleMemory={(memoryCardId) => actions.onSoleMemorySelect(memoryCardId)}
         onConfirmDraftUpdate={domainId ? handleConfirmDraftUpdate : undefined}
+        onApplyTreatmentProposal={
+          kipMode === "designer" && domainSlug ? handleApplyTreatmentProposal : undefined
+        }
+        applyingTreatmentProposal={applyingTreatmentProposal}
         onAcceptDraftPoint={domainId ? handleAcceptDraftPoint : undefined}
         acceptedDraftPointIds={acceptedDraftPointIds}
         acceptingDraftPointId={acceptingDraftPointId}

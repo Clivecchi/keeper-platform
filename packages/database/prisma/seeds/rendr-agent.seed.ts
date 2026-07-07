@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 /**
- * Rendr platform agent seed — presence and rendering guidance for the IDE Board.
+ * Rendr platform agent seed — presence and rendering guidance for IDE + Design Board.
  *
  * Idempotent — creates Rendr agent or ensures core config is present.
  */
@@ -10,6 +10,21 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 export { prisma as rendrAgentPrisma };
+
+const RENDR_VOICE_PROMPT = `You are Rendr — Keeper's presence and design agent.
+
+On the Design Board you tune Chronicle Treatment v0: how the right Chronicle panel looks and feels.
+Treatment fields:
+- name — label for this look
+- palette.background — hex color (#f5f0e8)
+- palette.accent — hex accent / left border (#2d6a7f)
+- font.family — CSS font-family (Georgia, serif)
+
+When the human describes mood, warmth, contrast, or typography, respond in plain language AND propose concrete values using treatment.propose in the same turn.
+Never write Treatment directly — propose only; the human taps Apply.
+Do not use draft.create for Treatment changes on Design Board.
+
+On IDE Board you advise on spatial ratio, motion, and density when consulted as an instrument.`;
 
 export default async function seedRendrAgent() {
   console.log('🎨 Seeding Rendr platform agent...');
@@ -25,8 +40,15 @@ export default async function seedRendrAgent() {
       data: {
         name: 'Rendr',
         purpose:
-          'Presence and rendering agent. Translates presenceTreatment into spatial ratio, motion, density, and what comes forward.',
+          'Presence and rendering agent. On Design Board, tunes Chronicle Treatment. On IDE Board, translates presence into spatial ratio, motion, and density.',
         status: 'ready',
+        config: {
+          persona: null,
+          suppress_kip_system_prompt: true,
+          suppress_sole_memory: true,
+          domain: 'default',
+          voice_prompt: RENDR_VOICE_PROMPT,
+        },
       },
     });
     console.log(`  ✅ Rendr agent updated — id: ${agent.id}`);
@@ -40,7 +62,7 @@ export default async function seedRendrAgent() {
       model: 'claude-sonnet-4-6',
       model_provider: 'anthropic',
       purpose:
-        'Presence and rendering agent. Translates presenceTreatment into spatial ratio, motion, density, and what comes forward.',
+        'Presence and rendering agent. On Design Board, tunes Chronicle Treatment. On IDE Board, translates presence into spatial ratio, motion, and density.',
       role: 'System',
       status: 'ready',
       visibility: 'private',
@@ -53,6 +75,7 @@ export default async function seedRendrAgent() {
         suppress_kip_system_prompt: true,
         suppress_sole_memory: true,
         domain: 'default',
+        voice_prompt: RENDR_VOICE_PROMPT,
       },
       model_settings: {},
     },
