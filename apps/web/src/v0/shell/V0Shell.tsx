@@ -585,7 +585,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   const reloadDomainFrame = React.useCallback(async () => {
     if (!effectiveSlug) return
     try {
-      const frame = await loadDomainFrame(effectiveSlug)
+      const frame = await loadDomainFrame(effectiveSlug, { forceRefresh: true })
       setDomainFrame(frame)
     } catch (err) {
       console.warn("[DomainFrame] Reload failed:", err)

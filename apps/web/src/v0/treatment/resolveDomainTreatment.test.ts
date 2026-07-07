@@ -28,6 +28,20 @@ describe("resolveDomainTreatment", () => {
     expect(result.font.family).toBe(DEFAULT_DOMAIN_FRAME.theme.fonts.display)
   })
 
+  it("accepts hex colors without a leading hash", () => {
+    const result = resolveDomainTreatment({
+      ...DEFAULT_DOMAIN_FRAME,
+      treatment: {
+        name: "Dark",
+        palette: { background: "121410", accent: "2d6a7f" },
+        font: { family: "Georgia, serif" },
+      },
+    })
+
+    expect(result.palette.background).toBe("#121410")
+    expect(result.palette.accent).toBe("#2d6a7f")
+  })
+
   it("falls back to platform default when frame is null", () => {
     const result = resolveDomainTreatment(null)
     expect(result.name).toBe(DEFAULT_DOMAIN_FRAME.treatment!.name)

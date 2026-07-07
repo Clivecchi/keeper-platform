@@ -22,6 +22,11 @@ Minimal Treatment v0 — named presence configuration stored in `Domain.frame_js
 
 ## 📆 Update Log
 
+### 2026-07-06 — Treatment save + render fixes
+- `normalizeTreatmentHexColor` accepts hex with or without `#` (e.g. `121410` → `#121410`)
+- Save path normalizes colors before writing `frame_json.treatment`
+- `reloadDomainFrame` uses `forceRefresh: true` so Chronicle picks up saved Treatment immediately
+
 ### 2026-07-06 — Treatment v0 (Chronicle-only)
 - Added `DomainFrameTreatment` type on `DomainFrameJson`
 - Default treatment in `DEFAULT_DOMAIN_FRAME`

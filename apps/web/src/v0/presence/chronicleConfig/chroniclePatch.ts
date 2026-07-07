@@ -3,6 +3,7 @@
  */
 
 import { apiFetch } from "../../../lib/api"
+import { normalizeTreatmentHexColor } from "../../treatment/resolveDomainTreatment"
 import type { ChronicleEntityKind, ChronicleSaveResult } from "./types"
 
 export function parseChroniclePatchFieldErrors(
@@ -229,12 +230,16 @@ export function splitDomainChroniclePatch(
       case "treatmentName":
         mergeTreatmentFramePatch(frameBody, { name: value })
         break
-      case "treatmentBackground":
-        mergeTreatmentFramePatch(frameBody, { palette: { background: value } })
+      case "treatmentBackground": {
+        const normalized = normalizeTreatmentHexColor(value, value)
+        mergeTreatmentFramePatch(frameBody, { palette: { background: normalized } })
         break
-      case "treatmentAccent":
-        mergeTreatmentFramePatch(frameBody, { palette: { accent: value } })
+      }
+      case "treatmentAccent": {
+        const normalized = normalizeTreatmentHexColor(value, value)
+        mergeTreatmentFramePatch(frameBody, { palette: { accent: normalized } })
         break
+      }
       case "treatmentFontFamily":
         mergeTreatmentFramePatch(frameBody, { font: { family: value } })
         break

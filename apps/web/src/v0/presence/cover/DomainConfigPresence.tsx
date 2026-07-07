@@ -86,7 +86,7 @@ const fieldPlaceholders: Record<string, string> = {
   theme_color: "Theme color token",
   visibility: "public or private",
   treatmentName: "Warm Minimal",
-  treatmentBackground: "#f5f0e8",
+  treatmentBackground: "#f5f0e8 or 121410",
   treatmentAccent: "#2d6a7f",
   treatmentFontFamily: "Georgia, serif",
   buildContextName: "Build context name",

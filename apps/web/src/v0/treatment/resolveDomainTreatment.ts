@@ -7,17 +7,30 @@ import { DEFAULT_DOMAIN_FRAME } from "../data/domain-frame.default"
 
 export type ResolvedDomainTreatment = DomainFrameTreatment
 
-const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
+const HEX_WITH_HASH = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
+const HEX_WITHOUT_HASH = /^(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
-function normalizeHexColor(value: unknown, fallback: string): string {
+/** Normalize user-entered hex — accepts optional `#` prefix. */
+export function normalizeTreatmentHexColor(value: unknown, fallback: string): string {
   if (typeof value !== "string") return fallback
   const trimmed = value.trim()
-  if (!HEX_COLOR.test(trimmed)) return fallback
-  if (trimmed.length === 4) {
-    const [, r, g, b] = trimmed
+  if (!trimmed) return fallback
+
+  let hex = trimmed
+  if (HEX_WITHOUT_HASH.test(trimmed)) {
+    hex = `#${trimmed}`
+  }
+  if (!HEX_WITH_HASH.test(hex)) return fallback
+
+  if (hex.length === 4) {
+    const [, r, g, b] = hex
     return `#${r}${r}${g}${g}${b}${b}`.toLowerCase()
   }
-  return trimmed.toLowerCase()
+  return hex.toLowerCase()
+}
+
+function normalizeHexColor(value: unknown, fallback: string): string {
+  return normalizeTreatmentHexColor(value, fallback)
 }
 
 function normalizeFontFamily(value: unknown, fallback: string): string {

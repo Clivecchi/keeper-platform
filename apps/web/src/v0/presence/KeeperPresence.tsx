@@ -48,6 +48,7 @@ import { useChronicleConfig } from "./chronicleConfig/useChronicleConfig"
 import { FrameConfigPresence, parseFramePropsFromRecord } from "./FrameConfigPresence"
 import { BoardDefConfigPresence } from "./BoardDefConfigPresence"
 import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
+import { normalizeTreatmentHexColor } from "../treatment/resolveDomainTreatment"
 import {
   PresentMotionProvider,
   usePresentMotionValues,
@@ -871,9 +872,17 @@ export function KeeperPresence({
         if (typeof patch.visibility === "string") next.visibility = patch.visibility
         if (typeof patch.treatmentName === "string") next.treatmentName = patch.treatmentName
         if (typeof patch.treatmentBackground === "string") {
-          next.treatmentBackground = patch.treatmentBackground
+          next.treatmentBackground = normalizeTreatmentHexColor(
+            patch.treatmentBackground,
+            patch.treatmentBackground,
+          )
         }
-        if (typeof patch.treatmentAccent === "string") next.treatmentAccent = patch.treatmentAccent
+        if (typeof patch.treatmentAccent === "string") {
+          next.treatmentAccent = normalizeTreatmentHexColor(
+            patch.treatmentAccent,
+            patch.treatmentAccent,
+          )
+        }
         if (typeof patch.treatmentFontFamily === "string") {
           next.treatmentFontFamily = patch.treatmentFontFamily
         }
@@ -1597,7 +1606,7 @@ function KeeperPresenceSurface({
     avatar: "Avatar URL or emoji…",
     theme_color: "Accent color token or hex…",
     treatmentName: "e.g. Warm Minimal",
-    treatmentBackground: "#f5f0e8",
+    treatmentBackground: "#f5f0e8 or 121410",
     treatmentAccent: "#2d6a7f",
     treatmentFontFamily: "Georgia, serif",
     tools: "Capability tags, comma-separated…",
