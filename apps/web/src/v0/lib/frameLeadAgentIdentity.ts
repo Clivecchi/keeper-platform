@@ -40,6 +40,14 @@ hydrateMissingLeadSlugsFromStorage()
 export const KIP_FALLBACK_SLUG = "kip" as const
 export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
 
+/** Platform dialog agents — never silently substitute Kip when lookup fails. */
+export const STRICT_PLATFORM_AGENT_SLUGS = new Set<string>(["rendr", "cloud"])
+
+export type ResolveLeadAgentOptions = {
+  /** When false, missing slug throws instead of falling back to Kip. Default: strict for rendr/cloud. */
+  allowKipFallback?: boolean
+}
+
 /** Placeholder slugs in frame JSON — not real `kip_agents` rows. */
 export const PLACEHOLDER_LEAD_AGENT_SLUGS = new Set<string>([
   KIP_FALLBACK_SLUG,
@@ -101,13 +109,19 @@ export function getCachedLeadAgentIdentity(
   return resolvedLeadIdentity.get(primary) ?? null
 }
 
-/** Singleflight: resolve lead agent id + display name; falls back to platform `kip`. */
+/** Singleflight: resolve lead agent id + display name; falls back to platform `kip` unless strict. */
 export async function resolveFrameLeadAgentIdentity(
   slug: string,
+  options?: ResolveLeadAgentOptions,
 ): Promise<ResolvedLeadAgentIdentity> {
   const primary = normalizeLeadAgentSlug(slug)
+  const allowKipFallback =
+    options?.allowKipFallback ?? !STRICT_PLATFORM_AGENT_SLUGS.has(primary)
 
   if (missingLeadSlugs.has(primary) && primary !== KIP_FALLBACK_SLUG) {
+    if (!allowKipFallback) {
+      throw new Error(`${primary} agent is not available`)
+    }
     return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
   }
 
@@ -131,6 +145,9 @@ export async function resolveFrameLeadAgentIdentity(
     } catch {
       if (primary === KIP_FALLBACK_SLUG) {
         throw new Error("Platform Kip agent not found")
+      }
+      if (!allowKipFallback) {
+        throw new Error(`${primary} agent is not available`)
       }
       persistMissingLeadSlug(primary)
       return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
@@ -184,8 +201,11 @@ export function resolveDialogAgentSlug(
   return custom ?? KIP_FALLBACK_SLUG
 }
 
-/** Resolve agent UUID for dialog — falls back to platform `kip` when domain lead is missing. */
-export async function resolveLeadAgentId(slug: string): Promise<string> {
-  const resolved = await resolveFrameLeadAgentIdentity(slug)
+/** Resolve agent UUID for dialog — falls back to platform `kip` when domain lead is missing (unless strict). */
+export async function resolveLeadAgentId(
+  slug: string,
+  options?: ResolveLeadAgentOptions,
+): Promise<string> {
+  const resolved = await resolveFrameLeadAgentIdentity(slug, options)
   return resolved.id
 }

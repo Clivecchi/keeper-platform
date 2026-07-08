@@ -199,6 +199,8 @@ export interface UseAgentDialogOptions {
   onDirectorPhaseChange?: (phase: DirectorSendPhase | null) => void
   /** Auth user id — forwarded to runAgent for instrument delegation. */
   userId?: string | null
+  /** When true, missing agent slug throws instead of silently substituting Kip. */
+  strictAgentResolution?: boolean
 }
 
 export type { DirectorDialogConfig, DirectorSendPhase }
@@ -294,6 +296,7 @@ export function useAgentDialog({
   directorConfig,
   onDirectorPhaseChange,
   userId,
+  strictAgentResolution = false,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
   const isSessionControlled = onControlledSessionIdChange != null
@@ -398,17 +401,29 @@ export function useAgentDialog({
     }
     setAgentId(null)
     let cancelled = false
-    resolveLeadAgentId(agentSlug)
+    resolveLeadAgentId(agentSlug, {
+      allowKipFallback: strictAgentResolution ? false : undefined,
+    })
       .then((id) => {
-        if (!cancelled) setAgentId(id)
+        if (!cancelled) {
+          setAgentId(id)
+          if (strictAgentResolution) setError(null)
+        }
       })
       .catch(() => {
-        if (!cancelled) setAgentId(null)
+        if (!cancelled) {
+          setAgentId(null)
+          if (strictAgentResolution) {
+            setError(
+              `${agentDisplayName} is not available in this environment. The "${agentSlug}" agent may need to be seeded on the server.`,
+            )
+          }
+        }
       })
     return () => {
       cancelled = true
     }
-  }, [agentSlug, resolvedAgentId])
+  }, [agentSlug, resolvedAgentId, strictAgentResolution, agentDisplayName])
 
   // agent / domain: create a KipApi session once agentId is known.
   // ide and designer use controlled session lifecycle from the board shell.

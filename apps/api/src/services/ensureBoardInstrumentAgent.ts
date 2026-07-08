@@ -5,7 +5,10 @@
 import { prisma } from '@keeper/database';
 import { CLOUD_AGENT_CAPABILITIES } from '../capabilities/infraCapabilities.js';
 import type { BoardInstrumentSlug } from './directorDialog.js';
-
+import {
+  RENDR_AGENT_PURPOSE,
+  RENDR_VOICE_PROMPT,
+} from '../rendr/rendrAgentConfig.js';
 type InstrumentAgent = NonNullable<
   Awaited<ReturnType<typeof prisma.kip_agents.findUnique>>
 >;
@@ -62,7 +65,28 @@ async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
 
 async function ensureRendrAgent(): Promise<InstrumentAgent | null> {
   const existing = await prisma.kip_agents.findUnique({ where: { slug: 'rendr' } });
-  if (existing) return existing;
+  if (existing) {
+    const config = (existing.config ?? {}) as Record<string, unknown>;
+    const voicePrompt =
+      typeof config.voice_prompt === 'string' ? config.voice_prompt.trim() : '';
+    if (!voicePrompt || existing.purpose !== RENDR_AGENT_PURPOSE) {
+      return prisma.kip_agents.update({
+        where: { slug: 'rendr' },
+        data: {
+          purpose: RENDR_AGENT_PURPOSE,
+          config: {
+            ...config,
+            persona: config.persona ?? null,
+            suppress_kip_system_prompt: true,
+            suppress_sole_memory: true,
+            voice_prompt: RENDR_VOICE_PROMPT,
+          },
+          updated_at: new Date(),
+        },
+      });
+    }
+    return existing;
+  }
 
   try {
     return await prisma.kip_agents.create({
@@ -71,8 +95,7 @@ async function ensureRendrAgent(): Promise<InstrumentAgent | null> {
         slug: 'rendr',
         model: 'claude-sonnet-4-6',
         model_provider: 'anthropic',
-        purpose:
-          'Presence and rendering agent. Translates presenceTreatment into spatial ratio, motion, density, and what comes forward.',
+        purpose: RENDR_AGENT_PURPOSE,
         role: 'System',
         status: 'ready',
         visibility: 'private',
@@ -82,9 +105,10 @@ async function ensureRendrAgent(): Promise<InstrumentAgent | null> {
         capabilities: [],
         config: {
           persona: null,
-          personality: 'Presence and rendering guidance for the IDE board.',
           suppress_kip_system_prompt: true,
           suppress_sole_memory: true,
+          domain: 'default',
+          voice_prompt: RENDR_VOICE_PROMPT,
         },
         model_settings: {},
       },

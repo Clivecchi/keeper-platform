@@ -6,6 +6,7 @@ import {
   KIP_FALLBACK_DISPLAY_NAME,
   readFrameLeadAgentSlug,
   resolveLeadAgentId,
+  STRICT_PLATFORM_AGENT_SLUGS,
 } from "./frameLeadAgentIdentity"
 
 vi.mock("../../lib/kipApi", () => ({
@@ -64,5 +65,15 @@ describe("frameLeadAgentIdentity", () => {
 
     await expect(resolveLeadAgentId("chuck-livecchi-lead")).resolves.toBe("kip-uuid")
     expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(2)
+  })
+
+  it("resolveLeadAgentId does not fall back for strict platform agents", async () => {
+    expect(STRICT_PLATFORM_AGENT_SLUGS.has("rendr")).toBe(true)
+    vi.mocked(KipApi.getAgentBySlug).mockRejectedValueOnce(new Error("not found"))
+
+    await expect(
+      resolveLeadAgentId("rendr", { allowKipFallback: false }),
+    ).rejects.toThrow(/rendr agent is not available/)
+    expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(1)
   })
 })

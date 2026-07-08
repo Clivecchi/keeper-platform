@@ -1125,6 +1125,7 @@ export function UniversalConversation({
     directorConfig,
     onDirectorPhaseChange: isDirectorMode ? setDirectorSendPhase : undefined,
     userId: user?.id ?? null,
+    strictAgentResolution: kipMode === "designer",
   })
 
   React.useEffect(() => {
@@ -1456,10 +1457,10 @@ export function UniversalConversation({
           ? (BOARD_DEFINITIONS[selectedBoardDefId]?.displayName ?? selectedBoardDefId)
           : null
         return {
-          primary: "Design",
+          primary: dialogAgentDisplayName,
           secondary: designerFocusKey
             ? (BOARD_DEFINITIONS[designerFocusKey]?.displayName ?? designerFocusKey)
-            : boardDefLabel ?? "Select a board definition",
+            : boardDefLabel ?? "Treatment",
           ...(hasDraftSpec ? { prelude: "Draft in progress" } : {}),
         }
       }
@@ -1509,6 +1510,7 @@ export function UniversalConversation({
     usingSelectedNonDefaultAgent,
     domainFrame,
     designerFocusKey,
+    dialogAgentDisplayName,
     selectedBoardDefId,
     hasDraftSpec,
     activeBoardInstrument,

@@ -31,10 +31,7 @@ function resolveAffordancePlacement(
   explicit?: GlossAffordancePlacement,
 ): GlossAffordancePlacement {
   if (explicit) return explicit
-  const node = anchor.nodeId ?? "content"
-  if (node === "body" || node === "caption" || node === "title" || node === "narrative") {
-    return "above"
-  }
+  // Default overlay — keeps the hover affordance on the existing outline without in-flow layout shift.
   return "overlay"
 }
 

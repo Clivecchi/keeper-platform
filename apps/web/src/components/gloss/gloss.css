@@ -41,8 +41,8 @@
 
 .gloss-affordance--overlay {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
+  top: 0.2rem;
+  right: 0.2rem;
   z-index: 4;
 }
 

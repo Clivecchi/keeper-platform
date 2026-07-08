@@ -38,6 +38,12 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-07-07 — Rendr identity hardening
+- Strict agent resolution on Design Board — `rendr` never silently falls back to Kip; composer shows a clear error if Rendr is missing.
+- Designer sessions resume **only** when `session.agent_id` matches Rendr; old Kip designer threads are skipped (fresh Rendr session created).
+- Dialog banner primary is **Rendr** (not "Design").
+- API: `GET ?slug=rendr` self-heals agent row + `voice_prompt`; session memory ignored when session agent ≠ running agent; identity lock in system prompt.
+
 ### 2026-07-06 — Rendr Dialog on Design Board (Treatment v0)
 - **`DESIGNER_BOARD_DEF`**: Dialog agent is **Rendr** (was Kip) with Treatment-focused greeting.
 - **`UniversalConversation`**: Designer focus defaults to `domain` when Nav has no board-def selection — composer and session work on open. Injects `designBoard.currentTreatment` into agent context. **Apply** on `TreatmentProposeCard` patches `frame_json.treatment` and reloads domain frame.

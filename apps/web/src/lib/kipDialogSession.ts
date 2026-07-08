@@ -3,6 +3,7 @@ import { KipApi } from "./kipApi"
 
 export type DialogSessionRow = {
   id: string
+  agent_id?: string
   session_name?: string
   sessionName?: string
   updated_at?: string
@@ -39,10 +40,18 @@ function sessionMessageCount(session: DialogSessionRow): number {
  * Prefer the most recent session with messages; otherwise reuse the newest empty session
  * so board mount does not spawn duplicate ghost sessions.
  */
-export function pickBestDialogSessionId(sessions: DialogSessionRow[]): string | null {
+export function pickBestDialogSessionId(
+  sessions: DialogSessionRow[],
+  agentId?: string | null,
+): string | null {
   if (!sessions.length) return null
 
-  const sorted = [...sessions].sort(
+  const scoped = agentId
+    ? sessions.filter((session) => session.agent_id === agentId)
+    : sessions
+  if (!scoped.length) return null
+
+  const sorted = [...scoped].sort(
     (a, b) => sessionTimestamp(b) - sessionTimestamp(a),
   )
   const withMessages = sorted.filter((session) => sessionMessageCount(session) > 0)
@@ -97,7 +106,7 @@ export async function resumeOrCreateBoardSession(
     dialogScope: params.dialogScope,
   })
 
-  const existingId = pickBestDialogSessionId(sessions)
+  const existingId = pickBestDialogSessionId(sessions, params.agentId)
   if (existingId) {
     return { sessionId: existingId, created: false }
   }

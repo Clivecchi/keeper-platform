@@ -101,6 +101,7 @@ import {
   buildTreatmentProposalSummary,
   normalizeTreatmentProposal,
 } from '../../services/treatment/normalizeTreatmentProposal.js';
+import { RENDR_IDENTITY_LOCK } from '../../services/rendr/rendrAgentConfig.js';
 import {
   parseActionsOrThrow,
   safeParseActions,
@@ -720,7 +721,13 @@ function buildRendrDesignBoardPrompt(
     'Include every field you intend to change; server merges with current Treatment and normalizes hex colors.',
     'Do NOT write Treatment directly — propose only. The human taps Apply in the dialog.',
     'Do NOT use draft.create for Treatment on Design Board.',
+    RENDR_IDENTITY_LOCK,
   ].join('\n');
+}
+
+function buildRendrIdentityPrompt(agent: { slug?: string | null }): string | null {
+  if (agent.slug !== 'rendr') return null;
+  return RENDR_IDENTITY_LOCK;
 }
 
 function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
@@ -3504,6 +3511,31 @@ export class KipAgentService {
     }
   }
 
+  /** Load session history only when the session belongs to the running agent. */
+  static async getSessionMemoryForAgent(
+    sessionId: string,
+    agentId: string,
+  ): Promise<KipMessageWithRelations[]> {
+    try {
+      const session = await getKipSessionById(sessionId);
+      if (!session) {
+        throw new Error(`Session with ID '${sessionId}' not found`);
+      }
+      if (session.agent_id !== agentId) {
+        console.warn('[kip/agents] session agent mismatch — ignoring prior transcript', {
+          sessionId,
+          expectedAgentId: agentId,
+          sessionAgentId: session.agent_id,
+        });
+        return [];
+      }
+      return await getSessionMessages(sessionId);
+    } catch (error) {
+      console.error('Error fetching session memory:', error);
+      throw new Error(`Failed to fetch session memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   /**
    * Save message to session with validation
    */
@@ -4079,11 +4111,18 @@ export class KipAgentService {
           });
         }
 
-        const rendrDesignPrompt = buildRendrDesignBoardPrompt(agentContextRecord);
         if (rendrDesignPrompt) {
           messages.push({
             role: 'system',
             content: rendrDesignPrompt,
+          });
+        }
+
+        const rendrIdentityPrompt = buildRendrIdentityPrompt(agent);
+        if (rendrIdentityPrompt) {
+          messages.push({
+            role: 'system',
+            content: rendrIdentityPrompt,
           });
         }
 
@@ -4192,7 +4231,7 @@ export class KipAgentService {
               ? [
                   mcpToolPrompt,
                   agent.slug === 'rendr'
-                    ? 'You are Rendr — a design and presence agent. Use treatment.propose for Chronicle Treatment changes on Design Board. Do not use draft.create for Treatment.'
+                    ? RENDR_IDENTITY_LOCK
                     : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed.',
                 ]
               : [
@@ -4532,7 +4571,7 @@ export class KipAgentService {
           if (sessionId) {
             // Load existing session memory
             try {
-              previousMessages = await this.getSessionMemory(sessionId);
+              previousMessages = await this.getSessionMemoryForAgent(sessionId, agentId);
             } catch (error) {
               console.warn('Failed to load session memory:', error);
               // Continue without memory if loading fails
@@ -5192,7 +5231,7 @@ export class KipAgentService {
 
         if (currentSessionId) {
           try {
-            previousMessages = await this.getSessionMemory(currentSessionId);
+            previousMessages = await this.getSessionMemoryForAgent(currentSessionId, agentId);
           } catch (error) {
             console.warn('[System agent] Failed to load session memory:', error);
           }
