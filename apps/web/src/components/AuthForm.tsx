@@ -4,6 +4,23 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
 import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
 import { resolveLandingPathAfterAuth } from '@/lib/resolveHostDomain';
+import { buildRealmBoardPath } from '@/lib/realmPaths';
+import { usesCleanRealmPaths } from '@/lib/platformHost';
+
+function resolvePostLoginPath(returnTo?: string): string | undefined {
+  if (!returnTo?.trim() || typeof window === 'undefined') return returnTo?.trim();
+
+  const hostname = window.location.hostname;
+  if (!usesCleanRealmPaths(hostname)) return returnTo.trim();
+
+  const match = returnTo.trim().match(/^\/d\/([^/?#]+)(\?.*)?$/);
+  if (!match) return returnTo.trim();
+
+  const [, slug, search = ''] = match;
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+  const board = params.get('board') || 'domain';
+  return buildRealmBoardPath(slug, board, params, hostname);
+}
 
 interface AuthFormProps {
   isRegister?: boolean;
@@ -51,24 +68,23 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
           .then(() => console.log('SystemStatus: /api/kam/me ok'))
           .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
         const landing =
-          returnTo ??
+          resolvePostLoginPath(returnTo) ??
           (typeof window !== 'undefined'
             ? await resolveLandingPathAfterAuth(window.location.hostname, returnTo)
             : '/home');
         navigate(landing);
       } else {
-        setError(result.error?.message || 'An unknown error occurred.');
+        setError(result.error?.message || result.error || 'An unknown error occurred.');
       }
     } catch (err: unknown) {
       if (!isRegister) {
-        // Debug logging for login failures
         console.error('❌ Login failed:', err);
-        if (err instanceof Response) {
-          const text = await err.text();
-          console.log('⚠️ Raw response body:', text);
-        }
       }
-      setError('Failed to connect to the server. Please try again later.');
+      const apiMessage =
+        err && typeof err === 'object' && 'message' in err && typeof (err as { message?: string }).message === 'string'
+          ? (err as { message: string }).message
+          : null;
+      setError(apiMessage || 'Failed to connect to the server. Please try again later.');
     } finally {
       setIsLoading(false);
     }

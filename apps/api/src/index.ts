@@ -19,7 +19,6 @@ console.log('[ENV CHECK]', {
 
 import express from 'express';
 import type { Request, Response, Express, NextFunction } from 'express';
-import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { attachUser } from './middleware/auth.js';
 import { createDomainResolutionMiddleware } from './middleware/domainResolutionMiddleware.js';
@@ -111,7 +110,12 @@ import { getPlatformRolesForUser } from './kam/auth.js';
 import { setSessionCookie as setSessionCookieShared, clearSessionCookie } from './kam/session.js';
 // MCP routes (OpenAI Agent integration)
 import mcpRouter from './mcp/index.js';
-import { isKeeperDomainsTenantOrigin } from './lib/keeperDomainsCors.js';
+import {
+  createKeeperCorsMiddleware,
+  isKeeperWebOriginAllowed,
+  scheduleVerifiedCustomDomainRefresh,
+  type KeeperCorsStaticConfig,
+} from './lib/keeperCors.js';
 
 // Defer database migrations until after the server starts to avoid blocking healthchecks
 
@@ -265,56 +269,9 @@ if (process.env.NODE_ENV !== 'production') {
 const CORS_ALLOWLIST = new Set(ALLOWLIST_ARRAY.filter(o => !o.includes('*')));
 const CORS_WILDCARDS = ALLOWLIST_ARRAY.filter(o => o.includes('*')).map(patternToRegex);
 
-function isOriginAllowed(origin: string | undefined): boolean {
-  if (!origin) return true; // non-browser/server-to-server
-  if (CORS_ALLOWLIST.size === 0 && CORS_WILDCARDS.length === 0) return true; // no restriction configured
-  if (CORS_ALLOWLIST.has(origin)) return true;
-  if (CORS_WILDCARDS.some(rx => rx.test(origin))) return true;
-
-  // Tenant web origins: https://{slug}.keeper.domains (excludes reserved infra subdomains)
-  if (isKeeperDomainsTenantOrigin(origin)) return true;
-
-  // Check for preview origins (if enabled)
-  if (process.env.WEB_PREVIEW_ALLOW === '1') {
-    try {
-      const url = new URL(origin);
-      const suffix = process.env.WEB_PREVIEW_HOST_SUFFIX || '.vercel.app';
-      const prefix = process.env.WEB_PREVIEW_HOST_PREFIX || '';
-      const endsWithSuffix = url.hostname.endsWith(suffix);
-      const startsWithPrefix = prefix ? url.hostname.startsWith(prefix) : true;
-      if (endsWithSuffix && startsWithPrefix) {
-        console.log('[CORS] Allowing preview origin:', origin);
-        return true;
-      }
-    } catch {}
-  }
-
-  return false;
-}
-
-// Configure CORS options for development and production
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // For credentialed requests, we MUST return the specific origin (not '*')
-    // This is required by the CORS spec when credentials: true
-    if (!origin) {
-      // Server-to-server requests (no origin header)
-      callback(null, true);
-      return;
-    }
-
-    const allow = isOriginAllowed(origin);
-    console.log('[CORS] Origin check:', { origin, allow, allowlistSize: CORS_ALLOWLIST.size });
-
-    if (allow) {
-      // For credentialed requests, we return true and let cors middleware handle origin
-      callback(null, true);
-    } else {
-      callback(new Error('CORS: origin not allowed'), false);
-    }
-  },
-  // Enable credentials for development (localhost origins) and production
-  credentials: true,
+const KEEPER_CORS_CONFIG: KeeperCorsStaticConfig = {
+  allowlist: CORS_ALLOWLIST,
+  wildcards: CORS_WILDCARDS,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type',
@@ -327,35 +284,23 @@ const corsOptions = {
     'If-Match',
     'ETag',
     'X-Domain',
-    'X-Domain-Slug'
+    'X-Domain-Slug',
   ],
-  exposedHeaders: ['x-debug-info', 'ETag', 'X-Total-Count', 'X-Page-Count'],
-  preflightContinue: false,
   maxAge: 86400,
 };
 
-// Apply CORS middleware FIRST - before any other middleware
-app.use(cors(corsOptions));
-
-// Explicit OPTIONS handler for all routes - this ensures preflight requests are handled
-app.options('*', (req, res) => {
-  const origin = req.get('origin');
-
-  // For credentialed requests, we MUST set the specific origin (not '*')
-  if (origin && isOriginAllowed(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Vary', 'Origin');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  } else if (!origin) {
-    // Server-to-server requests - no origin header needed
-    res.header('Access-Control-Allow-Credentials', 'true');
+function isOriginAllowed(origin: string | undefined, req?: Request): boolean {
+  const allow = isKeeperWebOriginAllowed(origin, req, KEEPER_CORS_CONFIG);
+  if (origin && (process.env.NODE_ENV !== 'production' || process.env.ENABLE_REQUEST_LOGGING === 'true')) {
+    console.log('[CORS] Origin check:', { origin, allow, allowlistSize: CORS_ALLOWLIST.size });
   }
+  return allow;
+}
 
-  res.header('Access-Control-Allow-Methods', corsOptions.methods.join(','));
-  res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(','));
-  res.header('Access-Control-Max-Age', corsOptions.maxAge.toString());
-  res.sendStatus(204); // 204 No Content for preflight
-});
+// Apply CORS middleware FIRST - before any other middleware.
+// Uses req-aware checks (x-forwarded-host + verified custom domains) so brand URLs like livecchi.us work.
+app.use(createKeeperCorsMiddleware(KEEPER_CORS_CONFIG));
+scheduleVerifiedCustomDomainRefresh(prisma);
 
 // Domain resolution middleware - runs AFTER CORS but short-circuits OPTIONS
 app.use((req, res, next) => {
@@ -370,7 +315,7 @@ app.use((req, res, next) => {
   return domainResolution(req, res, next);
 });
 
-// CORS preflight requests are handled by the cors middleware above
+// CORS preflight requests are handled by createKeeperCorsMiddleware above
 
 // Webhooks need raw body bytes for signature verification — mount before JSON parser
 app.use('/api/webhooks', webhookRoutes);

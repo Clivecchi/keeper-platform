@@ -20,6 +20,7 @@ import {
   prefetchFirstPublicJourneyDetail,
 } from "../data/publicJourneyCache"
 import { buildPublicPresentUrl } from "../data/publicJourneyNavigation"
+import { buildRealmBoardPath } from "../../lib/realmPaths"
 
 export const V0_MARGIN_HEIGHT = "72px"
 export const V0_MARGIN_HEIGHT_WITH_COMPOSER = "180px"
@@ -334,7 +335,7 @@ export function Margin() {
     const params = buildPreservedParams(searchParams)
     params.delete("frame")
     params.set("board", "domain")
-    const nextPath = `/d/${v0Shell.domainSlug}?${params.toString()}`
+    const nextPath = buildRealmBoardPath(v0Shell.domainSlug, "domain", params)
     navigate(`/login?next=${encodeURIComponent(nextPath)}`)
   }
 
