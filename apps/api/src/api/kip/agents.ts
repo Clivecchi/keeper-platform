@@ -4111,6 +4111,7 @@ export class KipAgentService {
           });
         }
 
+        const rendrDesignPrompt = buildRendrDesignBoardPrompt(agentContextRecord);
         if (rendrDesignPrompt) {
           messages.push({
             role: 'system',

@@ -2,13 +2,13 @@
  * Ensures board instrument agents (Cloud, Rendr) exist before IDE director delegation.
  */
 
-import { prisma } from '@keeper/database';
+import { prisma, type Prisma } from '@keeper/database';
 import { CLOUD_AGENT_CAPABILITIES } from '../capabilities/infraCapabilities.js';
 import type { BoardInstrumentSlug } from './directorDialog.js';
 import {
   RENDR_AGENT_PURPOSE,
   RENDR_VOICE_PROMPT,
-} from '../rendr/rendrAgentConfig.js';
+} from './rendr/rendrAgentConfig.js';
 type InstrumentAgent = NonNullable<
   Awaited<ReturnType<typeof prisma.kip_agents.findUnique>>
 >;
@@ -76,11 +76,11 @@ async function ensureRendrAgent(): Promise<InstrumentAgent | null> {
           purpose: RENDR_AGENT_PURPOSE,
           config: {
             ...config,
-            persona: config.persona ?? null,
+            persona: null,
             suppress_kip_system_prompt: true,
             suppress_sole_memory: true,
             voice_prompt: RENDR_VOICE_PROMPT,
-          },
+          } as Prisma.InputJsonValue,
           updated_at: new Date(),
         },
       });

@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-07-07 — Railway build: Rendr instrument agent imports
+- `ensureBoardInstrumentAgent.ts` — fixed `rendrAgentConfig` import path (`./rendr/…`); Prisma `config` cast for Rendr update.
+
 ### 2026-07-06 — Custom domain DB sync when Vercel already verified
 - `customDomainVerificationSync.ts` — persist `customDomainVerified` when Vercel DNS is verified but Keeper DB flag was false (fixes livecchi.us → ke3p fallback).
 - `resolve-host` and custom-domain status routes call sync; Chronicle Addresses auto-calls verify when Vercel reports verified.
