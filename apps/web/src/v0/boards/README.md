@@ -30,6 +30,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-07 — Domain switch + Nav add reliability
+- `UniversalBoard.tsx` — only syncs `domainId` from `domainData` when record slug matches URL slug (prevents stale Ke3p id on Ceox after picker switch).
+- `UniversalBoardContext.tsx` — `requestChronicleEngagement` surfaces template fetch failures instead of silent no-op (Nav `+` actions).
+
 ### 2026-07-03 — Board session reset + load performance
 - `UniversalBoard.tsx` — switching `?board=` now clears `activeSessionId`, Chronicle engagement, and nav selection (fixes wrong dialog session after Domain ↔ IDE ↔ Agent tab changes).
 - `useAgentDialog.ts` — controlled session mode no longer falls back to stale `internalSessionId`; board key change resets transcript bootstrap.

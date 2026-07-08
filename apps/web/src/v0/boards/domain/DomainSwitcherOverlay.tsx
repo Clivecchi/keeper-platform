@@ -6,7 +6,11 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../workspaceBoardNav"
-import { HOME_SHELL_BOARD } from "../domainWorkspaceBoards"
+import {
+  HOME_SHELL_BOARD,
+  isWorkspaceBoardAvailableForDomain,
+  resolveDefaultWorkspaceBoardId,
+} from "../domainWorkspaceBoards"
 import { buildHomePath, HOME_DOMAIN_PARAM } from "../../shell/shellMode"
 import { DomainAddPanel } from "./DomainAddPanel"
 import {
@@ -129,13 +133,25 @@ export interface DomainSwitcherOverlayProps {
   currentSlug: string
 }
 
+function resolveTargetBoardForDomain(
+  slug: string,
+  requestedBoardId: WorkspaceBoardId,
+): WorkspaceBoardId {
+  if (requestedBoardId === HOME_SHELL_BOARD) {
+    return resolveDefaultWorkspaceBoardId(slug)
+  }
+  return isWorkspaceBoardAvailableForDomain(requestedBoardId, slug)
+    ? requestedBoardId
+    : resolveDefaultWorkspaceBoardId(slug)
+}
+
 function buildDomainBoardUrl(
   slug: string,
   boardId: WorkspaceBoardId,
   preservedSearch: URLSearchParams,
 ): string {
   const params = new URLSearchParams()
-  params.set("board", boardId)
+  params.set("board", resolveTargetBoardForDomain(slug, boardId))
   const theme = preservedSearch.get("theme")
   const style = preservedSearch.get("style")
   if (theme) params.set("theme", theme)
@@ -221,7 +237,9 @@ export function DomainSwitcherOverlay({
         navigate(buildHomePath(preserved), { replace: true })
         return
       }
-      navigate(buildDomainBoardUrl(nextSlug, targetBoardId, preserved))
+      navigate(buildDomainBoardUrl(nextSlug, targetBoardId, preserved), {
+        replace: true,
+      })
     },
     [navigate, targetBoardId, currentSlug, location.search, shellMode],
   )

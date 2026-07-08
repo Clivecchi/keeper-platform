@@ -65,6 +65,15 @@ function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
 }
 
+function domainRecordMatchesSlug(
+  record: { slug?: string | null } | null | undefined,
+  slug: string,
+): boolean {
+  const recordSlug = record?.slug?.trim().toLowerCase()
+  if (!recordSlug) return false
+  return recordSlug === slug.trim().toLowerCase()
+}
+
 // ─── Center Panel Render Prop ─────────────────────────────────────────────────
 
 /**
@@ -238,7 +247,11 @@ function UniversalBoardShell({
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.
   React.useEffect(() => {
     if (!slug) return
-    const r = domainData as { id?: string; name?: string; displayName?: string } | null | undefined
+    const r = domainData as
+      | { id?: string; slug?: string; name?: string; displayName?: string }
+      | null
+      | undefined
+    if (!domainRecordMatchesSlug(r, slug)) return
     if (!isResolvedDomainId(r?.id)) return
     setDomainId(r.id)
     const name = (r.displayName ?? r.name ?? "").trim()
@@ -274,12 +287,15 @@ function UniversalBoardShell({
   // Sync domain name from frame/domain data when available — avoids extra round trip
   React.useEffect(() => {
     const fromFrame = (domainFrame?.theme as Record<string, unknown> | undefined)?.wordmark
+    const domainRecord = domainData as { slug?: string; name?: string } | undefined
     const name =
       (typeof fromFrame === "string" ? fromFrame : null)?.trim() ??
-      (domainData as { name?: string } | undefined)?.name?.trim() ??
+      (domainRecordMatchesSlug(domainRecord, slug)
+        ? domainRecord?.name?.trim()
+        : null) ??
       ""
     if (name) setDomainName(name)
-  }, [domainFrame, domainData])
+  }, [domainFrame, domainData, slug])
 
   // ── Density — applied when def.access.requiresDensity is true ─────────────
   const DENSITY_KEY = "keeper-density"

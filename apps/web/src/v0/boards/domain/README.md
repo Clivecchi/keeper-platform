@@ -27,7 +27,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
-- 2026-07-04: Switcher tagline reads `theme.tagline` before `description`; `patchDomainSwitcherCacheEntry` + cache subscription for live picker updates after Chronicle save.
+- 2026-07-07: Domain picker resolves target `?board=` to a workspace available on the selected slug (e.g. Ceox lands on Domain, not IDE); navigation uses `replace: true`.
 - 2026-07-02: `resolvePostLoginDomainSlug` — login lands on primary owned domain (`isPrimary` from `/api/domains/my`), not hardcoded `default`.
 - 2026-07-02: **Soft domain switch** — no `UniversalBoard` remount on slug change; `domainShellCache` seeds by-slug/frame/audience; board selection + Chronicle Acts reset in place; panel split persists per workspace.
 - 2026-07-02: **Domain switch prefetch** — hover/focus on picker cards calls `prefetchDomainShell` (frame + by-slug) before navigate.

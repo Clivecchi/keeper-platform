@@ -118,7 +118,12 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
     () => resolveWorkspaceBoardId(routerSearch, windowSearch),
     [routerSearch, windowSearch],
   )
-  const urlOrPendingBoardId = pendingWorkspaceBoardId ?? urlWorkspaceBoardId
+  const pendingBoardForDomain =
+    pendingWorkspaceBoardId &&
+    isWorkspaceBoardAvailableForDomain(pendingWorkspaceBoardId, resolvedSlug)
+      ? pendingWorkspaceBoardId
+      : null
+  const urlOrPendingBoardId = pendingBoardForDomain ?? urlWorkspaceBoardId
   const workspaceBoardId = isHomeShell ? HOME_SHELL_BOARD : urlOrPendingBoardId
 
   const urlBoardDefinitionId = React.useMemo(
@@ -620,11 +625,22 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   )
 
   React.useEffect(() => {
-    if (pendingWorkspaceBoardId === null) return
+    if (!pendingWorkspaceBoardId) return
+    if (
+      resolvedSlug &&
+      !isWorkspaceBoardAvailableForDomain(pendingWorkspaceBoardId, resolvedSlug)
+    ) {
+      setPendingWorkspaceBoardId(null)
+      return
+    }
     if (urlWorkspaceBoardId === pendingWorkspaceBoardId) {
       setPendingWorkspaceBoardId(null)
     }
-  }, [urlWorkspaceBoardId, pendingWorkspaceBoardId])
+  }, [urlWorkspaceBoardId, pendingWorkspaceBoardId, resolvedSlug])
+
+  React.useEffect(() => {
+    setPendingBoardDefinitionId(null)
+  }, [effectiveSlug])
 
   React.useEffect(() => {
     if (pendingBoardDefinitionId === null) return

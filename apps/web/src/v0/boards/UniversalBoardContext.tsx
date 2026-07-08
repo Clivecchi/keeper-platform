@@ -667,11 +667,28 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const requestChronicleEngagement = React.useCallback(
     async (slug: string, context: EngagementContext) => {
-      const response = await apiFetch(
-        `/api/engagement/templates/${encodeURIComponent(slug)}`,
-      )
-      if (!response.success || !response.data) return
-      setChronicleEngagement({ template: response.data, context })
+      try {
+        const response = await apiFetch(
+          `/api/engagement/templates/${encodeURIComponent(slug)}`,
+        )
+        if (!response.success || !response.data) {
+          const message =
+            typeof response.error === "string"
+              ? response.error
+              : `Could not open ${slug}. The engagement template may not be seeded.`
+          console.error("[UniversalBoard] Chronicle engagement unavailable:", message)
+          window.alert(message)
+          return
+        }
+        setChronicleEngagement({ template: response.data, context })
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : `Could not open ${slug}. Check your connection and try again.`
+        console.error("[UniversalBoard] Chronicle engagement failed:", error)
+        window.alert(message)
+      }
     },
     [],
   )
