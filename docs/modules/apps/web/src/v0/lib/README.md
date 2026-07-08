@@ -13,12 +13,13 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - `V0Shell` runs auto-provision when an authenticated domain owner loads a personal domain whose frame still shows platform defaults; reloads frame JSON after success.
 - SessionStorage key `keeper:provision-ok:{domainId}` is set only after reload confirms the frame no longer looks unseeded (avoids blocking retries when repair did not rewrite `frame_json`).
 - `fetchFrameLeadAgentDisplayName` loads `kip_agents.name` via `KipApi.getAgentBySlug`; used by `useFrameLeadAgentIdentity` hook.
-- `resolveLeadAgentId` / `resolveDialogAgentSlug` map placeholder slugs (`kip`, `kip-default`) and fall back to platform `kip` when a domain lead row is missing.
+- `resolveLeadAgentId` / `resolveDialogAgentSlug` map placeholder slugs (`kip`, `kip-default`) and fall back to platform `kip` when a domain lead row is missing — except strict platform agents (`rendr`, `cloud`) on Design Board.
 
 ## ⚠️ Notes & ToDo
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
+- 2026-07-07: `ensureDomainProvisioned` returns `provisioned: true` only when API reports `frameWritten` or `frameAgentSynced` (stops redundant frame reload on every owner visit). Added `isDomainProvisionSessionOk`.
 - 2026-07-03: Added `userHomeSettings.ts` — Home label fetch/save (localStorage; `/api/kam/settings` read when available).
 - 2026-07-03: Missing lead slugs cached in sessionStorage; `resolveDialogAgentSlug` skips known-missing slugs (uses `kip` without extra 404). Provision repair uses 5min cooldown, not sessionStorage skip.
 - 2026-07-03: `resolveFrameLeadAgentIdentity` singleflight — dialog + display name share one slug lookup (one 404 max per missing lead).

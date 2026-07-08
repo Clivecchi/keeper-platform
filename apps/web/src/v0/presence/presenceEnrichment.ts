@@ -60,6 +60,8 @@ export interface PresenceEnrichmentContext {
   domainName?: string
   activeBoardForFrames?: string
   domainId?: string
+  /** Shell-cached frame JSON — avoids duplicate GET /frame during domain Configure loads. */
+  prefetchedFrame?: Record<string, unknown> | null
 }
 
 type JourneyBrief = {
@@ -869,9 +871,9 @@ async function enrichDomain(
 
   if (ctx?.domainSlug) {
     try {
-      const frameRes = await apiFetch(
-        `/api/domains/${encodeURIComponent(ctx.domainSlug)}/frame`,
-      )
+      const frameRes =
+        ctx.prefetchedFrame ??
+        (await apiFetch(`/api/domains/${encodeURIComponent(ctx.domainSlug)}/frame`))
       if (frameRes && typeof frameRes === "object") {
         const frame = frameRes as Record<string, unknown>
         const theme =

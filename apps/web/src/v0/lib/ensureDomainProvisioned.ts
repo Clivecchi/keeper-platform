@@ -16,6 +16,11 @@ export function clearDomainProvisionSessionOk(domainId: string): void {
   lastProvisionAttempt.delete(domainId)
 }
 
+export function isDomainProvisionSessionOk(domainId: string): boolean {
+  if (typeof sessionStorage === "undefined") return false
+  return sessionStorage.getItem(sessionOkKey(domainId)) === "1"
+}
+
 /**
  * Idempotent repair for domains created before Step 1.2 seeding.
  * Seeds frame_json, domain lead agent, keeper, primaryDomainId, home board.
@@ -37,7 +42,11 @@ export async function ensureDomainProvisioned(
       method: "POST",
     })) as {
       domain?: unknown
-      provision?: { leadAgentSlug?: string | null; frameWritten?: boolean }
+      provision?: {
+        leadAgentSlug?: string | null
+        frameWritten?: boolean
+        frameAgentSynced?: boolean
+      }
     }
 
     if (!res?.domain) {
@@ -45,9 +54,11 @@ export async function ensureDomainProvisioned(
     }
 
     const frameWritten = res.provision?.frameWritten === true
+    const frameAgentSynced = res.provision?.frameAgentSynced === true
+    const didRepair = frameWritten || frameAgentSynced
 
     return {
-      provisioned: true,
+      provisioned: didRepair,
       frameWritten,
       leadAgentSlug: res.provision?.leadAgentSlug ?? null,
     }

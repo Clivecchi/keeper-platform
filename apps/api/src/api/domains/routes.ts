@@ -414,6 +414,22 @@ router.patch('/:slug/frame', authMiddlewareCompat, async (req: Request, res: Res
             merged1['fonts'] = { ...(cTheme['fonts'] as object ?? {}), ...(pTheme['fonts'] as object) };
           }
         }
+        if (key === 'treatment') {
+          const pTreatment = pVal as Record<string, unknown>;
+          const cTreatment = cVal as Record<string, unknown>;
+          if (pTreatment['palette'] && typeof pTreatment['palette'] === 'object') {
+            merged1['palette'] = {
+              ...(cTreatment['palette'] as object ?? {}),
+              ...(pTreatment['palette'] as object),
+            };
+          }
+          if (pTreatment['font'] && typeof pTreatment['font'] === 'object') {
+            merged1['font'] = {
+              ...(cTreatment['font'] as object ?? {}),
+              ...(pTreatment['font'] as object),
+            };
+          }
+        }
         merged[key] = merged1;
       } else {
         merged[key] = pVal;

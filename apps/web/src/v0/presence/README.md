@@ -60,6 +60,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-07-07 — Configure load perf + Treatment fields
+- `KeeperPresence` stale-while-revalidate — existing Chronicle content stays visible during background refresh
+- Domain enrichment accepts shell `prefetchedFrame` to skip duplicate `GET /frame` on Configure open
+
 ### 2026-07-06 — Treatment v0 (Chronicle-only)
 - Domain Config Chronicle saves `frame_json.treatment` (name, background, accent, font)
 - `ChroniclePresenceView` wraps KeeperPresence in `ChronicleTreatmentShell`

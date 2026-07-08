@@ -153,6 +153,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - **Presence** section groups Character, Purpose, Theme color, Visibility
 - Top identity fields: Name + Tagline only
 
+### 2026-07-07 — Domain Configure Treatment fields
+- `DomainConfigPresence` always renders Chronicle Treatment fields from platform schema defaults (not gated by `visibleFields` density/filter)
+
 ### 2026-07-04 — Domain addresses DNS panel theme + registrar records
 - `DnsInfoPanel` compact mode matches Chronicle theme; shows registrar A/CNAME even when verified
 

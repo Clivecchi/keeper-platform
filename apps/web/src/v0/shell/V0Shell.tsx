@@ -58,7 +58,12 @@ import {
   peekDomainShellFrame,
 } from "../boards/domain/domainShellCache"
 import type { DomainFrameJson } from "../data/domain-frame.types"
-import { ensureDomainProvisioned, clearDomainProvisionSessionOk, markDomainProvisionSessionOk } from "../lib/ensureDomainProvisioned"
+import {
+  ensureDomainProvisioned,
+  clearDomainProvisionSessionOk,
+  isDomainProvisionSessionOk,
+  markDomainProvisionSessionOk,
+} from "../lib/ensureDomainProvisioned"
 import { domainFrameLooksUnseeded } from "../lib/domainFrameLooksUnseeded"
 import { isMissingLeadAgentSlug, readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { resolveDomainAudience, type DomainAudienceRole } from "@keeper/shared"
@@ -507,19 +512,38 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
     if (!authResolved || !isAuthenticated || !user?.id || !effectiveSlug || !domainData?.id) return
     if (String(domainData.id).startsWith("fallback-")) return
     if (domainData.ownerId !== user.id && !isAdmin) return
+    if (!domainFrame) return
 
     const frameLead = readFrameLeadAgentSlug(domainFrame)
-    if (frameLead && isMissingLeadAgentSlug(frameLead)) {
+    const missingLead = !!(frameLead && isMissingLeadAgentSlug(frameLead))
+    const frameLooksUnseeded =
+      !!domainFrame &&
+      domainFrameLooksUnseeded(domainFrame, effectiveSlug, domainData.name)
+
+    if (missingLead) {
       clearDomainProvisionSessionOk(domainData.id)
+    }
+
+    if (
+      !missingLead &&
+      !frameLooksUnseeded &&
+      isDomainProvisionSessionOk(domainData.id)
+    ) {
+      return
+    }
+
+    if (!missingLead && !frameLooksUnseeded && domainFrame) {
+      markDomainProvisionSessionOk(domainData.id)
+      return
     }
 
     let cancelled = false
     void (async () => {
-      const forceRepair = !!(frameLead && isMissingLeadAgentSlug(frameLead))
+      const forceRepair = missingLead
       const result = await ensureDomainProvisioned(domainData.id, { force: forceRepair })
       if (cancelled || !result.provisioned) return
       try {
-        const frame = await loadDomainFrame(effectiveSlug)
+        const frame = await loadDomainFrame(effectiveSlug, { forceRefresh: true })
         if (!cancelled) {
           setDomainFrame(frame)
           if (!domainFrameLooksUnseeded(frame, effectiveSlug, domainData.name)) {

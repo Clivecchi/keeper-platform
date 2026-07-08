@@ -19,7 +19,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
-- 2026-07-07: `STRICT_PLATFORM_AGENT_SLUGS` — `rendr` / `cloud` never silently substitute Kip when lookup fails.
+- 2026-07-07: `ensureDomainProvisioned` returns `provisioned: true` only when API reports `frameWritten` or `frameAgentSynced` (stops redundant frame reload on every owner visit). Added `isDomainProvisionSessionOk`.
 - 2026-07-03: Added `userHomeSettings.ts` — Home label fetch/save (localStorage; `/api/kam/settings` read when available).
 - 2026-07-03: Missing lead slugs cached in sessionStorage; `resolveDialogAgentSlug` skips known-missing slugs (uses `kip` without extra 404). Provision repair uses 5min cooldown, not sessionStorage skip.
 - 2026-07-03: `resolveFrameLeadAgentIdentity` singleflight — dialog + display name share one slug lookup (one 404 max per missing lead).

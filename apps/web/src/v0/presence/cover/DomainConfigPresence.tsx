@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import type { FieldDefinition } from "../KeeperPresenceDefaults"
-import { resolveFieldLabel } from "../KeeperPresenceDefaults"
+import { PRESENCE_SCHEMA_DEFAULTS, resolveFieldLabel } from "../KeeperPresenceDefaults"
 import {
   DEFAULT_GITHUB_BRANCH,
   DEFAULT_GITHUB_REPOSITORY,
@@ -175,6 +175,14 @@ export function DomainConfigPresence({
 }: DomainConfigPresenceProps) {
   const v0Shell = useV0ShellOptional()
   const fieldMap = React.useMemo(() => new Map(visibleFields), [visibleFields])
+  const treatmentFieldMap = React.useMemo(() => {
+    const defaults = PRESENCE_SCHEMA_DEFAULTS.domain?.fields ?? {}
+    return new Map(
+      TREATMENT_FIELD_ORDER.filter((key) => defaults[key]).map(
+        (key) => [key, defaults[key]] as [string, FieldDefinition],
+      ),
+    )
+  }, [])
   const ideFieldMap = React.useMemo(
     () => new Map(ideBuildContextFields),
     [ideBuildContextFields],
@@ -182,7 +190,7 @@ export function DomainConfigPresence({
 
   const identityKeys = IDENTITY_FIELD_ORDER.filter((key) => fieldMap.has(key))
   const presenceKeys = PRESENCE_FIELD_ORDER.filter((key) => fieldMap.has(key))
-  const treatmentKeys = TREATMENT_FIELD_ORDER.filter((key) => fieldMap.has(key))
+  const treatmentKeys = TREATMENT_FIELD_ORDER.filter((key) => treatmentFieldMap.has(key))
   const ideKeys = IDE_BUILD_FIELD_ORDER.filter((key) => ideFieldMap.has(key))
 
   const domainTag = fieldValues.slug?.trim() || domainSlug
@@ -269,7 +277,7 @@ export function DomainConfigPresence({
           </p>
           <ConfigFieldGroup
             keys={treatmentKeys}
-            fieldMap={fieldMap}
+            fieldMap={treatmentFieldMap}
             fieldErrors={fieldErrors}
             placeholders={fieldPlaceholders}
             labels={fieldLabels}

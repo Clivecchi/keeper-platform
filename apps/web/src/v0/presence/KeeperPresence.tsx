@@ -788,17 +788,21 @@ export function KeeperPresence({
     if (!objectId || !objectType || !domainId) return
 
     let cancelled = false
-    setLoading(true)
-    setBreadcrumb(undefined)
-    setMeta(undefined)
-    setRelatedSections([])
-    setHiddenFields([])
+    const hasExistingRecord = !!record
+    if (!hasExistingRecord) {
+      setLoading(true)
+      setBreadcrumb(undefined)
+      setMeta(undefined)
+      setRelatedSections([])
+      setHiddenFields([])
+    }
 
     const enrichmentCtx = {
       domainName: domainDisplayName,
       domainSlug,
       domainId,
       activeBoardForFrames: "domain",
+      prefetchedFrame: v0Shell?.domainFrame as Record<string, unknown> | null | undefined,
     }
 
     async function load() {
@@ -849,7 +853,7 @@ export function KeeperPresence({
       cancelled = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objectId, objectType, domainId, domainSlug, domainDisplayName, objectProp, presenceRefresh, draftPresenceRevision])
+  }, [objectId, objectType, domainId, domainSlug, domainDisplayName, objectProp, presenceRefresh, draftPresenceRevision, v0Shell?.domainFrame])
 
   const handlePresenceRefresh = React.useCallback(() => {
     setPresenceRefresh((n) => n + 1)
