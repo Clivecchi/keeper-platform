@@ -34,7 +34,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
-### 2026-07-06 — platformHost: guard undefined hostname
+### 2026-07-07 — Post-login landing correctness
+- `resolveLandingPathAfterAuth` is async — brand hosts await `fetchHostDomain` before routing; unresolved brands stay at `/`, never platform `/home`.
+- Tenant `*.keeper.domains` routes from hostname synchronously (unchanged).
+
 - `resolveWebHostname()` — defaults to `window.location.hostname` when callers omit hostname
 - Fixes production crash (`toLowerCase` on undefined) when `buildRealmShellPath(slug, params)` runs without a third argument
 

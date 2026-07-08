@@ -123,15 +123,41 @@ export async function fetchHostDomain(hostname: string): Promise<ResolvedHostDom
   }
 }
 
-export function resolveLandingPathAfterAuth(
+/**
+ * Post-login landing path. Brand/tenant hosts resolve hostname before routing —
+ * never fall through to platform `/home` on a cold custom-domain cache.
+ */
+export async function resolveLandingPathAfterAuth(
   hostname: string,
   returnTo?: string | null,
-): string {
+): Promise<string> {
   if (returnTo?.trim()) return returnTo.trim();
+
+  const normalized = normalizeBrandHostname(hostname);
+
+  const tenantSlug = resolveTenantSlugFromHostname(normalized);
+  if (tenantSlug) {
+    return buildRealmBoardPath(tenantSlug, 'domain', undefined, hostname);
+  }
+
+  if (isBrandCustomHost(normalized)) {
+    const cached = getCachedHostDomain(hostname);
+    const resolved =
+      cached?.source === 'custom_domain' && cached.slug
+        ? cached
+        : await fetchHostDomain(hostname);
+    if (resolved.slug && resolved.source === 'custom_domain') {
+      return buildRealmBoardPath(resolved.slug, 'domain', undefined, hostname);
+    }
+    // Unresolved brand host — stay on brand root (Cover), not platform `/home`.
+    return buildRealmShellPath('', undefined, hostname);
+  }
+
   const cached = getCachedHostDomain(hostname);
-  if (cached?.source === 'custom_domain' || cached?.source === 'tenant_subdomain') {
+  if (cached?.source === 'custom_domain' && cached.slug) {
     return buildRealmBoardPath(cached.slug, 'domain', undefined, hostname);
   }
+
   return resolvePostAuthPath(hostname);
 }
 

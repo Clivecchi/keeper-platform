@@ -4,6 +4,7 @@ import type {
   EngagementContext,
   EngagementTemplateDefinition,
 } from "../../../components/engagement/EngagementForm"
+import { parseEngagementTemplateResponse } from "./parseEngagementTemplateResponse"
 
 export interface BoardEngagementIntent {
   template: EngagementTemplateDefinition
@@ -46,8 +47,9 @@ export function useBoardEngagement(
       const response = await apiFetch(
         `/api/engagement/templates/${encodeURIComponent(slug)}`,
       )
-      if (response.success && response.data) {
-        setIntent({ template: response.data, context })
+      const template = parseEngagementTemplateResponse(response, slug)
+      if (template) {
+        setIntent({ template, context })
       }
     },
     [],

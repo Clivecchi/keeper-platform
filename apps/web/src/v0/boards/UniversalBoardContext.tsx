@@ -33,6 +33,7 @@ import type { BoardInstrumentSlug } from "./UniversalBoardDefinition"
 import type { VoicePromptSectionKey } from "../presence/cover/voicePromptSections"
 import type { BoardEngagementIntent } from "./engagement/useBoardEngagement"
 import type { EngagementContext } from "../../components/engagement/EngagementForm"
+import { parseEngagementTemplateResponse } from "./engagement/parseEngagementTemplateResponse"
 import { apiFetch } from "../../lib/api"
 import { GuidedArrivalProvider } from "../guidedArrival/GuidedArrivalContext"
 
@@ -671,16 +672,14 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         const response = await apiFetch(
           `/api/engagement/templates/${encodeURIComponent(slug)}`,
         )
-        if (!response.success || !response.data) {
-          const message =
-            typeof response.error === "string"
-              ? response.error
-              : `Could not open ${slug}. The engagement template may not be seeded.`
-          console.error("[UniversalBoard] Chronicle engagement unavailable:", message)
+        const template = parseEngagementTemplateResponse(response, slug)
+        if (!template) {
+          const message = `Could not open ${slug}. The engagement template may not be seeded.`
+          console.error("[UniversalBoard] Chronicle engagement unavailable:", message, response)
           window.alert(message)
           return
         }
-        setChronicleEngagement({ template: response.data, context })
+        setChronicleEngagement({ template, context })
       } catch (error) {
         const message =
           error instanceof Error

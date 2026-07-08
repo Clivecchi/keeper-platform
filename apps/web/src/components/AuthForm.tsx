@@ -53,7 +53,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
         const landing =
           returnTo ??
           (typeof window !== 'undefined'
-            ? resolveLandingPathAfterAuth(window.location.hostname, returnTo)
+            ? await resolveLandingPathAfterAuth(window.location.hostname, returnTo)
             : '/home');
         navigate(landing);
       } else {

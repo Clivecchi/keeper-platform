@@ -12,6 +12,7 @@ Journey and Path cover actions also call `requestChronicleEngagement` (same pipe
 
 ## 🧱 Key Files
 - `useBoardEngagement.ts` — Intent state, template activation, execute + refresh callback
+- `parseEngagementTemplateResponse.ts` — Normalizes execute + legacy templates API payloads for Chronicle Acts
 - `ChronicleEngagementSurface.tsx` — Board wrapper → `ChronicleActPresence`
 - `engagementResultUtils.ts` — Resolve created entity ids from execute responses
 - `ChronicleActPresence.tsx` (in `presence/chronicleConfig/`) — Declared Act surface: `ChronicleConfigShell` + template fields
@@ -31,7 +32,7 @@ Journey and Path cover actions also call `requestChronicleEngagement` (same pipe
 - [ ] Public Present engagement after member board pass is complete
 
 ## 📆 Update Log
-- **2026-07-01** — Phase 1.3: Nav Path/Moment `+` when journey selected; cover actions route through `requestChronicleEngagement`; post-create nav selection for journey/path/moment; `pathId` hidden context; API path schema accepts slug-style ids; smoke tests + manual verify steps.
+- **2026-07-07** — `parseEngagementTemplateResponse` accepts both `{ success, data }` (execute router) and legacy flat templates-router payloads so Nav `+` opens Chronicle Acts reliably.
 - **2026-06-19** — `useBoardEngagement` passes execute `data` to `onSuccess`; `ChronicleEngagementSurface` bumps draft nav + selects new draft on `draft.create`.
 - **2026-06-19** — `ChronicleActPresence` uses declared `ChronicleConfigShell` (matches Agent Manage); removed bespoke Act header + `EngagementForm`.
 - **2026-06-19** — Initial board-only engagement wiring for Universal Board singular UI.

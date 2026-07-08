@@ -93,6 +93,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   const routeSlug = isBrandShell ? "" : (slug ?? "")
   const resolvedSlug = isHomeShell ? "" : (normalizePlatformDomainSlug(routeSlug) ?? routeSlug)
   const [anchorDomainSlug, setAnchorDomainSlug] = React.useState<string | null>(null)
+  const [anchorDomainResolved, setAnchorDomainResolved] = React.useState(false)
   const [homeDisplayName, setHomeDisplayName] = React.useState<string>(DEFAULT_HOME_DISPLAY_NAME)
   const effectiveSlug = isHomeShell
     ? (anchorDomainSlug ?? "")
@@ -233,9 +234,18 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   React.useEffect(() => {
     if (!isHomeShell || !authResolved || !isAuthenticated) return
     const domainParam = searchParams.get(HOME_DOMAIN_PARAM)?.trim().toLowerCase() || null
+    if (domainParam) {
+      setAnchorDomainSlug(domainParam)
+      setAnchorDomainResolved(true)
+      return
+    }
     let cancelled = false
+    setAnchorDomainResolved(false)
     void resolvePostLoginDomainSlug().then((resolved) => {
-      if (!cancelled) setAnchorDomainSlug(domainParam || resolved)
+      if (!cancelled) {
+        setAnchorDomainSlug(resolved)
+        setAnchorDomainResolved(true)
+      }
     })
     return () => {
       cancelled = true
@@ -810,9 +820,20 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
 
   if (!effectiveSlug) {
     if (isHomeShell && authResolved && isAuthenticated) {
+      if (!anchorDomainResolved) {
+        return (
+          <div className="flex h-screen items-center justify-center bg-neutral-50">
+            <p className="text-sm text-neutral-500">Loading Home…</p>
+          </div>
+        )
+      }
       return (
-        <div className="flex h-screen items-center justify-center bg-neutral-50">
-          <p className="text-sm text-neutral-500">Loading Home…</p>
+        <div className="flex h-screen flex-col items-center justify-center gap-2 bg-neutral-50 px-6 text-center">
+          <p className="text-sm font-medium text-neutral-700">No domain selected for Home</p>
+          <p className="max-w-sm text-xs text-neutral-500">
+            Add a domain in Configure, or open Home with{" "}
+            <code className="text-[11px]">?domain=your-slug</code>.
+          </p>
         </div>
       )
     }

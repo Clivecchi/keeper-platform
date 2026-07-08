@@ -19,6 +19,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-07: `/home` anchor resolution — no silent `default` slug fallback; empty state when user has no domains (use `?domain=` or add a domain).
 - 2026-07-07: Pending `?board=` state ignores workspaces unavailable on the active domain slug; clears stale pending board/definition when slug changes (fixes picker stuck after Ke3p → Ceox).
 - 2026-07-03: `KeeperTopBar` board links filtered by domain — IDE/Design only on platform slug `default` (KE3P).
 - 2026-07-03: **Lead agent + Design board fixes** — auto-provision runs for domain owners when lead agent row is missing (not only unseeded frames); Design workspace auto-selects `?definition=domain` when none set; router/window mismatch warnings dev-only.

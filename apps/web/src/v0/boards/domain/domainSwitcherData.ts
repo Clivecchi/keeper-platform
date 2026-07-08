@@ -247,8 +247,11 @@ export async function fetchDomainSwitcherEntries(
   return inflightFetch
 }
 
-/** Best slug for post-login landing — primary owned domain, else first visible, else fallback. */
-export async function resolvePostLoginDomainSlug(fallback = "default"): Promise<string> {
+/**
+ * Anchor domain for `/home` — primary owned domain, else first visible.
+ * Returns null when the user has no domains (never falls back to platform `default`).
+ */
+export async function resolvePostLoginDomainSlug(): Promise<string | null> {
   try {
     const rows = await fetchUserDomainsList()
     const visible = rows.filter(isVisibleUserDomain)
@@ -259,7 +262,7 @@ export async function resolvePostLoginDomainSlug(fallback = "default"): Promise<
   } catch {
     /* fall through */
   }
-  return fallback
+  return null
 }
 
 export function suggestDomainSlug(name: string): string {

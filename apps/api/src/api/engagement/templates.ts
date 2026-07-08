@@ -42,32 +42,37 @@ router.get('/:key', authMiddlewareCompat, async (req: Request, res: Response) =>
       }
     }
 
-    // Transform to client format
+    // Transform to client format (canonical execute-router shape)
     const clientTemplate = {
-      key: template.slug,
+      id: template.id,
+      slug: template.slug,
       label: template.label,
-      scope: config?.visibility === 'public' ? 'public' : 'admin',
-      endpoint: extractEndpoint(template.slug, config),
-      method: extractMethod(config),
+      type: template.type,
+      targetType: template.targetType,
+      config: {
+        visibility: config?.visibility || 'member',
+        requiresConfirmation: config?.requiresConfirmation || false,
+        action: {
+          successMessage: config?.action?.successMessage || 'Saved successfully',
+          errorMessages: config?.action?.errorMessages,
+          endpoint: extractEndpoint(template.slug, config),
+          method: extractMethod(config),
+        },
+      },
       fields: template.engagement_fields.map(field => ({
         name: field.name,
         type: field.type,
         label: field.label,
         placeholder: field.placeholder || undefined,
         required: (field.config as any)?.required || false,
-        options: (field.config as any)?.options || undefined,
-        min: (field.config as any)?.min || undefined,
-        max: (field.config as any)?.max || undefined,
-        minLength: (field.config as any)?.minLength || undefined,
-        maxLength: (field.config as any)?.maxLength || undefined,
-        pattern: (field.config as any)?.pattern || undefined,
-        defaultValue: (field.config as any)?.defaultValue || undefined,
+        config: field.config as any,
       })),
-      requiredRole: config?.visibility === 'admin' ? 'admin' : undefined,
-      meta: config || {}
     };
 
-    return res.json(clientTemplate);
+    return res.json({
+      success: true,
+      data: clientTemplate,
+    });
   } catch (error) {
     console.error('Error fetching template:', error);
     return res.status(500).json({ error: 'Internal server error' });
