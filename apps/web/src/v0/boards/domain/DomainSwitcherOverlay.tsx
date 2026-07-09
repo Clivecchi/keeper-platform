@@ -59,7 +59,7 @@ function DomainSwitcherStatusPanel({
         className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
         style={{
           ...SWITCHER_PANEL_STYLE,
-          width: 210,
+          width: 248,
         }}
         role="dialog"
         aria-label={title}

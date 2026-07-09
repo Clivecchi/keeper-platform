@@ -7,6 +7,7 @@ import {
   type DomainSwitcherEntry,
 } from "../../v0/boards/domain/domainSwitcherData";
 import { DomainAddPanel } from "../../v0/boards/domain/DomainAddPanel";
+import { PlaybillCard } from "../../v0/components/PlaybillCard";
 import { useTalkMode } from "../../hooks/useTalkMode";
 import { buildDomainBoardPath } from "../../v0/shell/shellMode";
 import { useUniversalMobile } from "../hooks/useUniversalMobile";
@@ -17,117 +18,8 @@ type RealmView = "list" | "add";
 /** Target workspace when entering a domain from the Domains picker. */
 const DOMAIN_ENTRY_BOARD = "domain" as const;
 
-function hashSlug(slug: string): number {
-  let hash = 0;
-  for (let i = 0; i < slug.length; i += 1) {
-    hash = (hash * 31 + slug.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-}
-
-function placeholderCoverBackground(slug: string): string {
-  const hash = hashSlug(slug);
-  const hueA = 185 + (hash % 48);
-  const hueB = (hueA + 28 + (hash % 16)) % 360;
-  return `linear-gradient(145deg, hsl(${hueA} 38% 24%) 0%, hsl(${hueB} 42% 14%) 52%, hsl(${hueA} 32% 9%) 100%)`;
-}
-
-function domainInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
-  }
-  return (parts[0]?.slice(0, 1) ?? "?").toUpperCase();
-}
-
 function buildDomainEntryPath(slug: string): string {
   return buildDomainBoardPath(slug, DOMAIN_ENTRY_BOARD);
-}
-
-interface RealmDomainCardProps {
-  domain: DomainSwitcherEntry;
-  isCurrent: boolean;
-  onSelect: (slug: string) => void;
-}
-
-function RealmDomainCard({ domain, isCurrent, onSelect }: RealmDomainCardProps) {
-  const hasCoverImage = Boolean(domain.coverImageUrl);
-  const initials = domainInitials(domain.name);
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(domain.slug)}
-      className="w-full overflow-hidden rounded-xl text-left transition-opacity hover:opacity-90"
-      style={{
-        border: isCurrent ? "1.5px solid #6ee7b7" : "1px solid hsl(var(--theme-border-soft) / 0.55)",
-        background: "hsl(var(--theme-surface-elevated, 0 0% 100%))",
-      }}
-      aria-current={isCurrent ? "true" : undefined}
-      aria-label={`Open ${domain.name}${isCurrent ? " (current)" : ""}`}
-    >
-      <div
-        className="relative flex h-[72px] w-full items-end overflow-hidden px-3 pb-2"
-        style={
-          hasCoverImage
-            ? {
-                backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.08) 55%, transparent 100%), url(${domain.coverImageUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : { background: placeholderCoverBackground(domain.slug) }
-        }
-      >
-        {!hasCoverImage ? (
-          <span
-            className="pointer-events-none absolute inset-0 flex select-none items-center justify-center font-serif"
-            style={{
-              fontSize: 42,
-              fontWeight: 600,
-              color: "hsla(0, 0%, 100%, 0.12)",
-              letterSpacing: "0.04em",
-            }}
-            aria-hidden
-          >
-            {initials}
-          </span>
-        ) : null}
-        <span
-          className="relative z-[1] max-w-full truncate font-serif text-sm font-medium leading-tight"
-          style={{
-            color: "hsl(0 0% 98%)",
-            textShadow: "0 1px 3px rgba(0,0,0,0.55)",
-          }}
-        >
-          {domain.name}
-        </span>
-      </div>
-      <div
-        className="px-3 py-2"
-        style={{ borderTop: "0.5px solid hsl(var(--theme-border-soft) / 0.45)" }}
-      >
-        <p
-          className="truncate text-[11px] font-mono leading-snug"
-          style={{ color: "hsl(var(--theme-ink-secondary))" }}
-        >
-          {domain.slug}
-        </p>
-        {domain.tagline && domain.tagline !== domain.slug ? (
-          <p
-            className="mt-0.5 truncate text-xs leading-snug"
-            style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}
-          >
-            {domain.tagline}
-          </p>
-        ) : null}
-        {isCurrent ? (
-          <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-[#6ee7b7]">
-            Current domain
-          </p>
-        ) : null}
-      </div>
-    </button>
-  );
 }
 
 export function RealmScreen() {
@@ -229,7 +121,7 @@ export function RealmScreen() {
             Your Domains
           </p>
           <p className="mt-1 text-xs" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Tap a domain to open its Domain board — capture and talk from there.
+            Tap an innkeeper to enter their domain — capture and talk from there.
           </p>
         </div>
 
@@ -267,10 +159,11 @@ export function RealmScreen() {
           <ul className="flex flex-col gap-3">
             {domains.map((domain) => (
               <li key={domain.slug}>
-                <RealmDomainCard
+                <PlaybillCard
                   domain={domain}
                   isCurrent={domain.slug === domainSlug}
                   onSelect={handleSelectDomain}
+                  variant="realm"
                 />
               </li>
             ))}

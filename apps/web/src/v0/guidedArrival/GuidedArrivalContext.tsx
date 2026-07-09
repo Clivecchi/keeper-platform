@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { isMemberMobileBoard } from "../boards/workspaceBoardNav"
 import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { getPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 
@@ -57,6 +58,7 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
   const domainData = shell?.domainData
   const domainFrame = shell?.domainFrame
   const domainId = resolveDomainId(domainData)
+  const domainSlug = shell?.domainSlug ?? null
   const ownerId = (domainData as { ownerId?: string } | null | undefined)?.ownerId
   const isOwner =
     isAuthenticated &&
@@ -64,7 +66,24 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
     !!ownerId &&
     String(ownerId) === String(user.id)
 
-  const leadAgentSlug = readFrameLeadAgentSlug(domainFrame) ?? "kip"
+  const [playbillGreetSlug, setPlaybillGreetSlug] = React.useState<string | null | undefined>(
+    undefined,
+  )
+
+  React.useEffect(() => {
+    if (!domainSlug) {
+      setPlaybillGreetSlug(undefined)
+      return
+    }
+    setPlaybillGreetSlug(getPlaybillGreet(domainSlug))
+  }, [domainSlug])
+
+  const leadAgentSlug = React.useMemo(() => {
+    if (playbillGreetSlug !== undefined) {
+      return playbillGreetSlug ?? "kip"
+    }
+    return readFrameLeadAgentSlug(domainFrame) ?? "kip"
+  }, [domainFrame, playbillGreetSlug])
   const frameLeadIdentity = useFrameLeadAgentIdentity(leadAgentSlug)
   const greeting = domainFrame?.kip?.greeting?.trim() || ""
   const coverGreeting = greeting || domainFrame?.theme?.tagline?.trim() || ""

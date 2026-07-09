@@ -76,6 +76,7 @@ import {
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
 import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName } from "../lib/frameLeadAgentIdentity"
+import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
 import type { ComposerAgentChip } from "../../components/agent/AgentComposer"
@@ -234,9 +235,38 @@ export function UniversalConversation({
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
   const agentEcho = def.conversation.agentEcho === true
   const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame)
-  const baseAgentSlug = def.conversation.agentFromFrame
-    ? resolveDialogAgentSlug(domainFrame)
-    : (def.conversation.agentSlug ?? "kip")
+
+  const [playbillGreetSlug, setPlaybillGreetSlug] = React.useState<string | null | undefined>(
+    undefined,
+  )
+
+  React.useEffect(() => {
+    if (kipMode !== "domain" || !domainSlug) {
+      setPlaybillGreetSlug(undefined)
+      return
+    }
+    setPlaybillGreetSlug(getPlaybillGreet(domainSlug))
+  }, [kipMode, domainSlug])
+
+  React.useEffect(() => {
+    if (kipMode !== "domain" || playbillGreetSlug === undefined) return
+    const frameLead = readFrameLeadAgentSlug(domainFrame)
+    const expected = playbillGreetSlug ?? KIP_FALLBACK_SLUG
+    const frameResolved = frameLead ?? KIP_FALLBACK_SLUG
+    if (frameLead !== null && frameResolved === expected) {
+      clearPlaybillGreet()
+    }
+  }, [kipMode, domainFrame, playbillGreetSlug])
+
+  const baseAgentSlug = React.useMemo(() => {
+    if (def.conversation.agentFromFrame) {
+      if (kipMode === "domain" && playbillGreetSlug !== undefined) {
+        return playbillGreetSlug ?? KIP_FALLBACK_SLUG
+      }
+      return resolveDialogAgentSlug(domainFrame)
+    }
+    return def.conversation.agentSlug ?? "kip"
+  }, [def.conversation.agentFromFrame, def.conversation.agentSlug, domainFrame, kipMode, playbillGreetSlug])
   const defaultAgentSlug = baseAgentSlug
   const defaultAgentName = def.conversation.agentName ?? "Kip"
 

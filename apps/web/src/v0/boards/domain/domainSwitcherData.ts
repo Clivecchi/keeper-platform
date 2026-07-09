@@ -1,18 +1,22 @@
 import { apiFetch } from "../../../lib/apiFetch"
 import { getAuthToken } from "../../../lib/authTokenStore"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
+import { readFrameLeadAgentSlug } from "../../lib/frameLeadAgentIdentity"
 
 export interface DomainSwitcherEntry {
+  id: string
   slug: string
   name: string
   tagline: string
   coverImageUrl?: string | null
+  /** Lead agent from domain `frame_json.kip.agent_id`, or null when uncast. */
+  leadAgentSlug: string | null
 }
 
 /** Align with server domain list cache (~5 min). */
 export const DOMAIN_SWITCHER_CACHE_TTL_MS = 5 * 60 * 1000
 
-const SESSION_CACHE_KEY = "keeper.domainSwitcher.v1"
+const SESSION_CACHE_KEY = "keeper.domainSwitcher.v2"
 
 interface DomainSwitcherCacheSnapshot {
   fetchedAt: number
@@ -152,11 +156,13 @@ export function prefetchDomainSwitcherEntries(): void {
 }
 
 interface ApiDomainRow {
+  id: string
   slug: string
   name: string
   description?: string | null
   customDomain?: string | null
   theme?: unknown
+  frame_json?: unknown
   isActive?: boolean
   deletedAt?: string | null
   isPrimary?: boolean
@@ -171,11 +177,17 @@ function parseTheme(theme: unknown): { coverImage?: string; tagline?: string } {
   }
 }
 
+function parseLeadAgentSlug(frameJson: unknown): string | null {
+  if (!frameJson || typeof frameJson !== "object") return null
+  return readFrameLeadAgentSlug(frameJson as { kip?: { agent_id?: string | null } })
+}
+
 export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitcherEntry {
   const theme = parseTheme(domain.theme)
   const rawCover = theme.coverImage ?? null
 
   return {
+    id: domain.id,
     slug: domain.slug,
     name: domain.name,
     tagline:
@@ -184,13 +196,14 @@ export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitche
       domain.customDomain?.trim() ||
       domain.slug,
     coverImageUrl: rawCover ? getBlobProxyUrl(rawCover) : null,
+    leadAgentSlug: parseLeadAgentSlug(domain.frame_json),
   }
 }
 
 function isVisibleUserDomain(domain: ApiDomainRow): boolean {
   if (domain.deletedAt) return false
   if (domain.isActive === false) return false
-  return Boolean(domain.slug?.trim() && domain.name?.trim())
+  return Boolean(domain.id?.trim() && domain.slug?.trim() && domain.name?.trim())
 }
 
 async function fetchUserDomainsList(): Promise<ApiDomainRow[]> {

@@ -4,7 +4,8 @@
 View components for the V0 surface: cover frame and moment diary frame, with no backend wiring.
 
 ## 🧱 Key Files
-- `DomainBanner.tsx` – Slim Domain Board center header (wordmark, tagline, live accent from `theme.colors.primary`, journey + moment counts).
+- `DomainSwitcher.tsx` – Playbill wall overlay; delegates cards to `PlaybillCard`.
+- `PlaybillCard.tsx` – Shared Playbill innkeeper card (lead agent headshot, casting state, activity whisper).
 - `DomainFeed.tsx` – Domain activity feed (kept moments, journey summaries); empty copy from `commons.messaging.feed` when set.
 - `StoryScroll.tsx` / `StoryScroll.types.ts` – Schema-driven inline narrative editor (edit buffer + `onChange`); optional Kip bar (`sendPrompt` / `onKipMessage`). See `StoryScroll.example.tsx` for usage (documentation-only).
 - `DomainBrief.tsx` – Domain Board Brief mode: human-readable form for core domain frame JSON (identity, theme, audience, Kip, cover chat); local draft with Publish via `PATCH /api/domains/:slug/frame` and `reloadDomainFrame`.
@@ -30,6 +31,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-07-08: **Playbill pattern** — `PlaybillCard` replaces duplicate domain picker cards (`DomainSwitcher`, mobile `RealmScreen`); lead agent from `frame_json.kip.agent_id`, stats from `GET /api/domains/:id/stats`, greet continuity via `playbillGreetContinuity`.
 - 2026-07-07: `Margin` guest Sign In builds `next` via `buildRealmBoardPath` (`/?board=domain` on livecchi.us) — avoids HostnameSlugGuard redirect flicker after login.
 - 2026-07-03 (pm): Domain header always shows wordmark + chevron domain picker on all boards including `/home`; removed separate Home label/link.
 - 2026-07-03: `KeeperTopBar` — decoupled Home at `/home`: domain mode prepends `{homeDisplayName}` link via `navigateHome()`; home mode shows user Home label as wordmark with optional anchor-domain workspace link; Brief hidden on Home shell; fallbacks when shell context fields not yet wired.
