@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-08 — Universal agent surfacing (Design + Domain dedupe)
+- **Design Board:** `dialogOrchestration: "director"` — Rendr owns composer; footer **Agents** bar lists domain lead (when set) + Kip for delegation.
+- **Domain Board:** when platform Kip is the only lead, toolbar ∞ badge hidden — Kip appears once in footer Agents bar (no duplicate).
+- **`AgentComposer`:** `showToolbarAgentIdentity` prop — footer-only agent identity when toolbar would duplicate footer.
+
 ### 2026-07-07 — Domain switch + Nav add reliability
 - `UniversalBoard.tsx` — only syncs `domainId` from `domainData` when record slug matches URL slug (prevents stale Ke3p id on Ceox after picker switch).
 - `UniversalBoardContext.tsx` — `requestChronicleEngagement` surfaces template fetch failures instead of silent no-op (Nav `+` actions).

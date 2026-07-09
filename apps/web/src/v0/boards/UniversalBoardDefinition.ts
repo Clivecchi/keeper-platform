@@ -492,6 +492,9 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: false,
     kipMode: "designer",
+    dialogOrchestration: "director",
+    directorAgentSlug: "rendr",
+    boardInstruments: ["kip"],
   },
   contextSurface: {
     viewStates: mergeViewStates({

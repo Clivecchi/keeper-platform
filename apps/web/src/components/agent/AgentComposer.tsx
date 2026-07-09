@@ -84,6 +84,8 @@ export interface AgentComposerProps {
   /** Invoked collaborators on the composer toolbar (lead agent, etc.) — each chip has an X to return to the footer bar. */
   composerAgents?: ReadonlyArray<ComposerAgentChip>
   onRemoveComposerAgent?: (slug: string) => void
+  /** When false, hide the ∞ agent badge — agent identity lives in the footer Agents bar only. */
+  showToolbarAgentIdentity?: boolean
   agentId: string | null
   domainId: string | null
   keeperId?: string | null
@@ -147,6 +149,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   agentName,
   composerAgents,
   onRemoveComposerAgent,
+  showToolbarAgentIdentity = true,
   domainId,
   keeperId,
   journeyId,
@@ -361,7 +364,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           style={{ borderColor: SURFACE.border, backgroundColor: SURFACE.toolbarBg }}
         >
           <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-            {composerAgents && composerAgents.length > 0 ? (
+            {showToolbarAgentIdentity && composerAgents && composerAgents.length > 0 ? (
               composerAgents.map(({ slug, label }) => (
                 <div
                   key={slug}
@@ -388,7 +391,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                   ) : null}
                 </div>
               ))
-            ) : (
+            ) : showToolbarAgentIdentity ? (
               <div
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1"
                 style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.6)" }}
@@ -400,7 +403,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                   {agentName}
                 </span>
               </div>
-            )}
+            ) : null}
             {onModeChange && (
               <select
                 value={dialogueMode}

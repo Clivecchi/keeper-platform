@@ -23,7 +23,24 @@ function hydrateMissingLeadSlugsFromStorage(): void {
 }
 
 function persistMissingLeadSlug(slug: string): void {
+  if (STRICT_PLATFORM_AGENT_SLUGS.has(slug)) return
   missingLeadSlugs.add(slug)
+  if (typeof sessionStorage === "undefined") return
+  try {
+    sessionStorage.setItem(
+      MISSING_LEAD_STORAGE_KEY,
+      JSON.stringify([...missingLeadSlugs]),
+    )
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
+/** Drop a stale missing-slug entry so strict platform agents can retry API self-heal. */
+export function clearMissingLeadSlug(slug: string): void {
+  const trimmed = slug.trim()
+  if (!trimmed) return
+  missingLeadSlugs.delete(trimmed)
   if (typeof sessionStorage === "undefined") return
   try {
     sessionStorage.setItem(
@@ -120,9 +137,10 @@ export async function resolveFrameLeadAgentIdentity(
 
   if (missingLeadSlugs.has(primary) && primary !== KIP_FALLBACK_SLUG) {
     if (!allowKipFallback) {
-      throw new Error(`${primary} agent is not available`)
+      clearMissingLeadSlug(primary)
+    } else {
+      return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
     }
-    return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
   }
 
   const cached = resolvedLeadIdentity.get(primary)

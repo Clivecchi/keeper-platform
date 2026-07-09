@@ -75,7 +75,7 @@ import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
-import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS } from "../lib/frameLeadAgentIdentity"
+import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME } from "../lib/frameLeadAgentIdentity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
 import type { ComposerAgentChip } from "../../components/agent/AgentComposer"
@@ -303,14 +303,16 @@ export function UniversalConversation({
   const isDirectorMode =
     !guidedArrivalActive &&
     def.conversation.dialogOrchestration === "director" &&
-    (kipMode === "ide" || kipMode === "domain")
+    (kipMode === "ide" || kipMode === "domain" || kipMode === "designer")
   const directorAgentSlug = def.conversation.directorAgentSlug ?? defaultAgentSlug
   const activeBoardInstrument = selection.activeBoardInstrument
 
   const [domainScopedAgents, setDomainScopedAgents] = React.useState<DomainScopedAgent[]>([])
 
   React.useEffect(() => {
-    if (!domainId || kipMode !== "domain" || !isDirectorMode) {
+    const needsDomainRoster =
+      kipMode === "domain" || (kipMode === "designer" && isDirectorMode)
+    if (!domainId || !needsDomainRoster || !isDirectorMode) {
       setDomainScopedAgents([])
       return
     }
@@ -327,8 +329,28 @@ export function UniversalConversation({
     return () => { cancelled = true }
   }, [domainId, kipMode, isDirectorMode])
 
+  const normalizedDomainLeadSlug = React.useMemo(() => {
+    const raw = frameLeadAgentSlug?.trim()
+    if (!raw || PLACEHOLDER_LEAD_AGENT_SLUGS.has(raw)) return null
+    return raw
+  }, [frameLeadAgentSlug])
+
+  const domainLeadDisplayName =
+    normalizedDomainLeadSlug && frameLeadIdentity.displayName
+      ? frameLeadIdentity.displayName
+      : null
+
   const directorInstrumentLabels = React.useMemo((): Record<string, string> => {
     if (kipMode === "ide") return { ...BOARD_INSTRUMENT_LABELS }
+    if (kipMode === "designer") {
+      const labels: Record<string, string> = {
+        [KIP_FALLBACK_SLUG]: KIP_FALLBACK_DISPLAY_NAME,
+      }
+      if (normalizedDomainLeadSlug && domainLeadDisplayName) {
+        labels[normalizedDomainLeadSlug] = domainLeadDisplayName
+      }
+      return labels
+    }
     if (kipMode === "domain") {
       const labels: Record<string, string> = {}
       const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
@@ -340,18 +362,7 @@ export function UniversalConversation({
       return labels
     }
     return {}
-  }, [kipMode, domainScopedAgents])
-
-  const normalizedDomainLeadSlug = React.useMemo(() => {
-    const raw = frameLeadAgentSlug?.trim()
-    if (!raw || PLACEHOLDER_LEAD_AGENT_SLUGS.has(raw)) return null
-    return raw
-  }, [frameLeadAgentSlug])
-
-  const domainLeadDisplayName =
-    normalizedDomainLeadSlug && frameLeadIdentity.displayName
-      ? frameLeadIdentity.displayName
-      : null
+  }, [kipMode, domainScopedAgents, normalizedDomainLeadSlug, domainLeadDisplayName])
 
   const [composerLeadSlug, setComposerLeadSlug] = React.useState<string | null>(null)
   const defaultLeadPinnedRef = React.useRef(false)
@@ -428,6 +439,35 @@ export function UniversalConversation({
     domainScopedAgents,
   ])
 
+  /** Design Board — Rendr owns composer; domain lead + Kip always pin-able in footer. */
+  const designerBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
+    if (kipMode !== "designer" || !isDirectorMode) return []
+    const instruments: BoardInstrumentChip[] = []
+    if (normalizedDomainLeadSlug && domainLeadDisplayName) {
+      instruments.push({
+        slug: normalizedDomainLeadSlug,
+        label: domainLeadDisplayName,
+      })
+    }
+    if (!normalizedDomainLeadSlug) {
+      instruments.push({
+        slug: KIP_FALLBACK_SLUG,
+        label: KIP_FALLBACK_DISPLAY_NAME,
+      })
+    } else if (normalizedDomainLeadSlug !== KIP_FALLBACK_SLUG) {
+      instruments.push({
+        slug: KIP_FALLBACK_SLUG,
+        label: KIP_FALLBACK_DISPLAY_NAME,
+      })
+    }
+    return instruments
+  }, [
+    kipMode,
+    isDirectorMode,
+    normalizedDomainLeadSlug,
+    domainLeadDisplayName,
+  ])
+
   const composerAgentChips = React.useMemo((): ComposerAgentChip[] => {
     if (
       kipMode !== "domain" ||
@@ -446,6 +486,10 @@ export function UniversalConversation({
     domainLeadDisplayName,
     normalizedDomainLeadSlug,
   ])
+
+  /** Domain director with platform Kip only — hide toolbar badge; Kip lives in footer Agents bar. */
+  const showComposerToolbarAgentIdentity =
+    !(kipMode === "domain" && isDirectorMode && composerAgentChips.length === 0 && !normalizedDomainLeadSlug)
 
   const dialogAgentSlug = guidedArrivalActive && guidedArrival
     ? guidedArrival.leadAgentSlug
@@ -1709,18 +1753,27 @@ export function UniversalConversation({
         onToolInvoke={isDirectorMode && kipMode === "ide" ? handleToolInvoke : undefined}
         activeToolSlug={isDirectorMode && kipMode === "ide" ? activeBoardInstrument : null}
         boardInstruments={
-          isDirectorMode && kipMode === "domain" ? domainDirectorBoardInstruments : undefined
+          isDirectorMode && kipMode === "domain"
+            ? domainDirectorBoardInstruments
+            : isDirectorMode && kipMode === "designer"
+              ? designerBoardInstruments
+              : undefined
         }
         onBoardInstrumentInvoke={
-          isDirectorMode && kipMode === "domain" ? handleBoardInstrumentInvoke : undefined
+          isDirectorMode && (kipMode === "domain" || kipMode === "designer")
+            ? handleBoardInstrumentInvoke
+            : undefined
         }
         activeBoardInstrumentSlug={
-          isDirectorMode && kipMode === "domain" ? activeBoardInstrument : null
+          isDirectorMode && (kipMode === "domain" || kipMode === "designer")
+            ? activeBoardInstrument
+            : null
         }
         composerAgents={composerAgentChips.length > 0 ? composerAgentChips : undefined}
         onRemoveComposerAgent={
           composerAgentChips.length > 0 ? handleRemoveComposerAgent : undefined
         }
+        showToolbarAgentIdentity={showComposerToolbarAgentIdentity}
         thinkingStatusLabel={horizonThinkingLabel}
         thinkingSteps={thinkingSteps}
         messages={messages}

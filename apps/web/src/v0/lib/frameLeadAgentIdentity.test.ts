@@ -76,4 +76,23 @@ describe("frameLeadAgentIdentity", () => {
     ).rejects.toThrow(/rendr agent is not available/)
     expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(1)
   })
+
+  it("resolveLeadAgentId retries strict platform agents after a failed lookup", async () => {
+    vi.mocked(KipApi.getAgentBySlug)
+      .mockRejectedValueOnce(new Error("not found"))
+      .mockResolvedValueOnce({
+        id: "rendr-uuid",
+        slug: "rendr",
+        name: "Rendr",
+      } as Awaited<ReturnType<typeof KipApi.getAgentBySlug>>)
+
+    await expect(
+      resolveLeadAgentId("rendr", { allowKipFallback: false }),
+    ).rejects.toThrow(/rendr agent is not available/)
+
+    await expect(
+      resolveLeadAgentId("rendr", { allowKipFallback: false }),
+    ).resolves.toBe("rendr-uuid")
+    expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(2)
+  })
 })

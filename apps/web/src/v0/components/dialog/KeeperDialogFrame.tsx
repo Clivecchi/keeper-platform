@@ -144,6 +144,8 @@ export interface KeeperDialogFrameProps {
   /** Invoked collaborators on composer toolbar (Domain lead agent, etc.). */
   composerAgents?: AgentComposerProps["composerAgents"]
   onRemoveComposerAgent?: AgentComposerProps["onRemoveComposerAgent"]
+  /** When false, agent identity is shown in the footer Agents bar only. */
+  showToolbarAgentIdentity?: boolean
   /** Echo attribution fallback — board def agentName (def.conversation.agentName) */
   echoAgentName?: string
   agentBubbleFullWidth?: boolean
@@ -242,6 +244,7 @@ export function KeeperDialogFrame({
   agentName = "Kip",
   composerAgents,
   onRemoveComposerAgent,
+  showToolbarAgentIdentity = true,
   echoAgentName,
   agentBubbleFullWidth = true,
   agentBoardMessaging,
@@ -733,6 +736,7 @@ export function KeeperDialogFrame({
             agentName={agentName}
             composerAgents={composerAgents}
             onRemoveComposerAgent={onRemoveComposerAgent}
+            showToolbarAgentIdentity={showToolbarAgentIdentity}
             agentId={agentId}
             domainId={domainId}
             dialogueMode={dialogueMode}

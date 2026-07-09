@@ -1,7 +1,7 @@
 # Design Board
 
 ## 📌 Purpose
-Platform Admin–only surface for visually designing and editing V0 domain Frame JSON with Kip. Accessed via `?board=designer` on any `/d/:slug/board` URL.
+Platform Admin–only surface for visually designing and editing V0 domain Frame JSON with Rendr (Treatment). Kip and the domain lead remain available in the composer Agents bar. Accessed via `?board=designer` on any `/d/:slug/board` URL.
 
 ## 🧱 Key Files
 - `DesignBoard.tsx` — Root component; `<UniversalBoard def={DESIGNER_BOARD_DEF} />` with left + right overrides; owns board nav state (`activeBoardId`, `selectedBoardDefId`, `audience`, `density`); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
@@ -38,6 +38,16 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-07-08 — Rendr primary, Kip + domain lead in Agents footer
+- **`DESIGNER_BOARD_DEF`:** `dialogOrchestration: "director"` — Rendr owns composer; Kip and domain lead pin-able in footer Agents bar.
+- **`UniversalConversation`:** designer director mode loads domain agent roster; delegates to Kip / domain lead without swapping Rendr session agent.
+
+### 2026-07-07 — Rendr identity hardening
+- Strict agent resolution on Design Board — `rendr` never silently falls back to Kip; composer shows a clear error if Rendr is missing.
+- Designer sessions resume **only** when `session.agent_id` matches Rendr; old Kip designer threads are skipped (fresh Rendr session created).
+- Dialog banner primary is **Rendr** (not "Design").
+- API: `GET ?slug=rendr` self-heals agent row + `voice_prompt`; session memory ignored when session agent ≠ running agent; identity lock in system prompt.
+
 ### 2026-07-06 — Rendr Dialog on Design Board (Treatment v0)
 - **`DESIGNER_BOARD_DEF`**: Dialog agent is **Rendr** (was Kip) with Treatment-focused greeting.
 - **`UniversalConversation`**: Designer focus defaults to `domain` when Nav has no board-def selection — composer and session work on open. Injects `designBoard.currentTreatment` into agent context. **Apply** on `TreatmentProposeCard` patches `frame_json.treatment` and reloads domain frame.
