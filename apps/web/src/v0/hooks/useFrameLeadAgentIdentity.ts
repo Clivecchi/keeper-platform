@@ -2,8 +2,11 @@
 
 import * as React from "react"
 import {
+  clearMissingLeadSlug,
+  formatDomainLeadDisplayName,
   getCachedFrameLeadAgentDisplayName,
   getCachedLeadAgentIdentity,
+  isDomainLeadAgentSlug,
   isMissingLeadAgentSlug,
   KIP_FALLBACK_DISPLAY_NAME,
   KIP_FALLBACK_SLUG,
@@ -30,7 +33,10 @@ export function useFrameLeadAgentIdentity(
 
   const [displayName, setDisplayName] = React.useState(() => {
     if (!resolvedSlug) return KIP_FALLBACK_DISPLAY_NAME
-    return getCachedFrameLeadAgentDisplayName(resolvedSlug) ?? pendingDisplayName
+    return (
+      getCachedFrameLeadAgentDisplayName(resolvedSlug)
+      ?? (isDomainLeadAgentSlug(resolvedSlug) ? formatDomainLeadDisplayName(resolvedSlug) : pendingDisplayName)
+    )
   })
 
   const [isLoading, setIsLoading] = React.useState(
@@ -38,10 +44,14 @@ export function useFrameLeadAgentIdentity(
   )
 
   React.useEffect(() => {
-    if (!resolvedSlug || isMissingLeadAgentSlug(resolvedSlug)) {
+    if (!resolvedSlug) {
       setDisplayName(KIP_FALLBACK_DISPLAY_NAME)
       setIsLoading(false)
       return
+    }
+
+    if (isMissingLeadAgentSlug(resolvedSlug)) {
+      clearMissingLeadSlug(resolvedSlug)
     }
 
     const identityCached = getCachedLeadAgentIdentity(resolvedSlug)
@@ -58,17 +68,26 @@ export function useFrameLeadAgentIdentity(
       return
     }
 
-    setDisplayName(pendingDisplayName)
+    const pendingLabel = isDomainLeadAgentSlug(resolvedSlug)
+      ? formatDomainLeadDisplayName(resolvedSlug)
+      : pendingDisplayName
+    setDisplayName(pendingLabel)
     setIsLoading(true)
     let cancelled = false
 
-    void resolveFrameLeadAgentIdentity(resolvedSlug).then((identity) => {
+    void resolveFrameLeadAgentIdentity(resolvedSlug, {
+      allowKipFallback: !isDomainLeadAgentSlug(resolvedSlug),
+    }).then((identity) => {
       if (cancelled) return
       setDisplayName(identity.displayName)
       setIsLoading(false)
     }).catch(() => {
       if (cancelled) return
-      setDisplayName(KIP_FALLBACK_DISPLAY_NAME)
+      setDisplayName(
+        isDomainLeadAgentSlug(resolvedSlug)
+          ? formatDomainLeadDisplayName(resolvedSlug)
+          : KIP_FALLBACK_DISPLAY_NAME,
+      )
       setIsLoading(false)
     })
 

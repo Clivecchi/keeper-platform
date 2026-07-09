@@ -214,6 +214,8 @@ function UniversalBoardShell({
     (navVersions?.draftListVersion ?? 0) + selection.draftNavRevision
   const effectiveJourneyListVersion =
     (navVersions?.journeyListVersion ?? 0) + selection.journeyNavRevision
+  const effectiveDialogListVersion =
+    (navVersions?.dialogListVersion ?? 0) + selection.dialogNavRevision
 
   const slug = domainSlug ?? ""
 
@@ -473,7 +475,7 @@ function UniversalBoardShell({
                           onLibraryItemSelect={actions.onLibraryItemSelect}
                           collapsed={navCollapsed}
                           onToggleCollapsed={onToggleNavCollapsed}
-                          dialogListVersion={navVersions?.dialogListVersion}
+                          dialogListVersion={effectiveDialogListVersion}
                           journeyListVersion={effectiveJourneyListVersion}
                           keeperListVersion={selection.keeperNavRevision}
                           draftListVersion={effectiveDraftListVersion}

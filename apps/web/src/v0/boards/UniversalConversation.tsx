@@ -75,7 +75,7 @@ import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
-import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME } from "../lib/frameLeadAgentIdentity"
+import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName } from "../lib/frameLeadAgentIdentity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
 import type { ComposerAgentChip } from "../../components/agent/AgentComposer"
@@ -234,10 +234,6 @@ export function UniversalConversation({
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
   const agentEcho = def.conversation.agentEcho === true
   const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame)
-  const frameLeadIdentity = useFrameLeadAgentIdentity(
-    frameLeadAgentSlug,
-    def.conversation.agentName ?? "Kip",
-  )
   const baseAgentSlug = def.conversation.agentFromFrame
     ? resolveDialogAgentSlug(domainFrame)
     : (def.conversation.agentSlug ?? "kip")
@@ -312,7 +308,7 @@ export function UniversalConversation({
   React.useEffect(() => {
     const needsDomainRoster =
       kipMode === "domain" || (kipMode === "designer" && isDirectorMode)
-    if (!domainId || !needsDomainRoster || !isDirectorMode) {
+    if (!domainId || !needsDomainRoster) {
       setDomainScopedAgents([])
       return
     }
@@ -329,11 +325,31 @@ export function UniversalConversation({
     return () => { cancelled = true }
   }, [domainId, kipMode, isDirectorMode])
 
+  const rosterDomainLeadSlug = React.useMemo(() => {
+    const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
+    for (const agent of domainScopedAgents) {
+      if (
+        !platformComposerSlugs.has(agent.slug)
+        && !PLACEHOLDER_LEAD_AGENT_SLUGS.has(agent.slug)
+      ) {
+        return agent.slug
+      }
+    }
+    return null
+  }, [domainScopedAgents])
+
+  const effectiveDomainLeadSlug = frameLeadAgentSlug ?? rosterDomainLeadSlug
+
+  const frameLeadIdentity = useFrameLeadAgentIdentity(
+    effectiveDomainLeadSlug,
+    def.conversation.agentName ?? "Kip",
+  )
+
   const normalizedDomainLeadSlug = React.useMemo(() => {
-    const raw = frameLeadAgentSlug?.trim()
+    const raw = effectiveDomainLeadSlug?.trim()
     if (!raw || PLACEHOLDER_LEAD_AGENT_SLUGS.has(raw)) return null
     return raw
-  }, [frameLeadAgentSlug])
+  }, [effectiveDomainLeadSlug])
 
   const domainLeadDisplayName =
     normalizedDomainLeadSlug && frameLeadIdentity.displayName
@@ -354,6 +370,9 @@ export function UniversalConversation({
     if (kipMode === "domain") {
       const labels: Record<string, string> = {}
       const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
+      if (normalizedDomainLeadSlug && domainLeadDisplayName) {
+        labels[normalizedDomainLeadSlug] = domainLeadDisplayName
+      }
       for (const agent of domainScopedAgents) {
         if (!platformComposerSlugs.has(agent.slug)) {
           labels[agent.slug] = agent.name
@@ -373,18 +392,16 @@ export function UniversalConversation({
       defaultLeadPinnedRef.current = false
       return
     }
-    if (normalizedDomainLeadSlug && domainLeadDisplayName) {
-      setComposerLeadSlug((prev) => prev ?? normalizedDomainLeadSlug)
+    if (normalizedDomainLeadSlug) {
+      clearMissingLeadSlug(normalizedDomainLeadSlug)
+      setComposerLeadSlug(normalizedDomainLeadSlug)
     }
-  }, [kipMode, isDirectorMode, normalizedDomainLeadSlug, domainLeadDisplayName])
+  }, [kipMode, isDirectorMode, normalizedDomainLeadSlug])
 
   React.useEffect(() => {
     if (kipMode !== "domain" || !isDirectorMode) return
     if (defaultLeadPinnedRef.current || activeBoardInstrument !== null) return
-    if (
-      normalizedDomainLeadSlug &&
-      directorInstrumentLabels[normalizedDomainLeadSlug]
-    ) {
+    if (normalizedDomainLeadSlug) {
       actions.onSetActiveBoardInstrument(normalizedDomainLeadSlug)
       defaultLeadPinnedRef.current = true
     }
@@ -392,7 +409,6 @@ export function UniversalConversation({
     kipMode,
     isDirectorMode,
     normalizedDomainLeadSlug,
-    directorInstrumentLabels,
     activeBoardInstrument,
     actions,
   ])
@@ -407,11 +423,7 @@ export function UniversalConversation({
         isDirector: true,
       },
     ]
-    if (
-      normalizedDomainLeadSlug &&
-      composerLeadSlug !== normalizedDomainLeadSlug &&
-      domainLeadDisplayName
-    ) {
+    if (normalizedDomainLeadSlug && domainLeadDisplayName) {
       instruments.push({
         slug: normalizedDomainLeadSlug,
         label: domainLeadDisplayName,
@@ -434,7 +446,6 @@ export function UniversalConversation({
     directorAgentSlug,
     defaultAgentName,
     normalizedDomainLeadSlug,
-    composerLeadSlug,
     domainLeadDisplayName,
     domainScopedAgents,
   ])
@@ -472,13 +483,18 @@ export function UniversalConversation({
     if (
       kipMode !== "domain" ||
       !isDirectorMode ||
+      !normalizedDomainLeadSlug ||
       !composerLeadSlug ||
-      !domainLeadDisplayName ||
       composerLeadSlug !== normalizedDomainLeadSlug
     ) {
       return []
     }
-    return [{ slug: composerLeadSlug, label: domainLeadDisplayName }]
+    const label =
+      domainLeadDisplayName
+      ?? (isDomainLeadAgentSlug(normalizedDomainLeadSlug)
+        ? formatDomainLeadDisplayName(normalizedDomainLeadSlug)
+        : normalizedDomainLeadSlug)
+    return [{ slug: composerLeadSlug, label }]
   }, [
     kipMode,
     isDirectorMode,
@@ -487,9 +503,9 @@ export function UniversalConversation({
     normalizedDomainLeadSlug,
   ])
 
-  /** Domain director with platform Kip only — hide toolbar badge; Kip lives in footer Agents bar. */
+  /** Domain director: toolbar shows domain lead only — Kip stays in footer Agents bar. */
   const showComposerToolbarAgentIdentity =
-    !(kipMode === "domain" && isDirectorMode && composerAgentChips.length === 0 && !normalizedDomainLeadSlug)
+    kipMode !== "domain" || !isDirectorMode || composerAgentChips.length > 0
 
   const dialogAgentSlug = guidedArrivalActive && guidedArrival
     ? guidedArrival.leadAgentSlug
@@ -1284,11 +1300,15 @@ export function UniversalConversation({
     (slug: string) => {
       if (slug !== composerLeadSlug) return
       setComposerLeadSlug(null)
+      if (normalizedDomainLeadSlug && slug === normalizedDomainLeadSlug) {
+        actions.onSetActiveBoardInstrument(normalizedDomainLeadSlug)
+        return
+      }
       if (activeBoardInstrument === slug) {
         actions.onSetActiveBoardInstrument(null)
       }
     },
-    [composerLeadSlug, activeBoardInstrument, actions],
+    [composerLeadSlug, normalizedDomainLeadSlug, activeBoardInstrument, actions],
   )
 
   const handleToolInvoke = React.useCallback(

@@ -32,6 +32,7 @@ Journey and Path cover actions also call `requestChronicleEngagement` (same pipe
 - [ ] Public Present engagement after member board pass is complete
 
 ## 📆 Update Log
+- **2026-07-08** — Nav create Acts for `keeper.create`, `dialog.create`, `agent.create`; post-submit nav bump + selection; Lead agent assigns domain `primaryAgentId`.
 - **2026-07-07** — `parseEngagementTemplateResponse` accepts both `{ success, data }` (execute router) and legacy flat templates-router payloads so Nav `+` opens Chronicle Acts reliably.
 - **2026-06-19** — `useBoardEngagement` passes execute `data` to `onSuccess`; `ChronicleEngagementSurface` bumps draft nav + selects new draft on `draft.create`.
 - **2026-06-19** — `ChronicleActPresence` uses declared `ChronicleConfigShell` (matches Agent Manage); removed bespoke Act header + `EngagementForm`.

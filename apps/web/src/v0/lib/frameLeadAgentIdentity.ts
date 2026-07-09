@@ -24,6 +24,7 @@ function hydrateMissingLeadSlugsFromStorage(): void {
 
 function persistMissingLeadSlug(slug: string): void {
   if (STRICT_PLATFORM_AGENT_SLUGS.has(slug)) return
+  if (isDomainLeadAgentSlug(slug)) return
   missingLeadSlugs.add(slug)
   if (typeof sessionStorage === "undefined") return
   try {
@@ -59,6 +60,26 @@ export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
 
 /** Platform dialog agents — never silently substitute Kip when lookup fails. */
 export const STRICT_PLATFORM_AGENT_SLUGS = new Set<string>(["rendr", "cloud"])
+
+/** Canonical domain lead slugs — never cache as missing; always retry API self-heal. */
+export const CANONICAL_DOMAIN_LEAD_SLUGS = new Set<string>(["ceox"])
+
+/** Domain lead slugs from frame JSON — preserve identity; do not fall back to Kip in UI. */
+export function isDomainLeadAgentSlug(slug: string | null | undefined): boolean {
+  const trimmed = slug?.trim()
+  if (!trimmed || PLACEHOLDER_LEAD_AGENT_SLUGS.has(trimmed)) return false
+  if (CANONICAL_DOMAIN_LEAD_SLUGS.has(trimmed)) return true
+  return trimmed.endsWith("-lead") || trimmed.includes("-")
+}
+
+/** Human label for a domain lead slug while the agent record loads. */
+export function formatDomainLeadDisplayName(slug: string): string {
+  const trimmed = slug.trim()
+  if (trimmed === "ceox") return "Ceox"
+  const spaced = trimmed.replace(/-/g, " ").trim()
+  if (!spaced) return trimmed
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
 
 export type ResolveLeadAgentOptions = {
   /** When false, missing slug throws instead of falling back to Kip. Default: strict for rendr/cloud. */
@@ -133,10 +154,11 @@ export async function resolveFrameLeadAgentIdentity(
 ): Promise<ResolvedLeadAgentIdentity> {
   const primary = normalizeLeadAgentSlug(slug)
   const allowKipFallback =
-    options?.allowKipFallback ?? !STRICT_PLATFORM_AGENT_SLUGS.has(primary)
+    options?.allowKipFallback ??
+    (!STRICT_PLATFORM_AGENT_SLUGS.has(primary) && !isDomainLeadAgentSlug(primary))
 
   if (missingLeadSlugs.has(primary) && primary !== KIP_FALLBACK_SLUG) {
-    if (!allowKipFallback) {
+    if (!allowKipFallback || isDomainLeadAgentSlug(primary)) {
       clearMissingLeadSlug(primary)
     } else {
       return resolveFrameLeadAgentIdentity(KIP_FALLBACK_SLUG)
@@ -214,7 +236,7 @@ export function resolveDialogAgentSlug(
 ): string {
   const custom = readFrameLeadAgentSlug(domainFrame)
   if (custom && isMissingLeadAgentSlug(custom)) {
-    return KIP_FALLBACK_SLUG
+    clearMissingLeadSlug(custom)
   }
   return custom ?? KIP_FALLBACK_SLUG
 }

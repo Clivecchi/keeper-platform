@@ -49,6 +49,10 @@ async function main() {
     const seedDraftEngagement = await import('./seeds/draft-engagement-templates.seed.ts');
     await seedDraftEngagement.default();
 
+    console.log('🧩 Seeding Keeper/Dialog/Agent Create Engagement Templates...');
+    const seedEntityCreateEngagement = await import('./seeds/entity-create-engagement-templates.seed.ts');
+    await seedEntityCreateEngagement.default();
+
     console.log('🎯 Seeding Domain Board Management Templates...');
     const seedDomainBoardEngagement = await import('./seeds/domain-board-engagement-templates.seed.ts');
     await seedDomainBoardEngagement.default();

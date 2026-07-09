@@ -16,6 +16,9 @@ const HIDDEN_CONTEXT_FIELDS = new Set([
   "pathId",
   "dialogId",
   "kind",
+  "model",
+  "model_provider",
+  "role",
 ])
 
 const INPUT_CLASS =

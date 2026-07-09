@@ -389,6 +389,36 @@ export function UniversalNavPanel({
     user,
   ])
 
+  const handleKeeperCreate = React.useCallback(() => {
+    if (!domainId || !user || !boardCtx) return
+    void boardCtx.actions.requestChronicleEngagement("keeper.create", {
+      entityType: "domain",
+      entityId: domainId,
+      domainId,
+    })
+  }, [boardCtx, domainId, user])
+
+  const handleDialogCreate = React.useCallback(() => {
+    if (!domainId || !user || !boardCtx) return
+    void boardCtx.actions.requestChronicleEngagement("dialog.create", {
+      entityType: "domain",
+      entityId: domainId,
+      domainId,
+    })
+  }, [boardCtx, domainId, user])
+
+  const handleAgentCreate = React.useCallback(() => {
+    if (!domainId || !user || !boardCtx) return
+    void boardCtx.actions.requestChronicleEngagement("agent.create", {
+      entityType: "domain",
+      entityId: domainId,
+      domainId,
+      model: "claude-sonnet-4-6",
+      model_provider: "anthropic",
+      role: "Lead",
+    })
+  }, [boardCtx, domainId, user])
+
   // ── designer board definitions — live from location.search ─────────────────
   const { selectBoardDefinition, switchWorkspace, workspaceBoardId, shellMode: contextShellMode, openDomainWorkspace: contextOpenDomainWorkspace, anchorDomainSlug } = useV0Shell()
   const boardDefinitionId = useBoardDefinitionFromUrl()
@@ -1207,7 +1237,7 @@ export function UniversalNavPanel({
               description={!domainId ? "Loading…" : countLabel(dialogs?.length ?? null, "dialog")}
               items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
               onTitleClick={() => toggleExpanded("dialogs")}
-              onAdd={() => { /* TODO: wire to dialog create callback in Moment 2.6 */ }}
+              onAdd={user && domainId ? handleDialogCreate : undefined}
             />
             {dialogError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
@@ -1265,7 +1295,7 @@ export function UniversalNavPanel({
               description={!domainId ? "Loading…" : countLabel(keepers?.length ?? null, "keeper")}
               items={slice("keepers", allKeeperItems).length ? slice("keepers", allKeeperItems) : undefined}
               onTitleClick={() => toggleExpanded("keepers")}
-              onAdd={() => { /* TODO: wire to keeper create callback in Moment 2.6 */ }}
+              onAdd={user && domainId ? handleKeeperCreate : undefined}
             />
             {keeperError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
@@ -1561,6 +1591,7 @@ export function UniversalNavPanel({
               description={!domainId ? "Loading…" : countLabel(agents?.length ?? null, "agent")}
               items={slice("agents", allAgentItems).length ? slice("agents", allAgentItems) : allAgentItems}
               onTitleClick={() => toggleExpanded("agents")}
+              onAdd={user && domainId ? handleAgentCreate : undefined}
             />
             {agentError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>

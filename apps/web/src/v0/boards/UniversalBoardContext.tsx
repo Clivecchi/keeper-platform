@@ -95,6 +95,8 @@ export interface UniversalBoardSelection {
   keeperNavRowPatch: KeeperNavRowPatch | null
   /** Increment to refetch Journeys nav list after engagement creates a journey. */
   journeyNavRevision: number
+  /** Increment to refetch Dialogs nav list after dialog create or archive. */
+  dialogNavRevision: number
   /** Increment to refetch Drafts nav list after create or metadata save. */
   draftNavRevision: number
   /** Optimistic Drafts nav row patch applied before refetch completes. */
@@ -145,6 +147,7 @@ export interface UniversalBoardActions {
   bumpLibraryNav: (patch?: LibraryNavRowPatch) => void
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   bumpJourneyNav: () => void
+  bumpDialogNav: () => void
   bumpDraftNav: (patch?: DraftNavRowPatch) => void
   bumpAgentNav: (patch?: AgentNavRowPatch) => void
   /** Pass a draft point into Dialog context for the next Kip exchange. */
@@ -233,6 +236,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [keeperNavRowPatch, setKeeperNavRowPatch] =
     React.useState<KeeperNavRowPatch | null>(null)
   const [journeyNavRevision, setJourneyNavRevision] = React.useState(0)
+  const [dialogNavRevision, setDialogNavRevision] = React.useState(0)
   const [draftNavRevision, setDraftNavRevision] = React.useState(0)
   const [draftNavRowPatch, setDraftNavRowPatch] =
     React.useState<DraftNavRowPatch | null>(null)
@@ -576,6 +580,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setJourneyNavRevision((n) => n + 1)
   }, [])
 
+  const bumpDialogNav = React.useCallback(() => {
+    setDialogNavRevision((n) => n + 1)
+  }, [])
+
   const bumpDraftNav = React.useCallback((patch?: DraftNavRowPatch) => {
     setDraftNavRowPatch(patch ?? null)
     setDraftNavRevision((n) => n + 1)
@@ -726,6 +734,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         keeperNavRevision,
         keeperNavRowPatch,
         journeyNavRevision,
+        dialogNavRevision,
         draftNavRevision,
         draftNavRowPatch,
         agentNavRevision,
@@ -761,6 +770,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpLibraryNav,
         bumpKeeperNav,
         bumpJourneyNav,
+        bumpDialogNav,
         bumpDraftNav,
         bumpAgentNav,
         requestDiscussDraftPoint,
@@ -806,6 +816,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       keeperNavRevision,
       keeperNavRowPatch,
       journeyNavRevision,
+      dialogNavRevision,
       draftNavRevision,
       draftNavRowPatch,
       agentNavRevision,
@@ -839,6 +850,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpLibraryNav,
       bumpKeeperNav,
       bumpJourneyNav,
+      bumpDialogNav,
       bumpDraftNav,
       bumpAgentNav,
       requestDiscussDraftPoint,

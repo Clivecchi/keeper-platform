@@ -30,6 +30,17 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-08 — Keeper, Dialog, Agent Nav create Acts
+- Seeded `keeper.create`, `dialog.create`, `agent.create` engagement templates.
+- Domain Board Nav `+` on Keepers and Dialogs opens Chronicle Acts (same pipeline as Journeys).
+- Agent Board Nav `+` creates agents; Lead agents assign `settings.primaryAgentId` so they appear in the roster.
+- `UniversalBoardContext` adds `bumpDialogNav` / `dialogNavRevision` for dialog list refresh after create.
+
+### 2026-07-08 — Domain lead (Ceox) always available on owner domains
+- **`frameLeadAgentIdentity`:** domain lead slugs (`ceox`, `*-lead`, …) never cached as missing; no silent Kip substitution in UI.
+- **`useFrameLeadAgentIdentity`:** clears stale cache and shows formatted lead name while API resolves.
+- **`UniversalConversation`:** domain lead from `frame_json` **or** domain agent roster; pinned to toolbar + footer by default; Kip only in footer Agents bar; dismiss toolbar chip keeps lead invoked via footer.
+
 ### 2026-07-08 — Universal agent surfacing (Design + Domain dedupe)
 - **Design Board:** `dialogOrchestration: "director"` — Rendr owns composer; footer **Agents** bar lists domain lead (when set) + Kip for delegation.
 - **Domain Board:** when platform Kip is the only lead, toolbar ∞ badge hidden — Kip appears once in footer Agents bar (no duplicate).

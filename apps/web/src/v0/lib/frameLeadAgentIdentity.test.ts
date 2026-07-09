@@ -2,9 +2,11 @@ import { describe, expect, it, beforeEach, vi } from "vitest"
 import {
   clearFrameLeadAgentDisplayNameCache,
   fetchFrameLeadAgentDisplayName,
+  formatDomainLeadDisplayName,
   getCachedFrameLeadAgentDisplayName,
   KIP_FALLBACK_DISPLAY_NAME,
   readFrameLeadAgentSlug,
+  resolveDialogAgentSlug,
   resolveLeadAgentId,
   STRICT_PLATFORM_AGENT_SLUGS,
 } from "./frameLeadAgentIdentity"
@@ -54,17 +56,26 @@ describe("frameLeadAgentIdentity", () => {
     expect(KipApi.getAgentBySlug).not.toHaveBeenCalled()
   })
 
-  it("resolveLeadAgentId falls back to kip when domain lead is missing", async () => {
-    vi.mocked(KipApi.getAgentBySlug)
-      .mockRejectedValueOnce(new Error("not found"))
-      .mockResolvedValueOnce({
-        id: "kip-uuid",
-        slug: "kip",
-        name: "Kip",
-      } as Awaited<ReturnType<typeof KipApi.getAgentBySlug>>)
+  it("formatDomainLeadDisplayName formats ceox", () => {
+    expect(formatDomainLeadDisplayName("ceox")).toBe("Ceox")
+    expect(formatDomainLeadDisplayName("chuck-lead")).toBe("Chuck lead")
+  })
 
-    await expect(resolveLeadAgentId("chuck-livecchi-lead")).resolves.toBe("kip-uuid")
-    expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(2)
+  it("resolveDialogAgentSlug keeps domain lead slug even when previously cached missing", () => {
+    sessionStorage.setItem("keeper:missing-lead-slugs", JSON.stringify(["ceox"]))
+    clearFrameLeadAgentDisplayNameCache()
+    sessionStorage.setItem("keeper:missing-lead-slugs", JSON.stringify(["ceox"]))
+    expect(resolveDialogAgentSlug({ kip: { agent_id: "ceox" } })).toBe("ceox")
+    clearFrameLeadAgentDisplayNameCache()
+  })
+
+  it("resolveLeadAgentId does not fall back for domain lead slugs", async () => {
+    vi.mocked(KipApi.getAgentBySlug).mockRejectedValueOnce(new Error("not found"))
+
+    await expect(resolveLeadAgentId("chuck-livecchi-lead")).rejects.toThrow(
+      /chuck-livecchi-lead agent is not available/,
+    )
+    expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(1)
   })
 
   it("resolveLeadAgentId does not fall back for strict platform agents", async () => {

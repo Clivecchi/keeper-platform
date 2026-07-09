@@ -19,6 +19,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
+- 2026-07-08: Domain lead slugs (`ceox`, `*-lead`) never persist to missing-slug cache; `formatDomainLeadDisplayName`; `resolveDialogAgentSlug` no longer drops cached-missing leads.
 - 2026-07-08: Strict platform agents (`rendr`, `cloud`) no longer persist to missing-slug cache; stale cache entries cleared before retry so API self-heal can succeed on Design Board.
 - 2026-07-07: `ensureDomainProvisioned` returns `provisioned: true` only when API reports `frameWritten` or `frameAgentSynced` (stops redundant frame reload on every owner visit). Added `isDomainProvisionSessionOk`.
 - 2026-07-03: Added `userHomeSettings.ts` — Home label fetch/save (localStorage; `/api/kam/settings` read when available).
