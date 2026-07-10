@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-07-08: **Gloss bubble framing** — `GlossSurface` wraps the chat bubble shell (not just `<p>`); hover recolors the existing border and places the Gloss pill on the top border rail without overlapping message text.
 - 2026-07-02: **P4.1 paste in Thinking Space** — large paste tiles render in Broadcast Strip (`DialogUploadStream`) on Dialog boards; transcript uses `displayContent` not raw supporting context. **P2.3 Cloud routing** — failed/empty director delegation shows amber notice beat (`status: failed|empty`) instead of hiding routing failure.
 - 2026-07-02: **P2.1 action failure visibility** — `DialogueMessageList` shows skipped/error action receipts including `NOT_ALLOWED`; removed filter that hid unsupported actions from the transcript.
 - 2026-06-29: **Multi-agent turn grouping** — director delegation + lead (+ echo) render inside `.dialog-multi-agent-turn`: slight indent, hairline border, left accent, inner beats separated by dividers (single combined output, not separate bubbles).

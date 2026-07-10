@@ -22,6 +22,7 @@ Universal gesture for focused Dialog exchange on discrete chat content — hover
 - [ ] Journey / Path receipt cards
 
 ## 📆 Update Log
+- **2026-07-08** — Chat bubbles use `highlightMode="border"` + `affordancePlacement="border"`: hover recolors the existing 1px bubble border; Gloss pill rides on the top border rail (no text overlap, no layout jump).
 - **2026-07-07** — Message/caption gloss uses overlay affordance only (no in-flow row above content) — hover shows green outline + corner button without layout jump.
 - **2026-07-04** — Message hover tooltip shortened to "Discuss message"; text affordance sits above content (images stay overlay).
 - **2026-07-04** — Scrollbar gutter fixed (no layout jump); green-only gloss frame; stronger Gloss affordance pill with label.

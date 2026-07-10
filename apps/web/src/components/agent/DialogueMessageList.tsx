@@ -157,20 +157,21 @@ function AgentMessageTurn({
 
   if (!isMultiAgentTurn) {
     return (
-      <div
-        className="max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm"
-        style={{
-          backgroundColor: "hsl(var(--theme-surface-paper))",
-          color: "var(--theme-ink-primary-color)",
-          border: "1px solid hsl(var(--theme-border-soft))",
-          boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
-        }}
-      >
+      <div className="max-w-xl">
         <GlossSurface
           messageId={message.id}
           anchor={buildMessageGlossAnchor(message.id, "body")}
           glossThreads={message.glossThreads}
           snapshot={{ label: "message", text: message.content.trim().slice(0, 280) }}
+          highlightMode="border"
+          affordancePlacement="border"
+          className="rounded-2xl px-4 py-3 text-sm shadow-sm"
+          style={{
+            backgroundColor: "hsl(var(--theme-surface-paper))",
+            color: "var(--theme-ink-primary-color)",
+            border: "1px solid hsl(var(--theme-border-soft))",
+            boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
+          }}
         >
           <p className="whitespace-pre-line">{message.content}</p>
         </GlossSurface>
@@ -437,21 +438,23 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
         if (message.role === "user") {
           return (
             <div key={message.id} className="flex justify-end">
-              <div
-                className="max-w-xl rounded-2xl px-4 py-3 text-sm text-white shadow-sm"
-                style={{
-                  backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
-                }}
-              >
+              <div className="max-w-xl">
                 <GlossSurface
                   messageId={message.id}
                   anchor={buildMessageGlossAnchor(message.id, "body")}
                   glossThreads={message.glossThreads}
                   snapshot={{ label: "your message", text: message.content.trim().slice(0, 280) }}
+                  highlightMode="border"
+                  affordancePlacement="border"
+                  className="rounded-2xl px-4 py-3 text-sm text-white shadow-sm"
+                  style={{
+                    backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+                    border: "1px solid hsl(var(--theme-dialogue-user-bg, 14 60% 56%) / 0.85)",
+                  }}
                 >
                   <p className="whitespace-pre-line">{message.content}</p>
                 </GlossSurface>
-                <span className="mt-2 block text-xs" style={{ color: "rgba(255,255,255,0.8)" }}>
+                <span className="mt-2 block text-right text-xs" style={{ color: "rgba(255,255,255,0.8)" }}>
                   {formatTime(message.createdAt)}
                 </span>
               </div>

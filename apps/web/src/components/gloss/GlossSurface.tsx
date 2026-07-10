@@ -7,7 +7,8 @@ import { useGloss } from "./GlossProvider"
 import { GlossThreadPanel } from "./GlossThreadPanel"
 import { describeGlossHint } from "./glossHints"
 
-export type GlossAffordancePlacement = "above" | "overlay"
+export type GlossAffordancePlacement = "above" | "overlay" | "border"
+export type GlossHighlightMode = "shadow" | "border"
 
 export interface GlossSurfaceProps {
   anchor: GlossAnchor
@@ -20,9 +21,12 @@ export interface GlossSurfaceProps {
   hoverHint?: string
   /** Text nodes default to above; images/cards default to overlay */
   affordancePlacement?: GlossAffordancePlacement
+  /** shadow = box-shadow ring (receipts); border = recolor existing 1px border (chat bubbles) */
+  highlightMode?: GlossHighlightMode
   /** When false, only children render unchanged */
   enabled?: boolean
   className?: string
+  style?: React.CSSProperties
   children: React.ReactNode
 }
 
@@ -43,8 +47,10 @@ export function GlossSurface({
   depth = 0,
   hoverHint,
   affordancePlacement: affordancePlacementProp,
+  highlightMode = "shadow",
   enabled = true,
   className,
+  style,
   children,
 }: GlossSurfaceProps) {
   const gloss = useGloss()
@@ -105,13 +111,17 @@ export function GlossSurface({
   const showAffordance = isHoverWinner || isOpen || pressing
   const showHighlight = isHoverWinner || isOpen
 
+  const affordancePlacementClass =
+    affordancePlacement === "above"
+      ? "gloss-affordance--above"
+      : affordancePlacement === "border"
+        ? "gloss-affordance--border"
+        : "gloss-affordance--overlay"
+
   const affordanceButton = showAffordance ? (
     <button
       type="button"
-      className={[
-        "gloss-affordance",
-        affordancePlacement === "above" ? "gloss-affordance--above" : "gloss-affordance--overlay",
-      ].join(" ")}
+      className={["gloss-affordance", affordancePlacementClass].join(" ")}
       aria-label={hint}
       title={hint}
       onClick={(e) => {
@@ -133,6 +143,7 @@ export function GlossSurface({
     <div
       className={[
         "gloss-surface relative",
+        highlightMode === "border" ? "gloss-surface--frame-border" : "",
         showHighlight ? "gloss-surface--highlight" : "",
         isOpen ? "gloss-surface--open" : "",
         pressing ? "gloss-surface--pressing" : "",
@@ -140,6 +151,7 @@ export function GlossSurface({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={style}
       data-gloss-anchor={buildGlossAnchorDataAttribute(anchor)}
       data-gloss-depth={depth}
       onMouseEnter={handleMouseEnter}
@@ -154,7 +166,7 @@ export function GlossSurface({
 
       {children}
 
-      {affordancePlacement === "overlay" && affordanceButton}
+      {(affordancePlacement === "overlay" || affordancePlacement === "border") && affordanceButton}
 
       {isOpen ? (
         <GlossThreadPanel
