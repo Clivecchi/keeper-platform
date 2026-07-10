@@ -34,6 +34,7 @@ import { ensureDomainAgentPolicy, ensureAllDomainsHaveAgentPolicy } from './gove
 import { provisionDomainOnCreate } from './services/domains/provisionDomainOnCreate.js';
 import { ensureAiModelIntegrations } from './lib/ensureAiModelIntegrations.js';
 import flatDomainsRouter from './api/domains.js';
+import realmFeedRouter from './api/realm/feed.js';
 import domainBoardDataRouter from './api/domains/board-data.js';
 import adminDomainRoutes from './api/admin/domains.js';
 // Import engagement routes
@@ -956,6 +957,7 @@ app.use('/api/domains', domainBoardDataRouter); // Specific: /:domainId/board-da
 app.use('/api/domains', domainRoutes);          // Has /by-slug (public) and /:id (auth required)
 app.use('/api/governance', governanceRouter);   // Contracts list and detail
 app.use('/api/domains', flatDomainsRouter);     // Authenticated admin list
+app.use('/api/realm', realmFeedRouter);         // Person-scoped realm feed
 
 // Admin domain management (super-admin only)
 app.use('/api/admin/domains', adminDomainRoutes);

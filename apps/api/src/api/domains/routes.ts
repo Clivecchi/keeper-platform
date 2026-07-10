@@ -890,20 +890,27 @@ router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
       });
     }
 
-    // Determine primary domain based on business logic
-    // Primary domain is the first domain owned by the user that matches their name
+    // Anchor source of truth: users.primaryDomainId; name-match heuristic is fallback only.
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      select: { name: true }
+      select: { name: true, primaryDomainId: true },
     });
 
+    const primaryFromColumn = user?.primaryDomainId?.trim() || null;
+
     const domainsWithPrimary = domains.map((domain: any) => {
-      const isPrimary = domain.ownerId === userId && 
-                       user?.name && 
-                       domain.name.toLowerCase().includes(user.name.toLowerCase());
+      let isPrimary = false;
+      if (primaryFromColumn) {
+        isPrimary = domain.id === primaryFromColumn;
+      } else {
+        isPrimary =
+          domain.ownerId === userId &&
+          !!user?.name &&
+          domain.name.toLowerCase().includes(user.name.toLowerCase());
+      }
       return {
         ...domain,
-        isPrimary
+        isPrimary,
       };
     });
 

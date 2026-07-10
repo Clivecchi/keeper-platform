@@ -75,6 +75,11 @@ import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
+import { useV0Shell } from "../shell/V0ShellContext"
+import { RealmArrivalRemarks } from "../realm/RealmArrivalRemarks"
+import { RealmInvitationBar, type RealmInvitationId } from "../realm/RealmInvitationBar"
+import { useRealmArrivalOptional } from "../realm/RealmArrivalContext"
+import { useRealmFeed } from "../realm/useRealmFeed"
 import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName } from "../lib/frameLeadAgentIdentity"
 import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
@@ -225,13 +230,16 @@ export function UniversalConversation({
   onDraftListRefresh,
   onJourneyListRefresh,
 }: UniversalConversationProps) {
-  const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame } = useV0Shell()
+  const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame, shellMode } = useV0Shell()
   const boardDefinitionId = useBoardDefinitionFromUrl()
   const frameCtx = useFrameContextOptional()
   const { refreshSession, user } = useAuth()
   const audience = shellAudience ?? "keeper"
   const kipMode = def.conversation.kipMode
   const guidedArrival = useGuidedArrivalOptional()
+  const isRealmHomeArrival = def.boardId === "realm" && shellMode === "home"
+  const realmArrival = useRealmArrivalOptional()
+  const { feed: realmFeed, isLoading: realmFeedLoading } = useRealmFeed(isRealmHomeArrival)
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
   const agentEcho = def.conversation.agentEcho === true
   const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame)
@@ -558,7 +566,9 @@ export function UniversalConversation({
           ? defaultAgentName
           : usingSelectedNonDefaultAgent && selectedAgentRecord
             ? selectedAgentRecord.name
-            : def.conversation.agentName
+            : def.conversation.agentFromFrame
+              ? frameLeadIdentity.displayName
+              : def.conversation.agentName
 
   const directorConfig = React.useMemo(
     () =>
@@ -1778,6 +1788,28 @@ export function UniversalConversation({
     [setMessages],
   )
 
+  const handleRealmInvitation = React.useCallback(
+    (id: RealmInvitationId) => {
+      if (id === "feed") {
+        realmArrival?.setChronicleView("feed")
+        return
+      }
+      if (id === "drafts") {
+        actions.bumpDraftNav()
+        realmArrival?.setChronicleView("feed")
+        return
+      }
+      if (id === "sessions" || id === "thread") {
+        realmArrival?.setChronicleView("playbill")
+      }
+    },
+    [actions, realmArrival],
+  )
+
+  const realmComposerPlaceholder = isRealmHomeArrival
+    ? `Message ${dialogAgentDisplayName}`
+    : undefined
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -1791,6 +1823,28 @@ export function UniversalConversation({
           onPublish={handlePublish}
         />
       )}
+
+      {isRealmHomeArrival ? (
+        <>
+          <RealmArrivalRemarks
+            remarks={realmFeed?.remarks ?? "Welcome back."}
+            agentSlug={dialogAgentSlug}
+            agentDisplayName={dialogAgentDisplayName}
+            isLoading={realmFeedLoading}
+          />
+          <RealmInvitationBar
+            counts={
+              realmFeed?.counts ?? {
+                drafts: 0,
+                sessions: 0,
+                moments: 0,
+                domains: 0,
+              }
+            }
+            onInvite={handleRealmInvitation}
+          />
+        </>
+      ) : null}
 
       <KeeperDialogFrame
         bannerContext={bannerContext}
@@ -1858,6 +1912,7 @@ export function UniversalConversation({
         }
         activeSessionId={dialogSessionId}
         disabled={composerDisabled}
+        inputPlaceholder={realmComposerPlaceholder}
         glossConfig={{
           agentId: dialogAgentId,
           sessionId: dialogSessionId,

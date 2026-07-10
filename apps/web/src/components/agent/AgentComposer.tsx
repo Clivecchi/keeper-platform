@@ -117,6 +117,8 @@ export interface AgentComposerProps {
   onInputFocusChange?: (focused: boolean) => void
   /** Expands composer input for mobile staged layout. */
   composerSize?: "default" | "mobile-expanded" | "mobile-compact"
+  /** Override default placeholder text. */
+  inputPlaceholder?: string
   feedbackSlot?: React.ReactNode
   /** Talk mode — mic control; transcript lands in composer for user confirm before send. */
   talkMode?: boolean
@@ -171,6 +173,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   submitOnEnter = true,
   onInputFocusChange,
   composerSize = "default",
+  inputPlaceholder,
   talkMode = false,
   talkState = "idle",
   talkSupported = false,
@@ -320,11 +323,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   const placeholder = disabled
     ? "Preparing conversation…"
-    : activeSessionId
-      ? submitOnEnter
-        ? "Share your thoughts… (Shift+Enter for new line)"
-        : "Share your thoughts…"
-      : "Create a session to start chatting"
+    : inputPlaceholder?.trim()
+      ? inputPlaceholder.trim()
+      : activeSessionId
+        ? submitOnEnter
+          ? "Share your thoughts… (Shift+Enter for new line)"
+          : "Share your thoughts…"
+        : "Create a session to start chatting"
 
   const canSend =
     (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled

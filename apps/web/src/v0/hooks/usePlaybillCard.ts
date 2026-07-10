@@ -10,7 +10,7 @@ import {
 } from "../lib/playbillData"
 
 export interface PlaybillCardData {
-  isCasting: boolean
+  isUncast: boolean
   isLoading: boolean
   agent: ResolvedPlaybillAgent | null
   stats: DomainPlaybillStats | null
@@ -26,7 +26,7 @@ export function usePlaybillCard({
   domainId,
   leadAgentSlug,
 }: UsePlaybillCardInput): PlaybillCardData {
-  const isCasting = !leadAgentSlug?.trim()
+  const isUncast = !leadAgentSlug?.trim()
   const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(null)
   const [stats, setStats] = React.useState<DomainPlaybillStats | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -58,7 +58,7 @@ export function usePlaybillCard({
   const activityLine = formatPlaybillActivity(stats)
 
   return {
-    isCasting,
+    isUncast,
     isLoading,
     agent,
     stats,

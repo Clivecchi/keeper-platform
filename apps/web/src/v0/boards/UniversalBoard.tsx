@@ -58,6 +58,7 @@ import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
 import { isMemberMobileBoard, type WorkspaceBoardId } from "./workspaceBoardNav"
 import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchestrator"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
+import { RealmArrivalProvider } from "../realm/RealmArrivalContext"
 import { prefetchBoardNavData } from "./boardNavDataCache"
 import { getCachedDomainBySlug } from "./domain/domainShellCache"
 
@@ -533,16 +534,19 @@ function boardNeedsDraftContext(def: UniversalBoardDef): boolean {
 }
 
 export function UniversalBoard(props: UniversalBoardProps) {
+  const shell = useV0Shell()
+  const isRealmHome = props.def.boardId === "realm" && shell.shellMode === "home"
   const needsDraft = boardNeedsDraftContext(props.def)
+  const shellNode = needsDraft ? (
+    <DesignerDraftProvider>
+      <UniversalBoardShell {...props} />
+    </DesignerDraftProvider>
+  ) : (
+    <UniversalBoardShell {...props} />
+  )
   return (
     <UniversalBoardProvider>
-      {needsDraft ? (
-        <DesignerDraftProvider>
-          <UniversalBoardShell {...props} />
-        </DesignerDraftProvider>
-      ) : (
-        <UniversalBoardShell {...props} />
-      )}
+      {isRealmHome ? <RealmArrivalProvider>{shellNode}</RealmArrivalProvider> : shellNode}
     </UniversalBoardProvider>
   )
 }

@@ -168,6 +168,7 @@ export interface KeeperDialogFrameProps {
   ) => Promise<void>
   activeSessionId: string | null
   disabled?: boolean
+  inputPlaceholder?: string
 
   // ── Optional Dialog zone override ─────────────────────────────────────────
   /** When provided, renders in Zone 2 instead of DialogueMessageList (dialog mode only). */
@@ -260,6 +261,7 @@ export function KeeperDialogFrame({
   onCommitAttachmentsToLibrary,
   activeSessionId,
   disabled,
+  inputPlaceholder,
   dialogContent,
   mode = 'dialog',
   feedContent,
@@ -751,6 +753,7 @@ export function KeeperDialogFrame({
             isSending={isSending || isFileUploading}
             activeSessionId={activeSessionId}
             disabled={disabled}
+            inputPlaceholder={inputPlaceholder}
             submitOnEnter={!isMobileStaged}
             onInputFocusChange={onComposerFocusChange}
             composerSize={mobileComposerSize}

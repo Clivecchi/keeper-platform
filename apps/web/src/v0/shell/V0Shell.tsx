@@ -49,6 +49,7 @@ import { resolveGuestPublicFrame } from "./guestPublicStory"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
+import { SceneChangeProvider } from "../sceneChange/SceneChangeProvider"
 import { loadDomainFrame, peekDomainFrame } from "../data/loadDomainFrame"
 import {
   fetchDomainAudience,
@@ -920,6 +921,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
             ...shellWorkspaceNav,
           }}
         >
+          <SceneChangeProvider>
           <FrameContextProvider
             domainSlug={effectiveSlug}
             frame={frame}
@@ -941,6 +943,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
             )}
             {kipHandoffToast}
           </FrameContextProvider>
+          </SceneChangeProvider>
         </V0ShellProvider>
       </StyleOverrideProvider>
     )

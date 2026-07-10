@@ -41,6 +41,8 @@ import {
   resolveDomainTreatment,
   type ResolvedDomainTreatment,
 } from "../../treatment/resolveDomainTreatment"
+import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
+import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
@@ -315,11 +317,23 @@ function PanelBody({
   treatment,
 }: PanelBodyProps) {
   const boardCtx = useUniversalBoardOptional()
+  const shell = useV0ShellOptional()
+  const realmArrival = useRealmArrivalOptional()
+  const isRealmHomeIdle =
+    shell?.shellMode === "home" &&
+    boardId === "realm" &&
+    subject.kind === "domain"
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]
   const objectId = subject.kind === "domain" ? domainId : subject.id
   const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(subject.kind) ? "config" : "focus"
 
   function renderPresence(): React.ReactNode {
+    if (isRealmHomeIdle) {
+      return (
+        <RealmHomeChronicle view={realmArrival?.chronicleView ?? "playbill"} />
+      )
+    }
+
     if (!objectId || !domainId) {
       return (
         <div className="flex h-full items-center justify-center px-4">

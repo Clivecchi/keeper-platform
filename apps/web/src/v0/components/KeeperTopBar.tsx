@@ -7,6 +7,7 @@ import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
+import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
 
@@ -100,18 +101,26 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
     workspaceBoardId,
     switchWorkspace,
     shellMode,
+    homeDisplayName,
   } = useV0Shell()
   const { user, logout } = useAuth()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
   const isHomeShell = shellMode === "home"
+  const leadAgent = useFrameLeadAgentIdentity(domainFrame)
 
-  const domainWordmark = domainFrame?.theme?.wordmark?.trim() || domainSlug
-  const tagline = (() => {
-    const card = domainFrame?.cover?.card as { tagLine?: string } | undefined
-    return card?.tagLine?.trim() || domainFrame?.theme?.tagline?.trim() || ""
-  })()
+  const domainWordmark = isHomeShell
+    ? homeDisplayName?.trim() || "Home"
+    : domainFrame?.theme?.wordmark?.trim() || domainSlug
+  const tagline = isHomeShell
+    ? leadAgent.displayName
+      ? `${leadAgent.displayName} greets you`
+      : "Your realm"
+    : (() => {
+        const card = domainFrame?.cover?.card as { tagLine?: string } | undefined
+        return card?.tagLine?.trim() || domainFrame?.theme?.tagline?.trim() || ""
+      })()
 
   const initials = getInitials(user?.name ?? null, user?.email ?? null)
   const displayName = user?.name?.trim() || user?.email?.trim() || "Guest"
@@ -147,6 +156,19 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
           aria-haspopup="dialog"
         >
           <span className="flex min-w-0 items-center gap-1">
+            {isHomeShell ? (
+              <span
+                className="keeper-topbar-realm-mark mr-1.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-serif font-semibold"
+                style={{
+                  background: "hsl(var(--theme-accent-primary) / 0.18)",
+                  color: "hsl(var(--theme-accent-primary))",
+                  border: "1px solid hsl(var(--theme-accent-primary) / 0.35)",
+                }}
+                aria-hidden
+              >
+                {(leadAgent.displayName || "H").slice(0, 1).toUpperCase()}
+              </span>
+            ) : null}
             <span className="keeper-topbar-primary keeper-topbar-wordmark font-serif font-semibold truncate max-w-[320px]">
               {domainWordmark}
             </span>
@@ -164,15 +186,17 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
         </button>
 
         <div className="keeper-topbar-user">
-          <div className="keeper-topbar-user-meta">
-            <p
-              className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate"
-              title={displayName}
-            >
-              {displayName}
-            </p>
-            <span className="keeper-topbar-status-badge">{roleLabel}</span>
-          </div>
+          {!isHomeShell ? (
+            <div className="keeper-topbar-user-meta">
+              <p
+                className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate"
+                title={displayName}
+              >
+                {displayName}
+              </p>
+              <span className="keeper-topbar-status-badge">{roleLabel}</span>
+            </div>
+          ) : null}
           <button
             ref={avatarButtonRef}
             type="button"
@@ -228,19 +252,21 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
           })}
         </nav>
 
-        <button
-          type="button"
-          onClick={onBriefClick}
-          className={clsx(
-            "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
-            isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
-          )}
-          aria-label="Open domain brief"
-          aria-pressed={isBriefOpen}
-        >
-          <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
-          <span className="text-[13px]">Brief</span>
-        </button>
+        {!isHomeShell ? (
+          <button
+            type="button"
+            onClick={onBriefClick}
+            className={clsx(
+              "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
+              isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+            )}
+            aria-label="Open domain brief"
+            aria-pressed={isBriefOpen}
+          >
+            <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
+            <span className="text-[13px]">Brief</span>
+          </button>
+        ) : null}
       </div>
     </div>
   )

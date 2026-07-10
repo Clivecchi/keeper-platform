@@ -24,6 +24,8 @@ Conversation: lead agent slug from `domainFrame.kip.agent_id` (`agentFromFrame: 
 - [ ] Connection row click → Chronicle manage surface (nav is list-only today)
 
 ## 📆 Update Log
+### 2026-07-09 — Realm Arrival at `/home`
+- Home shell uses arrival Dialog stack and Chronicle Playbill rail via `v0/realm/`
 ### 2026-07-01 — Phase 4A: Realm Board definition
 - Added `REALM_BOARD_DEF`, `RealmBoard.tsx`, registry + workspace nav wiring
 - Extended `UniversalNavPanel` with `chatter` and `connections` blocks

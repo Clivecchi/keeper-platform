@@ -43,7 +43,7 @@ export function sealPlaybillGreet(domainSlug: string, leadAgentSlug: string | nu
 
 /**
  * Read a fresh Playbill greet seal for the landing domain (non-destructive).
- * Returns `undefined` when no seal applies; `null` when casting was chosen.
+ * Returns `undefined` when no seal applies; `null` when the domain lead is uncast (Agent).
  */
 export function getPlaybillGreet(domainSlug: string): string | null | undefined {
   const normalized = domainSlug.trim().toLowerCase()

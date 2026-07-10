@@ -254,7 +254,18 @@ export async function resolveAgentEnvironment(args: {
   const accessibleMap = new Map(accessibleDomains.map((d) => [d.id, d]));
   let primaryDomainId = domainId || null;
 
-  if (!primaryDomainId && accessibleDomains.length) {
+  if (!primaryDomainId && userId) {
+    const userRow = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { primaryDomainId: true },
+    });
+    const anchored = userRow?.primaryDomainId?.trim() || null;
+    if (anchored && accessibleMap.has(anchored)) {
+      primaryDomainId = anchored;
+    } else if (accessibleDomains.length) {
+      primaryDomainId = accessibleDomains[0].id;
+    }
+  } else if (!primaryDomainId && accessibleDomains.length) {
     primaryDomainId = accessibleDomains[0].id;
   }
 

@@ -9,6 +9,7 @@ import {
 } from "../boards/domain/domainSwitcherTheme"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
 import { sealPlaybillGreet } from "../lib/playbillGreetContinuity"
+import { PresenceField } from "../realm/PresenceField"
 
 export interface PlaybillCardDomain {
   id: string
@@ -91,7 +92,7 @@ export function PlaybillCard({
 }: PlaybillCardProps) {
   const reducedMotion = useReducedMotion()
   const [isPressed, setIsPressed] = React.useState(false)
-  const { isCasting, isLoading, agent, activityLine } = usePlaybillCard({
+  const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
     domainId: domain.id,
     leadAgentSlug: domain.leadAgentSlug,
   })
@@ -114,9 +115,9 @@ export function PlaybillCard({
   }
 
   const billingName = domain.name.trim() || domain.slug
-  const starName = isCasting ? "Casting" : agent?.displayName ?? billingName
-  const roleLine = isCasting ? "THE STAGE IS SET" : agent?.roleLine ?? "INNKEEPER"
-  const ariaLead = isCasting ? "casting" : agent?.displayName ?? "lead agent"
+  const starName = isUncast ? "Agent" : agent?.displayName ?? billingName
+  const roleLine = isUncast ? "INNKEEPER" : agent?.roleLine ?? "INNKEEPER"
+  const ariaLead = isUncast ? "Agent" : agent?.displayName ?? "lead agent"
 
   return (
     <motion.button
@@ -162,75 +163,43 @@ export function PlaybillCard({
         {billingName} presents
       </p>
 
-      <div
-        className="relative mx-3 overflow-hidden rounded-lg"
-        style={{ height: STAGE_HEIGHT }}
+      <PresenceField
+        className="mx-3"
+        stageHeight={STAGE_HEIGHT}
+        backdropUrl={hasBackdrop ? domain.coverImageUrl : null}
+        backdropFallback={placeholderBackdrop(domain.slug)}
       >
-        <motion.div
-          className="absolute inset-0"
-          style={
-            hasBackdrop
-              ? {
-                  backgroundImage: `url(${domain.coverImageUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }
-              : { background: placeholderBackdrop(domain.slug) }
-          }
-          whileHover={reducedMotion ? undefined : { scale: 1.04 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          aria-hidden
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to top, hsl(var(--theme-surface-page, 220 18% 8%) / 0.82) 0%, hsl(var(--theme-surface-page, 220 18% 8%) / 0.18) 52%, transparent 100%)",
-          }}
-          aria-hidden
-        />
-
-        <div className="absolute inset-0 flex items-end justify-center pb-3 px-3">
-          {isCasting ? (
-            <div
-              className="flex flex-col items-center gap-1 text-center"
-              style={{ color: "hsl(var(--theme-ink-on-dark, 0 0% 98%))" }}
-            >
-              <span
-                className="text-[10px] font-mono uppercase tracking-[0.24em]"
-                style={{ color: "hsl(var(--theme-ink-on-dark, 0 0% 98%) / 0.72)" }}
-              >
-                Casting
-              </span>
-              <span className="font-serif text-sm italic opacity-80">
-                The role is uncast
-              </span>
-            </div>
-          ) : agent?.avatarUrl ? (
-            <motion.img
-              src={agent.avatarUrl}
-              alt=""
-              className="h-[5.5rem] w-[5.5rem] rounded-2xl object-cover object-center border"
-              style={{
-                borderColor: "hsl(var(--theme-border-soft) / 0.45)",
-                boxShadow: "0 10px 28px hsl(var(--theme-shadow-color, 220 20% 4%) / 0.45)",
-              }}
-              whileHover={reducedMotion ? undefined : { y: -6, scale: 1.03 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        {isUncast ? (
+          <div
+            className="flex flex-col items-center gap-1 text-center"
+            style={{ color: "hsl(var(--theme-ink-on-dark, 0 0% 98%))" }}
+          >
+            <span className="font-serif text-lg font-semibold">Agent</span>
+          </div>
+        ) : agent?.avatarUrl ? (
+          <motion.img
+            src={agent.avatarUrl}
+            alt=""
+            className="h-[5.5rem] w-[5.5rem] rounded-2xl object-cover object-center border"
+            style={{
+              borderColor: "hsl(var(--theme-border-soft) / 0.45)",
+              boxShadow: "0 10px 28px hsl(var(--theme-shadow-color, 220 20% 4%) / 0.45)",
+            }}
+            whileHover={reducedMotion ? undefined : { y: -6, scale: 1.03 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          />
+        ) : (
+          <motion.div
+            whileHover={reducedMotion ? undefined : { y: -6, scale: 1.03 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <PlaybillIconAvatar
+              fallback={agent?.iconFallback ?? "?"}
+              accent={accent}
             />
-          ) : (
-            <motion.div
-              whileHover={reducedMotion ? undefined : { y: -6, scale: 1.03 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <PlaybillIconAvatar
-                fallback={agent?.iconFallback ?? "?"}
-                accent={accent}
-              />
-            </motion.div>
-          )}
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </PresenceField>
 
       <div
         className="px-3 pt-2.5 pb-2"
@@ -243,7 +212,7 @@ export function PlaybillCard({
           ].join(" ")}
           style={{ color: inkPrimary }}
         >
-          {isLoading && !isCasting ? "…" : starName}
+          {isLoading && !isUncast ? "…" : starName}
         </h3>
         <p
           className="mt-0.5 text-[9px] font-mono uppercase tracking-[0.16em] truncate"

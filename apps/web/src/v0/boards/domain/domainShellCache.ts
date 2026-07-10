@@ -182,3 +182,34 @@ export function prefetchDomainShell(slug: string): void {
 export function peekDomainShellFrame(slug: string) {
   return peekDomainFrame(slug)
 }
+
+/** True when cached shell data is warm enough to skip the scene curtain. */
+export function isDomainShellWarm(
+  slug: string,
+  options?: { requireAudience?: boolean },
+): boolean {
+  const normalized = slug.trim().toLowerCase()
+  if (!normalized) return false
+  const hasDomain = !!getCachedDomainBySlug(normalized)
+  const hasFrame = !!peekDomainFrame(normalized)
+  const hasAudience =
+    !options?.requireAudience || !!getCachedDomainAudience(normalized)
+  return hasDomain && hasFrame && hasAudience
+}
+
+/** Await shell prefetch with warm-skip threshold for scene-change travel. */
+export async function prefetchDomainShellForTravel(
+  slug: string,
+  options?: { requireAudience?: boolean },
+): Promise<boolean> {
+  const startedAt = Date.now()
+  prefetchDomainShell(slug)
+  await Promise.all([
+    fetchDomainBySlug(slug).catch(() => null),
+    options?.requireAudience
+      ? fetchDomainAudience(slug).catch(() => null)
+      : Promise.resolve(null),
+    import("../../data/loadDomainFrame").then((m) => m.loadDomainFrame(slug).catch(() => null)),
+  ])
+  return Date.now() - startedAt < 280
+}
