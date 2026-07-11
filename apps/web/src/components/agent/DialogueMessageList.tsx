@@ -19,6 +19,8 @@ import { isDirectorDelegationFailureContent } from "../../v0/boards/directorDial
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
 import { buildMessageGlossAnchor } from "@keeper/shared"
+import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
+import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 
 function visibleDelegationBeat(
   delegation: DialogResponseEcho | undefined,
@@ -136,6 +138,7 @@ function AgentMessageTurn({
   onConfirmDraftUpdate,
   onApplyTreatmentProposal,
   applyingTreatmentProposal,
+  onArrivalInvitation,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -147,6 +150,7 @@ function AgentMessageTurn({
   onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
   onApplyTreatmentProposal?: DialogueMessageListProps["onApplyTreatmentProposal"]
   applyingTreatmentProposal?: boolean
+  onArrivalInvitation?: (id: RealmInvitationId) => void
 }) {
   const delegation = visibleDelegationBeat(message.delegation)
   const echo =
@@ -174,6 +178,12 @@ function AgentMessageTurn({
           }}
         >
           <p className="whitespace-pre-line">{message.content}</p>
+          {message.arrivalInvitations?.length && onArrivalInvitation ? (
+            <RealmInvitationButtons
+              invitations={message.arrivalInvitations}
+              onInvite={onArrivalInvitation}
+            />
+          ) : null}
         </GlossSurface>
         <MessageAttachments
           message={message}
@@ -394,6 +404,8 @@ export interface DialogueMessageListProps {
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
   onOpenSoleMemory?: (memoryCardId: string) => void
+  /** Realm arrival — invitation buttons inside the welcome Dialog Response. */
+  onArrivalInvitation?: (id: RealmInvitationId) => void
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -412,6 +424,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   echoAgentName,
   agentBoardMessaging,
   horizonThinking = false,
+  onArrivalInvitation,
 }) => (
   <div
     className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
@@ -475,6 +488,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               onConfirmDraftUpdate={onConfirmDraftUpdate}
               onApplyTreatmentProposal={onApplyTreatmentProposal}
               applyingTreatmentProposal={applyingTreatmentProposal}
+              onArrivalInvitation={onArrivalInvitation}
             />
           </div>
         )

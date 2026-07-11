@@ -50,6 +50,8 @@ export interface AgentDialogueMessage {
       [key: string]: unknown
     }
   }>
+  /** Optional realm arrival — invitation buttons rendered inside the agent bubble. */
+  arrivalInvitations?: Array<{ id: string; label: string }>
   /** Inline gloss sub-conversations anchored to nodes within this message */
   glossThreads?: GlossThread[]
 }

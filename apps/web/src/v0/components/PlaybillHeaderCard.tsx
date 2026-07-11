@@ -3,7 +3,7 @@
 import * as React from "react"
 import { ChevronDown } from "lucide-react"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
-import { formatPlaybillRoleSubtitle } from "../lib/playbillData"
+import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
 import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import {
@@ -49,7 +49,12 @@ export function PlaybillHeaderCard({
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
   const billingName = domainName.trim() || domainSlug
-  const starName = isUncast ? "Agent" : agent?.displayName ?? billingName
+  const starName = resolvePlaybillStarName({
+    domainName: billingName,
+    agentDisplayName: agent?.displayName,
+    isUncast,
+    isLoading,
+  })
   const roleSubtitle = formatPlaybillRoleSubtitle(agent, domainSlug, isUncast)
 
   const tagline = (() => {

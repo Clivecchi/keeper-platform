@@ -11,7 +11,7 @@ export interface RealmArrivalContextValue {
 const RealmArrivalCtx = React.createContext<RealmArrivalContextValue | null>(null)
 
 export function RealmArrivalProvider({ children }: { children: React.ReactNode }) {
-  const [chronicleView, setChronicleView] = React.useState<RealmChronicleView>("feed")
+  const [chronicleView, setChronicleView] = React.useState<RealmChronicleView>("playbill")
   const value = React.useMemo(
     () => ({ chronicleView, setChronicleView }),
     [chronicleView],

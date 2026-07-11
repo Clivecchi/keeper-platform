@@ -69,9 +69,9 @@ export async function resolveKipAgentBySlugForLoad(slug: string): Promise<kip_ag
     return ensureBoardInstrumentAgent('rendr');
   }
 
-  // Last resort: domain-scoped lead slug with no repair path — fall back to platform Kip.
-  if (trimmed !== 'kip' && (trimmed.endsWith('-lead') || trimmed.includes('-'))) {
-    return getKipAgentBySlugEnsured('kip');
+  // Last resort: synthetic provision slug — do not substitute platform Kip.
+  if (trimmed.endsWith('-lead')) {
+    return null;
   }
 
   return null;

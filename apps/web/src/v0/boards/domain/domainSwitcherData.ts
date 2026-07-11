@@ -200,6 +200,16 @@ export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitche
   }
 }
 
+/** Playbill travel targets — excludes anchor realm domain (arrival, not destination). */
+export function filterPlaybillTravelDomains(
+  entries: DomainSwitcherEntry[],
+  anchorSlug: string | null | undefined,
+): DomainSwitcherEntry[] {
+  const anchor = anchorSlug?.trim().toLowerCase() ?? ""
+  if (!anchor) return entries
+  return entries.filter((entry) => entry.slug.trim().toLowerCase() !== anchor)
+}
+
 function isVisibleUserDomain(domain: ApiDomainRow): boolean {
   if (domain.deletedAt) return false
   if (domain.isActive === false) return false

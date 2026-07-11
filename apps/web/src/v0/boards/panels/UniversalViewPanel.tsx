@@ -330,7 +330,7 @@ function PanelBody({
   function renderPresence(): React.ReactNode {
     if (isRealmHomeIdle) {
       return (
-        <RealmHomeChronicle view={realmArrival?.chronicleView ?? "feed"} />
+        <RealmHomeChronicle view={realmArrival?.chronicleView ?? "playbill"} />
       )
     }
 

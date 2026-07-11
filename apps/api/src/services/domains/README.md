@@ -8,6 +8,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `buildInitialDomainFrameJson.ts` — personal domain wordmark/tagline/agent wiring.
 - `domainConnectionInvite.ts` — Phase 3.1 connection invite lookup, list, grant, and revoke helpers.
 - `provisionDomainOnCreate.ts` — idempotent orchestration after `POST /api/domains`.
+- `repairDomainLeadBindings.ts` — repairs placeholder `{slug}-lead` frame bindings to canonical lead agents; fixes livecchi-us description typo.
 - `../scripts/repair-domain-frame.ts` — CLI repair for unseeded personal domains.
 
 ## 🔄 Data & Behavior
@@ -31,6 +32,7 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+- 2026-07-10: **`repairDomainLeadBindings`** — idempotent canonical `frame_json.kip.agent_id` repair (`chuck-livecchi→ceox`, `ke3p→kip`); runs on `GET /api/domains/my` and `GET /api/domains/:slug/frame`. `provisionDomainOnCreate` prefers canonical bindings over `{slug}-lead` for known domains.
 - 2026-07-03: **`ensureDomainLeadAgentBySlug`** — repairs missing `kip_agents` rows when `frame_json.kip.agent_id` references a slug without a DB row; used by `GET /api/kip/agents?slug=`. `createDomainLeadAgent` accepts `preferredSlug` for exact frame slug match.
 
 ### 2026-07-01 — Phase 3.1 Connections

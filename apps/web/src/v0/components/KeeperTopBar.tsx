@@ -8,6 +8,7 @@ import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
 import { PlaybillHeaderCard } from "./PlaybillHeaderCard"
+import { LocationStrip } from "./LocationStrip"
 import {
   fetchDomainSwitcherEntries,
   getCachedDomainSwitcherEntries,
@@ -230,15 +231,25 @@ export function KeeperTopBar({
   return (
     <div className="keeper-platform-top-bar relative z-50 shrink-0">
       <div className="keeper-topbar-identity-row">
-        <PlaybillHeaderCard
-          domainSlug={domainSlug}
-          domainId={domainId}
-          domainName={domainName}
-          coverImageUrl={coverImageUrl}
-          domainFrame={domainFrame}
-          onOpenPlaybill={onDomainClick}
-          isOpen={isPlaybillOpen}
-        />
+        {isHomeShell ? (
+          <LocationStrip
+            domainSlug={domainSlug}
+            domainId={domainId}
+            domainName={domainName}
+            coverImageUrl={coverImageUrl}
+            domainFrame={domainFrame}
+          />
+        ) : (
+          <PlaybillHeaderCard
+            domainSlug={domainSlug}
+            domainId={domainId}
+            domainName={domainName}
+            coverImageUrl={coverImageUrl}
+            domainFrame={domainFrame}
+            onOpenPlaybill={onDomainClick}
+            isOpen={isPlaybillOpen}
+          />
+        )}
 
         <div className="keeper-topbar-user">
           {!isGuest ? (

@@ -4,8 +4,10 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchDomainSwitcherEntries,
+  filterPlaybillTravelDomains,
   type DomainSwitcherEntry,
 } from "../../v0/boards/domain/domainSwitcherData";
+import { useV0Shell } from "../../v0/shell/V0ShellContext";
 import { DomainAddPanel } from "../../v0/boards/domain/DomainAddPanel";
 import { PlaybillCard } from "../../v0/components/PlaybillCard";
 import { useTalkMode } from "../../hooks/useTalkMode";
@@ -25,6 +27,7 @@ function buildDomainEntryPath(slug: string): string {
 export function RealmScreen() {
   const navigate = useNavigate();
   const { domainSlug, setActiveTab, submitMobileComposerText } = useUniversalMobile();
+  const { anchorDomainSlug } = useV0Shell();
 
   const [fetchState, setFetchState] = React.useState<RealmFetchState>("idle");
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([]);
@@ -63,7 +66,8 @@ export function RealmScreen() {
     setFetchError(null);
     fetchDomainSwitcherEntries()
       .then((entries) => {
-        setDomains(entries);
+        const anchor = anchorDomainSlug?.trim() || domainSlug?.trim() || null;
+        setDomains(filterPlaybillTravelDomains(entries, anchor));
         setFetchState("ready");
       })
       .catch((error: unknown) => {
@@ -71,7 +75,7 @@ export function RealmScreen() {
         setFetchError(error instanceof Error ? error.message : "Could not load your domains.");
         setFetchState("error");
       });
-  }, []);
+  }, [anchorDomainSlug, domainSlug]);
 
   React.useEffect(() => {
     loadDomains();

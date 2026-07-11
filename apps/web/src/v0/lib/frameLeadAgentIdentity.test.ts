@@ -31,10 +31,13 @@ describe("frameLeadAgentIdentity", () => {
     expect(readFrameLeadAgentSlug(null)).toBeNull()
   })
 
-  it("readFrameLeadAgentSlug returns trimmed slug", () => {
-    expect(readFrameLeadAgentSlug({ kip: { agent_id: " livecchi-us-lead " } })).toBe(
-      "livecchi-us-lead",
-    )
+  it("readFrameLeadAgentSlug returns null for synthetic provision slugs", () => {
+    expect(readFrameLeadAgentSlug({ kip: { agent_id: " livecchi-us-lead " } })).toBeNull()
+    expect(readFrameLeadAgentSlug({ kip: { agent_id: "chuck-livecchi-lead" } })).toBeNull()
+  })
+
+  it("readFrameLeadAgentSlug returns canonical lead slugs", () => {
+    expect(readFrameLeadAgentSlug({ kip: { agent_id: "ceox" } })).toBe("ceox")
   })
 
   it("fetchFrameLeadAgentDisplayName resolves agent name and caches", async () => {

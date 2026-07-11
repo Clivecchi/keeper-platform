@@ -32,7 +32,7 @@ const DEFAULT_DOMAIN_FRAME_JSON = {
     },
   },
   kip: {
-    agent_id: 'kip-default',
+    agent_id: 'kip',
     model: 'claude-sonnet-4-6',
     visibility: 'public',
     greeting: 'Hello. What would you like to keep today?',

@@ -150,6 +150,7 @@ export interface KeeperDialogFrameProps {
   echoAgentName?: string
   agentBubbleFullWidth?: boolean
   agentBoardMessaging?: AgentBoardMessaging
+  onArrivalInvitation?: (id: import("../../../v0/realm/realmInvitations").RealmInvitationId) => void
 
   // ── AgentComposer pass-through ────────────────────────────────────────────
   agentId: string | null
@@ -249,6 +250,7 @@ export function KeeperDialogFrame({
   echoAgentName,
   agentBubbleFullWidth = true,
   agentBoardMessaging,
+  onArrivalInvitation,
   // AgentComposer
   agentId,
   domainId,
@@ -644,6 +646,7 @@ export function KeeperDialogFrame({
                         agentBoardMessaging={agentBoardMessaging}
                         scrollContainerRef={scrollRef}
                         horizonThinking
+                        onArrivalInvitation={onArrivalInvitation}
                       />
                     </GlossProvider>
                   ) : (
@@ -669,6 +672,7 @@ export function KeeperDialogFrame({
                     agentBoardMessaging={agentBoardMessaging}
                     scrollContainerRef={scrollRef}
                     horizonThinking
+                    onArrivalInvitation={onArrivalInvitation}
                   />
                   )}
                 </div>

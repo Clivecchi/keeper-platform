@@ -1,6 +1,10 @@
 import { randomUUID } from 'crypto';
 import type { Prisma, PrismaClient } from '@keeper/database';
-import { defaultDomainSettingsForCreate, domainFrameLooksUnseeded } from '@keeper/shared';
+import {
+  CANONICAL_DOMAIN_LEAD_BINDINGS,
+  defaultDomainSettingsForCreate,
+  domainFrameLooksUnseeded,
+} from '@keeper/shared';
 import { ensureDomainHomeBoard } from '../boards/domainManagement.js';
 import { buildInitialDomainFrameJson } from './buildInitialDomainFrameJson.js';
 import { DEFAULT_DOMAIN_THEME_PRIMARY } from './domainFrameFallback.js';
@@ -33,6 +37,10 @@ function isEmptyJson(value: unknown): boolean {
 }
 
 function leadAgentSlugForDomain(domainSlug: string): string {
+  const normalized = domainSlug.trim().toLowerCase();
+  const canonical = CANONICAL_DOMAIN_LEAD_BINDINGS[normalized];
+  if (canonical) return canonical;
+
   const base = `${domainSlug.trim()}-lead`.slice(0, 48);
   return base.replace(/[^a-z0-9-]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'domain-lead';
 }

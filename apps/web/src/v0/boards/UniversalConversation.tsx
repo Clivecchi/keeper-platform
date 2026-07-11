@@ -75,11 +75,12 @@ import {
   voicePromptSectionDef,
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
-import { useV0Shell } from "../shell/V0ShellContext"
-import { RealmArrivalSurface } from "../realm/RealmArrivalSurface"
-import type { RealmInvitationActions } from "../realm/realmInvitationActions"
 import { useRealmArrivalOptional } from "../realm/RealmArrivalContext"
 import { useRealmFeed } from "../realm/useRealmFeed"
+import { buildRealmArrivalMessage } from "../realm/realmArrivalMessage"
+import type { RealmInvitationActions } from "../realm/realmInvitationActions"
+import { applyRealmInvitation } from "../realm/realmInvitationActions"
+import type { RealmInvitationId } from "../realm/realmInvitations"
 import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName } from "../lib/frameLeadAgentIdentity"
 import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
@@ -1259,6 +1260,15 @@ export function UniversalConversation({
 
   const idleMessages = React.useMemo<AgentDialogueMessage[]>(
     () => {
+      if (isRealmHomeArrival) {
+        return [
+          buildRealmArrivalMessage(
+            realmFeed?.remarks ?? "Welcome back.",
+            realmFeed?.counts ?? { drafts: 0, sessions: 0, moments: 0, domains: 0 },
+            realmFeedLoading,
+          ),
+        ]
+      }
       if (kipMode === "ide") {
         return [{
           id: "kip-greeting",
@@ -1277,7 +1287,15 @@ export function UniversalConversation({
       }
       return []
     },
-    [kipMode, guidedArrivalActive, guidedArrival?.greeting],
+    [
+      isRealmHomeArrival,
+      realmFeed?.remarks,
+      realmFeed?.counts,
+      realmFeedLoading,
+      kipMode,
+      guidedArrivalActive,
+      guidedArrival?.greeting,
+    ],
   )
 
   const handleDialogSubmit = React.useCallback(
@@ -1809,6 +1827,13 @@ export function UniversalConversation({
     ],
   )
 
+  const handleArrivalInvitation = React.useCallback(
+    (id: RealmInvitationId) => {
+      applyRealmInvitation(id, realmFeed, realmInvitationActions)
+    },
+    [realmFeed, realmInvitationActions],
+  )
+
   const realmComposerPlaceholder = isRealmHomeArrival
     ? `Message ${dialogAgentDisplayName}`
     : undefined
@@ -1826,16 +1851,6 @@ export function UniversalConversation({
           onPublish={handlePublish}
         />
       )}
-
-      {isRealmHomeArrival ? (
-        <RealmArrivalSurface
-          feed={realmFeed}
-          agentSlug={dialogAgentSlug}
-          agentDisplayName={dialogAgentDisplayName}
-          isLoading={realmFeedLoading}
-          invitationActions={realmInvitationActions}
-        />
-      ) : null}
 
       <KeeperDialogFrame
         bannerContext={bannerContext}
@@ -1904,6 +1919,7 @@ export function UniversalConversation({
         activeSessionId={dialogSessionId}
         disabled={composerDisabled}
         inputPlaceholder={realmComposerPlaceholder}
+        onArrivalInvitation={isRealmHomeArrival ? handleArrivalInvitation : undefined}
         glossConfig={{
           agentId: dialogAgentId,
           sessionId: dialogSessionId,

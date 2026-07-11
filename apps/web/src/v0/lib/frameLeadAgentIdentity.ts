@@ -1,3 +1,4 @@
+import { isSyntheticLeadAgentSlug } from "@keeper/shared"
 import { KipApi } from "../../lib/kipApi"
 
 const displayNameCache = new Map<string, string>()
@@ -62,14 +63,15 @@ export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
 export const STRICT_PLATFORM_AGENT_SLUGS = new Set<string>(["rendr", "cloud"])
 
 /** Canonical domain lead slugs — never cache as missing; always retry API self-heal. */
-export const CANONICAL_DOMAIN_LEAD_SLUGS = new Set<string>(["ceox"])
+export const CANONICAL_DOMAIN_LEAD_SLUGS = new Set<string>(["ceox", "kip"])
 
 /** Domain lead slugs from frame JSON — preserve identity; do not fall back to Kip in UI. */
 export function isDomainLeadAgentSlug(slug: string | null | undefined): boolean {
   const trimmed = slug?.trim()
   if (!trimmed || PLACEHOLDER_LEAD_AGENT_SLUGS.has(trimmed)) return false
   if (CANONICAL_DOMAIN_LEAD_SLUGS.has(trimmed)) return true
-  return trimmed.endsWith("-lead") || trimmed.includes("-")
+  if (trimmed.endsWith("-lead")) return false
+  return false
 }
 
 /** Human label for a domain lead slug while the agent record loads. */
@@ -226,7 +228,9 @@ export function readFrameLeadAgentSlug(
   domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
 ): string | null {
   const slug = domainFrame?.kip?.agent_id?.trim()
-  if (!slug || PLACEHOLDER_LEAD_AGENT_SLUGS.has(slug)) return null
+  if (!slug || PLACEHOLDER_LEAD_AGENT_SLUGS.has(slug) || isSyntheticLeadAgentSlug(slug)) {
+    return null
+  }
   return slug
 }
 

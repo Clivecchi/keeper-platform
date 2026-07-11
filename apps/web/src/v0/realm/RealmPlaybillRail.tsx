@@ -4,6 +4,7 @@ import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import {
   fetchDomainSwitcherEntries,
+  filterPlaybillTravelDomains,
   type DomainSwitcherEntry,
 } from "../boards/domain/domainSwitcherData"
 import { PlaybillCard } from "../components/PlaybillCard"
@@ -17,6 +18,7 @@ export interface RealmPlaybillRailProps {
   className?: string
 }
 
+/** Chronicle Playbill rail — full-width travel cards; Realm is not a destination. */
 export function RealmPlaybillRail({
   anchorSlug,
   className = "",
@@ -27,13 +29,19 @@ export function RealmPlaybillRail({
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
 
+  const resolvedAnchor =
+    anchorSlug?.trim().toLowerCase() ||
+    shell?.anchorDomainSlug?.trim().toLowerCase() ||
+    shell?.domainSlug?.trim().toLowerCase() ||
+    null
+
   React.useEffect(() => {
     let cancelled = false
     setIsLoading(true)
     void fetchDomainSwitcherEntries()
       .then((rows) => {
         if (!cancelled) {
-          setDomains(rows)
+          setDomains(filterPlaybillTravelDomains(rows, resolvedAnchor))
           setIsLoading(false)
         }
       })
@@ -43,7 +51,7 @@ export function RealmPlaybillRail({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [resolvedAnchor])
 
   const handleSelect = React.useCallback(
     (slug: string) => {
@@ -70,7 +78,7 @@ export function RealmPlaybillRail({
 
   if (isLoading && domains.length === 0) {
     return (
-      <div className={`px-3 py-4 ${className}`}>
+      <div className={`realm-playbill-rail px-3 py-4 ${className}`}>
         <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
           Loading your domains…
         </p>
@@ -80,34 +88,38 @@ export function RealmPlaybillRail({
 
   if (domains.length === 0) {
     return (
-      <div className={`px-3 py-4 ${className}`}>
+      <div className={`realm-playbill-rail px-3 py-4 ${className}`}>
         <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          No domains in your reach yet.
+          No other domains in your reach yet.
         </p>
       </div>
     )
   }
 
-  const normalizedAnchor = anchorSlug?.trim().toLowerCase() ?? null
-
   return (
-    <div className={`realm-playbill-rail flex flex-col gap-3 px-3 py-3 ${className}`}>
+    <section
+      className={`realm-playbill-rail flex flex-col gap-3 px-3 py-3 min-w-0 ${className}`}
+      aria-label="The Playbill"
+    >
       <p
-        className="text-[10px] font-semibold uppercase tracking-[0.22em] px-0.5"
+        className="text-[10px] font-semibold uppercase tracking-[0.22em] px-0.5 shrink-0"
         style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}
       >
         In your reach
       </p>
-      {domains.map((domain) => (
-        <PlaybillCard
-          key={domain.id}
-          domain={domain}
-          variant="realm"
-          isCurrent={normalizedAnchor === domain.slug.trim().toLowerCase()}
-          onSelect={handleSelect}
-          onPrefetch={handlePrefetch}
-        />
-      ))}
-    </div>
+      <div className="flex flex-col gap-3 min-w-0">
+        {domains.map((domain) => (
+          <PlaybillCard
+            key={domain.id}
+            domain={domain}
+            variant="realm"
+            isCurrent={false}
+            onSelect={handleSelect}
+            onPrefetch={handlePrefetch}
+            className="w-full max-w-none"
+          />
+        ))}
+      </div>
+    </section>
   )
 }

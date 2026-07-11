@@ -7,7 +7,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - `domainFrameLooksUnseeded.ts` — thin wrapper over `@keeper/shared` unseeded detection.
 - `ensureDomainProvisioned.ts` — calls `POST /api/domains/:id/provision` (idempotent Step 1.2 repair).
 - `frameLeadAgentIdentity.ts` — resolve `frame_json.kip.agent_id` slug → agent display name (cached).
-- `playbillData.ts` — Playbill card enrichment: domain stats + lead agent portrait/role via live API.
+- `playbillData.ts` — Playbill card enrichment: domain stats + lead agent portrait/role via live API; `resolvePlaybillStarName` never uses domain name as agent star.
 - `playbillGreetContinuity.ts` — seal/read innkeeper choice from Playbill wall for arrival greet continuity.
 - `userHomeSettings.ts` — user Home display name (localStorage until API persistence).
 
@@ -21,6 +21,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
+- 2026-07-10: Realm identity — synthetic `{slug}-lead` slugs treated as uncast in `readFrameLeadAgentSlug` / Playbill; star name via `@keeper/shared` `resolvePlaybillStarName` (`{Domain} presents Agent` when uncast).
 - 2026-07-08: Added `playbillData.ts` + `playbillGreetContinuity.ts` for Playbill domain picker cards and arrival greet handoff.
 - 2026-07-08: Domain lead slugs (`ceox`, `*-lead`) never persist to missing-slug cache; `formatDomainLeadDisplayName`; `resolveDialogAgentSlug` no longer drops cached-missing leads.
 - 2026-07-08: Strict platform agents (`rendr`, `cloud`) no longer persist to missing-slug cache; stale cache entries cleared before retry so API self-heal can succeed on Design Board.

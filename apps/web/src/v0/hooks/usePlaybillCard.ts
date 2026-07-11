@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { isSyntheticLeadAgentSlug } from "@keeper/shared"
 import {
   fetchDomainPlaybillStats,
   formatPlaybillActivity,
@@ -26,7 +27,8 @@ export function usePlaybillCard({
   domainId,
   leadAgentSlug,
 }: UsePlaybillCardInput): PlaybillCardData {
-  const isUncast = !leadAgentSlug?.trim()
+  const slug = leadAgentSlug?.trim() ?? ""
+  const slugUncast = !slug || isSyntheticLeadAgentSlug(slug)
   const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(null)
   const [stats, setStats] = React.useState<DomainPlaybillStats | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -39,9 +41,9 @@ export function usePlaybillCard({
       ? fetchDomainPlaybillStats(domainId).catch(() => ({ momentCount: 0, lastActivity: null }))
       : Promise.resolve({ momentCount: 0, lastActivity: null })
 
-    const agentPromise = leadAgentSlug?.trim()
-      ? resolvePlaybillAgent(leadAgentSlug).catch(() => null)
-      : Promise.resolve(null)
+    const agentPromise = slugUncast
+      ? Promise.resolve(null)
+      : resolvePlaybillAgent(slug).catch(() => null)
 
     void Promise.all([statsPromise, agentPromise]).then(([nextStats, nextAgent]) => {
       if (cancelled) return
@@ -53,9 +55,10 @@ export function usePlaybillCard({
     return () => {
       cancelled = true
     }
-  }, [domainId, leadAgentSlug])
+  }, [domainId, slug, slugUncast])
 
   const activityLine = formatPlaybillActivity(stats)
+  const isUncast = slugUncast || (!isLoading && !agent)
 
   return {
     isUncast,

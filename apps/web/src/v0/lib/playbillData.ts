@@ -1,15 +1,16 @@
-import { extractPresenceAvatar } from "@keeper/shared"
+import { extractPresenceAvatar, isSyntheticLeadAgentSlug, resolvePlaybillStarName } from "@keeper/shared"
 import { apiFetch } from "../../lib/apiFetch"
 import { getAuthToken } from "../../lib/authTokenStore"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { formatRelativeTime } from "../presence/integrationChronicle/shared"
 import {
-  formatDomainLeadDisplayName,
   isDomainLeadAgentSlug,
   isMissingLeadAgentSlug,
   resolveFrameLeadAgentIdentity,
   type ResolvedLeadAgentIdentity,
 } from "./frameLeadAgentIdentity"
+
+export { resolvePlaybillStarName }
 
 export interface DomainPlaybillStats {
   momentCount: number
@@ -181,7 +182,16 @@ export async function resolvePlaybillAgent(
   if (pending) return pending
 
   const promise = (async (): Promise<ResolvedPlaybillAgent | null> => {
+    if (isSyntheticLeadAgentSlug(slug)) {
+      return null
+    }
+
     if (isMissingLeadAgentSlug(slug) && !isDomainLeadAgentSlug(slug)) {
+      return null
+    }
+
+    const row = await fetchAgentRow(slug)
+    if (!row?.slug) {
       return null
     }
 
@@ -189,13 +199,12 @@ export async function resolvePlaybillAgent(
       allowKipFallback: !isDomainLeadAgentSlug(slug),
     })
 
-    const row = await fetchAgentRow(slug)
-    const displayName =
-      row?.name?.trim() ||
-      identity.displayName ||
-      (isDomainLeadAgentSlug(slug) ? formatDomainLeadDisplayName(slug) : slug)
+    const displayName = row.name?.trim() || identity.displayName?.trim() || ""
+    if (!displayName || isSyntheticLeadAgentSlug(displayName)) {
+      return null
+    }
 
-    const { avatar } = extractPresenceAvatar(row?.presenceSchema)
+    const { avatar } = extractPresenceAvatar(row.presenceSchema)
     const rawAvatar = avatar?.trim() ?? null
     const avatarUrl =
       rawAvatar && isAvatarImageSrc(rawAvatar) ? getBlobProxyUrl(rawAvatar) : null
@@ -203,7 +212,7 @@ export async function resolvePlaybillAgent(
     const resolved: ResolvedPlaybillAgent = {
       identity,
       displayName,
-      roleLine: formatPlaybillRoleLine(row?.role, row?.purpose),
+      roleLine: formatPlaybillRoleLine(row.role, row.purpose),
       avatarUrl,
       iconFallback: iconFallbackForAgent(displayName, slug),
     }

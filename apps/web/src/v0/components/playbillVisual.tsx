@@ -26,11 +26,64 @@ function isImageSrc(value: string): boolean {
 export function PlaybillAmbientLayer({
   imageUrl,
   accent,
+  contained = false,
 }: {
   imageUrl: string | null
   accent: string
+  /** Contained atmospheric ground — not full-bleed wallpaper (location strip). */
+  contained?: boolean
 }) {
   if (imageUrl && isImageSrc(imageUrl)) {
+    if (contained) {
+      return (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden
+            style={{
+              background: "hsl(var(--theme-surface-panel, var(--theme-surface-elevated)) / 0.98)",
+            }}
+          />
+          <div
+            className="absolute inset-y-0 right-0 w-[42%] pointer-events-none overflow-hidden"
+            aria-hidden
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${imageUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: 0.42,
+              }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(
+                  to right,
+                  hsl(var(--theme-surface-panel, 220 16% 11%) / 0.98) 0%,
+                  hsl(var(--theme-surface-panel, 220 16% 11%) / 0.72) 55%,
+                  transparent 100%
+                )`,
+              }}
+            />
+          </div>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden
+            style={{
+              background: `radial-gradient(
+                ellipse 70% 90% at 92% 50%,
+                ${accent}14 0%,
+                transparent 65%
+              )`,
+            }}
+          />
+        </>
+      )
+    }
+
     return (
       <>
         <div

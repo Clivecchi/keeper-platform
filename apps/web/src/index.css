@@ -1702,6 +1702,21 @@ button.dialog-prelude:hover {
   color: hsl(var(--theme-ink-tertiary));
 }
 
+/* ─── Realm Playbill rail (Chronicle) ─────────────────────────────────────── */
+.realm-playbill-rail .playbill-card {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.realm-home-chronicle {
+  overflow-x: hidden;
+}
+
+.realm-home-chronicle .playbill-card {
+  min-width: 0;
+}
+
 /* ─── Kip Markdown Rendering ─────────────────────────────────────────────────
  * Applied to agent messages in DialogueMessageList via .kip-message-content.
  * User messages render plain text — these classes do not apply there.

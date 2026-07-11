@@ -189,12 +189,13 @@ function UniversalBoardShell({
   onDomainClick,
   navVersions,
 }: UniversalBoardProps) {
-  const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
+  const { domainSlug, styleId, themeSlug, domainFrame, domainData, shellMode } = useV0Shell()
   const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
 
   const targetBoardId = def.boardId as WorkspaceBoardId
+  const isRealmHome = def.boardId === "realm" && shellMode === "home"
   const { openSwitcher, switcherOverlay, isSwitcherOpen } = useDomainSwitcher(targetBoardId)
 
   useBoardThemeRegistration()
@@ -352,14 +353,15 @@ function UniversalBoardShell({
   const coverImageMode = (domainData as { theme?: { coverImageMode?: string } } | undefined)?.theme?.coverImageMode ?? "cover"
   const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
 
-  const pageBackground: React.CSSProperties = displayCoverUrl
-    ? {
+  const pageBackground: React.CSSProperties =
+    isRealmHome || !displayCoverUrl
+      ? { background: "hsl(var(--theme-surface-page))" }
+      : {
         backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
         backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
         backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
         backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
       }
-    : {}
 
   // ── Panel group board kind — maps boardId to known layout presets ──────────
   // ide and agent have distinct persisted layout preferences.
@@ -424,13 +426,13 @@ function UniversalBoardShell({
         style={pageBackground}
       >
         <KeeperTopBar
-          onDomainClick={onDomainClick ?? openSwitcher}
+          onDomainClick={isRealmHome ? () => {} : (onDomainClick ?? openSwitcher)}
           onBriefClick={() => setBriefOpen((o) => !o)}
           isBriefOpen={briefOpen}
-          isPlaybillOpen={isSwitcherOpen}
+          isPlaybillOpen={isRealmHome ? false : isSwitcherOpen}
         />
 
-        {switcherOverlay}
+        {!isRealmHome ? switcherOverlay : null}
 
         {isMobile && isMemberMobileBoard(def.boardId) ? <GuidedArrivalOrchestrator /> : null}
 

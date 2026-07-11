@@ -4,8 +4,9 @@
 View components for the V0 surface: cover frame and moment diary frame, with no backend wiring.
 
 ## 🧱 Key Files
-- `DomainSwitcher.tsx` – The Playbill travel list (opens from top-bar header card).
-- `PlaybillHeaderCard.tsx` – Top-bar Playbill: blurred ambient, clear agent portrait, relationship state.
+- `DomainSwitcher.tsx` – Domain travel list popover (domain boards only).
+- `LocationStrip.tsx` – Read-only top-bar location on `/home` (domain presents agent).
+- `PlaybillHeaderCard.tsx` – Top-bar location on domain boards (opens domain switcher).
 - `PlaybillCard.tsx` – Playbill travel card in The Playbill dropdown.
 - `playbillVisual.tsx` – Shared ambient blur + agent portrait layers.
 - `DomainFeed.tsx` – Domain activity feed (kept moments, journey summaries); empty copy from `commons.messaging.feed` when set.
@@ -33,7 +34,8 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
-- 2026-07-10: **Playbill in top bar** — `PlaybillHeaderCard` replaces wordmark picker; Chuck/Ceox-style blurred ambient + clear agent portrait; Chronicle feed only on realm; user click returns to realm; user avatar image wired.
+- 2026-07-10: **Arrival presentation** — `/home` uses read-only `LocationStrip`; Playbill rail in Chronicle (`RealmPlaybillRail`); `PlaybillAmbientLayer` `contained` mode for contrast-safe location strip.
+- 2026-07-10: **Playbill in top bar** — `PlaybillHeaderCard` on domain boards; realm uses `LocationStrip` instead.
 - 2026-07-10: **Playbill wireframe alignment** — `PlaybillCard` compact header card (no cover hero); human role subtitles; explicit Enter; panel titled "The Playbill". `KeeperTopBar` restores **Home** nav link to `/home` from domain boards.
 - 2026-07-08: **Playbill pattern** — `PlaybillCard` replaces duplicate domain picker cards (`DomainSwitcher`, mobile `RealmScreen`); lead agent from `frame_json.kip.agent_id`, stats from `GET /api/domains/:id/stats`, greet continuity via `playbillGreetContinuity`.
 - 2026-07-07: `Margin` guest Sign In builds `next` via `buildRealmBoardPath` (`/?board=domain` on livecchi.us) — avoids HostnameSlugGuard redirect flicker after login.

@@ -15,12 +15,15 @@ import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 import { useGuidedArrival } from "../../v0/guidedArrival/GuidedArrivalContext";
 import { GuidedArrivalBanner } from "../../v0/guidedArrival/GuidedArrivalBanner";
-import { RealmArrivalSurface } from "../../v0/realm/RealmArrivalSurface";
+import { RealmPlaybillRail } from "../../v0/realm/RealmPlaybillRail";
 import { RealmFeedPanel } from "../../v0/realm/RealmFeedPanel";
 import { useRealmFeed } from "../../v0/realm/useRealmFeed";
 import { useRealmArrivalOptional } from "../../v0/realm/RealmArrivalContext";
 import { useUniversalBoard } from "../../v0/boards/UniversalBoardContext";
 import type { RealmInvitationActions } from "../../v0/realm/realmInvitationActions";
+import { applyRealmInvitation } from "../../v0/realm/realmInvitationActions";
+import { buildRealmArrivalMessage } from "../../v0/realm/realmArrivalMessage";
+import type { RealmInvitationId } from "../../v0/realm/realmInvitations";
 import { readFrameLeadAgentSlug } from "../../v0/lib/frameLeadAgentIdentity";
 import { useFrameLeadAgentIdentity } from "../../v0/hooks/useFrameLeadAgentIdentity";
 import { isVisibleToAudience } from "@keeper/shared";
@@ -147,6 +150,17 @@ export function KipScreen() {
   });
 
   const dialogMessages = React.useMemo(() => {
+    if (isRealmHome) {
+      if (messages.some((m) => m.role === "user")) return messages;
+      return [
+        buildRealmArrivalMessage(
+          realmFeed?.remarks ?? "Welcome back.",
+          realmFeed?.counts ?? { drafts: 0, sessions: 0, moments: 0, domains: 0 },
+          realmFeedLoading,
+        ),
+        ...messages,
+      ];
+    }
     if (!arrivalActive || !guidedArrival.greeting || messages.length > 0) return messages;
     return [
       {
@@ -157,7 +171,15 @@ export function KipScreen() {
       },
       ...messages,
     ];
-  }, [arrivalActive, guidedArrival.greeting, messages]);
+  }, [
+    isRealmHome,
+    realmFeed?.remarks,
+    realmFeed?.counts,
+    realmFeedLoading,
+    arrivalActive,
+    guidedArrival.greeting,
+    messages,
+  ]);
 
   const handleSubmit = React.useCallback(
     async (
@@ -245,7 +267,15 @@ export function KipScreen() {
         setResponseView("chronicle");
       },
     }),
-    [boardActions, realmArrival],
+    [boardActions, realmArrival, setResponseView],
+  );
+
+  const handleArrivalInvitation = React.useCallback(
+    (id: RealmInvitationId) => {
+      applyRealmInvitation(id, realmFeed, realmInvitationActions);
+      if (id === "feed") setResponseView("chronicle");
+    },
+    [realmFeed, realmInvitationActions, setResponseView],
   );
 
   const realmComposerPlaceholder = isRealmHome
@@ -280,10 +310,13 @@ export function KipScreen() {
   const chronicleContent =
     stage === "response" && responseView === "chronicle" ? (
       isRealmHome ? (
-        <RealmFeedPanel
-          events={realmFeed?.events ?? []}
-          isLoading={realmFeedLoading}
-        />
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+          <RealmPlaybillRail anchorSlug={domainSlug} className="shrink-0" />
+          <RealmFeedPanel
+            events={realmFeed?.events ?? []}
+            isLoading={realmFeedLoading}
+          />
+        </div>
       ) : (
         <MobileKipChronicleView
           message={latestAgentMessage}
@@ -295,15 +328,6 @@ export function KipScreen() {
 
   return (
     <div className="mobile-kip-screen">
-      {isRealmHome ? (
-        <RealmArrivalSurface
-          feed={realmFeed}
-          agentSlug={dialogAgentSlug}
-          agentDisplayName={dialogAgentDisplayName}
-          isLoading={realmFeedLoading}
-          invitationActions={realmInvitationActions}
-        />
-      ) : null}
       {arrivalActive ? (
         <GuidedArrivalBanner
           agentName={guidedArrival.leadAgentDisplayName}
@@ -356,6 +380,7 @@ export function KipScreen() {
           dialogueMode="domain"
           agentName={dialogAgentDisplayName}
           inputPlaceholder={realmComposerPlaceholder}
+          onArrivalInvitation={isRealmHome ? handleArrivalInvitation : undefined}
           onOpenMoment={openMoment}
           showServiceBar={false}
           talkMode

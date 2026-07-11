@@ -40,6 +40,7 @@ import { buildDomainKeyAccessPayload } from '../../routes/key-entity-routes.js';
 import { DOMAIN_FRAME_FALLBACK } from '../../services/domains/domainFrameFallback.js';
 import { expandPlatformDomainSlugCandidates } from '@keeper/shared';
 import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
+import { repairDomainLeadBindings } from '../../services/domains/repairDomainLeadBindings.js';
 import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
 import {
   inviteDomainConnection,
@@ -332,6 +333,10 @@ async function findDomainRecordBySlug<T>(
 router.get('/:slug/frame', async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
+
+    await repairDomainLeadBindings(prisma, { domainSlug: slug }).catch((err) => {
+      console.warn('[domains/frame] lead binding repair failed:', err);
+    });
 
     const domain = await findDomainRecordBySlug<{ frame_json: unknown }>(slug, {
       frame_json: true,
@@ -876,6 +881,11 @@ router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
     }
 
     const userId = req.user.id;
+
+    // Repair placeholder lead bindings before listing (idempotent).
+    await repairDomainLeadBindings(prisma, { ownerId: userId }).catch((err) => {
+      console.warn('[domains/my] lead binding repair failed:', err);
+    });
 
     // First, attempt standard lookup (active domains + permissions logic)
     let domains = await getDomainService().getUserDomains(userId);

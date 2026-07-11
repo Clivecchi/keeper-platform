@@ -10,8 +10,8 @@ See also: `docs/realm-development-plan.md` (broader Realm phase map).
 
 - Realm = board mode (`REALM_BOARD_DEF`) + entry shell (`/home`) — no new Prisma models, no user→agent FK
 - Domain lead is the realm agent via `users.primaryDomainId` → anchor domain → `frame_json.kip.agent_id`
-- Arrival hierarchy: agent remarks → invitation buttons (≤4) → composer with agent lead → Playbill rail in Chronicle
-- Location strip persistent; person chrome = quiet corner avatar menu only
+- Arrival hierarchy: agent remarks (Dialog Response) → invitation buttons inside message (≤4) → composer with agent lead → Playbill rail in Chronicle
+- Location strip persistent (read-only on `/home`); person chrome = quiet corner avatar menu only
 - Presence Field = named Treatment pattern for all presence imagery
 - Uncast domains: "{Domain} presents **Agent**" — not "Casting"
 - Realm Feed = visual User-Realm Graph; event shape graph-compatible from day one
@@ -49,6 +49,9 @@ See also: `docs/realm-development-plan.md` (broader Realm phase map).
 - Three Sizes One Shape (separate capture)
 
 ## 📆 Update Log
+
+### 2026-07-10 — Arrival presentation corrections
+- Remarks as Dialog Response with invitations inside bubble; Playbill rail in Chronicle; anchor domain excluded from travel list; realm home solid surface (no cover wallpaper)
 
 ### 2026-07-09 — Design capture filed; build completed in Cursor
 - Phases 2–5 implemented per this capture
