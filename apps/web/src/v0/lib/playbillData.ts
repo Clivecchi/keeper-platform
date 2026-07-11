@@ -40,12 +40,30 @@ function isAvatarImageSrc(value: string): boolean {
 }
 
 function formatPlaybillRoleLine(role?: string | null, purpose?: string | null): string {
-  if (role?.trim()) return `AS THE ${role.trim().toUpperCase()} AGENT`
   if (purpose?.trim()) {
     const short = purpose.trim().slice(0, 64)
-    return short.toUpperCase()
+    return short.charAt(0).toUpperCase() + short.slice(1)
   }
-  return "INNKEEPER"
+  if (role?.trim()) {
+    const normalized = role.trim().toLowerCase()
+    if (normalized === "lead") return "Domain lead"
+    return role.trim().charAt(0).toUpperCase() + role.trim().slice(1).toLowerCase()
+  }
+  return "Domain lead"
+}
+
+export function formatPlaybillRoleSubtitle(
+  agent: ResolvedPlaybillAgent | null,
+  domainSlug: string,
+  isUncast: boolean,
+): string {
+  if (isUncast) return "Domain lead"
+  const leadSlug = agent?.identity.slug?.trim().toLowerCase() ?? ""
+  const normalizedDomain = domainSlug.trim().toLowerCase()
+  if (leadSlug === "kip" && (normalizedDomain === "ke3p" || normalizedDomain === "default")) {
+    return "Platform director"
+  }
+  return agent?.roleLine ?? "Domain lead"
 }
 
 function iconFallbackForAgent(displayName: string, slug: string): string {
@@ -62,8 +80,8 @@ export function formatPlaybillActivity(stats: DomainPlaybillStats | null | undef
   const momentLabel = count === 1 ? "1 moment" : `${count} moments`
   const lastActive = stats?.lastActivity
     ? formatRelativeTime(stats.lastActivity)
-    : "—"
-  return `${momentLabel} · last active ${lastActive}`
+    : "quiet"
+  return `${momentLabel} · ${lastActive}`
 }
 
 async function fetchDomainStatsRaw(domainId: string): Promise<DomainPlaybillStats> {

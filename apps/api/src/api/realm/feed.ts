@@ -143,6 +143,8 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
           session_name: true,
           topic: true,
           updated_at: true,
+          dialog_id: true,
+          dialog: { select: { domain_id: true } },
         },
       }),
       prisma.moment.findMany({
@@ -176,16 +178,22 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
         domainSlug: domain.slug,
         domainName: domain.name,
         summary: draft.title?.trim() || "Untitled draft",
+        entityId: draft.id,
         deepLink: `/d/${encodeURIComponent(domain.slug)}?board=domain`,
       })
     }
 
     for (const session of sessions) {
-      const domain = anchorDomain
+      const sessionDomainId = session.dialog?.domain_id?.trim() || null
+      const domain =
+        (sessionDomainId ? domainById.get(sessionDomainId) : null) ?? anchorDomain
       const label =
         session.session_name?.trim() ||
         session.topic?.trim() ||
         "Conversation"
+      const dialogQuery = session.dialog_id
+        ? `&dialog=${encodeURIComponent(session.dialog_id)}`
+        : ""
       events.push({
         id: `session:${session.id}`,
         type: "session_updated",
@@ -194,7 +202,9 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
         domainSlug: domain.slug,
         domainName: domain.name,
         summary: label,
-        deepLink: `/d/${encodeURIComponent(domain.slug)}?board=domain`,
+        entityId: session.id,
+        dialogId: session.dialog_id ?? undefined,
+        deepLink: `/d/${encodeURIComponent(domain.slug)}?board=domain${dialogQuery}`,
       })
     }
 
@@ -211,6 +221,7 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
         domainSlug: domain.slug,
         domainName: domain.name,
         summary: moment.title?.trim() || "Moment",
+        entityId: moment.id,
         deepLink: `/d/${encodeURIComponent(domain.slug)}?board=domain`,
       })
     }
@@ -234,6 +245,47 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
     return res.json(response)
   } catch (error) {
     console.error("[realm/feed] error:", error)
+    return res.status(500).json({ error: "Internal server error" })
+  }
+})
+
+// PATCH /api/realm/anchor — persist personal realm anchor (users.primaryDomainId)
+router.patch("/anchor", authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" })
+    }
+
+    const body = req.body as { domainId?: string; domainSlug?: string }
+    const domainId = body.domainId?.trim() || ""
+    const domainSlug = body.domainSlug?.trim().toLowerCase() || ""
+
+    if (!domainId && !domainSlug) {
+      return res.status(400).json({ error: "domainId or domainSlug required" })
+    }
+
+    const domains = await getDomainService().getUserDomains(userId)
+    const match = domainId
+      ? domains.find((d) => d.id === domainId)
+      : domains.find((d) => d.slug.trim().toLowerCase() === domainSlug)
+
+    if (!match) {
+      return res.status(403).json({ error: "Domain not in your reach" })
+    }
+
+    await prisma.users.update({
+      where: { id: userId },
+      data: { primaryDomainId: match.id },
+    })
+
+    return res.json({
+      success: true,
+      anchorDomainId: match.id,
+      anchorDomainSlug: match.slug,
+    })
+  } catch (error) {
+    console.error("[realm/anchor] error:", error)
     return res.status(500).json({ error: "Internal server error" })
   }
 })

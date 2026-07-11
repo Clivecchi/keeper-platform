@@ -15,6 +15,12 @@ import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 import { useGuidedArrival } from "../../v0/guidedArrival/GuidedArrivalContext";
 import { GuidedArrivalBanner } from "../../v0/guidedArrival/GuidedArrivalBanner";
+import { RealmArrivalSurface } from "../../v0/realm/RealmArrivalSurface";
+import { RealmFeedPanel } from "../../v0/realm/RealmFeedPanel";
+import { useRealmFeed } from "../../v0/realm/useRealmFeed";
+import { useRealmArrivalOptional } from "../../v0/realm/RealmArrivalContext";
+import { useUniversalBoard } from "../../v0/boards/UniversalBoardContext";
+import type { RealmInvitationActions } from "../../v0/realm/realmInvitationActions";
 import { readFrameLeadAgentSlug } from "../../v0/lib/frameLeadAgentIdentity";
 import { useFrameLeadAgentIdentity } from "../../v0/hooks/useFrameLeadAgentIdentity";
 import { isVisibleToAudience } from "@keeper/shared";
@@ -33,7 +39,7 @@ export function KipScreen() {
     mobileRefreshKey,
     consumePendingComposerText,
   } = useUniversalMobile();
-  const { domainFrame, resolvedAudience } = useV0Shell();
+  const { domainFrame, resolvedAudience, shellMode } = useV0Shell();
   const { refreshSession, user } = useAuth();
   const [composerFocused, setComposerFocused] = React.useState(false);
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null);
@@ -59,7 +65,11 @@ export function KipScreen() {
   }, [kipFocusMomentId]);
 
   const guidedArrival = useGuidedArrival();
-  const arrivalActive = guidedArrival.isActive;
+  const arrivalActive = guidedArrival.isActive && !isRealmBoard;
+  const isRealmHome = isRealmBoard && shellMode === "home";
+  const realmArrival = useRealmArrivalOptional();
+  const { actions: boardActions } = useUniversalBoard();
+  const { feed: realmFeed, isLoading: realmFeedLoading } = useRealmFeed(isRealmHome);
 
   const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame);
   const frameLeadIdentity = useFrameLeadAgentIdentity(frameLeadAgentSlug, "Kip");
@@ -223,6 +233,25 @@ export function KipScreen() {
     };
   }, [domainSlug, mobileRefreshKey]);
 
+  const realmInvitationActions = React.useMemo<RealmInvitationActions>(
+    () => ({
+      onSessionSelect: boardActions.onSessionSelect,
+      onDialogSelect: boardActions.onDialogSelect,
+      onDraftSelect: boardActions.onDraftSelect,
+      bumpDialogNav: boardActions.bumpDialogNav,
+      bumpDraftNav: boardActions.bumpDraftNav,
+      focusChronicleFeed: () => {
+        realmArrival?.setChronicleView("feed");
+        setResponseView("chronicle");
+      },
+    }),
+    [boardActions, realmArrival],
+  );
+
+  const realmComposerPlaceholder = isRealmHome
+    ? `Message ${dialogAgentDisplayName}`
+    : undefined;
+
   const bannerContext = React.useMemo(() => {
     const df = domainFrame as {
       theme?: { wordmark?: string; tagline?: string; colors?: { primary?: string } };
@@ -250,15 +279,31 @@ export function KipScreen() {
 
   const chronicleContent =
     stage === "response" && responseView === "chronicle" ? (
-      <MobileKipChronicleView
-        message={latestAgentMessage}
-        agentName={dialogAgentDisplayName}
-        onOpenMoment={openMoment}
-      />
+      isRealmHome ? (
+        <RealmFeedPanel
+          events={realmFeed?.events ?? []}
+          isLoading={realmFeedLoading}
+        />
+      ) : (
+        <MobileKipChronicleView
+          message={latestAgentMessage}
+          agentName={dialogAgentDisplayName}
+          onOpenMoment={openMoment}
+        />
+      )
     ) : undefined;
 
   return (
     <div className="mobile-kip-screen">
+      {isRealmHome ? (
+        <RealmArrivalSurface
+          feed={realmFeed}
+          agentSlug={dialogAgentSlug}
+          agentDisplayName={dialogAgentDisplayName}
+          isLoading={realmFeedLoading}
+          invitationActions={realmInvitationActions}
+        />
+      ) : null}
       {arrivalActive ? (
         <GuidedArrivalBanner
           agentName={guidedArrival.leadAgentDisplayName}
@@ -296,7 +341,7 @@ export function KipScreen() {
             <MobileKipResponseToolbar
               view={responseView}
               onViewChange={setResponseView}
-              chronicleLabel={isRealmBoard ? "Presence" : "Chronicle"}
+              chronicleLabel={isRealmBoard ? "Realm feed" : "Chronicle"}
             />
           }
           inputValue={input}
@@ -310,6 +355,7 @@ export function KipScreen() {
           activeSessionId={activeSessionId}
           dialogueMode="domain"
           agentName={dialogAgentDisplayName}
+          inputPlaceholder={realmComposerPlaceholder}
           onOpenMoment={openMoment}
           showServiceBar={false}
           talkMode

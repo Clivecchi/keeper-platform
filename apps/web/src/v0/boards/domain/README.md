@@ -27,7 +27,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
-- 2026-07-08: Domain picker uses **Playbill** cards (`PlaybillCard`) — innkeeper wall with live stats (`GET /api/domains/:id/stats`) instead of domain cover thumbs.
+- 2026-07-10: Domain picker uses **Playbill** cards (`PlaybillCard`) — top-bar header + travel list with live stats (`GET /api/domains/:id/stats`).
 - 2026-07-07: `resolvePostLoginDomainSlug` returns `null` when user has no domains — never falls back to platform slug `default`; `/home` shows explicit empty state until `?domain=` or a domain exists.
 - 2026-07-07: Domain picker resolves target `?board=` to a workspace available on the selected slug (e.g. Ceox lands on Domain, not IDE); navigation uses `replace: true`.
 - 2026-07-02: `resolvePostLoginDomainSlug` — login lands on primary owned domain (`isPrimary` from `/api/domains/my`), not hardcoded `default`.

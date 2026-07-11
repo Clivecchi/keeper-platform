@@ -48,10 +48,10 @@ export function DomainSwitcher({
         className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
         style={{
           ...SWITCHER_PANEL_STYLE,
-          width: 248,
+          width: 300,
         }}
         role="dialog"
-        aria-label="Domain switcher"
+        aria-label="The Playbill"
         aria-modal="false"
       >
         <div
@@ -62,7 +62,7 @@ export function DomainSwitcher({
             className="text-[10px] font-semibold uppercase tracking-widest"
             style={{ color: SWITCHER_INK_MUTED }}
           >
-            Your Domains
+            The Playbill
           </span>
           <button
             type="button"

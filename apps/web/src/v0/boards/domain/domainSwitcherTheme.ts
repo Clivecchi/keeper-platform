@@ -4,8 +4,8 @@ export const SWITCHER_INK_SECONDARY = "hsl(40 10% 84%)"
 export const SWITCHER_INK_MUTED = "hsl(40 8% 72%)"
 
 export const SWITCHER_PANEL_STYLE = {
-  top: 72,
-  left: 0,
+  top: 96,
+  left: 20,
   border: "1px solid hsl(var(--theme-border-soft))",
   backgroundColor: "hsl(220 16% 11% / 0.98)",
   backdropFilter: "blur(10px)",

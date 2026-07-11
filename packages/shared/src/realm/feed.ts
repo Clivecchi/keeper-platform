@@ -18,6 +18,9 @@ export interface RealmFeedEvent {
   domainName: string
   summary: string
   deepLink?: string
+  /** Underlying record id (session, draft, or moment). */
+  entityId?: string
+  dialogId?: string
 }
 
 export interface RealmFeedCounts {

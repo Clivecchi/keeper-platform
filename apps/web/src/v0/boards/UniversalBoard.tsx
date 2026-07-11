@@ -195,7 +195,7 @@ function UniversalBoardShell({
   const isMobile = useIsMobile()
 
   const targetBoardId = def.boardId as WorkspaceBoardId
-  const { openSwitcher, switcherOverlay } = useDomainSwitcher(targetBoardId)
+  const { openSwitcher, switcherOverlay, isSwitcherOpen } = useDomainSwitcher(targetBoardId)
 
   useBoardThemeRegistration()
 
@@ -427,6 +427,7 @@ function UniversalBoardShell({
           onDomainClick={onDomainClick ?? openSwitcher}
           onBriefClick={() => setBriefOpen((o) => !o)}
           isBriefOpen={briefOpen}
+          isPlaybillOpen={isSwitcherOpen}
         />
 
         {switcherOverlay}

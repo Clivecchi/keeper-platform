@@ -2,13 +2,18 @@
 
 import * as React from "react"
 import clsx from "clsx"
-import { FileText, ChevronDown } from "lucide-react"
+import { FileText } from "lucide-react"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
-import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
-import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { PlaybillHeaderCard } from "./PlaybillHeaderCard"
+import {
+  fetchDomainSwitcherEntries,
+  getCachedDomainSwitcherEntries,
+  prefetchDomainSwitcherEntries,
+} from "../boards/domain/domainSwitcherData"
+import { getBlobProxyUrl } from "../../lib/blobProxy"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
 
@@ -74,6 +79,7 @@ interface KeeperTopBarProps {
   onDomainClick: () => void
   onBriefClick: () => void
   isBriefOpen?: boolean
+  isPlaybillOpen?: boolean
 }
 
 function getInitials(name: string | null, email: string | null): string {
@@ -94,39 +100,104 @@ function getRoleLabel(audience: string | null): string {
   return "Guest"
 }
 
-export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: KeeperTopBarProps) {
+function useDomainIdForSlug(slug: string): string {
+  const [domainId, setDomainId] = React.useState("")
+
+  React.useEffect(() => {
+    if (!slug.trim()) {
+      setDomainId("")
+      return
+    }
+
+    const resolve = (entries: { id: string; slug: string }[]) => {
+      const match = entries.find(
+        (entry) => entry.slug.trim().toLowerCase() === slug.trim().toLowerCase(),
+      )
+      setDomainId(match?.id ?? "")
+    }
+
+    const cached = getCachedDomainSwitcherEntries()
+    if (cached) {
+      resolve(cached)
+      return
+    }
+
+    prefetchDomainSwitcherEntries()
+    void fetchDomainSwitcherEntries().then(resolve).catch(() => setDomainId(""))
+  }, [slug])
+
+  return domainId
+}
+
+function UserAvatar({
+  avatarUrl,
+  initials,
+  isOpen,
+  isGuest,
+}: {
+  avatarUrl: string | null
+  initials: string
+  isOpen: boolean
+  isGuest: boolean
+}) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt=""
+        className="keeper-topbar-avatar keeper-topbar-avatar-image"
+        data-open={isOpen ? "true" : "false"}
+        data-guest={isGuest ? "true" : "false"}
+        draggable={false}
+      />
+    )
+  }
+
+  return (
+    <span
+      className="keeper-topbar-avatar"
+      data-open={isOpen ? "true" : "false"}
+      data-guest={isGuest ? "true" : "false"}
+      aria-hidden
+    >
+      {initials}
+    </span>
+  )
+}
+
+export function KeeperTopBar({
+  onDomainClick,
+  onBriefClick,
+  isBriefOpen,
+  isPlaybillOpen = false,
+}: KeeperTopBarProps) {
   const {
     domainSlug,
     domainFrame,
+    domainData,
     resolvedAudience,
     workspaceBoardId,
     switchWorkspace,
     shellMode,
-    homeDisplayName,
+    navigateHome,
   } = useV0Shell()
   const { user, logout } = useAuth()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
   const isHomeShell = shellMode === "home"
-  const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame)
-  const leadAgent = useFrameLeadAgentIdentity(frameLeadAgentSlug)
-
-  const domainWordmark = isHomeShell
-    ? (typeof homeDisplayName === "string" ? homeDisplayName.trim() : "") || "Home"
-    : domainFrame?.theme?.wordmark?.trim() || domainSlug
-  const tagline = isHomeShell
-    ? leadAgent.displayName
-      ? `${leadAgent.displayName} greets you`
-      : "Your realm"
-    : (() => {
-        const card = domainFrame?.cover?.card as { tagLine?: string } | undefined
-        return card?.tagLine?.trim() || domainFrame?.theme?.tagline?.trim() || ""
-      })()
+  const domainId = useDomainIdForSlug(domainSlug)
+  const domainName =
+    domainFrame?.theme?.wordmark?.trim() || domainSlug || "Domain"
+  const coverImageUrl = domainData?.theme?.coverImage
+    ? getBlobProxyUrl(domainData.theme.coverImage)
+    : null
 
   const initials = getInitials(user?.name ?? null, user?.email ?? null)
   const displayName = user?.name?.trim() || user?.email?.trim() || "Guest"
   const roleLabel = getRoleLabel(resolvedAudience)
+  const avatarUrl = user?.avatar_url?.trim() ? getBlobProxyUrl(user.avatar_url.trim()) : null
+  const isGuest = resolvedAudience === "guest"
 
   const boardLinks = React.useMemo(
     () => (isHomeShell ? [] : resolveWorkspaceBoardLinks(domainSlug)),
@@ -137,8 +208,17 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
     switchWorkspace(id)
   }
 
-  const handleAvatarClick = () => {
-    if (resolvedAudience === "guest") return
+  const handleReturnToRealm = () => {
+    if (isGuest || isHomeShell) return
+    navigateHome()
+  }
+
+  const handleUserClick = () => {
+    if (isGuest) return
+    if (!isHomeShell) {
+      navigateHome()
+      return
+    }
     setProfileOpen((prev) => !prev)
   }
 
@@ -150,69 +230,59 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   return (
     <div className="keeper-platform-top-bar relative z-50 shrink-0">
       <div className="keeper-topbar-identity-row">
-        <button
-          type="button"
-          onClick={onDomainClick}
-          className="keeper-topbar-identity group text-left"
-          aria-label={`Domain: ${domainWordmark}. Choose domain`}
-          aria-haspopup="dialog"
-        >
-          <span className="flex min-w-0 items-center gap-1">
-            {isHomeShell ? (
-              <span
-                className="keeper-topbar-realm-mark mr-1.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-serif font-semibold"
-                style={{
-                  background: "hsl(var(--theme-accent-primary) / 0.18)",
-                  color: "hsl(var(--theme-accent-primary))",
-                  border: "1px solid hsl(var(--theme-accent-primary) / 0.35)",
-                }}
-                aria-hidden
-              >
-                {(leadAgent.displayName || "H").slice(0, 1).toUpperCase()}
-              </span>
-            ) : null}
-            <span className="keeper-topbar-primary keeper-topbar-wordmark font-serif font-semibold truncate max-w-[320px]">
-              {domainWordmark}
-            </span>
-            <ChevronDown
-              className="keeper-topbar-secondary shrink-0 opacity-60 transition-opacity group-hover:opacity-100"
-              style={{ width: 14, height: 14 }}
-              aria-hidden
-            />
-          </span>
-          {tagline ? (
-            <span className="keeper-topbar-tagline text-[12px] leading-snug truncate max-w-[320px]">
-              {tagline}
-            </span>
-          ) : null}
-        </button>
+        <PlaybillHeaderCard
+          domainSlug={domainSlug}
+          domainId={domainId}
+          domainName={domainName}
+          coverImageUrl={coverImageUrl}
+          domainFrame={domainFrame}
+          onOpenPlaybill={onDomainClick}
+          isOpen={isPlaybillOpen}
+        />
 
         <div className="keeper-topbar-user">
-          {!isHomeShell ? (
-            <div className="keeper-topbar-user-meta">
+          {!isGuest ? (
+            <button
+              type="button"
+              onClick={handleReturnToRealm}
+              disabled={isHomeShell}
+              className={clsx(
+                "keeper-topbar-user-meta text-right transition-opacity",
+                !isHomeShell && "cursor-pointer hover:opacity-90",
+                isHomeShell && "cursor-default",
+              )}
+              aria-label={isHomeShell ? "Your realm" : `Return to your realm`}
+              title={isHomeShell ? "Your realm" : "Return to your realm"}
+            >
               <p
                 className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate"
-                title={displayName}
               >
                 {displayName}
               </p>
               <span className="keeper-topbar-status-badge">{roleLabel}</span>
-            </div>
+            </button>
           ) : null}
           <button
             ref={avatarButtonRef}
             type="button"
-            onClick={handleAvatarClick}
+            onClick={handleUserClick}
             aria-expanded={profileOpen}
-            aria-haspopup="menu"
-            aria-label="Open profile menu"
-            className="keeper-topbar-secondary keeper-topbar-avatar"
-            data-open={profileOpen ? "true" : "false"}
-            data-guest={resolvedAudience === "guest" ? "true" : "false"}
+            aria-haspopup={isHomeShell ? "menu" : undefined}
+            aria-label={
+              isHomeShell
+                ? "Open profile menu"
+                : `Return to your realm — ${displayName}`
+            }
+            className="keeper-topbar-avatar-button"
           >
-            {initials}
+            <UserAvatar
+              avatarUrl={avatarUrl}
+              initials={initials}
+              isOpen={profileOpen}
+              isGuest={isGuest}
+            />
           </button>
-          {profileOpen && resolvedAudience !== "guest" && (
+          {profileOpen && !isGuest && isHomeShell && (
             <ProfilePopover
               displayName={displayName}
               roleLabel={roleLabel}
@@ -226,11 +296,16 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
 
       <div className="keeper-topbar-nav-row">
         <nav className="flex items-center gap-0.5" aria-label="Board navigation">
+          {isHomeShell ? (
+            <span className="keeper-topbar-primary text-[13px] font-medium py-0.5" aria-current="page">
+              Realm
+            </span>
+          ) : null}
           {boardLinks.map(({ id, label }, idx) => {
             const isActive = workspaceBoardId === id
             return (
               <React.Fragment key={id}>
-                {idx > 0 && (
+                {(idx > 0 || isHomeShell) && (
                   <span
                     className="keeper-topbar-secondary select-none px-1.5 text-[13px]"
                     aria-hidden

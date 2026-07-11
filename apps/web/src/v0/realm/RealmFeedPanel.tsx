@@ -8,12 +8,14 @@ export interface RealmFeedPanelProps {
   events: RealmFeedEvent[]
   isLoading?: boolean
   className?: string
+  onEventSelect?: (event: RealmFeedEvent) => void
 }
 
 export function RealmFeedPanel({
   events,
   isLoading = false,
   className = "",
+  onEventSelect,
 }: RealmFeedPanelProps) {
   if (isLoading) {
     return (
@@ -36,23 +38,39 @@ export function RealmFeedPanel({
   }
 
   return (
-    <ul className={`realm-feed-panel divide-y ${className}`} style={{ borderColor: "hsl(var(--theme-border-soft) / 0.4)" }}>
-      {events.map((event) => (
-        <li key={event.id} className="px-4 py-3">
-          <p
-            className="text-[10px] uppercase tracking-[0.16em]"
-            style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}
-          >
-            {event.domainName} · {formatRelativeTime(event.occurredAt)}
-          </p>
-          <p
-            className="mt-1 font-serif text-[14px] leading-snug"
-            style={{ color: "hsl(var(--theme-ink-primary))" }}
-          >
-            {event.summary}
-          </p>
-        </li>
-      ))}
+    <ul
+      className={`realm-feed-panel divide-y ${className}`}
+      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.4)" }}
+    >
+      {events.map((event) => {
+        const interactive = Boolean(onEventSelect)
+        const Tag = interactive ? "button" : "div"
+        return (
+          <li key={event.id}>
+            <Tag
+              type={interactive ? "button" : undefined}
+              onClick={interactive ? () => onEventSelect?.(event) : undefined}
+              className={[
+                "w-full px-4 py-3 text-left",
+                interactive ? "transition-opacity hover:opacity-90" : "",
+              ].join(" ")}
+            >
+              <p
+                className="text-[10px] uppercase tracking-[0.16em]"
+                style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}
+              >
+                {event.domainName} · {formatRelativeTime(event.occurredAt)}
+              </p>
+              <p
+                className="mt-1 font-serif text-[14px] leading-snug"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
+              >
+                {event.summary}
+              </p>
+            </Tag>
+          </li>
+        )
+      })}
     </ul>
   )
 }

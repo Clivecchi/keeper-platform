@@ -21,6 +21,8 @@ import {
   type DomainSwitcherEntry,
 } from "./domainSwitcherData"
 import { prefetchDomainShell } from "./domainShellCache"
+import { persistRealmAnchor } from "../../realm/persistRealmAnchor"
+import { useSceneChangeOptional } from "../../sceneChange/SceneChangeProvider"
 import {
   SWITCHER_INK_MUTED,
   SWITCHER_INK_PRIMARY,
@@ -168,6 +170,7 @@ export function DomainSwitcherOverlay({
   const navigate = useNavigate()
   const location = useLocation()
   const { shellMode } = useV0Shell()
+  const sceneChange = useSceneChangeOptional()
   const [switcherView, setSwitcherView] = React.useState<SwitcherView>("list")
   const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([])
   const [fetchState, setFetchState] = React.useState<SwitcherFetchState>("idle")
@@ -234,14 +237,26 @@ export function DomainSwitcherOverlay({
       if (shellMode === "home" || targetBoardId === HOME_SHELL_BOARD) {
         preserved.set(HOME_DOMAIN_PARAM, nextSlug)
         preserved.delete("board")
-        navigate(buildHomePath(preserved), { replace: true })
+        void persistRealmAnchor({ domainSlug: nextSlug }).catch((error) => {
+          console.warn("[DomainSwitcherOverlay] Anchor persist failed:", error)
+        })
+        const go = () => navigate(buildHomePath(preserved), { replace: true })
+        if (sceneChange && nextSlug !== currentSlug) {
+          void sceneChange.travelToSlug(nextSlug, go)
+          return
+        }
+        go()
         return
       }
-      navigate(buildDomainBoardUrl(nextSlug, targetBoardId, preserved), {
-        replace: true,
-      })
+      const path = buildDomainBoardUrl(nextSlug, targetBoardId, preserved)
+      const go = () => navigate(path, { replace: true })
+      if (sceneChange && nextSlug !== currentSlug) {
+        void sceneChange.travelToSlug(nextSlug, go)
+        return
+      }
+      go()
     },
-    [navigate, targetBoardId, currentSlug, location.search, shellMode],
+    [navigate, targetBoardId, currentSlug, location.search, shellMode, sceneChange],
   )
 
   const handleDomainSelect = React.useCallback(
@@ -324,6 +339,7 @@ export function DomainSwitcherOverlay({
 export interface UseDomainSwitcherResult {
   openSwitcher: () => void
   switcherOverlay: React.ReactNode
+  isSwitcherOpen: boolean
 }
 
 /** Open/close state + portaled overlay for the top-bar domain switcher. */
@@ -352,5 +368,5 @@ export function useDomainSwitcher(targetBoardId: WorkspaceBoardId): UseDomainSwi
     />
   )
 
-  return { openSwitcher, switcherOverlay }
+  return { openSwitcher, switcherOverlay, isSwitcherOpen: open }
 }

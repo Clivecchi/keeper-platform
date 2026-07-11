@@ -11,40 +11,6 @@ export interface RealmArrivalRemarksProps {
   isLoading?: boolean
 }
 
-function AgentMark({
-  displayName,
-  avatarUrl,
-  fallback,
-}: {
-  displayName: string
-  avatarUrl: string | null
-  fallback: string
-}) {
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        className="h-11 w-11 shrink-0 rounded-xl object-cover object-center border"
-        style={{ borderColor: "hsl(var(--theme-border-soft) / 0.5)" }}
-      />
-    )
-  }
-  return (
-    <div
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border font-serif text-lg font-semibold"
-      style={{
-        borderColor: "hsl(var(--theme-border-soft) / 0.5)",
-        color: "hsl(var(--theme-accent-primary))",
-        background: "hsl(var(--theme-surface-elevated) / 0.9)",
-      }}
-      aria-hidden
-    >
-      {fallback}
-    </div>
-  )
-}
-
 export function RealmArrivalRemarks({
   remarks,
   agentSlug,
@@ -76,12 +42,34 @@ export function RealmArrivalRemarks({
       aria-label="Opening remarks"
     >
       <div className="flex gap-3 items-start">
-        <AgentMark
-          displayName={agentDisplayName}
-          avatarUrl={avatarUrl}
-          fallback={iconFallback}
-        />
-        <div className="min-w-0 flex-1">
+        <PresenceField
+          stageHeight={64}
+          backdropUrl={avatarUrl}
+          className="w-[72px] shrink-0"
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-12 w-12 rounded-xl object-cover object-center border shadow-sm"
+              style={{ borderColor: "hsl(var(--theme-border-soft) / 0.55)" }}
+            />
+          ) : (
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-xl border font-serif text-lg font-semibold"
+              style={{
+                borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+                color: "hsl(var(--theme-accent-primary))",
+                background: "hsl(var(--theme-surface-elevated) / 0.92)",
+              }}
+              aria-hidden
+            >
+              {iconFallback}
+            </div>
+          )}
+        </PresenceField>
+
+        <div className="min-w-0 flex-1 pt-1">
           <p
             className="text-[11px] uppercase tracking-[0.18em] mb-1.5"
             style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}

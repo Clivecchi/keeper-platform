@@ -121,7 +121,7 @@ export function RealmScreen() {
             Your Domains
           </p>
           <p className="mt-1 text-xs" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Tap an innkeeper to enter their domain — capture and talk from there.
+            Tap a domain lead to enter — capture and talk from there.
           </p>
         </div>
 

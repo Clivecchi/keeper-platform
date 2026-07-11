@@ -24,7 +24,7 @@ function readSeal(): PlaybillGreetSeal | null {
   }
 }
 
-/** Seal the innkeeper chosen on the Playbill wall for greet continuity on arrival. */
+/** Seal the domain lead chosen on The Playbill for greet continuity on arrival. */
 export function sealPlaybillGreet(domainSlug: string, leadAgentSlug: string | null): void {
   if (typeof sessionStorage === "undefined") return
   const normalized = domainSlug.trim().toLowerCase()

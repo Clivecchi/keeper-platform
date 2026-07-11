@@ -1,17 +1,19 @@
 # Realm Arrival Module
 
 ## 📌 Purpose
-Person-scoped arrival at `/home` — opening remarks, invitation doors, composer lead position, and Chronicle Playbill rail. Powers the visual User-Realm Graph via graph-compatible feed events.
+Person-scoped arrival at `/home` (your personal domain as Realm) — opening remarks, invitation doors, composer lead position, and Chronicle feed. **The Playbill** lives in the top bar, not Chronicle.
 
 ## 🧱 Key Files
 - `RealmArrivalRemarks.tsx` — agent opening remarks with presence mark
 - `RealmInvitationBar.tsx` — conditional invitation buttons (max four)
-- `RealmPlaybillRail.tsx` — Chronicle Playbill rail on Home idle
-- `RealmFeedPanel.tsx` — full Realm feed view
-- `RealmHomeChronicle.tsx` — Chronicle switcher (playbill vs feed)
+- `RealmPlaybillRail.tsx` — legacy rail (superseded by top-bar Playbill)
+- `RealmFeedPanel.tsx` — Realm feed in Chronicle
+- `RealmHomeChronicle.tsx` — Chronicle feed on realm idle
 - `PresenceField.tsx` — named Treatment pattern for presence imagery
 - `useRealmFeed.ts` — client feed loader
-- `RealmArrivalContext.tsx` — chronicle view state for invitation wiring
+- `RealmArrivalSurface.tsx` — shared remarks + invitations (desktop + mobile)
+- `realmInvitationActions.ts` — invitation + feed click handlers
+- `persistRealmAnchor.ts` — client anchor persistence
 
 ## 🔄 Data & Behavior
 - Anchor domain from `users.primaryDomainId` → `frame_json.kip.agent_id` → lead agent voice
@@ -25,6 +27,16 @@ Person-scoped arrival at `/home` — opening remarks, invitation doors, composer
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-10 — Realm experience completion
+- Invitation doors open sessions, drafts, dialogs; Chronicle feed navigates in-realm or travels cross-domain
+- Anchor persistence via `PATCH /api/realm/anchor`; domain switcher uses scene-change curtain
+- Mobile Dialog tab mirrors desktop arrival (remarks, doors, realm feed chronicle)
+- Presence Field in opening remarks
+
+### 2026-07-10 — Playbill moves to top bar
+- Chronicle shows Realm feed only; Playbill header card + travel list in `KeeperTopBar` / `PlaybillHeaderCard`
+- User name/avatar returns to realm from domain boards; avatar shows `user.avatar_url` when set
+
 ### 2026-07-09 — Realm Arrival build (Phases 2–5)
 - Wired `primaryDomainId` anchor; added realm feed API and arrival UI on `/home`
 - Playbill vocabulary: uncast domains show "Agent" not "Casting"

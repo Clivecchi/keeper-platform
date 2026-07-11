@@ -26,6 +26,7 @@ See also: `docs/realm-development-plan.md` (broader Realm phase map).
 | 3 | Arrival surface (Section 2) | **Implemented 2026-07-09** |
 | 4 | Splash curtain | **Implemented 2026-07-09** |
 | 5 | Realm Feed | **Implemented 2026-07-09** (v1 aggregate; design regroup for event edges) |
+| 6 | Realm experience completion | **Implemented 2026-07-10** — invitations, feed navigation, anchor persist, mobile parity |
 
 ## Implementation map
 

@@ -76,8 +76,8 @@ import {
 } from "../presence/cover/voicePromptSections"
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
 import { useV0Shell } from "../shell/V0ShellContext"
-import { RealmArrivalRemarks } from "../realm/RealmArrivalRemarks"
-import { RealmInvitationBar, type RealmInvitationId } from "../realm/RealmInvitationBar"
+import { RealmArrivalSurface } from "../realm/RealmArrivalSurface"
+import type { RealmInvitationActions } from "../realm/realmInvitationActions"
 import { useRealmArrivalOptional } from "../realm/RealmArrivalContext"
 import { useRealmFeed } from "../realm/useRealmFeed"
 import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName } from "../lib/frameLeadAgentIdentity"
@@ -1788,22 +1788,25 @@ export function UniversalConversation({
     [setMessages],
   )
 
-  const handleRealmInvitation = React.useCallback(
-    (id: RealmInvitationId) => {
-      if (id === "feed") {
-        realmArrival?.setChronicleView("feed")
-        return
-      }
-      if (id === "drafts") {
-        actions.bumpDraftNav()
-        realmArrival?.setChronicleView("feed")
-        return
-      }
-      if (id === "sessions" || id === "thread") {
-        realmArrival?.setChronicleView("playbill")
-      }
-    },
-    [actions, realmArrival],
+  const realmInvitationActions = React.useMemo<RealmInvitationActions>(
+    () => ({
+      onSessionSelect: onSessionSelect ?? actions.onSessionSelect,
+      onDialogSelect: actions.onDialogSelect,
+      onDraftSelect: onDraftSelect ?? actions.onDraftSelect,
+      bumpDialogNav: actions.bumpDialogNav,
+      bumpDraftNav: actions.bumpDraftNav,
+      focusChronicleFeed: () => realmArrival?.setChronicleView("feed"),
+    }),
+    [
+      actions.bumpDialogNav,
+      actions.bumpDraftNav,
+      actions.onDialogSelect,
+      actions.onDraftSelect,
+      actions.onSessionSelect,
+      onDraftSelect,
+      onSessionSelect,
+      realmArrival,
+    ],
   )
 
   const realmComposerPlaceholder = isRealmHomeArrival
@@ -1825,25 +1828,13 @@ export function UniversalConversation({
       )}
 
       {isRealmHomeArrival ? (
-        <>
-          <RealmArrivalRemarks
-            remarks={realmFeed?.remarks ?? "Welcome back."}
-            agentSlug={dialogAgentSlug}
-            agentDisplayName={dialogAgentDisplayName}
-            isLoading={realmFeedLoading}
-          />
-          <RealmInvitationBar
-            counts={
-              realmFeed?.counts ?? {
-                drafts: 0,
-                sessions: 0,
-                moments: 0,
-                domains: 0,
-              }
-            }
-            onInvite={handleRealmInvitation}
-          />
-        </>
+        <RealmArrivalSurface
+          feed={realmFeed}
+          agentSlug={dialogAgentSlug}
+          agentDisplayName={dialogAgentDisplayName}
+          isLoading={realmFeedLoading}
+          invitationActions={realmInvitationActions}
+        />
       ) : null}
 
       <KeeperDialogFrame
