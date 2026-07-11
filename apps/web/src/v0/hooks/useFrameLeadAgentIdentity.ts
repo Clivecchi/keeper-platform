@@ -28,7 +28,8 @@ export function useFrameLeadAgentIdentity(
   /** Shown while the agent record is loading (avoids flashing the technical slug). */
   pendingDisplayName: string = KIP_FALLBACK_DISPLAY_NAME,
 ): FrameLeadAgentIdentity {
-  const slug = agentSlug?.trim() || null
+  const slug =
+    typeof agentSlug === "string" ? agentSlug.trim() || null : null
   const resolvedSlug = slug && slug !== KIP_FALLBACK_SLUG ? slug : null
 
   const [displayName, setDisplayName] = React.useState(() => {

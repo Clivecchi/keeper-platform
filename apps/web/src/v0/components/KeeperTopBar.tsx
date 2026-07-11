@@ -8,6 +8,7 @@ import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
+import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
 
@@ -108,10 +109,11 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
   const isHomeShell = shellMode === "home"
-  const leadAgent = useFrameLeadAgentIdentity(domainFrame)
+  const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame)
+  const leadAgent = useFrameLeadAgentIdentity(frameLeadAgentSlug)
 
   const domainWordmark = isHomeShell
-    ? homeDisplayName?.trim() || "Home"
+    ? (typeof homeDisplayName === "string" ? homeDisplayName.trim() : "") || "Home"
     : domainFrame?.theme?.wordmark?.trim() || domainSlug
   const tagline = isHomeShell
     ? leadAgent.displayName
