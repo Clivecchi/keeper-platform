@@ -3,7 +3,7 @@
  * Synthetic `{slug}-lead` frame placeholders are repaired to these slugs.
  */
 export const CANONICAL_DOMAIN_LEAD_BINDINGS: Readonly<Record<string, string>> = {
-  "chuck-livecchi": "ceox",
+  chuck: "ceox",
   ke3p: "kip",
   default: "kip",
 } as const

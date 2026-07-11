@@ -102,6 +102,36 @@ function fixLivecchiTypoInFrame(frameJson: unknown): Record<string, unknown> | n
     }
   }
 
+  if (frame.kip && typeof frame.kip === "object") {
+    const kip = { ...(frame.kip as Record<string, unknown>) }
+    const greeting = kip.greeting
+    if (typeof greeting === "string") {
+      const fixed = fixLivecchiTypoInText(greeting)
+      if (fixed) {
+        kip.greeting = fixed
+        frame.kip = kip
+        changed = true
+      }
+    }
+  }
+
+  if (frame.cover && typeof frame.cover === "object") {
+    const cover = { ...(frame.cover as Record<string, unknown>) }
+    if (cover.card && typeof cover.card === "object") {
+      const card = { ...(cover.card as Record<string, unknown>) }
+      const tagLine = card.tagLine
+      if (typeof tagLine === "string") {
+        const fixed = fixLivecchiTypoInText(tagLine)
+        if (fixed) {
+          card.tagLine = fixed
+          cover.card = card
+          frame.cover = cover
+          changed = true
+        }
+      }
+    }
+  }
+
   return changed ? frame : null
 }
 
@@ -142,9 +172,9 @@ export async function repairDomainLeadBindings(
 
     const descriptionFix = fixLivecchiTypoInText(domain.description)
     const frameTypoFix =
-      slug === "livecchi-us" ? fixLivecchiTypoInFrame(domain.frame_json) : null
+      slug === "livecchi" ? fixLivecchiTypoInFrame(domain.frame_json) : null
 
-    if (descriptionFix && slug === "livecchi-us") {
+    if (descriptionFix && slug === "livecchi") {
       result.descriptionFixes.push({
         domainSlug: domain.slug,
         from: domain.description ?? "",
