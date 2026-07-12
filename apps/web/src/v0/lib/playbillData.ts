@@ -1,4 +1,4 @@
-import { extractPresenceAvatar, isSyntheticLeadAgentSlug, resolvePlaybillStarName } from "@keeper/shared"
+import { extractPresenceAvatar, resolvePlaybillStarName, isPlatformDomainSlugAlias } from "@keeper/shared"
 import { apiFetch } from "../../lib/apiFetch"
 import { getAuthToken } from "../../lib/authTokenStore"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
@@ -61,7 +61,7 @@ export function formatPlaybillRoleSubtitle(
   if (isUncast) return "Domain lead"
   const leadSlug = agent?.identity.slug?.trim().toLowerCase() ?? ""
   const normalizedDomain = domainSlug.trim().toLowerCase()
-  if (leadSlug === "kip" && (normalizedDomain === "ke3p" || normalizedDomain === "default")) {
+  if (leadSlug === "kip" && isPlatformDomainSlugAlias(domainSlug)) {
     return "Platform director"
   }
   return agent?.roleLine ?? "Domain lead"
@@ -171,7 +171,6 @@ async function fetchAgentRow(slug: string): Promise<KipAgentPlaybillRow | null> 
 
 export async function resolvePlaybillAgent(
   leadAgentSlug: string,
-  options?: { fromDatabase?: boolean },
 ): Promise<ResolvedPlaybillAgent | null> {
   const slug = leadAgentSlug.trim()
   if (!slug) return null
@@ -183,10 +182,6 @@ export async function resolvePlaybillAgent(
   if (pending) return pending
 
   const promise = (async (): Promise<ResolvedPlaybillAgent | null> => {
-    if (!options?.fromDatabase && isSyntheticLeadAgentSlug(slug)) {
-      return null
-    }
-
     if (isMissingLeadAgentSlug(slug) && !isDomainLeadAgentSlug(slug)) {
       return null
     }
@@ -201,7 +196,7 @@ export async function resolvePlaybillAgent(
     })
 
     const displayName = row.name?.trim() || identity.displayName?.trim() || ""
-    if (!displayName || isSyntheticLeadAgentSlug(displayName)) {
+    if (!displayName) {
       return null
     }
 

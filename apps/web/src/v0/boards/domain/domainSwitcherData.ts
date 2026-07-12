@@ -1,7 +1,6 @@
 import { apiFetch } from "../../../lib/apiFetch"
 import { getAuthToken } from "../../../lib/authTokenStore"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
-import { resolvePlaybillLeadAgentSlug } from "../../lib/frameLeadAgentIdentity"
 
 export interface DomainSwitcherEntry {
   id: string
@@ -9,8 +8,9 @@ export interface DomainSwitcherEntry {
   name: string
   tagline: string
   coverImageUrl?: string | null
-  /** Lead agent from domain `frame_json.kip.agent_id`, or null when uncast. */
+  /** Lead agent slug from API enrichment (`settings.primaryAgentId`). */
   leadAgentSlug: string | null
+  leadAgentName?: string | null
 }
 
 /** Align with server domain list cache (~5 min). */
@@ -179,17 +179,8 @@ function parseTheme(theme: unknown): { coverImage?: string; tagline?: string } {
   }
 }
 
-function parseLeadAgentSlug(
-  domainSlug: string,
-  frameJson: unknown,
-  primaryAgentSlug?: string | null,
-): string | null {
-  if (primaryAgentSlug?.trim()) return primaryAgentSlug.trim()
-  if (!frameJson || typeof frameJson !== "object") return null
-  return resolvePlaybillLeadAgentSlug(
-    domainSlug,
-    frameJson as { kip?: { agent_id?: string | null } },
-  )
+function parseLeadAgentSlug(primaryAgentSlug?: string | null): string | null {
+  return primaryAgentSlug?.trim() || null
 }
 
 export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitcherEntry {
@@ -206,7 +197,8 @@ export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitche
       domain.customDomain?.trim() ||
       domain.slug,
     coverImageUrl: rawCover ? getBlobProxyUrl(rawCover) : null,
-    leadAgentSlug: parseLeadAgentSlug(domain.slug, domain.frame_json, domain.leadAgentSlug),
+    leadAgentSlug: parseLeadAgentSlug(domain.leadAgentSlug),
+    leadAgentName: domain.leadAgentName?.trim() || null,
   }
 }
 

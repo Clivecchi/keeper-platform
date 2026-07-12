@@ -7,6 +7,7 @@ import {
 import type { RealmFeedEvent, RealmFeedResponse } from "@keeper/shared"
 import { authMiddlewareCompat } from "../../middleware/authMiddleware.js"
 import { getRedis } from "../../lib/redis.js"
+import { resolveDomainLeadAgentFromDomain } from "../../services/domains/resolveDomainLeadAgent.js"
 
 const router = Router()
 
@@ -70,17 +71,12 @@ function buildRemarks(events: RealmFeedEvent[], agentName: string): string {
 async function resolveAnchorAgentName(domainId: string): Promise<string> {
   const domain = await prisma.domain.findUnique({
     where: { id: domainId },
-    select: { frame_json: true },
+    select: { slug: true, frame_json: true, settings: true },
   })
-  const frame = domain?.frame_json
-  if (!frame || typeof frame !== "object") return "your lead agent"
-  const slug = (frame as { kip?: { agent_id?: string } }).kip?.agent_id?.trim()
-  if (!slug) return "your lead agent"
-  const agent = await prisma.kip_agents.findFirst({
-    where: { slug },
-    select: { name: true },
-  })
-  return agent?.name?.trim() || "your lead agent"
+  if (!domain) return "your lead agent"
+
+  const lead = await resolveDomainLeadAgentFromDomain(prisma, domain)
+  return lead?.name?.trim() || "your lead agent"
 }
 
 // GET /api/realm/feed — person-scoped cross-domain activity

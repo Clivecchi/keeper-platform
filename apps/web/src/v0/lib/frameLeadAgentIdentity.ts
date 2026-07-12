@@ -80,7 +80,6 @@ export function canonicalAgentSlug(slug: string | null | undefined): string | nu
 /** Human label for a domain lead slug while the agent record loads. */
 export function formatDomainLeadDisplayName(slug: string): string {
   const trimmed = slug.trim()
-  if (trimmed.toLowerCase() === "ceox") return "CeoX"
   const spaced = trimmed.replace(/-/g, " ").trim()
   if (!spaced) return trimmed
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
@@ -226,7 +225,7 @@ export async function fetchFrameLeadAgentDisplayName(slug: string): Promise<stri
   }
 }
 
-/** Custom lead slug from frame JSON, or null when platform default (`kip` / `kip-default`). */
+/** Mirror-only read — not authoritative. Product paths use resolveDomainLeadContext. */
 export function readFrameLeadAgentSlug(
   domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
 ): string | null {
@@ -237,26 +236,23 @@ export function readFrameLeadAgentSlug(
   return slug
 }
 
-/** Playbill / switcher lead slug — DB-first (`primaryAgentSlug`), then frame, then legacy canonical map. */
+/** @deprecated Use resolveDomainLeadContext(record).slug — DB-enriched fields only. */
 export function resolvePlaybillLeadAgentSlug(
-  domainSlug: string,
-  domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
+  _domainSlug: string,
+  _domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
   options?: { primaryAgentSlug?: string | null },
 ): string | null {
   return resolveDomainLeadAgentSlugSync({
-    domainSlug,
-    frameAgentId: domainFrame?.kip?.agent_id,
     primaryAgentSlug: options?.primaryAgentSlug,
   })
 }
 
-/** Slug passed to dialog bootstrap — DB-first; never a frame placeholder id. */
+/** @deprecated Use resolveDialogLeadSlug(record) — DB-enriched fields only. */
 export function resolveDialogAgentSlug(
-  domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
+  _domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
   options?: { primaryAgentSlug?: string | null },
 ): string {
   const custom = resolveDomainLeadAgentSlugSync({
-    frameAgentId: domainFrame?.kip?.agent_id,
     primaryAgentSlug: options?.primaryAgentSlug,
   })
   if (custom && isMissingLeadAgentSlug(custom)) {

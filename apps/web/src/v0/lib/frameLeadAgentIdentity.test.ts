@@ -26,38 +26,26 @@ describe("frameLeadAgentIdentity", () => {
     vi.mocked(KipApi.getAgentBySlug).mockReset()
   })
 
-  it("resolvePlaybillLeadAgentSlug prefers DB slug over synthetic frame placeholder", () => {
+  it("resolvePlaybillLeadAgentSlug uses DB-enriched slug only", () => {
     expect(
       resolvePlaybillLeadAgentSlug("livecchi", { kip: { agent_id: "livecchi-us-lead" } }, {
         primaryAgentSlug: "livecchi-us-lead",
       }),
     ).toBe("livecchi-us-lead")
-  })
-
-  it("resolvePlaybillLeadAgentSlug falls back to canonical domain bindings", () => {
     expect(
-      resolvePlaybillLeadAgentSlug("ke3p", { kip: { agent_id: "kip" } }),
-    ).toBe("kip")
-    expect(
-      resolvePlaybillLeadAgentSlug("chuck", { kip: { agent_id: "kip" } }),
-    ).toBe("ceox")
-    expect(
-      resolvePlaybillLeadAgentSlug("livecchi", { kip: { agent_id: "livecchi-us-lead" } }),
+      resolvePlaybillLeadAgentSlug("chuck", { kip: { agent_id: "ceox" } }),
     ).toBeNull()
   })
 
-  it("readFrameLeadAgentSlug returns null for kip default", () => {
+  it("readFrameLeadAgentSlug returns null for kip default and synthetic slugs", () => {
     expect(readFrameLeadAgentSlug({ kip: { agent_id: "kip" } })).toBeNull()
     expect(readFrameLeadAgentSlug({ kip: { agent_id: "kip-default" } })).toBeNull()
     expect(readFrameLeadAgentSlug(null)).toBeNull()
-  })
-
-  it("readFrameLeadAgentSlug returns null for synthetic provision slugs", () => {
     expect(readFrameLeadAgentSlug({ kip: { agent_id: " livecchi-us-lead " } })).toBeNull()
     expect(readFrameLeadAgentSlug({ kip: { agent_id: "chuck-livecchi-lead" } })).toBeNull()
   })
 
-  it("readFrameLeadAgentSlug returns canonical lead slugs", () => {
+  it("readFrameLeadAgentSlug returns non-synthetic mirror slugs", () => {
     expect(readFrameLeadAgentSlug({ kip: { agent_id: "ceox" } })).toBe("ceox")
   })
 
@@ -86,7 +74,7 @@ describe("frameLeadAgentIdentity", () => {
     expect(formatDomainLeadDisplayName("chuck-lead")).toBe("Chuck lead")
   })
 
-  it("resolveDialogAgentSlug prefers DB slug over frame placeholder", () => {
+  it("resolveDialogAgentSlug prefers DB slug over frame mirror", () => {
     expect(
       resolveDialogAgentSlug({ kip: { agent_id: "livecchi-us-lead" } }, {
         primaryAgentSlug: "livecchi-us-lead",
@@ -94,11 +82,11 @@ describe("frameLeadAgentIdentity", () => {
     ).toBe("livecchi-us-lead")
   })
 
-  it("resolveDialogAgentSlug keeps domain lead slug even when previously cached missing", () => {
+  it("resolveDialogAgentSlug falls back to kip without DB enrichment", () => {
     sessionStorage.setItem("keeper:missing-lead-slugs", JSON.stringify(["ceox"]))
     clearFrameLeadAgentDisplayNameCache()
     sessionStorage.setItem("keeper:missing-lead-slugs", JSON.stringify(["ceox"]))
-    expect(resolveDialogAgentSlug({ kip: { agent_id: "ceox" } })).toBe("ceox")
+    expect(resolveDialogAgentSlug({ kip: { agent_id: "ceox" } })).toBe("kip")
     clearFrameLeadAgentDisplayNameCache()
   })
 

@@ -3,13 +3,12 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { motion, useReducedMotion } from "framer-motion"
-import { peekDomainFrame } from "../data/loadDomainFrame"
 import {
   getCachedDomainBySlug,
   prefetchDomainShell,
 } from "../boards/domain/domainShellCache"
 import { resolvePlaybillAgent } from "../lib/playbillData"
-import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { resolveDomainLeadContext, type DomainLeadRecord } from "../lib/domainLeadAgent"
 
 export const SCENE_WARM_SKIP_MS = 280
 export const SCENE_MIN_HOLD_MS = 480
@@ -21,10 +20,9 @@ export interface SceneChangeCurtainProps {
 
 function resolveBilling(domainSlug: string): { domainName: string; agentName: string } {
   const cached = getCachedDomainBySlug(domainSlug)
-  const frame = peekDomainFrame(domainSlug)
   const domainName = cached?.name?.trim() || domainSlug
-  const leadSlug = frame ? readFrameLeadAgentSlug(frame) : null
-  return { domainName, agentName: leadSlug ? "…" : "Agent" }
+  const lead = resolveDomainLeadContext(cached as DomainLeadRecord | null)
+  return { domainName, agentName: lead.name ?? (lead.slug ? "…" : "Agent") }
 }
 
 export function SceneChangeCurtain({ domainSlug, onComplete }: SceneChangeCurtainProps) {
@@ -37,9 +35,9 @@ export function SceneChangeCurtain({ domainSlug, onComplete }: SceneChangeCurtai
     prefetchDomainShell(domainSlug)
     setBilling(resolveBilling(domainSlug))
 
-    const frame = peekDomainFrame(domainSlug)
-    const leadSlug = frame ? readFrameLeadAgentSlug(frame) : null
-    if (leadSlug?.trim()) {
+    const cached = getCachedDomainBySlug(domainSlug)
+    const leadSlug = resolveDomainLeadContext(cached as DomainLeadRecord | null).slug
+    if (leadSlug) {
       void resolvePlaybillAgent(leadSlug).then((agent) => {
         if (agent?.displayName) {
           setBilling((prev) => ({ ...prev, agentName: agent.displayName }))

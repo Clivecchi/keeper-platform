@@ -1,16 +1,10 @@
 /**
- * Canonical domain → lead agent slug bindings.
- * Synthetic `{slug}-lead` frame placeholders are repaired to these slugs.
+ * Platform provisioning placeholders — not used for identity resolution.
+ * Identity: settings.primaryAgentId → kip_agents. frame_json.kip.agent_id is a mirror only.
  */
-export const CANONICAL_DOMAIN_LEAD_BINDINGS: Readonly<Record<string, string>> = {
-  chuck: "ceox",
-  ke3p: "kip",
-  default: "kip",
-} as const
-
 export const PLACEHOLDER_FRAME_AGENT_IDS = new Set<string>(["kip-default", ""])
 
-/** Provision placeholder or empty frame agent_id — not a real lead. */
+/** Provision placeholder or empty frame agent_id — mirror stale; never authoritative alone. */
 export function isSyntheticLeadAgentSlug(slug: string | null | undefined): boolean {
   const trimmed = slug?.trim().toLowerCase() ?? ""
   if (!trimmed || PLACEHOLDER_FRAME_AGENT_IDS.has(trimmed)) return true
@@ -25,46 +19,15 @@ export function readPrimaryAgentIdFromSettings(
   return typeof raw === "string" && raw.trim() ? raw.trim() : null
 }
 
-/** Legacy migration map — used only when DB and frame lack a real lead slug. */
-export function resolveCanonicalLeadAgentSlug(
-  domainSlug: string,
-  frameAgentId: string | null | undefined,
-): string | null {
-  const normalizedDomain = domainSlug.trim().toLowerCase()
-  const canonical = CANONICAL_DOMAIN_LEAD_BINDINGS[normalizedDomain]
-  if (canonical) return canonical
-
-  const trimmedFrame = frameAgentId?.trim() ?? ""
-  if (!trimmedFrame || isSyntheticLeadAgentSlug(trimmedFrame)) return null
-  return trimmedFrame
-}
-
 /**
- * DB-first lead slug resolution (sync).
- * Order: `primaryAgentSlug` (from settings.primaryAgentId) → real frame slug → legacy canonical map.
+ * Sync read helper when API has already resolved lead from DB.
+ * Never uses per-domain slug maps — only enriched DB fields.
  */
 export function resolveDomainLeadAgentSlugSync(input: {
-  domainSlug?: string
-  frameAgentId?: string | null
   primaryAgentSlug?: string | null
 }): string | null {
   const dbSlug = input.primaryAgentSlug?.trim()
-  if (dbSlug) return dbSlug
-
-  const frameSlug = input.frameAgentId?.trim() ?? ""
-  if (
-    frameSlug
-    && !PLACEHOLDER_FRAME_AGENT_IDS.has(frameSlug)
-    && !isSyntheticLeadAgentSlug(frameSlug)
-  ) {
-    return frameSlug
-  }
-
-  if (input.domainSlug) {
-    return resolveCanonicalLeadAgentSlug(input.domainSlug, input.frameAgentId)
-  }
-
-  return null
+  return dbSlug || null
 }
 
 /** Human-facing agent star name on Playbill — never the domain name. */
@@ -82,7 +45,6 @@ export function resolvePlaybillStarName(input: {
 
   const domainLower = input.domainName.trim().toLowerCase()
   if (name.toLowerCase() === domainLower) return "Agent"
-  if (isSyntheticLeadAgentSlug(name)) return "Agent"
   if (name.toLowerCase().endsWith(" lead") && name.includes("-")) return "Agent"
 
   return name

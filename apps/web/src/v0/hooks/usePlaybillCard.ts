@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { isSyntheticLeadAgentSlug } from "@keeper/shared"
 import {
   fetchDomainPlaybillStats,
   formatPlaybillActivity,
@@ -21,17 +20,17 @@ export interface PlaybillCardData {
 export interface UsePlaybillCardInput {
   domainId: string
   leadAgentSlug: string | null
-  /** Slug resolved from `settings.primaryAgentId` — allows provision `-lead` agent rows. */
-  leadAgentFromDatabase?: boolean
+  /** Pre-resolved display name from API enrichment — avoids flash before agent fetch. */
+  leadAgentName?: string | null
 }
 
 export function usePlaybillCard({
   domainId,
   leadAgentSlug,
-  leadAgentFromDatabase = false,
+  leadAgentName,
 }: UsePlaybillCardInput): PlaybillCardData {
   const slug = leadAgentSlug?.trim() ?? ""
-  const slugUncast = !slug || (!leadAgentFromDatabase && isSyntheticLeadAgentSlug(slug))
+  const slugUncast = !slug
   const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(null)
   const [stats, setStats] = React.useState<DomainPlaybillStats | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -46,7 +45,7 @@ export function usePlaybillCard({
 
     const agentPromise = slugUncast
       ? Promise.resolve(null)
-      : resolvePlaybillAgent(slug, { fromDatabase: leadAgentFromDatabase }).catch(() => null)
+      : resolvePlaybillAgent(slug).catch(() => null)
 
     void Promise.all([statsPromise, agentPromise]).then(([nextStats, nextAgent]) => {
       if (cancelled) return
@@ -58,7 +57,7 @@ export function usePlaybillCard({
     return () => {
       cancelled = true
     }
-  }, [domainId, slug, slugUncast, leadAgentFromDatabase])
+  }, [domainId, slug, slugUncast])
 
   const activityLine = formatPlaybillActivity(stats)
   const isUncast = slugUncast || (!isLoading && !agent)

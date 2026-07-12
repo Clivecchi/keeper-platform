@@ -23,6 +23,7 @@ export interface PlaybillCardDomain {
   tagline?: string | null
   coverImageUrl?: string | null
   leadAgentSlug: string | null
+  leadAgentName?: string | null
 }
 
 export interface PlaybillCardProps {
@@ -51,6 +52,7 @@ export function PlaybillCard({
   const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
     domainId: domain.id,
     leadAgentSlug: domain.leadAgentSlug,
+    leadAgentName: domain.leadAgentName,
   })
 
   const inkPrimary =

@@ -238,8 +238,11 @@ export function KeeperTopBar({
           domainName={domainName}
           coverImageUrl={coverImageUrl}
           domainFrame={domainFrame}
+          domainLead={domainData}
           leadAgentSlug={leadAgentSlug}
-          leadAgentFromDatabase={!!leadAgentSlug}
+          leadAgentName={
+            typeof domainData?.leadAgentName === "string" ? domainData.leadAgentName : null
+          }
           onOpenPlaybill={onDomainClick}
           isOpen={isPlaybillOpen}
         />

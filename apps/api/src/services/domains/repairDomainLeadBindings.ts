@@ -1,17 +1,12 @@
 import type { Prisma, PrismaClient } from "@keeper/database"
-import {
-  CANONICAL_DOMAIN_LEAD_BINDINGS,
-  isSyntheticLeadAgentSlug,
-  resolveDomainLeadAgentSlugSync,
-} from "@keeper/shared"
-import { resolveDomainLeadAgentFromDomain } from "./resolveDomainLeadAgent.js"
+import { syncDomainLeadAuthority } from "./resolveDomainLeadAgent.js"
 
 export interface DomainLeadBindingIssue {
   domainId: string
   domainSlug: string
   previousAgentId: string | null
   nextAgentId: string | null
-  reason: "primary_agent_binding" | "canonical_binding" | "already_correct" | "uncast_no_binding"
+  reason: "mirror_synced" | "already_correct" | "uncast_no_binding"
 }
 
 export interface RepairDomainLeadBindingsResult {
@@ -28,27 +23,6 @@ function readFrameAgentId(frameJson: unknown): string | null {
   const kip = (frameJson as { kip?: { agent_id?: unknown } }).kip
   const raw = kip?.agent_id
   return typeof raw === "string" && raw.trim() ? raw.trim() : null
-}
-
-function patchFrameAgentId(
-  frameJson: unknown,
-  nextAgentId: string,
-): Record<string, unknown> {
-  const base =
-    frameJson && typeof frameJson === "object" && !Array.isArray(frameJson)
-      ? ({ ...(frameJson as Record<string, unknown>) } as Record<string, unknown>)
-      : {}
-  const kip =
-    base.kip && typeof base.kip === "object"
-      ? { ...(base.kip as Record<string, unknown>) }
-      : {}
-  return {
-    ...base,
-    kip: {
-      ...kip,
-      agent_id: nextAgentId,
-    },
-  }
 }
 
 function fixLivecchiTypoInText(text: string | null | undefined): string | null {
@@ -86,23 +60,6 @@ function fixLivecchiTypoInFrame(frameJson: unknown): Record<string, unknown> | n
     }
   }
 
-  if (frame.kip_context && typeof frame.kip_context === "object") {
-    const ctx = { ...(frame.kip_context as Record<string, unknown>) }
-    let ctxChanged = false
-    for (const [key, value] of Object.entries(ctx)) {
-      if (typeof value !== "string") continue
-      const fixed = fixLivecchiTypoInText(value)
-      if (fixed) {
-        ctx[key] = fixed
-        ctxChanged = true
-      }
-    }
-    if (ctxChanged) {
-      frame.kip_context = ctx
-      changed = true
-    }
-  }
-
   if (frame.kip && typeof frame.kip === "object") {
     const kip = { ...(frame.kip as Record<string, unknown>) }
     const greeting = kip.greeting
@@ -137,8 +94,8 @@ function fixLivecchiTypoInFrame(frameJson: unknown): Record<string, unknown> | n
 }
 
 /**
- * Repair placeholder `{slug}-lead` frame bindings using DB-first lead resolution.
- * Idempotent — safe to run on GET /api/domains/my.
+ * DB-first repair: persist settings.primaryAgentId when missing, sync frame mirror.
+ * Idempotent — safe on GET /api/domains/my and GET /api/domains/:slug/frame.
  */
 export async function repairDomainLeadBindings(
   prisma: PrismaClient,
@@ -170,12 +127,6 @@ export async function repairDomainLeadBindings(
   for (const domain of domains) {
     const slug = domain.slug.trim().toLowerCase()
     const current = readFrameAgentId(domain.frame_json)
-    const resolvedLead = await resolveDomainLeadAgentFromDomain(prisma, domain)
-    const target = resolvedLead?.slug
-      ?? resolveDomainLeadAgentSlugSync({
-        domainSlug: domain.slug,
-        frameAgentId: current,
-      })
 
     const descriptionFix = fixLivecchiTypoInText(domain.description)
     const frameTypoFix =
@@ -200,17 +151,10 @@ export async function repairDomainLeadBindings(
       })
     }
 
-    if (target && current === target) {
-      result.alreadyCorrect.push(domain.slug)
-      continue
-    }
+    const sync = await syncDomainLeadAuthority(prisma, domain)
 
-    if (target && current !== target) {
-      const agentExists = await prisma.kip_agents.findUnique({
-        where: { slug: target },
-        select: { id: true },
-      })
-      if (!agentExists) {
+    if (!sync.lead) {
+      if (current) {
         result.uncast.push({
           domainId: domain.id,
           domainSlug: domain.slug,
@@ -218,38 +162,22 @@ export async function repairDomainLeadBindings(
           nextAgentId: null,
           reason: "uncast_no_binding",
         })
-        continue
       }
+      continue
+    }
 
-      await prisma.domain.update({
-        where: { id: domain.id },
-        data: {
-          frame_json: patchFrameAgentId(domain.frame_json, target) as Prisma.InputJsonValue,
-          updatedAt: new Date(),
-        },
-      })
-
+    if (sync.settingsPatched || sync.framePatched) {
       result.patched.push({
         domainId: domain.id,
         domainSlug: domain.slug,
         previousAgentId: current,
-        nextAgentId: target,
-        reason: resolvedLead?.slug === target ? "primary_agent_binding" : "canonical_binding",
+        nextAgentId: sync.lead.slug,
+        reason: "mirror_synced",
       })
       continue
     }
 
-    if (current && isSyntheticLeadAgentSlug(current)) {
-      result.uncast.push({
-        domainId: domain.id,
-        domainSlug: domain.slug,
-        previousAgentId: current,
-        nextAgentId: null,
-        reason: "uncast_no_binding",
-      })
-    } else if (current) {
-      result.alreadyCorrect.push(domain.slug)
-    }
+    result.alreadyCorrect.push(domain.slug)
   }
 
   if (result.patched.length > 0 || result.descriptionFixes.length > 0) {
@@ -260,7 +188,6 @@ export async function repairDomainLeadBindings(
         to: row.nextAgentId,
       })),
       descriptionFixes: result.descriptionFixes,
-      canonicalMap: CANONICAL_DOMAIN_LEAD_BINDINGS,
     })
   }
 

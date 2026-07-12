@@ -16,6 +16,7 @@ export * from './presenceCover.js';
 export * from './objectTheme.js';
 export * from './domains/domainFrameIdentity.js';
 export * from './domains/domainLeadBindings.js';
+export * from './domains/domainLeadMirror.js';
 export * from './domains/resolveDomainAudience.js';
 export * from './domains/audienceVisibility.js';
 export * from './domains/filterContentByAudience.js';

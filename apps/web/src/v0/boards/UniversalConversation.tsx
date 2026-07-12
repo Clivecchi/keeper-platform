@@ -81,7 +81,8 @@ import { buildRealmArrivalMessage, isRealmArrivalMessage } from "../realm/realmA
 import type { RealmInvitationActions } from "../realm/realmInvitationActions"
 import { applyRealmInvitation } from "../realm/realmInvitationActions"
 import type { RealmInvitationId } from "../realm/realmInvitations"
-import { readFrameLeadAgentSlug, resolveDialogAgentSlug, resolvePlaybillLeadAgentSlug, PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName, canonicalAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { resolveDomainLeadContext, resolveDialogLeadSlug, type DomainLeadRecord } from "../lib/domainLeadAgent"
+import { PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName, canonicalAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
@@ -243,12 +244,9 @@ export function UniversalConversation({
   const { feed: realmFeed, isLoading: realmFeedLoading } = useRealmFeed(isRealmHomeArrival)
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
   const agentEcho = def.conversation.agentEcho === true
-  const primaryAgentSlug =
-    typeof domainData?.leadAgentSlug === "string" ? domainData.leadAgentSlug.trim() : null
-  const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame)
-  const dbLeadAgentSlug = resolvePlaybillLeadAgentSlug(domainSlug, domainFrame, {
-    primaryAgentSlug,
-  })
+  const domainLeadRecord = domainData as DomainLeadRecord | null | undefined
+  const domainLead = resolveDomainLeadContext(domainLeadRecord)
+  const dbLeadAgentSlug = domainLead.slug
 
   const [playbillGreetSlug, setPlaybillGreetSlug] = React.useState<string | null | undefined>(
     undefined,
@@ -264,7 +262,7 @@ export function UniversalConversation({
 
   React.useEffect(() => {
     if (kipMode !== "domain" || playbillGreetSlug === undefined) return
-    const frameLead = readFrameLeadAgentSlug(domainFrame)
+    const frameLead = domainLead.slug
     const expected = playbillGreetSlug ?? KIP_FALLBACK_SLUG
     const frameResolved = frameLead ?? KIP_FALLBACK_SLUG
     if (frameLead !== null && frameResolved === expected) {
@@ -277,10 +275,10 @@ export function UniversalConversation({
       if (kipMode === "domain" && playbillGreetSlug !== undefined) {
         return playbillGreetSlug ?? KIP_FALLBACK_SLUG
       }
-      return resolveDialogAgentSlug(domainFrame, { primaryAgentSlug })
+      return resolveDialogLeadSlug(domainLeadRecord)
     }
     return def.conversation.agentSlug ?? "kip"
-  }, [def.conversation.agentFromFrame, def.conversation.agentSlug, domainFrame, kipMode, playbillGreetSlug, primaryAgentSlug])
+  }, [def.conversation.agentFromFrame, def.conversation.agentSlug, domainFrame, kipMode, playbillGreetSlug, domainLeadRecord])
   const defaultAgentSlug = baseAgentSlug
   const defaultAgentName = def.conversation.agentName ?? "Kip"
 

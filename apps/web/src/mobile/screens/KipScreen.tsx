@@ -23,7 +23,7 @@ import type { RealmInvitationActions } from "../../v0/realm/realmInvitationActio
 import { applyRealmInvitation } from "../../v0/realm/realmInvitationActions";
 import { buildRealmArrivalMessage } from "../../v0/realm/realmArrivalMessage";
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations";
-import { readFrameLeadAgentSlug } from "../../v0/lib/frameLeadAgentIdentity";
+import { resolveDomainLeadContext, resolveDialogLeadSlug, type DomainLeadRecord } from "../../v0/lib/domainLeadAgent";
 import { useFrameLeadAgentIdentity } from "../../v0/hooks/useFrameLeadAgentIdentity";
 import { isVisibleToAudience } from "@keeper/shared";
 
@@ -41,7 +41,7 @@ export function KipScreen() {
     mobileRefreshKey,
     consumePendingComposerText,
   } = useUniversalMobile();
-  const { domainFrame, resolvedAudience, shellMode } = useV0Shell();
+  const { domainFrame, resolvedAudience, shellMode, domainData } = useV0Shell();
   const { refreshSession, user } = useAuth();
   const [composerFocused, setComposerFocused] = React.useState(false);
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null);
@@ -73,16 +73,15 @@ export function KipScreen() {
   const { actions: boardActions } = useUniversalBoard();
   const { feed: realmFeed, isLoading: realmFeedLoading } = useRealmFeed(isRealmHome);
 
-  const frameLeadAgentSlug = readFrameLeadAgentSlug(domainFrame);
-  const frameLeadIdentity = useFrameLeadAgentIdentity(frameLeadAgentSlug, "Kip");
+  const domainLead = resolveDomainLeadContext(domainData as DomainLeadRecord | null)
+  const frameLeadIdentity = useFrameLeadAgentIdentity(domainLead.slug, "Kip");
   const dialogAgentSlug = arrivalActive
     ? guidedArrival.leadAgentSlug
-    : frameLeadAgentSlug ?? "kip";
+    : resolveDialogLeadSlug(domainData as DomainLeadRecord | null);
   const dialogAgentDisplayName = arrivalActive
     ? guidedArrival.leadAgentDisplayName
-    : frameLeadAgentSlug
-      ? frameLeadIdentity.displayName
-      : "Kip";
+    : domainLead.name
+      ?? (domainLead.slug ? frameLeadIdentity.displayName : "Kip");
 
   const agentContext = React.useMemo(() => {
     if (!domainFrame) return undefined;

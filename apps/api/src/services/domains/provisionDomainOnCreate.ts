@@ -1,9 +1,10 @@
 import { randomUUID } from 'crypto';
 import type { Prisma, PrismaClient } from '@keeper/database';
 import {
-  CANONICAL_DOMAIN_LEAD_BINDINGS,
   defaultDomainSettingsForCreate,
   domainFrameLooksUnseeded,
+  isPlatformDomainSlugAlias,
+  patchFrameLeadAgentMirror,
 } from '@keeper/shared';
 import { ensureDomainHomeBoard } from '../boards/domainManagement.js';
 import { buildInitialDomainFrameJson } from './buildInitialDomainFrameJson.js';
@@ -37,9 +38,7 @@ function isEmptyJson(value: unknown): boolean {
 }
 
 function leadAgentSlugForDomain(domainSlug: string): string {
-  const normalized = domainSlug.trim().toLowerCase();
-  const canonical = CANONICAL_DOMAIN_LEAD_BINDINGS[normalized];
-  if (canonical) return canonical;
+  if (isPlatformDomainSlugAlias(domainSlug)) return 'kip';
 
   const base = `${domainSlug.trim()}-lead`.slice(0, 48);
   return base.replace(/[^a-z0-9-]/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'domain-lead';
@@ -62,17 +61,7 @@ function patchFrameLeadAgentSlug(
   frame: Record<string, unknown>,
   leadAgentSlug: string,
 ): Record<string, unknown> {
-  const kip =
-    frame.kip && typeof frame.kip === 'object'
-      ? { ...(frame.kip as Record<string, unknown>) }
-      : {};
-  return {
-    ...frame,
-    kip: {
-      ...kip,
-      agent_id: leadAgentSlug,
-    },
-  };
+  return patchFrameLeadAgentMirror(frame, leadAgentSlug);
 }
 
 async function createDomainLeadAgent(
@@ -165,8 +154,19 @@ export async function provisionDomainOnCreate(
   let leadAgentId: string | null = null;
   let leadAgentSlug: string | null = null;
 
-  // frame_json agent_id wins — repair when the row is missing (common on older domains).
-  if (frameLeadSlug) {
+  // Authoritative: settings.primaryAgentId → kip_agents (frame mirror synced after).
+  if (existingPrimaryAgentId) {
+    const settingsLead = await prisma.kip_agents.findUnique({
+      where: { id: existingPrimaryAgentId },
+      select: { id: true, slug: true },
+    });
+    if (settingsLead) {
+      leadAgentId = settingsLead.id;
+      leadAgentSlug = settingsLead.slug;
+    }
+  }
+
+  if (!leadAgentId && frameLeadSlug) {
     const frameLead = await prisma.kip_agents.findUnique({
       where: { slug: frameLeadSlug },
       select: { id: true, slug: true },
@@ -186,17 +186,6 @@ export async function provisionDomainOnCreate(
         leadAgentId = created.id;
         leadAgentSlug = created.slug;
       }
-    }
-  }
-
-  if (!leadAgentId && existingPrimaryAgentId) {
-    const settingsLead = await prisma.kip_agents.findUnique({
-      where: { id: existingPrimaryAgentId },
-      select: { id: true, slug: true },
-    });
-    if (settingsLead) {
-      leadAgentId = settingsLead.id;
-      leadAgentSlug = settingsLead.slug;
     }
   }
 

@@ -4,7 +4,7 @@ import * as React from "react"
 import { ChevronDown } from "lucide-react"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
 import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
-import { resolvePlaybillLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { resolveDomainLeadContext, type DomainLeadRecord } from "../lib/domainLeadAgent"
 import { PLAYBILL_ANCHOR_MAX_WIDTH } from "../boards/domain/domainSwitcherTheme"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import {
@@ -19,9 +19,10 @@ export interface PlaybillHeaderCardProps {
   domainName: string
   coverImageUrl?: string | null
   domainFrame?: DomainFrameJson | null
+  /** DB-enriched lead from GET /api/domains/by-slug — authoritative read path. */
+  domainLead?: DomainLeadRecord | null
   leadAgentSlug?: string | null
-  /** When true, slug came from API DB resolution (settings.primaryAgentId). */
-  leadAgentFromDatabase?: boolean
+  leadAgentName?: string | null
   onOpenPlaybill: () => void
   isOpen?: boolean
   className?: string
@@ -37,27 +38,32 @@ export function PlaybillHeaderCard({
   domainName,
   coverImageUrl,
   domainFrame,
+  domainLead,
   leadAgentSlug: leadAgentSlugProp,
-  leadAgentFromDatabase = false,
+  leadAgentName: leadAgentNameProp,
   onOpenPlaybill,
   isOpen = false,
   className = "",
 }: PlaybillHeaderCardProps) {
-  const leadAgentSlug =
-    leadAgentSlugProp
-    ?? resolvePlaybillLeadAgentSlug(domainSlug, domainFrame ?? null)
+  const leadContext = resolveDomainLeadContext(
+    domainLead ?? {
+      leadAgentSlug: leadAgentSlugProp,
+      leadAgentName: leadAgentNameProp,
+    },
+  )
+  const leadAgentSlug = leadContext.slug
 
   const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
     domainId,
     leadAgentSlug,
-    leadAgentFromDatabase: leadAgentFromDatabase || !!leadAgentSlugProp,
+    leadAgentName: leadContext.name ?? leadAgentNameProp,
   })
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
   const billingName = domainName.trim() || domainSlug
   const starName = resolvePlaybillStarName({
     domainName: billingName,
-    agentDisplayName: agent?.displayName,
+    agentDisplayName: agent?.displayName ?? leadContext.name,
     isUncast,
     isLoading,
   })

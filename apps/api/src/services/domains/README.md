@@ -8,11 +8,16 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `buildInitialDomainFrameJson.ts` — personal domain wordmark/tagline/agent wiring.
 - `domainConnectionInvite.ts` — Phase 3.1 connection invite lookup, list, grant, and revoke helpers.
 - `provisionDomainOnCreate.ts` — idempotent orchestration after `POST /api/domains`.
-- `repairDomainLeadBindings.ts` — DB-first repair: sync `frame_json.kip.agent_id` from `settings.primaryAgentId`; legacy canonical fallback.
-- `resolveDomainLeadAgent.ts` — resolve lead agent slug/name from DB; batch enrich for `GET /api/domains/my`.
+- `repairDomainLeadBindings.ts` — mirror sync via `syncDomainLeadAuthority` (no canonical map).
+- `resolveDomainLeadAgent.ts` — DB-first read (`primaryAgentId` → mirror row lookup); `syncDomainLeadAuthority` one write path.
 - `../scripts/repair-domain-frame.ts` — CLI repair for unseeded personal domains.
 
 ## 🔄 Data & Behavior
+**Lead identity (frame-as-mirror):**
+1. Read: `settings.primaryAgentId` → `kip_agents`; fallback mirror slug → `kip_agents` row lookup.
+2. Write: `syncDomainLeadAuthority` persists missing `primaryAgentId` and patches `frame_json.kip.agent_id` when drifted.
+3. Enrich: `enrichDomainsWithLeadAgents` adds `leadAgentSlug` / `leadAgentName` / `leadAgentId` on domain list endpoints.
+
 On create (and via `POST /api/domains/:id/provision` repair):
 1. Creates `{slug}-lead` Kip agent (Lead role) or reuses if present; sets `settings.primaryAgentId`.
 2. Writes `frame_json` when empty **or** when `@keeper/shared` `domainFrameLooksUnseeded` detects platform defaults — domain wordmark, tagline, `kip.agent_id`, interaction bar labels, agent board messaging.
@@ -33,8 +38,7 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
-- 2026-07-11: **DB-first lead resolution** — `resolveDomainLeadAgentFromDomain` + `enrichDomainsWithLeadAgents`; repair patches frame from `primaryAgentId` before canonical map.
-- 2026-07-11: **Canonical slug alignment** — `CANONICAL_DOMAIN_LEAD_BINDINGS` uses production slugs (`chuck→ceox`, `ke3p→kip`); livecchi typo repair keyed to slug `livecchi` (greeting + cover tagLine).
+- 2026-07-11: **Frame-as-mirror Batch 1** — `syncDomainLeadAuthority` single write path; removed canonical map from repair/provision reads.
 - 2026-07-10: **`repairDomainLeadBindings`** — idempotent canonical `frame_json.kip.agent_id` repair; runs on `GET /api/domains/my` and `GET /api/domains/:slug/frame`. `provisionDomainOnCreate` prefers canonical bindings over `{slug}-lead` for known domains.
 - 2026-07-03: **`ensureDomainLeadAgentBySlug`** — repairs missing `kip_agents` rows when `frame_json.kip.agent_id` references a slug without a DB row; used by `GET /api/kip/agents?slug=`. `createDomainLeadAgent` accepts `preferredSlug` for exact frame slug match.
 
