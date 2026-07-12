@@ -387,7 +387,7 @@ function UniversalBoardShell({
   const leftProps: UniversalBoardLeftProps = {
     domainId,
     domainSlug: slug,
-    domainName: domainName || slug,
+    domainName,
   }
 
   // ── Board context — delivered to center and right render props ───────────
@@ -426,7 +426,7 @@ function UniversalBoardShell({
         <UniversalViewPanel
           def={def}
           domainId={domainId}
-          domainName={domainName || slug}
+          domainName={domainName}
           domainSlug={slug || undefined}
         />
       )}
@@ -441,7 +441,7 @@ function UniversalBoardShell({
             <UniversalNavPanel
               domainId={domainId}
               domainSlug={slug}
-              domainName={domainName || slug}
+              domainName={domainName}
               def={def}
               selectedDialogId={selection.selectedDialogId}
               selectedJourneyId={selection.selectedJourneyId}

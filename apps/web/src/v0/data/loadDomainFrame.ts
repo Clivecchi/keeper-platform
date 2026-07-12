@@ -11,6 +11,22 @@
 import type { DomainFrameJson } from "./domain-frame.types"
 import { getApiBase } from "../../lib/apiFetch"
 import { DEFAULT_DOMAIN_FRAME } from "./domain-frame.default"
+import { isPlatformDomainSlugAlias } from "@keeper/shared"
+
+function frameFallbackForSlug(domainSlug: string): DomainFrameJson {
+  if (isPlatformDomainSlugAlias(domainSlug)) {
+    return DEFAULT_DOMAIN_FRAME
+  }
+  return {
+    ...DEFAULT_DOMAIN_FRAME,
+    domain: domainSlug,
+    theme: {
+      ...DEFAULT_DOMAIN_FRAME.theme,
+      wordmark: "",
+      tagline: "",
+    },
+  } as DomainFrameJson
+}
 
 const frameCache = new Map<string, { fetchedAt: number; frame: DomainFrameJson }>()
 const FRAME_CACHE_TTL_MS = 5 * 60 * 1000
@@ -55,8 +71,7 @@ export async function loadDomainFrame(
     const response = await fetch(`${base}/api/domains/${domainSlug}/frame`)
     if (!response.ok) {
       console.warn(`[DomainFrame] API fetch failed (${response.status}), falling back to static default`)
-      const { DEFAULT_DOMAIN_FRAME } = await import("./domain-frame.default")
-      return DEFAULT_DOMAIN_FRAME
+      return frameFallbackForSlug(domainSlug)
     }
     const frame = normalizeDomainFrame(await response.json() as DomainFrameJson)
     frameCache.set(domainSlug, { fetchedAt: Date.now(), frame })
@@ -64,7 +79,6 @@ export async function loadDomainFrame(
     return frame
   } catch (err) {
     console.warn("[DomainFrame] Fetch error, falling back to static default", err)
-    const { DEFAULT_DOMAIN_FRAME } = await import("./domain-frame.default")
-    return DEFAULT_DOMAIN_FRAME
+    return frameFallbackForSlug(domainSlug)
   }
 }

@@ -7,6 +7,10 @@
  */
 
 import { apiFetch } from "../../lib/api"
+import {
+  getCachedDomainBySlug,
+  type DomainBySlugRecord,
+} from "../boards/domain/domainShellCache"
 import { KipApi } from "../../lib/kipApi"
 import { loadJourneyNavRows } from "../boards/boardNavDataCache"
 import { fetchDomainKeptMoments } from "../data/domainMomentsCache"
@@ -62,6 +66,8 @@ export interface PresenceEnrichmentContext {
   domainId?: string
   /** Shell-cached frame JSON — avoids duplicate GET /frame during domain Configure loads. */
   prefetchedFrame?: Record<string, unknown> | null
+  /** Shell-cached by-slug record — avoids duplicate GET /domains/:id during Chronicle load. */
+  prefetchedDomainRecord?: DomainBySlugRecord | null
 }
 
 type JourneyBrief = {
@@ -805,68 +811,83 @@ async function enrichDomain(
 ): Promise<EnrichmentResult> {
   const relatedSections: RelatedSection[] = []
 
-  try {
-    const domainRes = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}`)
-    const domain = (domainRes as { domain?: Record<string, unknown> })?.domain
-    if (domain) {
-      record.id = domain.id ?? domainId
-      record.name = domain.name ?? record.name
-      record.description = domain.description ?? record.description
-      record.purpose = domain.description ?? record.purpose
-      record.slug = domain.slug ?? record.slug
-      record.status = domain.status ?? record.status
-      record.visibility = domain.isPublic === true ? "public" : "private"
-      if (typeof domain.customDomain === "string") {
-        record.customDomain = domain.customDomain
-      }
-      record.customDomainVerified = domain.customDomainVerified === true
+  const cachedRecord =
+    ctx?.prefetchedDomainRecord ??
+    (ctx?.domainSlug ? getCachedDomainBySlug(ctx.domainSlug) : null)
 
-      const theme =
-        domain.theme && typeof domain.theme === "object"
-          ? (domain.theme as Record<string, unknown>)
-          : {}
-      const colors =
-        theme.colors && typeof theme.colors === "object"
-          ? (theme.colors as Record<string, unknown>)
-          : {}
-      if (typeof colors.primary === "string") {
-        record.theme_color = colors.primary
-      }
-      if (typeof theme.coverImage === "string") {
-        record.coverImage = theme.coverImage
-      }
-      if (typeof theme.coverImageKey === "string") {
-        record.coverImageKey = theme.coverImageKey
-      }
-      record.theme = theme
-
-      const settings =
-        domain.settings && typeof domain.settings === "object"
-          ? (domain.settings as Record<string, unknown>)
-          : {}
-      if (typeof settings.keeperTypeKey === "string") {
-        record.keeperType = settings.keeperTypeKey
-      }
-      const ideBuild =
-        settings.ideBuildContext && typeof settings.ideBuildContext === "object"
-          ? (settings.ideBuildContext as Record<string, unknown>)
-          : {}
-      if (typeof ideBuild.name === "string") record.buildContextName = ideBuild.name
-      if (typeof ideBuild.description === "string") {
-        record.buildContextDescription = ideBuild.description
-      }
-      if (typeof ideBuild.activeRepository === "string") {
-        record.activeRepository = ideBuild.activeRepository
-      }
-      if (typeof ideBuild.activeBranch === "string") {
-        record.activeBranch = ideBuild.activeBranch
-      }
-      if (typeof ideBuild.environment === "string") {
-        record.environment = ideBuild.environment
-      }
+  const applyDomainFields = (domain: Record<string, unknown>) => {
+    record.id = domain.id ?? domainId
+    record.name = domain.name ?? record.name
+    record.description = domain.description ?? record.description
+    record.purpose = domain.description ?? record.purpose
+    record.slug = domain.slug ?? record.slug
+    record.status = domain.status ?? record.status
+    record.visibility = domain.isPublic === true ? "public" : "private"
+    if (typeof domain.customDomain === "string") {
+      record.customDomain = domain.customDomain
     }
-  } catch {
-    /* domain record optional for enrichment */
+    record.customDomainVerified = domain.customDomainVerified === true
+
+    const theme =
+      domain.theme && typeof domain.theme === "object"
+        ? (domain.theme as Record<string, unknown>)
+        : {}
+    const colors =
+      theme.colors && typeof theme.colors === "object"
+        ? (theme.colors as Record<string, unknown>)
+        : {}
+    if (typeof colors.primary === "string") {
+      record.theme_color = colors.primary
+    }
+    if (typeof theme.coverImage === "string") {
+      record.coverImage = theme.coverImage
+    }
+    if (typeof theme.coverImageKey === "string") {
+      record.coverImageKey = theme.coverImageKey
+    }
+    record.theme = theme
+
+    const settings =
+      domain.settings && typeof domain.settings === "object"
+        ? (domain.settings as Record<string, unknown>)
+        : {}
+    if (typeof settings.keeperTypeKey === "string") {
+      record.keeperType = settings.keeperTypeKey
+    }
+    const ideBuild =
+      settings.ideBuildContext && typeof settings.ideBuildContext === "object"
+        ? (settings.ideBuildContext as Record<string, unknown>)
+        : {}
+    if (typeof ideBuild.name === "string") record.buildContextName = ideBuild.name
+    if (typeof ideBuild.description === "string") {
+      record.buildContextDescription = ideBuild.description
+    }
+    if (typeof ideBuild.activeRepository === "string") {
+      record.activeRepository = ideBuild.activeRepository
+    }
+    if (typeof ideBuild.activeBranch === "string") {
+      record.activeBranch = ideBuild.activeBranch
+    }
+    if (typeof ideBuild.environment === "string") {
+      record.environment = ideBuild.environment
+    }
+  }
+
+  if (cachedRecord?.id && cachedRecord.id === domainId) {
+    applyDomainFields({
+      ...cachedRecord,
+      name: cachedRecord.name || cachedRecord.displayName || "",
+    } as unknown as Record<string, unknown>)
+  } else {
+    try {
+      const domainRes = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}`)
+      const domain = (domainRes as { domain?: Record<string, unknown> })?.domain
+      if (domain) {
+        applyDomainFields(domain)
+      }
+    } catch {
+      /* domain record optional for enrichment */
+    }
   }
 
   if (ctx?.domainSlug) {

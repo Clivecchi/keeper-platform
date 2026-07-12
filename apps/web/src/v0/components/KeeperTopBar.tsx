@@ -188,7 +188,10 @@ export function KeeperTopBar({
   const isHomeShell = shellMode === "home"
   const domainId = useDomainIdForSlug(domainSlug)
   const domainName =
-    domainFrame?.theme?.wordmark?.trim() || domainSlug || "Domain"
+    domainFrame?.theme?.wordmark?.trim() ||
+    (typeof domainData?.name === "string" ? domainData.name.trim() : "") ||
+    (typeof domainData?.displayName === "string" ? domainData.displayName.trim() : "") ||
+    ""
   const coverImageUrl = domainData?.theme?.coverImage
     ? getBlobProxyUrl(domainData.theme.coverImage)
     : null

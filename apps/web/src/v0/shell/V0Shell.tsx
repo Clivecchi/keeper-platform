@@ -47,6 +47,7 @@ import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { SceneChangeProvider } from "../sceneChange/SceneChangeProvider"
+import { DomainShellGate } from "./DomainShellGate"
 import { loadDomainFrame, peekDomainFrame } from "../data/loadDomainFrame"
 import {
   fetchDomainAudience,
@@ -914,6 +915,10 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
           }}
         >
           <SceneChangeProvider>
+          <DomainShellGate
+            domainSlug={effectiveSlug}
+            requireAudience={authResolved && isAuthenticated}
+          >
           <FrameContextProvider
             domainSlug={effectiveSlug}
             frame={frame}
@@ -924,6 +929,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
             <UniversalBoard def={matchedDef} />
             {kipHandoffToast}
           </FrameContextProvider>
+          </DomainShellGate>
           </SceneChangeProvider>
         </V0ShellProvider>
       </StyleOverrideProvider>

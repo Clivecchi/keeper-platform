@@ -18,7 +18,7 @@ import {
   patchDomainSwitcherCacheEntry,
   invalidateDomainSwitcherCache,
 } from "../boards/domain/domainSwitcherData"
-import { invalidateDomainShellCache } from "../boards/domain/domainShellCache"
+import { invalidateDomainShellCache, type DomainBySlugRecord } from "../boards/domain/domainShellCache"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { usePresenceSchema } from "./usePresenceSchema"
 import {
@@ -803,6 +803,14 @@ export function KeeperPresence({
       domainId,
       activeBoardForFrames: "domain",
       prefetchedFrame: v0Shell?.domainFrame as Record<string, unknown> | null | undefined,
+      prefetchedDomainRecord:
+        v0Shell?.domainData &&
+        typeof v0Shell.domainData === "object" &&
+        "id" in v0Shell.domainData &&
+        typeof (v0Shell.domainData as { id?: string }).id === "string" &&
+        !(v0Shell.domainData as { id: string }).id.startsWith("fallback-")
+          ? (v0Shell.domainData as DomainBySlugRecord)
+          : null,
     }
 
     async function load() {

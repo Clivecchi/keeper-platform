@@ -499,7 +499,7 @@ export function UniversalViewPanel({
   const labelCache = React.useRef(new Map<string, string>())
 
   function resolveInitialLabel(k: TrailKind, entryId: string | null): string {
-    if (k === "domain") return domainName || "Home"
+    if (k === "domain") return domainName.trim() || "···"
     return labelCache.current.get(`${k}:${entryId ?? "_"}`) ?? "···"
   }
 

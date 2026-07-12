@@ -6,6 +6,7 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 ## 🧱 Key Files
 - `V0Shell.tsx`
 - `V0ShellContext.tsx`
+- `DomainShellGate.tsx` — Cold-load gate; opaque Domain Cover curtain until shell is ready
 - `FrameContext.tsx`
 - `AgentComposerContext.tsx` — Provides composer state from AgentBoardFrame to Margin (bottom bar)
 - `guestPublicStory.ts` — guest-allowed frames + URL resolution for public story
@@ -19,6 +20,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-12: **Domain shell load gate (Phase A+B)** — `DomainShellGate` blocks `UniversalBoard` mount until by-slug + frame + audience are cached; opaque `DomainLoadCurtain` covers cold loads; warm cache skips curtain.
 - 2026-07-12: Phase 1b — Domain + Realm mobile use adaptive `UniversalBoard`; `UniversalMobileShell` no longer mounted by V0Shell.
 - 2026-07-12: Phase 1 — `/home` on mobile mounts `UniversalBoard` (adaptive Nav · Dialog · Chronicle).
 - 2026-07-07: Domain auto-provision skips healthy domains via session ok + unseeded check; waits for frame load before repair (fixes slow double reload). `ensureDomainProvisioned` no longer treats every successful POST as a repair.

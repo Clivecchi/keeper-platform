@@ -1731,7 +1731,7 @@ export function UniversalConversation({
           theme?: { wordmark?: string; tagline?: string; colors?: { primary?: string } }
           cover?: { card?: { tagLine?: string } }
         } | null
-        const wordmark = df?.theme?.wordmark?.trim() || domainName || "Domain"
+        const wordmark = df?.theme?.wordmark?.trim() || domainName?.trim() || ""
         const tagline = df?.cover?.card?.tagLine?.trim() || df?.theme?.tagline?.trim() || undefined
         const primaryAccent = df?.theme?.colors?.primary?.trim() || undefined
         const statJourneys = journeyCount === null ? "—" : String(journeyCount)

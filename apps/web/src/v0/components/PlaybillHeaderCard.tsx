@@ -60,7 +60,7 @@ export function PlaybillHeaderCard({
   })
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
-  const billingName = domainName.trim() || domainSlug
+  const billingName = domainName.trim() || "···"
   const starName = resolvePlaybillStarName({
     domainName: billingName,
     agentDisplayName: agent?.displayName ?? leadContext.name,

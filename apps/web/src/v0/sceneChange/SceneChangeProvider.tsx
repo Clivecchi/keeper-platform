@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { SceneChangeCurtain } from "./SceneChangeCurtain"
+import { DomainLoadCurtain } from "./DomainLoadCurtain"
 import {
   isDomainShellWarm,
   prefetchDomainShellForTravel,
@@ -52,10 +52,11 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
 
   return (
     <SceneChangeCtx.Provider value={value}>
-      {children}
       {curtainSlug ? (
-        <SceneChangeCurtain domainSlug={curtainSlug} onComplete={handleCurtainComplete} />
-      ) : null}
+        <DomainLoadCurtain domainSlug={curtainSlug} onComplete={handleCurtainComplete} />
+      ) : (
+        children
+      )}
     </SceneChangeCtx.Provider>
   )
 }
