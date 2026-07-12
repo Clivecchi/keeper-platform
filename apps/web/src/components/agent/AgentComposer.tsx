@@ -297,7 +297,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     const { content, displayContent } = buildComposerSubmitContent(inputValue, attachments)
     const hasContent = content.length > 0 || agentAttachments.length > 0
     if (!hasContent || !activeSessionId || isSending) return
-    setAttachments([])
+    // Controlled attachment state (Dialog Thinking Space) clears after parent send completes.
+    if (!onAttachmentsChange) {
+      setAttachments([])
+    }
     onSubmit(e, { content, displayContent, attachments: agentAttachments })
   }
 
@@ -305,7 +308,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     if (!submitOnEnter) return
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      if (formRef.current && (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending) {
+      // Enter always sends prompt + staged files together; attachment-only sends use the button.
+      const hasPrompt = inputValue.trim().length > 0
+      if (formRef.current && hasPrompt && activeSessionId && !isSending) {
         formRef.current.requestSubmit()
       }
     }
@@ -522,19 +527,18 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 </div>
               ))}
             </div>
-            {/* Vision unavailability notice — shown when any image is attached */}
             {uploadAttachments.some((a) => a.type === "image") && (
               <p
                 className="text-[11px] leading-snug px-1"
                 style={{
-                  color: "hsl(38 80% 35%)",
-                  background: "hsl(48 90% 94%)",
-                  border: "1px solid hsl(38 60% 80%)",
+                  color: SURFACE.inkSecondary,
+                  background: "hsl(var(--theme-surface-page) / 0.5)",
+                  border: `1px solid ${SURFACE.border}`,
                   borderRadius: "6px",
                   padding: "5px 8px",
                 }}
               >
-                Kip can&apos;t currently see attached images — describe what you&apos;re seeing for best results.
+                Image attached — add a short note about what you want the agent to notice, then send.
               </p>
             )}
           </div>

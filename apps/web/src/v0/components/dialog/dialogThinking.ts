@@ -94,6 +94,8 @@ const THINKING_META_PATTERNS = [
   /^run complete$/i,
   /is composing a reply/i,
   /^consulting /i,
+  /^including \d+ attached files? in your message/i,
+  /^reviewing \d+ attached files?/i,
 ]
 
 function isThinkingMetaStep(label: string): boolean {
@@ -116,12 +118,20 @@ export function stepLabelToStorySentence(label: string, agentName: string): stri
     return text.endsWith("…") ? text : `${text}…`
   }
 
+  const includeMatch = text.match(/^including (\d+) attached files? in your message/i)
+  if (includeMatch) {
+    const count = Number(includeMatch[1])
+    return count === 1
+      ? "Including the file you attached in your message."
+      : `Including ${count} attached files in your message.`
+  }
+
   const attachmentMatch = text.match(/^reviewing (\d+) attached files/i)
   if (attachmentMatch) {
     const count = Number(attachmentMatch[1])
-    return count === 1 ? "Reviewing the file you attached." : `Reviewing ${count} attached files.`
+    return count === 1 ? "Including the file you attached in your message." : `Including ${count} attached files in your message.`
   }
-  if (/reviewing 1 attached file/i.test(text)) return "Reviewing the file you attached."
+  if (/reviewing 1 attached file/i.test(text)) return "Including the file you attached in your message."
 
   const consultingMatch = text.match(/^consulting (.+?)(?:…|\.)?$/i)
   if (consultingMatch?.[1]) {
@@ -237,11 +247,6 @@ export function dialogicRunSummary(
   if (actions.length > 1) {
     const latest = actions[actions.length - 1]
     return ensureEllipsisEnding(latest)
-  }
-
-  const last = work[work.length - 1]
-  if (/reviewing \d+ attached/i.test(last)) {
-    return ensureEllipsisEnding(last.replace(/…$/, ""))
   }
 
   const storySentences = thinkingStepsToStorySentences(steps, agentName)

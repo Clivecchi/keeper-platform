@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-11 — Attachment thinking beats
+- `useAgentDialog` — attachment run-trace label is now "Including … in your message" (not "Reviewing"), matching what the API actually does.
+
 ### 2026-07-03 — Domain/Realm composer session bootstrap
 - `useAgentDialog` — when Universal Board controls session id, domain/agent board init now calls `onControlledSessionIdChange(sessionId)` after `resumeOrCreateBoardSession` (matches IDE). Fixes composer locked with "Create a session to start chatting" after controlled-session regression.
 

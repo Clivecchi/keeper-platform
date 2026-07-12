@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-07-11: **Attachment send fix** — `handleComposerSubmit` awaits agent send; `isSubmittingMessage` blocks double-submit during Library commit. `DialogUploadStream` hints that Enter/Send ships image + prompt together. Attachment thinking beats no longer surface as post-run Horizon summary.
 - 2026-07-02: **P4.1 paste in Thinking Space** — `DialogUploadStream` renders `SupportingDocumentTile` for pasted context; Broadcast Strip shows paste + file uploads; composer textarea stays clean on Dialog boards.
 - 2026-06-29: **Post-run Horizon** — `Consulting …` and other in-flight beats are meta steps; composer summary no longer sticks on "Consulting vecch.io…" after a text-only reply with no action receipts.
 - 2026-06-28: **Broadcast Strip** — merged Horizon live status + Thinking Space into `.dialog-broadcast-strip` (phosphor live line, ticker, CRT scanlines). Horizon band is dissolve-only; post-run summary unchanged on composer.

@@ -282,8 +282,9 @@ export function KeeperDialogFrame({
   const [debugPanelOpen, setDebugPanelOpen] = React.useState(false)
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
+  const [isSubmittingMessage, setIsSubmittingMessage] = React.useState(false)
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
-  const isWorking = isSending || isFileUploading
+  const isWorking = isSending || isFileUploading || isSubmittingMessage
   const showBroadcastStrip = mode !== "feed" && (isWorking || hasUploads)
   const showComposerFooter = mode !== "feed"
   const toggleDebugPanel = React.useCallback(() => {
@@ -347,19 +348,25 @@ export function KeeperDialogFrame({
 
   const handleComposerSubmit = React.useCallback(
     async (event: React.FormEvent, options: ComposerSubmitPayload) => {
-      const libraryAttachments = pendingAttachments.filter((a) => !isPastedSupportingDoc(a))
-      if (onCommitAttachmentsToLibrary && libraryAttachments.length > 0) {
-        try {
-          await onCommitAttachmentsToLibrary(libraryAttachments)
-        } catch (err) {
-          alert(err instanceof Error ? err.message : "Failed to save attachments to Library.")
-          return
+      if (isSubmittingMessage) return
+      setIsSubmittingMessage(true)
+      try {
+        const libraryAttachments = pendingAttachments.filter((a) => !isPastedSupportingDoc(a))
+        if (onCommitAttachmentsToLibrary && libraryAttachments.length > 0) {
+          try {
+            await onCommitAttachmentsToLibrary(libraryAttachments)
+          } catch (err) {
+            alert(err instanceof Error ? err.message : "Failed to save attachments to Library.")
+            return
+          }
         }
+        await onSubmit(event, options)
+        setPendingAttachments([])
+      } finally {
+        setIsSubmittingMessage(false)
       }
-      onSubmit(event, options)
-      setPendingAttachments([])
     },
-    [onSubmit, onCommitAttachmentsToLibrary, pendingAttachments],
+    [onSubmit, onCommitAttachmentsToLibrary, pendingAttachments, isSubmittingMessage],
   )
 
   const broadcastLiveLabel = React.useMemo(() => {
@@ -754,7 +761,7 @@ export function KeeperDialogFrame({
             onAttachmentsChange={setPendingAttachments}
             attachmentDisplay="thinking-space"
             onUploadingChange={setIsFileUploading}
-            isSending={isSending || isFileUploading}
+            isSending={isSending || isFileUploading || isSubmittingMessage}
             activeSessionId={activeSessionId}
             disabled={disabled}
             inputPlaceholder={inputPlaceholder}

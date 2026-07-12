@@ -77,15 +77,22 @@ export function DialogUploadStream({ attachments, onRemove }: DialogUploadStream
         </div>
       )}
       {uploadDocs.length > 0 && (
-        <div className="dialog-upload-tiles" aria-label="Files ready to send">
-          {uploadDocs.map((attachment) => (
-            <UploadTile
-              key={attachment.id}
-              attachment={attachment}
-              onRemove={() => onRemove(attachment.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="dialog-upload-tiles" aria-label="Files ready to send">
+            {uploadDocs.map((attachment) => (
+              <UploadTile
+                key={attachment.id}
+                attachment={attachment}
+                onRemove={() => onRemove(attachment.id)}
+              />
+            ))}
+          </div>
+          {uploadDocs.some((attachment) => attachment.type === "image") ? (
+            <p className="dialog-upload-stream-hint">
+              Type your question, then press Enter or Send — the image goes with your message.
+            </p>
+          ) : null}
+        </>
       )}
     </div>
   )

@@ -983,6 +983,14 @@ button.dialog-prelude:hover {
   padding-bottom: 2px;
 }
 
+.dialog-upload-stream-hint {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: hsl(var(--theme-ink-secondary));
+}
+
 .dialog-upload-progress {
   display: flex;
   align-items: center;

@@ -641,8 +641,8 @@ export function useAgentDialog({
       if (attachments?.length) {
         appendThinkingStep(
           attachments.length === 1
-            ? "Reviewing 1 attached file…"
-            : `Reviewing ${attachments.length} attached files…`,
+            ? "Including 1 attached file in your message…"
+            : `Including ${attachments.length} attached files in your message…`,
         )
       }
 

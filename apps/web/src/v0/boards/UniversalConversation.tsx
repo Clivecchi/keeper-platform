@@ -85,7 +85,7 @@ import { readFrameLeadAgentSlug, resolveDialogAgentSlug, PLACEHOLDER_LEAD_AGENT_
 import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
-import type { ComposerAgentChip } from "../../components/agent/AgentComposer"
+import type { ComposerAgentChip, AgentAttachment } from "../../components/agent/AgentComposer"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -1301,7 +1301,7 @@ export function UniversalConversation({
   const handleDialogSubmit = React.useCallback(
     async (
       event: React.FormEvent,
-      payload: { content: string; displayContent?: string },
+      payload: { content: string; displayContent?: string; attachments?: AgentAttachment[] },
     ) => {
       await sendMessage(event, payload)
       if (guidedArrivalActive && guidedArrival) {
