@@ -1,0 +1,34 @@
+/* Universal Board — mobile panel focus layout (Phase 1: Realm /home) */
+
+.board-mobile-layout {
+  --board-mobile-tab-bar-height: 3.75rem;
+}
+
+.board-mobile-layout .keeper-board-panel-focus {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.board-mobile-layout .keeper-board-panel-focus > .keeper-nav-panel,
+.board-mobile-layout .keeper-board-panel-focus > .keeper-chronicle-panel,
+.board-mobile-layout .keeper-board-panel-focus .keeper-dialog-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.board-mobile-layout .keeper-dialog-frame {
+  margin: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.board-mobile-shell-height {
+  height: 100dvh;
+  max-height: 100dvh;
+}

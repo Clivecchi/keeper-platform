@@ -22,7 +22,6 @@ import {
   readAuthoritativeSearchParams,
   resolveBoardDefinitionId,
   resolveWorkspaceBoardId,
-  isMemberMobileBoard,
   isMemberWorkspaceBoard,
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
@@ -39,8 +38,6 @@ import { buildDomainBoardPath, buildHomePath, DEFAULT_HOME_DISPLAY_NAME, HOME_DO
 import { buildRealmShellPath } from "../../lib/realmPaths"
 import { fetchUserHomeDisplayName } from "../lib/userHomeSettings"
 import { UniversalBoard } from "../boards/UniversalBoard"
-import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
-import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
 import { PublicGuestChrome } from "../../mobile/PublicGuestChrome"
 import { useMobileSurface } from "../../mobile/hooks/useMobileSurface"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
@@ -895,11 +892,6 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
       domainData?.id && !String(domainData.id).startsWith("fallback-")
         ? String(domainData.id)
         : null
-    const useMobileShell =
-      mobileSurface === "mobile"
-      && isMemberMobileBoard(matchedDef.boardId)
-      && isAuthenticated
-
     return (
       <StyleOverrideProvider initialStyleId={initialStyleId}>
         <V0ShellProvider
@@ -929,18 +921,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
             themeSlug={activeThemeSlug}
             draftId={draftId}
           >
-            {useMobileShell ? (
-              <UniversalBoardProvider>
-                <UniversalMobileShell
-                  styleId={styleId}
-                  themeSlug={activeThemeSlug}
-                />
-              </UniversalBoardProvider>
-            ) : (
-              <UniversalBoard
-                def={matchedDef}
-              />
-            )}
+            <UniversalBoard def={matchedDef} />
             {kipHandoffToast}
           </FrameContextProvider>
           </SceneChangeProvider>

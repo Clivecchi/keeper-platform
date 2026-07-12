@@ -30,6 +30,14 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-12 — Phase 1b: Domain board mobile adaptive layout
+- `usesAdaptiveMobileBoardLayout()` — Domain + Realm at ≤767px use `BoardMobilePanelBar` (Nav · Dialog · Chronicle).
+- V0Shell always mounts `UniversalBoard`; legacy `UniversalMobileShell` removed from routing.
+
+### 2026-07-12 — Phase 1: Realm /home mobile uses UniversalBoard
+- `UniversalBoard.tsx` — mobile panel focus layout for member boards; imports `board-mobile.css`, `BoardMobilePanelBar`, `useBoardMobilePanelFocus`.
+- `workspaceBoardNav.ts` — `usesAdaptiveMobileBoardLayout()` replaces legacy shell gate.
+
 ### 2026-07-08 — Keeper, Dialog, Agent Nav create Acts
 - Seeded `keeper.create`, `dialog.create`, `agent.create` engagement templates.
 - Domain Board Nav `+` on Keepers and Dialogs opens Chronicle Acts (same pipeline as Journeys).

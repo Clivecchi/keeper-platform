@@ -5,12 +5,17 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 
 ## 🧱 Key Files
 - `BoardInstrumentsBar.tsx` — Pin/unpin agent chips for director-mode boards (Domain lead agents; IDE uses `IntegratedServicesBar` for Tools + Services).
+- `BoardMobilePanelBar.tsx` — Bottom bar switching Nav · Dialog · Chronicle on narrow Realm Home (`/home`).
 
 ## 🔄 Data & Behavior
 - Rendered in `KeeperDialogFrame` composer footer when `boardInstruments` is set (Domain board).
 - Pinning sets `activeBoardInstrument` in `UniversalBoardContext` for director delegation; Chronicle stays on current focus (configure agents via Agent board Nav only).
+- `BoardMobilePanelBar` is used by `UniversalBoard` when member board + viewport ≤767px — same three panels as desktop, one visible at a time.
 
 ## 📆 Update Log
+
+### 2026-07-12 — Phase 1b: all member boards
+- `BoardMobilePanelBar` used for Domain + Realm at ≤767px (not only `/home`).
 
 ### 2026-07-03 — Domain director agent surfacing
 - Domain board: domain lead agent chip on composer toolbar (× returns to Agents bar); Kip on footer as always-invoked director collaborator.

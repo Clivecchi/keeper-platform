@@ -19,6 +19,8 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-12: Phase 1b — Domain + Realm mobile use adaptive `UniversalBoard`; `UniversalMobileShell` no longer mounted by V0Shell.
+- 2026-07-12: Phase 1 — `/home` on mobile mounts `UniversalBoard` (adaptive Nav · Dialog · Chronicle).
 - 2026-07-07: Domain auto-provision skips healthy domains via session ok + unseeded check; waits for frame load before repair (fixes slow double reload). `ensureDomainProvisioned` no longer treats every successful POST as a repair.
 - 2026-07-07: `/home` anchor resolution — no silent `default` slug fallback; empty state when user has no domains (use `?domain=` or add a domain).
 - 2026-07-07: Pending `?board=` state ignores workspaces unavailable on the active domain slug; clears stale pending board/definition when slug changes (fixes picker stuck after Ke3p → Ceox).

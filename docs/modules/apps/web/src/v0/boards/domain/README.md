@@ -27,6 +27,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+- 2026-07-12: **Phase 1b mobile** — Domain board on ≤767px uses adaptive `UniversalBoard` (Nav · Dialog · Chronicle bottom bar); domain picker via top-bar playbill.
 - 2026-07-11: **DB-first `leadAgentSlug`** — API resolves from `settings.primaryAgentId`; `domainShellCache` stores `leadAgentSlug` on by-slug fetch.
 - 2026-07-10: Domain picker uses **Playbill** cards (`PlaybillCard`) — top-bar header + travel list with live stats (`GET /api/domains/:id/stats`).
 - 2026-07-07: `resolvePostLoginDomainSlug` returns `null` when user has no domains — never falls back to platform slug `default`; `/home` shows explicit empty state until `?domain=` or a domain exists.

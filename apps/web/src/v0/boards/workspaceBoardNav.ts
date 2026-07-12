@@ -22,7 +22,7 @@ export const WORKSPACE_BOARD_IDS: WorkspaceBoardId[] = [
   "agent",
 ]
 
-/** Member-facing boards that use Universal Mobile shell on narrow viewports. */
+/** Member-facing boards that use adaptive UniversalBoard mobile panel layout (≤767px). */
 export const MEMBER_MOBILE_BOARD_IDS = ["domain", "realm"] as const
 export type MemberMobileBoardId = (typeof MEMBER_MOBILE_BOARD_IDS)[number]
 
@@ -30,6 +30,13 @@ export function isMemberMobileBoard(
   boardId: string | null | undefined,
 ): boardId is MemberMobileBoardId {
   return boardId === "domain" || boardId === "realm"
+}
+
+export function usesAdaptiveMobileBoardLayout(
+  boardId: string | null | undefined,
+  isMobile: boolean,
+): boolean {
+  return isMobile && isMemberMobileBoard(boardId)
 }
 
 export function isMemberWorkspaceBoard(

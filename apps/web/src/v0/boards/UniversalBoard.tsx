@@ -55,12 +55,17 @@ import { UniversalConversation } from "./UniversalConversation"
 import { useAuth } from "../../context/AuthContext"
 import { PanelErrorBoundary } from "../components/PanelErrorBoundary"
 import { useDomainSwitcher } from "./domain/DomainSwitcherOverlay"
-import { isMemberMobileBoard, type WorkspaceBoardId } from "./workspaceBoardNav"
+import { isMemberMobileBoard, usesAdaptiveMobileBoardLayout, type WorkspaceBoardId } from "./workspaceBoardNav"
 import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchestrator"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { RealmArrivalProvider } from "../realm/RealmArrivalContext"
 import { prefetchBoardNavData } from "./boardNavDataCache"
 import { getCachedDomainBySlug } from "./domain/domainShellCache"
+import { BoardMobilePanelBar } from "./components/BoardMobilePanelBar"
+import { useBoardMobilePanelFocus } from "./hooks/useBoardMobilePanelFocus"
+import type { BoardMobilePanelId } from "./types/boardMobilePanel"
+import { PwaInstallPrompt } from "../../mobile/pwa"
+import "./board-mobile.css"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
@@ -190,12 +195,21 @@ function UniversalBoardShell({
   navVersions,
 }: UniversalBoardProps) {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData, shellMode } = useV0Shell()
-  const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
+  const { selection, actions, navCollapsed, onToggleNavCollapsed, chronicleEngagement } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
+  const isRealmHome = def.boardId === "realm" && shellMode === "home"
+  const useMobilePanelLayout = usesAdaptiveMobileBoardLayout(def.boardId, isMobile)
+  const { activePanel: mobilePanelFocus, setActivePanel: setMobilePanelFocus } = useBoardMobilePanelFocus({
+    chronicleEngagementActive: chronicleEngagement != null,
+    initialPanel: "dialog",
+  })
+
+  const focusMobileDialogPanel = React.useCallback(() => {
+    setMobilePanelFocus("dialog")
+  }, [setMobilePanelFocus])
 
   const targetBoardId = def.boardId as WorkspaceBoardId
-  const isRealmHome = def.boardId === "realm" && shellMode === "home"
   const { openSwitcher, switcherOverlay, isSwitcherOpen } = useDomainSwitcher(targetBoardId)
 
   useBoardThemeRegistration()
@@ -419,10 +433,79 @@ function UniversalBoardShell({
     </PanelErrorBoundary>
   )
 
+  const leftNode = (
+    <PanelErrorBoundary panel="nav">
+      {leftRenderProp
+        ? leftRenderProp(leftProps)
+        : (
+            <UniversalNavPanel
+              domainId={domainId}
+              domainSlug={slug}
+              domainName={domainName || slug}
+              def={def}
+              selectedDialogId={selection.selectedDialogId}
+              selectedJourneyId={selection.selectedJourneyId}
+              selectedPathId={selection.selectedPathId}
+              selectedKeeperId={selection.selectedKeeperId}
+              selectedDraftId={selection.selectedDraftId}
+              selectedAgentId={selection.selectedAgentId}
+              selectedServiceSlug={selection.selectedServiceSlug}
+              selectedKeyId={selection.selectedKeyId}
+              selectedCapabilityId={selection.selectedCapabilityId}
+              selectedLibraryItemId={selection.selectedLibraryItemId}
+              onDialogSelect={actions.onDialogSelect}
+              onJourneySelect={actions.onJourneySelect}
+              onKeeperSelect={actions.onKeeperSelect}
+              onDraftSelect={actions.onDraftSelect}
+              onAgentSelect={actions.onAgentSelect}
+              onServiceOpen={actions.onServiceOpen}
+              onKeySelect={actions.onKeySelect}
+              onCapabilitySelect={actions.onCapabilitySelect}
+              onLibraryItemSelect={actions.onLibraryItemSelect}
+              collapsed={useMobilePanelLayout ? false : navCollapsed}
+              onToggleCollapsed={onToggleNavCollapsed}
+              dialogListVersion={effectiveDialogListVersion}
+              journeyListVersion={effectiveJourneyListVersion}
+              keeperListVersion={selection.keeperNavRevision}
+              draftListVersion={effectiveDraftListVersion}
+              draftNavRowPatch={selection.draftNavRowPatch}
+              keyListVersion={selection.keyNavRevision}
+              keyNavRowPatch={selection.keyNavRowPatch}
+              capabilityListVersion={selection.capabilityNavRevision}
+              capabilityNavRowPatch={selection.capabilityNavRowPatch}
+              libraryListVersion={selection.libraryNavRevision}
+              libraryNavRowPatch={selection.libraryNavRowPatch}
+              keeperNavRowPatch={selection.keeperNavRowPatch}
+              agentListVersion={selection.agentNavRevision}
+              agentNavRowPatch={selection.agentNavRowPatch}
+            />
+          )}
+    </PanelErrorBoundary>
+  )
+
+  const centerNode = (
+    <PanelErrorBoundary panel="dialog">
+      <div
+        className="flex h-full min-h-0 flex-col overflow-hidden"
+        style={{ background: "transparent", borderRadius: useMobilePanelLayout ? undefined : "8px" }}
+      >
+        {center
+          ? center(centerProps)
+          : <UniversalConversation def={def} {...centerProps} />}
+      </div>
+    </PanelErrorBoundary>
+  )
+
+  const mobilePanelNodes: Record<BoardMobilePanelId, React.ReactNode> = {
+    nav: leftNode,
+    dialog: centerNode,
+    chronicle: rightNode,
+  }
+
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
       <div
-        className="keeper-board-scope flex flex-col h-screen w-full overflow-hidden"
+        className={`keeper-board-scope flex flex-col w-full overflow-hidden ${useMobilePanelLayout ? "board-mobile-shell-height" : "h-screen"}`}
         style={pageBackground}
       >
         <KeeperTopBar
@@ -434,7 +517,11 @@ function UniversalBoardShell({
 
         {switcherOverlay}
 
-        {isMobile && isMemberMobileBoard(def.boardId) ? <GuidedArrivalOrchestrator /> : null}
+        {isMobile && isMemberMobileBoard(def.boardId) ? (
+          <GuidedArrivalOrchestrator
+            focusMobileKipTab={useMobilePanelLayout ? focusMobileDialogPanel : undefined}
+          />
+        ) : null}
 
         {briefOpen && domainFrame && (
           <DomainBriefSlideOver
@@ -443,74 +530,37 @@ function UniversalBoardShell({
           />
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8">
+        <div
+          className={
+            useMobilePanelLayout
+              ? "board-mobile-layout flex min-h-0 flex-1 flex-col px-0 pt-1 pb-0"
+              : "flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8"
+          }
+        >
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <KeeperBoardPanelGroup
-              boardKind={boardKind}
-              domainSlug={slug}
-              left={
-                <PanelErrorBoundary panel="nav">
-                  {leftRenderProp
-                    ? leftRenderProp(leftProps)
-                    : (
-                        <UniversalNavPanel
-                          domainId={domainId}
-                          domainSlug={slug}
-                          domainName={domainName || slug}
-                          def={def}
-                          selectedDialogId={selection.selectedDialogId}
-                          selectedJourneyId={selection.selectedJourneyId}
-                          selectedPathId={selection.selectedPathId}
-                          selectedKeeperId={selection.selectedKeeperId}
-                          selectedDraftId={selection.selectedDraftId}
-                          selectedAgentId={selection.selectedAgentId}
-                          selectedServiceSlug={selection.selectedServiceSlug}
-                          selectedKeyId={selection.selectedKeyId}
-                          selectedCapabilityId={selection.selectedCapabilityId}
-                          selectedLibraryItemId={selection.selectedLibraryItemId}
-                          onDialogSelect={actions.onDialogSelect}
-                          onJourneySelect={actions.onJourneySelect}
-                          onKeeperSelect={actions.onKeeperSelect}
-                          onDraftSelect={actions.onDraftSelect}
-                          onAgentSelect={actions.onAgentSelect}
-                          onServiceOpen={actions.onServiceOpen}
-                          onKeySelect={actions.onKeySelect}
-                          onCapabilitySelect={actions.onCapabilitySelect}
-                          onLibraryItemSelect={actions.onLibraryItemSelect}
-                          collapsed={navCollapsed}
-                          onToggleCollapsed={onToggleNavCollapsed}
-                          dialogListVersion={effectiveDialogListVersion}
-                          journeyListVersion={effectiveJourneyListVersion}
-                          keeperListVersion={selection.keeperNavRevision}
-                          draftListVersion={effectiveDraftListVersion}
-                          draftNavRowPatch={selection.draftNavRowPatch}
-                          keyListVersion={selection.keyNavRevision}
-                          keyNavRowPatch={selection.keyNavRowPatch}
-                          capabilityListVersion={selection.capabilityNavRevision}
-                          capabilityNavRowPatch={selection.capabilityNavRowPatch}
-                          libraryListVersion={selection.libraryNavRevision}
-                          libraryNavRowPatch={selection.libraryNavRowPatch}
-                          keeperNavRowPatch={selection.keeperNavRowPatch}
-                          agentListVersion={selection.agentNavRevision}
-                          agentNavRowPatch={selection.agentNavRowPatch}
-                        />
-                      )}
-                </PanelErrorBoundary>
-              }
-              center={
-                <PanelErrorBoundary panel="dialog">
-                  <div
-                    className="flex h-full min-h-0 flex-col overflow-hidden"
-                    style={{ background: "transparent", borderRadius: "8px" }}
-                  >
-                    {center
-                      ? center(centerProps)
-                      : <UniversalConversation def={def} {...centerProps} />}
-                  </div>
-                </PanelErrorBoundary>
-              }
-              right={rightNode}
-            />
+            {useMobilePanelLayout ? (
+              <>
+                <div className="keeper-board-panel-focus">
+                  {mobilePanelNodes[mobilePanelFocus]}
+                </div>
+                <BoardMobilePanelBar
+                  activePanel={mobilePanelFocus}
+                  onPanelChange={setMobilePanelFocus}
+                />
+                <PwaInstallPrompt
+                  title="Install Keeper"
+                  description="Add Keeper to your home screen for quick access."
+                />
+              </>
+            ) : (
+              <KeeperBoardPanelGroup
+                boardKind={boardKind}
+                domainSlug={slug}
+                left={leftNode}
+                center={centerNode}
+                right={rightNode}
+              />
+            )}
           </div>
         </div>
       </div>

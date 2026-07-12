@@ -19,11 +19,19 @@ Nav blocks (Realm-only extras):
 Conversation: lead agent slug from `domainFrame.kip.agent_id` (`agentFromFrame: true`), `dialogOrchestration: "director"`, `directorAgentSlug: "kip"`, `kipMode: "domain"`. When the frame lead is not Kip (e.g. CeoX on Chuck's domain), **lead-led collaboration** applies: the lead owns Dialog; Kip adds optional platform support beneath. Kip-led domains keep director orchestration (Kip synthesizes).
 
 ## ⚠️ Notes & ToDo
-- [ ] Phase 4B — Realm Screen prototype (mobile default route)
-- [ ] Phase 4C — extend `UniversalMobileShell` for staged Dialog + Chronicle on realm
+- [x] Phase 1 — `/home` and `?board=domain` on mobile use `UniversalBoard` + `BoardMobilePanelBar`
+- [x] Phase 1b — legacy `UniversalMobileShell` retired from V0Shell routing
 - [ ] Connection row click → Chronicle manage surface (nav is list-only today)
 
 ## 📆 Update Log
+### 2026-07-12 — Phase 1b: Domain board on mobile
+- Domain board (`?board=domain`) uses same adaptive Nav · Dialog · Chronicle layout as `/home`.
+- Cross-domain picker via top-bar playbill (`DomainSwitcherOverlay`), not separate mobile Domains tab.
+
+### 2026-07-12 — Phase 1: mobile Universal Board at /home
+- Narrow viewports on user Home mount `UniversalBoard` with bottom panel bar (Nav · Dialog · Chronicle) instead of `UniversalMobileShell` tab screens.
+- Same components as desktop: `UniversalNavPanel`, `UniversalConversation`, `UniversalViewPanel` / `KeeperPresence`.
+
 ### 2026-07-11 — Director orchestration + Kip on Home
 - `REALM_BOARD_DEF` uses `dialogOrchestration: "director"` (was `solo`) — `/home` restores footer **Agents** bar with Kip + domain lead; attachments forward to delegated lead agent runs.
 
