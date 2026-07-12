@@ -272,13 +272,17 @@ export function UniversalConversation({
 
   const baseAgentSlug = React.useMemo(() => {
     if (def.conversation.agentFromFrame) {
+      const dbLead = resolveDialogLeadSlug(domainLeadRecord)
+      if (dbLead && dbLead !== KIP_FALLBACK_SLUG) {
+        return dbLead
+      }
       if (kipMode === "domain" && playbillGreetSlug !== undefined) {
         return playbillGreetSlug ?? KIP_FALLBACK_SLUG
       }
-      return resolveDialogLeadSlug(domainLeadRecord)
+      return dbLead
     }
     return def.conversation.agentSlug ?? "kip"
-  }, [def.conversation.agentFromFrame, def.conversation.agentSlug, domainFrame, kipMode, playbillGreetSlug, domainLeadRecord])
+  }, [def.conversation.agentFromFrame, def.conversation.agentSlug, domainLeadRecord, kipMode, playbillGreetSlug])
   const defaultAgentSlug = baseAgentSlug
   const defaultAgentName = def.conversation.agentName ?? "Kip"
 
@@ -394,20 +398,22 @@ export function UniversalConversation({
       ? frameLeadIdentity.displayName
       : null)
 
-  /** Personal / owner domains with a non-Kip lead — lead owns Dialog; Kip collaborates. */
-  const isLeadLedDomain = React.useMemo(
+  /** Domain has a non-Kip lead agent bound from DB (Ceox, etc.). */
+  const hasDomainLeadAgent = React.useMemo(
     () =>
       kipMode === "domain"
-      && !guidedArrivalActive
       && !!normalizedDomainLeadSlug
       && normalizedDomainLeadSlug !== KIP_FALLBACK_SLUG,
-    [kipMode, guidedArrivalActive, normalizedDomainLeadSlug],
+    [kipMode, normalizedDomainLeadSlug],
   )
+
+  /** Personal / owner domains with a non-Kip lead — lead owns Dialog; Kip collaborates. */
+  const isLeadLedDomain = hasDomainLeadAgent
 
   const isDirectorMode =
     !guidedArrivalActive
     && def.conversation.dialogOrchestration === "director"
-    && (kipMode === "ide" || kipMode === "designer" || (kipMode === "domain" && !isLeadLedDomain))
+    && (kipMode === "ide" || kipMode === "designer" || (kipMode === "domain" && !hasDomainLeadAgent))
 
   /** User explicitly selected Kip in the Agents footer — direct platform consult. */
   const kipConsultActive =
@@ -635,12 +641,12 @@ export function UniversalConversation({
     || (!isDirectorMode && !isLeadLedDomain)
     || composerAgentChips.length > 0
 
-  const dialogAgentSlug = guidedArrivalActive && guidedArrival
-    ? guidedArrival.leadAgentSlug
-    : isLeadLedDomain
-      ? (kipConsultActive
-        ? KIP_FALLBACK_SLUG
-        : (normalizedDomainLeadSlug ?? baseAgentSlug))
+  const dialogAgentSlug = isLeadLedDomain
+    ? (kipConsultActive
+      ? KIP_FALLBACK_SLUG
+      : (normalizedDomainLeadSlug ?? baseAgentSlug))
+    : guidedArrivalActive && guidedArrival
+      ? guidedArrival.leadAgentSlug
       : isDirectorMode
         ? directorAgentSlug
         : usingSelectedNonDefaultAgent && selectedAgentRecord
@@ -650,10 +656,10 @@ export function UniversalConversation({
   const usesDomainLeadAgent =
     !!normalizedDomainLeadSlug && dialogAgentSlug === normalizedDomainLeadSlug
 
-  const dialogAgentDisplayName = guidedArrivalActive && guidedArrival
-    ? guidedArrival.leadAgentDisplayName
-    : isLeadLedDomain && kipConsultActive
-      ? KIP_FALLBACK_DISPLAY_NAME
+  const dialogAgentDisplayName = isLeadLedDomain && kipConsultActive
+    ? KIP_FALLBACK_DISPLAY_NAME
+    : guidedArrivalActive && guidedArrival
+      ? guidedArrival.leadAgentDisplayName
       : composerAgentChips.length > 0
         ? composerAgentChips[0].label
         : usesDomainLeadAgent
@@ -665,6 +671,9 @@ export function UniversalConversation({
               : def.conversation.agentFromFrame
                 ? frameLeadIdentity.displayName
                 : def.conversation.agentName
+
+  const dialogUserDisplayName =
+    user?.name?.trim() || user?.email?.trim() || "You"
 
   const directorConfig = React.useMemo(
     () =>
@@ -1351,6 +1360,7 @@ export function UniversalConversation({
     directorConfig,
     onDirectorPhaseChange: isDirectorMode ? setDirectorSendPhase : undefined,
     userId: user?.id ?? null,
+    userDisplayName: dialogUserDisplayName,
     strictAgentResolution: kipMode === "designer",
   })
 
@@ -2054,6 +2064,7 @@ export function UniversalConversation({
         isSending={isSending}
         error={error}
         agentName={dialogAgentDisplayName}
+        userName={dialogUserDisplayName}
         echoAgentName={isLeadLedDomain ? KIP_FALLBACK_DISPLAY_NAME : defaultAgentName}
         agentBoardMessaging={agentBoardMessaging}
         onOpenDraft={onDraftSelect}

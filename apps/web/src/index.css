@@ -409,6 +409,78 @@ button.dialog-prelude:hover {
   color: var(--theme-ink-primary-color);
 }
 
+/* Sender identity — gloss-inspired pill on each message */
+.dialog-sender-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 12rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.dialog-sender-label__mark {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.dialog-sender-label__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-sender-label--agent {
+  border: 1px solid hsl(var(--theme-border-soft) / 0.85);
+  background: hsl(var(--theme-surface-paper) / 0.72);
+  color: var(--theme-ink-secondary-color);
+}
+
+.dialog-sender-label--user {
+  border: 1px solid hsl(var(--theme-dialogue-user-bg, 14 60% 56%) / 0.55);
+  background: hsl(var(--theme-dialogue-user-bg, 14 60% 56%) / 0.16);
+  color: hsl(var(--theme-dialogue-user-bg, 14 60% 56%));
+}
+
+.dialog-sender-label--collaborator {
+  border: 1px solid hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.55);
+  background: hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.14);
+  color: hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.95);
+}
+
+.dialog-sender-label--echo {
+  border: 1px solid hsl(var(--theme-border-soft) / 0.72);
+  background: hsl(var(--theme-dialogue-area-bg, 35 33% 97%) / 0.65);
+  color: var(--theme-ink-secondary-color);
+}
+
+.dialog-sender-label--delegation-failed {
+  border: 1px solid hsl(38 60% 72% / 0.85);
+  background: hsl(38 90% 94% / 0.9);
+  color: hsl(38 55% 32%);
+}
+
+.dialog-message-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.dialog-message-footer--end {
+  justify-content: flex-end;
+}
+
+.dialog-message-footer--start {
+  justify-content: flex-start;
+}
+
 .dialog-message-surface {
   /* flex: 1 and min-height: 0 are now owned by the .dialog-message-zone wrapper in TSX */
   position: relative;

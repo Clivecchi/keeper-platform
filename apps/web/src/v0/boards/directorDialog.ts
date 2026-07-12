@@ -134,6 +134,28 @@ export function isDirectorDelegationFailureContent(content: string): boolean {
   return /did not respond this turn/i.test(content.trim())
 }
 
+const RAW_ACTION_JSON_PATTERN =
+  /^\s*\{\s*"type"\s*:\s*"(?:sole\.save|draft\.(?:create|update|update\.propose)|moment\.create|treatment\.propose)"/i
+
+/** Hide bare action JSON that leaked into persisted message content. */
+export function sanitizeAgentMessageContent(content: string): string {
+  const trimmed = content.trim()
+  if (!trimmed) return trimmed
+  if (RAW_ACTION_JSON_PATTERN.test(trimmed)) return ""
+  if (trimmed.startsWith("{") && trimmed.includes('"type"') && trimmed.includes('"payload"')) {
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>
+      const type = typeof parsed.type === "string" ? parsed.type : ""
+      if (type && type !== "agent_output" && !("response" in parsed)) {
+        return ""
+      }
+    } catch {
+      /* not JSON — show as-is */
+    }
+  }
+  return content
+}
+
 export function buildInstrumentUnavailableDelegationBeat(params: {
   instrumentLabel: string
 }): DirectorDelegationBeat {

@@ -684,6 +684,7 @@ export function AgentBoardFrame({
 
   // ── Derived data for sidebar ──
   const agentName = agent?.name ?? "Agent"
+  const userName = user?.name?.trim() || user?.email?.trim() || "You"
   const hasKeeper = Boolean(frameCtx?.selection.activeKeeperId)
   const activeJourneyName = journeys.find((j) => j.id === frameCtx?.selection.activeJourneyId)?.name ?? null
   const activeKeeperName = keepers.find((k) => k.id === frameCtx?.selection.activeKeeperId)?.title ?? null
@@ -776,6 +777,7 @@ export function AgentBoardFrame({
         isSending={isSending}
         error={messagesError}
         agentName={agentName}
+        userName={userName}
         agentBoardMessaging={ab?.messaging}
         onOpenDraft={(draftId) => setView({ kind: "draft", draftId })}
         onOpenMoment={(momentId) => navigateToFrame("moment", { draftId: momentId })}

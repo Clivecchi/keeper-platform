@@ -141,6 +141,8 @@ export interface KeeperDialogFrameProps {
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
   agentName?: string
+  /** Display name for the current user — shown on user message bubbles. */
+  userName?: string
   /** Invoked collaborators on composer toolbar (Domain lead agent, etc.). */
   composerAgents?: AgentComposerProps["composerAgents"]
   onRemoveComposerAgent?: AgentComposerProps["onRemoveComposerAgent"]
@@ -244,6 +246,7 @@ export function KeeperDialogFrame({
   acceptedDraftPointIds,
   acceptingDraftPointId,
   agentName = "Kip",
+  userName,
   composerAgents,
   onRemoveComposerAgent,
   showToolbarAgentIdentity = true,
@@ -637,6 +640,7 @@ export function KeeperDialogFrame({
                         isSending={isSending}
                         error={error}
                         agentName={agentName}
+                        userName={userName}
                         echoAgentName={echoAgentName}
                         onOpenDraft={onOpenDraft}
                         onOpenMoment={onOpenMoment}
@@ -663,6 +667,7 @@ export function KeeperDialogFrame({
                     isSending={isSending}
                     error={error}
                     agentName={agentName}
+                    userName={userName}
                     echoAgentName={echoAgentName}
                     onOpenDraft={onOpenDraft}
                     onOpenMoment={onOpenMoment}

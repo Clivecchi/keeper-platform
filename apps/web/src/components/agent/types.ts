@@ -24,6 +24,8 @@ export interface AgentDialogueMessage {
   role: "user" | "agent"
   content: string
   createdAt: string
+  /** Resolved display name for the sender — supports multi-user / multi-agent history. */
+  senderName?: string
   /** Optional agent echo — supporting Dialog Response beneath the primary agent message. */
   echo?: DialogResponseEcho
   /** Director mode — instrument reply above Lead content (Cloud, Rendr, …). */

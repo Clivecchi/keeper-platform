@@ -79,7 +79,16 @@ function parseEnvelopeObject(
   raw: string,
   requestId?: string,
 ): ParsedAgentOutput {
-  const responseText = typeof parsed.response === 'string' ? parsed.response : raw;
+  const envelopeType = typeof parsed.type === 'string' ? parsed.type : '';
+  const isBareAction =
+    envelopeType &&
+    envelopeType !== ACTION_ENVELOPE_TYPE &&
+    !('response' in parsed);
+  const responseText = isBareAction
+    ? ''
+    : typeof parsed.response === 'string'
+      ? parsed.response
+      : raw;
   const actionsResult = safeParseActions(parsed);
 
   if (isActionParseSuccess(actionsResult)) {

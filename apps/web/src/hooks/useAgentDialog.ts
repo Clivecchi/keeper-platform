@@ -15,6 +15,7 @@ import {
   isDirectorDelegationFailureContent,
   resolveDirectorInstrument,
   sanitizeUserMessageContent,
+  sanitizeAgentMessageContent,
   type DirectorDialogConfig,
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
@@ -52,11 +53,20 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const linkedCard = extractLinkedCard(meta)
   const glossThreads = parseGlossThreads(meta?.glossThreads)
   const rawContent = typeof message.content === "string" ? message.content : ""
+  const senderName =
+    typeof meta?.senderName === "string"
+      ? meta.senderName
+      : typeof meta?.agentName === "string"
+        ? meta.agentName
+        : typeof meta?.userName === "string"
+          ? meta.userName
+          : undefined
   return {
     id: message.id,
     role,
-    content: role === "user" ? sanitizeUserMessageContent(rawContent) : rawContent,
+    content: role === "user" ? sanitizeUserMessageContent(rawContent) : sanitizeAgentMessageContent(rawContent),
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
+    ...(senderName?.trim() ? { senderName: senderName.trim() } : {}),
     ...(linkedCard ? { linkedCard } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),
@@ -199,6 +209,8 @@ export interface UseAgentDialogOptions {
   onDirectorPhaseChange?: (phase: DirectorSendPhase | null) => void
   /** Auth user id — forwarded to runAgent for instrument delegation. */
   userId?: string | null
+  /** Display name for the current user — stamped on outgoing user messages. */
+  userDisplayName?: string
   /** When true, missing agent slug throws instead of silently substituting Kip. */
   strictAgentResolution?: boolean
 }
@@ -296,6 +308,7 @@ export function useAgentDialog({
   directorConfig,
   onDirectorPhaseChange,
   userId,
+  userDisplayName,
   strictAgentResolution = false,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
@@ -312,9 +325,23 @@ export function useAgentDialog({
       role: "agent",
       content: greetingMessage ?? "I'm here. What are we building?",
       createdAt: new Date().toISOString(),
+      ...(agentDisplayName.trim() ? { senderName: agentDisplayName.trim() } : {}),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [agentSlug, greetingMessage],
+    [agentSlug, greetingMessage, agentDisplayName],
+  )
+
+  const stampSenderName = React.useCallback(
+    (message: AgentDialogueMessage): AgentDialogueMessage => {
+      if (message.senderName?.trim()) return message
+      if (message.role === "user") {
+        const name = userDisplayName?.trim()
+        return name ? { ...message, senderName: name } : message
+      }
+      const name = agentDisplayName?.trim()
+      return name ? { ...message, senderName: name } : message
+    },
+    [agentDisplayName, userDisplayName],
   )
 
   const [messages, setMessages] = React.useState<AgentDialogueMessage[]>(() =>
@@ -380,17 +407,18 @@ export function useAgentDialog({
     async (sessionId: string) => {
       try {
         const msgs: KipMessage[] = await KipApi.getSessionMessages(sessionId)
+        const normalized = msgs.map(normalizeMessage).map(stampSenderName)
         if (mode === "ide" || mode === "designer") {
-          setMessages(msgs.length ? msgs.map(normalizeMessage) : [greeting])
+          setMessages(normalized.length ? normalized : [greeting])
         } else {
-          setMessages(msgs.map(normalizeMessage))
+          setMessages(normalized)
         }
         return msgs
       } catch {
         return undefined
       }
     },
-    [mode, greeting],
+    [mode, greeting, stampSenderName],
   )
 
   // Resolve agent ID from slug, or use an explicit id (non-Lead agents on Agent Board).
@@ -607,20 +635,20 @@ export function useAgentDialog({
       if (mode !== "ide") {
         setMessages((prev) => [
           ...prev,
-          {
+          stampSenderName({
             id: `user-${ts}`,
             role: "user",
             content: transcriptContent,
             createdAt: new Date(ts).toISOString(),
-          },
+          }),
         ])
       } else {
-        const optimistic: AgentDialogueMessage = {
+        const optimistic = stampSenderName({
           id: `user-${ts}`,
           role: "user",
           content: transcriptContent,
           createdAt: new Date().toISOString(),
-        }
+        })
         setMessages((prev) => [...prev, optimistic])
       }
 
@@ -781,11 +809,12 @@ export function useAgentDialog({
         }
 
         if (latestRaw?.length || mode === "ide") {
-          const normalized = latestRaw?.length
+          const normalized = (latestRaw?.length
             ? latestRaw.map(normalizeMessage)
             : mode === "ide"
               ? [greeting]
               : []
+          ).map(stampSenderName)
           setMessages(mergeOntoLastAgent(normalized))
         } else {
           const replyText = extractAgentReplyFromRunResult(result)
@@ -796,21 +825,21 @@ export function useAgentDialog({
                 ? prev
                 : [
                     ...prev,
-                    {
+                    stampSenderName({
                       id: `user-${ts}`,
                       role: "user" as const,
                       content: transcriptContent,
                       createdAt: new Date(ts).toISOString(),
-                    },
+                    }),
                   ]
               return mergeOntoLastAgent([
                 ...base,
-                {
+                stampSenderName({
                   id: `${agentSlug}-reply-${ts}`,
                   role: "agent" as const,
                   content: replyText,
                   createdAt: new Date().toISOString(),
-                },
+                }),
               ])
             })
           }
@@ -861,12 +890,12 @@ export function useAgentDialog({
         } else {
           setMessages((prev) => [
             ...prev,
-            {
+            stampSenderName({
               id: `agent-error-${ts}`,
               role: "agent" as const,
               content: reply,
               createdAt: new Date().toISOString(),
-            },
+            }),
           ])
         }
       } finally {
@@ -895,6 +924,9 @@ export function useAgentDialog({
       frameKey,
       onDirectorPhaseChange,
       userId,
+      userDisplayName,
+      stampSenderName,
+      greeting,
       clearSavedDraft,
       restoreSavedDraft,
     ],

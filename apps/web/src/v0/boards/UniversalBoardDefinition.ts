@@ -408,6 +408,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     keeperSectionTitle: "Keeper",
   },
   conversation: {
+    agentFromFrame: true,
     agentSlug: "kip",
     agentName: "Kip",
     dialogueMode: "domain",

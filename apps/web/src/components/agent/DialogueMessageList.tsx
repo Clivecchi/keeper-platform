@@ -15,12 +15,16 @@ import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
 import { getAgentErrorPresentation } from "./errorPresentation"
-import { isDirectorDelegationFailureContent } from "../../v0/boards/directorDialog"
+import { isDirectorDelegationFailureContent, sanitizeAgentMessageContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
 import { buildMessageGlossAnchor } from "@keeper/shared"
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
+import {
+  MessageSenderLabel,
+  type MessageSenderVariant,
+} from "./MessageSenderLabel"
 
 function visibleDelegationBeat(
   delegation: DialogResponseEcho | undefined,
@@ -92,29 +96,61 @@ function AgentChatBubble({
   const trimmed = content.trim()
   if (!trimmed) return null
 
+  const senderVariant: MessageSenderVariant =
+    variant === "collaborator"
+      ? "collaborator"
+      : variant === "echo"
+        ? "echo"
+        : variant === "delegation-failed"
+          ? "delegation-failed"
+          : "agent"
+
   if (grouped) {
     return (
       <div className="dialog-multi-agent-turn__beat" data-agent-variant={variant}>
-        <span className="dialog-multi-agent-turn__name">{name}</span>
+        <MessageSenderLabel name={name} variant={senderVariant} />
         <p className="dialog-multi-agent-turn__content whitespace-pre-line">{trimmed}</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <span
-        className="text-xs font-medium tracking-wide"
-        style={{ color: "var(--theme-ink-secondary-color)" }}
-      >
-        {name}
-      </span>
+    <div className="flex flex-col gap-1.5">
+      <MessageSenderLabel name={name} variant={senderVariant} />
       <div
         className="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
         style={agentBubbleSurface(variant)}
       >
         <p className="whitespace-pre-line">{trimmed}</p>
       </div>
+    </div>
+  )
+}
+
+function MessageSenderFooter({
+  name,
+  variant,
+  timestamp,
+  align = "end",
+  timestampStyle,
+}: {
+  name: string
+  variant: MessageSenderVariant
+  timestamp: string
+  align?: "start" | "end"
+  timestampStyle?: React.CSSProperties
+}) {
+  return (
+    <div
+      className={clsx(
+        "dialog-message-footer",
+        align === "end" ? "dialog-message-footer--end" : "dialog-message-footer--start",
+      )}
+    >
+      <MessageSenderLabel name={name} variant={variant} />
+      <span className="text-xs" style={timestampStyle}>
+        {timestamp}
+      </span>
     </div>
   )
 }
@@ -158,15 +194,32 @@ function AgentMessageTurn({
       ? message.echo
       : null
   const isMultiAgentTurn = Boolean(delegation || echo)
+  const resolvedAgentName = message.senderName?.trim() || agentName
+  const visibleContent = sanitizeAgentMessageContent(message.content)
 
   if (!isMultiAgentTurn) {
+    if (!visibleContent.trim() && !message.arrivalInvitations?.length) {
+      return (
+        <MessageAttachments
+          message={message}
+          onOpenDraft={onOpenDraft}
+          onOpenMoment={onOpenMoment}
+          onOpenJourney={onOpenJourney}
+          onKeepAsMoment={onKeepAsMoment}
+          onConfirmDraftUpdate={onConfirmDraftUpdate}
+          onApplyTreatmentProposal={onApplyTreatmentProposal}
+          applyingTreatmentProposal={applyingTreatmentProposal}
+        />
+      )
+    }
+
     return (
       <div className="max-w-xl">
         <GlossSurface
           messageId={message.id}
           anchor={buildMessageGlossAnchor(message.id, "body")}
           glossThreads={message.glossThreads}
-          snapshot={{ label: "message", text: message.content.trim().slice(0, 280) }}
+          snapshot={{ label: "message", text: visibleContent.trim().slice(0, 280) }}
           highlightMode="border"
           affordancePlacement="border"
           className="rounded-2xl px-4 py-3 text-sm shadow-sm"
@@ -177,7 +230,7 @@ function AgentMessageTurn({
             boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
           }}
         >
-          <p className="whitespace-pre-line">{message.content}</p>
+          <p className="whitespace-pre-line">{visibleContent}</p>
           {message.arrivalInvitations?.length && onArrivalInvitation ? (
             <RealmInvitationButtons
               invitations={message.arrivalInvitations}
@@ -195,12 +248,12 @@ function AgentMessageTurn({
           onApplyTreatmentProposal={onApplyTreatmentProposal}
           applyingTreatmentProposal={applyingTreatmentProposal}
         />
-        <span
-          className="mt-2 block text-xs"
-          style={{ color: "var(--theme-ink-tertiary-color)" }}
-        >
-          {formatTime(message.createdAt)}
-        </span>
+        <MessageSenderFooter
+          name={resolvedAgentName}
+          variant="agent"
+          timestamp={formatTime(message.createdAt)}
+          timestampStyle={{ color: "var(--theme-ink-tertiary-color)" }}
+        />
       </div>
     )
   }
@@ -223,7 +276,12 @@ function AgentMessageTurn({
           />
         )}
         {message.content.trim() && (
-          <AgentChatBubble grouped variant="lead" name={agentName} content={message.content} />
+          <AgentChatBubble
+            grouped
+            variant="lead"
+            name={resolvedAgentName}
+            content={sanitizeAgentMessageContent(message.content)}
+          />
         )}
         {echo && (
           <AgentChatBubble
@@ -244,9 +302,12 @@ function AgentMessageTurn({
         onApplyTreatmentProposal={onApplyTreatmentProposal}
         applyingTreatmentProposal={applyingTreatmentProposal}
       />
-      <span className="block text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>
-        {formatTime(message.createdAt)}
-      </span>
+      <MessageSenderFooter
+        name={resolvedAgentName}
+        variant="agent"
+        timestamp={formatTime(message.createdAt)}
+        timestampStyle={{ color: "var(--theme-ink-tertiary-color)" }}
+      />
     </div>
   )
 }
@@ -389,6 +450,8 @@ export interface DialogueMessageListProps {
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
   agentName?: string
+  /** Display name for the current user — shown on user message bubbles. */
+  userName?: string
   /** Echo attribution fallback when message.echo.attributedTo is missing */
   echoAgentName?: string
   /** Domain-driven messaging strings for dialogue states */
@@ -421,6 +484,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onApplyTreatmentProposal,
   applyingTreatmentProposal,
   agentName = "Agent",
+  userName = "You",
   echoAgentName,
   agentBoardMessaging,
   horizonThinking = false,
@@ -449,6 +513,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
     ) : (
       messages.map((message) => {
         if (message.role === "user") {
+          const resolvedUserName = message.senderName?.trim() || userName
           return (
             <div key={message.id} className="flex justify-end">
               <div className="max-w-xl">
@@ -467,9 +532,12 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                 >
                   <p className="whitespace-pre-line">{message.content}</p>
                 </GlossSurface>
-                <span className="mt-2 block text-right text-xs" style={{ color: "rgba(255,255,255,0.8)" }}>
-                  {formatTime(message.createdAt)}
-                </span>
+                <MessageSenderFooter
+                  name={resolvedUserName}
+                  variant="user"
+                  timestamp={formatTime(message.createdAt)}
+                  timestampStyle={{ color: "rgba(255,255,255,0.8)" }}
+                />
               </div>
             </div>
           )

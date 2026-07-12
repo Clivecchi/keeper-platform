@@ -80,11 +80,15 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
 
   const leadAgentSlug = React.useMemo(() => {
     const domainLead = domainData as DomainLeadRecord | null | undefined
+    const dbLead = resolveDialogLeadSlug(domainLead)
+    if (dbLead && dbLead !== "kip") {
+      return dbLead
+    }
     if (playbillGreetSlug !== undefined) {
       return playbillGreetSlug ?? "kip"
     }
-    return resolveDialogLeadSlug(domainLead)
-  }, [domainFrame, playbillGreetSlug, domainData])
+    return dbLead
+  }, [playbillGreetSlug, domainData])
   const frameLeadIdentity = useFrameLeadAgentIdentity(leadAgentSlug)
   const greeting = domainFrame?.kip?.greeting?.trim() || ""
   const coverGreeting = greeting || domainFrame?.theme?.tagline?.trim() || ""
