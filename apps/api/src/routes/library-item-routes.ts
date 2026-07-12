@@ -236,26 +236,21 @@ router.post('/', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Re
       include: libraryInclude,
     });
 
-    const ingestion = await contextualizeLibraryItem({
+    // Ingestion (vision + embedding) runs async — blob upload is already done.
+    void contextualizeLibraryItem({
       libraryItemId: created.id,
       sourceType: parsed.data.source_type,
       sourceRef: created.source_ref,
       displayLabel: created.display_label,
       assignedAgentId: created.assigned_agent_id,
       userId: req.user?.id,
+    }).catch((err) => {
+      console.error('[library-items/ingestion]', err);
     });
-
-    const refreshed = await prisma.libraryItem.findUnique({
-      where: { id: created.id },
-      include: libraryInclude,
-    });
-    if (!refreshed) {
-      return res.status(500).json({ error: 'Failed to reload library item after ingestion' });
-    }
 
     return res.status(201).json({
-      ...toLibraryItemRecord(refreshed, ingestion.embeddingStored),
-      ingestion,
+      ...toLibraryItemRecord(created, false),
+      ingestion: { status: 'pending' as const },
     });
   } catch (err) {
     console.error('[library-items/create]', err);

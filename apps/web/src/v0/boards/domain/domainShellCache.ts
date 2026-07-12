@@ -16,6 +16,9 @@ export type DomainBySlugRecord = {
   description?: string | null
   ownerId?: string
   displayName?: string
+  /** Resolved from settings.primaryAgentId on GET /api/domains/by-slug/:slug */
+  leadAgentSlug?: string | null
+  leadAgentName?: string | null
   theme?: {
     coverImage?: string | null
     coverImageMode?: "cover" | "tile"

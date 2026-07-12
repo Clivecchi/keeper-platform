@@ -11,6 +11,7 @@ import type {
   ResolvedCoverContent,
 } from "./coverTypes"
 import { useCoverMotion } from "./coverMotion"
+import { PlaybillAmbientLayer } from "../../components/playbillVisual"
 
 export interface EntityCoverPresenceProps {
   content: ResolvedCoverContent
@@ -200,6 +201,121 @@ function CoverVisualSlot({
         </span>
       </motion.div>
     </div>
+  )
+}
+
+/**
+ * Image-forward cover — playbill-style hero band with compact billing below.
+ * Used for library image uploads and moments with cover art.
+ */
+function VisualPrimaryCoverHeader({
+  content,
+  hero,
+  identity,
+  motionValues,
+  heroY,
+  nameOpacity,
+}: {
+  content: ResolvedCoverContent
+  hero: CoverHeroContent
+  identity: CoverIdentityContent
+  motionValues: ReturnType<typeof useCoverMotion>["values"]
+  heroY: ReturnType<typeof useCoverMotion>["heroY"]
+  nameOpacity: ReturnType<typeof useCoverMotion>["nameOpacity"]
+}) {
+  const accent = resolveAccent(hero.accentColor)
+  const displayAvatar = hero.avatar?.trim() || "◇"
+  const avatarIsImage = isAvatarImageSrc(displayAvatar)
+  const imageSrc = avatarIsImage ? displayAvatar : null
+  const billingLine = content.billingLine?.trim()
+  const roleText = identity.roleLine?.trim()
+
+  return (
+    <motion.div
+      className="relative overflow-hidden rounded-t-xl"
+      style={{
+        y: heroY,
+        opacity: motionValues.heroEntrance,
+        borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.35)",
+      }}
+    >
+      <div className="relative w-full min-h-[12rem] max-h-[18rem] aspect-[4/3] overflow-hidden">
+        <PlaybillAmbientLayer imageUrl={imageSrc} accent={accent} contained />
+
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            draggable={false}
+          />
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ background: `${accent}10` }}
+            aria-hidden
+          >
+            <span className="text-4xl font-semibold" style={{ color: accent }}>
+              {displayAvatar.length <= 2 ? displayAvatar : displayAvatar.slice(0, 2)}
+            </span>
+          </div>
+        )}
+
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden
+          style={{
+            background: `linear-gradient(
+              to top,
+              hsl(var(--theme-surface-panel) / 0.96) 0%,
+              hsl(var(--theme-surface-panel) / 0.45) 38%,
+              transparent 72%
+            )`,
+          }}
+        />
+
+        <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-3 pt-8">
+          {billingLine ? (
+            <p
+              className="text-[8px] font-semibold uppercase tracking-[0.2em] truncate mb-1"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              {billingLine}
+            </p>
+          ) : null}
+
+          <motion.h2
+            className="font-serif text-[20px] font-bold leading-tight tracking-tight line-clamp-2"
+            style={{ color: "hsl(var(--theme-ink-primary))", opacity: nameOpacity }}
+          >
+            {identity.name || "Untitled"}
+          </motion.h2>
+
+          {roleText ? (
+            <motion.p
+              className="mt-1 text-[9px] font-mono uppercase tracking-[0.14em] truncate"
+              style={{ color: accent, opacity: nameOpacity }}
+            >
+              {roleText}
+            </motion.p>
+          ) : null}
+
+          {hero.statusLabel ? (
+            <div
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest"
+              style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: "hsl(var(--theme-status-success, 152 69% 43%))" }}
+                aria-hidden
+              />
+              {hero.statusLabel}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </motion.div>
   )
 }
 
@@ -440,6 +556,7 @@ function ActionsSlot({ actions }: { actions: CoverActionDef[] }) {
  */
 export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenceProps) {
   const { values, heroY, nameOpacity, glowScale } = useCoverMotion(instanceKey)
+  const isVisualPrimary = content.layout === "visual-primary"
 
   return (
     <motion.div
@@ -450,15 +567,27 @@ export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenc
         opacity: values.atmosphereOpacity,
       }}
       data-cover-mode="cover"
+      data-cover-layout={content.layout ?? "standard"}
     >
-      <UnifiedCoverHeader
-        hero={content.hero}
-        identity={content.identity}
-        motionValues={values}
-        heroY={heroY}
-        nameOpacity={nameOpacity}
-        glowScale={glowScale}
-      />
+      {isVisualPrimary ? (
+        <VisualPrimaryCoverHeader
+          content={content}
+          hero={content.hero}
+          identity={content.identity}
+          motionValues={values}
+          heroY={heroY}
+          nameOpacity={nameOpacity}
+        />
+      ) : (
+        <UnifiedCoverHeader
+          hero={content.hero}
+          identity={content.identity}
+          motionValues={values}
+          heroY={heroY}
+          nameOpacity={nameOpacity}
+          glowScale={glowScale}
+        />
+      )}
       <TraitStrip traits={content.traits} />
       <CreditsSlot credits={content.credits} />
       <ActionsSlot actions={content.actions} />

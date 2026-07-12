@@ -21,6 +21,7 @@ Shared constants and helpers for personal domain `frame_json` identity — detec
 - [ ] If fallback shape changes, update markers here and in `domainFrameFallback.ts` together.
 
 ## 📆 Update Log
+- 2026-07-11: **DB-first lead resolution** — `readPrimaryAgentIdFromSettings`, `resolveDomainLeadAgentSlugSync` (primaryAgentId → frame → legacy canonical map).
 - 2026-07-11: **`domainLeadBindings`** — canonical map keys aligned to production DB slugs (`chuck→ceox`, `ke3p→kip`).
 - 2026-07-04: Added `keeperDomainsHost.ts` — shared `{slug}.keeper.domains` tenant slug resolution for database services and web/API alignment.
 - 2026-07-01: Phase 3.2 — `friend` audience role, `resolveDomainAudience`, hierarchical frame visibility, realm content filtering.

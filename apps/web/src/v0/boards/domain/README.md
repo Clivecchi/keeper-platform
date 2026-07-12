@@ -6,7 +6,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 ## 🧱 Key Files
 - `DomainBoard.tsx` — Root board component; delegates three-column layout to `UniversalBoard`.
 - `DomainSwitcherOverlay.tsx` — Reusable domain switcher overlay (fetch, list, add panel, navigate). Used by `UniversalBoard` on all member boards.
-- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; maps `frame_json.kip.agent_id` → `leadAgentSlug`; in-memory + sessionStorage cache (5 min TTL); `createDomain` → `POST /api/domains`; `resolvePostLoginDomainSlug` for auth landing.
+- `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; uses API `leadAgentSlug` (DB-first from `settings.primaryAgentId`); frame fallback; in-memory + sessionStorage cache (5 min TTL).
 - `domainShellCache.ts` — Per-slug by-slug + audience cache; `prefetchDomainShell` (frame, domain, audience).
 - `domainShellPrefetch.ts` — Re-export of `prefetchDomainShell` (legacy import path).
 - `DomainAddPanel.tsx` — Create-domain form opened from switcher “Add a domain”.
@@ -27,6 +27,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+- 2026-07-11: **DB-first `leadAgentSlug`** — API resolves from `settings.primaryAgentId`; `domainShellCache` stores `leadAgentSlug` on by-slug fetch.
 - 2026-07-10: Domain picker uses **Playbill** cards (`PlaybillCard`) — top-bar header + travel list with live stats (`GET /api/domains/:id/stats`).
 - 2026-07-07: `resolvePostLoginDomainSlug` returns `null` when user has no domains — never falls back to platform slug `default`; `/home` shows explicit empty state until `?domain=` or a domain exists.
 - 2026-07-07: Domain picker resolves target `?board=` to a workspace available on the selected slug (e.g. Ceox lands on Domain, not IDE); navigation uses `replace: true`.

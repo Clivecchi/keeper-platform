@@ -53,6 +53,11 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-07-11 — Visual-primary cover layout for images
+- `coverTypes.ts`: added `CoverLayout` (`standard` | `visual-primary`) and optional `billingLine`
+- `EntityCoverPresence.tsx`: `VisualPrimaryCoverHeader` — full-width playbill hero band for library image uploads and moment covers
+- `libraryItemCoverSchema.ts` / `momentCoverSchema.ts`: image records use visual-primary layout with playbill billing typography
+
 ### 2026-07-02 — P3.2 Draft–Journey connection
 - **`DraftFocusPresence`**: passes `targetJourneyId` from spec + Nav `selectedJourneyId` into promote hook and `Cdraft` breadcrumb.
 

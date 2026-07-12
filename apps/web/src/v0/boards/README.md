@@ -36,6 +36,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Agent Board Nav `+` creates agents; Lead agents assign `settings.primaryAgentId` so they appear in the roster.
 - `UniversalBoardContext` adds `bumpDialogNav` / `dialogNavRevision` for dialog list refresh after create.
 
+### 2026-07-11 — Lead-led domain collaboration (CeoX leads, Kip supports)
+- **Personal domains with non-Kip lead** (`ceox`, etc.): Dialog runs on the domain lead agent — not Kip director synthesis.
+- **Kip collaboration echo** — after the lead replies, Kip may add a brief platform/infra beat beneath (same pattern as Agent Board echo; silence is valid).
+- **Agents footer:** domain lead + Kip; click Kip to consult platform directly.
+- **Kip-led domains** (e.g. `ke3p` default): unchanged IDE-style director mode.
+
+### 2026-07-11 — Agents footer dedupe
+- **Domain director instruments:** canonical lowercase slug keys prevent duplicate CeoX/Ceox chips when `frame_json.kip.agent_id` casing differs from `kip_agents.slug`.
+
 ### 2026-07-11 — Realm/Home director mode + attachment delegation
 - **`REALM_BOARD_DEF`:** `dialogOrchestration: "director"` on `/home` — Kip returns to footer Agents bar alongside domain lead (CeoX, etc.).
 - **API `kip/agents`:** director instrument runs now receive `attachments` so delegated lead agents can use vision on screenshots.

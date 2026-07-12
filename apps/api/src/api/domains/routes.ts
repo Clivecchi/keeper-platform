@@ -41,6 +41,10 @@ import { DOMAIN_FRAME_FALLBACK } from '../../services/domains/domainFrameFallbac
 import { expandPlatformDomainSlugCandidates } from '@keeper/shared';
 import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
 import { repairDomainLeadBindings } from '../../services/domains/repairDomainLeadBindings.js';
+import {
+  enrichDomainsWithLeadAgents,
+  resolveDomainLeadAgentFromDomain,
+} from '../../services/domains/resolveDomainLeadAgent.js';
 import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
 import {
   inviteDomainConnection,
@@ -277,7 +281,11 @@ router.get('/by-slug/:slug/friends-content', authMiddlewareCompat, async (req: A
 router.get('/by-slug/:slug', async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
-    
+
+    await repairDomainLeadBindings(prisma, { domainSlug: slug }).catch((err) => {
+      console.warn('[domains/by-slug] lead binding repair failed:', err);
+    });
+
     const domain = await findDomainRecordBySlug<{
       id: string
       name: string
@@ -288,6 +296,8 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
       customDomainVerified: boolean
       ownerId: string
       theme: unknown
+      frame_json: unknown
+      settings: unknown
     }>(slug, {
       id: true,
       name: true,
@@ -298,13 +308,29 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
       customDomainVerified: true,
       ownerId: true,
       theme: true,
+      frame_json: true,
+      settings: true,
     });
 
     if (!domain) {
       return res.status(404).json({ error: 'Domain not found' });
     }
 
-    return res.json(domain);
+    const leadAgent = await resolveDomainLeadAgentFromDomain(prisma, domain);
+
+    return res.json({
+      id: domain.id,
+      name: domain.name,
+      slug: domain.slug,
+      description: domain.description,
+      isPublic: domain.isPublic,
+      customDomain: domain.customDomain,
+      customDomainVerified: domain.customDomainVerified,
+      ownerId: domain.ownerId,
+      theme: domain.theme,
+      leadAgentSlug: leadAgent?.slug ?? null,
+      leadAgentName: leadAgent?.name ?? null,
+    });
   } catch (error) {
     console.error('Error getting domain by slug:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -924,7 +950,9 @@ router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
       };
     });
 
-    return res.json(domainsWithPrimary);
+    const enrichedDomains = await enrichDomainsWithLeadAgents(prisma, domainsWithPrimary);
+
+    return res.json(enrichedDomains);
   } catch (error) {
     console.error('Error fetching user domains:', error);
     return res.status(500).json({ error: 'Internal server error' });

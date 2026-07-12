@@ -26,7 +26,15 @@ describe("frameLeadAgentIdentity", () => {
     vi.mocked(KipApi.getAgentBySlug).mockReset()
   })
 
-  it("resolvePlaybillLeadAgentSlug honors canonical domain bindings", () => {
+  it("resolvePlaybillLeadAgentSlug prefers DB slug over synthetic frame placeholder", () => {
+    expect(
+      resolvePlaybillLeadAgentSlug("livecchi", { kip: { agent_id: "livecchi-us-lead" } }, {
+        primaryAgentSlug: "livecchi-us-lead",
+      }),
+    ).toBe("livecchi-us-lead")
+  })
+
+  it("resolvePlaybillLeadAgentSlug falls back to canonical domain bindings", () => {
     expect(
       resolvePlaybillLeadAgentSlug("ke3p", { kip: { agent_id: "kip" } }),
     ).toBe("kip")
@@ -73,8 +81,17 @@ describe("frameLeadAgentIdentity", () => {
   })
 
   it("formatDomainLeadDisplayName formats ceox", () => {
-    expect(formatDomainLeadDisplayName("ceox")).toBe("Ceox")
+    expect(formatDomainLeadDisplayName("ceox")).toBe("CeoX")
+    expect(formatDomainLeadDisplayName("CeoX")).toBe("CeoX")
     expect(formatDomainLeadDisplayName("chuck-lead")).toBe("Chuck lead")
+  })
+
+  it("resolveDialogAgentSlug prefers DB slug over frame placeholder", () => {
+    expect(
+      resolveDialogAgentSlug({ kip: { agent_id: "livecchi-us-lead" } }, {
+        primaryAgentSlug: "livecchi-us-lead",
+      }),
+    ).toBe("livecchi-us-lead")
   })
 
   it("resolveDialogAgentSlug keeps domain lead slug even when previously cached missing", () => {

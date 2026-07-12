@@ -102,20 +102,34 @@ export const momentCoverSchema: EntityCoverSchema<MomentCoverRecord> = {
     }
 
     const slug = ctx.objectId.replace(/-/g, "").slice(0, 8).toUpperCase()
+    const hasCoverImage = Boolean(record.coverImage?.trim())
+    const domainBilling = ctx.domainDisplayName?.trim()
 
     return {
+      layout: hasCoverImage ? "visual-primary" : "standard",
+      billingLine: hasCoverImage
+        ? domainBilling
+          ? `${domainBilling} presents`
+          : "Moment"
+        : undefined,
       hero: {
         avatar: resolveCoverAvatarDisplay(record.coverImage, "✦"),
         avatarGlow: glow,
         accentColor: "hsl(var(--theme-accent-primary))",
-        chromeTitle: `KE3P · MOMENT · ${slug}`,
+        chromeTitle: hasCoverImage ? undefined : `KE3P · MOMENT · ${slug}`,
         statusLabel: isKept ? "KEPT" : undefined,
-        roleLabel: "MOMENT",
+        roleLabel: hasCoverImage ? undefined : "MOMENT",
       },
       identity: {
         name: title,
-        roleLine: truncateNarrative(narrative),
-        voiceQuote: narrative.length > 0 && narrative.length <= 240 ? narrative : undefined,
+        roleLine: hasCoverImage
+          ? [record.journeyName, record.pathName].filter(Boolean).join(" · ") ||
+            truncateNarrative(narrative, 48)
+          : truncateNarrative(narrative),
+        voiceQuote:
+          !hasCoverImage && narrative.length > 0 && narrative.length <= 240
+            ? narrative
+            : undefined,
         voicePlaceholder: "What happened here?",
       },
       traits,

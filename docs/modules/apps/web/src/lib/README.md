@@ -13,6 +13,7 @@ Core utility functions and API clients for the Keeper web application, including
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
 - `kipDialogSession.ts` - Board-scoped Dialog session resume (`resolve/active`, reuse empty sessions)
 - `composerDraftStorage.ts` - SessionStorage helpers for unsent composer draft autosave
+- `prepareImageUpload.ts` - Client-side image downscale before library blob upload
 - `agentRegistry.ts` - Agent registration and discovery
 - `governanceApi.ts` - Domain governance, contracts, compliance metrics
 
@@ -33,6 +34,9 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-07-11 — Image upload downscale
+- Added `prepareImageUpload.ts` — resizes large JPEG/PNG/WebP to max 1920px before base64 blob upload
 
 ### 2026-07-07 — Post-login landing correctness
 - `resolveLandingPathAfterAuth` is async — brand hosts await `fetchHostDomain` before routing; unresolved brands stay at `/`, never platform `/home`.

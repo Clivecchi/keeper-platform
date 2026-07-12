@@ -171,6 +171,7 @@ async function fetchAgentRow(slug: string): Promise<KipAgentPlaybillRow | null> 
 
 export async function resolvePlaybillAgent(
   leadAgentSlug: string,
+  options?: { fromDatabase?: boolean },
 ): Promise<ResolvedPlaybillAgent | null> {
   const slug = leadAgentSlug.trim()
   if (!slug) return null
@@ -182,7 +183,7 @@ export async function resolvePlaybillAgent(
   if (pending) return pending
 
   const promise = (async (): Promise<ResolvedPlaybillAgent | null> => {
-    if (isSyntheticLeadAgentSlug(slug)) {
+    if (!options?.fromDatabase && isSyntheticLeadAgentSlug(slug)) {
       return null
     }
 

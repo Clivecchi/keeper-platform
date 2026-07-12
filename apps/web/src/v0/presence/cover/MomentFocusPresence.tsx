@@ -17,6 +17,7 @@ import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 export interface MomentFocusPresenceProps {
   objectId: string
   domainId: string
+  domainDisplayName?: string
   record: Record<string, unknown>
   meta?: PresenceMeta
   breadcrumb?: PresenceBreadcrumb
@@ -78,6 +79,7 @@ function toMomentCoverRecord(
 export function MomentFocusPresence({
   objectId,
   domainId,
+  domainDisplayName,
   record,
   meta,
   breadcrumb,
@@ -119,12 +121,12 @@ export function MomentFocusPresence({
       resolveMomentCoverContent(
         momentRecord,
         fieldValues,
-        { objectId },
+        { objectId, domainDisplayName },
         {
           onConfigure: () => setCoverMode("config"),
         },
       ),
-    [momentRecord, fieldValues, objectId],
+    [momentRecord, fieldValues, objectId, domainDisplayName],
   )
 
   if (coverMode === "config") {

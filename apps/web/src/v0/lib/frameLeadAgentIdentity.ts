@@ -1,4 +1,4 @@
-import { isSyntheticLeadAgentSlug, resolveCanonicalLeadAgentSlug } from "@keeper/shared"
+import { isSyntheticLeadAgentSlug, resolveDomainLeadAgentSlugSync } from "@keeper/shared"
 import { KipApi } from "../../lib/kipApi"
 
 const displayNameCache = new Map<string, string>()
@@ -62,22 +62,25 @@ export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
 /** Platform dialog agents — never silently substitute Kip when lookup fails. */
 export const STRICT_PLATFORM_AGENT_SLUGS = new Set<string>(["rendr", "cloud"])
 
-/** Canonical domain lead slugs — never cache as missing; always retry API self-heal. */
-export const CANONICAL_DOMAIN_LEAD_SLUGS = new Set<string>(["ceox", "kip"])
-
-/** Domain lead slugs from frame JSON — preserve identity; do not fall back to Kip in UI. */
+/** Domain lead slugs — DB-assigned or frame-resolved; never cache as missing. */
 export function isDomainLeadAgentSlug(slug: string | null | undefined): boolean {
   const trimmed = slug?.trim()
   if (!trimmed || PLACEHOLDER_LEAD_AGENT_SLUGS.has(trimmed)) return false
-  if (CANONICAL_DOMAIN_LEAD_SLUGS.has(trimmed)) return true
-  if (trimmed.endsWith("-lead")) return false
-  return false
+  if (STRICT_PLATFORM_AGENT_SLUGS.has(trimmed)) return false
+  return true
+}
+
+/** Lowercase slug key for roster / frame deduplication (DB slugs are lowercase). */
+export function canonicalAgentSlug(slug: string | null | undefined): string | null {
+  const trimmed = slug?.trim()
+  if (!trimmed) return null
+  return trimmed.toLowerCase()
 }
 
 /** Human label for a domain lead slug while the agent record loads. */
 export function formatDomainLeadDisplayName(slug: string): string {
   const trimmed = slug.trim()
-  if (trimmed === "ceox") return "Ceox"
+  if (trimmed.toLowerCase() === "ceox") return "CeoX"
   const spaced = trimmed.replace(/-/g, " ").trim()
   if (!spaced) return trimmed
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
@@ -234,19 +237,28 @@ export function readFrameLeadAgentSlug(
   return slug
 }
 
-/** Playbill / switcher lead slug — honors canonical domain bindings (e.g. ke3p → kip). */
+/** Playbill / switcher lead slug — DB-first (`primaryAgentSlug`), then frame, then legacy canonical map. */
 export function resolvePlaybillLeadAgentSlug(
   domainSlug: string,
   domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
+  options?: { primaryAgentSlug?: string | null },
 ): string | null {
-  return resolveCanonicalLeadAgentSlug(domainSlug, domainFrame?.kip?.agent_id)
+  return resolveDomainLeadAgentSlugSync({
+    domainSlug,
+    frameAgentId: domainFrame?.kip?.agent_id,
+    primaryAgentSlug: options?.primaryAgentSlug,
+  })
 }
 
-/** Slug passed to dialog bootstrap — never a placeholder id. */
+/** Slug passed to dialog bootstrap — DB-first; never a frame placeholder id. */
 export function resolveDialogAgentSlug(
   domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
+  options?: { primaryAgentSlug?: string | null },
 ): string {
-  const custom = readFrameLeadAgentSlug(domainFrame)
+  const custom = resolveDomainLeadAgentSlugSync({
+    frameAgentId: domainFrame?.kip?.agent_id,
+    primaryAgentSlug: options?.primaryAgentSlug,
+  })
   if (custom && isMissingLeadAgentSlug(custom)) {
     clearMissingLeadSlug(custom)
   }

@@ -2,6 +2,8 @@
  * Layer 2 — Library EntityKind cover schema.
  */
 import {
+  deriveLibraryItemName,
+  isLibraryImageUpload,
   libraryItemChronicleTitle,
   resolveLibraryHeroAvatar,
 } from "../../integrationChronicle/libraryNavUtils"
@@ -53,8 +55,11 @@ function resolveActions(handlers: CoverActionHandlers): CoverActionDef[] {
 export const libraryItemCoverSchema: EntityCoverSchema<LibraryItemRecord> = {
   objectType: "library",
   resolve(record, _fieldValues, _ctx, handlers) {
+    const isImage = isLibraryImageUpload(record)
+    const sourceLabel = sourceTypeLabel(record.source_type)
+
     const traits = [
-      { label: "Source", value: sourceTypeLabel(record.source_type) },
+      { label: "Source", value: sourceLabel },
       ...(record.assigned_keeper_name
         ? [{ label: "Keeper", value: record.assigned_keeper_name }]
         : []),
@@ -63,19 +68,32 @@ export const libraryItemCoverSchema: EntityCoverSchema<LibraryItemRecord> = {
         : []),
     ]
 
+    const assignmentLine = [
+      record.assigned_keeper_name,
+      record.assigned_agent_name,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+
     return {
+      layout: isImage ? "visual-primary" : "standard",
+      billingLine: isImage ? "Library presents" : undefined,
       hero: {
         avatar: resolveLibraryHeroAvatar(record),
         avatarGlow: "active",
         accentColor: "hsl(var(--theme-accent-primary))",
-        chromeTitle: sourceTypeLabel(record.source_type),
-        statusLabel: record.source_type.toUpperCase(),
-        roleLabel: "LIBRARY",
+        chromeTitle: isImage ? undefined : sourceLabel,
+        statusLabel: isImage ? undefined : record.source_type.toUpperCase(),
+        roleLabel: isImage ? undefined : "LIBRARY",
       },
       identity: {
-        name: libraryItemChronicleTitle(record),
-        roleLine: sourceTypeLabel(record.source_type).toUpperCase(),
-        voiceQuote: record.description ?? undefined,
+        name: isImage
+          ? deriveLibraryItemName(record)
+          : libraryItemChronicleTitle(record),
+        roleLine: isImage
+          ? assignmentLine || sourceLabel.toUpperCase()
+          : sourceLabel.toUpperCase(),
+        voiceQuote: isImage ? undefined : (record.description ?? undefined),
       },
       traits,
       credits: [],

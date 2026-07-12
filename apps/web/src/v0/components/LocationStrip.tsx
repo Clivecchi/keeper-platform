@@ -18,6 +18,7 @@ export interface LocationStripProps {
   coverImageUrl?: string | null
   domainFrame?: DomainFrameJson | null
   leadAgentSlug?: string | null
+  leadAgentFromDatabase?: boolean
   className?: string
 }
 
@@ -32,14 +33,17 @@ export function LocationStrip({
   coverImageUrl,
   domainFrame,
   leadAgentSlug: leadAgentSlugProp,
+  leadAgentFromDatabase = false,
   className = "",
 }: LocationStripProps) {
   const leadAgentSlug =
-    leadAgentSlugProp ?? resolvePlaybillLeadAgentSlug(domainSlug, domainFrame ?? null)
+    leadAgentSlugProp
+    ?? resolvePlaybillLeadAgentSlug(domainSlug, domainFrame ?? null)
 
   const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
     domainId,
     leadAgentSlug,
+    leadAgentFromDatabase: leadAgentFromDatabase || !!leadAgentSlugProp,
   })
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"

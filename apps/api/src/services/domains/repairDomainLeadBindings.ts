@@ -2,15 +2,16 @@ import type { Prisma, PrismaClient } from "@keeper/database"
 import {
   CANONICAL_DOMAIN_LEAD_BINDINGS,
   isSyntheticLeadAgentSlug,
-  resolveCanonicalLeadAgentSlug,
+  resolveDomainLeadAgentSlugSync,
 } from "@keeper/shared"
+import { resolveDomainLeadAgentFromDomain } from "./resolveDomainLeadAgent.js"
 
 export interface DomainLeadBindingIssue {
   domainId: string
   domainSlug: string
   previousAgentId: string | null
   nextAgentId: string | null
-  reason: "canonical_binding" | "already_correct" | "uncast_no_binding"
+  reason: "primary_agent_binding" | "canonical_binding" | "already_correct" | "uncast_no_binding"
 }
 
 export interface RepairDomainLeadBindingsResult {
@@ -136,7 +137,7 @@ function fixLivecchiTypoInFrame(frameJson: unknown): Record<string, unknown> | n
 }
 
 /**
- * Repair placeholder `{slug}-lead` frame bindings and known canonical mappings.
+ * Repair placeholder `{slug}-lead` frame bindings using DB-first lead resolution.
  * Idempotent — safe to run on GET /api/domains/my.
  */
 export async function repairDomainLeadBindings(
@@ -162,13 +163,19 @@ export async function repairDomainLeadBindings(
       slug: true,
       description: true,
       frame_json: true,
+      settings: true,
     },
   })
 
   for (const domain of domains) {
     const slug = domain.slug.trim().toLowerCase()
     const current = readFrameAgentId(domain.frame_json)
-    const target = resolveCanonicalLeadAgentSlug(domain.slug, current)
+    const resolvedLead = await resolveDomainLeadAgentFromDomain(prisma, domain)
+    const target = resolvedLead?.slug
+      ?? resolveDomainLeadAgentSlugSync({
+        domainSlug: domain.slug,
+        frameAgentId: current,
+      })
 
     const descriptionFix = fixLivecchiTypoInText(domain.description)
     const frameTypoFix =
@@ -227,7 +234,7 @@ export async function repairDomainLeadBindings(
         domainSlug: domain.slug,
         previousAgentId: current,
         nextAgentId: target,
-        reason: "canonical_binding",
+        reason: resolvedLead?.slug === target ? "primary_agent_binding" : "canonical_binding",
       })
       continue
     }

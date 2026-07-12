@@ -20,6 +20,8 @@ export interface PlaybillHeaderCardProps {
   coverImageUrl?: string | null
   domainFrame?: DomainFrameJson | null
   leadAgentSlug?: string | null
+  /** When true, slug came from API DB resolution (settings.primaryAgentId). */
+  leadAgentFromDatabase?: boolean
   onOpenPlaybill: () => void
   isOpen?: boolean
   className?: string
@@ -36,16 +38,19 @@ export function PlaybillHeaderCard({
   coverImageUrl,
   domainFrame,
   leadAgentSlug: leadAgentSlugProp,
+  leadAgentFromDatabase = false,
   onOpenPlaybill,
   isOpen = false,
   className = "",
 }: PlaybillHeaderCardProps) {
   const leadAgentSlug =
-    leadAgentSlugProp ?? resolvePlaybillLeadAgentSlug(domainSlug, domainFrame ?? null)
+    leadAgentSlugProp
+    ?? resolvePlaybillLeadAgentSlug(domainSlug, domainFrame ?? null)
 
   const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
     domainId,
     leadAgentSlug,
+    leadAgentFromDatabase: leadAgentFromDatabase || !!leadAgentSlugProp,
   })
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"

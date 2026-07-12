@@ -42,6 +42,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-07-11 — Faster library upload path
+- `libraryNavCreate.ts`: client-side `prepareImageForUpload` downscale before blob upload; parallel `commitComposerAttachmentsToLibrary`
+
 ### 2026-06-29 — Draft film strip + structured path points
 - `draftPointStructure.ts` (shared) — parse `PATH N: NAME — Subtitle` content; prelude → Path.prelude, moments → Moment.title on promote
 - `buildDraftSummaryFromAcceptedPoints` — short beat arc (`A → B → C`), not full content dump

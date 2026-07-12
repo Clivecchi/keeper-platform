@@ -23,7 +23,8 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
 - `DraftChronicleBlocks.tsx` — Summary, points (Accept + Discuss), versions, linked dialog sessions
 - `cdraft.tsx` — Manuscript Chronicle treatment (header, manage bar, warm charcoal canvas)
-- `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering
+- `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering, `parseTargetJourneyIdFromSpec`
+- `draftNavUtils.ts` — Draft nav filter/sort/group + disambiguated labels
 - `DraftVersionStrip.tsx` — Read-only last N versions from `GET .../versions`
 - `DraftSessionsBlock.tsx` — Sessions on linked Dialog; highlights `active_draft_id` below draft cover
 - `PathChronicleBlocks.tsx` — Prelude + moments below path cover
@@ -40,6 +41,16 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-07-11 — Faster library upload path
+- `libraryNavCreate.ts`: client-side `prepareImageForUpload` downscale before blob upload; parallel `commitComposerAttachmentsToLibrary`
+
+### 2026-06-29 — Draft film strip + structured path points
+- `draftPointStructure.ts` (shared) — parse `PATH N: NAME — Subtitle` content; prelude → Path.prelude, moments → Moment.title on promote
+- `buildDraftSummaryFromAcceptedPoints` — short beat arc (`A → B → C`), not full content dump
+- `DraftFilmStrip.tsx` — horizontal accepted-frame journey; moment sub-frames in focus panel
+- `DraftPointRow` manuscript — prelude from parsed subtitle; moment chips; no generic "An idea forming"
+- Agent `draft.update.propose` / `draft.point.rewrite` accept optional `prelude`, `closer`, `moments`
 
 ### 2026-06-28 — Draft script-IDE rewrite queue
 - **Rewrite** on proposed/pending points → Dialog prefilled for `draft.point.rewrite` (via `requestRewriteDraftPoint`)
@@ -123,6 +134,13 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - Removed `FeedComponent` from `serviceConfig.tsx` and legacy `AIModelFeed` cover UI component
 - Trimmed redundant feed state (`keyInput`, `keySaveSuccess`) — metadata save is Config mode only; credentials stay on POST routes
 - Cover + Config pattern documented: declaration blocks always; `chroniclePatch` for metadata; credentials separate
+
+## 📆 Update Log
+
+### 2026-07-02 — P3.1 + P3.2 draft nav / journey link
+- **`draftNavUtils.ts`**: filter promoted/archived, group by kind, sort selected-first + recency, disambiguated labels.
+- **`cdraft.tsx`**: breadcrumb journey link from spec `targetJourneyId`; promote error display.
+- **`draftManuscriptUtils.ts`**: `parseTargetJourneyIdFromSpec`.
 
 ### 2026-06-13 — Cover body unification (Phase 4)
 - `IntegrationFocusPresence` / `KeyFocusPresence`: always render `DeclarationChronicleBlocks`; removed `FeedComponent` fork

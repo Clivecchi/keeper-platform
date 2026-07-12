@@ -163,6 +163,8 @@ interface ApiDomainRow {
   customDomain?: string | null
   theme?: unknown
   frame_json?: unknown
+  leadAgentSlug?: string | null
+  leadAgentName?: string | null
   isActive?: boolean
   deletedAt?: string | null
   isPrimary?: boolean
@@ -177,7 +179,12 @@ function parseTheme(theme: unknown): { coverImage?: string; tagline?: string } {
   }
 }
 
-function parseLeadAgentSlug(domainSlug: string, frameJson: unknown): string | null {
+function parseLeadAgentSlug(
+  domainSlug: string,
+  frameJson: unknown,
+  primaryAgentSlug?: string | null,
+): string | null {
+  if (primaryAgentSlug?.trim()) return primaryAgentSlug.trim()
   if (!frameJson || typeof frameJson !== "object") return null
   return resolvePlaybillLeadAgentSlug(
     domainSlug,
@@ -199,7 +206,7 @@ export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitche
       domain.customDomain?.trim() ||
       domain.slug,
     coverImageUrl: rawCover ? getBlobProxyUrl(rawCover) : null,
-    leadAgentSlug: parseLeadAgentSlug(domain.slug, domain.frame_json),
+    leadAgentSlug: parseLeadAgentSlug(domain.slug, domain.frame_json, domain.leadAgentSlug),
   }
 }
 

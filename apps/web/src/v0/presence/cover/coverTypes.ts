@@ -47,8 +47,14 @@ export interface CoverActionDef {
   onClick: () => void
 }
 
+/** `visual-primary` — image-forward playbill layout for library uploads and moment covers. */
+export type CoverLayout = "standard" | "visual-primary"
+
 /** Resolved slot payloads — Layer 2 schemas produce this shape. */
 export interface ResolvedCoverContent {
+  layout?: CoverLayout
+  /** Playbill-style billing line, e.g. "Library presents". */
+  billingLine?: string
   hero: CoverHeroContent
   identity: CoverIdentityContent
   traits: CoverTraitItem[]

@@ -6,7 +6,7 @@ import { apiFetch } from "../../lib/api"
 import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { isMemberMobileBoard } from "../boards/workspaceBoardNav"
-import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { resolveDialogAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { getPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
@@ -79,11 +79,13 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
   }, [domainSlug])
 
   const leadAgentSlug = React.useMemo(() => {
+    const primaryAgentSlug =
+      typeof domainData?.leadAgentSlug === "string" ? domainData.leadAgentSlug.trim() : null
     if (playbillGreetSlug !== undefined) {
       return playbillGreetSlug ?? "kip"
     }
-    return readFrameLeadAgentSlug(domainFrame) ?? "kip"
-  }, [domainFrame, playbillGreetSlug])
+    return resolveDialogAgentSlug(domainFrame, { primaryAgentSlug })
+  }, [domainFrame, playbillGreetSlug, domainData?.leadAgentSlug])
   const frameLeadIdentity = useFrameLeadAgentIdentity(leadAgentSlug)
   const greeting = domainFrame?.kip?.greeting?.trim() || ""
   const coverGreeting = greeting || domainFrame?.theme?.tagline?.trim() || ""

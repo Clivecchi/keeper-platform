@@ -227,6 +227,8 @@ export function KeeperTopBar({
     logout()
   }
 
+  const leadAgentSlug = domainData?.leadAgentSlug?.trim() || null
+
   return (
     <div className="keeper-platform-top-bar relative z-50 shrink-0">
       <div className="keeper-topbar-identity-row">
@@ -236,6 +238,8 @@ export function KeeperTopBar({
           domainName={domainName}
           coverImageUrl={coverImageUrl}
           domainFrame={domainFrame}
+          leadAgentSlug={leadAgentSlug}
+          leadAgentFromDatabase={!!leadAgentSlug}
           onOpenPlaybill={onDomainClick}
           isOpen={isPlaybillOpen}
         />

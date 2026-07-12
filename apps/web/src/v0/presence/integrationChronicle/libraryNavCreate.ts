@@ -1,4 +1,5 @@
 import { apiFetch } from "../../../lib/apiFetch"
+import { prepareImageForUpload } from "../../../lib/prepareImageUpload"
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
@@ -17,6 +18,8 @@ export async function uploadLibraryFile(params: {
   userId: string
   file: File
 }): Promise<string> {
+  const prepared = await prepareImageForUpload(params.file)
+
   const base64 = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
@@ -25,10 +28,10 @@ export async function uploadLibraryFile(params: {
       resolve(base64Data || "")
     }
     reader.onerror = reject
-    reader.readAsDataURL(params.file)
+    reader.readAsDataURL(prepared)
   })
 
-  const safeName = params.file.name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 80)
+  const safeName = prepared.name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 80)
   const key = [
     "uploads",
     params.userId,
@@ -43,7 +46,7 @@ export async function uploadLibraryFile(params: {
     body: JSON.stringify({
       key,
       file: base64,
-      contentType: params.file.type || "application/octet-stream",
+      contentType: prepared.type || "application/octet-stream",
     }),
   })) as { success?: boolean; data?: { url?: string }; error?: string }
 
@@ -87,32 +90,31 @@ export async function commitComposerAttachmentsToLibrary(params: {
   activeKeeperId?: string | null
   activeAgentId?: string | null
 }): Promise<Array<{ url: string; name: string; libraryItemId: string }>> {
-  const results: Array<{ url: string; name: string; libraryItemId: string }> = []
-  for (const attachment of params.attachments) {
-    if (attachment.libraryItemId) {
-      results.push({
+  return Promise.all(
+    params.attachments.map(async (attachment) => {
+      if (attachment.libraryItemId) {
+        return {
+          url: attachment.url,
+          name: attachment.name,
+          libraryItemId: attachment.libraryItemId,
+        }
+      }
+      const row = await createLibraryItem({
+        domainId: params.domainId,
+        userId: params.userId,
+        sourceType: "upload",
+        sourceRef: attachment.url,
+        displayLabel: attachment.name,
+        activeKeeperId: params.activeKeeperId,
+        activeAgentId: params.activeAgentId,
+      })
+      return {
         url: attachment.url,
         name: attachment.name,
-        libraryItemId: attachment.libraryItemId,
-      })
-      continue
-    }
-    const row = await createLibraryItem({
-      domainId: params.domainId,
-      userId: params.userId,
-      sourceType: "upload",
-      sourceRef: attachment.url,
-      displayLabel: attachment.name,
-      activeKeeperId: params.activeKeeperId,
-      activeAgentId: params.activeAgentId,
-    })
-    results.push({
-      url: attachment.url,
-      name: attachment.name,
-      libraryItemId: row.id,
-    })
-  }
-  return results
+        libraryItemId: row.id,
+      }
+    }),
+  )
 }
 
 /** Composer clip and Library nav + — same upload → LibraryItem path. */

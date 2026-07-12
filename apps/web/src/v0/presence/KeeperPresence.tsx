@@ -1458,6 +1458,7 @@ function KeeperPresenceSurface({
       <MomentFocusPresence
         objectId={objectId}
         domainId={domainId}
+        domainDisplayName={domainDisplayName}
         record={record}
         meta={meta}
         breadcrumb={breadcrumb}

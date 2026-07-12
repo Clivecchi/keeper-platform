@@ -16,7 +16,7 @@ Nav blocks (Realm-only extras):
 - **Chatter** — dialogs with no linked journey/keeper (`context.subject` empty or not matching a domain entity).
 - **Connections** — `GET /api/domains/:domainId/connections`; section hidden when count is 0 (`contentGated`).
 
-Conversation: lead agent slug from `domainFrame.kip.agent_id` (`agentFromFrame: true`), `dialogOrchestration: "director"`, `directorAgentSlug: "kip"`, `kipMode: "domain"`. Domain lead (e.g. CeoX) pins to composer toolbar; Kip stays in footer Agents bar as always-invoked director collaborator.
+Conversation: lead agent slug from `domainFrame.kip.agent_id` (`agentFromFrame: true`), `dialogOrchestration: "director"`, `directorAgentSlug: "kip"`, `kipMode: "domain"`. When the frame lead is not Kip (e.g. CeoX on Chuck's domain), **lead-led collaboration** applies: the lead owns Dialog; Kip adds optional platform support beneath. Kip-led domains keep director orchestration (Kip synthesizes).
 
 ## ⚠️ Notes & ToDo
 - [ ] Phase 4B — Realm Screen prototype (mobile default route)
