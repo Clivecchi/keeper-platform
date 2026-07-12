@@ -3,9 +3,13 @@ export const SWITCHER_INK_PRIMARY = "hsl(40 14% 96%)"
 export const SWITCHER_INK_SECONDARY = "hsl(40 10% 84%)"
 export const SWITCHER_INK_MUTED = "hsl(40 8% 72%)"
 
+/** Match PlaybillHeaderCard width — dropdown cards align with the anchor card. */
+export const PLAYBILL_ANCHOR_MAX_WIDTH = "min(520px, 58vw)" as const
+
 export const SWITCHER_PANEL_STYLE = {
   top: 96,
   left: 20,
+  width: PLAYBILL_ANCHOR_MAX_WIDTH,
   border: "1px solid hsl(var(--theme-border-soft))",
   backgroundColor: "hsl(220 16% 11% / 0.98)",
   backdropFilter: "blur(10px)",

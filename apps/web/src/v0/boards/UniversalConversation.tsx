@@ -77,7 +77,7 @@ import {
 import { useGuidedArrivalOptional } from "../guidedArrival/GuidedArrivalContext"
 import { useRealmArrivalOptional } from "../realm/RealmArrivalContext"
 import { useRealmFeed } from "../realm/useRealmFeed"
-import { buildRealmArrivalMessage } from "../realm/realmArrivalMessage"
+import { buildRealmArrivalMessage, isRealmArrivalMessage } from "../realm/realmArrivalMessage"
 import type { RealmInvitationActions } from "../realm/realmInvitationActions"
 import { applyRealmInvitation } from "../realm/realmInvitationActions"
 import type { RealmInvitationId } from "../realm/realmInvitations"
@@ -1838,6 +1838,26 @@ export function UniversalConversation({
     ? `Message ${dialogAgentDisplayName}`
     : undefined
 
+  const dialogMessages = React.useMemo(() => {
+    if (!isRealmHomeArrival) return messages
+    if (messages.some((m) => m.role === "user")) return messages
+    if (messages.some(isRealmArrivalMessage)) return messages
+    return [
+      buildRealmArrivalMessage(
+        realmFeed?.remarks ?? "Welcome back.",
+        realmFeed?.counts ?? { drafts: 0, sessions: 0, moments: 0, domains: 0 },
+        realmFeedLoading,
+      ),
+      ...messages,
+    ]
+  }, [
+    isRealmHomeArrival,
+    messages,
+    realmFeed?.remarks,
+    realmFeed?.counts,
+    realmFeedLoading,
+  ])
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -1886,7 +1906,7 @@ export function UniversalConversation({
         showToolbarAgentIdentity={showComposerToolbarAgentIdentity}
         thinkingStatusLabel={horizonThinkingLabel}
         thinkingSteps={thinkingSteps}
-        messages={messages}
+        messages={dialogMessages}
         isSending={isSending}
         error={error}
         agentName={dialogAgentDisplayName}

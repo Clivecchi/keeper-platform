@@ -46,10 +46,7 @@ export function DomainSwitcher({
 
       <div
         className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
-        style={{
-          ...SWITCHER_PANEL_STYLE,
-          width: 300,
-        }}
+        style={SWITCHER_PANEL_STYLE}
         role="dialog"
         aria-label="The Playbill"
         aria-modal="false"

@@ -1,4 +1,4 @@
-import { isSyntheticLeadAgentSlug } from "@keeper/shared"
+import { isSyntheticLeadAgentSlug, resolveCanonicalLeadAgentSlug } from "@keeper/shared"
 import { KipApi } from "../../lib/kipApi"
 
 const displayNameCache = new Map<string, string>()
@@ -232,6 +232,14 @@ export function readFrameLeadAgentSlug(
     return null
   }
   return slug
+}
+
+/** Playbill / switcher lead slug — honors canonical domain bindings (e.g. ke3p → kip). */
+export function resolvePlaybillLeadAgentSlug(
+  domainSlug: string,
+  domainFrame: { kip?: { agent_id?: string | null } } | null | undefined,
+): string | null {
+  return resolveCanonicalLeadAgentSlug(domainSlug, domainFrame?.kip?.agent_id)
 }
 
 /** Slug passed to dialog bootstrap — never a placeholder id. */

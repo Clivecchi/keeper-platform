@@ -4,7 +4,8 @@ import * as React from "react"
 import { ChevronDown } from "lucide-react"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
 import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
-import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { resolvePlaybillLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { PLAYBILL_ANCHOR_MAX_WIDTH } from "../boards/domain/domainSwitcherTheme"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import {
   PlaybillAgentPortrait,
@@ -40,7 +41,7 @@ export function PlaybillHeaderCard({
   className = "",
 }: PlaybillHeaderCardProps) {
   const leadAgentSlug =
-    leadAgentSlugProp ?? readFrameLeadAgentSlug(domainFrame ?? null)
+    leadAgentSlugProp ?? resolvePlaybillLeadAgentSlug(domainSlug, domainFrame ?? null)
 
   const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
     domainId,
@@ -76,7 +77,7 @@ export function PlaybillHeaderCard({
       type="button"
       onClick={onOpenPlaybill}
       className={[
-        "playbill-header-card group relative min-w-0 flex-1 max-w-[min(520px,58vw)] overflow-hidden rounded-xl text-left transition-opacity hover:opacity-95",
+        "playbill-header-card group relative min-w-0 flex-1 overflow-hidden rounded-xl text-left transition-opacity hover:opacity-95",
         className,
       ].join(" ")}
       style={{
@@ -84,6 +85,7 @@ export function PlaybillHeaderCard({
           ? "1.5px solid hsl(var(--theme-focus-ring) / 0.75)"
           : "1px solid hsl(var(--theme-border-soft) / 0.45)",
         minHeight: 72,
+        maxWidth: PLAYBILL_ANCHOR_MAX_WIDTH,
       }}
       aria-label={`${billingName} — open The Playbill`}
       aria-haspopup="dialog"

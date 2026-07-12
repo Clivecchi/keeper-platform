@@ -426,13 +426,13 @@ function UniversalBoardShell({
         style={pageBackground}
       >
         <KeeperTopBar
-          onDomainClick={isRealmHome ? () => {} : (onDomainClick ?? openSwitcher)}
+          onDomainClick={onDomainClick ?? openSwitcher}
           onBriefClick={() => setBriefOpen((o) => !o)}
           isBriefOpen={briefOpen}
-          isPlaybillOpen={isRealmHome ? false : isSwitcherOpen}
+          isPlaybillOpen={isSwitcherOpen}
         />
 
-        {!isRealmHome ? switcherOverlay : null}
+        {switcherOverlay}
 
         {isMobile && isMemberMobileBoard(def.boardId) ? <GuidedArrivalOrchestrator /> : null}
 

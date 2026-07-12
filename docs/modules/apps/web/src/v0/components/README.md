@@ -4,8 +4,11 @@
 View components for the V0 surface: cover frame and moment diary frame, with no backend wiring.
 
 ## 🧱 Key Files
-- `DomainSwitcher.tsx` – Playbill wall overlay; delegates cards to `PlaybillCard`.
-- `PlaybillCard.tsx` – Shared Playbill innkeeper card (lead agent headshot, casting state, activity whisper).
+- `DomainSwitcher.tsx` – Domain travel list popover (top-left Playbill slot; `/home` and domain boards).
+- `LocationStrip.tsx` – Read-only Playbill-style location strip (legacy; superseded by `PlaybillHeaderCard` on `/home`).
+- `PlaybillHeaderCard.tsx` – Top-bar anchor card (opens domain switcher on all boards including `/home`).
+- `PlaybillCard.tsx` – Playbill travel card in The Playbill dropdown.
+- `playbillVisual.tsx` – Shared ambient blur + agent portrait layers.
 - `DomainFeed.tsx` – Domain activity feed (kept moments, journey summaries); empty copy from `commons.messaging.feed` when set.
 - `StoryScroll.tsx` / `StoryScroll.types.ts` – Schema-driven inline narrative editor (edit buffer + `onChange`); optional Kip bar (`sendPrompt` / `onKipMessage`). See `StoryScroll.example.tsx` for usage (documentation-only).
 - `DomainBrief.tsx` – Domain Board Brief mode: human-readable form for core domain frame JSON (identity, theme, audience, Kip, cover chat); local draft with Publish via `PATCH /api/domains/:slug/frame` and `reloadDomainFrame`.
@@ -31,6 +34,10 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-07-11: **v2 Section 2 placement** — `/home` uses `PlaybillHeaderCard` + DomainSwitcher overlay (not read-only `LocationStrip`); dropdown width matches anchor card (`PLAYBILL_ANCHOR_MAX_WIDTH`); Playbill lead slug via `resolvePlaybillLeadAgentSlug` (canonical bindings e.g. ke3p → kip).
+- 2026-07-10: **Arrival presentation** — `/home` uses read-only `LocationStrip`; Playbill rail in Chronicle (`RealmPlaybillRail`); `PlaybillAmbientLayer` `contained` mode for contrast-safe location strip.
+- 2026-07-10: **Playbill in top bar** — `PlaybillHeaderCard` on domain boards; realm uses `LocationStrip` instead.
+- 2026-07-10: **Playbill wireframe alignment** — `PlaybillCard` compact header card (no cover hero); human role subtitles; explicit Enter; panel titled "The Playbill". `KeeperTopBar` restores **Home** nav link to `/home` from domain boards.
 - 2026-07-08: **Playbill pattern** — `PlaybillCard` replaces duplicate domain picker cards (`DomainSwitcher`, mobile `RealmScreen`); lead agent from `frame_json.kip.agent_id`, stats from `GET /api/domains/:id/stats`, greet continuity via `playbillGreetContinuity`.
 - 2026-07-07: `Margin` guest Sign In builds `next` via `buildRealmBoardPath` (`/?board=domain` on livecchi.us) — avoids HostnameSlugGuard redirect flicker after login.
 - 2026-07-03 (pm): Domain header always shows wordmark + chevron domain picker on all boards including `/home`; removed separate Home label/link.

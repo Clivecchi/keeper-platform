@@ -1,7 +1,7 @@
 import { apiFetch } from "../../../lib/apiFetch"
 import { getAuthToken } from "../../../lib/authTokenStore"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
-import { readFrameLeadAgentSlug } from "../../lib/frameLeadAgentIdentity"
+import { resolvePlaybillLeadAgentSlug } from "../../lib/frameLeadAgentIdentity"
 
 export interface DomainSwitcherEntry {
   id: string
@@ -89,7 +89,7 @@ function commitCache(entries: DomainSwitcherEntry[]): DomainSwitcherCacheSnapsho
 }
 
 export type DomainSwitcherCachePatch = Partial<
-  Pick<DomainSwitcherEntry, "name" | "tagline" | "coverImageUrl" | "slug">
+  Pick<DomainSwitcherEntry, "name" | "tagline" | "coverImageUrl" | "slug" | "leadAgentSlug">
 >
 
 /** Patch one cached switcher row in place — keeps picker cards fresh after Chronicle saves. */
@@ -177,9 +177,12 @@ function parseTheme(theme: unknown): { coverImage?: string; tagline?: string } {
   }
 }
 
-function parseLeadAgentSlug(frameJson: unknown): string | null {
+function parseLeadAgentSlug(domainSlug: string, frameJson: unknown): string | null {
   if (!frameJson || typeof frameJson !== "object") return null
-  return readFrameLeadAgentSlug(frameJson as { kip?: { agent_id?: string | null } })
+  return resolvePlaybillLeadAgentSlug(
+    domainSlug,
+    frameJson as { kip?: { agent_id?: string | null } },
+  )
 }
 
 export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitcherEntry {
@@ -196,7 +199,7 @@ export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitche
       domain.customDomain?.trim() ||
       domain.slug,
     coverImageUrl: rawCover ? getBlobProxyUrl(rawCover) : null,
-    leadAgentSlug: parseLeadAgentSlug(domain.frame_json),
+    leadAgentSlug: parseLeadAgentSlug(domain.slug, domain.frame_json),
   }
 }
 

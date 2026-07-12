@@ -15,7 +15,6 @@ import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 import { useGuidedArrival } from "../../v0/guidedArrival/GuidedArrivalContext";
 import { GuidedArrivalBanner } from "../../v0/guidedArrival/GuidedArrivalBanner";
-import { RealmPlaybillRail } from "../../v0/realm/RealmPlaybillRail";
 import { RealmFeedPanel } from "../../v0/realm/RealmFeedPanel";
 import { useRealmFeed } from "../../v0/realm/useRealmFeed";
 import { useRealmArrivalOptional } from "../../v0/realm/RealmArrivalContext";
@@ -307,16 +306,16 @@ export function KipScreen() {
     };
   }, [domainFrame, domainName, journeyCount, momentCount, kipFocusMomentId, focusMomentTitle]);
 
+  const realmFeedEvents = realmFeed?.events ?? []
+
   const chronicleContent =
     stage === "response" && responseView === "chronicle" ? (
       isRealmHome ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
-          <RealmPlaybillRail anchorSlug={domainSlug} className="shrink-0" />
-          <RealmFeedPanel
-            events={realmFeed?.events ?? []}
-            isLoading={realmFeedLoading}
-          />
-        </div>
+        realmFeedEvents.length > 0 ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+            <RealmFeedPanel events={realmFeedEvents} />
+          </div>
+        ) : null
       ) : (
         <MobileKipChronicleView
           message={latestAgentMessage}

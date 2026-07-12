@@ -3,7 +3,7 @@
 import * as React from "react"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
 import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
-import { readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { resolvePlaybillLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import {
   PlaybillAgentPortrait,
@@ -35,7 +35,7 @@ export function LocationStrip({
   className = "",
 }: LocationStripProps) {
   const leadAgentSlug =
-    leadAgentSlugProp ?? readFrameLeadAgentSlug(domainFrame ?? null)
+    leadAgentSlugProp ?? resolvePlaybillLeadAgentSlug(domainSlug, domainFrame ?? null)
 
   const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
     domainId,

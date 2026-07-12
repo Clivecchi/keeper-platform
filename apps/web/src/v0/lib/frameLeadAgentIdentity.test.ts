@@ -8,6 +8,7 @@ import {
   readFrameLeadAgentSlug,
   resolveDialogAgentSlug,
   resolveLeadAgentId,
+  resolvePlaybillLeadAgentSlug,
   STRICT_PLATFORM_AGENT_SLUGS,
 } from "./frameLeadAgentIdentity"
 
@@ -23,6 +24,18 @@ describe("frameLeadAgentIdentity", () => {
   beforeEach(() => {
     clearFrameLeadAgentDisplayNameCache()
     vi.mocked(KipApi.getAgentBySlug).mockReset()
+  })
+
+  it("resolvePlaybillLeadAgentSlug honors canonical domain bindings", () => {
+    expect(
+      resolvePlaybillLeadAgentSlug("ke3p", { kip: { agent_id: "kip" } }),
+    ).toBe("kip")
+    expect(
+      resolvePlaybillLeadAgentSlug("chuck", { kip: { agent_id: "kip" } }),
+    ).toBe("ceox")
+    expect(
+      resolvePlaybillLeadAgentSlug("livecchi", { kip: { agent_id: "livecchi-us-lead" } }),
+    ).toBeNull()
   })
 
   it("readFrameLeadAgentSlug returns null for kip default", () => {

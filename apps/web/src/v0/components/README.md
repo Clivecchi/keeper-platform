@@ -4,9 +4,9 @@
 View components for the V0 surface: cover frame and moment diary frame, with no backend wiring.
 
 ## 🧱 Key Files
-- `DomainSwitcher.tsx` – Domain travel list popover (domain boards only).
-- `LocationStrip.tsx` – Read-only top-bar location on `/home` (domain presents agent).
-- `PlaybillHeaderCard.tsx` – Top-bar location on domain boards (opens domain switcher).
+- `DomainSwitcher.tsx` – Domain travel list popover (top-left Playbill slot; `/home` and domain boards).
+- `LocationStrip.tsx` – Read-only Playbill-style location strip (legacy; superseded by `PlaybillHeaderCard` on `/home`).
+- `PlaybillHeaderCard.tsx` – Top-bar anchor card (opens domain switcher on all boards including `/home`).
 - `PlaybillCard.tsx` – Playbill travel card in The Playbill dropdown.
 - `playbillVisual.tsx` – Shared ambient blur + agent portrait layers.
 - `DomainFeed.tsx` – Domain activity feed (kept moments, journey summaries); empty copy from `commons.messaging.feed` when set.
@@ -34,6 +34,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-07-11: **v2 Section 2 placement** — `/home` uses `PlaybillHeaderCard` + DomainSwitcher overlay (not read-only `LocationStrip`); dropdown width matches anchor card (`PLAYBILL_ANCHOR_MAX_WIDTH`); Playbill lead slug via `resolvePlaybillLeadAgentSlug` (canonical bindings e.g. ke3p → kip).
 - 2026-07-10: **Arrival presentation** — `/home` uses read-only `LocationStrip`; Playbill rail in Chronicle (`RealmPlaybillRail`); `PlaybillAmbientLayer` `contained` mode for contrast-safe location strip.
 - 2026-07-10: **Playbill in top bar** — `PlaybillHeaderCard` on domain boards; realm uses `LocationStrip` instead.
 - 2026-07-10: **Playbill wireframe alignment** — `PlaybillCard` compact header card (no cover hero); human role subtitles; explicit Enter; panel titled "The Playbill". `KeeperTopBar` restores **Home** nav link to `/home` from domain boards.
