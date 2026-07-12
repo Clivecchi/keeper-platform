@@ -4677,6 +4677,7 @@ export class KipAgentService {
               environment: instEnvironment ?? options.environment,
               activeJourneyId: options.activeJourneyId,
               activeKeeperId: options.activeKeeperId,
+              attachments: options?.attachments,
             });
             if (!('success' in instRun) || !instRun.success) {
               const errData = 'data' in instRun ? (instRun.data as Record<string, unknown> | undefined) : undefined;

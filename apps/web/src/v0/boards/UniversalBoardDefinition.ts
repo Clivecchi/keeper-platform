@@ -455,7 +455,8 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: false,
     kipMode: "domain",
-    dialogOrchestration: "solo",
+    dialogOrchestration: "director",
+    directorAgentSlug: "kip",
   },
   contextSurface: {
     viewStates: mergeViewStates({

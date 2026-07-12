@@ -407,7 +407,9 @@ export function UniversalConversation({
       return labels
     }
     if (kipMode === "domain") {
-      const labels: Record<string, string> = {}
+      const labels: Record<string, string> = {
+        [KIP_FALLBACK_SLUG]: KIP_FALLBACK_DISPLAY_NAME,
+      }
       const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
       if (normalizedDomainLeadSlug && domainLeadDisplayName) {
         labels[normalizedDomainLeadSlug] = domainLeadDisplayName
@@ -466,6 +468,11 @@ export function UniversalConversation({
       instruments.push({
         slug: normalizedDomainLeadSlug,
         label: domainLeadDisplayName,
+      })
+    } else if (directorAgentSlug !== KIP_FALLBACK_SLUG) {
+      instruments.push({
+        slug: KIP_FALLBACK_SLUG,
+        label: KIP_FALLBACK_DISPLAY_NAME,
       })
     }
     for (const agent of domainScopedAgents) {

@@ -28,6 +28,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-07-11: **Director delegation attachments** — instrument sub-runs (`ceox`, Cloud, Rendr, etc.) now receive `attachments` so vision-capable lead agents can analyze screenshots delegated from Kip.
 - 2026-07-07: **`callAIModel` Rendr prompt** — define `rendrDesignPrompt` in the environment-context branch (fixes Railway `tsc` build).
 - 2026-07-06: **`treatment.propose`** — Design Board Rendr action; validates Treatment v0 proposal against domain `frame_json.treatment`, returns normalized `proposal` for inline Apply in dialog (no DB write on propose). `buildRendrDesignBoardPrompt` injects current Treatment when `agentContext.designBoard` is present.
 - 2026-07-02: **P4.2 file attachments** — `callAIModel` inlines text/markdown/json/csv file bodies from blob URLs; other files append name + URL; images stay multimodal. **P2.3 director delegation** — API returns `directorDelegation` with `status: failed|empty` when Cloud/Rendr sub-run fails; client shows visible routing notice.
