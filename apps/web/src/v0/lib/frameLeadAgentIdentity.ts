@@ -62,11 +62,12 @@ export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
 /** Platform dialog agents — never silently substitute Kip when lookup fails. */
 export const STRICT_PLATFORM_AGENT_SLUGS = new Set<string>(["rendr", "cloud"])
 
-/** Domain lead slugs — DB-assigned or frame-resolved; never cache as missing. */
+/** Domain lead slugs — DB-assigned; never cache as missing. Excludes synthetic provision placeholders. */
 export function isDomainLeadAgentSlug(slug: string | null | undefined): boolean {
   const trimmed = slug?.trim()
   if (!trimmed || PLACEHOLDER_LEAD_AGENT_SLUGS.has(trimmed)) return false
   if (STRICT_PLATFORM_AGENT_SLUGS.has(trimmed)) return false
+  if (isSyntheticLeadAgentSlug(trimmed)) return false
   return true
 }
 

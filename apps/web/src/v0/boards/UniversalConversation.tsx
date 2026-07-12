@@ -389,9 +389,10 @@ export function UniversalConversation({
   }, [effectiveDomainLeadSlug])
 
   const domainLeadDisplayName =
-    normalizedDomainLeadSlug && frameLeadIdentity.displayName
+    domainLead.name?.trim()
+    || (normalizedDomainLeadSlug && frameLeadIdentity.displayName
       ? frameLeadIdentity.displayName
-      : null
+      : null)
 
   /** Personal / owner domains with a non-Kip lead — lead owns Dialog; Kip collaborates. */
   const isLeadLedDomain = React.useMemo(
@@ -646,8 +647,8 @@ export function UniversalConversation({
           ? selectedAgentRecord.slug
           : baseAgentSlug
 
-  const usesFrameLeadAgent =
-    !!frameLeadAgentSlug && dialogAgentSlug === frameLeadAgentSlug
+  const usesDomainLeadAgent =
+    !!normalizedDomainLeadSlug && dialogAgentSlug === normalizedDomainLeadSlug
 
   const dialogAgentDisplayName = guidedArrivalActive && guidedArrival
     ? guidedArrival.leadAgentDisplayName
@@ -655,8 +656,8 @@ export function UniversalConversation({
       ? KIP_FALLBACK_DISPLAY_NAME
       : composerAgentChips.length > 0
         ? composerAgentChips[0].label
-        : usesFrameLeadAgent
-          ? frameLeadIdentity.displayName
+        : usesDomainLeadAgent
+          ? (domainLeadDisplayName ?? frameLeadIdentity.displayName)
           : isDirectorMode
             ? defaultAgentName
             : usingSelectedNonDefaultAgent && selectedAgentRecord

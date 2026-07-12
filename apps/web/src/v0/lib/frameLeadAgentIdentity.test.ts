@@ -90,13 +90,17 @@ describe("frameLeadAgentIdentity", () => {
     clearFrameLeadAgentDisplayNameCache()
   })
 
-  it("resolveLeadAgentId does not fall back for domain lead slugs", async () => {
-    vi.mocked(KipApi.getAgentBySlug).mockRejectedValueOnce(new Error("not found"))
+  it("resolveLeadAgentId falls back to kip for synthetic provision slugs", async () => {
+    vi.mocked(KipApi.getAgentBySlug)
+      .mockRejectedValueOnce(new Error("not found"))
+      .mockResolvedValueOnce({
+        id: "kip-uuid",
+        slug: "kip",
+        name: "Kip",
+      } as Awaited<ReturnType<typeof KipApi.getAgentBySlug>>)
 
-    await expect(resolveLeadAgentId("chuck-livecchi-lead")).rejects.toThrow(
-      /chuck-livecchi-lead agent is not available/,
-    )
-    expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(1)
+    await expect(resolveLeadAgentId("chuck-livecchi-lead")).resolves.toBe("kip-uuid")
+    expect(KipApi.getAgentBySlug).toHaveBeenCalledTimes(2)
   })
 
   it("resolveLeadAgentId does not fall back for strict platform agents", async () => {

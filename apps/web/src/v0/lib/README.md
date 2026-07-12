@@ -23,7 +23,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
-- 2026-07-11: **Frame-as-mirror Batch 1** — `domainLeadAgent.ts` unified read path; deprecated frame-only playbill/dialog resolvers; canonical map removed.
+- 2026-07-12: **Hotfix** — `UniversalConversation` undefined `frameLeadAgentSlug` crash; Playbill uses API `leadAgentName` when agent fetch fails; `isUncast` only when slug missing.
 - 2026-07-10: Realm identity — synthetic `{slug}-lead` slugs treated as uncast in `readFrameLeadAgentSlug` / Playbill; star name via `@keeper/shared` `resolvePlaybillStarName` (`{Domain} presents Agent` when uncast).
 - 2026-07-08: Added `playbillData.ts` + `playbillGreetContinuity.ts` for Playbill domain picker cards and arrival greet handoff.
 - 2026-07-08: Domain lead slugs (`ceox`, `*-lead`) never persist to missing-slug cache; `formatDomainLeadDisplayName`; `resolveDialogAgentSlug` no longer drops cached-missing leads.

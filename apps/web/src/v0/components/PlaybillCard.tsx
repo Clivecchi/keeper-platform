@@ -66,12 +66,12 @@ export function PlaybillCard({
   const billingName = domain.name.trim() || domain.slug
   const starName = resolvePlaybillStarName({
     domainName: billingName,
-    agentDisplayName: agent?.displayName,
+    agentDisplayName: agent?.displayName ?? domain.leadAgentName,
     isUncast,
     isLoading,
   })
   const roleSubtitle = formatPlaybillRoleSubtitle(agent, domain.slug, isUncast)
-  const ariaLead = isUncast ? "Agent" : agent?.displayName ?? "lead agent"
+  const ariaLead = isUncast ? "Agent" : agent?.displayName ?? domain.leadAgentName ?? "lead agent"
   const voiceLine = domain.tagline?.trim() || agent?.roleLine || ""
 
   const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null

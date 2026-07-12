@@ -60,7 +60,7 @@ export function usePlaybillCard({
   }, [domainId, slug, slugUncast])
 
   const activityLine = formatPlaybillActivity(stats)
-  const isUncast = slugUncast || (!isLoading && !agent)
+  const isUncast = slugUncast
 
   return {
     isUncast,
