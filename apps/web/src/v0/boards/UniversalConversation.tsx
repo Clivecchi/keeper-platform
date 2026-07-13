@@ -82,7 +82,7 @@ import type { RealmInvitationActions } from "../realm/realmInvitationActions"
 import { applyRealmInvitation } from "../realm/realmInvitationActions"
 import type { RealmInvitationId } from "../realm/realmInvitations"
 import { resolveDomainLeadContext, resolveDialogLeadSlug, type DomainLeadRecord } from "../lib/domainLeadAgent"
-import { PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName, canonicalAgentSlug } from "../lib/frameLeadAgentIdentity"
+import { PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, KIP_SUPPORT_DISENGAGED, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName, canonicalAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
@@ -415,10 +415,9 @@ export function UniversalConversation({
     && def.conversation.dialogOrchestration === "director"
     && (kipMode === "ide" || kipMode === "designer" || (kipMode === "domain" && !hasDomainLeadAgent))
 
-  /** User explicitly selected Kip in the Agents footer — direct platform consult. */
-  const kipConsultActive =
-    isLeadLedDomain
-    && canonicalAgentSlug(activeBoardInstrument) === KIP_FALLBACK_SLUG
+  /** Kip included in support collaboration (footer toggle). Default: invoked. */
+  const kipSupportInvoked =
+    isLeadLedDomain && activeBoardInstrument !== KIP_SUPPORT_DISENGAGED
 
   const directorInstrumentLabels = React.useMemo((): Record<string, string> => {
     if (kipMode === "ide") return { ...BOARD_INSTRUMENT_LABELS }
@@ -538,39 +537,16 @@ export function UniversalConversation({
     domainScopedAgents,
   ])
 
-  /** Lead-led domain — footer shows domain lead + Kip (platform consult). */
+  /** Lead-led domain — footer Agents bar: support agents only (Kip). Lead lives in composer toolbar. */
   const domainCollaborationInstruments = React.useMemo((): BoardInstrumentChip[] => {
     if (!isLeadLedDomain) return []
-    const seenSlugs = new Set<string>()
-    const instruments: BoardInstrumentChip[] = []
-
-    const addInstrument = (chip: BoardInstrumentChip) => {
-      const key = canonicalAgentSlug(chip.slug)
-      if (!key || seenSlugs.has(key)) return
-      seenSlugs.add(key)
-      instruments.push(chip)
-    }
-
-    if (normalizedDomainLeadSlug && domainLeadDisplayName) {
-      const rosterLead = domainScopedAgents.find(
-        (agent) => canonicalAgentSlug(agent.slug) === normalizedDomainLeadSlug,
-      )
-      addInstrument({
-        slug: rosterLead?.slug ?? normalizedDomainLeadSlug,
-        label: domainLeadDisplayName,
-      })
-    }
-    addInstrument({
-      slug: KIP_FALLBACK_SLUG,
-      label: KIP_FALLBACK_DISPLAY_NAME,
-    })
-    return instruments
-  }, [
-    isLeadLedDomain,
-    normalizedDomainLeadSlug,
-    domainLeadDisplayName,
-    domainScopedAgents,
-  ])
+    return [
+      {
+        slug: KIP_FALLBACK_SLUG,
+        label: KIP_FALLBACK_DISPLAY_NAME,
+      },
+    ]
+  }, [isLeadLedDomain])
 
   /** Design Board — Rendr owns composer; domain lead + Kip always pin-able in footer. */
   const designerBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
@@ -602,7 +578,7 @@ export function UniversalConversation({
   ])
 
   const composerAgentChips = React.useMemo((): ComposerAgentChip[] => {
-    if (isLeadLedDomain && normalizedDomainLeadSlug && !kipConsultActive) {
+    if (isLeadLedDomain && normalizedDomainLeadSlug) {
       const label =
         domainLeadDisplayName
         ?? (isDomainLeadAgentSlug(normalizedDomainLeadSlug)
@@ -628,7 +604,6 @@ export function UniversalConversation({
   }, [
     kipMode,
     isLeadLedDomain,
-    kipConsultActive,
     isDirectorMode,
     composerLeadSlug,
     domainLeadDisplayName,
@@ -642,9 +617,7 @@ export function UniversalConversation({
     || composerAgentChips.length > 0
 
   const dialogAgentSlug = isLeadLedDomain
-    ? (kipConsultActive
-      ? KIP_FALLBACK_SLUG
-      : (normalizedDomainLeadSlug ?? baseAgentSlug))
+    ? (normalizedDomainLeadSlug ?? baseAgentSlug)
     : guidedArrivalActive && guidedArrival
       ? guidedArrival.leadAgentSlug
       : isDirectorMode
@@ -656,10 +629,10 @@ export function UniversalConversation({
   const usesDomainLeadAgent =
     !!normalizedDomainLeadSlug && dialogAgentSlug === normalizedDomainLeadSlug
 
-  const dialogAgentDisplayName = isLeadLedDomain && kipConsultActive
-    ? KIP_FALLBACK_DISPLAY_NAME
-    : guidedArrivalActive && guidedArrival
-      ? guidedArrival.leadAgentDisplayName
+  const dialogAgentDisplayName = guidedArrivalActive && guidedArrival
+    ? guidedArrival.leadAgentDisplayName
+    : isLeadLedDomain
+      ? (domainLeadDisplayName ?? frameLeadIdentity.displayName)
       : composerAgentChips.length > 0
         ? composerAgentChips[0].label
         : usesDomainLeadAgent
@@ -909,7 +882,7 @@ export function UniversalConversation({
   const [echoSessionId, setEchoSessionId] = React.useState<string | null>(null)
 
   const kipCollaborationAfterLead =
-    isLeadLedDomain && kipMode === "domain" && !kipConsultActive
+    isLeadLedDomain && kipMode === "domain" && kipSupportInvoked
 
   React.useEffect(() => {
     const needsKipEcho =
@@ -1154,7 +1127,7 @@ export function UniversalConversation({
       const runAgentBoardEcho =
         agentEcho && kipMode === "agent" && dialogAgentSlug !== defaultAgentSlug
       const runDomainCollaboration =
-        kipCollaborationAfterLead && kipMode === "domain" && !kipConsultActive
+        kipCollaborationAfterLead && kipMode === "domain"
 
       if (!runAgentBoardEcho && !runDomainCollaboration) return
       if (!echoAgentId || !echoSessionId) return
@@ -1214,6 +1187,8 @@ export function UniversalConversation({
           const updated = [...prev]
           updated[targetIdx] = {
             ...updated[targetIdx],
+            senderName:
+              updated[targetIdx].senderName?.trim() || dialogAgentDisplayName,
             echo: {
               content: echoContent,
               attributedTo: runDomainCollaboration
@@ -1232,7 +1207,7 @@ export function UniversalConversation({
       onAfterAgentRun,
       agentEcho,
       kipCollaborationAfterLead,
-      kipConsultActive,
+      kipSupportInvoked,
       dialogAgentSlug,
       defaultAgentSlug,
       echoAgentId,
@@ -1470,12 +1445,9 @@ export function UniversalConversation({
       if (isLeadLedDomain && kipMode === "domain") {
         const slugKey = canonicalAgentSlug(slug)
         if (slugKey === KIP_FALLBACK_SLUG) {
-          actions.onSetActiveBoardInstrument(KIP_FALLBACK_SLUG)
-          return
-        }
-        if (normalizedDomainLeadSlug && slugKey === normalizedDomainLeadSlug) {
-          actions.onSetActiveBoardInstrument(null)
-          return
+          actions.onSetActiveBoardInstrument(
+            kipSupportInvoked ? KIP_SUPPORT_DISENGAGED : null,
+          )
         }
         return
       }
@@ -1495,6 +1467,7 @@ export function UniversalConversation({
     [
       isLeadLedDomain,
       kipMode,
+      kipSupportInvoked,
       isDirectorMode,
       directorAgentSlug,
       normalizedDomainLeadSlug,
@@ -2048,10 +2021,13 @@ export function UniversalConversation({
         }
         activeBoardInstrumentSlug={
           isLeadLedDomain && kipMode === "domain"
-            ? (kipConsultActive ? KIP_FALLBACK_SLUG : normalizedDomainLeadSlug)
+            ? (kipSupportInvoked ? KIP_FALLBACK_SLUG : KIP_SUPPORT_DISENGAGED)
             : isDirectorMode && (kipMode === "domain" || kipMode === "designer")
               ? activeBoardInstrument
               : null
+        }
+        boardInstrumentsCollaborationMode={
+          isLeadLedDomain && kipMode === "domain" ? true : undefined
         }
         composerAgents={composerAgentChips.length > 0 ? composerAgentChips : undefined}
         onRemoveComposerAgent={

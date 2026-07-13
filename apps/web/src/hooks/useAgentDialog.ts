@@ -58,9 +58,11 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
       ? meta.senderName
       : typeof meta?.agentName === "string"
         ? meta.agentName
-        : typeof meta?.userName === "string"
-          ? meta.userName
-          : undefined
+        : typeof meta?.agent_name === "string"
+          ? meta.agent_name
+          : typeof meta?.userName === "string"
+            ? meta.userName
+            : undefined
   return {
     id: message.id,
     role,

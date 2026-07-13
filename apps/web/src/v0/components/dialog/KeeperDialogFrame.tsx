@@ -112,6 +112,8 @@ export interface KeeperDialogFrameProps {
   onBoardInstrumentInvoke?: (slug: string) => void
   activeBoardInstrumentSlug?: string | null
   boardInstrumentsEyebrow?: string
+  /** Lead-led domain: footer toggles support-agent inclusion, not dialog lead. */
+  boardInstrumentsCollaborationMode?: boolean
   /** Overrides Horizon summary while sending; otherwise derived from thinkingSteps. */
   thinkingStatusLabel?: string
   /** Run trace for Broadcast Strip while sending. */
@@ -225,6 +227,7 @@ export function KeeperDialogFrame({
   onBoardInstrumentInvoke,
   activeBoardInstrumentSlug = null,
   boardInstrumentsEyebrow = "Agents",
+  boardInstrumentsCollaborationMode = false,
   thinkingStatusLabel,
   thinkingSteps = [],
   railwayStatus = "disconnected",
@@ -797,6 +800,7 @@ export function KeeperDialogFrame({
                   instruments={boardInstruments}
                   activeSlug={activeBoardInstrumentSlug}
                   onInvoke={onBoardInstrumentInvoke}
+                  collaborationMode={boardInstrumentsCollaborationMode}
                 />
               ) : (
                 <div className="dialog-composer-footer-spacer" aria-hidden />

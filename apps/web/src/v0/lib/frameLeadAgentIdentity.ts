@@ -59,6 +59,9 @@ hydrateMissingLeadSlugsFromStorage()
 export const KIP_FALLBACK_SLUG = "kip" as const
 export const KIP_FALLBACK_DISPLAY_NAME = "Kip" as const
 
+/** Footer Agents bar sentinel — Kip support disengaged from collaboration (lead still owns dialog). */
+export const KIP_SUPPORT_DISENGAGED = "__kip_support_off__" as const
+
 /** Platform dialog agents — never silently substitute Kip when lookup fails. */
 export const STRICT_PLATFORM_AGENT_SLUGS = new Set<string>(["rendr", "cloud"])
 

@@ -15,6 +15,8 @@ export interface BoardInstrumentsBarProps {
   instruments: ReadonlyArray<BoardInstrumentChip>
   activeSlug?: string | null
   onInvoke?: (slug: string) => void
+  /** Lead-led domain: chips toggle support inclusion; lead stays in composer toolbar. */
+  collaborationMode?: boolean
 }
 
 export function BoardInstrumentsBar({
@@ -22,6 +24,7 @@ export function BoardInstrumentsBar({
   instruments,
   activeSlug = null,
   onInvoke,
+  collaborationMode = false,
 }: BoardInstrumentsBarProps) {
   if (!onInvoke || instruments.length === 0) return null
 
@@ -64,6 +67,7 @@ export function BoardInstrumentsBar({
               isDirector={isDirector}
               isActive={isDirector ? true : activeSlug === slug}
               onInvoke={onInvoke}
+              collaborationMode={collaborationMode}
             />
           ))}
         </div>
@@ -109,36 +113,46 @@ function InstrumentChip({
   isDirector = false,
   onInvoke,
   slug,
+  collaborationMode = false,
 }: {
   slug: string
   label: string
   isDirector?: boolean
   isActive: boolean
   onInvoke: (slug: string) => void
+  collaborationMode?: boolean
 }) {
   const [hovered, setHovered] = React.useState(false)
+
+  const ariaLabel = collaborationMode
+    ? isActive
+      ? `Remove ${label} from this conversation`
+      : `Include ${label} in this conversation`
+    : isDirector
+      ? isActive
+        ? `${label} is collaborating — click to delegate only to ${label}`
+        : `${label} is pinned for delegation — click to restore ${label} as collaborator`
+      : isActive
+        ? `Unpin ${label} — stop delegating to ${label}`
+        : `Pin ${label} for delegation`
+
+  const title = collaborationMode
+    ? isActive
+      ? `${label} will chime in after the lead — click to exclude`
+      : `${label} is excluded — click to include in collaboration`
+    : isDirector
+      ? isActive
+        ? `${label} is collaborating — click when you want ${label} to answer alone`
+        : `${label} is leading this turn — click to restore ${label} as collaborator`
+      : isActive
+        ? `Unpin ${label} — Kip keeps the composer`
+        : `Pin ${label} — delegate turns to ${label}, Kip synthesizes`
 
   return (
     <button
       type="button"
-      aria-label={
-        isDirector
-          ? isActive
-            ? `${label} is collaborating — click to delegate only to ${label}`
-            : `${label} is pinned for delegation — click to restore ${label} as collaborator`
-          : isActive
-            ? `Unpin ${label} — stop delegating to ${label}`
-            : `Pin ${label} for delegation`
-      }
-      title={
-        isDirector
-          ? isActive
-            ? `${label} is collaborating — click when you want ${label} to answer alone`
-            : `${label} is leading this turn — click to restore ${label} as collaborator`
-          : isActive
-            ? `Unpin ${label} — Kip keeps the composer`
-            : `Pin ${label} — delegate turns to ${label}, Kip synthesizes`
-      }
+      aria-label={ariaLabel}
+      title={title}
       aria-pressed={isActive}
       onClick={(e) => {
         e.stopPropagation()

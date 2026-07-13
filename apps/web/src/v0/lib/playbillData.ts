@@ -1,9 +1,11 @@
 import { extractPresenceAvatar, resolvePlaybillStarName, isPlatformDomainSlugAlias } from "@keeper/shared"
 import { apiFetch } from "../../lib/apiFetch"
 import { getAuthToken } from "../../lib/authTokenStore"
-import { getBlobProxyUrl } from "../../lib/blobProxy"
+import { KipApi } from "../../lib/kipApi"
 import { formatRelativeTime } from "../presence/integrationChronicle/shared"
+import { resolveCoverAvatarDisplay } from "../presence/cover/coverImageUtils"
 import {
+  formatDomainLeadDisplayName,
   isDomainLeadAgentSlug,
   isMissingLeadAgentSlug,
   resolveFrameLeadAgentIdentity,
@@ -31,6 +33,16 @@ const statsCache = new Map<string, DomainPlaybillStats>()
 const statsInflight = new Map<string, Promise<DomainPlaybillStats>>()
 const agentCache = new Map<string, ResolvedPlaybillAgent>()
 const agentInflight = new Map<string, Promise<ResolvedPlaybillAgent | null>>()
+
+export function clearPlaybillAgentCache(slug?: string): void {
+  if (slug?.trim()) {
+    agentCache.delete(slug.trim())
+    agentInflight.delete(slug.trim())
+    return
+  }
+  agentCache.clear()
+  agentInflight.clear()
+}
 
 function isAvatarImageSrc(value: string): boolean {
   const trimmed = value.trim()
@@ -159,11 +171,23 @@ interface KipAgentPlaybillRow {
   purpose?: string | null
   presenceSchema?: unknown
   config?: unknown
+  avatar?: string | null
 }
 
 function resolveAgentAvatarSource(row: KipAgentPlaybillRow): string | null {
   const { avatar: presenceAvatar } = extractPresenceAvatar(row.presenceSchema)
   if (presenceAvatar?.trim()) return presenceAvatar.trim()
+
+  if (row.presenceSchema && typeof row.presenceSchema === "object" && !Array.isArray(row.presenceSchema)) {
+    const direct = (row.presenceSchema as Record<string, unknown>).avatar
+    if (typeof direct === "string" && direct.trim()) {
+      return direct.trim()
+    }
+  }
+
+  if (typeof row.avatar === "string" && row.avatar.trim()) {
+    return row.avatar.trim()
+  }
 
   if (row.config && typeof row.config === "object" && !Array.isArray(row.config)) {
     const cfgAvatar = (row.config as Record<string, unknown>).avatar
@@ -175,15 +199,66 @@ function resolveAgentAvatarSource(row: KipAgentPlaybillRow): string | null {
   return null
 }
 
-async function fetchAgentRow(slug: string): Promise<KipAgentPlaybillRow | null> {
-  const response = (await apiFetch(
-    `/api/kip/agents?slug=${encodeURIComponent(slug)}`,
-  )) as { success?: boolean; data?: KipAgentPlaybillRow }
-
-  if (response?.success && response.data?.slug) {
-    return response.data
+function resolvePlaybillPortraitFromRow(row: KipAgentPlaybillRow): {
+  avatarUrl: string | null
+  avatarEmoji: string | null
+} {
+  const rawAvatar = resolveAgentAvatarSource(row)
+  if (!rawAvatar) {
+    return { avatarUrl: null, avatarEmoji: null }
   }
-  return null
+  if (isAvatarImageSrc(rawAvatar)) {
+    return {
+      avatarUrl: resolveCoverAvatarDisplay(rawAvatar, ""),
+      avatarEmoji: null,
+    }
+  }
+  return { avatarUrl: null, avatarEmoji: rawAvatar.slice(0, 4) }
+}
+
+async function fetchAgentRow(slug: string): Promise<KipAgentPlaybillRow | null> {
+  try {
+    const agent = await KipApi.getAgentBySlug(slug)
+    const extended = agent as typeof agent & {
+      presenceSchema?: unknown
+      avatar?: string
+      role?: string
+      purpose?: string
+    }
+
+    let row: KipAgentPlaybillRow = {
+      id: agent.id,
+      slug: agent.slug,
+      name: agent.name,
+      role: extended.role ?? null,
+      purpose: agent.purpose,
+      presenceSchema: extended.presenceSchema,
+      config: agent.config,
+      avatar: extended.avatar,
+    }
+
+    if (!resolveAgentAvatarSource(row) && row.id) {
+      try {
+        const full = (await apiFetch(`/api/agents/${encodeURIComponent(row.id)}`)) as {
+          presenceSchema?: unknown
+          config?: unknown
+          avatar?: string
+        }
+        row = {
+          ...row,
+          presenceSchema: full.presenceSchema ?? row.presenceSchema,
+          config: full.config ?? row.config,
+          avatar: full.avatar ?? row.avatar,
+        }
+      } catch {
+        /* Chronicle path optional — slug fetch is primary */
+      }
+    }
+
+    return row
+  } catch {
+    return null
+  }
 }
 
 export async function resolvePlaybillAgent(
@@ -208,20 +283,25 @@ export async function resolvePlaybillAgent(
       return null
     }
 
-    const identity = await resolveFrameLeadAgentIdentity(slug, {
-      allowKipFallback: !isDomainLeadAgentSlug(slug),
-    })
+    let identity: ResolvedLeadAgentIdentity
+    try {
+      identity = await resolveFrameLeadAgentIdentity(slug, {
+        allowKipFallback: !isDomainLeadAgentSlug(slug),
+      })
+    } catch {
+      identity = {
+        id: row.id,
+        slug: row.slug,
+        displayName: row.name?.trim() || formatDomainLeadDisplayName(slug),
+      }
+    }
 
     const displayName = row.name?.trim() || identity.displayName?.trim() || ""
     if (!displayName) {
       return null
     }
 
-    const rawAvatar = resolveAgentAvatarSource(row)
-    const avatarUrl =
-      rawAvatar && isAvatarImageSrc(rawAvatar) ? getBlobProxyUrl(rawAvatar) : null
-    const avatarEmoji =
-      rawAvatar && !isAvatarImageSrc(rawAvatar) ? rawAvatar.slice(0, 4) : null
+    const { avatarUrl, avatarEmoji } = resolvePlaybillPortraitFromRow(row)
 
     const resolved: ResolvedPlaybillAgent = {
       identity,

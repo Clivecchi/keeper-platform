@@ -2135,27 +2135,24 @@ button.dialog-prelude:hover {
 
 .keeper-platform-top-bar .playbill-dropdown-list {
   margin: 0;
-  padding: 4px 0;
+  padding: 8px;
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   max-height: min(420px, 58vh);
   overflow-y: auto;
 }
 
-.keeper-platform-top-bar .playbill-dropdown-row {
+.keeper-platform-top-bar .playbill-dropdown-card {
   border: none;
-  background: transparent;
   cursor: pointer;
   color: inherit;
+  background: transparent;
 }
 
-.keeper-platform-top-bar .playbill-dropdown-row:hover,
-.keeper-platform-top-bar .playbill-dropdown-row:focus-visible {
-  background-color: hsla(35, 12%, 18%, 0.85);
-  outline: none;
-}
-
-.keeper-platform-top-bar .playbill-dropdown-row--current {
-  background-color: hsla(35, 12%, 16%, 0.65);
+.keeper-platform-top-bar .playbill-dropdown-card--current {
+  box-shadow: 0 0 0 1px hsl(var(--theme-focus-ring) / 0.35);
 }
 
 .keeper-platform-top-bar .playbill-dropdown-row__presents {

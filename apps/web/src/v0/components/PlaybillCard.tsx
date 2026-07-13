@@ -73,8 +73,7 @@ export function PlaybillCard({
 
   const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null
   const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
-  const ambientUrl =
-    variant === "realm" ? resolvePlaybillAmbientUrl(domain.coverImageUrl, portraitUrl) : null
+  const ambientUrl = resolvePlaybillAmbientUrl(domain.coverImageUrl, portraitUrl)
   const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
 
   const handleEnter = () => {
@@ -91,36 +90,45 @@ export function PlaybillCard({
         onMouseEnter={() => onPrefetch?.(domain.slug)}
         onFocus={() => onPrefetch?.(domain.slug)}
         className={[
-          "playbill-dropdown-row flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
-          isCurrent ? "playbill-dropdown-row--current" : "",
+          "playbill-dropdown-card group relative w-full overflow-hidden rounded-lg text-left transition-opacity hover:opacity-95",
+          isCurrent ? "playbill-dropdown-card--current" : "",
           className,
         ].join(" ")}
+        style={{
+          border: isCurrent
+            ? "1.5px solid hsl(var(--theme-focus-ring) / 0.75)"
+            : "1px solid hsl(var(--theme-border-soft) / 0.45)",
+        }}
         aria-current={isCurrent ? "true" : undefined}
         aria-label={`Enter ${billingName} with ${ariaLead}`}
       >
-        <div className="min-w-0 flex-1">
-          <p className="playbill-dropdown-row__presents truncate">{billingName} presents</p>
-          <p
-            className="playbill-dropdown-row__name truncate font-serif text-[15px] font-bold leading-tight"
-            style={{ color: inkPrimary }}
-          >
-            {isLoading && !isUncast ? "…" : starName}
-          </p>
-          <p
-            className="playbill-dropdown-row__role mt-0.5 truncate text-[9px] font-mono uppercase tracking-[0.12em]"
-            style={{ color: accent }}
-          >
-            {roleSubtitle}
-          </p>
-        </div>
+        <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
 
-        <PlaybillAgentPortrait
-          portraitUrl={portraitUrl}
-          portraitEmoji={portraitEmoji}
-          fallback={portraitFallback}
-          accent={accent}
-          size="card"
-        />
+        <div className="relative z-10 flex items-center gap-2.5 px-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <p className="playbill-dropdown-row__presents truncate">{billingName} presents</p>
+            <p
+              className="playbill-dropdown-row__name truncate font-serif text-[15px] font-bold leading-tight"
+              style={{ color: inkPrimary }}
+            >
+              {isLoading && !isUncast ? "…" : starName}
+            </p>
+            <p
+              className="playbill-dropdown-row__role mt-0.5 truncate text-[9px] font-mono uppercase tracking-[0.12em]"
+              style={{ color: accent }}
+            >
+              {roleSubtitle}
+            </p>
+          </div>
+
+          <PlaybillAgentPortrait
+            portraitUrl={portraitUrl}
+            portraitEmoji={portraitEmoji}
+            fallback={portraitFallback}
+            accent={accent}
+            size="card"
+          />
+        </div>
       </button>
     )
   }

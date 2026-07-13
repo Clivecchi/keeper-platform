@@ -5163,6 +5163,8 @@ export class KipAgentService {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
+              agentName: agent.name,
+              senderName: agent.name,
               model: agent.model,
               actionResults: actionResults.length ? actionResults : undefined,
             });
@@ -5433,6 +5435,8 @@ export class KipAgentService {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
+              agentName: agent.name,
+              senderName: agent.name,
               model: agent.model,
               actionResults: actionResults.length ? actionResults : undefined,
             });

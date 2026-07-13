@@ -22,6 +22,7 @@ import {
 import { prefetchDomainShell } from "./domainShellCache"
 import { persistRealmAnchor } from "../../realm/persistRealmAnchor"
 import { useSceneChangeOptional } from "../../sceneChange/SceneChangeProvider"
+import { clearPlaybillAgentCache } from "../../lib/playbillData"
 import {
   SWITCHER_INK_PRIMARY,
   SWITCHER_INK_SECONDARY,
@@ -154,6 +155,8 @@ export function DomainSwitcherOverlay({
       setSwitcherView("list")
       return
     }
+
+    clearPlaybillAgentCache()
 
     let cancelled = false
     const cached = getCachedDomainSwitcherEntries()
