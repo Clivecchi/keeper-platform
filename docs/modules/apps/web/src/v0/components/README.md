@@ -34,6 +34,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-07-12: **Playbill quality pass** — dropdown anchors under header card (not fixed modal); travel rows show only presents / agent / role; whole row is Enter; portraits resolve from `presenceSchema` + `config.avatar` (emoji fallback).
 - 2026-07-11: **v2 Section 2 placement** — `/home` uses `PlaybillHeaderCard` + DomainSwitcher overlay (not read-only `LocationStrip`); dropdown width matches anchor card (`PLAYBILL_ANCHOR_MAX_WIDTH`); Playbill lead slug via `resolvePlaybillLeadAgentSlug` (canonical bindings e.g. ke3p → kip).
 - 2026-07-10: **Arrival presentation** — `/home` uses read-only `LocationStrip`; Playbill rail in Chronicle (`RealmPlaybillRail`); `PlaybillAmbientLayer` `contained` mode for contrast-safe location strip.
 - 2026-07-10: **Playbill in top bar** — `PlaybillHeaderCard` on domain boards; realm uses `LocationStrip` instead.

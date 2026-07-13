@@ -46,7 +46,7 @@ export function LocationStrip({
   )
   const leadAgentSlug = leadContext.slug
 
-  const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
+  const { isUncast, isLoading, agent } = usePlaybillCard({
     domainId,
     leadAgentSlug,
     leadAgentName: leadContext.name ?? leadAgentNameProp,
@@ -62,17 +62,8 @@ export function LocationStrip({
   })
   const roleSubtitle = formatPlaybillRoleSubtitle(agent, domainSlug, isUncast)
 
-  const tagline = (() => {
-    const card = domainFrame?.cover?.card as { tagLine?: string } | undefined
-    return (
-      card?.tagLine?.trim() ||
-      domainFrame?.theme?.tagline?.trim() ||
-      agent?.roleLine ||
-      ""
-    )
-  })()
-
   const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null
+  const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
   const ambientUrl = resolvePlaybillAmbientUrl(coverImageUrl, portraitUrl)
   const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
 
@@ -111,26 +102,12 @@ export function LocationStrip({
           >
             {roleSubtitle}
           </p>
-          {tagline ? (
-            <p
-              className="mt-1 text-[11px] italic leading-snug line-clamp-1"
-              style={{ color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))" }}
-            >
-              {tagline}
-            </p>
-          ) : null}
-          <p
-            className="mt-0.5 text-[10px] truncate"
-            style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}
-            aria-live="polite"
-          >
-            {isLoading ? "Loading…" : activityLine}
-          </p>
         </div>
 
         <div className="flex shrink-0 items-center self-center">
           <PlaybillAgentPortrait
             portraitUrl={portraitUrl}
+            portraitEmoji={portraitEmoji}
             fallback={portraitFallback}
             accent={accent}
             size="header"

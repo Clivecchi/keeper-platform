@@ -6,7 +6,6 @@ import {
   SWITCHER_INK_MUTED,
   SWITCHER_INK_PRIMARY,
   SWITCHER_INK_SECONDARY,
-  SWITCHER_PANEL_STYLE,
 } from "./domainSwitcherTheme"
 
 export interface DomainAddPanelProps {
@@ -16,6 +15,7 @@ export interface DomainAddPanelProps {
 }
 
 export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelProps) {
+  const panelRef = React.useRef<HTMLDivElement>(null)
   const [name, setName] = React.useState("")
   const [description, setDescription] = React.useState("")
   const [slug, setSlug] = React.useState("")
@@ -26,12 +26,22 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
   const suggestedSlug = suggestDomainSlug(name)
 
   React.useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
+    const handleMouseDown = (event: MouseEvent) => {
+      const anchor = document.querySelector(".keeper-topbar-playbill-anchor")
+      if (anchor?.contains(event.target as Node)) return
+      if (panelRef.current?.contains(event.target as Node)) return
+      onClose()
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onBack()
     }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [onBack])
+    document.addEventListener("mousedown", handleMouseDown)
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown)
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [onBack, onClose])
 
   const handleNameChange = (value: string) => {
     setName(value)
@@ -71,49 +81,22 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
   }
 
   return (
-    <>
-      <div className="fixed inset-0 z-[100]" aria-hidden onClick={onClose} />
+    <div ref={panelRef} className="keeper-topbar-playbill-dropdown" role="form" aria-label="Add a domain">
       <div
-        className="fixed z-[101] flex flex-col overflow-hidden rounded-md"
-        style={{
-          ...SWITCHER_PANEL_STYLE,
-          width: 240,
-        }}
-        role="dialog"
-        aria-label="Add a domain"
-        aria-modal="false"
+        className="flex items-center justify-between px-3 py-2 shrink-0"
+        style={{ borderBottom: "0.5px solid hsla(38, 20%, 28%, 0.45)" }}
       >
-        <div
-          className="flex items-center justify-between px-3 py-2 shrink-0"
-          style={{ borderBottom: "0.5px solid hsl(var(--theme-border-soft))" }}
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-[10px] font-medium transition-opacity hover:opacity-80"
+          style={{ color: SWITCHER_INK_SECONDARY }}
         >
-          <button
-            type="button"
-            onClick={onBack}
-            className="text-[10px] font-medium transition-opacity hover:opacity-80"
-            style={{ color: SWITCHER_INK_SECONDARY }}
-          >
-            ← Domains
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center justify-center rounded-sm transition-opacity hover:opacity-70"
-            style={{ width: 18, height: 18, color: SWITCHER_INK_SECONDARY }}
-            aria-label="Close"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-              <path
-                d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-        </div>
+          ← Domains
+        </button>
+      </div>
 
-        <form className="flex flex-col gap-3 px-3 py-3" onSubmit={(e) => void handleSubmit(e)}>
+      <form className="flex flex-col gap-3 px-3 py-3" onSubmit={(e) => void handleSubmit(e)}>
           <div>
             <label
               className="block text-[10px] font-semibold uppercase tracking-widest mb-1"
@@ -201,7 +184,6 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
             {submitting ? "Creating…" : "Create domain"}
           </button>
         </form>
-      </div>
-    </>
+    </div>
   )
 }

@@ -1,11 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { DoorOpen } from "lucide-react"
 import {
   SWITCHER_INK_MUTED,
   SWITCHER_INK_PRIMARY,
-  SWITCHER_INK_SECONDARY,
 } from "../boards/domain/domainSwitcherTheme"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
 import { sealPlaybillGreet } from "../lib/playbillGreetContinuity"
@@ -32,13 +30,13 @@ export interface PlaybillCardProps {
   onSelect: (slug: string) => void
   onClose?: () => void
   onPrefetch?: (slug: string) => void
-  /** Desktop overlay uses compact ink tokens; mobile uses theme vars. */
+  /** Dropdown rows are flat; realm rail keeps ambient treatment. */
   variant?: "overlay" | "realm"
   className?: string
 }
 
 /**
- * Playbill travel card — blurred ambient, clear agent portrait, explicit Enter.
+ * Playbill travel row — domain presents its lead agent. The whole row is Enter.
  */
 export function PlaybillCard({
   domain,
@@ -49,7 +47,7 @@ export function PlaybillCard({
   variant = "overlay",
   className = "",
 }: PlaybillCardProps) {
-  const { isUncast, isLoading, agent, activityLine } = usePlaybillCard({
+  const { isUncast, isLoading, agent } = usePlaybillCard({
     domainId: domain.id,
     leadAgentSlug: domain.leadAgentSlug,
     leadAgentName: domain.leadAgentName,
@@ -57,10 +55,10 @@ export function PlaybillCard({
 
   const inkPrimary =
     variant === "overlay" ? SWITCHER_INK_PRIMARY : "hsl(var(--theme-ink-primary))"
-  const inkSecondary =
-    variant === "overlay" ? SWITCHER_INK_SECONDARY : "hsl(var(--theme-ink-secondary))"
   const inkMuted =
-    variant === "overlay" ? SWITCHER_INK_MUTED : "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))"
+    variant === "overlay"
+      ? SWITCHER_INK_MUTED
+      : "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))"
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
   const billingName = domain.name.trim() || domain.slug
@@ -72,10 +70,11 @@ export function PlaybillCard({
   })
   const roleSubtitle = formatPlaybillRoleSubtitle(agent, domain.slug, isUncast)
   const ariaLead = isUncast ? "Agent" : agent?.displayName ?? domain.leadAgentName ?? "lead agent"
-  const voiceLine = domain.tagline?.trim() || agent?.roleLine || ""
 
   const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null
-  const ambientUrl = resolvePlaybillAmbientUrl(domain.coverImageUrl, portraitUrl)
+  const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
+  const ambientUrl =
+    variant === "realm" ? resolvePlaybillAmbientUrl(domain.coverImageUrl, portraitUrl) : null
   const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
 
   const handleEnter = () => {
@@ -84,11 +83,56 @@ export function PlaybillCard({
     onClose?.()
   }
 
+  if (variant === "overlay") {
+    return (
+      <button
+        type="button"
+        onClick={handleEnter}
+        onMouseEnter={() => onPrefetch?.(domain.slug)}
+        onFocus={() => onPrefetch?.(domain.slug)}
+        className={[
+          "playbill-dropdown-row flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
+          isCurrent ? "playbill-dropdown-row--current" : "",
+          className,
+        ].join(" ")}
+        aria-current={isCurrent ? "true" : undefined}
+        aria-label={`Enter ${billingName} with ${ariaLead}`}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="playbill-dropdown-row__presents truncate">{billingName} presents</p>
+          <p
+            className="playbill-dropdown-row__name truncate font-serif text-[15px] font-bold leading-tight"
+            style={{ color: inkPrimary }}
+          >
+            {isLoading && !isUncast ? "…" : starName}
+          </p>
+          <p
+            className="playbill-dropdown-row__role mt-0.5 truncate text-[9px] font-mono uppercase tracking-[0.12em]"
+            style={{ color: accent }}
+          >
+            {roleSubtitle}
+          </p>
+        </div>
+
+        <PlaybillAgentPortrait
+          portraitUrl={portraitUrl}
+          portraitEmoji={portraitEmoji}
+          fallback={portraitFallback}
+          accent={accent}
+          size="card"
+        />
+      </button>
+    )
+  }
+
   return (
-    <article
+    <button
+      type="button"
+      onClick={handleEnter}
+      onMouseEnter={() => onPrefetch?.(domain.slug)}
+      onFocus={() => onPrefetch?.(domain.slug)}
       className={[
-        "playbill-card relative w-full overflow-hidden text-left",
-        variant === "overlay" ? "rounded-lg" : "rounded-xl",
+        "playbill-card relative w-full overflow-hidden rounded-xl text-left transition-opacity hover:opacity-95",
         className,
       ].join(" ")}
       style={{
@@ -96,85 +140,41 @@ export function PlaybillCard({
           ? "1.5px solid hsl(var(--theme-focus-ring))"
           : "1px solid hsl(var(--theme-border-soft) / 0.55)",
       }}
-      onMouseEnter={() => onPrefetch?.(domain.slug)}
-      onFocus={() => onPrefetch?.(domain.slug)}
       aria-current={isCurrent ? "true" : undefined}
+      aria-label={`Enter ${billingName} with ${ariaLead}`}
     >
       <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
 
-      <div className="relative z-10">
-        <p
-          className="px-3 pt-2.5 pb-1 text-[8px] font-semibold uppercase tracking-[0.2em] truncate"
-          style={{ color: inkMuted }}
-        >
-          {billingName} presents
-        </p>
-
-        <div className="flex items-start gap-2.5 px-3 pb-2">
-          <div className="min-w-0 flex-1 pt-0.5">
-            <h3
-              className="font-serif font-bold leading-tight truncate text-[16px]"
-              style={{ color: inkPrimary }}
-            >
-              {isLoading && !isUncast ? "…" : starName}
-            </h3>
-            <p
-              className="mt-0.5 text-[9px] font-mono uppercase tracking-[0.12em] truncate"
-              style={{ color: accent }}
-            >
-              {roleSubtitle}
-            </p>
-            {voiceLine ? (
-              <p
-                className="mt-1.5 text-[11px] italic leading-snug line-clamp-2"
-                style={{ color: inkSecondary }}
-              >
-                {voiceLine}
-              </p>
-            ) : null}
-            <p
-              className="mt-1 text-[10px] leading-snug truncate"
-              style={{ color: inkMuted }}
-              aria-live="polite"
-            >
-              {isLoading ? "Loading activity…" : activityLine}
-            </p>
-          </div>
-
-          <PlaybillAgentPortrait
-            portraitUrl={portraitUrl}
-            fallback={portraitFallback}
-            accent={accent}
-            size="card"
-          />
-        </div>
-
-        <div className="px-3 pb-3">
-          <button
-            type="button"
-            onClick={handleEnter}
-            className="playbill-enter-btn flex w-full items-center justify-center gap-2 rounded-full border px-3 py-2 text-[12px] font-medium transition-opacity hover:opacity-90"
-            style={{
-              borderColor: "hsl(var(--theme-border-soft) / 0.65)",
-              color: inkPrimary,
-              background: "hsl(var(--theme-surface-elevated) / 0.55)",
-            }}
-            aria-label={`Enter ${billingName} with ${ariaLead}`}
-          >
-            <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-            Enter
-          </button>
-        </div>
-
-        {isCurrent ? (
+      <div className="relative z-10 flex items-center gap-2.5 px-3 py-3">
+        <div className="min-w-0 flex-1">
           <p
-            className="px-3 pb-2 text-[9px] font-medium uppercase tracking-wider text-center"
-            style={{ color: "hsl(var(--theme-focus-ring))" }}
+            className="text-[8px] font-semibold uppercase tracking-[0.2em] truncate"
+            style={{ color: inkMuted }}
           >
-            Current domain
+            {billingName} presents
           </p>
-        ) : null}
+          <h3
+            className="mt-1 font-serif font-bold leading-tight truncate text-[16px]"
+            style={{ color: inkPrimary }}
+          >
+            {isLoading && !isUncast ? "…" : starName}
+          </h3>
+          <p
+            className="mt-0.5 text-[9px] font-mono uppercase tracking-[0.12em] truncate"
+            style={{ color: accent }}
+          >
+            {roleSubtitle}
+          </p>
+        </div>
+
+        <PlaybillAgentPortrait
+          portraitUrl={portraitUrl}
+          portraitEmoji={portraitEmoji}
+          fallback={portraitFallback}
+          accent={accent}
+          size="card"
+        />
       </div>
-    </article>
+    </button>
   )
 }

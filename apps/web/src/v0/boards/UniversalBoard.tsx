@@ -513,9 +513,8 @@ function UniversalBoardShell({
           onBriefClick={() => setBriefOpen((o) => !o)}
           isBriefOpen={briefOpen}
           isPlaybillOpen={isSwitcherOpen}
+          playbillDropdown={switcherOverlay}
         />
-
-        {switcherOverlay}
 
         {isMobile && isMemberMobileBoard(def.boardId) ? (
           <GuidedArrivalOrchestrator

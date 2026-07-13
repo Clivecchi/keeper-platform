@@ -22,6 +22,8 @@ export interface ResolvedPlaybillAgent {
   displayName: string
   roleLine: string
   avatarUrl: string | null
+  /** Emoji or short glyph from agent config when no image URL is set. */
+  avatarEmoji: string | null
   iconFallback: string
 }
 
@@ -156,6 +158,21 @@ interface KipAgentPlaybillRow {
   role?: string | null
   purpose?: string | null
   presenceSchema?: unknown
+  config?: unknown
+}
+
+function resolveAgentAvatarSource(row: KipAgentPlaybillRow): string | null {
+  const { avatar: presenceAvatar } = extractPresenceAvatar(row.presenceSchema)
+  if (presenceAvatar?.trim()) return presenceAvatar.trim()
+
+  if (row.config && typeof row.config === "object" && !Array.isArray(row.config)) {
+    const cfgAvatar = (row.config as Record<string, unknown>).avatar
+    if (typeof cfgAvatar === "string" && cfgAvatar.trim()) {
+      return cfgAvatar.trim()
+    }
+  }
+
+  return null
 }
 
 async function fetchAgentRow(slug: string): Promise<KipAgentPlaybillRow | null> {
@@ -200,16 +217,18 @@ export async function resolvePlaybillAgent(
       return null
     }
 
-    const { avatar } = extractPresenceAvatar(row.presenceSchema)
-    const rawAvatar = avatar?.trim() ?? null
+    const rawAvatar = resolveAgentAvatarSource(row)
     const avatarUrl =
       rawAvatar && isAvatarImageSrc(rawAvatar) ? getBlobProxyUrl(rawAvatar) : null
+    const avatarEmoji =
+      rawAvatar && !isAvatarImageSrc(rawAvatar) ? rawAvatar.slice(0, 4) : null
 
     const resolved: ResolvedPlaybillAgent = {
       identity,
       displayName,
       roleLine: formatPlaybillRoleLine(row.role, row.purpose),
       avatarUrl,
+      avatarEmoji,
       iconFallback: iconFallbackForAgent(displayName, slug),
     }
 

@@ -133,16 +133,19 @@ export function PlaybillAmbientLayer({
 
 export function PlaybillAgentPortrait({
   portraitUrl,
+  portraitEmoji,
   fallback,
   accent,
   size,
 }: {
   portraitUrl: string | null
+  portraitEmoji?: string | null
   fallback: string
   accent: string
   size: "header" | "card"
 }) {
-  const dim = size === "header" ? 56 : 48
+  const dim = size === "header" ? 56 : 44
+  const emoji = portraitEmoji?.trim() || null
 
   if (portraitUrl && isImageSrc(portraitUrl)) {
     return (
@@ -161,6 +164,26 @@ export function PlaybillAgentPortrait({
           className="h-full w-full object-cover object-center"
           draggable={false}
         />
+      </div>
+    )
+  }
+
+  if (emoji) {
+    return (
+      <div
+        className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border"
+        style={{
+          width: dim,
+          height: dim,
+          fontSize: size === "header" ? 26 : 22,
+          lineHeight: 1,
+          borderColor: `${accent}55`,
+          background: `${accent}14`,
+          boxShadow: `0 0 20px ${accent}22`,
+        }}
+        aria-hidden
+      >
+        {emoji}
       </div>
     )
   }

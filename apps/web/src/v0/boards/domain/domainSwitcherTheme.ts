@@ -3,15 +3,14 @@ export const SWITCHER_INK_PRIMARY = "hsl(40 14% 96%)"
 export const SWITCHER_INK_SECONDARY = "hsl(40 10% 84%)"
 export const SWITCHER_INK_MUTED = "hsl(40 8% 72%)"
 
-/** Match PlaybillHeaderCard width — dropdown cards align with the anchor card. */
+/** Match PlaybillHeaderCard width — dropdown aligns with the anchor card. */
 export const PLAYBILL_ANCHOR_MAX_WIDTH = "min(520px, 58vw)" as const
 
+/** Visual tokens for anchored Playbill dropdown panels (position via CSS class). */
 export const SWITCHER_PANEL_STYLE = {
-  top: 96,
-  left: 20,
-  width: PLAYBILL_ANCHOR_MAX_WIDTH,
-  border: "1px solid hsl(var(--theme-border-soft))",
-  backgroundColor: "hsl(220 16% 11% / 0.98)",
+  border: "0.5px solid hsla(38, 20%, 28%, 0.55)",
+  backgroundColor: "hsla(28, 12%, 11%, 0.98)",
   backdropFilter: "blur(10px)",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2)",
+  boxShadow:
+    "0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.16)",
 } as const

@@ -28,6 +28,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+- 2026-07-12: **Playbill dropdown** — `DomainSwitcher` renders inside `keeper-topbar-playbill-anchor` (no body portal); toggle on header click; add/status panels share anchored dropdown shell.
 - 2026-07-12: **Shell bootstrap** — `domainShellBootstrap.ts` parallelizes cold-load fetches; Chronicle enrichment reads cached by-slug record (no duplicate `GET /domains/:id`).
 - 2026-07-12: **Phase 1b mobile** — Domain board on ≤767px uses adaptive `UniversalBoard` (Nav · Dialog · Chronicle bottom bar); domain picker via top-bar playbill.
 - 2026-07-11: **DB-first `leadAgentSlug`** — API resolves from `settings.primaryAgentId`; `domainShellCache` stores `leadAgentSlug` on by-slug fetch.

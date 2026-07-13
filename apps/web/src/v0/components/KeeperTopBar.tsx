@@ -8,6 +8,7 @@ import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
 import { PlaybillHeaderCard } from "./PlaybillHeaderCard"
+import { PLAYBILL_ANCHOR_MAX_WIDTH } from "../boards/domain/domainSwitcherTheme"
 import {
   fetchDomainSwitcherEntries,
   getCachedDomainSwitcherEntries,
@@ -80,6 +81,7 @@ interface KeeperTopBarProps {
   onBriefClick: () => void
   isBriefOpen?: boolean
   isPlaybillOpen?: boolean
+  playbillDropdown?: React.ReactNode
 }
 
 function getInitials(name: string | null, email: string | null): string {
@@ -170,6 +172,7 @@ export function KeeperTopBar({
   onBriefClick,
   isBriefOpen,
   isPlaybillOpen = false,
+  playbillDropdown,
 }: KeeperTopBarProps) {
   const {
     domainSlug,
@@ -235,20 +238,26 @@ export function KeeperTopBar({
   return (
     <div className="keeper-platform-top-bar relative z-50 shrink-0">
       <div className="keeper-topbar-identity-row">
-        <PlaybillHeaderCard
-          domainSlug={domainSlug}
-          domainId={domainId}
-          domainName={domainName}
-          coverImageUrl={coverImageUrl}
-          domainFrame={domainFrame}
-          domainLead={domainData}
-          leadAgentSlug={leadAgentSlug}
-          leadAgentName={
-            typeof domainData?.leadAgentName === "string" ? domainData.leadAgentName : null
-          }
-          onOpenPlaybill={onDomainClick}
-          isOpen={isPlaybillOpen}
-        />
+        <div
+          className="keeper-topbar-playbill-anchor"
+          style={{ maxWidth: PLAYBILL_ANCHOR_MAX_WIDTH }}
+        >
+          <PlaybillHeaderCard
+            domainSlug={domainSlug}
+            domainId={domainId}
+            domainName={domainName}
+            coverImageUrl={coverImageUrl}
+            domainFrame={domainFrame}
+            domainLead={domainData}
+            leadAgentSlug={leadAgentSlug}
+            leadAgentName={
+              typeof domainData?.leadAgentName === "string" ? domainData.leadAgentName : null
+            }
+            onOpenPlaybill={onDomainClick}
+            isOpen={isPlaybillOpen}
+          />
+          {isPlaybillOpen ? playbillDropdown : null}
+        </div>
 
         <div className="keeper-topbar-user">
           {!isGuest ? (
