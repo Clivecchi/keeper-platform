@@ -49,6 +49,7 @@ import {
 } from "../../treatment/resolveDomainTreatment"
 import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
+import { LibrarySharedContextRoadmapPanel } from "../../presence/chronicleDocument/LibrarySharedContextRoadmapPanel"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
@@ -337,23 +338,28 @@ function PanelBody({
     }
 
     return (
-      <ChronicleRecordView
-        objectType={objectType}
-        objectId={objectId}
-        domainId={domainId}
-        domainSlug={domainSlug}
-        domainDisplayName={domainName}
-        boardId={boardId}
-        layout={layout}
-        onJourneySelect={onJourneySelect}
-        onPathSelect={onPathSelect}
-        onMomentSelect={onMomentSelect}
-        onSessionSelect={onSessionSelect}
-        onKeySelect={boardCtx?.actions.onKeySelect}
-        onLabelResolved={onLabelResolved}
-        trailKey={subjectKey}
-        treatment={treatment}
-      />
+      <>
+        <ChronicleRecordView
+          objectType={objectType}
+          objectId={objectId}
+          domainId={domainId}
+          domainSlug={domainSlug}
+          domainDisplayName={domainName}
+          boardId={boardId}
+          layout={layout}
+          onJourneySelect={onJourneySelect}
+          onPathSelect={onPathSelect}
+          onMomentSelect={onMomentSelect}
+          onSessionSelect={onSessionSelect}
+          onKeySelect={boardCtx?.actions.onKeySelect}
+          onLabelResolved={onLabelResolved}
+          trailKey={subjectKey}
+          treatment={treatment}
+        />
+        {boardId === "domain" && subject.kind === "domain" ? (
+          <LibrarySharedContextRoadmapPanel />
+        ) : null}
+      </>
     )
   }
 

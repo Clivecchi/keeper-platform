@@ -60,6 +60,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-07-13 — ChronicleDocument pilot
+- Added `chronicleDocument/` — shared read shell, Library adapter, synthetic roadmap panel on domain idle
+
 ### 2026-07-07 — Configure load perf + Treatment fields
 - `KeeperPresence` stale-while-revalidate — existing Chronicle content stays visible during background refresh
 - Domain enrichment accepts shell `prefetchedFrame` to skip duplicate `GET /frame` on Configure open

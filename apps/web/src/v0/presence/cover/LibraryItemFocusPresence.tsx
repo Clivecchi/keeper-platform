@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import type { AgentCoverMode } from "./coverTypes"
 import { EntityCoverPresence } from "./EntityCoverPresence"
 import { DeclarationChronicleBlocks } from "../integrationChronicle/declarationChronicle"
 import { LibraryItemConfigPresence } from "../integrationChronicle/LibraryItemConfigPresence"
@@ -13,7 +14,8 @@ import {
   resolveLibraryItemCoverContent,
   type LibraryItemRecord,
 } from "./schemas/libraryItemCoverSchema"
-import type { AgentCoverMode } from "./coverTypes"
+import { ChronicleDocumentView } from "../chronicleDocument/ChronicleDocumentView"
+import { libraryItemToChronicleDocument } from "../chronicleDocument/libraryItemDocumentAdapter"
 
 export interface LibraryItemFocusPresenceProps {
   objectId: string
@@ -148,6 +150,12 @@ export function LibraryItemFocusPresence({
                 blocks={chronicleBlocks}
                 libraryFeed={feed}
               />
+            </div>
+          )}
+
+          {feed?.item && (
+            <div className="mt-6 pt-4 border-t border-[hsl(var(--theme-border-soft)/0.4)]">
+              <ChronicleDocumentView document={libraryItemToChronicleDocument(feed.item)} />
             </div>
           )}
         </motion.div>
