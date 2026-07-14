@@ -10,7 +10,8 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - `domainShellCache.ts` — Per-slug by-slug + audience cache; `prefetchDomainShell` (frame, domain, audience).
 - `domainShellBootstrap.ts` — `bootstrapDomainShell` orchestrator + `isDomainShellReady` predicate for load gate.
 - `domainShellPrefetch.ts` — Re-export of `prefetchDomainShell` (legacy import path).
-- `DomainAddPanel.tsx` — Create-domain form opened from switcher “Add a domain”.
+- `DomainAiAccessNav.tsx` — AI provider access summary (Agent Board).
+- `DomainExternalAccessNav.tsx` — domain MCP access keys for external tools (Domain / Realm / IDE nav).
 - `domainSwitcherTheme.ts` — Fixed light-on-dark ink tokens for picker readability.
 
 ## 🔄 Data & Behavior
@@ -28,6 +29,10 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+
+### 2026-07-14 — External Access keys
+- `DomainExternalAccessNav` — create/revoke domain-bound MCP keys (Library read); secret shown once
+
 - 2026-07-12: **Playbill dropdown** — `DomainSwitcher` renders inside `keeper-topbar-playbill-anchor` (no body portal); toggle on header click; add/status panels share anchored dropdown shell.
 - 2026-07-12: **Shell bootstrap** — `domainShellBootstrap.ts` parallelizes cold-load fetches; Chronicle enrichment reads cached by-slug record (no duplicate `GET /domains/:id`).
 - 2026-07-12: **Phase 1b mobile** — Domain board on ≤767px uses adaptive `UniversalBoard` (Nav · Dialog · Chronicle bottom bar); domain picker via top-bar playbill.

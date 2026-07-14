@@ -218,7 +218,7 @@ Do not recreate these problems:
 | Agent Classes registry | UI scaffolding only — `role` field is real and changes runtime | Persona = not implemented (not disabled); Standard/Lead/Coordinator = real |
 | Library legacy `/library` route | Retired — redirect to `?board=domain` | Do not rebuild standalone Library page |
 | Library write-only embeddings | **Resolved** — search + `library.read` + MCP tools on feature branches | Merge roadmap branches before extending |
-| MCP single shared key | Platform key retained; external Library access uses `KAM_LIBRARY_MCP_KEYS` scoped tokens | Never hand platform key to external tools |
+| MCP single shared key | Platform key retained; external access uses per-domain `DomainAccessKey` (Nav → External Access) or legacy `KAM_LIBRARY_MCP_KEYS` env | Never hand platform key to external tools |
 
 **Engagement Templates:** "Start Journey" failures often mean templates weren't seeded. Check `packages/database/prisma/seeds/journey-path-moment-engagement-templates.seed.ts`.
 

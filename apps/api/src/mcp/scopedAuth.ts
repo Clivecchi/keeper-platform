@@ -1,22 +1,21 @@
 /**
- * MCP scoped auth — KAM-style domain-bound tokens for external Library access.
+ * MCP scoped auth — platform key, legacy env keys, and domain-managed access keys.
  *
- * Rationale (see docs/library-shared-context-roadmap.md):
- * - OPAI_AGENT_MCP_KEY is a single shared secret — fine for in-platform agents, not external tools.
- * - Scoped keys carry explicit domainId + scopes (library.ro / library.rw) so Cursor/Claude cannot cross domains.
- *
- * Env: KAM_LIBRARY_MCP_KEYS — JSON array:
- * [{ "key": "...", "domainId": "...", "scopes": ["library.ro"] }]
+ * Rationale: docs/library-shared-context-roadmap.md
+ * Domain keys: `DomainAccessKey` table + Domain Config UI (preferred).
+ * Legacy env `KAM_LIBRARY_MCP_KEYS` retained for migration.
  */
 
 import type { Request } from 'express';
+import { authenticateDomainAccessKey } from '../services/DomainAccessKeyService.js';
 
-export type McpAuthMode = 'platform' | 'scoped';
+export type McpAuthMode = 'platform' | 'scoped' | 'domain';
 
 export type McpAuthContext = {
   mode: McpAuthMode;
   domainId: string | null;
   scopes: string[];
+  keyId?: string;
 };
 
 type ScopedLibraryKey = {
@@ -27,7 +26,7 @@ type ScopedLibraryKey = {
 
 let cachedScopedKeys: ScopedLibraryKey[] | null = null;
 
-function loadScopedLibraryKeys(): ScopedLibraryKey[] {
+function loadScopedLibraryKeysFromEnv(): ScopedLibraryKey[] {
   if (cachedScopedKeys) return cachedScopedKeys;
   const raw = process.env.KAM_LIBRARY_MCP_KEYS?.trim();
   if (!raw) {
@@ -60,31 +59,12 @@ function loadScopedLibraryKeys(): ScopedLibraryKey[] {
   }
 }
 
-export function resolveMcpAuth(req: Request): McpAuthContext | null {
-  const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, '')?.trim();
-  const apiKey = ((req.headers['x-api-key'] as string) || bearer || '').trim();
-  if (!apiKey) return null;
-
-  const platformKey = process.env.OPAI_AGENT_MCP_KEY?.trim();
-  if (platformKey && apiKey === platformKey) {
-    const headerDomain =
-      (req.headers['x-domain-id'] as string | undefined)?.trim() || null;
-    return {
-      mode: 'platform',
-      domainId: headerDomain,
-      scopes: ['*'],
-    };
-  }
-
-  const match = loadScopedLibraryKeys().find((row) => row.key === apiKey);
+function resolveEnvScopedKey(apiKey: string, headerDomain: string | null): McpAuthContext | null {
+  const match = loadScopedLibraryKeysFromEnv().find((row) => row.key === apiKey);
   if (!match) return null;
 
-  const headerDomain =
-    (req.headers['x-domain-id'] as string | undefined)?.trim() || match.domainId;
-
-  if (headerDomain !== match.domainId) {
-    return null;
-  }
+  const domainId = headerDomain ?? match.domainId;
+  if (domainId !== match.domainId) return null;
 
   return {
     mode: 'scoped',
@@ -93,7 +73,44 @@ export function resolveMcpAuth(req: Request): McpAuthContext | null {
   };
 }
 
+export async function resolveMcpAuth(req: Request): Promise<McpAuthContext | null> {
+  const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, '')?.trim();
+  const apiKey = ((req.headers['x-api-key'] as string) || bearer || '').trim();
+  if (!apiKey) return null;
+
+  const headerDomain =
+    (req.headers['x-domain-id'] as string | undefined)?.trim() || null;
+
+  const platformKey = process.env.OPAI_AGENT_MCP_KEY?.trim();
+  if (platformKey && apiKey === platformKey) {
+    return {
+      mode: 'platform',
+      domainId: headerDomain,
+      scopes: ['*'],
+    };
+  }
+
+  const domainMatch = await authenticateDomainAccessKey(apiKey);
+  if (domainMatch) {
+    const effectiveDomain = headerDomain ?? domainMatch.domainId;
+    if (effectiveDomain !== domainMatch.domainId) return null;
+    return {
+      mode: 'domain',
+      domainId: domainMatch.domainId,
+      scopes: domainMatch.scopes,
+      keyId: domainMatch.keyId,
+    };
+  }
+
+  return resolveEnvScopedKey(apiKey, headerDomain);
+}
+
 export function mcpAuthHasScope(ctx: McpAuthContext, scope: string): boolean {
   if (ctx.scopes.includes('*')) return true;
   return ctx.scopes.includes(scope);
+}
+
+/** Test helper — reset env key cache */
+export function resetMcpScopedKeyCacheForTests(): void {
+  cachedScopedKeys = null;
 }

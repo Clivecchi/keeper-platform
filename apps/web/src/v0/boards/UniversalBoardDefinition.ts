@@ -32,6 +32,7 @@ export type NavRenderBlock =
   | "integrations"
   | "keys"
   | "aiAccess"
+  | "externalAccess"
   | "capabilities"
   | "library"
   | "chatter"
@@ -99,6 +100,8 @@ export interface NavPanelDef {
    * Realm / Agent boards: soft AI access summary (included vs yours) — not the IDE key registry.
    */
   aiAccessSummary?: boolean
+  /** Domain / Realm / IDE: domain-bound MCP keys for external tools */
+  externalAccessSummary?: boolean
 }
 
 // Center panel — Dialog Frame
@@ -326,7 +329,7 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
       { id: "together-ai", label: "Together AI", group: "ai" },
       { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
     ],
-    navBlockOrder: ["drafts", "integrations", "keys", "capabilities", "boards"],
+    navBlockOrder: ["drafts", "integrations", "keys", "externalAccess", "capabilities", "boards"],
   },
   conversation: {
     agentSlug: "kip",
@@ -364,8 +367,9 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       boardDefs: false,
     },
     primarySection: "agents",
-    navBlockOrder: ["agents", "aiAccess", "boards"],
+    navBlockOrder: ["agents", "aiAccess", "externalAccess", "boards"],
     aiAccessSummary: true,
+    externalAccessSummary: true,
     // Full Keys + platform AI providers live on IDE Board only.
   },
   conversation: {
@@ -404,7 +408,8 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       library: true,
       boardDefs: false,
     },
-    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "boards"],
+    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "externalAccess", "boards"],
+    externalAccessSummary: true,
     keeperSectionTitle: "Keeper",
   },
   conversation: {
@@ -448,7 +453,8 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     },
     navMode: "contentGated",
     navAlwaysShow: ["dialogs"],
-    navBlockOrder: ["dialogs", "journeys", "library", "chatter", "connections", "boards"],
+    navBlockOrder: ["dialogs", "journeys", "library", "externalAccess", "chatter", "connections", "boards"],
+    externalAccessSummary: true,
   },
   conversation: {
     agentFromFrame: true,

@@ -1146,6 +1146,7 @@ model Domain {
   SslCertificate                                           SslCertificate[]
   presenceSchemas                                          PresenceSchema[]
   library_items                                            LibraryItem[]
+  domain_access_keys                                       DomainAccessKey[]
 
   @@index([slug])
   @@index([customDomain])
@@ -1997,6 +1998,28 @@ model Key {
   @@index([provider])
   @@index([integration_id])
   @@index([user_id])
+}
+
+/// Domain-scoped access tokens for external tools (MCP, Cursor, etc.) — hashed at rest.
+model DomainAccessKey {
+  id           String    @id @default(cuid())
+  domain_id    String    @map("domain_id")
+  label        String
+  key_prefix   String    @map("key_prefix")
+  key_hash     String    @unique @map("key_hash")
+  scopes       String[]  @default([])
+  status       String    @default("active")
+  expires_at   DateTime? @map("expires_at")
+  last_used_at DateTime? @map("last_used_at")
+  created_by   String?   @map("created_by")
+  created_at   DateTime  @default(now()) @map("created_at")
+  updated_at   DateTime  @updatedAt @map("updated_at")
+
+  domain Domain @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+
+  @@index([domain_id])
+  @@index([status])
+  @@map("domain_access_keys")
 }
 
 /// Platform capability registry — EntityKind presence.

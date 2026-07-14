@@ -46,9 +46,12 @@ Library isn't Drafts and shouldn't try to be. Drafts turns dialog into documenta
 | Mode | Key source | Domain | Scopes |
 |------|------------|--------|--------|
 | **Platform** | `OPAI_AGENT_MCP_KEY` | optional `x-domain-id` | `*` (all tools) |
-| **Scoped** | `KAM_LIBRARY_MCP_KEYS` JSON array | **must** match entry `domainId` + header | explicit e.g. `library.ro` |
+| **Scoped** | `KAM_LIBRARY_MCP_KEYS` JSON array (legacy env — migrate to Domain Access Keys) | **must** match entry `domainId` + header | explicit e.g. `library.ro` |
+| **Domain** | `DomainAccessKey` rows — created in Domain Nav → External Access | **must** match key's domain + `x-domain-id` | per-key scopes |
 
-**Env shape:**
+**Preferred:** Domain Config → **External Access** (Nav on Domain / Realm / IDE boards). Keys are hashed at rest; secret shown once on create.
+
+**Env shape (legacy only):**
 ```json
 KAM_LIBRARY_MCP_KEYS=[{"key":"…","domainId":"…","scopes":["library.ro"]}]
 ```
@@ -57,7 +60,7 @@ KAM_LIBRARY_MCP_KEYS=[{"key":"…","domainId":"…","scopes":["library.ro"]}]
 
 **Enforcement:** Library MCP tools declare `requiredCapability: 'library.ro'`. Scoped keys grant only declared scopes; platform key retains `*`. Auth middleware runs before `/call` and JSON-RPC tool dispatch.
 
-Implementation: `apps/api/src/mcp/scopedAuth.ts`, wired in `mcp/index.ts` and `mcp/jsonRpc.ts`.
+Implementation: `DomainAccessKey` Prisma model, `DomainAccessKeyService`, `apps/api/src/api/domains/domain-access-key-routes.ts`, `apps/api/src/mcp/scopedAuth.ts` (DB lookup before legacy env).
 
 ---
 
@@ -93,4 +96,5 @@ Implementation: `apps/api/src/mcp/scopedAuth.ts`, wired in `mcp/index.ts` and `m
 
 ## 📆 Update Log
 
+- **2026-07-14** — Domain-managed access keys (`DomainAccessKey` + External Access nav); MCP auth reads DB first, env fallback.
 - **2026-07-13** — Steps 1–11 implemented; MCP auth rationale and ownership decision documented; gloss anchor rule locked.

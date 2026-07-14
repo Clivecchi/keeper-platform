@@ -56,6 +56,7 @@ import {
   resolveDomainAudience,
   type DomainAudienceRole,
 } from '@keeper/shared';
+import domainAccessKeyRoutes from './domain-access-key-routes.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -499,6 +500,7 @@ router.use(kipDraftRoutes);
 router.use(kipDesignerRoutes);
 router.use(kipDialogRoutes);
 router.use(presenceSchemaRoutes);
+router.use(domainAccessKeyRoutes);
 
 // GET /api/domains/:domainId/kip/sole-memory-cards - Domain anchor SOLE (Option B)
 router.get('/:domainId/kip/sole-memory-cards', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {

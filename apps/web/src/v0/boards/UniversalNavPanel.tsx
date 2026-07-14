@@ -52,6 +52,7 @@ import {
   type KeyNavRow,
 } from "../presence/integrationChronicle/keyNavUtils"
 import { DomainAiAccessNav } from "./domain/DomainAiAccessNav"
+import { DomainExternalAccessNav } from "./domain/DomainExternalAccessNav"
 import {
   applyCapabilityNavRowPatch,
   capabilityChronicleTitle,
@@ -198,6 +199,7 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "integrations",
   "keys",
   "aiAccess",
+  "externalAccess",
   "capabilities",
   "library",
   "chatter",
@@ -799,6 +801,7 @@ export function UniversalNavPanel({
 
   const showKeysNav = (def.nav.integrations ?? []).some((item) => item.group === "ai")
   const showAiAccessNav = def.nav.aiAccessSummary === true
+  const showExternalAccessNav = def.nav.externalAccessSummary === true
   const keysDomainRef = React.useRef<string | null>(null)
 
   const handleAddDomainKey = React.useCallback(async () => {
@@ -1512,6 +1515,9 @@ export function UniversalNavPanel({
             onAddKey={() => void handleAddDomainKey()}
           />
         )
+      case "externalAccess":
+        if (!showExternalAccessNav) return null
+        return <DomainExternalAccessNav domainId={domainId} />
       case "library":
         if (!showLibraryNav) return null
         return (

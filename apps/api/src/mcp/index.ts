@@ -59,24 +59,30 @@ router.get('/health', (req: Request, res: Response) => {
  * Applied to all routes below this point
  */
 router.use((req: Request, res: Response, next: NextFunction) => {
-  const auth = resolveMcpAuth(req);
-  if (!auth) {
-    const t0 = Date.now();
-    const id = rid();
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('x-request-id', id);
-    res.status(401).json({
-      ok: false,
-      error: 'unauthorized',
-      timestamp: new Date().toISOString(),
-    });
-    logMcp(req, 401, t0, id);
-    return;
-  }
+  void (async () => {
+    try {
+      const auth = await resolveMcpAuth(req);
+      if (!auth) {
+        const t0 = Date.now();
+        const id = rid();
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('x-request-id', id);
+        res.status(401).json({
+          ok: false,
+          error: 'unauthorized',
+          timestamp: new Date().toISOString(),
+        });
+        logMcp(req, 401, t0, id);
+        return;
+      }
 
-  (req as any).domainId = auth.domainId ?? (req.headers['x-domain-id'] as string) ?? null;
-  (req as any).mcpAuth = auth;
-  next();
+      (req as any).domainId = auth.domainId ?? (req.headers['x-domain-id'] as string) ?? null;
+      (req as any).mcpAuth = auth;
+      next();
+    } catch (err) {
+      next(err);
+    }
+  })();
 });
 
 /**

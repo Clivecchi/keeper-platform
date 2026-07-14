@@ -11,6 +11,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `kip-drafts.ts` – Domain-scoped Kip draft directory and session active-draft pointer routes.
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
 - `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, update/archive, resolve-active.
+- `domain-access-key-routes.ts` – Domain external access keys (MCP): list, create (secret once), revoke.
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
 - `frameOperationalKeys.ts` – Frozen operational keys (`session_notes`, `platform_gaps`) stripped on boot GET, omitted from PATCH/publish writes.
 - `DOMAIN_HOME_BOARD_CHECKLIST.md` – Manual verification checklist for domain-home board ensure.
@@ -41,6 +42,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-07-14: **External access keys** — `GET/POST /:domainId/access-keys`, `POST .../:id/revoke`; hashed secrets; MCP auth resolves DB keys before legacy env.
 - 2026-07-07: `PATCH /:slug/frame` deep-merges `treatment.palette` and `treatment.font` (partial Chronicle Treatment saves no longer wipe sibling keys).
 - 2026-07-03: **`kip-dialogs` bootstrap perf** — `resolve/active` and dialog GET return session metadata + `messageCount` only (no full `kip_messages` on board load; messages load via `/api/kip/agents?messages=true`).
 - 2026-07-03: **provision repair** — `POST /:id/provision` creates missing `frame_json.kip.agent_id` lead row even when `settings.primaryAgentId` already points at platform `kip`; syncs frame agent_id when out of date.
