@@ -13,6 +13,7 @@ import { rid } from './id.js';
 import { mcpListActions, mcpCallAction, mcpGetCapabilities } from './core.js';
 import { jsonRpcDispatcher } from './jsonRpc.js';
 import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
+import { resolveMcpAuth } from './scopedAuth.js';
 
 const router = Router();
 
@@ -58,27 +59,23 @@ router.get('/health', (req: Request, res: Response) => {
  * Applied to all routes below this point
  */
 router.use((req: Request, res: Response, next: NextFunction) => {
-  const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-  const apiKey = (req.headers['x-api-key'] as string) || bearer;
-  const expected = process.env.OPAI_AGENT_MCP_KEY?.trim();
-  
-  if (!expected || apiKey !== expected) {
+  const auth = resolveMcpAuth(req);
+  if (!auth) {
     const t0 = Date.now();
     const id = rid();
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('x-request-id', id);
-    res.status(401).json({ 
-      ok: false, 
+    res.status(401).json({
+      ok: false,
       error: 'unauthorized',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     logMcp(req, 401, t0, id);
     return;
   }
-  
-  // Extract optional domain ID for scoping
-  (req as any).domainId = (req.headers['x-domain-id'] as string) ?? null;
-  
+
+  (req as any).domainId = auth.domainId ?? (req.headers['x-domain-id'] as string) ?? null;
+  (req as any).mcpAuth = auth;
   next();
 });
 
@@ -289,13 +286,18 @@ router.post('/call', async (req: Request, res: Response) => {
     const agentId = (req.headers['x-agent-id'] as string) ?? undefined;
     const boardId = (req.headers['x-board-id'] as string) ?? undefined;
     const resolvedCaps = await resolveAgentCapabilities({ agentSlug, agentId, boardId });
+    const mcpAuth = (req as any).mcpAuth as { scopes?: string[] } | undefined;
+    const mergedCapabilities = [
+      ...(resolvedCaps?.capabilities ?? []),
+      ...(mcpAuth?.scopes ?? []),
+    ];
 
     const result = await mcpCallAction(
       String(name), 
       args ?? {}, 
       {
         domainId: (req as any).domainId ?? null,
-        agentCapabilities: resolvedCaps?.capabilities,
+        agentCapabilities: mergedCapabilities,
       }
     );
     

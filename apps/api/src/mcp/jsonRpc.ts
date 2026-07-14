@@ -180,15 +180,20 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     if (body.action && body.name) params.name = body.name;
     if (body.action && body.arguments) params.arguments = body.arguments;
 
-    // Extract domain context from headers
-    const domainId = (req.headers['x-domain-id'] as string) ?? null;
+    // Extract domain context from headers + scoped MCP auth
+    const mcpAuth = (req as any).mcpAuth as { domainId?: string | null; scopes?: string[] } | undefined;
+    const domainId =
+      mcpAuth?.domainId ?? ((req.headers['x-domain-id'] as string) ?? null);
     const agentSlug = (req.headers['x-agent-slug'] as string) ?? undefined;
     const agentId = (req.headers['x-agent-id'] as string) ?? undefined;
     const boardId = (req.headers['x-board-id'] as string) ?? undefined;
     const resolvedCaps = await resolveAgentCapabilities({ agentSlug, agentId, boardId });
     const ctx = {
       domainId,
-      agentCapabilities: resolvedCaps?.capabilities,
+      agentCapabilities: [
+        ...(resolvedCaps?.capabilities ?? []),
+        ...(mcpAuth?.scopes ?? []),
+      ],
     };
 
     // Dispatch to appropriate handler

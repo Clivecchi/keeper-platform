@@ -11,6 +11,7 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 - `core.ts` - Core business logic (shared by REST and JSON-RPC)
 - `cors.ts` - CORS middleware (universal headers for OpenAI Agent Builder)
 - `tools.ts` - Tool registry and handlers
+- `scopedAuth.ts` - KAM-scoped domain-bound MCP keys (`KAM_LIBRARY_MCP_KEYS`)
 - `log.ts` - Structured logging for production diagnostics
 - `id.ts` - Request ID generator for correlation
 - `auth.ts` - Authentication helper
@@ -19,15 +20,21 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 ## 🔄 Data & Behavior
 
 ### Authentication
-- Uses static API key from `OPAI_AGENT_MCP_KEY` env var
+- **Platform key:** `OPAI_AGENT_MCP_KEY` — full scope (`*`), optional `x-domain-id`
+- **Scoped keys:** `KAM_LIBRARY_MCP_KEYS` JSON array — `{ key, domainId, scopes: ["library.ro"] }`; header `x-domain-id` must match entry
 - Accepts key from either:
   - `Authorization: Bearer <key>`
   - `x-api-key: <key>`
-- Optional `x-domain-id` header for domain scoping
+
+See `docs/library-shared-context-roadmap.md` for rationale.
 
 ### Available Tools
-1. **`gk_recent_moments`** - List recent GenerationKeeper moments
-2. **`pool_create_quote`** - Create PoolKeeper quote with business rules
+Library (read-only, `library.ro`):
+1. **`library_list`** — recent Library items for domain
+2. **`library_get`** — single LibraryItem by id
+3. **`library_search`** — semantic search over perspectives
+
+Legacy / infra tools (capability-gated): Railway, Vercel, GitHub, integrations, etc.
 
 ### Endpoints
 
@@ -986,6 +993,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 **2025-10-22 (v7)**: Fixed Vercel routing to forward `POST /mcp` to Railway API. Added exact path rewrite for `/mcp` (not just `/mcp/*`) in `vercel.json`. This resolves 405 Method Not Allowed errors when OpenAI Agent Builder POSTs to the base MCP endpoint. Vercel now correctly proxies both `/mcp` and `/mcp/*` to Railway.
 
 **2025-10-22 (v6)**: Added JSON-RPC 2.0 dispatcher (`jsonRpc.ts`, `core.ts`) to fix OpenAI Agent Builder 424 errors. Base endpoint `POST /mcp` now accepts JSON-RPC requests with methods `list_actions`, `call_action`, `capabilities`. Extracted core logic to `core.ts` for reuse by both REST and JSON-RPC dispatchers. Supports both standard JSON-RPC 2.0 format and simplified format. OpenAI Agent Builder now connects successfully without 424 errors!
+
+**2026-07-13 (v6)**: Scoped MCP auth (`scopedAuth.ts`, `KAM_LIBRARY_MCP_KEYS`); Library read tools (`library_list`, `library_get`, `library_search`); JSON-RPC merges scoped capabilities with agent caps.
 
 **2025-10-21 (v5)**: Added production-safe structured logging (`log.ts`, `id.ts`) for troubleshooting OpenAI Agent 424s. All endpoints now emit `[MCP]` JSON logs with request ID, status, latency, hasAuth flag (no secrets). Added `/_diag` diagnostic endpoint. All responses include `x-request-id` header for correlation. CORS middleware logs origin decisions separately.
 
