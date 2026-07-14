@@ -35,6 +35,7 @@ import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
 import { resolveAgentCapabilities } from '../../capabilities/resolveCapabilities.js';
 import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
+import { searchLibraryItems } from '../../services/LibraryItemSearchService.js';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -794,6 +795,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('moment.create');
   allow.add('sole.save');
   allow.add('sole.read');
+  allow.add('library.read');
   allow.add('journey.read');
   allow.add('moment.read');
   allow.add('keeper.read');
@@ -1099,6 +1101,7 @@ export async function executeAgentActions(
     'moment.create',
     'sole.save',
     'sole.read',
+    'library.read',
     'journey.read',
     'moment.read',
     'keeper.read',
@@ -2584,6 +2587,94 @@ export async function executeAgentActions(
             break;
           }
 
+          case 'library.read': {
+            const payload = action.payload ?? {};
+            const itemId = typeof payload.id === 'string' ? payload.id.trim() : '';
+            const query = typeof payload.query === 'string' ? payload.query.trim() : '';
+            const limit =
+              typeof payload.limit === 'number' && payload.limit >= 1 && payload.limit <= 50
+                ? payload.limit
+                : 10;
+
+            if (!ctx.domainId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'No domain context for library.read',
+                errorCode: 'MISSING_CONTEXT',
+              });
+              break;
+            }
+
+            try {
+              if (itemId) {
+                const item = await tx.libraryItem.findFirst({
+                  where: { id: itemId, domain_id: ctx.domainId },
+                });
+                if (!item) {
+                  results.push({
+                    type: action.type,
+                    status: 'error',
+                    message: `Library item ${itemId} not found in this domain`,
+                    errorCode: 'NOT_FOUND',
+                  });
+                  break;
+                }
+                results.push({
+                  type: action.type,
+                  status: 'success',
+                  message: `Library item "${item.display_label ?? item.id}" retrieved`,
+                  data: {
+                    entityIds: [item.id],
+                    item: {
+                      id: item.id,
+                      display_label: item.display_label,
+                      source_type: item.source_type,
+                      source_ref: item.source_ref,
+                      description: item.description,
+                      agent_perspective: item.agent_perspective,
+                    },
+                  },
+                });
+                break;
+              }
+
+              if (!query) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: 'library.read requires id or query',
+                  errorCode: 'VALIDATION_ERROR',
+                });
+                break;
+              }
+
+              const hits = await searchLibraryItems({
+                domainId: ctx.domainId,
+                query,
+                limit,
+                userId: ctx.userId ?? null,
+              });
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Found ${hits.length} library item${hits.length !== 1 ? 's' : ''} for query`,
+                data: { query, results: hits },
+              });
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : 'Failed to read library items';
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
           case 'mcp.call': {
             const payload = action.payload ?? {};
             const toolName = typeof payload.name === 'string' ? payload.name.trim() : '';
@@ -3963,6 +4054,9 @@ export class KipAgentService {
         '',
         'keeper.read — retrieves full Keeper content including associated journeys and counts.',
         'Use when a user asks about a specific Keeper. Payload: { keeperId }',
+        '',
+        'library.read — retrieves a Library item by id or semantic search over domain library.',
+        'Payload: { id } OR { query, limit? }. Use for reference material, uploads, and linked sources.',
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrites one proposed/pending point in place. Payload: { id, pointId, content, type? }. Accepted points are anchors — not rewritable.',
