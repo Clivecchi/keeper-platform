@@ -28,6 +28,8 @@ Before touching any code, read these canonical documents:
 | `Keeper jsonframe spec.md` | JSON UI Frame build sequence (Steps 1–6) | High — March 2026 — verify exact filename in repo root |
 | `docs/build-handoffs/schema.md` | Cloud → Cursor handoff contract (territory routing, JSON shape) | High — Phase 0 file handoffs; Phase 1 MCP |
 | `docs/universal-board-dialog-orchestration.md` | Dialog orchestration modes on Universal Board (solo, director, roundtable, hot_seat, chorus) | High — director near-term |
+| `docs/library-shared-context-roadmap.md` | Library connective index, MCP auth, read/search sequence | High — July 2026 |
+| `docs/chronicle-document-architecture.md` | Chronicle Layer 1–2 + ChronicleDocument read shell | High — July 2026 |
 | `.cursor/rules/root-rules.mdc` | Monorepo rules, ops contract, CI/CD | High — technical rules valid; §12 Kip framing outdated |
 | `.cursor/rules/readme-policy.mdc` | README + docs/modules/ sync on folder changes | Always apply |
 | `.cursor/rules/strict-types.mdc` | TypeScript export conventions | Always apply |
@@ -42,6 +44,19 @@ If a document conflicts with the Prisma schema or live codebase, **the codebase 
 ```
 Domain → Keeper → Journey → Path → Moment
 ```
+
+**Library (EntityKind — domain-scoped reference index, not a hierarchy layer):**
+```
+Domain → LibraryItem (uploads, URLs, read-only pointers)
+```
+
+Library is a **connective index** across context stores — not a replacement for Drafts or SOLE. Primary content: ingested uploads/links with `agent_perspective` + embeddings. Pointers (`keeper://draft/{id}`, `keeper://sole/{id}`, `doc://{path}` in `source_ref`) surface other stores read-only. Member UI: Universal Board Chronicle (`?board=domain`); legacy `/library` retired.
+
+**Read paths:** `GET /api/library-items/search`, Kip `library.read`, MCP `library_list` / `library_get` / `library_search` (scoped auth — see roadmap doc).
+
+**Gloss:** persist → promote to `LibraryItem`; in-session diagnostics → ephemeral message-anchored gloss.
+
+→ Full sequence: `docs/library-shared-context-roadmap.md`
 
 **Experience runtime (separate layer — do not collapse into data model):**
 ```
@@ -201,6 +216,9 @@ Do not recreate these problems:
 | Role matrix display bug | `GET /api/admin/roles/users` returns `roles: []` — line 45, explicit comment in `apps/api/src/api/admin/roles.ts` | Fix with Board redesign, not in isolation |
 | Memory Patterns registry | UI scaffolding only — no API or DB table | SOLE is real (service layer); registry is not connected to it |
 | Agent Classes registry | UI scaffolding only — `role` field is real and changes runtime | Persona = not implemented (not disabled); Standard/Lead/Coordinator = real |
+| Library legacy `/library` route | Retired — redirect to `?board=domain` | Do not rebuild standalone Library page |
+| Library write-only embeddings | **Resolved** — search + `library.read` + MCP tools on feature branches | Merge roadmap branches before extending |
+| MCP single shared key | Platform key retained; external Library access uses `KAM_LIBRARY_MCP_KEYS` scoped tokens | Never hand platform key to external tools |
 
 **Engagement Templates:** "Start Journey" failures often mean templates weren't seeded. Check `packages/database/prisma/seeds/journey-path-moment-engagement-templates.seed.ts`.
 
