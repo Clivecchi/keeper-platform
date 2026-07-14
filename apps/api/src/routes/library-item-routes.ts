@@ -6,10 +6,53 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { resolveLibraryChronicleDefaults } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import {
+  requireDomainReadCompat,
+  requireDomainWriteCompat,
+} from '../middleware/domainPermissionMiddleware.js';
 import { contextualizeLibraryItem } from '../services/LibraryItemIngestionService.js';
 import { diagnosePgVectorExtension } from '../services/LibraryItemEmbeddingService.js';
 
 const router = Router();
+
+/** Resolve domainId for permission middleware on item-scoped routes. */
+async function attachLibraryItemDomainContext(
+  req: Request,
+  res: Response,
+  next: (err?: unknown) => void,
+): Promise<void> {
+  try {
+    const id = typeof req.params.id === 'string' ? req.params.id : '';
+    if (!id) {
+      res.status(400).json({ error: 'Library item id is required' });
+      return;
+    }
+
+    const row = await prisma.libraryItem.findUnique({
+      where: { id },
+      select: { domain_id: true },
+    });
+    if (!row) {
+      res.status(404).json({ error: 'Library item not found' });
+      return;
+    }
+
+    req.query.domainId = row.domain_id;
+    next();
+  } catch (err) {
+    console.error('[library-items/domain-context]', err);
+    res.status(500).json({ error: 'Failed to resolve library item domain' });
+  }
+}
+
+/** POST body uses domain_id — map to query for ensureDomainContext. */
+function attachCreateBodyDomainContext(req: Request, _res: Response, next: (err?: unknown) => void): void {
+  const body = req.body as { domain_id?: unknown } | undefined;
+  if (typeof body?.domain_id === 'string' && body.domain_id.trim()) {
+    req.query.domainId = body.domain_id.trim();
+  }
+  next();
+}
 
 const FUNCTIONAL_SOURCE_TYPES = ['upload', 'url'] as const;
 
@@ -173,7 +216,7 @@ router.get('/diagnostics/pgvector', authMiddlewareCompat, async (_req: Request, 
 /**
  * GET /api/library-items?domainId=
  */
-router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.get('/', authMiddlewareCompat, requireDomainReadCompat, async (req: Request, res: Response) => {
   try {
     const domainId = typeof req.query.domainId === 'string' ? req.query.domainId : '';
     if (!domainId) {
@@ -200,7 +243,12 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
 /**
  * POST /api/library-items
  */
-router.post('/', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
+router.post(
+  '/',
+  authMiddlewareCompat,
+  attachCreateBodyDomainContext,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parsed = createLibraryItemSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -261,7 +309,12 @@ router.post('/', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Re
 /**
  * GET /api/library-items/:id
  */
-router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.get(
+  '/:id',
+  authMiddlewareCompat,
+  attachLibraryItemDomainContext,
+  requireDomainReadCompat,
+  async (req: Request, res: Response) => {
   try {
     const row = await prisma.libraryItem.findUnique({
       where: { id: req.params.id },
@@ -281,7 +334,12 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
 /**
  * PATCH /api/library-items/:id
  */
-router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.patch(
+  '/:id',
+  authMiddlewareCompat,
+  attachLibraryItemDomainContext,
+  requireDomainWriteCompat,
+  async (req: Request, res: Response) => {
   try {
     const parsed = patchLibraryItemSchema.safeParse(req.body);
     if (!parsed.success) {
