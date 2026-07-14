@@ -12,6 +12,7 @@ import {
 } from '../middleware/domainPermissionMiddleware.js';
 import { contextualizeLibraryItem } from '../services/LibraryItemIngestionService.js';
 import { diagnosePgVectorExtension } from '../services/LibraryItemEmbeddingService.js';
+import { searchLibraryItems } from '../services/LibraryItemSearchService.js';
 
 const router = Router();
 
@@ -211,6 +212,36 @@ const libraryInclude = {
 router.get('/diagnostics/pgvector', authMiddlewareCompat, async (_req: Request, res: Response) => {
   const diag = await diagnosePgVectorExtension();
   return res.status(200).json({ success: true, data: diag });
+});
+
+/**
+ * GET /api/library-items/search?domainId=&q=&limit=
+ */
+router.get('/search', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const domainId = typeof req.query.domainId === 'string' ? req.query.domainId : '';
+    const query = typeof req.query.q === 'string' ? req.query.q : '';
+    const limitRaw = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : undefined;
+
+    if (!domainId) {
+      return res.status(400).json({ error: 'domainId query parameter is required' });
+    }
+    if (!query.trim()) {
+      return res.status(400).json({ error: 'q query parameter is required' });
+    }
+
+    const results = await searchLibraryItems({
+      domainId,
+      query,
+      limit: limitRaw,
+      userId: req.user?.id,
+    });
+
+    return res.status(200).json({ success: true, data: results, query });
+  } catch (err) {
+    console.error('[library-items/search]', err);
+    return res.status(500).json({ error: 'Failed to search library items' });
+  }
 });
 
 /**

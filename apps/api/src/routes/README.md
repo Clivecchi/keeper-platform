@@ -172,6 +172,10 @@ Using `requestId` prevents duplicate operations:
 
 ## 📆 Update Log
 
+### 2026-07-13 — Library semantic search endpoint
+- `GET /api/library-items/search?domainId=&q=` — cosine similarity over stored `Float[]` embeddings
+- `LibraryItemSearchService.ts` — query embedding via OpenAI, in-domain scan (Pass 1, no pgvector)
+
 ### 2026-07-13 — Library routes domain permission middleware
 - `GET/POST/PATCH /api/library-items` now use `requireDomainReadCompat` / `requireDomainWriteCompat` (same pattern as `kip-drafts`)
 - Item-scoped routes resolve `domainId` from the library row before permission check
