@@ -62,6 +62,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-07-13 — ChronicleDocument pilot
+- Added `chronicleDocument/` — shared read shell, Library adapter, synthetic roadmap panel on domain idle
+
 ### 2026-07-13 — Chronicle Layer 2 registry pilot (library)
 - `chronicleEntityRegistry.ts` + `ChronicleEntityView.tsx` — registry lookup replaces library if-branch in `KeeperPresence`
 - `ChroniclePresenceView` routes registered kinds through registry before legacy fallback

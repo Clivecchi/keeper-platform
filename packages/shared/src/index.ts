@@ -24,3 +24,6 @@ export * from './domains/keeperDomainsHost.js';
 export * from './platformDomainSlug.js';
 export * from './recordNaming.js';
 export * from './realm/feed.js';
+export * from './chronicleSubject.js';
+export * from './chronicleDocument.js';
+export * from './libraryPointer.js';

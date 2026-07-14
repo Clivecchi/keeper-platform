@@ -1,5 +1,5 @@
-/**
- * Library EntityKind routes — Pass 1 (upload + url ingestion).
+﻿/**
+ * Library EntityKind routes ΓÇö Pass 1 (upload + url ingestion).
  */
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
@@ -315,7 +315,7 @@ router.post(
       include: libraryInclude,
     });
 
-    // Ingestion (vision + embedding) runs async — blob upload is already done.
+    // Ingestion (vision + embedding) runs async ΓÇö blob upload is already done.
     void contextualizeLibraryItem({
       libraryItemId: created.id,
       sourceType: parsed.data.source_type,
