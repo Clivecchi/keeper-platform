@@ -116,6 +116,10 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-07-13 — Chronicle Layer-1 compat shim (PR4)
+- `UniversalViewPanel` routes via `@keeper/shared` `resolveChronicleView` + `chronicleSubjectToLegacyKindId` instead of inline `resolveKindId` if-chain
+- Legacy flat nullable IDs unchanged; `TrailKind` aliases `ChronicleLegacyKind`
+
 ### 2026-06-10 — Board URL sync (see boards/README)
 - Live-subject Chronicle render; trail breadcrumb-only
 

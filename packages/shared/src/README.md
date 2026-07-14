@@ -18,6 +18,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-07-13: Added `chronicleSubject.ts` — Layer-1 ChronicleSubject/ChronicleOverlay types, `resolveChronicleView`, and legacy ID compat helpers (see `docs/chronicle-document-architecture.md`).
 - 2025-11-22: Added canonical board slug helpers to coordinate logged-in experience rendering.
 
 

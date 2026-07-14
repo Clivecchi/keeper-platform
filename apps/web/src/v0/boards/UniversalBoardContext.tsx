@@ -23,8 +23,8 @@ import * as React from "react"
 import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
-import type { GlossAnchor } from "@keeper/shared"
-import { glossAnchorToDraftDiscuss } from "@keeper/shared"
+import type { GlossAnchor, ChronicleView } from "@keeper/shared"
+import { glossAnchorToDraftDiscuss, resolveChronicleView } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
@@ -175,6 +175,8 @@ export interface UniversalBoardContextValue {
   actions: UniversalBoardActions
   /** Active engagement form — renders in Chronicle, never in Nav. */
   chronicleEngagement: BoardEngagementIntent | null
+  /** Layer-1 Chronicle subject + overlay derived from selection (compat shim). */
+  chronicleView: ChronicleView
   /** Whether the left nav panel is collapsed. Controlled by the board. */
   navCollapsed: boolean
   onToggleNavCollapsed: () => void
@@ -706,6 +708,46 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   // ── Value ─────────────────────────────────────────────────────────────────
 
+  const chronicleView = React.useMemo(
+    () =>
+      resolveChronicleView(
+        {
+          selectedDialogId,
+          selectedJourneyId,
+          selectedPathId,
+          selectedMomentId,
+          selectedKeeperId,
+          selectedDraftId,
+          selectedAgentId,
+          selectedServiceSlug,
+          selectedKeyId,
+          selectedCapabilityId,
+          selectedLibraryItemId,
+          selectedSoleMemoryId,
+          selectedBoardDefId,
+        },
+        chronicleEngagement
+          ? { templateSlug: chronicleEngagement.template.slug }
+          : null,
+      ),
+    [
+      selectedDialogId,
+      selectedJourneyId,
+      selectedPathId,
+      selectedMomentId,
+      selectedKeeperId,
+      selectedDraftId,
+      selectedAgentId,
+      selectedServiceSlug,
+      selectedKeyId,
+      selectedCapabilityId,
+      selectedLibraryItemId,
+      selectedSoleMemoryId,
+      selectedBoardDefId,
+      chronicleEngagement,
+    ],
+  )
+
   const value = React.useMemo<UniversalBoardContextValue>(
     () => ({
       selection: {
@@ -788,6 +830,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       navCollapsed,
       onToggleNavCollapsed,
       chronicleEngagement,
+      chronicleView,
     }),
     [
       activeSessionId,
@@ -867,6 +910,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       navCollapsed,
       onToggleNavCollapsed,
       chronicleEngagement,
+      chronicleView,
     ],
   )
 

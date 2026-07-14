@@ -13,7 +13,7 @@
  *   Panel Body   — KeeperPresence for every subject type, opacity dissolve on shift
  *   Idle State   — KeeperPresence objectType="domain" (never empty)
  *
- * Panel Body renders from live board selection (resolveKindId) on every frame.
+ * Panel Body renders from live board selection (resolveChronicleView) on every frame.
  * Trail history is breadcrumb UI only — it does not gate Chronicle content.
  *
  * Motion — Framer Motion only at this tier:
@@ -32,6 +32,12 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { loadJourneyNavRows, getCachedBoardNavData } from "../boardNavDataCache"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
+import {
+  chronicleSubjectKey,
+  chronicleSubjectToLegacyKindId,
+  resolveChronicleView,
+  type ChronicleLegacyKind,
+} from "@keeper/shared"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
 import { useBoardDefinitionFromUrl } from "../useBoardDefinitionFromUrl"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
@@ -46,21 +52,7 @@ import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
-type TrailKind =
-  | "domain"
-  | "dialog"
-  | "journey"
-  | "path"
-  | "moment"
-  | "keeper"
-  | "draft"
-  | "agent"
-  | "service"
-  | "key"
-  | "capability"
-  | "library"
-  | "soleMemory"
-  | "boardDef"
+type TrailKind = ChronicleLegacyKind
 type TrailDirection = "forward" | "back"
 
 interface TrailEntry {
@@ -288,7 +280,7 @@ function ChronicleRecordView({
 
 interface PanelBodyProps {
   subject: { kind: TrailKind; id: string | null }
-  /** Stable key for motion + label resolution — matches resolveKindId contextKey. */
+  /** Stable key for motion + label resolution — matches resolveChronicleView contextKey. */
   subjectKey: string
   domainId: string | null
   domainName: string
@@ -460,41 +452,34 @@ export function UniversalViewPanel({
   const handleMomentSelect =
     onMomentSelect ?? boardCtx?.actions.onMomentSelect
   const handleSessionSelect = boardCtx?.actions.onSessionSelect
+  const chronicleEngagement = boardCtx?.chronicleEngagement ?? null
 
   // Universal priority — same on every board. viewStates does not gate routing.
-  function resolveKindId(): { kind: TrailKind; id: string | null } {
-    if (boardCtx?.selection.selectedSoleMemoryId) {
-      return { kind: "soleMemory", id: boardCtx.selection.selectedSoleMemoryId }
-    }
-    if (boardDefinitionId && def.boardId === "designer")
-      return { kind: "boardDef", id: boardDefinitionId }
-    if (boardCtx?.selection.selectedKeyId)
-      return { kind: "key", id: boardCtx.selection.selectedKeyId }
-    if (boardCtx?.selection.selectedCapabilityId)
-      return { kind: "capability", id: boardCtx.selection.selectedCapabilityId }
-    if (boardCtx?.selection.selectedLibraryItemId)
-      return { kind: "library", id: boardCtx.selection.selectedLibraryItemId }
-    if (resolved.selectedServiceSlug)
-      return { kind: "service", id: resolved.selectedServiceSlug }
-    if (resolved.selectedDialogId)
-      return { kind: "dialog", id: resolved.selectedDialogId }
-    if (resolved.selectedDraftId)
-      return { kind: "draft", id: resolved.selectedDraftId }
-    if (resolved.selectedAgentId)
-      return { kind: "agent", id: resolved.selectedAgentId }
-    if (resolved.selectedMomentId)
-      return { kind: "moment", id: resolved.selectedMomentId }
-    if (boardCtx?.selection.selectedPathId)
-      return { kind: "path", id: boardCtx.selection.selectedPathId }
-    if (resolved.selectedJourneyId)
-      return { kind: "journey", id: resolved.selectedJourneyId }
-    if (resolved.selectedKeeperId)
-      return { kind: "keeper", id: resolved.selectedKeeperId }
-    return { kind: "domain", id: null }
-  }
+  const chronicleView = resolveChronicleView(
+    {
+      selectedDialogId: resolved.selectedDialogId,
+      selectedJourneyId: resolved.selectedJourneyId,
+      selectedPathId: boardCtx?.selection.selectedPathId ?? null,
+      selectedMomentId: resolved.selectedMomentId,
+      selectedKeeperId: resolved.selectedKeeperId,
+      selectedDraftId: resolved.selectedDraftId,
+      selectedAgentId: resolved.selectedAgentId,
+      selectedServiceSlug: resolved.selectedServiceSlug,
+      selectedKeyId: boardCtx?.selection.selectedKeyId ?? null,
+      selectedCapabilityId: boardCtx?.selection.selectedCapabilityId ?? null,
+      selectedLibraryItemId: boardCtx?.selection.selectedLibraryItemId ?? null,
+      selectedSoleMemoryId: boardCtx?.selection.selectedSoleMemoryId ?? null,
+      selectedBoardDefId: boardCtx?.selection.selectedBoardDefId ?? null,
+      boardDefinitionId,
+      isDesignerBoard: def.boardId === "designer",
+    },
+    chronicleEngagement
+      ? { templateSlug: chronicleEngagement.template.slug }
+      : null,
+  )
 
-  const { kind, id } = resolveKindId()
-  const contextKey = `${kind}:${id ?? "_"}`
+  const { kind, id } = chronicleSubjectToLegacyKindId(chronicleView.effective)
+  const contextKey = chronicleSubjectKey(chronicleView.effective)
 
   const labelCache = React.useRef(new Map<string, string>())
 
@@ -662,7 +647,6 @@ export function UniversalViewPanel({
   const liveSubject = { kind, id }
 
   const isFocused = liveSubject.kind !== "domain" || liveSubject.id != null
-  const chronicleEngagement = boardCtx?.chronicleEngagement ?? null
 
   return (
     <div
