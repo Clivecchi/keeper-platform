@@ -7,6 +7,8 @@ import { VercelDeploymentService } from '../services/VercelDeploymentService.js'
 import { GitHubService } from '../services/GitHubService.js';
 import { IntegrationMcpService } from '../services/IntegrationMcpService.js';
 import { ResendService } from '../services/ResendService.js';
+import { prisma } from '@keeper/database';
+import { searchLibraryItems } from '../services/LibraryItemSearchService.js';
 
 export type ToolContext = {
   domainId: string | null;
@@ -435,6 +437,84 @@ const tools: Tool[] = [
     async handler(_args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'resend_get_status')!, ctx);
       return ResendService.getStatus();
+    },
+  },
+  {
+    name: 'library_list',
+    description:
+      'List Library items for the current domain. Required capability: library.ro. Requires x-domain-id.',
+    requiredCapability: 'library.ro',
+    parameters: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', minimum: 1, maximum: 50, default: 20 },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'library_list')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const limit = Math.min(Math.max(Number(args?.limit ?? 20), 1), 50);
+      const rows = await prisma.libraryItem.findMany({
+        where: { domain_id: ctx.domainId },
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          display_label: true,
+          source_type: true,
+          source_ref: true,
+          agent_perspective: true,
+          updated_at: true,
+        },
+      });
+      return { domainId: ctx.domainId, items: rows };
+    },
+  },
+  {
+    name: 'library_get',
+    description:
+      'Get one Library item by id in the current domain. Required capability: library.ro.',
+    requiredCapability: 'library.ro',
+    parameters: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id: { type: 'string', description: 'LibraryItem id' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'library_get')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const id = String(args.id ?? '').trim();
+      if (!id) throw new Error('id is required');
+      const item = await prisma.libraryItem.findFirst({
+        where: { id, domain_id: ctx.domainId },
+      });
+      if (!item) throw new Error(`Library item not found: ${id}`);
+      return { item };
+    },
+  },
+  {
+    name: 'library_search',
+    description:
+      'Semantic search over Library item perspectives in the current domain. Required capability: library.ro.',
+    requiredCapability: 'library.ro',
+    parameters: {
+      type: 'object',
+      required: ['query'],
+      properties: {
+        query: { type: 'string', description: 'Natural language search query' },
+        limit: { type: 'number', minimum: 1, maximum: 20, default: 10 },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'library_search')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const query = String(args.query ?? '').trim();
+      if (!query) throw new Error('query is required');
+      const limit = Math.min(Math.max(Number(args?.limit ?? 10), 1), 20);
+      const results = await searchLibraryItems({ domainId: ctx.domainId, query, limit });
+      return { query, results };
     },
   },
 ];
