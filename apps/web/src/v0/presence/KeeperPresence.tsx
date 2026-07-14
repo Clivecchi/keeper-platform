@@ -40,7 +40,6 @@ import { DomainFocusPresence } from "./cover/DomainFocusPresence"
 import { KeyFocusPresence } from "./cover/KeyFocusPresence"
 import { CapabilityFocusPresence } from "./cover/CapabilityFocusPresence"
 import { KeeperFocusPresence } from "./cover/KeeperFocusPresence"
-import { LibraryItemFocusPresence } from "./cover/LibraryItemFocusPresence"
 import { IntegrationFocusPresence } from "./cover/IntegrationFocusPresence"
 import { KipApi, type ModelProvider } from "../../lib/kipApi"
 import { parseChroniclePatchFieldErrors } from "./chronicleConfig/chroniclePatch"
@@ -1719,17 +1718,6 @@ function KeeperPresenceSurface({
   if (objectType === "capability" && layout === "focus" && record) {
     return (
       <CapabilityFocusPresence
-        objectId={objectId}
-        domainId={domainId}
-        record={record}
-        onLabelResolved={onLabelResolved}
-      />
-    )
-  }
-
-  if (objectType === "library" && layout === "focus" && record) {
-    return (
-      <LibraryItemFocusPresence
         objectId={objectId}
         domainId={domainId}
         record={record}

@@ -12,6 +12,7 @@
 import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
 import { SoleMemoryPresence } from "./SoleMemoryPresence"
+import { ChronicleEntityView, isRegistryEntityKind } from "./ChronicleEntityView"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
 import type { PresentName, RenderContext } from "../presents/types"
@@ -81,6 +82,23 @@ export function ChroniclePresenceView({
       <ChronicleTreatmentShell treatment={treatment}>{soleBody}</ChronicleTreatmentShell>
     ) : (
       soleBody
+    )
+  }
+
+  if (isRegistryEntityKind(objectType)) {
+    const registryBody = (
+      <ChronicleEntityView
+        entityKind={objectType}
+        entityId={objectId}
+        domainId={domainId}
+        layout={layout}
+        onLabelResolved={onLabelResolved}
+      />
+    )
+    return treatment ? (
+      <ChronicleTreatmentShell treatment={treatment}>{registryBody}</ChronicleTreatmentShell>
+    ) : (
+      registryBody
     )
   }
 
