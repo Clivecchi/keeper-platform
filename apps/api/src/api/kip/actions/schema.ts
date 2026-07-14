@@ -162,6 +162,14 @@ const soleReadPayloadSchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(20),
 });
 
+const libraryReadPayloadSchema = z.object({
+  id: z.string().optional(),
+  query: z.string().optional(),
+  limit: z.number().int().min(1).max(50).optional().default(10),
+}).refine((data) => Boolean(data.id?.trim() || data.query?.trim()), {
+  message: 'Must provide id or query',
+});
+
 /**
  * Journey read action payload schema
  */
@@ -242,6 +250,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'moment.create': momentCreatePayloadSchema,
   'sole.save': soleSavePayloadSchema,
   'sole.read': soleReadPayloadSchema,
+  'library.read': libraryReadPayloadSchema,
   'journey.read': journeyReadPayloadSchema,
   'moment.read': momentReadPayloadSchema,
   'keeper.read': keeperReadPayloadSchema,
