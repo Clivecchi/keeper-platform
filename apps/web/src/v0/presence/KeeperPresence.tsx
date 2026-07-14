@@ -985,7 +985,6 @@ export function KeeperPresence({
   const skipPresenceSchemaFetch =
     (objectType === "key" && layout === "focus") ||
     (objectType === "capability" && layout === "focus") ||
-    (objectType === "library" && layout === "focus") ||
     (objectType === "keeper" && layout === "focus") ||
     (objectType === "agent" && layout === "focus") ||
     (objectType === "journey" && layout === "focus") ||

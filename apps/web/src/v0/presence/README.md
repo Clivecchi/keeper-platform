@@ -15,7 +15,9 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `AgentPromptsSection.tsx` — point-based lens/composed prompt editor (agents)
 - `promptPoints.ts` — parse/serialize prompt strings ↔ editable points
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
-- `ChroniclePresenceView.tsx` — thin Chronicle wrapper; `soleMemory` only special case; `service` and `key` flow through `KeeperPresence`
+- `ChroniclePresenceView.tsx` — thin Chronicle wrapper; registry kinds + `soleMemory` before `KeeperPresence`
+- `chronicleEntityRegistry.ts` — Layer 2 entity registry (`CHRONICLE_ENTITY_REGISTRY`; pilot: library)
+- `ChronicleEntityView.tsx` — registry lookup router; renders focus/config per kind
 - `integrationChronicle/` — Hero, Status Strip, Primary Feed, Actions; unconnected Connect via Nango
 - `chronicleConfig/` — universal Config Mode save infrastructure (`useChronicleConfig`, save bar, config shell)
 - `cover/DomainFocusPresence.tsx` — Domain Cover + Config orchestration
@@ -48,7 +50,7 @@ Enrichment (Domain Board instincts):
 
 Props: one catalog (`propsCatalog.ts`), one persistence path (`frameProps.ts` → `PUT /api/domains/:domainId/board-data`), `normalizeProps()` at every boundary. Legacy Studio sidebar and `DesignBoardFrameDetail` Props tab are orphaned — not deleted.
 
-Chronicle routes exclusively through `ChroniclePresenceView` → `KeeperPresence`. No board-specific panel renderers.
+Chronicle routes through `ChroniclePresenceView` → registry (`ChronicleEntityView`) or `KeeperPresence` fallback. No board-specific panel renderers.
 
 Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present sequence via `PresentMotionProvider`. `present` defaults from object type (`domain→cover`, `journey→journey`, `moment→moment`, else `slide`). See `../presents/README.md`.
 
@@ -92,7 +94,7 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - `LibraryItemConfigPresence` — editable metadata + assignment selects; `onSaved` → `bumpLibraryNav`
 - `declarationChronicle.tsx`: `variant="library"` with `definition` + `agent_perspective` blocks
 - `libraryItemCoverSchema.ts` + `libraryNavUtils.ts`: shared `libraryItemChronicleTitle()` for Cover and Nav
-- `KeeperPresence`: `library` focus branch + `skipPresenceSchemaFetch`
+- `KeeperPresence`: `library` focus branch removed — routes via `chronicleEntityRegistry` (2026-07-13)
 - `presenceEnrichment.ts`: `fetchPresenceRecord` case for `library`
 - `chroniclePatch.ts`: `library` → `PATCH /api/library-items/:id`
 
