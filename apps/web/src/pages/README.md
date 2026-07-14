@@ -17,6 +17,10 @@ Pages parse route params and query string state to decide which surface to rende
 
 ## 📆 Update Log
 
+### 2026-07-13 - Retire legacy /library mockup
+- Removed `LibraryPage.tsx` (disconnected frontend mockup with zero backend).
+- `/library` now redirects to `/d/default?board=domain` where real LibraryItem lives on Universal Board.
+
 ### 2026-01-27 - Deprecate /v0 entrypoint
 - Redirected `/v0` to `/d/:slug/board` while preserving frame/style/theme params.
 

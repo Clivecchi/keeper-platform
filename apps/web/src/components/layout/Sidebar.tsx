@@ -25,7 +25,6 @@ import {
   CpuChipIcon,
   TagIcon,
   RectangleStackIcon,
-  FolderOpenIcon,
   GlobeAltIcon,
   Squares2X2Icon
 } from '@heroicons/react/24/outline';
@@ -198,7 +197,6 @@ export const Sidebar: React.FC = () => {
     aiDesignBuild: true,
     keeperDesignBuild: true,
     themes: true,
-    library: true,
     myKeeper: true,
     admin: true
   });
@@ -267,18 +265,6 @@ export const Sidebar: React.FC = () => {
       >
         <SidebarItem to="/studio/themes" icon={<PaintBrushIcon />} isCollapsed={isCollapsed}>
           Theme Library
-        </SidebarItem>
-      </SidebarSection>
-
-      {/* Library Section */}
-      <SidebarSection
-        title="Library"
-        isCollapsed={isCollapsed}
-        isExpanded={expandedSections.library}
-        onToggle={() => toggleSection('library')}
-      >
-        <SidebarItem to="/library" icon={<FolderOpenIcon />} isCollapsed={isCollapsed}>
-          Documents
         </SidebarItem>
       </SidebarSection>
     </>

@@ -83,6 +83,9 @@ System Administration
 
 ## 📆 Update Log
 
+### 2026-07-13 - Remove legacy Library sidebar section
+- Removed "Documents" link to `/library` (dead mockup). Real Library is on Universal Board (`?board=domain`).
+
 ### 2026-01-15 - Diagnostics consolidation
 - Removed the legacy sidebar Debug button to keep diagnostics frame-first.
 

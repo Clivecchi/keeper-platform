@@ -68,9 +68,6 @@ import LeadAgentPage from './pages/LeadAgentPage';
 import KipAgentBoardPage from './pages/kip/KipAgentBoardPage';
 import DebugPage from './pages/DebugPage';
 
-// Library Pages
-import LibraryPage from './pages/LibraryPage';
-
 // Demo Pages
 import BoardDemoPage from './pages/BoardDemoPage';
 import V0Page from './pages/V0Page';
@@ -274,10 +271,9 @@ const App: React.FC = () => {
           <Route path="/studio/kip/logs" element={<AgentLogsPage />} />
           <Route path="/studio/kip/api-keys" element={<PlatformApiKeyManagerPage />} />
           
-          {/* Library Section */}
-          <Route path="/library" element={<LibraryPage />} />
+          {/* Legacy Library mockup — redirect to Universal Board */}
+          <Route path="/library" element={<Navigate to="/d/default?board=domain" replace />} />
 
-          
           {/* Keeper Section */}
           <Route path="/keeper" element={<AllKeepersPage />} />
           <Route path="/keeper/manage" element={<KeeperManagePage />} />
