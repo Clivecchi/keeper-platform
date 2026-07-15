@@ -38,7 +38,7 @@ import { useFrameContextOptional } from "../shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
 import { extractLinkedCard } from "../../components/agent/helpers"
 import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
-import { glossAnchorToDraftDiscuss } from "@keeper/shared"
+import { glossAnchorToDraftDiscuss, ensureGlossThreadCarrier, parseGlossThreads } from "@keeper/shared"
 import { useAgentDialog, extractRunAgentPayload, type AgentContext } from "../../hooks/useAgentDialog"
 import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
 import type { AgentBoardMessaging } from "../data/domain-frame.types"
@@ -679,6 +679,9 @@ export function UniversalConversation({
       merged = {
         ...(merged ?? {}),
         glossAnchor: anchor,
+        ...(selection.draftDiscussGlossContent
+          ? { glossContent: selection.draftDiscussGlossContent }
+          : {}),
         ...(draftDiscuss ? { draftDiscuss } : {}),
         ...(selection.draftDiscussIntent === "rewrite"
           ? { draftDiscussIntent: "rewrite" as const }
@@ -727,6 +730,7 @@ export function UniversalConversation({
     selection.trainingMode,
     selection.activeTrainingFrame,
     selection.draftDiscussAnchor,
+    selection.draftDiscussGlossContent,
     selection.draftDiscussIntent,
     selectedAgentRecord,
     boardSelectedAgentId,
@@ -959,7 +963,36 @@ export function UniversalConversation({
   // ── ide / designer / agent mode: post-run callbacks ─────────────────────────
   const onAfterAgentRun = React.useCallback(
     (latestRaw: KipMessage[] | undefined, actionResults: unknown[] | undefined) => {
-      if (selection.draftDiscussAnchor) {
+      const discussAnchor = selection.draftDiscussAnchor
+      if (discussAnchor && latestRaw?.length) {
+        const lastUser = [...latestRaw].reverse().find((message) => {
+          const role = message.role ?? message.sender
+          return role === "user"
+        })
+        if (lastUser?.id) {
+          const existingMeta =
+            lastUser.metadata && typeof lastUser.metadata === "object" && !Array.isArray(lastUser.metadata)
+              ? (lastUser.metadata as Record<string, unknown>)
+              : {}
+          const existingThreads = parseGlossThreads(existingMeta.glossThreads)
+          const nextThreads = ensureGlossThreadCarrier(
+            existingThreads,
+            discussAnchor,
+            lastUser.id,
+          )
+          if (nextThreads.length !== existingThreads.length) {
+            void KipApi.updateMessageMetadata(lastUser.id, { glossThreads: nextThreads }).catch(
+              (err) => console.warn("[UniversalConversation] gloss carrier seed failed", err),
+            )
+            setMessagesRef.current?.((prev) =>
+              prev.map((message) =>
+                message.id === lastUser.id ? { ...message, glossThreads: nextThreads } : message,
+              ),
+            )
+          }
+        }
+      }
+      if (discussAnchor) {
         actions.clearDraftDiscussAnchor()
       }
 

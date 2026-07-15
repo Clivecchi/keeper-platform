@@ -16,6 +16,7 @@ import {
 } from "./schemas/libraryItemCoverSchema"
 import { ChronicleDocumentView } from "../chronicleDocument/ChronicleDocumentView"
 import { libraryItemToChronicleDocument } from "../chronicleDocument/libraryItemDocumentAdapter"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
 export interface LibraryItemFocusPresenceProps {
   objectId: string
@@ -44,6 +45,7 @@ export function LibraryItemFocusPresence({
   record,
   onLabelResolved,
 }: LibraryItemFocusPresenceProps) {
+  const boardCtx = useUniversalBoardOptional()
   const { data: feed, loading, error, reload } = useLibraryItemFeedData(objectId)
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
 
@@ -59,6 +61,15 @@ export function LibraryItemFocusPresence({
   const handleConfigure = React.useCallback(() => {
     setCoverMode("config")
   }, [])
+
+  const handleDiscussLibraryDocument = React.useCallback(() => {
+    if (!feed?.item) return
+    const doc = libraryItemToChronicleDocument(feed.item)
+    if (!doc.gloss?.anchor) return
+    boardCtx?.actions.requestDiscussDraftPoint(doc.gloss.anchor, {
+      glossContent: doc.gloss.snapshot,
+    })
+  }, [boardCtx, feed?.item])
 
   const itemRecord = React.useMemo(
     () => toLibraryItemRecord(objectId, feed?.item ?? record),
@@ -155,7 +166,10 @@ export function LibraryItemFocusPresence({
 
           {feed?.item && (
             <div className="mt-6 pt-4 border-t border-[hsl(var(--theme-border-soft)/0.4)]">
-              <ChronicleDocumentView document={libraryItemToChronicleDocument(feed.item)} />
+              <ChronicleDocumentView
+                document={libraryItemToChronicleDocument(feed.item)}
+                onDiscuss={handleDiscussLibraryDocument}
+              />
             </div>
           )}
         </motion.div>

@@ -144,6 +144,8 @@ External MCP callers (Claude-in-chat, Cursor, future Cowork sessions) had `libra
 ```
 Requires `gloss.rw` scope on the access key and matching `x-domain-id`.
 
+**Chronicle Discuss → Dialog carrier (2026-07-15):** `ChronicleDocumentView` Discuss button calls `requestDiscussDraftPoint` with the document's `gloss.anchor` + snapshot. After the user's first Dialog exchange, `ensureGlossThreadCarrier` seeds an empty gloss thread on the user message — that `messageId` is the MCP write target for external agents annotating the same anchor.
+
 ---
 
 ## How the three layers fit together (target picture)

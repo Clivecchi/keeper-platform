@@ -30,6 +30,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-06-19 — GlossThread helpers
+- Added `glossThread.ts` — thread keys, parse/upsert helpers, `ensureGlossThreadCarrier` for MCP/dialog gloss anchor seeding.
+
 ### 2026-07-15 — Gloss MCP scope
 - `domainAccessKey.ts` — added `gloss.rw` to `DOMAIN_ACCESS_KEY_SCOPES` for external gloss thread writes (distinct from `library.ro`).
 

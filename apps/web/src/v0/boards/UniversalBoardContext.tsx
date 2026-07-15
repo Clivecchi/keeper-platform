@@ -23,7 +23,7 @@ import * as React from "react"
 import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
-import type { GlossAnchor, ChronicleView } from "@keeper/shared"
+import type { GlossAnchor, GlossContentSnapshot, ChronicleView } from "@keeper/shared"
 import { glossAnchorToDraftDiscuss, resolveChronicleView } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
@@ -107,6 +107,8 @@ export interface UniversalBoardSelection {
   agentNavRowPatch: AgentNavRowPatch | null
   /** When set, the next Dialog run includes this anchor in agentContext. */
   draftDiscussAnchor: GlossAnchor | null
+  /** Optional snapshot (library perspective, chronicle body) for the next Dialog gloss exchange. */
+  draftDiscussGlossContent: GlossContentSnapshot | null
   /** When rewrite, Kip receives draftDiscussIntent and a stronger rewrite prompt. */
   draftDiscussIntent: "discuss" | "rewrite" | null
   /** Prefills Dialog composer once (e.g. Rewrite draft point). */
@@ -150,8 +152,11 @@ export interface UniversalBoardActions {
   bumpDialogNav: () => void
   bumpDraftNav: (patch?: DraftNavRowPatch) => void
   bumpAgentNav: (patch?: AgentNavRowPatch) => void
-  /** Pass a draft point into Dialog context for the next Kip exchange. */
-  requestDiscussDraftPoint: (anchor: GlossAnchor, options?: { dialogId?: string | null }) => void
+  /** Pass a gloss anchor into Dialog context for the next Kip exchange. */
+  requestDiscussDraftPoint: (
+    anchor: GlossAnchor,
+    options?: { dialogId?: string | null; glossContent?: GlossContentSnapshot },
+  ) => void
   /** Opens Dialog with rewrite intent and prefills composer for draft.point.rewrite. */
   requestRewriteDraftPoint: (
     anchor: GlossAnchor,
@@ -247,6 +252,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     React.useState<AgentNavRowPatch | null>(null)
   const [draftDiscussAnchor, setDraftDiscussAnchor] =
     React.useState<GlossAnchor | null>(null)
+  const [draftDiscussGlossContent, setDraftDiscussGlossContent] =
+    React.useState<GlossContentSnapshot | null>(null)
   const [draftDiscussIntent, setDraftDiscussIntent] =
     React.useState<"discuss" | "rewrite" | null>(null)
   const [draftComposeHint, setDraftComposeHint] =
@@ -597,8 +604,12 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const requestDiscussDraftPoint = React.useCallback(
-    (anchor: GlossAnchor, options?: { dialogId?: string | null }) => {
+    (
+      anchor: GlossAnchor,
+      options?: { dialogId?: string | null; glossContent?: GlossContentSnapshot },
+    ) => {
       setDraftDiscussAnchor(anchor)
+      setDraftDiscussGlossContent(options?.glossContent ?? null)
       setDraftDiscussIntent("discuss")
       setDraftComposeHint(null)
       if (options?.dialogId) {
@@ -645,6 +656,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const clearDraftDiscussAnchor = React.useCallback(() => {
     setDraftDiscussAnchor(null)
+    setDraftDiscussGlossContent(null)
     setDraftDiscussIntent(null)
   }, [])
 
@@ -669,6 +681,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     closeChronicleEngagement()
     setActiveSessionId(null)
     setDraftDiscussAnchor(null)
+    setDraftDiscussGlossContent(null)
     setDraftDiscussIntent(null)
     setDraftComposeHint(null)
     setTrainingMode(false)
@@ -782,6 +795,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         agentNavRevision,
         agentNavRowPatch,
         draftDiscussAnchor,
+        draftDiscussGlossContent,
         draftDiscussIntent,
         draftComposeHint,
         trainingMode,
@@ -865,6 +879,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       agentNavRevision,
       agentNavRowPatch,
       draftDiscussAnchor,
+      draftDiscussGlossContent,
       draftDiscussIntent,
       draftComposeHint,
       trainingMode,

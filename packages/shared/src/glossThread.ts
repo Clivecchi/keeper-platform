@@ -96,3 +96,27 @@ export function upsertGlossThreadMessage(
     },
   ]
 }
+
+/** Ensure an empty gloss thread exists on a message for external/MCP writes — idempotent by anchor key. */
+export function ensureGlossThreadCarrier(
+  threads: readonly GlossThread[],
+  anchor: GlossAnchor,
+  messageId: string,
+): GlossThread[] {
+  const anchored: GlossAnchor = { ...anchor, messageId }
+  const key = buildGlossThreadKey(anchored)
+  if (threads.some((thread) => buildGlossThreadKey(thread.anchor) === key)) {
+    return [...threads]
+  }
+  const now = new Date().toISOString()
+  return [
+    ...threads,
+    {
+      id: crypto.randomUUID(),
+      anchor: anchored,
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+    },
+  ]
+}
