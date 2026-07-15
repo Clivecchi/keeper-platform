@@ -1552,6 +1552,9 @@ export function UniversalNavPanel({
                 {libraryError}
               </p>
             )}
+            {showExternalAccessNav && domainId ? (
+              <DomainExternalAccessNav domainId={domainId} />
+            ) : null}
           </div>
         )
       case "capabilities":

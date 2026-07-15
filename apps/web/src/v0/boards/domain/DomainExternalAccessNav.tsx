@@ -116,7 +116,7 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
           {!domainId
             ? "Loading…"
             : activeCount === 0
-              ? "No keys yet — for Cursor, Claude, or other MCP tools"
+              ? "MCP keys for Cursor & external tools"
               : `${activeCount} active key${activeCount === 1 ? "" : "s"} · Library read`}
         </p>
         <p

@@ -329,7 +329,7 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
       { id: "together-ai", label: "Together AI", group: "ai" },
       { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
     ],
-    navBlockOrder: ["drafts", "integrations", "keys", "externalAccess", "capabilities", "boards"],
+    navBlockOrder: ["drafts", "integrations", "keys", "capabilities", "boards"],
   },
   conversation: {
     agentSlug: "kip",
@@ -367,7 +367,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       boardDefs: false,
     },
     primarySection: "agents",
-    navBlockOrder: ["agents", "aiAccess", "externalAccess", "boards"],
+    navBlockOrder: ["agents", "aiAccess", "boards"],
     aiAccessSummary: true,
     externalAccessSummary: true,
     // Full Keys + platform AI providers live on IDE Board only.
@@ -408,7 +408,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       library: true,
       boardDefs: false,
     },
-    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "externalAccess", "boards"],
+    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "boards"],
     externalAccessSummary: true,
     keeperSectionTitle: "Keeper",
   },
@@ -453,7 +453,7 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     },
     navMode: "contentGated",
     navAlwaysShow: ["dialogs"],
-    navBlockOrder: ["dialogs", "journeys", "library", "externalAccess", "chatter", "connections", "boards"],
+    navBlockOrder: ["dialogs", "journeys", "library", "chatter", "connections", "boards"],
     externalAccessSummary: true,
   },
   conversation: {

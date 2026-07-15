@@ -20,6 +20,9 @@ export function resolveBoardDefs(fromFrame?: UniversalBoardDef[] | null): Univer
       ...codeDef.nav,
       // Section flags are code-only — frame JSON must not leak boardDefs onto IDE/Agent/Domain.
       sections: { ...codeDef.nav.sections },
+      navBlockOrder: codeDef.nav.navBlockOrder,
+      externalAccessSummary: codeDef.nav.externalAccessSummary,
+      aiAccessSummary: codeDef.nav.aiAccessSummary,
     },
     conversation: {
       ...(frameById.get(codeDef.boardId)?.conversation ?? {}),
