@@ -21,7 +21,7 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 
 ### Authentication
 - **Platform key:** `OPAI_AGENT_MCP_KEY` — full scope (`*`), optional `x-domain-id`
-- **Scoped keys:** `KAM_LIBRARY_MCP_KEYS` JSON array — `{ key, domainId, scopes: ["library.ro"] }`; header `x-domain-id` must match entry
+- **Scoped keys:** `KAM_LIBRARY_MCP_KEYS` JSON array — `{ key, domainId, scopes: ["library.ro"] }` or `["gloss.rw"]`; header `x-domain-id` must match entry
 - Accepts key from either:
   - `Authorization: Bearer <key>`
   - `x-api-key: <key>`
@@ -33,6 +33,9 @@ Library (read-only, `library.ro`):
 1. **`library_list`** — recent Library items for domain
 2. **`library_get`** — single LibraryItem by id
 3. **`library_search`** — semantic search over perspectives
+
+Gloss (thread write only, `gloss.rw` — never mutates anchored entities):
+4. **`gloss_write_turn`** — append one turn to `kip_messages.metadata.glossThreads`
 
 Legacy / infra tools (capability-gated): Railway, Vercel, GitHub, integrations, etc.
 
@@ -976,6 +979,8 @@ Run comprehensive verification:
 See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
 
 ## 📆 Update Log
+
+**2026-07-15**: Added `gloss_write_turn` MCP tool (`gloss.rw` capability) — appends gloss thread turns on message metadata only; never mutates anchored entities.
 
 **2026-06-18**: Cloud agent runs invoke MCP tools in-process via `mcp.call` action (`services/mcpAgentBridge.ts`). Capability gate now enforced when `agentCapabilities` is present on tool context.
 

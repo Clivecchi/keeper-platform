@@ -9,6 +9,8 @@ import { IntegrationMcpService } from '../services/IntegrationMcpService.js';
 import { ResendService } from '../services/ResendService.js';
 import { prisma } from '@keeper/database';
 import { searchLibraryItems } from '../services/LibraryItemSearchService.js';
+import { appendGlossTurn } from '../services/GlossWriteService.js';
+import { isGlossAnchor } from '@keeper/shared';
 
 export type ToolContext = {
   domainId: string | null;
@@ -515,6 +517,65 @@ const tools: Tool[] = [
       const limit = Math.min(Math.max(Number(args?.limit ?? 10), 1), 20);
       const results = await searchLibraryItems({ domainId: ctx.domainId, query, limit });
       return { query, results };
+    },
+  },
+  {
+    name: 'gloss_write_turn',
+    description:
+      'Append one Gloss turn to a message-anchored thread. Required capability: gloss.rw. Writes only kip_messages.metadata.glossThreads — never mutates the anchored LibraryItem, Draft, Moment, or other entity.',
+    requiredCapability: 'gloss.rw',
+    parameters: {
+      type: 'object',
+      required: ['messageId', 'anchor', 'content'],
+      properties: {
+        messageId: {
+          type: 'string',
+          description: 'Parent kip_message id that owns glossThreads metadata',
+        },
+        anchor: {
+          type: 'object',
+          description: 'GlossAnchor — entityKind, entityId, optional nodeId/messageId/receiptIndex',
+        },
+        content: {
+          type: 'string',
+          description: 'Turn text to append',
+        },
+        role: {
+          type: 'string',
+          enum: ['user', 'agent'],
+          default: 'user',
+          description: 'Turn author role (default user for external callers)',
+        },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'gloss_write_turn')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+
+      const messageId = String(args.messageId ?? '').trim();
+      const content = String(args.content ?? '').trim();
+      const roleRaw = args.role;
+      const role = roleRaw === 'agent' ? 'agent' : roleRaw === 'user' ? 'user' : 'user';
+
+      if (!messageId) throw new Error('messageId is required');
+      if (!content) throw new Error('content is required');
+      if (!isGlossAnchor(args.anchor)) throw new Error('anchor must be a valid GlossAnchor');
+
+      const result = await appendGlossTurn({
+        domainId: ctx.domainId,
+        messageId,
+        anchor: args.anchor,
+        content,
+        role,
+      });
+
+      return {
+        ok: true,
+        messageId: result.messageId,
+        threadId: result.thread.id,
+        turn: result.message,
+        threadMessageCount: result.thread.messages.length,
+      };
     },
   },
 ];

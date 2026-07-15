@@ -20,6 +20,7 @@ Canonical capability strings and runtime resolution for agent/board capability d
 - [ ] Chronicle editing of agent capabilities and board ceilings (future)
 
 ## 📆 Update Log
+- 2026-07-15: Added `GLOSS_MCP_TOOL_CAPABILITIES` (`gloss.rw`) for `gloss_write_turn`; included in IDE board ceiling and Cloud agent caps.
 - 2026-07-14: Added `LIBRARY_MCP_TOOL_CAPABILITIES` (`library.ro`) to `IDE_BOARD_MCP_CEILING` and `CLOUD_AGENT_CAPABILITIES` so IDE Board Cloud can invoke Library MCP tools.
 - 2026-06-18: Extended `IDE_BOARD_MCP_CEILING` with GitHub MCP tools, Nango/integration status, and Resend read caps; added `infra.nango.read` and `infra.resend.read`.
 - 2026-05-31: Added infra capability constants, resolution service, and board ceilings for Step 3B infrastructure capabilities.

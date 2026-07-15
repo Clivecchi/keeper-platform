@@ -30,6 +30,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-07-15 — Gloss MCP scope
+- `domainAccessKey.ts` — added `gloss.rw` to `DOMAIN_ACCESS_KEY_SCOPES` for external gloss thread writes (distinct from `library.ro`).
+
 ### 2026-07-03 — Record naming
 - Added `recordNaming.ts` — `shapeRecordTitle` (short labels) and `shapeRecordDescription` (long body) used by Library archive, moments, and Nav display.
 

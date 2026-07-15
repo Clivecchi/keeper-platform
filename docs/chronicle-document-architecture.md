@@ -118,6 +118,32 @@ EntityKinds own more than read presentation: Cover ↔ Config orchestration, PAT
 
 Helpers live in `packages/shared/src/chronicleDocument.ts`. Synthetic Chronicle content without promotion is discussable in Dialog for the session but not guaranteed across sessions.
 
+### Gloss-write for external tools — shipped (2026-07-15)
+
+External MCP callers (Claude-in-chat, Cursor, future Cowork sessions) had `library.ro` only — read-only on Library records. That stays correct: no external tool gets write access to Library entities.
+
+**Narrow write path:** `gloss_write_turn` MCP tool with capability `gloss.rw` (distinct from `library.ro`). Appends one turn to `kip_messages.metadata.glossThreads` for a domain-bound dialog message. **Never** mutates the anchored `LibraryItem`, Draft, Moment, or any other entity — read-only existence checks only.
+
+**Auth:** Reuses domain access key / scoped MCP pattern from `library.ro` (`DomainAccessKey.scopes`, `KAM_LIBRARY_MCP_KEYS`, platform key `*`).
+
+**Preconditions (met):** `GlossAnchor` shape in `@keeper/shared`; MCP capability gate via `requiredCapability` + merged scopes.
+
+**Service:** `apps/api/src/services/GlossWriteService.ts` — `appendGlossTurn()`.
+
+**Example:**
+```json
+{
+  "name": "gloss_write_turn",
+  "arguments": {
+    "messageId": "<kip_message_uuid>",
+    "anchor": { "entityKind": "library", "entityId": "<library_item_id>", "nodeId": "card" },
+    "content": "Question from external agent",
+    "role": "user"
+  }
+}
+```
+Requires `gloss.rw` scope on the access key and matching `x-domain-id`.
+
 ---
 
 ## How the three layers fit together (target picture)
