@@ -129,6 +129,7 @@ export interface KeeperDialogFrameProps {
   onOpenDraft?: (draftId: string) => void
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
+  onOpenLibraryItem?: (libraryItemId: string) => void
   onOpenSoleMemory?: (memoryCardId: string) => void
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
   onConfirmDraftUpdate?: (
@@ -240,6 +241,7 @@ export function KeeperDialogFrame({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onOpenLibraryItem,
   onOpenSoleMemory,
   onKeepAsMoment,
   onConfirmDraftUpdate,
@@ -648,6 +650,7 @@ export function KeeperDialogFrame({
                         onOpenDraft={onOpenDraft}
                         onOpenMoment={onOpenMoment}
                         onOpenJourney={onOpenJourney}
+                        onOpenLibraryItem={onOpenLibraryItem}
                         onKeepAsMoment={onKeepAsMoment}
                         onOpenSoleMemory={onOpenSoleMemory}
                         onConfirmDraftUpdate={onConfirmDraftUpdate}

@@ -114,6 +114,10 @@ export function buildReadActionFollowUpInput(params: {
     'Answer the user directly using:',
     '- The read results above (current draft state)',
     '- This session conversation history (for points or context no longer in the draft)',
+    'If library.read returned items and the user asked you to browse or pick from the library:',
+    '- Choose one item and explain why in your response',
+    '- Include a keeper-card (type "summary") with the item title, rationale in body, and item id in meta',
+    '- Also include a library.read action with { id } for your chosen item so a tappable Library receipt renders',
     'If they asked to rebuild or restore draft points, use draft.update.propose or draft.update actions now with the content you recover from the session.',
     'Do not stop at "I read the draft" — complete the engagement.',
   ].join('\n');

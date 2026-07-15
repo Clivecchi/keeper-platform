@@ -2626,6 +2626,7 @@ export async function executeAgentActions(
                   message: `Library item "${item.display_label ?? item.id}" retrieved`,
                   data: {
                     entityIds: [item.id],
+                    libraryItemId: item.id,
                     item: {
                       id: item.id,
                       display_label: item.display_label,
@@ -4061,6 +4062,10 @@ export class KipAgentService {
         'For moment.read: report the Moment title and narrative content.',
         '',
         'For keeper.read: report the Keeper title, purpose, and associated Journey count.',
+        '',
+        'For library.read: when presenting a library pick, call library.read with { id } for the chosen',
+        'item (renders a tappable Library receipt) and include a keeper-card (type "summary") with the',
+        'item title, your rationale in body, and item id in meta.',
         '',
         'The Completed receipt confirms the action ran.',
         'Your response must confirm what it found.',

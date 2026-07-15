@@ -46,6 +46,7 @@ export interface ActionReceiptCardProps {
   onOpenDraft?: (draftId: string) => void
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
+  onOpenLibraryItem?: (libraryItemId: string) => void
   onOpenSoleMemory?: (memoryCardId: string) => void
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
 }
@@ -72,6 +73,7 @@ function getActionLabel(actionType: string): string {
     "journey.update": "Journey updated",
     "path.create": "Path created",
     "path.update": "Path updated",
+    "library.read": "Library item",
   }
   return labels[actionType] || "Completed"
 }
@@ -98,7 +100,82 @@ function EntityLink({
   )
 }
 
-// ─── Rich entity cards (Journey / Path / Moment) ───────────────────────────
+function LibraryItemReceiptCard({
+  item,
+  onOpen,
+}: {
+  item: {
+    id: string
+    display_label?: string | null
+    source_type?: string | null
+    source_ref?: string | null
+    description?: string | null
+    agent_perspective?: string | null
+  }
+  onOpen?: () => void
+}) {
+  const title = item.display_label?.trim() || item.source_ref?.trim() || item.id
+  const previewUrl =
+    item.source_type === "upload" || /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(item.source_ref ?? "")
+      ? item.source_ref ?? undefined
+      : undefined
+  const body = item.agent_perspective?.trim() || item.description?.trim() || undefined
+
+  return (
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{
+        borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+        background: "hsl(var(--theme-surface-paper) / 0.95)",
+      }}
+    >
+      <div
+        className="px-3 py-1.5 border-b flex items-center gap-1.5"
+        style={{
+          borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+          background: "hsl(var(--theme-surface-elevated) / 0.6)",
+        }}
+      >
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Library
+        </span>
+        {item.source_type && (
+          <span
+            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide"
+            style={{ background: "hsl(35 40% 94%)", color: "hsl(35 50% 32%)", border: "1px solid hsl(35 30% 82%)" }}
+          >
+            {item.source_type}
+          </span>
+        )}
+      </div>
+      <div className="px-3 py-3">
+        {previewUrl && (
+          <div className="mb-2 overflow-hidden rounded-lg border" style={{ borderColor: "hsl(var(--theme-border-soft))" }}>
+            <img src={previewUrl} alt={title} className="max-h-40 w-full object-cover" loading="lazy" />
+          </div>
+        )}
+        <p className="text-[13px] font-semibold leading-snug" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+          {title}
+        </p>
+        {body && (
+          <p className="mt-1 text-[11px] leading-relaxed line-clamp-3" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            {body}
+          </p>
+        )}
+        {onOpen && (
+          <button
+            type="button"
+            onClick={onOpen}
+            className="mt-2 text-[11px] font-medium hover:opacity-80 transition-opacity"
+            style={{ color: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
+          >
+            Open in Chronicle →
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function JourneyReceiptCard({
   journey,
@@ -522,6 +599,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onOpenLibraryItem,
   onOpenSoleMemory,
   onKeepAsMoment,
 }) => {
@@ -540,8 +618,31 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   const journey = data?.journey as { id: string; name: string; forward?: string | null } | undefined
   const path = data?.path as { id: string; name: string; prelude?: string | null } | undefined
   const memoryCard = data?.memoryCard as { id?: string; topic?: string | null } | undefined
+  const libraryItem = data?.item as {
+    id: string
+    display_label?: string | null
+    source_type?: string | null
+    source_ref?: string | null
+    description?: string | null
+    agent_perspective?: string | null
+  } | undefined
+  const libraryItemId =
+    typeof data?.libraryItemId === "string"
+      ? data.libraryItemId
+      : libraryItem?.id
   const isSoleSave = type === "sole.save"
   const isImageGenerate = type === "image.generate"
+  const isLibraryRead = type === "library.read"
+
+  // Library item retrieved — rich tappable card
+  if (status === "success" && isLibraryRead && libraryItem && libraryItemId) {
+    return (
+      <LibraryItemReceiptCard
+        item={libraryItem}
+        onOpen={onOpenLibraryItem ? () => onOpenLibraryItem(libraryItemId) : undefined}
+      />
+    )
+  }
 
   // SOLE memory saved — rich card with Chronicle navigation
   if (status === "success" && isSoleSave && memoryCard?.id) {

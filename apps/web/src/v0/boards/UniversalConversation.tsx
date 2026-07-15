@@ -2046,6 +2046,7 @@ export function UniversalConversation({
         onOpenDraft={onDraftSelect}
         onOpenMoment={onMomentSelect}
         onOpenJourney={(id) => onJourneySelect(id)}
+        onOpenLibraryItem={(id) => actions.onLibraryItemSelect(id)}
         onKeepAsMoment={domainSlug ? handleKeepAsMoment : undefined}
         onOpenSoleMemory={(memoryCardId) => actions.onSoleMemorySelect(memoryCardId)}
         onConfirmDraftUpdate={domainId ? handleConfirmDraftUpdate : undefined}

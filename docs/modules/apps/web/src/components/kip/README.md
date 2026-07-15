@@ -15,7 +15,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
-- 2026-07-06: `TreatmentProposeCard` — Design Board Rendr proposals for Chronicle Treatment v0; Apply patches `frame_json.treatment` via `patchDomainTreatment`.
+- 2026-07-14: `LibraryItemReceiptCard` for successful `library.read` by id — image preview when applicable, **Open in Chronicle →** via `onOpenLibraryItem`.
 - 2026-07-03 (pm): `Keep as Moment` passes `libraryItemId` to reuse image.generate row (no duplicate Library entries); receipt copy points to Library list in Nav.
 - 2026-07-03 (pm): `shapeRecordTitle` / `shapeRecordDescription` — short nav titles vs long descriptions for Library, moments, and generated images.
 - 2026-06-28 (pm): `ImageReceiptCard` — surfaces keep errors; success state when image archives to Library. Keep flow opens Library item in Chronicle when `libraryItemId` returns.

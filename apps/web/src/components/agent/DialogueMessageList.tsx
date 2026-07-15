@@ -21,6 +21,7 @@ import { GlossSurface } from "../gloss/GlossSurface"
 import { buildMessageGlossAnchor } from "@keeper/shared"
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
+import { AgentMessageContent } from "./AgentMessageContent"
 import {
   MessageSenderLabel,
   type MessageSenderVariant,
@@ -109,7 +110,9 @@ function AgentChatBubble({
     return (
       <div className="dialog-multi-agent-turn__beat" data-agent-variant={variant}>
         <MessageSenderLabel name={name} variant={senderVariant} />
-        <p className="dialog-multi-agent-turn__content whitespace-pre-line">{trimmed}</p>
+        <p className="dialog-multi-agent-turn__content">
+          <AgentMessageContent content={trimmed} />
+        </p>
       </div>
     )
   }
@@ -121,7 +124,7 @@ function AgentChatBubble({
         className="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
         style={agentBubbleSurface(variant)}
       >
-        <p className="whitespace-pre-line">{trimmed}</p>
+        <AgentMessageContent content={trimmed} />
       </div>
     </div>
   )
@@ -170,6 +173,7 @@ function AgentMessageTurn({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onOpenLibraryItem,
   onKeepAsMoment,
   onConfirmDraftUpdate,
   onApplyTreatmentProposal,
@@ -182,6 +186,7 @@ function AgentMessageTurn({
   onOpenDraft?: (draftId: string) => void
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
+  onOpenLibraryItem?: (libraryItemId: string) => void
   onKeepAsMoment?: DialogueMessageListProps["onKeepAsMoment"]
   onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
   onApplyTreatmentProposal?: DialogueMessageListProps["onApplyTreatmentProposal"]
@@ -205,6 +210,7 @@ function AgentMessageTurn({
           onOpenDraft={onOpenDraft}
           onOpenMoment={onOpenMoment}
           onOpenJourney={onOpenJourney}
+          onOpenLibraryItem={onOpenLibraryItem}
           onKeepAsMoment={onKeepAsMoment}
           onConfirmDraftUpdate={onConfirmDraftUpdate}
           onApplyTreatmentProposal={onApplyTreatmentProposal}
@@ -230,7 +236,7 @@ function AgentMessageTurn({
             boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
           }}
         >
-          <p className="whitespace-pre-line">{visibleContent}</p>
+          <AgentMessageContent content={visibleContent} />
           {message.arrivalInvitations?.length && onArrivalInvitation ? (
             <RealmInvitationButtons
               invitations={message.arrivalInvitations}
@@ -243,6 +249,7 @@ function AgentMessageTurn({
           onOpenDraft={onOpenDraft}
           onOpenMoment={onOpenMoment}
           onOpenJourney={onOpenJourney}
+          onOpenLibraryItem={onOpenLibraryItem}
           onKeepAsMoment={onKeepAsMoment}
           onConfirmDraftUpdate={onConfirmDraftUpdate}
           onApplyTreatmentProposal={onApplyTreatmentProposal}
@@ -317,6 +324,7 @@ function MessageAttachments({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onOpenLibraryItem,
   onKeepAsMoment,
   onConfirmDraftUpdate,
   onApplyTreatmentProposal,
@@ -326,6 +334,7 @@ function MessageAttachments({
   onOpenDraft?: (draftId: string) => void
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
+  onOpenLibraryItem?: (libraryItemId: string) => void
   onKeepAsMoment?: DialogueMessageListProps["onKeepAsMoment"]
   onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
   onApplyTreatmentProposal?: DialogueMessageListProps["onApplyTreatmentProposal"]
@@ -415,6 +424,11 @@ function MessageAttachments({
                 onOpenJourney={
                   receipt.data?.journey?.id ? (journeyId) => onOpenJourney?.(journeyId) : undefined
                 }
+                onOpenLibraryItem={
+                  typeof receipt.data?.libraryItemId === "string"
+                    ? (libraryItemId) => onOpenLibraryItem?.(libraryItemId)
+                    : undefined
+                }
                 onKeepAsMoment={onKeepAsMoment}
               />
             )
@@ -440,6 +454,8 @@ export interface DialogueMessageListProps {
   onOpenMoment?: (momentId: string) => void
   /** Callback when a journey link is clicked */
   onOpenJourney?: (journeyId: string) => void
+  /** Callback when a library item receipt is tapped — opens Chronicle focus */
+  onOpenLibraryItem?: (libraryItemId: string) => void
   /** Callback when user confirms a proposed draft update */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Callback when user applies a Rendr Treatment proposal on Design Board */
@@ -479,6 +495,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onOpenLibraryItem,
   onKeepAsMoment,
   onConfirmDraftUpdate,
   onApplyTreatmentProposal,
@@ -552,6 +569,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               onOpenDraft={onOpenDraft}
               onOpenMoment={onOpenMoment}
               onOpenJourney={onOpenJourney}
+              onOpenLibraryItem={onOpenLibraryItem}
               onKeepAsMoment={onKeepAsMoment}
               onConfirmDraftUpdate={onConfirmDraftUpdate}
               onApplyTreatmentProposal={onApplyTreatmentProposal}
