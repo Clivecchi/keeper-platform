@@ -219,6 +219,7 @@ Do not recreate these problems:
 | Library legacy `/library` route | Retired — redirect to `?board=domain` | Do not rebuild standalone Library page |
 | Library write-only embeddings | **Resolved** — search + `library.read` + MCP tools on feature branches | Merge roadmap branches before extending |
 | MCP single shared key | Platform key retained; external access uses per-domain `DomainAccessKey` (Nav → External Access) or legacy `KAM_LIBRARY_MCP_KEYS` env | Never hand platform key to external tools |
+| Domain Nav is hand-built, not grown | Categories exist before content does (ke3p's own Domain board: 18 "Domain JSON" drafts, a category literally named "TRUE"). See `docs/realm-domain-surface.md` — planning, not implemented. | Realm generalizes to every domain; Nav should be built by `ChronicleDocument` accumulation, not pre-built categories. Treatment-compliant — Rendr decides the look before Cursor builds it. |
 
 **Engagement Templates:** "Start Journey" failures often mean templates weren't seeded. Check `packages/database/prisma/seeds/journey-path-moment-engagement-templates.seed.ts`.
 
