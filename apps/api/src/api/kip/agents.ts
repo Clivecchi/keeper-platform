@@ -2640,11 +2640,35 @@ export async function executeAgentActions(
               }
 
               if (!query) {
+                const rows = await tx.libraryItem.findMany({
+                  where: { domain_id: ctx.domainId },
+                  orderBy: { updated_at: 'desc' },
+                  take: limit,
+                  select: {
+                    id: true,
+                    display_label: true,
+                    source_type: true,
+                    source_ref: true,
+                    description: true,
+                    agent_perspective: true,
+                    updated_at: true,
+                  },
+                });
                 results.push({
                   type: action.type,
-                  status: 'error',
-                  message: 'library.read requires id or query',
-                  errorCode: 'VALIDATION_ERROR',
+                  status: 'success',
+                  message: `Listed ${rows.length} recent library item${rows.length !== 1 ? 's' : ''}`,
+                  data: {
+                    results: rows.map((row) => ({
+                      id: row.id,
+                      display_label: row.display_label,
+                      source_type: row.source_type,
+                      source_ref: row.source_ref,
+                      description: row.description,
+                      agent_perspective: row.agent_perspective,
+                      updated_at: row.updated_at,
+                    })),
+                  },
                 });
                 break;
               }
@@ -4055,8 +4079,9 @@ export class KipAgentService {
         'keeper.read — retrieves full Keeper content including associated journeys and counts.',
         'Use when a user asks about a specific Keeper. Payload: { keeperId }',
         '',
-        'library.read — retrieves a Library item by id or semantic search over domain library.',
-        'Payload: { id } OR { query, limit? }. Use for reference material, uploads, and linked sources.',
+        'library.read — list recent library items ({ limit? }), semantic search ({ query, limit? }),',
+        'or fetch one item ({ id }). When the user asks to browse or pick from the library, call library.read',
+        'with { limit: 20 } first, then { id } for full detail on your choice.',
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrites one proposed/pending point in place. Payload: { id, pointId, content, type? }. Accepted points are anchors — not rewritable.',
@@ -4070,12 +4095,16 @@ export class KipAgentService {
     if (environment) {
       systemParts.push(SoleMemoryService.getSoleMemoryLoopInstruction());
       systemParts.push(SoleMemoryService.getSoleArchitecturePrompt());
-      const envWithIndex = environment as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }> } } | undefined;
+      const envWithIndex = environment as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>; library?: Array<{ id: string; label: string; sourceType: string }> } } | undefined;
       if (envWithIndex?.domainIndex) {
-        const { keepers, journeys } = envWithIndex.domainIndex;
+        const { keepers, journeys, library } = envWithIndex.domainIndex;
         const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
         const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
-        systemParts.push(`Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Use these to understand scope and reference correctly.`);
+        const libraryList =
+          library?.map((item) => `${item.label} (${item.id})`).join('; ') ?? 'none indexed — use library.read to list';
+        systemParts.push(
+          `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Use library.read to list or search when you need more.`,
+        );
       }
       if (options.keeperId) {
         try {
@@ -4520,14 +4549,16 @@ export class KipAgentService {
             content: SoleMemoryService.getSoleArchitecturePrompt(),
           });
 
-          const envWithIndex = environmentContext as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }> } } | undefined;
+          const envWithIndex = environmentContext as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>; library?: Array<{ id: string; label: string; sourceType: string }> } } | undefined;
           if (envWithIndex?.domainIndex) {
-            const { keepers, journeys } = envWithIndex.domainIndex;
+            const { keepers, journeys, library } = envWithIndex.domainIndex;
             const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
             const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
+            const libraryList =
+              library?.map((item) => `${item.label} (${item.id})`).join('; ') ?? 'none indexed — use library.read to list';
             messages.push({
               role: 'system',
-              content: `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Use these to understand scope and reference correctly.`,
+              content: `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Use library.read to list or search when you need more.`,
             });
           }
 

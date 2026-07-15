@@ -34,3 +34,6 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ### 2026-06-22 — Read-action follow-up synthesis (Lead agents)
 - Added `actionFollowUp.ts` — when a turn is read-only (`draft.read`, `journey.read`, etc.), the server runs a second model call with action results so Kip completes the engagement instead of stopping at "Reading the draft now."
+
+### 2026-07-14 — Library in domain index
+- `domainIndex` now includes up to 20 recent Library items (id, label, sourceType) alongside keepers and journeys in both `resolveAgentEnvironment` and `buildKipEnvironmentContext`.

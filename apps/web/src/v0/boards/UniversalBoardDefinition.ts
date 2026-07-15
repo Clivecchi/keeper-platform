@@ -279,6 +279,7 @@ const IDE_BOARD_ALLOWED_CAPABILITIES: string[] = [
   "integrations.list",
   "nango.status.read",
   "resend.status.read",
+  "library.ro",
 ]
 
 /**

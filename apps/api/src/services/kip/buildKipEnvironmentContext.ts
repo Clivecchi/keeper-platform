@@ -63,6 +63,7 @@ export type KipEnvironmentContext = {
   domainIndex?: {
     keepers: Array<{ id: string; title: string; purpose?: string | null }>;
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
+    library: Array<{ id: string; label: string; sourceType: string }>;
   };
   infraBindings?: {
     github?: GitHubServiceBinding;
@@ -177,7 +178,7 @@ export async function buildKipEnvironmentContext(args: {
   }
 
   try {
-    const [keepers, journeys] = await Promise.all([
+    const [keepers, journeys, libraryItems] = await Promise.all([
       prisma.keeper.findMany({
         where: { domainId },
         take: 20,
@@ -188,10 +189,21 @@ export async function buildKipEnvironmentContext(args: {
         take: 20,
         select: { id: true, name: true, forward: true, keeperId: true },
       }),
+      prisma.libraryItem.findMany({
+        where: { domain_id: domainId },
+        orderBy: { updated_at: 'desc' },
+        take: 20,
+        select: { id: true, display_label: true, source_type: true },
+      }),
     ]);
     environment.domainIndex = {
       keepers: keepers.map((k) => ({ id: k.id, title: k.title, purpose: k.purpose ?? null })),
       journeys: journeys.map((j) => ({ id: j.id, name: j.name, forward: j.forward, keeperId: j.keeperId })),
+      library: libraryItems.map((item) => ({
+        id: item.id,
+        label: item.display_label?.trim() || item.id,
+        sourceType: item.source_type,
+      })),
     };
   } catch (error) {
     console.warn('[kip:environment] domain index lookup failed', { domainId, error });

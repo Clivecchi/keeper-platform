@@ -166,8 +166,6 @@ const libraryReadPayloadSchema = z.object({
   id: z.string().optional(),
   query: z.string().optional(),
   limit: z.number().int().min(1).max(50).optional().default(10),
-}).refine((data) => Boolean(data.id?.trim() || data.query?.trim()), {
-  message: 'Must provide id or query',
 });
 
 /**

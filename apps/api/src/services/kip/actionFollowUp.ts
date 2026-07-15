@@ -19,6 +19,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'moment.read',
   'keeper.read',
   'sole.read',
+  'library.read',
 ]);
 
 export function isReadOnlyActionType(type: string): boolean {
@@ -73,6 +74,17 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
         }
         if (Array.isArray(data.drafts)) {
           lines.push(`Drafts listed: ${data.drafts.length}`);
+        }
+        if (Array.isArray(data.results)) {
+          lines.push(`Library items: ${data.results.length}`);
+          for (const row of data.results.slice(0, 12)) {
+            if (row && typeof row === 'object') {
+              const item = row as { id?: string; display_label?: string; description?: string };
+              lines.push(
+                `- ${item.display_label ?? item.id ?? '?'} (${item.id ?? '?'})${item.description ? `: ${String(item.description).slice(0, 120)}` : ''}`,
+              );
+            }
+          }
         }
         if (data.spec === undefined && data.draft === undefined && !Array.isArray(data.drafts)) {
           lines.push(`Data: ${JSON.stringify(data, null, 2).slice(0, 4000)}`);

@@ -37,11 +37,15 @@ export const INTEGRATION_MCP_TOOL_CAPABILITIES: readonly string[] = [
   'resend.status.read',
 ];
 
+/** Library MCP tool capability — read-only list/get/search. */
+export const LIBRARY_MCP_TOOL_CAPABILITIES: readonly string[] = ['library.ro'];
+
 /** IDE board ceiling — infra + all MCP tool capabilities Cloud may invoke. */
 export const IDE_BOARD_MCP_CEILING: readonly string[] = [
   ...ALL_INFRA_CAPABILITIES,
   ...GITHUB_MCP_TOOL_CAPABILITIES,
   ...INTEGRATION_MCP_TOOL_CAPABILITIES,
+  ...LIBRARY_MCP_TOOL_CAPABILITIES,
 ];
 
 /** Read-only infra capabilities seeded on Cloud. */
@@ -59,4 +63,5 @@ export const CLOUD_AGENT_CAPABILITIES: readonly string[] = [
   INFRA_CAPABILITIES.GITHUB_WRITE,
   ...GITHUB_MCP_TOOL_CAPABILITIES,
   ...INTEGRATION_MCP_TOOL_CAPABILITIES,
+  ...LIBRARY_MCP_TOOL_CAPABILITIES,
 ];
