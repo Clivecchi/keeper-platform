@@ -11,9 +11,9 @@ type CreateKeyResponse = {
 }
 
 async function fetchDomainAccessKeys(domainId: string): Promise<DomainAccessKeyRecord[]> {
-  const res = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}/access-keys`)
-  if (!res.ok) throw new Error("Could not load external access keys")
-  const data = (await res.json()) as AccessKeysResponse
+  const data = (await apiFetch(
+    `/api/domains/${encodeURIComponent(domainId)}/access-keys`,
+  )) as AccessKeysResponse
   return data.keys ?? []
 }
 
@@ -28,6 +28,7 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
   const [creating, setCreating] = React.useState(false)
   const [revealedSecret, setRevealedSecret] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
+  const [copiedDomainId, setCopiedDomainId] = React.useState(false)
 
   const reload = React.useCallback(async () => {
     if (!domainId) return
@@ -51,16 +52,13 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
     setError(null)
     setRevealedSecret(null)
     try {
-      const res = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}/access-keys`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: label.trim(), scopes: ["library.ro"] }),
-      })
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null
-        throw new Error(body?.error ?? "Create failed")
-      }
-      const data = (await res.json()) as CreateKeyResponse
+      const data = (await apiFetch(
+        `/api/domains/${encodeURIComponent(domainId)}/access-keys`,
+        {
+          method: "POST",
+          body: JSON.stringify({ label: label.trim(), scopes: ["library.ro"] }),
+        },
+      )) as CreateKeyResponse
       setRevealedSecret(data.key.secret)
       setLabel("")
       await reload()
@@ -75,11 +73,10 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
     if (!domainId) return
     setError(null)
     try {
-      const res = await apiFetch(
+      await apiFetch(
         `/api/domains/${encodeURIComponent(domainId)}/access-keys/${encodeURIComponent(id)}/revoke`,
         { method: "POST" },
       )
-      if (!res.ok) throw new Error("Revoke failed")
       await reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Revoke failed")
@@ -94,6 +91,17 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
       setError("Copy failed — select and copy manually")
+    }
+  }
+
+  const handleCopyDomainId = async () => {
+    if (!domainId) return
+    try {
+      await navigator.clipboard.writeText(domainId)
+      setCopiedDomainId(true)
+      window.setTimeout(() => setCopiedDomainId(false), 2000)
+    } catch {
+      setError("Copy failed — select domain id manually")
     }
   }
 
@@ -116,15 +124,24 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
           {!domainId
             ? "Loading…"
             : activeCount === 0
-              ? "MCP keys for Cursor & external tools"
+              ? "Create a key here for Cursor or Claude MCP"
               : `${activeCount} active key${activeCount === 1 ? "" : "s"} · Library read`}
         </p>
-        <p
-          className="text-[12px] mt-1.5 leading-snug opacity-85"
-          style={{ color: "var(--theme-ink-secondary-color, hsl(40 8% 72%))" }}
-        >
-          Domain-bound tokens. Use with x-domain-id and Authorization Bearer.
-        </p>
+        {domainId ? (
+          <p
+            className="text-[11px] mt-1.5 leading-snug font-mono opacity-80 break-all"
+            style={{ color: "var(--theme-ink-secondary-color, hsl(40 8% 72%))" }}
+          >
+            x-domain-id: {domainId}
+            <button
+              type="button"
+              className="ml-2 underline underline-offset-2 font-sans not-italic"
+              onClick={() => void handleCopyDomainId()}
+            >
+              {copiedDomainId ? "Copied" : "Copy"}
+            </button>
+          </p>
+        ) : null}
       </div>
 
       {keys && keys.length > 0 ? (
@@ -161,7 +178,7 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          placeholder="Label (e.g. Cursor — Chuck laptop)"
+          placeholder="Label (e.g. Claude — Chuck laptop)"
           className="w-full rounded-md border px-2 py-1.5 text-[13px]"
           style={{
             borderColor: "hsl(var(--theme-border-soft) / 0.6)",
@@ -189,7 +206,7 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
           }}
         >
           <p className="text-[12px] font-semibold" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-            Copy this key now — it won&apos;t be shown again
+            Your key — copy now (shown once)
           </p>
           <code
             className="text-[11px] break-all leading-relaxed"
@@ -202,8 +219,12 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
             className="text-[12px] font-medium self-start underline underline-offset-2"
             onClick={() => void handleCopySecret()}
           >
-            {copied ? "Copied" : "Copy to clipboard"}
+            {copied ? "Copied" : "Copy key"}
           </button>
+          <p className="text-[11px] leading-relaxed opacity-90" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            In Cursor MCP: Authorization Bearer = this key. Header x-domain-id = domain id above.
+            MCP URL: https://api.ke3p.com/api/mcp
+          </p>
         </div>
       ) : null}
 
