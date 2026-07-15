@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-07-15 — Library Chronicle Discuss → Dialog
+- `LibraryItemFocusPresence`: Discuss on `ChronicleDocumentView` passes `buildLibraryGlossAnchor` + perspective snapshot into Dialog via board context.
+
 ### 2026-07-11 — Visual-primary cover layout for images
 - `coverTypes.ts`: added `CoverLayout` (`standard` | `visual-primary`) and optional `billingLine`
 - `EntityCoverPresence.tsx`: `VisualPrimaryCoverHeader` — full-width playbill hero band for library image uploads and moment covers
