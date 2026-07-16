@@ -21,6 +21,7 @@ import {
 } from "../v0/boards/directorDialog"
 import { resolveDirectorDelegationMessage } from "@keeper/shared"
 import { resumeOrCreateBoardSession } from "../lib/kipDialogSession"
+import { takePrefetchedDialogSession } from "../v0/boards/domain/dialogSessionPrefetch"
 import {
   actionResultsToThinkingSteps,
   createThinkingStep,
@@ -53,6 +54,12 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const linkedCard = extractLinkedCard(meta)
   const glossThreads = parseGlossThreads(meta?.glossThreads)
   const rawContent = typeof message.content === "string" ? message.content : ""
+  const keeperCard =
+    meta?.card && typeof meta.card === "object" && !Array.isArray(meta.card)
+      ? (meta.card as AgentDialogueMessage["keeperCard"])
+      : meta?.keeperCard && typeof meta.keeperCard === "object" && !Array.isArray(meta.keeperCard)
+        ? (meta.keeperCard as AgentDialogueMessage["keeperCard"])
+        : undefined
   const senderName =
     typeof meta?.senderName === "string"
       ? meta.senderName
@@ -70,6 +77,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
     ...(senderName?.trim() ? { senderName: senderName.trim() } : {}),
     ...(linkedCard ? { linkedCard } : {}),
+    ...(keeperCard ? { keeperCard } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),
   }
@@ -481,6 +489,15 @@ export function useAgentDialog({
         if (cancelled) return
         if (!domainId) return
         const board = dialogBoard ?? mode
+        const prefetched = takePrefetchedDialogSession(domainId, board)
+        if (prefetched) {
+          if (onControlledSessionIdChange) {
+            if (!activeSessionIdRef.current) onControlledSessionIdChange(prefetched)
+          } else {
+            setInternalSessionId(prefetched)
+          }
+          return
+        }
         const { sessionId } = await resumeOrCreateBoardSession({
           domainId,
           agentId: aid,
@@ -612,6 +629,7 @@ export function useAgentDialog({
     }
 
     void fetchMessages(activeSessionId)
+    return undefined
   }, [activeSessionId, fetchMessages, mode])
 
   const sendMessage = React.useCallback(

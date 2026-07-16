@@ -3,10 +3,11 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { motion, useReducedMotion } from "framer-motion"
-import { getBlobProxyUrl } from "../../lib/blobProxy"
 import {
-  getCachedDomainBySlug,
   prefetchDomainShell,
+  resolveDomainCoverUrl,
+  resolveDomainShellDisplayName,
+  getCachedDomainBySlug,
 } from "../boards/domain/domainShellCache"
 import { peekDomainFrame } from "../data/loadDomainFrame"
 import { resolvePlaybillAgent } from "../lib/playbillData"
@@ -17,6 +18,9 @@ export interface DomainLoadCurtainProps {
   domainSlug: string
   /** When set, curtain auto-dismisses after minimum hold (scene-change travel). */
   onComplete?: () => void
+  /** Fail-closed boot gate — show retry instead of revealing a hollow board. */
+  errorMessage?: string | null
+  onRetry?: () => void
 }
 
 interface CurtainBilling {
@@ -28,11 +32,7 @@ interface CurtainBilling {
 function resolveCurtainBilling(domainSlug: string): CurtainBilling {
   const cached = getCachedDomainBySlug(domainSlug)
   const frame = peekDomainFrame(domainSlug)
-  const domainName =
-    frame?.theme?.wordmark?.trim() ||
-    cached?.displayName?.trim() ||
-    cached?.name?.trim() ||
-    ""
+  const domainName = resolveDomainShellDisplayName(domainSlug)
   const tagline = frame?.theme?.tagline?.trim() || cached?.description?.trim() || ""
   const lead = resolveDomainLeadContext(cached as DomainLeadRecord | null)
   return {
@@ -51,7 +51,12 @@ function CurtainShimmer({ className = "" }: { className?: string }) {
   )
 }
 
-export function DomainLoadCurtain({ domainSlug, onComplete }: DomainLoadCurtainProps) {
+export function DomainLoadCurtain({
+  domainSlug,
+  onComplete,
+  errorMessage,
+  onRetry,
+}: DomainLoadCurtainProps) {
   const reducedMotion = useReducedMotion()
   const [billing, setBilling] = React.useState(() => resolveCurtainBilling(domainSlug))
   const mountedAt = React.useRef(Date.now())
@@ -73,7 +78,7 @@ export function DomainLoadCurtain({ domainSlug, onComplete }: DomainLoadCurtainP
   }, [domainSlug])
 
   React.useEffect(() => {
-    if (!onComplete) return
+    if (!onComplete || errorMessage) return
 
     const finish = () => {
       if (completedRef.current) return
@@ -85,14 +90,9 @@ export function DomainLoadCurtain({ domainSlug, onComplete }: DomainLoadCurtainP
     const remaining = Math.max(0, DOMAIN_SHELL_MIN_HOLD_MS - elapsed)
     const timer = window.setTimeout(finish, remaining)
     return () => window.clearTimeout(timer)
-  }, [domainSlug, onComplete])
+  }, [domainSlug, onComplete, errorMessage])
 
-  const cached = getCachedDomainBySlug(domainSlug)
-  const coverUrl =
-    cached?.theme?.coverImage && typeof cached.theme.coverImage === "string"
-      ? getBlobProxyUrl(cached.theme.coverImage)
-      : null
-
+  const coverUrl = resolveDomainCoverUrl(domainSlug)
   const hasDomainName = billing.domainName.length > 0
   const hasAgentName = billing.agentName.length > 0
 
@@ -142,6 +142,30 @@ export function DomainLoadCurtain({ domainSlug, onComplete }: DomainLoadCurtainP
           >
             {billing.tagline}
           </p>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="mt-8 space-y-3">
+            <p
+              className="text-sm leading-snug"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              {errorMessage}
+            </p>
+            {onRetry ? (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="rounded-md px-4 py-2 text-sm font-medium"
+                style={{
+                  background: "hsl(var(--theme-surface-panel))",
+                  color: "hsl(var(--theme-ink-primary))",
+                }}
+              >
+                Try again
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </motion.div>

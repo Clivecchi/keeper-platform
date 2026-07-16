@@ -13,10 +13,37 @@ export type ParsedAgentOutput = {
   responseText: string;
   actions: StructuredAgentAction[];
   raw: string;
+  /** Structured keeper-card — preferred over nested ```keeper-card fences. */
+  card?: KeeperResponseCard;
   ignoredReason?: string;
   validationError?: ActionValidationError;
   repaired?: boolean;
 };
+
+export type KeeperResponseCard = {
+  type: string;
+  title: string;
+  body?: string;
+  meta?: string;
+  items?: string[];
+};
+
+function parseKeeperCardField(value: unknown): KeeperResponseCard | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const type = typeof record.type === 'string' ? record.type.trim() : '';
+  const title = typeof record.title === 'string' ? record.title.trim() : '';
+  if (!type || !title) return undefined;
+  return {
+    type,
+    title,
+    body: typeof record.body === 'string' ? record.body : undefined,
+    meta: typeof record.meta === 'string' ? record.meta : undefined,
+    items: Array.isArray(record.items)
+      ? record.items.filter((item): item is string => typeof item === 'string')
+      : undefined,
+  };
+}
 
 /**
  * Extract JSON object from mixed response (prose + JSON).
@@ -96,6 +123,7 @@ function parseEnvelopeObject(
       responseText,
       actions: actionsResult.actions as StructuredAgentAction[],
       raw,
+      card: parseKeeperCardField(parsed.card),
     };
   }
 
@@ -115,6 +143,7 @@ function parseEnvelopeObject(
       responseText,
       actions: [],
       raw,
+      card: parseKeeperCardField(parsed.card),
       ignoredReason: 'missing_agent_output_envelope',
       validationError,
     };
@@ -124,6 +153,7 @@ function parseEnvelopeObject(
     responseText,
     actions: mapLegacyActions(parsed),
     raw,
+    card: parseKeeperCardField(parsed.card),
     validationError,
   };
 }

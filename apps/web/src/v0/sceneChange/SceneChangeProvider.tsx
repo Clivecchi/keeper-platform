@@ -3,15 +3,31 @@
 import * as React from "react"
 import { DomainLoadCurtain } from "./DomainLoadCurtain"
 import {
+  getCachedDomainBySlug,
   isDomainShellWarm,
   prefetchDomainShellForTravel,
 } from "../boards/domain/domainShellCache"
+import { prefetchDomainBoardDialogSession } from "../boards/domain/dialogSessionPrefetch"
+import { waitForDomainCoverDecode } from "../boards/domain/domainShellBootstrap"
 
 export interface SceneChangeContextValue {
   travelToSlug: (slug: string, onNavigate: () => void) => Promise<void>
 }
 
 const SceneChangeCtx = React.createContext<SceneChangeContextValue | null>(null)
+
+async function warmDialogForTravel(slug: string): Promise<void> {
+  const domain = getCachedDomainBySlug(slug)
+  if (!domain) return
+  await Promise.all([
+    waitForDomainCoverDecode(slug),
+    prefetchDomainBoardDialogSession({
+      domain,
+      domainSlug: slug,
+      dialogScope: "keeper",
+    }),
+  ])
+}
 
 export function SceneChangeProvider({ children }: { children: React.ReactNode }) {
   const [curtainSlug, setCurtainSlug] = React.useState<string | null>(null)
@@ -23,6 +39,7 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
       if (!normalized) return
 
       if (isDomainShellWarm(normalized, { requireAudience: true })) {
+        await warmDialogForTravel(normalized)
         onNavigate()
         return
       }
@@ -31,6 +48,7 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
         requireAudience: true,
       })
       if (warm) {
+        await warmDialogForTravel(normalized)
         onNavigate()
         return
       }
@@ -44,9 +62,17 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
   const handleCurtainComplete = React.useCallback(() => {
     const go = navigateRef.current
     navigateRef.current = null
+    const slug = curtainSlug
+    if (slug) {
+      void warmDialogForTravel(slug).finally(() => {
+        setCurtainSlug(null)
+        go?.()
+      })
+      return
+    }
     setCurtainSlug(null)
     go?.()
-  }, [])
+  }, [curtainSlug])
 
   const value = React.useMemo(() => ({ travelToSlug }), [travelToSlug])
 

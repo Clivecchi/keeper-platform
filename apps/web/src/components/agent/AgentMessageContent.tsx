@@ -1,70 +1,25 @@
 /**
  * AgentMessageContent — parses keeper-card fences inside agent prose and renders
- * KipResponseCard segments alongside markdown prose.
+ * KipResponseCard segments alongside markdown prose. Prefers structured metadata card.
  */
 
 import * as React from "react"
 import ReactMarkdown from "react-markdown"
 import { KipResponseCard, type KipResponseCardProps } from "./KipResponseCard"
+import {
+  normalizeKeeperCard,
+  parseContentSegments,
+  stripKeeperCardFences,
+  type AgentContentSegment,
+} from "./keeperCardParse"
 
-export type AgentContentSegment =
-  | { kind: "prose"; text: string }
-  | { kind: "keeper-card"; card: KipResponseCardProps }
-  | { kind: "keeper-card-raw"; raw: string }
-
-const KEEPER_CARD_PATTERN = /```keeper-card\s*\n?([\s\S]*?)```/gi
-
-function parseKeeperCardJson(raw: string): KipResponseCardProps | null {
-  const trimmed = raw.trim()
-  if (!trimmed) return null
-  try {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>
-    const type = typeof parsed.type === "string" ? parsed.type.trim() : ""
-    const title = typeof parsed.title === "string" ? parsed.title.trim() : ""
-    if (!type || !title) return null
-    return {
-      type,
-      title,
-      body: typeof parsed.body === "string" ? parsed.body : undefined,
-      meta: typeof parsed.meta === "string" ? parsed.meta : undefined,
-      items: Array.isArray(parsed.items)
-        ? parsed.items.filter((item): item is string => typeof item === "string")
-        : undefined,
-    }
-  } catch {
-    return null
-  }
-}
-
-export function parseContentSegments(content: string): AgentContentSegment[] {
-  const segments: AgentContentSegment[] = []
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-
-  KEEPER_CARD_PATTERN.lastIndex = 0
-  while ((match = KEEPER_CARD_PATTERN.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      const prose = content.slice(lastIndex, match.index).trim()
-      if (prose) segments.push({ kind: "prose", text: prose })
-    }
-    const card = parseKeeperCardJson(match[1])
-    if (card) {
-      segments.push({ kind: "keeper-card", card })
-    } else {
-      segments.push({ kind: "keeper-card-raw", raw: match[1].trim() })
-    }
-    lastIndex = KEEPER_CARD_PATTERN.lastIndex
-  }
-
-  const tail = content.slice(lastIndex).trim()
-  if (tail) segments.push({ kind: "prose", text: tail })
-
-  if (!segments.length && content.trim()) {
-    segments.push({ kind: "prose", text: content.trim() })
-  }
-
-  return segments
-}
+export type { AgentContentSegment }
+export {
+  normalizeKeeperCard,
+  parseContentSegments,
+  parseKeeperCardJson,
+  stripKeeperCardFences,
+} from "./keeperCardParse"
 
 const MD_COMPONENTS = {
   p: ({ children }: { children?: React.ReactNode }) => (
@@ -72,8 +27,25 @@ const MD_COMPONENTS = {
   ),
 }
 
-export function AgentMessageContent({ content }: { content: string }) {
-  const segments = React.useMemo(() => parseContentSegments(content), [content])
+export function AgentMessageContent({
+  content,
+  card,
+}: {
+  content: string
+  /** Structured card from message metadata — preferred over content fences. */
+  card?: KipResponseCardProps | null
+}) {
+  const segments = React.useMemo((): AgentContentSegment[] => {
+    const metaCard = card ? normalizeKeeperCard(card) : null
+    if (metaCard) {
+      const prose = stripKeeperCardFences(content)
+      const result: AgentContentSegment[] = []
+      if (prose) result.push({ kind: "prose", text: prose })
+      result.push({ kind: "keeper-card", card: metaCard })
+      return result
+    }
+    return parseContentSegments(content)
+  }, [content, card])
 
   return (
     <div className="kip-message-content space-y-2">

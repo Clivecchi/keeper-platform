@@ -60,7 +60,7 @@ import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchest
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { RealmArrivalProvider } from "../realm/RealmArrivalContext"
 import { prefetchBoardNavData } from "./boardNavDataCache"
-import { getCachedDomainBySlug } from "./domain/domainShellCache"
+import { getCachedDomainBySlug, resolveDomainCoverUrl } from "./domain/domainShellCache"
 import { BoardMobilePanelBar } from "./components/BoardMobilePanelBar"
 import { useBoardMobilePanelFocus } from "./hooks/useBoardMobilePanelFocus"
 import type { BoardMobilePanelId } from "./types/boardMobilePanel"
@@ -369,9 +369,14 @@ function UniversalBoardShell({
   }
 
   // ── Background ─────────────────────────────────────────────────────────────
-  const coverImageUrl = (domainData as { theme?: { coverImage?: string; coverImageMode?: string } } | undefined)?.theme?.coverImage ?? null
+  // Prefer shared shell helper so curtain → board cover sources stay aligned.
   const coverImageMode = (domainData as { theme?: { coverImageMode?: string } } | undefined)?.theme?.coverImageMode ?? "cover"
-  const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
+  const coverFromData = (domainData as { theme?: { coverImage?: string } } | undefined)?.theme?.coverImage
+  const displayCoverUrl =
+    (slug ? resolveDomainCoverUrl(slug) : null) ||
+    (typeof coverFromData === "string" && coverFromData.trim()
+      ? getBlobProxyUrl(coverFromData)
+      : null)
 
   const pageBackground: React.CSSProperties =
     isRealmHome || !displayCoverUrl

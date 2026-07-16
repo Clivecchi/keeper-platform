@@ -7,8 +7,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - `DomainBoard.tsx` — Root board component; delegates three-column layout to `UniversalBoard`.
 - `DomainSwitcherOverlay.tsx` — Reusable domain switcher overlay (fetch, list, add panel, navigate). Used by `UniversalBoard` on all member boards.
 - `domainSwitcherData.ts` — Fetches `GET /api/domains/my`; uses API `leadAgentSlug` (DB-first from `settings.primaryAgentId`); frame fallback; in-memory + sessionStorage cache (5 min TTL).
-- `domainShellCache.ts` — Per-slug by-slug + audience cache; `prefetchDomainShell` (frame, domain, audience).
-- `domainShellBootstrap.ts` — `bootstrapDomainShell` orchestrator + `isDomainShellReady` predicate for load gate.
+- `domainShellCache.ts` — Per-slug by-slug + audience cache; `prefetchDomainShell`; `resolveDomainCoverUrl` / `resolveDomainShellDisplayName`; warm-skip predicates.
+- `domainShellBootstrap.ts` — `bootstrapDomainShell` orchestrator + `isDomainShellReady` (requires display name) + cover decode wait.
+- `dialogSessionPrefetch.ts` — Prefetch/resume Dialog session during curtain so board reveal is Dialog-ready.
 - `domainShellPrefetch.ts` — Re-export of `prefetchDomainShell` (legacy import path).
 - `DomainAiAccessNav.tsx` — AI provider access summary (Agent Board).
 - `DomainExternalAccessNav.tsx` — domain MCP access keys for external tools (Domain / Realm / IDE nav).
@@ -86,3 +87,8 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - 2026-04-28 (Prompt 5): Added `activeJourneyId` state. When "Journeys" frame is selected in the left nav, the board fetches `/api/public/:domainSlug/journeys`, picks the first Journey, and renders `KeeperJourneyPanel` in the right panel (full-panel, no outer header). `handleMomentSelectFromJourney` fetches the moment by ID when a Moment row is tapped in `KeeperJourneyPanel`, then switches the right panel to `MomentDetailPanel`. Existing Feed `onMomentSelect` and `MomentDetailPanel` behavior unchanged.
 - 2026-04-27 (Prompt 4): Added `centerMode: 'feed' | 'dialog'` state (default: `'feed'`). Domain Board now launches in Feed Mode (The Commons — FeedFrame in Zone 2, no Banner). Sending a message triggers a transition to Dialog Mode (The Workshop — DialogueMessageList in Zone 2, Banner with ← Commons affordance). `onReturnToFeed` prop on `KeeperDialogFrame` wires the back button to return to Feed Mode. Trigger B (Keeper selection) is pending — no `activeKeeper` state exists in DomainBoard yet.
 - 2026-04-27 (Prompt 3): `DomainBoard` restructured. Removed separate `FeedFrame` block and fixed-height (300px) `KeeperDialogFrame`. Now uses a single `KeeperDialogFrame` with `dialogContent={<FeedFrame .../>}` filling the full remaining height below `DomainBanner`. Removed `background: "#fefdfb"` from center panel so Board atmosphere is visible. Feed scrolls inside `.dialog-message-surface` with 85% gradient dissolve.
+
+### 2026-07-15 � Load sequence quality
+- Shell readiness requires display name; shared cover URL helper; dialog session prefetch during curtain.
+- Fail-closed gate + retry lives in DomainShellGate; travel warm-skip aligned with readiness.
+

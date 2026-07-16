@@ -5,6 +5,7 @@
 
 import { apiFetch } from "../../../lib/api"
 import type { DomainAudienceRole } from "@keeper/shared"
+import { getBlobProxyUrl } from "../../../lib/blobProxy"
 import { loadDomainFrame, peekDomainFrame } from "../../data/loadDomainFrame"
 
 export const DOMAIN_SHELL_CACHE_TTL_MS = 5 * 60 * 1000
@@ -17,6 +18,7 @@ export type DomainBySlugRecord = {
   ownerId?: string
   displayName?: string
   /** Resolved from settings.primaryAgentId on GET /api/domains/by-slug/:slug */
+  leadAgentId?: string | null
   leadAgentSlug?: string | null
   leadAgentName?: string | null
   theme?: {
@@ -186,19 +188,46 @@ export function peekDomainShellFrame(slug: string) {
   return peekDomainFrame(slug)
 }
 
-/** True when cached shell data is warm enough to skip the scene curtain. */
+/** Shared cover URL for curtain + board background — keeps sources aligned. */
+export function resolveDomainCoverUrl(slug: string): string | null {
+  const cached = getCachedDomainBySlug(slug)
+  const cover = cached?.theme?.coverImage
+  if (typeof cover !== "string" || !cover.trim()) return null
+  return getBlobProxyUrl(cover)
+}
+
+/** Billing / readiness display name from domain + frame caches. */
+export function resolveDomainShellDisplayName(slug: string): string {
+  const cached = getCachedDomainBySlug(slug)
+  const frame = peekDomainFrame(slug)
+  return (
+    frame?.theme?.wordmark?.trim() ||
+    cached?.displayName?.trim() ||
+    cached?.name?.trim() ||
+    ""
+  )
+}
+
+/**
+ * True when cached shell data is warm enough to skip the scene curtain.
+ * Mirrors boot-gate readiness: resolved domain id + frame + display name + optional audience.
+ */
 export function isDomainShellWarm(
   slug: string,
   options?: { requireAudience?: boolean },
 ): boolean {
   const normalized = slug.trim().toLowerCase()
   if (!normalized) return false
-  const hasDomain = !!getCachedDomainBySlug(normalized)
-  const hasFrame = !!peekDomainFrame(normalized)
-  const hasAudience =
-    !options?.requireAudience || !!getCachedDomainAudience(normalized)
-  return hasDomain && hasFrame && hasAudience
+
+  const domain = getCachedDomainBySlug(normalized)
+  if (!domain?.id || String(domain.id).startsWith("fallback-")) return false
+  if (!peekDomainFrame(normalized)) return false
+  if (!resolveDomainShellDisplayName(normalized)) return false
+  if (options?.requireAudience && !getCachedDomainAudience(normalized)) return false
+  return true
 }
+
+export const DOMAIN_SHELL_WARM_SKIP_MS = 280
 
 /** Await shell prefetch with warm-skip threshold for scene-change travel. */
 export async function prefetchDomainShellForTravel(
@@ -214,5 +243,8 @@ export async function prefetchDomainShellForTravel(
       : Promise.resolve(null),
     import("../../data/loadDomainFrame").then((m) => m.loadDomainFrame(slug).catch(() => null)),
   ])
-  return Date.now() - startedAt < 280
+  return (
+    Date.now() - startedAt < DOMAIN_SHELL_WARM_SKIP_MS &&
+    isDomainShellWarm(slug, options)
+  )
 }

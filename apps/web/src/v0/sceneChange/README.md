@@ -21,6 +21,13 @@ Scene-change load mechanics for domain travel — splash curtain with warm-skip 
 - [ ] Mobile Playbill prefetch parity
 
 ## 📆 Update Log
+### 2026-07-15 — Load sequence quality (P0–P3)
+- Fail-closed boot gate with retry; require display name before reveal; prefer cover decode wait
+- Shared `resolveDomainCoverUrl` / `resolveDomainShellDisplayName`; warm-skip aligned with readiness
+- Dialog session prefetch during curtain/travel; Chronicle holds until `activeSessionId` (2.5s soft timeout)
+- Auth loading uses `DomainLoadCurtain` when slug is known from path/host
+- Guest/public Cover path still bypasses `DomainShellGate` by design (narrative Cover frame, not board curtain)
+
 ### 2026-07-12 — Opaque load curtain + boot gate
 - Added `DomainLoadCurtain` (97%+ opacity); removed slug/KE3P billing fallbacks during load
 - `SceneChangeProvider` suppresses board mount during travel curtain

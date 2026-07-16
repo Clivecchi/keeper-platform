@@ -88,14 +88,16 @@ function AgentChatBubble({
   content,
   variant,
   grouped = false,
+  card,
 }: {
   name: string
   content: string
   variant: AgentBubbleVariant
   grouped?: boolean
+  card?: AgentDialogueMessage["keeperCard"]
 }) {
   const trimmed = content.trim()
-  if (!trimmed) return null
+  if (!trimmed && !card) return null
 
   const senderVariant: MessageSenderVariant =
     variant === "collaborator"
@@ -111,7 +113,7 @@ function AgentChatBubble({
       <div className="dialog-multi-agent-turn__beat" data-agent-variant={variant}>
         <MessageSenderLabel name={name} variant={senderVariant} />
         <p className="dialog-multi-agent-turn__content">
-          <AgentMessageContent content={trimmed} />
+          <AgentMessageContent content={trimmed} card={card} />
         </p>
       </div>
     )
@@ -124,7 +126,7 @@ function AgentChatBubble({
         className="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
         style={agentBubbleSurface(variant)}
       >
-        <AgentMessageContent content={trimmed} />
+        <AgentMessageContent content={trimmed} card={card} />
       </div>
     </div>
   )
@@ -236,7 +238,7 @@ function AgentMessageTurn({
             boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
           }}
         >
-          <AgentMessageContent content={visibleContent} />
+          <AgentMessageContent content={visibleContent} card={message.keeperCard} />
           {message.arrivalInvitations?.length && onArrivalInvitation ? (
             <RealmInvitationButtons
               invitations={message.arrivalInvitations}
@@ -288,8 +290,18 @@ function AgentMessageTurn({
             variant="lead"
             name={resolvedAgentName}
             content={sanitizeAgentMessageContent(message.content)}
+            card={message.keeperCard}
           />
         )}
+        {!message.content.trim() && message.keeperCard ? (
+          <AgentChatBubble
+            grouped
+            variant="lead"
+            name={resolvedAgentName}
+            content=""
+            card={message.keeperCard}
+          />
+        ) : null}
         {echo && (
           <AgentChatBubble
             grouped

@@ -82,12 +82,17 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const meta = message.metadata as Record<string, unknown> | null | undefined
   const actionResults = Array.isArray(meta?.actionResults) ? meta.actionResults : undefined
   const linkedCard = extractLinkedCard(meta)
+  const keeperCard =
+    meta?.card && typeof meta.card === "object" && !Array.isArray(meta.card)
+      ? (meta.card as AgentDialogueMessage["keeperCard"])
+      : undefined
   return {
     id: message.id,
     role,
     content: message.content,
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
     ...(linkedCard ? { linkedCard } : {}),
+    ...(keeperCard ? { keeperCard } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
   }
 }

@@ -3950,7 +3950,7 @@ export class KipAgentService {
 
       systemParts.push(
         [
-          'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
+          'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"actions":[...]}',
           `Allowed actions: ${allowList.join(', ')}.`,
           'Each action must include a "type" and optional "payload".',
           'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
@@ -4001,39 +4001,33 @@ export class KipAgentService {
 
     // ── Response rendering governance — keeper-card versus prose ──────────────
     // Unconditional: applies regardless of lens resolution or environment state.
-    // Governs how Kip formats the "response" string inside the agent_output envelope.
+    // Prefers top-level envelope "card"; nested ```keeper-card fences remain valid.
     systemParts.push(
       [
         'RESPONSE RENDERING — keeper-card versus prose:',
         '',
         'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',
         '',
-        'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — render using a keeper-card fenced block inside the "response" field. Not prose. Not markdown headers. A keeper-card.',
+        'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — include a structured "card" object on the agent_output envelope. Not markdown headers. A keeper-card.',
         '',
-        'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — it renders as a keeper-card. If Kip is speaking, it renders as prose.',
+        'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — include "card". If Kip is speaking, use prose only.',
         '',
-        'keeper-card format (inside the "response" string value):',
-        '```keeper-card',
-        '{"type":"status","title":"Brief title of what happened","body":"One sentence description","meta":"Secondary detail if relevant"}',
-        '```',
+        'Preferred format (top-level envelope field — avoids nested fences):',
+        '{"type":"agent_output","response":"Short prose confirmation.","card":{"type":"status","title":"Brief title","body":"One sentence","meta":"Optional detail"},"actions":[]}',
         '',
-        'Example — a status card Kip produces in its response field:',
-        '```keeper-card',
-        '{"type":"status","title":"Phase 2 Sprint 1","body":"Governance rules confirmed live in runtime prompt. keeper-card pipeline verified end to end."}',
-        '```',
+        'Backward compatible: a ```keeper-card fence inside "response" is still accepted. Prefer the top-level "card" field. If both exist, "card" wins.',
         '',
-        'Permitted type values: "status" | "summary" | "error" | "info".',
+        'Permitted card.type values: "status" | "summary" | "error" | "info".',
         '- "status" — confirmation of a completed action (most common)',
         '- "summary" — summary of multiple items or states the user needs to scan',
         '- "error" — something failed or could not be completed',
         '- "info" — informational context, no action taken',
         '',
         'keeper-card rules:',
-        '- One keeper-card per response maximum',
-        '- Prose may appear before or after the keeper-card block',
-        '- The keeper-card JSON must be on a single line inside the fenced block',
-        '- Do not wrap conversational content in a keeper-card',
-        '- Do not produce a keeper-card for every response — only when the content is operational',
+        '- One card per response maximum',
+        '- "response" may contain prose; put operational structure in "card"',
+        '- Do not wrap conversational content in a card',
+        '- Do not produce a card for every response — only when the content is operational',
       ].join('\n'),
     );
 
@@ -4064,8 +4058,8 @@ export class KipAgentService {
         'For keeper.read: report the Keeper title, purpose, and associated Journey count.',
         '',
         'For library.read: when presenting a library pick, call library.read with { id } for the chosen',
-        'item (renders a tappable Library receipt) and include a keeper-card (type "summary") with the',
-        'item title, your rationale in body, and item id in meta.',
+        'item (renders a tappable Library receipt) and include envelope "card": {"type":"summary","title":"<item title>","body":"<rationale>","meta":"<item id>"}.',
+        'Nested ```keeper-card fences remain accepted for backward compatibility.',
         '',
         'The Completed receipt confirms the action ran.',
         'Your response must confirm what it found.',
@@ -4407,7 +4401,7 @@ export class KipAgentService {
               : [
                   'CRITICAL: This model does not support API-level JSON mode. You MUST still reply with valid raw JSON only — no prose before or after, no markdown fences. Any non-JSON text will break the system.',
                 ]),
-            'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
+            'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
             'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
@@ -4464,9 +4458,9 @@ export class KipAgentService {
         });
 
         // ── Response rendering governance — keeper-card versus prose ──────────────
-        // Unconditional within domain context: governs how Kip formats the "response"
-        // string inside the agent_output envelope. Must stay in sync with
+        // Unconditional within domain context. Must stay in sync with
         // buildComposedSystemPrompt (Cockpit preview). Source of truth is here.
+        // Prefers top-level envelope "card"; nested ```keeper-card fences remain valid.
         messages.push({
           role: 'system',
           content: [
@@ -4474,32 +4468,26 @@ export class KipAgentService {
             '',
             'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',
             '',
-            'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — render using a keeper-card fenced block inside the "response" field. Not prose. Not markdown headers. A keeper-card.',
+            'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — include a structured "card" object on the agent_output envelope. Not markdown headers. A keeper-card.',
             '',
-            'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — it renders as a keeper-card. If Kip is speaking, it renders as prose.',
+            'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — include "card". If Kip is speaking, use prose only.',
             '',
-            'keeper-card format (inside the "response" string value):',
-            '```keeper-card',
-            '{"type":"status","title":"Brief title of what happened","body":"One sentence description","meta":"Secondary detail if relevant"}',
-            '```',
+            'Preferred format (top-level envelope field — avoids nested fences):',
+            '{"type":"agent_output","response":"Short prose confirmation.","card":{"type":"status","title":"Brief title","body":"One sentence","meta":"Optional detail"},"actions":[]}',
             '',
-            'Example — a status card Kip produces in its response field:',
-            '```keeper-card',
-            '{"type":"status","title":"Phase 2 Sprint 1","body":"Governance rules confirmed live in runtime prompt. keeper-card pipeline verified end to end."}',
-            '```',
+            'Backward compatible: a ```keeper-card fence inside "response" is still accepted. Prefer the top-level "card" field. If both exist, "card" wins.',
             '',
-            'Permitted type values: "status" | "summary" | "error" | "info".',
+            'Permitted card.type values: "status" | "summary" | "error" | "info".',
             '- "status" — confirmation of a completed action (most common)',
             '- "summary" — summary of multiple items or states the user needs to scan',
             '- "error" — something failed or could not be completed',
             '- "info" — informational context, no action taken',
             '',
             'keeper-card rules:',
-            '- One keeper-card per response maximum',
-            '- Prose may appear before or after the keeper-card block',
-            '- The keeper-card JSON must be on a single line inside the fenced block',
-            '- Do not wrap conversational content in a keeper-card',
-            '- Do not produce a keeper-card for every response — only when the content is operational',
+            '- One card per response maximum',
+            '- "response" may contain prose; put operational structure in "card"',
+            '- Do not wrap conversational content in a card',
+            '- Do not produce a card for every response — only when the content is operational',
           ].join('\n'),
         });
       }
@@ -5175,6 +5163,9 @@ export class KipAgentService {
                 followUpStructured.responseText?.trim()
                 || followUpResult.content.trim()
                 || finalResponseText;
+              if (followUpStructured.card) {
+                structured = { ...structured, card: followUpStructured.card };
+              }
 
               if (followUpStructured.actions.length) {
                 const followUpExecution = await executeAgentActions(followUpStructured.actions, {
@@ -5240,6 +5231,9 @@ export class KipAgentService {
             followUpStructured.responseText?.trim()
             || followUpResult.content.trim()
             || finalResponseText;
+          if (followUpStructured.card) {
+            structured = { ...structured, card: followUpStructured.card };
+          }
 
           if (followUpStructured.actions.length) {
             const followUpExecution = await executeAgentActions(followUpStructured.actions, {
@@ -5297,6 +5291,7 @@ export class KipAgentService {
               senderName: agent.name,
               model: agent.model,
               actionResults: actionResults.length ? actionResults : undefined,
+              ...(structured.card ? { card: structured.card } : {}),
             });
           } catch (error) {
             console.warn('Failed to save agent response:', error);
@@ -5480,7 +5475,7 @@ export class KipAgentService {
             error: error instanceof Error ? error.message : error,
           });
         }
-        const structured = await ensureKipAgentOutputEnvelope(aiResult.content, {
+        let structured = await ensureKipAgentOutputEnvelope(aiResult.content, {
           requestId: systemRequestId,
           userId,
           allowedActions: Array.from(systemAllowActions),
@@ -5539,6 +5534,9 @@ export class KipAgentService {
               });
               finalResponseText =
                 followUpStructured.responseText?.trim() || followUpResult.content.trim() || finalResponseText;
+              if (followUpStructured.card) {
+                structured = { ...structured, card: followUpStructured.card };
+              }
             } else {
               const draftFailureNotice = buildDraftMutationFailureNotice(
                 execution.results,
@@ -5569,6 +5567,7 @@ export class KipAgentService {
               senderName: agent.name,
               model: agent.model,
               actionResults: actionResults.length ? actionResults : undefined,
+              ...(structured.card ? { card: structured.card } : {}),
             });
           } catch (error) {
             console.warn('[System agent] Failed to save agent response:', error);

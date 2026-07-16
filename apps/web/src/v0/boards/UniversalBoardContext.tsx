@@ -36,6 +36,7 @@ import type { EngagementContext } from "../../components/engagement/EngagementFo
 import { parseEngagementTemplateResponse } from "./engagement/parseEngagementTemplateResponse"
 import { apiFetch } from "../../lib/api"
 import { GuidedArrivalProvider } from "../guidedArrival/GuidedArrivalContext"
+import { clearPrefetchedDialogSession } from "./domain/dialogSessionPrefetch"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -682,6 +683,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     const nextSlug = shell?.domainSlug ?? ""
     if (!nextSlug || prevDomainSlugRef.current === nextSlug) return
     prevDomainSlugRef.current = nextSlug
+    clearPrefetchedDialogSession()
     clearSelection()
     closeChronicleEngagement()
     setActiveSessionId(null)

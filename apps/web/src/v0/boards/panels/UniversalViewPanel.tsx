@@ -319,6 +319,22 @@ function PanelBody({
   const objectId = subject.kind === "domain" ? domainId : subject.id
   const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(subject.kind) ? "config" : "focus"
 
+  // Hold Chronicle content until Dialog session is ready so panels don't race.
+  // Soft timeout avoids a permanent empty Chronicle if session bootstrap fails.
+  const expectsDialogSession = boardId === "domain" || boardId === "agent"
+  const activeSessionId = boardCtx?.selection.activeSessionId ?? null
+  const [sessionWaitExpired, setSessionWaitExpired] = React.useState(false)
+
+  React.useEffect(() => {
+    setSessionWaitExpired(false)
+    if (!expectsDialogSession || activeSessionId || !domainId) return
+    const timer = window.setTimeout(() => setSessionWaitExpired(true), 2500)
+    return () => window.clearTimeout(timer)
+  }, [expectsDialogSession, activeSessionId, domainId, boardId])
+
+  const waitingForDialog =
+    expectsDialogSession && !!domainId && !activeSessionId && !sessionWaitExpired
+
   function renderPresence(): React.ReactNode {
     if (isRealmIdle) {
       return (
@@ -337,6 +353,16 @@ function PanelBody({
         <div className="flex h-full items-center justify-center px-4">
           <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             Waiting for domain context…
+          </p>
+        </div>
+      )
+    }
+
+    if (waitingForDialog) {
+      return (
+        <div className="flex h-full items-center justify-center px-4">
+          <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            Preparing board…
           </p>
         </div>
       )

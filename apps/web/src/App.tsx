@@ -78,20 +78,49 @@ import { HostnameSlugGuard } from './components/HostnameSlugGuard';
 import { RealmRoot } from './components/RealmRoot';
 import {
   isKeeperPlatformWebHost,
+  resolveDefaultDomainSlugFromHostname,
 } from './lib/platformHost';
-import { buildDefaultPathForHost } from './lib/resolveHostDomain';
+import { buildDefaultPathForHost, getCachedHostDomain } from './lib/resolveHostDomain';
 import { useResolvedHostDomain } from './hooks/useResolvedHostDomain';
 import { getApiBase } from './lib/apiFetch';
+import { DomainLoadCurtain } from './v0/sceneChange/DomainLoadCurtain';
+import { prefetchDomainShell } from './v0/boards/domain/domainShellCache';
+
+function resolveAuthCurtainSlug(pathname: string, hostname: string): string | null {
+  const fromPath = pathname.match(/^\/d\/([^/]+)/)?.[1]?.trim();
+  if (fromPath) return fromPath;
+  const fromHost =
+    getCachedHostDomain(hostname)?.slug?.trim() ||
+    resolveDefaultDomainSlugFromHostname(hostname)?.trim() ||
+    null;
+  return fromHost || null;
+}
+
+function AuthLoadingCurtain({ pathname }: { pathname: string }) {
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const curtainSlug = resolveAuthCurtainSlug(pathname, hostname);
+
+  React.useEffect(() => {
+    if (curtainSlug) prefetchDomainShell(curtainSlug);
+  }, [curtainSlug]);
+
+  if (curtainSlug) {
+    return <DomainLoadCurtain domainSlug={curtainSlug} />;
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-lg">Loading...</div>
+    </div>
+  );
+}
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, authResolved, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading || !authResolved) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
+    return <AuthLoadingCurtain pathname={location.pathname} />;
   }
 
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
@@ -105,11 +134,7 @@ const RequireAdminRoute: React.FC = () => {
   const domainSlug = slugMatch?.[1] || 'default';
 
   if (isLoading || !authResolved) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Checking...</div>
-      </div>
-    );
+    return <AuthLoadingCurtain pathname={location.pathname} />;
   }
 
   if (!isAuthenticated) {
@@ -132,11 +157,7 @@ const RootRedirect: React.FC = () => {
   const { domain, loading: hostLoading } = useResolvedHostDomain();
 
   if (isLoading || !authResolved || hostLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
+    return <AuthLoadingCurtain pathname={location.pathname} />;
   }
 
   if (domain?.source === 'unresolved') {

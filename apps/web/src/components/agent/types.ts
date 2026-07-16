@@ -31,6 +31,14 @@ export interface AgentDialogueMessage {
   /** Director mode — instrument reply above Lead content (Cloud, Rendr, …). */
   delegation?: DirectorDelegationBeat
   linkedCard?: LinkedCardProps
+  /** Structured keeper-card from message metadata (preferred over content fences). */
+  keeperCard?: {
+    type: string
+    title: string
+    body?: string
+    meta?: string
+    items?: string[]
+  }
   actionResults?: Array<{
     type: string
     ok?: boolean

@@ -20,6 +20,39 @@ describe('parseKipAgentOutput', () => {
     expect(result.ignoredReason).toBeUndefined();
   });
 
+  it('parses optional structured card field', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'Saved.',
+      card: {
+        type: 'status',
+        title: 'Draft created',
+        body: 'Your draft is ready.',
+        meta: 'draft-1',
+      },
+      actions: [],
+    });
+    const result = parseKipAgentOutput(raw);
+    expect(result.responseText).toBe('Saved.');
+    expect(result.card).toEqual({
+      type: 'status',
+      title: 'Draft created',
+      body: 'Your draft is ready.',
+      meta: 'draft-1',
+    });
+  });
+
+  it('ignores invalid card without type/title', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'Ok',
+      card: { body: 'missing required fields' },
+      actions: [],
+    });
+    const result = parseKipAgentOutput(raw);
+    expect(result.card).toBeUndefined();
+  });
+
   it('wraps plain prose via wrapProseAsAgentOutput', () => {
     const result = wrapProseAsAgentOutput('We build Keeper using Keeper.');
     expect(result.responseText).toBe('We build Keeper using Keeper.');
