@@ -11,6 +11,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `feeds/CapabilityFeed.tsx` — Capability EntityKind feed hook (`useCapabilityFeedData`)
 - `feeds/AIModelFeed.tsx` — AI model provider feed
 - `KeyConfigPresence.tsx` — Key Config Mode CRUD surface
+- `ExternalAccessKeyPresence.tsx` — Domain MCP access key manage surface (label, revoke, overview)
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `agentNavUtils.ts` — optimistic Agents nav row patch after agent Config save
@@ -41,6 +42,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-07-15 — External Access key Chronicle
+- `ExternalAccessKeyPresence` — overview + per-key manage (label save, revoke) for MCP domain keys (`dak:{id}` ids)
 
 ### 2026-07-11 — Faster library upload path
 - `libraryNavCreate.ts`: client-side `prepareImageForUpload` downscale before blob upload; parallel `commitComposerAttachmentsToLibrary`

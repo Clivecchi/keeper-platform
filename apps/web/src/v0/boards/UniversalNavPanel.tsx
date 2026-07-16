@@ -1529,7 +1529,13 @@ export function UniversalNavPanel({
         )
       case "externalAccess":
         if (!showExternalAccessNav) return null
-        return <DomainExternalAccessNav domainId={domainId} />
+        return (
+          <DomainExternalAccessNav
+            domainId={domainId}
+            selectedKeyId={selectedKeyId}
+            onManageKey={onKeySelect}
+          />
+        )
       case "library":
         if (!showLibraryNav) return null
         return (
@@ -1564,9 +1570,6 @@ export function UniversalNavPanel({
                 {libraryError}
               </p>
             )}
-            {showExternalAccessNav && domainId ? (
-              <DomainExternalAccessNav domainId={domainId} />
-            ) : null}
           </div>
         )
       case "capabilities":

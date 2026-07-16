@@ -378,7 +378,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       boardDefs: false,
     },
     primarySection: "agents",
-    navBlockOrder: ["agents", "aiAccess", "boards"],
+    navBlockOrder: ["agents", "aiAccess", "externalAccess", "boards"],
     aiAccessSummary: true,
     externalAccessSummary: true,
     // Full Keys + platform AI providers live on IDE Board only.
@@ -419,7 +419,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       library: true,
       boardDefs: false,
     },
-    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "boards"],
+    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "externalAccess", "boards"],
     externalAccessSummary: true,
     keeperSectionTitle: "Keeper",
   },

@@ -113,6 +113,26 @@ export async function revokeDomainAccessKey(params: {
   return toRecord(row);
 }
 
+export async function updateDomainAccessKeyLabel(params: {
+  domainId: string;
+  id: string;
+  label: string;
+}): Promise<DomainAccessKeyRecord> {
+  const label = params.label.trim();
+  if (!label) throw new Error('Label is required');
+
+  const existing = await prisma.domainAccessKey.findFirst({
+    where: { id: params.id, domain_id: params.domainId },
+  });
+  if (!existing) throw new Error('Access key not found');
+
+  const row = await prisma.domainAccessKey.update({
+    where: { id: params.id },
+    data: { label },
+  });
+  return toRecord(row);
+}
+
 export type DomainAccessKeyAuthMatch = {
   domainId: string;
   scopes: string[];

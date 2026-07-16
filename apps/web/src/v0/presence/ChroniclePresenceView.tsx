@@ -18,6 +18,8 @@ import type { PresenceLayout } from "./types"
 import type { PresentName, RenderContext } from "../presents/types"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
+import { isExternalAccessChronicleKey } from "../boards/domain/externalAccessKeyIds"
+import { ExternalAccessKeyPresence } from "./integrationChronicle/ExternalAccessKeyPresence"
 
 export interface ChroniclePresenceViewProps {
   objectType: string
@@ -82,6 +84,22 @@ export function ChroniclePresenceView({
       <ChronicleTreatmentShell treatment={treatment}>{soleBody}</ChronicleTreatmentShell>
     ) : (
       soleBody
+    )
+  }
+
+  if (objectType === "key" && isExternalAccessChronicleKey(objectId)) {
+    const externalAccessBody = (
+      <ExternalAccessKeyPresence
+        chronicleKeyId={objectId}
+        domainId={domainId}
+        onLabelResolved={onLabelResolved}
+        onKeySelect={onKeySelect}
+      />
+    )
+    return treatment ? (
+      <ChronicleTreatmentShell treatment={treatment}>{externalAccessBody}</ChronicleTreatmentShell>
+    ) : (
+      externalAccessBody
     )
   }
 

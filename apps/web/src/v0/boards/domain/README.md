@@ -12,6 +12,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - `domainShellPrefetch.ts` — Re-export of `prefetchDomainShell` (legacy import path).
 - `DomainAiAccessNav.tsx` — AI provider access summary (Agent Board).
 - `DomainExternalAccessNav.tsx` — domain MCP access keys for external tools (Domain / Realm / IDE nav).
+- `externalAccessKeyIds.ts` — Chronicle id helpers (`dak:{id}`, `external-access` overview).
 - `domainSwitcherTheme.ts` — Fixed light-on-dark ink tokens for picker readability.
 
 ## 🔄 Data & Behavior
@@ -29,6 +30,11 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Repair existing domains via `POST /api/domains/:id/provision` from onboard UI (API ready; auto-repair on shell load added 2026-06-28).
 
 ## 📆 Update Log
+
+### 2026-07-15 — External Access nav dedupe + Chronicle manage
+- Removed duplicate `DomainExternalAccessNav` render (was mounted in both `externalAccess` block and inside Library).
+- Nav key rows show label + prefix; click opens Chronicle `ExternalAccessKeyPresence` (label edit, revoke).
+- `externalAccess` placed after Library in Domain/Agent board `navBlockOrder`.
 
 ### 2026-07-14 — External Access keys
 - `DomainExternalAccessNav` — create/revoke domain-bound MCP keys (Library read); secret shown once

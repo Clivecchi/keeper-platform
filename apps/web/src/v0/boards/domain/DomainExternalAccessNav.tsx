@@ -3,6 +3,11 @@
 import * as React from "react"
 import { apiFetch } from "../../../lib/api"
 import type { DomainAccessKeyRecord } from "@keeper/shared"
+import {
+  domainAccessKeyChronicleId,
+  EXTERNAL_ACCESS_OVERVIEW_ID,
+  parseDomainAccessKeyChronicleId,
+} from "./externalAccessKeyIds"
 
 type AccessKeysResponse = { keys: DomainAccessKeyRecord[] }
 
@@ -17,11 +22,29 @@ async function fetchDomainAccessKeys(domainId: string): Promise<DomainAccessKeyR
   return data.keys ?? []
 }
 
-export interface DomainExternalAccessNavProps {
-  domainId: string | null
+function formatScopeList(scopes: string[]): string {
+  if (!scopes.length) return "No scopes"
+  return scopes
+    .map((scope) => {
+      if (scope === "library.ro") return "Library read"
+      if (scope === "library.rw") return "Library read/write"
+      if (scope === "gloss.rw") return "Gloss write"
+      return scope
+    })
+    .join(", ")
 }
 
-export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavProps) {
+export interface DomainExternalAccessNavProps {
+  domainId: string | null
+  selectedKeyId?: string | null
+  onManageKey?: (chronicleKeyId: string) => void
+}
+
+export function DomainExternalAccessNav({
+  domainId,
+  selectedKeyId,
+  onManageKey,
+}: DomainExternalAccessNavProps) {
   const [keys, setKeys] = React.useState<DomainAccessKeyRecord[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [label, setLabel] = React.useState("")
@@ -62,24 +85,11 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
       setRevealedSecret(data.key.secret)
       setLabel("")
       await reload()
+      onManageKey?.(domainAccessKeyChronicleId(data.key.id))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed")
     } finally {
       setCreating(false)
-    }
-  }
-
-  const handleRevoke = async (id: string) => {
-    if (!domainId) return
-    setError(null)
-    try {
-      await apiFetch(
-        `/api/domains/${encodeURIComponent(domainId)}/access-keys/${encodeURIComponent(id)}/revoke`,
-        { method: "POST" },
-      )
-      await reload()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Revoke failed")
     }
   }
 
@@ -106,6 +116,7 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
   }
 
   const activeCount = keys?.filter((k) => k.status === "active").length ?? 0
+  const activeKeys = keys?.filter((k) => k.status === "active") ?? []
 
   return (
     <div
@@ -116,7 +127,13 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
       }}
     >
       <div className="px-3 pb-2">
-        <p className="keeper-nav-section-title">External Access</p>
+        <button
+          type="button"
+          className="keeper-nav-section-title text-left w-full"
+          onClick={() => onManageKey?.(EXTERNAL_ACCESS_OVERVIEW_ID)}
+        >
+          External Access
+        </button>
         <p
           className="text-[13px] mt-1 leading-snug"
           style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 78%))" }}
@@ -144,32 +161,34 @@ export function DomainExternalAccessNav({ domainId }: DomainExternalAccessNavPro
         ) : null}
       </div>
 
-      {keys && keys.length > 0 ? (
+      {activeKeys.length > 0 ? (
         <ul className="flex flex-col gap-1 px-2">
-          {keys.map((key) => (
-            <li
-              key={key.id}
-              className="flex items-start justify-between gap-2 px-1 py-1.5 rounded-sm"
-              style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 84%))" }}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[14px] leading-snug truncate">{key.label}</p>
-                <p className="text-[12px] opacity-80 truncate">
-                  {key.key_prefix}… · {key.status}
-                  {key.scopes.length ? ` · ${key.scopes.join(", ")}` : ""}
-                </p>
-              </div>
-              {key.status === "active" ? (
+          {activeKeys.map((key) => {
+            const chronicleId = domainAccessKeyChronicleId(key.id)
+            const isSelected =
+              selectedKeyId === chronicleId ||
+              parseDomainAccessKeyChronicleId(selectedKeyId ?? "") === key.id
+
+            return (
+              <li key={key.id}>
                 <button
                   type="button"
-                  className="text-[12px] shrink-0 underline underline-offset-2"
-                  onClick={() => void handleRevoke(key.id)}
+                  onClick={() => onManageKey?.(chronicleId)}
+                  className={`w-full text-left px-2 py-1.5 rounded-sm transition-opacity hover:opacity-85${
+                    isSelected ? " keeper-nav-item-selected font-medium" : ""
+                  }`}
+                  style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 84%))" }}
                 >
-                  Revoke
+                  <span className="text-[14px] leading-snug block truncate">
+                    {key.label.trim() || "Unlabeled key"}
+                  </span>
+                  <span className="text-[12px] leading-snug block opacity-80 truncate">
+                    {key.key_prefix}… · {formatScopeList(key.scopes)}
+                  </span>
                 </button>
-              ) : null}
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       ) : null}
 

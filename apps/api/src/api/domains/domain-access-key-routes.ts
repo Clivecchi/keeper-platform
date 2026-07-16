@@ -13,6 +13,7 @@ import {
   createDomainAccessKey,
   listDomainAccessKeys,
   revokeDomainAccessKey,
+  updateDomainAccessKeyLabel,
 } from '../../services/DomainAccessKeyService.js';
 
 const router: Router = Router({ mergeParams: true });
@@ -21,6 +22,10 @@ const createSchema = z.object({
   label: z.string().min(1).max(120),
   scopes: z.array(z.string()).min(1).default(['library.ro']),
   expires_at: z.string().datetime().optional(),
+});
+
+const updateSchema = z.object({
+  label: z.string().min(1).max(120),
 });
 
 /** GET /api/domains/:domainId/access-keys */
@@ -98,6 +103,37 @@ router.post(
       const message = err instanceof Error ? err.message : 'Failed to revoke access key';
       const status = message.includes('not found') ? 404 : 400;
       console.error('[domains:access-keys:revoke]', err);
+      return res.status(status).json({ error: message });
+    }
+  },
+);
+
+/** PATCH /api/domains/:domainId/access-keys/:id — update label */
+router.patch(
+  '/:domainId/access-keys/:id',
+  authMiddlewareCompat,
+  requireDomainAdminCompat,
+  async (req: Request, res: Response) => {
+    try {
+      const domainId = String(req.params.domainId ?? '').trim();
+      const id = String(req.params.id ?? '').trim();
+      if (!domainId || !id) return res.status(400).json({ error: 'domainId and id are required' });
+
+      const parsed = updateSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid body', details: parsed.error.flatten() });
+      }
+
+      const key = await updateDomainAccessKeyLabel({
+        domainId,
+        id,
+        label: parsed.data.label,
+      });
+      return res.json({ key });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update access key';
+      const status = message.includes('not found') ? 404 : 400;
+      console.error('[domains:access-keys:update]', err);
       return res.status(status).json({ error: message });
     }
   },
