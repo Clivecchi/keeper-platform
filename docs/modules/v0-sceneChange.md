@@ -21,6 +21,11 @@ Scene-change load mechanics for domain travel — splash curtain with warm-skip 
 - [ ] Mobile Playbill prefetch parity
 
 ## 📆 Update Log
+### 2026-07-16 — Playbill imagery + login curtain + user menu
+- Curtain cover refreshes as shell cache fills; cover resolve uses objectTheme + frame background fallback
+- Boot gate always brands first paint (≥480ms) unless travel already showed a curtain
+- Home/login resolve primary domain for branded curtain (not platform ke3p)
+
 ### 2026-07-15 — Load sequence quality (P0–P3)
 - Fail-closed boot gate with retry; require display name before reveal; prefer cover decode wait
 - Shared `resolveDomainCoverUrl` / `resolveDomainShellDisplayName`; warm-skip aligned with readiness

@@ -1,3 +1,4 @@
+import { extractDomainThemeCover } from "@keeper/shared"
 import { apiFetch } from "../../../lib/apiFetch"
 import { getAuthToken } from "../../../lib/authTokenStore"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
@@ -173,8 +174,12 @@ interface ApiDomainRow {
 function parseTheme(theme: unknown): { coverImage?: string; tagline?: string } {
   if (!theme || typeof theme !== "object") return {}
   const record = theme as Record<string, unknown>
+  const coverImage =
+    extractDomainThemeCover(theme).coverImage?.trim() ||
+    (typeof record.coverImage === "string" ? record.coverImage.trim() : undefined) ||
+    undefined
   return {
-    coverImage: typeof record.coverImage === "string" ? record.coverImage : undefined,
+    coverImage,
     tagline: typeof record.tagline === "string" ? record.tagline : undefined,
   }
 }
@@ -185,7 +190,16 @@ function parseLeadAgentSlug(primaryAgentSlug?: string | null): string | null {
 
 export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitcherEntry {
   const theme = parseTheme(domain.theme)
-  const rawCover = theme.coverImage ?? null
+  let rawCover = theme.coverImage ?? null
+
+  // Legacy frame_json.theme.background often holds the cover when Domain.theme is sparse.
+  if (!rawCover && domain.frame_json && typeof domain.frame_json === "object") {
+    const frameTheme = (domain.frame_json as { theme?: { background?: unknown } }).theme
+    const bg = typeof frameTheme?.background === "string" ? frameTheme.background.trim() : ""
+    if (bg && /^(https?:|blob:|data:|\/)/i.test(bg)) {
+      rawCover = bg
+    }
+  }
 
   return {
     id: domain.id,

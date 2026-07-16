@@ -65,3 +65,6 @@ Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optiona
 - 2026-02-09: Added `useAgentWorkspaceView` — Agent-specific workspace view hook with `dialogue | draft | cockpit` view kinds. Serializes to `?view=dialogue&sessionId=xxx`, `?view=draft&draftId=yyy`, `?view=cockpit`. Used by the new `AgentBoardFrame`. Split `"agent"` frame key to point at `AgentBoardFrame`; `"kip"` retains the legacy `AgentFrame`.
 - 2026-07-15: DomainShellGate fail-closed + retry; session prefetch during curtain; auth path uses branded DomainLoadCurtain when slug known.
 
+
+- 2026-07-16: Home anchor load uses DomainLoadCurtain; profile menu works on all boards (not home-only).
+

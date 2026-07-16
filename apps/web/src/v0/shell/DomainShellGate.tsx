@@ -4,6 +4,7 @@ import * as React from "react"
 import { DomainLoadCurtain } from "../sceneChange/DomainLoadCurtain"
 import {
   bootstrapDomainShell,
+  consumeTravelCurtainSkip,
   DOMAIN_SHELL_MIN_HOLD_MS,
   isDomainShellReady,
   waitForDomainCoverDecode,
@@ -27,10 +28,9 @@ export function DomainShellGate({
 }: DomainShellGateProps) {
   const slug = domainSlug.trim()
 
-  const [phase, setPhase] = React.useState<GatePhase>(() => {
-    if (!slug) return "ready"
-    return isDomainShellReady(slug, { requireAudience }) ? "ready" : "curtain"
-  })
+  // Always start on curtain for branded first paint (login + cold load).
+  // Travel paths call markTravelCurtainShown; the effect below may skip a double curtain.
+  const [phase, setPhase] = React.useState<GatePhase>(() => (slug ? "curtain" : "ready"))
   const [retryToken, setRetryToken] = React.useState(0)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
@@ -41,10 +41,9 @@ export function DomainShellGate({
       return
     }
 
-    if (isDomainShellReady(slug, { requireAudience })) {
+    if (consumeTravelCurtainSkip(slug) && isDomainShellReady(slug, { requireAudience })) {
       setPhase("ready")
       setErrorMessage(null)
-      // Still warm the dialog session when cache already satisfied the gate.
       const domain = getCachedDomainBySlug(slug)
       if (domain) {
         void prefetchDomainBoardDialogSession({
@@ -62,25 +61,28 @@ export function DomainShellGate({
     setErrorMessage(null)
 
     void (async () => {
-      const result = await bootstrapDomainShell(slug, {
-        requireAudience,
-        forceRefresh: retryToken > 0,
-      }).catch(() => null)
+      const alreadyReady = isDomainShellReady(slug, { requireAudience })
+      if (!alreadyReady) {
+        const result = await bootstrapDomainShell(slug, {
+          requireAudience,
+          forceRefresh: retryToken > 0,
+        }).catch(() => null)
 
-      if (cancelled) return
+        if (cancelled) return
 
-      const ready =
-        result?.ready === true || isDomainShellReady(slug, { requireAudience })
+        const ready =
+          result?.ready === true || isDomainShellReady(slug, { requireAudience })
 
-      if (!ready) {
-        setErrorMessage(
-          "This domain could not be loaded. Check your connection and try again.",
-        )
-        setPhase("error")
-        return
+        if (!ready) {
+          setErrorMessage(
+            "This domain could not be loaded. Check your connection and try again.",
+          )
+          setPhase("error")
+          return
+        }
       }
 
-      const domain = getCachedDomainBySlug(slug) ?? result?.domain ?? null
+      const domain = getCachedDomainBySlug(slug)
       await Promise.all([
         waitForDomainCoverDecode(slug),
         domain

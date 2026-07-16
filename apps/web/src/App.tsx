@@ -85,10 +85,13 @@ import { useResolvedHostDomain } from './hooks/useResolvedHostDomain';
 import { getApiBase } from './lib/apiFetch';
 import { DomainLoadCurtain } from './v0/sceneChange/DomainLoadCurtain';
 import { prefetchDomainShell } from './v0/boards/domain/domainShellCache';
+import { resolvePostLoginDomainSlug } from './v0/boards/domain/domainSwitcherData';
 
 function resolveAuthCurtainSlug(pathname: string, hostname: string): string | null {
   const fromPath = pathname.match(/^\/d\/([^/]+)/)?.[1]?.trim();
   if (fromPath) return fromPath;
+  // /home resolves the user's primary domain async — do not brand platform ke3p here.
+  if (pathname === '/home' || pathname.startsWith('/home/')) return null;
   const fromHost =
     getCachedHostDomain(hostname)?.slug?.trim() ||
     resolveDefaultDomainSlugFromHostname(hostname)?.trim() ||
@@ -98,11 +101,32 @@ function resolveAuthCurtainSlug(pathname: string, hostname: string): string | nu
 
 function AuthLoadingCurtain({ pathname }: { pathname: string }) {
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  const curtainSlug = resolveAuthCurtainSlug(pathname, hostname);
+  const pathSlug = resolveAuthCurtainSlug(pathname, hostname);
+  const [curtainSlug, setCurtainSlug] = React.useState<string | null>(pathSlug);
 
   React.useEffect(() => {
-    if (curtainSlug) prefetchDomainShell(curtainSlug);
-  }, [curtainSlug]);
+    let cancelled = false;
+    if (pathSlug) {
+      setCurtainSlug(pathSlug);
+      prefetchDomainShell(pathSlug);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Login → /home: brand the user's primary domain once resolved.
+    if (pathname === '/home' || pathname.startsWith('/home/') || pathname.startsWith('/login')) {
+      void resolvePostLoginDomainSlug().then((slug) => {
+        if (cancelled || !slug?.trim()) return;
+        setCurtainSlug(slug.trim());
+        prefetchDomainShell(slug.trim());
+      });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, pathSlug]);
 
   if (curtainSlug) {
     return <DomainLoadCurtain domainSlug={curtainSlug} />;

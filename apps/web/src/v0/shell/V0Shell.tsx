@@ -47,7 +47,38 @@ import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { SceneChangeProvider } from "../sceneChange/SceneChangeProvider"
+import { DomainLoadCurtain } from "../sceneChange/DomainLoadCurtain"
 import { DomainShellGate } from "./DomainShellGate"
+import { prefetchDomainShell } from "../boards/domain/domainShellCache"
+
+/** Branded home-anchor wait — resolves primary domain when pendingSlug is still empty. */
+function HomeAnchorLoadCurtain({ pendingSlug }: { pendingSlug: string | null }) {
+  const [slug, setSlug] = React.useState<string | null>(pendingSlug?.trim() || null)
+
+  React.useEffect(() => {
+    if (pendingSlug?.trim()) {
+      setSlug(pendingSlug.trim())
+      prefetchDomainShell(pendingSlug.trim())
+      return
+    }
+    let cancelled = false
+    void resolvePostLoginDomainSlug().then((resolved) => {
+      if (cancelled || !resolved?.trim()) return
+      setSlug(resolved.trim())
+      prefetchDomainShell(resolved.trim())
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [pendingSlug])
+
+  if (slug) return <DomainLoadCurtain domainSlug={slug} />
+  return (
+    <div className="flex h-screen items-center justify-center bg-neutral-50">
+      <p className="text-sm text-neutral-500">Loading Home…</p>
+    </div>
+  )
+}
 import { loadDomainFrame, peekDomainFrame } from "../data/loadDomainFrame"
 import {
   fetchDomainAudience,
@@ -836,11 +867,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   if (!effectiveSlug) {
     if (isHomeShell && authResolved && isAuthenticated) {
       if (!anchorDomainResolved) {
-        return (
-          <div className="flex h-screen items-center justify-center bg-neutral-50">
-            <p className="text-sm text-neutral-500">Loading Home…</p>
-          </div>
-        )
+        return <HomeAnchorLoadCurtain pendingSlug={anchorDomainSlug} />
       }
       return (
         <div className="flex h-screen flex-col items-center justify-center gap-2 bg-neutral-50 px-6 text-center">

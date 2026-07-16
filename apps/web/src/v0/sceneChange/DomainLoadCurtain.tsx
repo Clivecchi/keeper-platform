@@ -59,21 +59,38 @@ export function DomainLoadCurtain({
 }: DomainLoadCurtainProps) {
   const reducedMotion = useReducedMotion()
   const [billing, setBilling] = React.useState(() => resolveCurtainBilling(domainSlug))
+  const [coverUrl, setCoverUrl] = React.useState(() => resolveDomainCoverUrl(domainSlug))
   const mountedAt = React.useRef(Date.now())
   const completedRef = React.useRef(false)
 
   React.useEffect(() => {
+    let cancelled = false
     prefetchDomainShell(domainSlug)
     setBilling(resolveCurtainBilling(domainSlug))
+    setCoverUrl(resolveDomainCoverUrl(domainSlug))
+
+    const refreshVisuals = () => {
+      if (cancelled) return
+      setBilling(resolveCurtainBilling(domainSlug))
+      setCoverUrl(resolveDomainCoverUrl(domainSlug))
+    }
+
+    // Prefetch is async — re-read cover/billing as shell cache fills.
+    const timers = [120, 320, 640, 1200].map((ms) => window.setTimeout(refreshVisuals, ms))
 
     const cached = getCachedDomainBySlug(domainSlug)
     const leadSlug = resolveDomainLeadContext(cached as DomainLeadRecord | null).slug
     if (leadSlug) {
       void resolvePlaybillAgent(leadSlug).then((agent) => {
-        if (agent?.displayName) {
+        if (!cancelled && agent?.displayName) {
           setBilling((prev) => ({ ...prev, agentName: agent.displayName }))
         }
       })
+    }
+
+    return () => {
+      cancelled = true
+      for (const timer of timers) window.clearTimeout(timer)
     }
   }, [domainSlug])
 
@@ -92,7 +109,6 @@ export function DomainLoadCurtain({
     return () => window.clearTimeout(timer)
   }, [domainSlug, onComplete, errorMessage])
 
-  const coverUrl = resolveDomainCoverUrl(domainSlug)
   const hasDomainName = billing.domainName.length > 0
   const hasAgentName = billing.agentName.length > 0
 

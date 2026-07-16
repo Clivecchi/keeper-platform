@@ -8,7 +8,10 @@ import {
   prefetchDomainShellForTravel,
 } from "../boards/domain/domainShellCache"
 import { prefetchDomainBoardDialogSession } from "../boards/domain/dialogSessionPrefetch"
-import { waitForDomainCoverDecode } from "../boards/domain/domainShellBootstrap"
+import {
+  markTravelCurtainShown,
+  waitForDomainCoverDecode,
+} from "../boards/domain/domainShellBootstrap"
 
 export interface SceneChangeContextValue {
   travelToSlug: (slug: string, onNavigate: () => void) => Promise<void>
@@ -40,6 +43,7 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
 
       if (isDomainShellWarm(normalized, { requireAudience: true })) {
         await warmDialogForTravel(normalized)
+        markTravelCurtainShown(normalized)
         onNavigate()
         return
       }
@@ -49,6 +53,7 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
       })
       if (warm) {
         await warmDialogForTravel(normalized)
+        markTravelCurtainShown(normalized)
         onNavigate()
         return
       }
@@ -65,6 +70,7 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
     const slug = curtainSlug
     if (slug) {
       void warmDialogForTravel(slug).finally(() => {
+        markTravelCurtainShown(slug)
         setCurtainSlug(null)
         go?.()
       })

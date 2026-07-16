@@ -1115,7 +1115,9 @@ app.use('/api/keys', keyEntityRoutes);
 // Public route: POST /api/kip/companion — guest chat surface (no auth, rate-limited)
 app.use('/api/kip/companion', companionRouter);
 
-// Public route: GET /api/kip/agents?slug=kip — agent metadata only for public Lead agents (no auth)
+// Public route: GET /api/kip/agents?slug=kip — metadata for public Lead agents (no auth).
+// Private domain leads fall through to the authenticated kipAgentsHandler so Playbill
+// / board bootstrap can resolve avatars without a hard 404.
 app.get('/api/kip/agents', async (req: Request, res: Response, next: NextFunction) => {
   const slug = req.query.slug;
   if (typeof slug !== 'string' || !slug.trim()) {
@@ -1123,10 +1125,10 @@ app.get('/api/kip/agents', async (req: Request, res: Response, next: NextFunctio
   }
   try {
     const agent = await getKipAgentBySlugEnsured(slug.trim());
-    if (!agent || agent.visibility !== 'public' || agent.role !== 'Lead') {
-      return res.status(404).json({ success: false, error: 'Agent not found' });
+    if (agent && agent.visibility === 'public' && agent.role === 'Lead') {
+      return res.json({ success: true, data: agent });
     }
-    return res.json({ success: true, data: agent });
+    return next();
   } catch (err) {
     console.error('[kip/agents] public slug error', err);
     return res.status(500).json({ success: false, error: 'Failed to load agent' });

@@ -4,7 +4,7 @@
  */
 
 import { apiFetch } from "../../../lib/api"
-import type { DomainAudienceRole } from "@keeper/shared"
+import { extractDomainThemeCover, type DomainAudienceRole } from "@keeper/shared"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
 import { loadDomainFrame, peekDomainFrame } from "../../data/loadDomainFrame"
 
@@ -191,9 +191,16 @@ export function peekDomainShellFrame(slug: string) {
 /** Shared cover URL for curtain + board background — keeps sources aligned. */
 export function resolveDomainCoverUrl(slug: string): string | null {
   const cached = getCachedDomainBySlug(slug)
-  const cover = cached?.theme?.coverImage
-  if (typeof cover !== "string" || !cover.trim()) return null
-  return getBlobProxyUrl(cover)
+  const fromTheme = extractDomainThemeCover(cached?.theme).coverImage?.trim()
+  if (fromTheme) return getBlobProxyUrl(fromTheme)
+
+  // Frame theme.background is a common legacy cover source when by-slug theme is empty.
+  const frame = peekDomainFrame(slug)
+  const frameBg = frame?.theme?.background?.trim()
+  if (frameBg && /^(https?:|blob:|data:|\/)/i.test(frameBg)) {
+    return getBlobProxyUrl(frameBg)
+  }
+  return null
 }
 
 /** Billing / readiness display name from domain + frame caches. */

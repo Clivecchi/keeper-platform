@@ -22,6 +22,21 @@ export const DOMAIN_SHELL_WARM_SKIP_MS = 280
 /** Prefer cover decode during curtain; never block forever. */
 export const DOMAIN_SHELL_COVER_WAIT_MS = 1200
 
+/** Travel curtain already branded this slug — boot gate should not double-curtain. */
+let travelCurtainSkipSlug: string | null = null
+
+export function markTravelCurtainShown(slug: string): void {
+  const normalized = slug.trim().toLowerCase()
+  travelCurtainSkipSlug = normalized || null
+}
+
+export function consumeTravelCurtainSkip(slug: string): boolean {
+  const normalized = slug.trim().toLowerCase()
+  if (!normalized || travelCurtainSkipSlug !== normalized) return false
+  travelCurtainSkipSlug = null
+  return true
+}
+
 export function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
 }

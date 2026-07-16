@@ -14,7 +14,9 @@ import {
   getCachedDomainSwitcherEntries,
   prefetchDomainSwitcherEntries,
 } from "../boards/domain/domainSwitcherData"
+import { extractDomainThemeCover } from "@keeper/shared"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
+import { resolveDomainCoverUrl } from "../boards/domain/domainShellCache"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
 
@@ -196,9 +198,12 @@ export function KeeperTopBar({
     (typeof domainData?.name === "string" ? domainData.name.trim() : "") ||
     (typeof domainData?.displayName === "string" ? domainData.displayName.trim() : "") ||
     ""
-  const coverImageUrl = domainData?.theme?.coverImage
-    ? getBlobProxyUrl(domainData.theme.coverImage)
-    : null
+  const coverImageUrl =
+    (domainSlug ? resolveDomainCoverUrl(domainSlug) : null) ||
+    (() => {
+      const fromTheme = extractDomainThemeCover(domainData?.theme).coverImage?.trim()
+      return fromTheme ? getBlobProxyUrl(fromTheme) : null
+    })()
 
   const initials = getInitials(user?.name ?? null, user?.email ?? null)
   const displayName = user?.name?.trim() || user?.email?.trim() || "Guest"
@@ -217,7 +222,6 @@ export function KeeperTopBar({
 
   const handleUserClick = () => {
     if (isGuest) return
-    if (!isHomeShell) return
     setProfileOpen((prev) => !prev)
   }
 
@@ -254,7 +258,7 @@ export function KeeperTopBar({
         </div>
 
         <div className="keeper-topbar-user">
-          {!isGuest && isHomeShell ? (
+          {!isGuest ? (
             <button
               type="button"
               onClick={handleUserClick}
@@ -272,8 +276,8 @@ export function KeeperTopBar({
             type="button"
             onClick={handleUserClick}
             aria-expanded={profileOpen}
-            aria-haspopup={isHomeShell ? "menu" : undefined}
-            aria-label={isHomeShell ? "Open profile menu" : displayName}
+            aria-haspopup={!isGuest ? "menu" : undefined}
+            aria-label={!isGuest ? "Open profile menu" : displayName}
             className="keeper-topbar-avatar-button"
           >
             <UserAvatar
@@ -283,7 +287,7 @@ export function KeeperTopBar({
               isGuest={isGuest}
             />
           </button>
-          {profileOpen && !isGuest && isHomeShell && (
+          {profileOpen && !isGuest && (
             <ProfilePopover
               displayName={displayName}
               roleLabel={roleLabel}
