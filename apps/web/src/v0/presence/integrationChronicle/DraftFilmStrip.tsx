@@ -125,7 +125,7 @@ export function DraftFilmStrip({
                 className="cdraft-ghost-btn"
                 onClick={() => onDiscussPoint(draftId, activePoint.id)}
               >
-                Discuss
+                Gloss
               </button>
             </div>
           ) : null}

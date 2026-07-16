@@ -8,7 +8,11 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - `RealmInvitationButtons.tsx` — invitation doors inside agent message body
 - `realmInvitations.ts` — shared invitation candidate logic (max four)
 - `RealmFeedPanel.tsx` — Realm feed in Chronicle (via invitation; no empty stub)
-- `RealmHomeChronicle.tsx` — Chronicle: quiet at arrival; feed when events exist
+- `RealmHomeChronicle.tsx` — Chronicle: user feed at `/home`; domain story at `?board=realm`
+- `DomainRealmStory.tsx` — domain-scoped ChronicleDocument story frames
+- `RealmStagedNav.tsx` — Drafts → Kept → Presented staged nav
+- `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — ChronicleDocument-shaped nav data
+- `DialogCastBar.tsx` — Dialog cast bar (members, agents, access keys)
 - `PresenceField.tsx` — named Treatment pattern for presence imagery
 - `useRealmFeed.ts` — client feed loader
 - `realmInvitationActions.ts` — invitation + feed click handlers
@@ -27,6 +31,11 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-15 — Domain-scoped Realm surface
+- Generalized `?board=realm` on any domain; default landing board is Realm
+- Staged nav (Drafts / Kept / Presented), Dialog cast bar, go-home via Playbill header `clearSelection`
+- Domain Chronicle story via `DomainRealmStory`; treatment via `ChronicleTreatmentShell`
+
 ### 2026-07-11 — v2 Section 2 arrival placement correction
 - Playbill restored to top-left DomainSwitcher slot on `/home` (`PlaybillHeaderCard` + overlay)
 - Removed `RealmPlaybillRail` from Chronicle; arrival Chronicle quiet unless feed has events

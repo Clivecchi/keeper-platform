@@ -1,6 +1,6 @@
 # Realm — Domain Surface
 
-**Status:** planning — nothing below is implemented. Companion to `docs/chronicle-document-architecture.md` (ChronicleDocument, shipped) and `docs/library-shared-context-roadmap.md` (Library roadmap, in progress).
+**Status:** implemented on `feat/realm-domain-surface` branch (July 2026). Companion to `docs/chronicle-document-architecture.md` (ChronicleDocument, shipped) and `docs/library-shared-context-roadmap.md` (Library roadmap, in progress).
 
 ---
 

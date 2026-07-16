@@ -157,6 +157,11 @@ export interface UniversalBoardActions {
     anchor: GlossAnchor,
     options?: { dialogId?: string | null; glossContent?: GlossContentSnapshot },
   ) => void
+  /** Alias for requestDiscussDraftPoint — Gloss terminology. */
+  requestGloss: (
+    anchor: GlossAnchor,
+    options?: { dialogId?: string | null; glossContent?: GlossContentSnapshot },
+  ) => void
   /** Opens Dialog with rewrite intent and prefills composer for draft.point.rewrite. */
   requestRewriteDraftPoint: (
     anchor: GlossAnchor,
@@ -830,6 +835,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpDraftNav,
         bumpAgentNav,
         requestDiscussDraftPoint,
+        requestGloss: requestDiscussDraftPoint,
         requestRewriteDraftPoint,
         clearDraftDiscussAnchor,
         clearDraftComposeHint,

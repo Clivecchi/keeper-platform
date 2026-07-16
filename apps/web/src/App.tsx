@@ -74,7 +74,6 @@ import V0Page from './pages/V0Page';
 import StyleEditorPage from './pages/StyleEditorPage';
 import { RealmsRedirect } from './mobile/screens/RealmsRedirect';
 import HomeShellPage from './pages/home/HomeShellPage';
-import { RealmBoardRedirectFromParams } from './pages/home/RealmBoardRedirect';
 import { HostnameSlugGuard } from './components/HostnameSlugGuard';
 import { RealmRoot } from './components/RealmRoot';
 import {
@@ -176,20 +175,12 @@ const V1ToDRedirect: React.FC = () => {
   return <Navigate to={`/d/${slug}${search}`} replace />;
 };
 
-/** Redirect /d/:slug/board to /d/:slug — or /home when ?board=realm */
+/** Redirect /d/:slug/board to /d/:slug (preserves ?board= including realm). */
 const BoardToShellRedirect: React.FC = () => {
   const location = useLocation();
   const match = location.pathname.match(/^\/d\/([^/]+)\/board/);
   if (!match) return null;
   const [, slug] = match;
-  const params = new URLSearchParams(location.search);
-  if (params.get("board")?.toLowerCase() === "realm") {
-    params.delete("board");
-    params.delete("boardDef");
-    params.delete("definition");
-    const q = params.toString();
-    return <Navigate to={q ? `/home?${q}` : "/home"} replace />;
-  }
   const search = location.search || '';
   return <Navigate to={`/d/${slug}${search}`} replace />;
 };

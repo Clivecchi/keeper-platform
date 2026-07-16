@@ -209,6 +209,12 @@ function UniversalBoardShell({
     setMobilePanelFocus("dialog")
   }, [setMobilePanelFocus])
 
+  const handleGoHome = React.useCallback(() => {
+    actions.clearSelection()
+    actions.closeChronicleEngagement()
+    actions.clearDraftDiscussAnchor()
+  }, [actions])
+
   const targetBoardId = def.boardId as WorkspaceBoardId
   const { openSwitcher, switcherOverlay, isSwitcherOpen } = useDomainSwitcher(targetBoardId)
 
@@ -462,6 +468,7 @@ function UniversalBoardShell({
               onKeySelect={actions.onKeySelect}
               onCapabilitySelect={actions.onCapabilitySelect}
               onLibraryItemSelect={actions.onLibraryItemSelect}
+              onMomentSelect={actions.onMomentSelect}
               collapsed={useMobilePanelLayout ? false : navCollapsed}
               onToggleCollapsed={onToggleNavCollapsed}
               dialogListVersion={effectiveDialogListVersion}
@@ -510,6 +517,7 @@ function UniversalBoardShell({
       >
         <KeeperTopBar
           onDomainClick={onDomainClick ?? openSwitcher}
+          onGoHome={handleGoHome}
           onBriefClick={() => setBriefOpen((o) => !o)}
           isBriefOpen={briefOpen}
           isPlaybillOpen={isSwitcherOpen}

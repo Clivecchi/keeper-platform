@@ -168,7 +168,7 @@ export function LibraryItemFocusPresence({
             <div className="mt-6 pt-4 border-t border-[hsl(var(--theme-border-soft)/0.4)]">
               <ChronicleDocumentView
                 document={libraryItemToChronicleDocument(feed.item)}
-                onDiscuss={handleDiscussLibraryDocument}
+                onGloss={handleDiscussLibraryDocument}
               />
             </div>
           )}

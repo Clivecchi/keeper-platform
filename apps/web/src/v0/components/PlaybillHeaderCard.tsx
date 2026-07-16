@@ -23,6 +23,8 @@ export interface PlaybillHeaderCardProps {
   leadAgentSlug?: string | null
   leadAgentName?: string | null
   onOpenPlaybill: () => void
+  /** Clears board selection — returns Chronicle to Realm idle. Primary header action. */
+  onGoHome?: () => void
   isOpen?: boolean
   className?: string
 }
@@ -39,6 +41,7 @@ export function PlaybillHeaderCard({
   leadAgentSlug: leadAgentSlugProp,
   leadAgentName: leadAgentNameProp,
   onOpenPlaybill,
+  onGoHome,
   isOpen = false,
   className = "",
 }: PlaybillHeaderCardProps) {
@@ -72,11 +75,9 @@ export function PlaybillHeaderCard({
   const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
 
   return (
-    <button
-      type="button"
-      onClick={onOpenPlaybill}
+    <div
       className={[
-        "playbill-header-card group relative min-w-0 w-full overflow-hidden rounded-xl text-left transition-opacity hover:opacity-95",
+        "playbill-header-card group relative min-w-0 w-full overflow-hidden rounded-xl text-left transition-opacity",
         className,
       ].join(" ")}
       style={{
@@ -85,14 +86,17 @@ export function PlaybillHeaderCard({
           : "1px solid hsl(var(--theme-border-soft) / 0.45)",
         minHeight: 68,
       }}
-      aria-label={`${billingName} — open domain travel`}
-      aria-haspopup="menu"
-      aria-expanded={isOpen}
     >
       <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
 
       <div className="relative z-10 flex items-stretch gap-3 px-3.5 py-2.5 pr-2">
-        <div className="min-w-0 flex-1 flex flex-col justify-center py-0.5">
+        <button
+          type="button"
+          onClick={onGoHome ?? (() => {})}
+          className="min-w-0 flex-1 flex flex-col justify-center py-0.5 text-left hover:opacity-95 transition-opacity"
+          aria-label={`${billingName} — return to Realm`}
+          title="Return to Realm"
+        >
           <p
             className="text-[8px] font-semibold uppercase tracking-[0.2em] truncate mb-1"
             style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}
@@ -112,7 +116,7 @@ export function PlaybillHeaderCard({
           >
             {roleSubtitle}
           </p>
-        </div>
+        </button>
 
         <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 self-center">
           <PlaybillAgentPortrait
@@ -122,16 +126,22 @@ export function PlaybillHeaderCard({
             accent={accent}
             size="header"
           />
-          <ChevronDown
-            className={[
-              "shrink-0 opacity-50 transition-transform transition-opacity group-hover:opacity-80",
-              isOpen ? "rotate-180" : "",
-            ].join(" ")}
-            style={{ width: 14, height: 14, color: "hsl(var(--theme-header-text-secondary))" }}
-            aria-hidden
-          />
+          <button
+            type="button"
+            onClick={onOpenPlaybill}
+            className="shrink-0 opacity-50 transition-transform transition-opacity hover:opacity-80"
+            aria-label={`${billingName} — open domain travel`}
+            aria-haspopup="menu"
+            aria-expanded={isOpen}
+          >
+            <ChevronDown
+              className={isOpen ? "rotate-180" : ""}
+              style={{ width: 14, height: 14, color: "hsl(var(--theme-header-text-secondary))" }}
+              aria-hidden
+            />
+          </button>
         </div>
       </div>
-    </button>
+    </div>
   )
 }

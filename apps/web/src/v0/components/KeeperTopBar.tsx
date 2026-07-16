@@ -78,6 +78,7 @@ function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef 
 
 interface KeeperTopBarProps {
   onDomainClick: () => void
+  onGoHome: () => void
   onBriefClick: () => void
   isBriefOpen?: boolean
   isPlaybillOpen?: boolean
@@ -169,6 +170,7 @@ function UserAvatar({
 
 export function KeeperTopBar({
   onDomainClick,
+  onGoHome,
   onBriefClick,
   isBriefOpen,
   isPlaybillOpen = false,
@@ -182,7 +184,6 @@ export function KeeperTopBar({
     workspaceBoardId,
     switchWorkspace,
     shellMode,
-    navigateHome,
   } = useV0Shell()
   const { user, logout } = useAuth()
   const [profileOpen, setProfileOpen] = React.useState(false)
@@ -214,17 +215,9 @@ export function KeeperTopBar({
     switchWorkspace(id)
   }
 
-  const handleReturnToRealm = () => {
-    if (isGuest || isHomeShell) return
-    navigateHome()
-  }
-
   const handleUserClick = () => {
     if (isGuest) return
-    if (!isHomeShell) {
-      navigateHome()
-      return
-    }
+    if (!isHomeShell) return
     setProfileOpen((prev) => !prev)
   }
 
@@ -254,28 +247,21 @@ export function KeeperTopBar({
               typeof domainData?.leadAgentName === "string" ? domainData.leadAgentName : null
             }
             onOpenPlaybill={onDomainClick}
+            onGoHome={onGoHome}
             isOpen={isPlaybillOpen}
           />
           {isPlaybillOpen ? playbillDropdown : null}
         </div>
 
         <div className="keeper-topbar-user">
-          {!isGuest ? (
+          {!isGuest && isHomeShell ? (
             <button
               type="button"
-              onClick={handleReturnToRealm}
-              disabled={isHomeShell}
-              className={clsx(
-                "keeper-topbar-user-meta text-right transition-opacity",
-                !isHomeShell && "cursor-pointer hover:opacity-90",
-                isHomeShell && "cursor-default",
-              )}
-              aria-label={isHomeShell ? "Your realm" : `Return to your realm`}
-              title={isHomeShell ? "Your realm" : "Return to your realm"}
+              onClick={handleUserClick}
+              className="keeper-topbar-user-meta text-right transition-opacity cursor-pointer hover:opacity-90"
+              aria-label="Open profile menu"
             >
-              <p
-                className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate"
-              >
+              <p className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate">
                 {displayName}
               </p>
               <span className="keeper-topbar-status-badge">{roleLabel}</span>
@@ -287,11 +273,7 @@ export function KeeperTopBar({
             onClick={handleUserClick}
             aria-expanded={profileOpen}
             aria-haspopup={isHomeShell ? "menu" : undefined}
-            aria-label={
-              isHomeShell
-                ? "Open profile menu"
-                : `Return to your realm — ${displayName}`
-            }
+            aria-label={isHomeShell ? "Open profile menu" : displayName}
             className="keeper-topbar-avatar-button"
           >
             <UserAvatar
@@ -315,16 +297,11 @@ export function KeeperTopBar({
 
       <div className="keeper-topbar-nav-row">
         <nav className="flex items-center gap-0.5" aria-label="Board navigation">
-          {isHomeShell ? (
-            <span className="keeper-topbar-primary text-[13px] font-medium py-0.5" aria-current="page">
-              Realm
-            </span>
-          ) : null}
           {boardLinks.map(({ id, label }, idx) => {
             const isActive = workspaceBoardId === id
             return (
               <React.Fragment key={id}>
-                {(idx > 0 || isHomeShell) && (
+                {(idx > 0) && (
                   <span
                     className="keeper-topbar-secondary select-none px-1.5 text-[13px]"
                     aria-hidden

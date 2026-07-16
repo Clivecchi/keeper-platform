@@ -1,32 +1,17 @@
 "use client"
 
-import * as React from "react"
-import { Navigate, useParams, useSearchParams } from "react-router-dom"
-import { buildHomePath } from "../../v0/shell/shellMode"
-
 /**
- * Legacy: `/d/:slug?board=realm` → user Home at `/home`.
- * Preserves non-board query params when present.
+ * @deprecated Domain-scoped Realm lives at `/d/:slug?board=realm` — no redirect to `/home`.
+ * Kept as a stub for any lingering imports; renders nothing.
  */
 export function RealmBoardRedirect() {
-  const [searchParams] = useSearchParams()
-  const next = React.useMemo(() => {
-    const params = new URLSearchParams(searchParams)
-    params.delete("board")
-    params.delete("boardDef")
-    params.delete("definition")
-    return buildHomePath(params)
-  }, [searchParams])
-  return <Navigate to={next} replace />
+  return null
 }
 
-/** Used when only slug is needed for guard routes. */
 export function useRealmBoardRedirectOnMount(): boolean {
-  const [searchParams] = useSearchParams()
-  return searchParams.get("board")?.toLowerCase() === "realm"
+  return false
 }
 
 export function RealmBoardRedirectFromParams() {
-  const { slug: _slug } = useParams<{ slug: string }>()
-  return <RealmBoardRedirect />
+  return null
 }

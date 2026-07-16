@@ -187,15 +187,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   }, [isHomeShell, isBrandShell, routeSlug, resolvedSlug, searchParams, navigate])
 
   // Legacy ?board=realm on domain URLs → user Home at /home.
-  React.useEffect(() => {
-    if (isHomeShell || !isAuthenticated) return
-    if (searchParams.get("board")?.toLowerCase() !== "realm") return
-    const params = new URLSearchParams(searchParams)
-    params.delete("board")
-    params.delete("boardDef")
-    params.delete("definition")
-    navigate(buildHomePath(params), { replace: true })
-  }, [isHomeShell, isAuthenticated, searchParams, navigate])
+  // Domain-scoped Realm now lives at ?board=realm on /d/:slug — redirect removed.
 
   React.useEffect(() => {
     if (!isAuthenticated || isHomeShell) return

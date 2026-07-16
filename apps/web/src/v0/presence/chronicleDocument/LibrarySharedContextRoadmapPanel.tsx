@@ -22,7 +22,7 @@ export function LibrarySharedContextRoadmapPanel() {
 
   return (
     <div className="px-4 py-5">
-      <ChronicleDocumentView document={doc} onDiscuss={handleDiscuss} />
+      <ChronicleDocumentView document={doc} onGloss={handleDiscuss} />
     </div>
   )
 }

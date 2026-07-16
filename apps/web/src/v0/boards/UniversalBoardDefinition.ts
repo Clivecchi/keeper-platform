@@ -66,6 +66,9 @@ export interface NavInstrumentDef {
 /** Left-nav visibility — static shows all enabled sections; contentGated hides empty entity blocks. */
 export type NavMode = "static" | "contentGated"
 
+/** Realm staged nav — Drafts → Kept → Presented (ChronicleDocument-shaped rows). */
+export type RealmNavStage = "drafts" | "kept" | "presented"
+
 export interface NavPanelDef {
   sections: NavSectionsDef
   /**
@@ -102,6 +105,11 @@ export interface NavPanelDef {
   aiAccessSummary?: boolean
   /** Domain / Realm / IDE: domain-bound MCP keys for external tools */
   externalAccessSummary?: boolean
+  /**
+   * Realm board: maturity stages instead of flat entity categories.
+   * When set, UniversalNavPanel renders RealmStagedNav.
+   */
+  navStages?: RealmNavStage[]
 }
 
 // Center panel — Dialog Frame
@@ -137,6 +145,8 @@ export interface ConversationPanelDef {
    * Echo agent — resolved from def.conversation.agentSlug for now; echo registry is a future layer.
    */
   agentEcho?: boolean
+  /** Realm board: Dialog footer cast bar (members + agents + access keys). */
+  castBar?: boolean
   /**
    * Capability ceiling for this board — agent capabilities are intersected with this set at runtime.
    * Declared as data; editable through Chronicle / Design Board in future steps.
@@ -444,17 +454,17 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
-      dialogs: true,
-      journeys: true,
-      keepers: true,
-      drafts: false,
+      dialogs: false,
+      journeys: false,
+      keepers: false,
+      drafts: true,
       agents: false,
       library: true,
       boardDefs: false,
     },
     navMode: "contentGated",
-    navAlwaysShow: ["dialogs"],
-    navBlockOrder: ["dialogs", "journeys", "library", "chatter", "connections", "boards"],
+    navStages: ["drafts", "kept", "presented"],
+    navBlockOrder: ["boards"],
     externalAccessSummary: true,
   },
   conversation: {
@@ -465,6 +475,7 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     kipMode: "domain",
     dialogOrchestration: "director",
     directorAgentSlug: "kip",
+    castBar: true,
   },
   contextSurface: {
     viewStates: mergeViewStates({

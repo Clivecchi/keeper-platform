@@ -5,10 +5,14 @@ import type { ChronicleDocument } from "@keeper/shared"
 
 export interface ChronicleDocumentViewProps {
   document: ChronicleDocument
+  /** Opens a Gloss exchange in Dialog for this document's anchor. */
+  onGloss?: () => void
+  /** @deprecated Use onGloss */
   onDiscuss?: () => void
 }
 
-export function ChronicleDocumentView({ document, onDiscuss }: ChronicleDocumentViewProps) {
+export function ChronicleDocumentView({ document, onGloss, onDiscuss }: ChronicleDocumentViewProps) {
+  const handleGloss = onGloss ?? onDiscuss
   const [expanded, setExpanded] = React.useState(false)
   const clampLines = document.body.clampLines ?? 6
   const canExpand = document.body.expandable !== false && document.body.text.length > 280
@@ -80,7 +84,7 @@ export function ChronicleDocumentView({ document, onDiscuss }: ChronicleDocument
             {expanded ? "Show less" : "Show more"}
           </button>
         ) : null}
-        {onDiscuss ? (
+        {handleGloss ? (
           <button
             type="button"
             className="text-[12px] font-semibold rounded-md px-2.5 py-1"
@@ -88,9 +92,10 @@ export function ChronicleDocumentView({ document, onDiscuss }: ChronicleDocument
               background: "hsl(var(--theme-accent-primary) / 0.12)",
               color: "hsl(var(--theme-accent-primary))",
             }}
-            onClick={onDiscuss}
+            onClick={handleGloss}
+            aria-label="Gloss"
           >
-            Discuss
+            Gloss
           </button>
         ) : null}
       </div>

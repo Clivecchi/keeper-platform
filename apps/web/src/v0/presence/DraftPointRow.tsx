@@ -206,7 +206,7 @@ export function DraftPointRow({
                 onClick={() => onDiscussPoint(draftId, point.id)}
                 className="cdraft-ghost-btn"
               >
-                Discuss
+                Gloss
               </button>
             ) : null}
           </div>
@@ -360,7 +360,7 @@ export function DraftPointRow({
                 color: "hsl(var(--theme-ink-secondary))",
               }}
             >
-              Discuss
+              Gloss
             </button>
           ) : null}
         </div>

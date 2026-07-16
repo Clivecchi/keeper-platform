@@ -4,7 +4,7 @@
 ChronicleDocument read/presentation shell for Chronicle Focus mode — shared consumer for real LibraryItem records and synthetic content (roadmap status, diagnostics).
 
 ## 🧱 Key Files
-- `ChronicleDocumentView.tsx` — clamped body, status, optional Discuss
+- `ChronicleDocumentView.tsx` — clamped body, status, optional Gloss action
 - `libraryItemDocumentAdapter.ts` — LibraryItem → ChronicleDocument + pointer subtitle
 - `libraryRoadmapDocument.ts` — synthetic roadmap provider
 - `LibrarySharedContextRoadmapPanel.tsx` — domain-idle synthetic pilot on Universal Board
@@ -18,5 +18,5 @@ ChronicleDocument read/presentation shell for Chronicle Focus mode — shared co
 - [ ] Confirm synthetic panel placement with Kip (below domain ChronicleRecordView)
 
 ## 📆 Update Log
-- **2026-07-15** — Discuss wired from `ChronicleDocumentView` into Dialog via `requestDiscussDraftPoint`; library items pass `buildLibraryGlossAnchor` + snapshot; first Dialog exchange seeds gloss carrier thread on user message for MCP `gloss_write_turn`.
+- **2026-07-15** — Gloss wired from `ChronicleDocumentView` into Dialog via `requestDiscussDraftPoint` / `requestGloss`; library items pass `buildLibraryGlossAnchor` + snapshot; first Dialog exchange seeds gloss carrier thread on user message for MCP `gloss_write_turn`.
 - **2026-07-13** — Initial ChronicleDocument pilot: view, library adapter, roadmap synthetic panel.

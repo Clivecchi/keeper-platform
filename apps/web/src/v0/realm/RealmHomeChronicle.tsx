@@ -9,23 +9,37 @@ import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { applyRealmFeedEvent } from "./realmInvitationActions"
 import { useSceneChangeOptional } from "../sceneChange/SceneChangeProvider"
 import { buildDomainBoardPath } from "../shell/shellMode"
+import { DomainRealmStory } from "./DomainRealmStory"
+import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 
 export type RealmChronicleView = "feed"
 
 export interface RealmHomeChronicleProps {
   view?: RealmChronicleView
+  domainId?: string | null
+  domainSlug?: string
+  treatment?: ResolvedDomainTreatment
+  /** User-scoped `/home` — cross-domain feed when events exist. */
+  isUserHome?: boolean
 }
 
-/** Chronicle on realm arrival — activity feed when events exist; otherwise quiet. */
-export function RealmHomeChronicle({ view = "feed" }: RealmHomeChronicleProps) {
+/** Chronicle on Realm idle — domain story or user arrival feed. */
+export function RealmHomeChronicle({
+  view = "feed",
+  domainId = null,
+  domainSlug,
+  treatment,
+  isUserHome = false,
+}: RealmHomeChronicleProps) {
   const shell = useV0ShellOptional()
   const board = useUniversalBoardOptional()
   const navigate = useNavigate()
   const sceneChange = useSceneChangeOptional()
   const showFeed = view === "feed"
-  const { feed } = useRealmFeed(showFeed)
+  const useUserFeed = isUserHome
+  const { feed } = useRealmFeed(showFeed && useUserFeed)
 
-  const anchorSlug = shell?.anchorDomainSlug ?? shell?.domainSlug ?? null
+  const anchorSlug = shell?.anchorDomainSlug ?? shell?.domainSlug ?? domainSlug ?? null
   const events = feed?.events ?? []
 
   const handleEventSelect = React.useCallback(
@@ -39,7 +53,7 @@ export function RealmHomeChronicle({ view = "feed" }: RealmHomeChronicleProps) {
         onDraftSelect: board.actions.onDraftSelect,
         onMomentSelect: board.actions.onMomentSelect,
         navigateToDomain: (slug, path) => {
-          const targetPath = path?.trim() || buildDomainBoardPath(slug, "domain")
+          const targetPath = path?.trim() || buildDomainBoardPath(slug, "realm")
           const go = () => navigate(targetPath)
           if (sceneChange) {
             void sceneChange.travelToSlug(slug, go)
@@ -52,16 +66,32 @@ export function RealmHomeChronicle({ view = "feed" }: RealmHomeChronicleProps) {
     [board?.actions, navigate, sceneChange, anchorSlug],
   )
 
+  const userFeedContent =
+    useUserFeed && showFeed && events.length > 0 ? (
+      <RealmFeedPanel
+        events={events}
+        onEventSelect={board?.actions ? handleEventSelect : undefined}
+      />
+    ) : null
+
+  if (!useUserFeed && treatment && domainSlug) {
+    return (
+      <DomainRealmStory
+        domainId={domainId}
+        domainSlug={domainSlug}
+        treatment={treatment}
+        userFeedContent={userFeedContent}
+      />
+    )
+  }
+
   if (!showFeed || events.length === 0) {
     return <div className="realm-home-chronicle min-h-0 flex-1" aria-hidden />
   }
 
   return (
     <div className="realm-home-chronicle flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
-      <RealmFeedPanel
-        events={events}
-        onEventSelect={board?.actions ? handleEventSelect : undefined}
-      />
+      {userFeedContent}
     </div>
   )
 }

@@ -21,16 +21,18 @@ export {
   PLATFORM_DOMAIN_SLUG,
 } from "@keeper/shared"
 
-const PLATFORM_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
+/** Member domain workspaces — Realm is the domain front door at ?board=realm. */
+const MEMBER_DOMAIN_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
+  "realm",
   "domain",
-  "ide",
-  "designer",
   "agent",
 ]
 
-/** Member domain workspaces — no Home here; Home lives at `/home`. */
-const MEMBER_DOMAIN_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
+const PLATFORM_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
+  "realm",
   "domain",
+  "ide",
+  "designer",
   "agent",
 ]
 
@@ -38,7 +40,7 @@ const MEMBER_DOMAIN_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
 export const HOME_SHELL_BOARD: WorkspaceBoardId = "realm"
 
 const WORKSPACE_BOARD_LABELS: Record<WorkspaceBoardId, string> = {
-  realm: "Home",
+  realm: "Realm",
   domain: "Domain",
   ide: "IDE",
   designer: "Design",
@@ -71,7 +73,7 @@ export function resolveDefaultWorkspaceBoardId(
   domainSlug: string | null | undefined,
 ): WorkspaceBoardId {
   void domainSlug
-  return "domain"
+  return "realm"
 }
 
 export function resolveWorkspaceBoardLinks(

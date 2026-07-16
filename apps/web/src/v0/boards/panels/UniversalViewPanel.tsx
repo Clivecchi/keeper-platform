@@ -312,8 +312,7 @@ function PanelBody({
   const boardCtx = useUniversalBoardOptional()
   const shell = useV0ShellOptional()
   const realmArrival = useRealmArrivalOptional()
-  const isRealmHomeIdle =
-    shell?.shellMode === "home" &&
+  const isRealmIdle =
     boardId === "realm" &&
     subject.kind === "domain"
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]
@@ -321,9 +320,15 @@ function PanelBody({
   const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(subject.kind) ? "config" : "focus"
 
   function renderPresence(): React.ReactNode {
-    if (isRealmHomeIdle) {
+    if (isRealmIdle) {
       return (
-        <RealmHomeChronicle view={realmArrival?.chronicleView ?? "feed"} />
+        <RealmHomeChronicle
+          view={realmArrival?.chronicleView ?? "feed"}
+          domainId={domainId}
+          domainSlug={domainSlug}
+          treatment={treatment}
+          isUserHome={shell?.shellMode === "home"}
+        />
       )
     }
 

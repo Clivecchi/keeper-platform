@@ -28,6 +28,7 @@ import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptC
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import { BoardInstrumentsBar } from "../../boards/components/BoardInstrumentsBar"
+import { DialogCastBar } from "../../realm/DialogCastBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 import { installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
 import { ComposerDebugToolbar } from "./ComposerDebugToolbar"
@@ -114,6 +115,16 @@ export interface KeeperDialogFrameProps {
   boardInstrumentsEyebrow?: string
   /** Lead-led domain: footer toggles support-agent inclusion, not dialog lead. */
   boardInstrumentsCollaborationMode?: boolean
+  /** Realm board cast bar — members, agents, access keys. */
+  castBarConfig?: {
+    domainId: string | null
+    treatment: import("../../treatment/resolveDomainTreatment").ResolvedDomainTreatment
+    leadAgentSlug?: string | null
+    leadAgentName?: string | null
+    supportAgents?: ReadonlyArray<{ slug: string; name: string }>
+    onInvite?: () => void
+    onManageAccess?: () => void
+  }
   /** Overrides Horizon summary while sending; otherwise derived from thinkingSteps. */
   thinkingStatusLabel?: string
   /** Run trace for Broadcast Strip while sending. */
@@ -229,6 +240,7 @@ export function KeeperDialogFrame({
   activeBoardInstrumentSlug = null,
   boardInstrumentsEyebrow = "Agents",
   boardInstrumentsCollaborationMode = false,
+  castBarConfig,
   thinkingStatusLabel,
   thinkingSteps = [],
   railwayStatus = "disconnected",
@@ -796,6 +808,18 @@ export function KeeperDialogFrame({
                   railwayStatus={railwayStatus}
                   vercelStatus={vercelStatus}
                   githubStatus={githubStatus}
+                />
+              ) : castBarConfig ? (
+                <DialogCastBar
+                  domainId={castBarConfig.domainId}
+                  treatment={castBarConfig.treatment}
+                  leadAgentSlug={castBarConfig.leadAgentSlug}
+                  leadAgentName={castBarConfig.leadAgentName}
+                  supportAgents={castBarConfig.supportAgents}
+                  activeSlug={activeBoardInstrumentSlug}
+                  onInvokeAgent={onBoardInstrumentInvoke}
+                  onInvite={castBarConfig.onInvite}
+                  onManageAccess={castBarConfig.onManageAccess}
                 />
               ) : boardInstruments?.length ? (
                 <BoardInstrumentsBar

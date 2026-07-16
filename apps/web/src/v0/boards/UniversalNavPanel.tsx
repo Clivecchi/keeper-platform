@@ -77,6 +77,8 @@ import {
 } from "../presence/integrationChronicle/keeperNavUtils"
 import { applyAgentNavRowPatch } from "../presence/integrationChronicle/agentNavUtils"
 import { addLibraryUploadFromFile, createLibraryItem } from "../presence/integrationChronicle/libraryNavCreate"
+import { RealmStagedNav } from "../realm/RealmStagedNav"
+import { resolveDomainTreatment } from "../treatment/resolveDomainTreatment"
 import {
   countDraftNavTitles,
   draftNavLabel,
@@ -116,6 +118,7 @@ export interface UniversalNavPanelProps {
   selectedKeyId?: string | null
   selectedCapabilityId?: string | null
   selectedLibraryItemId?: string | null
+  selectedMomentId?: string | null
 
   // Selection callbacks — fired by this component, handled by the Board
   onDialogSelect?: (id: string) => void
@@ -127,6 +130,7 @@ export interface UniversalNavPanelProps {
   onKeySelect?: (id: string) => void
   onCapabilitySelect?: (id: string) => void
   onLibraryItemSelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
 
   // Collapse state — controlled by the Board
   collapsed?: boolean
@@ -319,6 +323,7 @@ export function UniversalNavPanel({
   selectedKeyId,
   selectedCapabilityId,
   selectedLibraryItemId,
+  selectedMomentId,
   onDialogSelect,
   onJourneySelect,
   onKeeperSelect,
@@ -328,6 +333,7 @@ export function UniversalNavPanel({
   onKeySelect,
   onCapabilitySelect,
   onLibraryItemSelect,
+  onMomentSelect,
   collapsed = false,
   onToggleCollapsed,
   dialogListVersion = 0,
@@ -345,6 +351,12 @@ export function UniversalNavPanel({
   agentListVersion = 0,
   agentNavRowPatch = null,
 }: UniversalNavPanelProps) {
+  const { domainFrame } = useV0Shell()
+  const realmTreatment = React.useMemo(
+    () => resolveDomainTreatment(domainFrame ?? null),
+    [domainFrame],
+  )
+  const navStages = def.nav.navStages
 
   const { user } = useAuth()
   const frameCtx = useFrameContextOptional()
@@ -1625,6 +1637,52 @@ export function UniversalNavPanel({
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
+
+  if (navStages?.length) {
+    return (
+      <div
+        className="keeper-nav-panel flex flex-col h-full overflow-hidden"
+        style={{ color: "hsl(var(--theme-ink-primary))" }}
+      >
+        <div
+          className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
+          style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)" }}
+        >
+          <p
+            className="text-[13px] font-medium truncate flex-1 min-w-0"
+            style={{ color: "hsl(var(--theme-ink-secondary))", letterSpacing: "0.01em" }}
+            title={domainName}
+          >
+            {domainName}
+          </p>
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className="shrink-0 ml-1 p-1 rounded-md transition-opacity hover:opacity-60"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            aria-label="Collapse navigation panel"
+          >
+            <ChevronLeftIcon />
+          </button>
+        </div>
+        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
+          <RealmStagedNav
+            domainId={domainId}
+            domainSlug={domainSlug}
+            treatment={realmTreatment}
+            stages={navStages}
+            selectedDraftId={selectedDraftId}
+            selectedLibraryItemId={selectedLibraryItemId}
+            selectedMomentId={selectedMomentId}
+            onDraftSelect={onDraftSelect}
+            onLibraryItemSelect={onLibraryItemSelect}
+            onMomentSelect={onMomentSelect}
+            onDraftCreate={user && domainId ? handleDraftCreate : undefined}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
