@@ -82,7 +82,28 @@ Layer 3 does not get folded into the router — registry entries reference the e
 
 ---
 
-## ChronicleDocument — settled name, scoped deliberately
+## Naming reversal — decided 2026-07-15, NOT yet in code
+
+Everything below this line up to "Related" was written when `ChronicleDocument` meant the atomic card. Chuck's mental model was the opposite — he expected `ChronicleDocument` to mean the whole container (cover + every entry), with each entry called a **Point** (reusing Draft's existing "points" language). Working through it against the real, shipped interface confirmed the mismatch was real, not a misunderstanding to correct away.
+
+**Decided:** his model wins, going forward.
+
+- **`ChronicleDocument`** = the container. Cover + every Point inside it. A Journey/Dialog (e.g. "Becoming Together") produces one `ChronicleDocument`. "Known Issues" is a second, separate `ChronicleDocument`.
+- **`Point`** = the atomic entry. One identity, one title, one body, one status, one Gloss. This is everything the interface below currently calls `ChronicleDocument`.
+
+**What has NOT happened yet:** the real shipped code — `packages/shared` interface, `ChronicleDocumentView` component, `apps/web/src/v0/realm/realmNavGrowth.ts` (`RealmNavEntry.document`), `DomainRealmStory.tsx`, and every doc section below — still uses `ChronicleDocument` in the OLD (atomic/Point) sense. Renaming that is real, multi-file work, scoped as a Cursor task, not done inline here. Until that PR lands: **if you're reading code, `ChronicleDocument` still means what this doc calls `Point` today.** Don't trust this doc section's terminology against current code without checking which side of the rename you're on.
+
+### Verified finding (2026-07-15): the container shell is a Realm one-off, not universal
+
+Checked against real code, not assumed: `ChronicleDocumentView` (the atomic-card renderer — what this doc now calls `Point`) is genuinely reused across three unrelated real contexts — `LibraryItemFocusPresence.tsx` (a real Library item), `LibrarySharedContextRoadmapPanel.tsx` (synthetic content, no DB record), and Realm's story loop. That part is universal, confirmed.
+
+The piece that takes *many* entries and renders them as a sequence under one cover — the actual container-level `ChronicleDocument` as now defined — only exists once: inside `DomainRealmStory.tsx`, hardcoded to Realm's own data hook (`useRealmNavGrowth`), named with words outside this vocabulary ("Story," not "ChronicleDocument"). No other board has needed this shape yet, so it was never extracted into something reusable. This is a real gap, not a false alarm.
+
+**Fix shape (not yet built):** extract a universal container shell — `cover` + `Point[]` in, rendered sequence out — so it can be reused wherever a board needs to show one ChronicleDocument's Points. `DomainRealmStory` (or its renamed successor) shrinks to a thin Realm-specific adapter: fetch Realm's nav-growth data, hand it to the shared shell. Same registry-over-if-chain move already agreed for Layer 2, one level higher. Candidate for a second, separate Cursor PR from the pure rename — different risk, different size.
+
+---
+
+## ChronicleDocument — settled name, scoped deliberately (pre-reversal — atomic-card meaning, superseded above)
 
 **Naming note:** the platform already overloads "Frame" (`V0FrameKey`, `jsonframe`, board frames, `resolveChronicleFramePatchEndpoint`). The working name "Chronicle Frame" used earlier in this investigation would have collided with all of that — caught before it shipped anywhere. Settled name: `ChronicleDocument`.
 
@@ -103,6 +124,14 @@ interface ChronicleDocument {
 Two producers, one consumer:
 - **EntityKind adapter** — real record → fetch → cover schema + blocks (layer 3) → `ChronicleDocument`
 - **Synthetic provider** — roadmap steps, audit findings → `ChronicleDocument` directly, no DB
+
+### One card, not the whole page — a distinction that wasn't written down until it caused real confusion
+
+A `ChronicleDocument` is the atomic unit — one identity, one title, one body, one status, one Gloss. It is not a container and does not hold a list of other things.
+
+What holds a list of `ChronicleDocument`s is the **Story** — a sequence of them, rendered together, one per thing that actually happened. A Journey or Dialog (e.g. "Becoming Together") is not itself a `ChronicleDocument` — it's the source that *produces* a Story. Each Moment, Library item, or Draft that gets promoted into that Journey becomes its own separate `ChronicleDocument`, shown in sequence with the others.
+
+This is a different relationship than a Draft's Points: Points are sub-fields of *one* record — one Draft, several Points, still one document. A Story is *many separate records*, each its own document, shown together. Similar shape at a glance, different relationship — worth being precise about, since conflating them is exactly how "is the whole page one ChronicleDocument, or is each card one" becomes genuinely ambiguous instead of just underspecified.
 
 ### Explicit scope boundary — what ChronicleDocument is *not*
 
