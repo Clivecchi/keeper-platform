@@ -101,6 +101,20 @@ The piece that takes *many* entries and renders them as a sequence under one cov
 
 **Fix shape (not yet built):** extract a universal container shell — `cover` + `Point[]` in, rendered sequence out — so it can be reused wherever a board needs to show one ChronicleDocument's Points. `DomainRealmStory` (or its renamed successor) shrinks to a thin Realm-specific adapter: fetch Realm's nav-growth data, hand it to the shared shell. Same registry-over-if-chain move already agreed for Layer 2, one level higher. Candidate for a second, separate Cursor PR from the pure rename — different risk, different size.
 
+### Decided (2026-07-15): "Known Issues" is not a second ChronicleDocument
+
+The prototype briefly split "Known Issues" into its own container next to the Story ChronicleDocument. Wrong — an unreviewed layout choice, not a decision, and it broke the rule already settled above: one Dialog produces one ChronicleDocument. Both the Story Points and the Known Issues Points came out of the same "Becoming Together" dialog. A known issue is just a `Point` with `status.tone: "error"` (the interface already has this field) — not a reason for a second container. Merged back into one sequence.
+
+**Parked, real, not this:** a higher-level container holding Points from *multiple different* Journeys/Dialogs together — e.g. Realm showing two separate Journeys' ChronicleDocuments side by side — is a genuine future need (tentatively `ChronicleIndex`). Do not build it to solve a single-dialog case like this one; it solves a different problem (combining documents across dialogs, not organizing Points within one).
+
+### Corrected (2026-07-15): Path, not "tone," is the grouping structure inside one ChronicleDocument
+
+Merging Known Issues into one sequence (previous section) was right, but flattening it into an undifferentiated scroll distinguished only by a status color (`tone: "error"`) was wrong in the other direction. A single Journey/Dialog can legitimately be tracking more than one thread at once — that's not a visual variation, it's **Path**, the real structural concept already in the platform's hierarchy (Domain → Keeper → Journey → Path → Moment). `ChronicleDocument.Points` should be grouped by Path when more than one exists, each Path visibly headed and independently addressable — not merged into one list and told apart by border color. `status.tone` stays a real, separate, per-Point field (solid/pending/error); it answers "what state is this Point in," not "which thread does it belong to." Prototyped in the mockup: two Paths ("Progress," "Known Issues") under one ChronicleDocument, each with its own header and a jump-nav row above the sequence.
+
+### Noted (2026-07-15): a Point may be a Moment, and Moments evolve
+
+A `Point` isn't necessarily static content — it can be backed by a real `Moment` (Domain → Keeper → Journey → Path → Moment), and Moments have evolutions over time. What renders as "the Point" is the Moment's current/most-recent state, not a frozen snapshot from when it was first kept. Same adapter shape already established for `ChronicleDocument` itself (EntityKind adapter → document), applied one level down: a Moment-backed Point re-resolves to whatever the Moment's latest state is, same as a Library-backed Point already does via `buildLibraryGlossAnchor`.
+
 ---
 
 ## ChronicleDocument — settled name, scoped deliberately (pre-reversal — atomic-card meaning, superseded above)
