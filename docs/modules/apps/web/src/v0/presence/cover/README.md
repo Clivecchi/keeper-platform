@@ -53,8 +53,11 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-07-16 — Document/Point rename
+- `LibraryItemFocusPresence` uses `PointView` + `libraryItemToDocument` (was `ChronicleDocumentView` / `libraryItemToChronicleDocument`).
+
 ### 2026-07-15 — Library Chronicle Discuss → Dialog
-- `LibraryItemFocusPresence`: Discuss on `ChronicleDocumentView` passes `buildLibraryGlossAnchor` + perspective snapshot into Dialog via board context.
+- `LibraryItemFocusPresence`: Discuss on `PointView` passes `buildLibraryGlossAnchor` + perspective snapshot into Dialog via board context.
 
 ### 2026-07-11 — Visual-primary cover layout for images
 - `coverTypes.ts`: added `CoverLayout` (`standard` | `visual-primary`) and optional `billingLine`

@@ -1,6 +1,6 @@
 # Chronicle — Selection, Routing, and ChronicleDocument
 
-**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + ChronicleDocument pilot implemented on feature branches. Layer 3 unchanged (`resolveChronicleDeclaration.ts`).
+**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point rename landed (`Document` + `Point` alias in `packages/shared/src/document.ts`; `PointView` replaces `ChronicleDocumentView`). Layer 3 unchanged (`resolveChronicleDeclaration.ts`).
 
 ---
 

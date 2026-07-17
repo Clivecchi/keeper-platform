@@ -14,8 +14,8 @@ import {
   resolveLibraryItemCoverContent,
   type LibraryItemRecord,
 } from "./schemas/libraryItemCoverSchema"
-import { ChronicleDocumentView } from "../chronicleDocument/ChronicleDocumentView"
-import { libraryItemToChronicleDocument } from "../chronicleDocument/libraryItemDocumentAdapter"
+import { PointView } from "../chronicleDocument/PointView"
+import { libraryItemToDocument } from "../chronicleDocument/libraryItemDocumentAdapter"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
 export interface LibraryItemFocusPresenceProps {
@@ -64,7 +64,7 @@ export function LibraryItemFocusPresence({
 
   const handleDiscussLibraryDocument = React.useCallback(() => {
     if (!feed?.item) return
-    const doc = libraryItemToChronicleDocument(feed.item)
+    const doc = libraryItemToDocument(feed.item)
     if (!doc.gloss?.anchor) return
     boardCtx?.actions.requestDiscussDraftPoint(doc.gloss.anchor, {
       glossContent: doc.gloss.snapshot,
@@ -166,8 +166,8 @@ export function LibraryItemFocusPresence({
 
           {feed?.item && (
             <div className="mt-6 pt-4 border-t border-[hsl(var(--theme-border-soft)/0.4)]">
-              <ChronicleDocumentView
-                document={libraryItemToChronicleDocument(feed.item)}
+              <PointView
+                document={libraryItemToDocument(feed.item)}
                 onGloss={handleDiscussLibraryDocument}
               />
             </div>

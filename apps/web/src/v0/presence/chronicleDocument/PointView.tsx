@@ -1,17 +1,17 @@
 "use client"
 
 import * as React from "react"
-import type { ChronicleDocument } from "@keeper/shared"
+import type { Document } from "@keeper/shared"
 
-export interface ChronicleDocumentViewProps {
-  document: ChronicleDocument
+export interface PointViewProps {
+  document: Document
   /** Opens a Gloss exchange in Dialog for this document's anchor. */
   onGloss?: () => void
   /** @deprecated Use onGloss */
   onDiscuss?: () => void
 }
 
-export function ChronicleDocumentView({ document, onGloss, onDiscuss }: ChronicleDocumentViewProps) {
+export function PointView({ document, onGloss, onDiscuss }: PointViewProps) {
   const handleGloss = onGloss ?? onDiscuss
   const [expanded, setExpanded] = React.useState(false)
   const clampLines = document.body.clampLines ?? 6
