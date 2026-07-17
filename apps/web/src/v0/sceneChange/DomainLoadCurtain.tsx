@@ -10,82 +10,91 @@ import {
   getCachedDomainBySlug,
 } from "../boards/domain/domainShellCache"
 import { peekDomainFrame } from "../data/loadDomainFrame"
-import { resolvePlaybillAgent } from "../lib/playbillData"
+import {
+  formatPlaybillRoleSubtitle,
+  peekPlaybillAgent,
+  resolvePlaybillAgent,
+  resolvePlaybillStarName,
+  type ResolvedPlaybillAgent,
+} from "../lib/playbillData"
 import { resolveDomainLeadContext, type DomainLeadRecord } from "../lib/domainLeadAgent"
-import { DOMAIN_SHELL_MIN_HOLD_MS } from "../boards/domain/domainShellBootstrap"
+import {
+  PlaybillAgentPortrait,
+  PlaybillAmbientLayer,
+  resolvePlaybillAmbientUrl,
+} from "../components/playbillVisual"
+import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
+import { tokensToCSSVars } from "../styles/styleRegistry"
+import type { StyleTokens } from "../styles/styleRegistry"
+import type { DomainFrameTheme } from "../data/domain-frame.types"
 
 export interface DomainLoadCurtainProps {
   domainSlug: string
-  /** When set, curtain auto-dismisses after minimum hold (scene-change travel). */
-  onComplete?: () => void
   /** Fail-closed boot gate — show retry instead of revealing a hollow board. */
   errorMessage?: string | null
   onRetry?: () => void
 }
 
-interface CurtainBilling {
-  domainName: string
-  agentName: string
-  tagline: string
+const FALLBACK_THEME: DomainFrameTheme = {
+  wordmark: "",
+  tagline: "",
+  background: "",
+  colors: {
+    primary: "#2d6a7f",
+    accent: "#b8963e",
+    surface: "#1a1d22",
+  },
+  fonts: { display: "", ui: "" },
 }
 
-function resolveCurtainBilling(domainSlug: string): CurtainBilling {
-  const cached = getCachedDomainBySlug(domainSlug)
+function resolveCurtainThemeVars(domainSlug: string): React.CSSProperties {
   const frame = peekDomainFrame(domainSlug)
-  const domainName = resolveDomainShellDisplayName(domainSlug)
-  const tagline = frame?.theme?.tagline?.trim() || cached?.description?.trim() || ""
-  const lead = resolveDomainLeadContext(cached as DomainLeadRecord | null)
-  return {
-    domainName,
-    agentName: lead.name ?? "",
-    tagline,
-  }
-}
-
-function CurtainShimmer({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`animate-pulse rounded-md bg-[hsl(var(--theme-surface-panel)/0.35)] ${className}`}
-      aria-hidden
-    />
-  )
+  const theme = (frame?.theme ?? FALLBACK_THEME) as DomainFrameTheme
+  const tokens = resolveDomainThemeSync(theme, "dark")
+  return tokensToCSSVars(tokens as unknown as StyleTokens) as React.CSSProperties
 }
 
 export function DomainLoadCurtain({
   domainSlug,
-  onComplete,
   errorMessage,
   onRetry,
 }: DomainLoadCurtainProps) {
   const reducedMotion = useReducedMotion()
-  const [billing, setBilling] = React.useState(() => resolveCurtainBilling(domainSlug))
+  const [domainName, setDomainName] = React.useState(() =>
+    resolveDomainShellDisplayName(domainSlug),
+  )
   const [coverUrl, setCoverUrl] = React.useState(() => resolveDomainCoverUrl(domainSlug))
-  const mountedAt = React.useRef(Date.now())
-  const completedRef = React.useRef(false)
+  const [themeVars, setThemeVars] = React.useState(() => resolveCurtainThemeVars(domainSlug))
+  const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(() => {
+    const cached = getCachedDomainBySlug(domainSlug)
+    const leadSlug = resolveDomainLeadContext(cached as DomainLeadRecord | null).slug
+    return leadSlug ? peekPlaybillAgent(leadSlug) : null
+  })
 
   React.useEffect(() => {
     let cancelled = false
     prefetchDomainShell(domainSlug)
-    setBilling(resolveCurtainBilling(domainSlug))
-    setCoverUrl(resolveDomainCoverUrl(domainSlug))
 
-    const refreshVisuals = () => {
+    const refresh = () => {
       if (cancelled) return
-      setBilling(resolveCurtainBilling(domainSlug))
+      setDomainName(resolveDomainShellDisplayName(domainSlug))
       setCoverUrl(resolveDomainCoverUrl(domainSlug))
+      setThemeVars(resolveCurtainThemeVars(domainSlug))
     }
-
-    // Prefetch is async — re-read cover/billing as shell cache fills.
-    const timers = [120, 320, 640, 1200].map((ms) => window.setTimeout(refreshVisuals, ms))
+    refresh()
+    const timers = [80, 200, 400, 800, 1600].map((ms) => window.setTimeout(refresh, ms))
 
     const cached = getCachedDomainBySlug(domainSlug)
-    const leadSlug = resolveDomainLeadContext(cached as DomainLeadRecord | null).slug
+    const lead = resolveDomainLeadContext(cached as DomainLeadRecord | null)
+    const leadSlug = lead.slug
     if (leadSlug) {
-      void resolvePlaybillAgent(leadSlug).then((agent) => {
-        if (!cancelled && agent?.displayName) {
-          setBilling((prev) => ({ ...prev, agentName: agent.displayName }))
-        }
+      const warm = peekPlaybillAgent(leadSlug)
+      if (warm) setAgent(warm)
+      void resolvePlaybillAgent(leadSlug).then((next) => {
+        if (!cancelled && next) setAgent(next)
       })
+    } else {
+      setAgent(null)
     }
 
     return () => {
@@ -94,31 +103,29 @@ export function DomainLoadCurtain({
     }
   }, [domainSlug])
 
-  React.useEffect(() => {
-    if (!onComplete || errorMessage) return
-
-    const finish = () => {
-      if (completedRef.current) return
-      completedRef.current = true
-      onComplete()
-    }
-
-    const elapsed = Date.now() - mountedAt.current
-    const remaining = Math.max(0, DOMAIN_SHELL_MIN_HOLD_MS - elapsed)
-    const timer = window.setTimeout(finish, remaining)
-    return () => window.clearTimeout(timer)
-  }, [domainSlug, onComplete, errorMessage])
-
-  const hasDomainName = billing.domainName.length > 0
-  const hasAgentName = billing.agentName.length > 0
+  const cached = getCachedDomainBySlug(domainSlug)
+  const lead = resolveDomainLeadContext(cached as DomainLeadRecord | null)
+  const billingName = domainName.trim() || domainSlug
+  const isUncast = !lead.slug
+  const starName = resolvePlaybillStarName({
+    domainName: billingName,
+    agentDisplayName: agent?.displayName ?? lead.name,
+    isUncast,
+    isLoading: !isUncast && !agent,
+  })
+  const roleSubtitle = formatPlaybillRoleSubtitle(agent, domainSlug, isUncast)
+  const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null
+  const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
+  const ambientUrl = resolvePlaybillAmbientUrl(coverUrl, portraitUrl)
+  const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
+  const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring, 168 45% 42%)))"
 
   const content = (
     <motion.div
-      className="domain-load-curtain fixed inset-0 z-[200] flex flex-col items-center justify-center px-6 text-center"
+      className="domain-load-curtain fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
       style={{
-        background: coverUrl
-          ? `linear-gradient(to bottom, hsl(var(--theme-surface-page) / 0.97), hsl(var(--theme-surface-page) / 0.99)), url(${coverUrl}) center/cover no-repeat`
-          : "hsl(var(--theme-surface-page))",
+        ...themeVars,
+        background: "hsl(var(--theme-surface-page, 220 16% 9%))",
       }}
       initial={reducedMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -126,64 +133,81 @@ export function DomainLoadCurtain({
       transition={{ duration: 0.28, ease: "easeOut" }}
       role="status"
       aria-live="polite"
-      aria-label={hasDomainName ? `Loading ${billing.domainName}` : "Loading domain"}
+      aria-label={billingName ? `Loading ${billingName}` : "Loading domain"}
     >
-      <div className="mx-auto w-full max-w-md">
-        {hasDomainName ? (
-          <p
-            className="text-[10px] font-semibold uppercase tracking-[0.28em]"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          >
-            {billing.domainName} presents
-          </p>
-        ) : (
-          <CurtainShimmer className="mx-auto h-3 w-36" />
-        )}
+      <div
+        className="relative w-full max-w-md overflow-hidden rounded-2xl"
+        style={{
+          border: "1px solid hsl(var(--theme-border-soft, 220 12% 28%) / 0.55)",
+          boxShadow: "0 24px 64px hsl(0 0% 0% / 0.45)",
+          minHeight: 120,
+        }}
+      >
+        <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
 
-        {hasAgentName ? (
-          <p
-            className="mt-3 font-serif text-2xl font-semibold"
-            style={{ color: "hsl(var(--theme-ink-primary))" }}
-          >
-            {billing.agentName}
-          </p>
-        ) : (
-          <CurtainShimmer className="mx-auto mt-4 h-8 w-48" />
-        )}
-
-        {billing.tagline ? (
-          <p
-            className="mt-2 text-sm italic leading-snug"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          >
-            {billing.tagline}
-          </p>
-        ) : null}
-
-        {errorMessage ? (
-          <div className="mt-8 space-y-3">
+        <div className="relative z-10 flex items-center gap-4 px-5 py-5">
+          <div className="min-w-0 flex-1 text-left">
             <p
-              className="text-sm leading-snug"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              className="text-[10px] font-semibold uppercase tracking-[0.22em] truncate"
+              style={{ color: "hsl(var(--theme-ink-secondary, 40 12% 72%))" }}
             >
-              {errorMessage}
+              {billingName} presents
             </p>
-            {onRetry ? (
-              <button
-                type="button"
-                onClick={onRetry}
-                className="rounded-md px-4 py-2 text-sm font-medium"
-                style={{
-                  background: "hsl(var(--theme-surface-panel))",
-                  color: "hsl(var(--theme-ink-primary))",
-                }}
-              >
-                Try again
-              </button>
-            ) : null}
+            <p
+              className="mt-1.5 font-serif text-2xl font-semibold leading-tight truncate"
+              style={{ color: "hsl(var(--theme-ink-primary, 40 20% 96%))" }}
+            >
+              {starName}
+            </p>
+            <p
+              className="mt-1 text-[10px] font-mono uppercase tracking-[0.14em] truncate"
+              style={{ color: accent }}
+            >
+              {roleSubtitle}
+            </p>
           </div>
-        ) : null}
+
+          <PlaybillAgentPortrait
+            portraitUrl={portraitUrl}
+            portraitEmoji={portraitEmoji}
+            fallback={portraitFallback}
+            accent={accent}
+            size="header"
+          />
+        </div>
       </div>
+
+      {errorMessage ? (
+        <div className="mt-6 max-w-md space-y-3 text-center">
+          <p
+            className="text-sm leading-snug"
+            style={{ color: "hsl(var(--theme-ink-secondary, 40 12% 72%))" }}
+          >
+            {errorMessage}
+          </p>
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="rounded-md px-4 py-2 text-sm font-medium"
+              style={{
+                background: "hsl(var(--theme-surface-panel, 220 16% 14%))",
+                color: "hsl(var(--theme-ink-primary, 40 20% 96%))",
+                border: "1px solid hsl(var(--theme-border-soft, 220 12% 28%) / 0.55)",
+              }}
+            >
+              Try again
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <p
+          className="mt-5 text-xs tracking-wide"
+          style={{ color: "hsl(var(--theme-ink-tertiary, 40 10% 55%))" }}
+        >
+          Preparing board…
+        </p>
+      )}
     </motion.div>
   )
 

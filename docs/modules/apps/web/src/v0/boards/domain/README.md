@@ -92,3 +92,8 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - Shell readiness requires display name; shared cover URL helper; dialog session prefetch during curtain.
 - Fail-closed gate + retry lives in DomainShellGate; travel warm-skip aligned with readiness.
 
+
+### 2026-07-16 — Board reveal readiness
+- prepareDomainBoardReveal warms shell, dialog session, lead Playbill agent, and nav under the curtain.
+- Playbill agent cache persists across domain switches; switcher prefetches all lead agents.
+

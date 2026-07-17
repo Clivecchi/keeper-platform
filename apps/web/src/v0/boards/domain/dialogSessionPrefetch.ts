@@ -9,7 +9,6 @@ import { resolveDialogLeadSlug } from "../../lib/domainLeadAgent"
 import type { DomainBySlugRecord } from "./domainShellCache"
 
 const SESSION_PREFETCH_TTL_MS = 60_000
-const SESSION_PREFETCH_TIMEOUT_MS = 2500
 
 interface PrefetchEntry {
   sessionId: string
@@ -37,17 +36,15 @@ export function peekPrefetchedDialogSession(
   return entry.sessionId
 }
 
-/** Consume a prefetched session once — Dialog owns lifecycle after take. */
+/**
+ * Claim a prefetched session for Dialog bootstrap.
+ * Keeps the entry warm so remounts / soft switches do not re-hit the network.
+ */
 export function takePrefetchedDialogSession(
   domainId: string,
   board: string,
 ): string | null {
-  const key = cacheKey(domainId, board)
-  const entry = prefetchStore.get(key)
-  if (!entry) return null
-  prefetchStore.delete(key)
-  if (Date.now() - entry.fetchedAt > SESSION_PREFETCH_TTL_MS) return null
-  return entry.sessionId
+  return peekPrefetchedDialogSession(domainId, board)
 }
 
 export function clearPrefetchedDialogSession(domainId?: string): void {
@@ -72,8 +69,8 @@ export interface PrefetchDomainBoardDialogParams {
 }
 
 /**
- * Best-effort session resume/create while the curtain is up.
- * Times out so shell reveal is never blocked forever.
+ * Resume/create board dialog session while the curtain is up.
+ * Callers that need a hard ceiling wrap with Promise.race at the gate level.
  */
 export async function prefetchDomainBoardDialogSession(
   params: PrefetchDomainBoardDialogParams,
@@ -126,13 +123,6 @@ export async function prefetchDomainBoardDialogSession(
     }
   })()
 
-  const timed = Promise.race([
-    work,
-    new Promise<string | null>((resolve) => {
-      window.setTimeout(() => resolve(null), SESSION_PREFETCH_TIMEOUT_MS)
-    }),
-  ])
-
   inflight.set(key, work)
-  return timed
+  return work
 }

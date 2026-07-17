@@ -2,15 +2,15 @@
 
 import * as React from "react"
 import { DomainLoadCurtain } from "../sceneChange/DomainLoadCurtain"
+import { consumeTravelCurtainSkip } from "../boards/domain/domainShellBootstrap"
 import {
-  bootstrapDomainShell,
-  consumeTravelCurtainSkip,
-  DOMAIN_SHELL_MIN_HOLD_MS,
-  isDomainShellReady,
-  waitForDomainCoverDecode,
-} from "../boards/domain/domainShellBootstrap"
+  BOARD_REVEAL_HARD_TIMEOUT_MS,
+  holdCurtainMinimum,
+  prepareDomainBoardReveal,
+} from "../boards/domain/prepareDomainBoardReveal"
+import { isDomainShellReady } from "../boards/domain/domainShellBootstrap"
+import { peekPrefetchedDialogSession } from "../boards/domain/dialogSessionPrefetch"
 import { getCachedDomainBySlug } from "../boards/domain/domainShellCache"
-import { prefetchDomainBoardDialogSession } from "../boards/domain/dialogSessionPrefetch"
 
 export interface DomainShellGateProps {
   domainSlug: string
@@ -21,6 +21,13 @@ export interface DomainShellGateProps {
 
 type GatePhase = "curtain" | "ready" | "error"
 
+function isBoardRevealReady(slug: string, requireAudience: boolean): boolean {
+  if (!isDomainShellReady(slug, { requireAudience })) return false
+  const domain = getCachedDomainBySlug(slug)
+  if (!domain?.id) return false
+  return !!peekPrefetchedDialogSession(domain.id, "domain")
+}
+
 export function DomainShellGate({
   domainSlug,
   requireAudience = false,
@@ -28,8 +35,6 @@ export function DomainShellGate({
 }: DomainShellGateProps) {
   const slug = domainSlug.trim()
 
-  // Always start on curtain for branded first paint (login + cold load).
-  // Travel paths call markTravelCurtainShown; the effect below may skip a double curtain.
   const [phase, setPhase] = React.useState<GatePhase>(() => (slug ? "curtain" : "ready"))
   const [retryToken, setRetryToken] = React.useState(0)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -41,74 +46,61 @@ export function DomainShellGate({
       return
     }
 
-    if (consumeTravelCurtainSkip(slug) && isDomainShellReady(slug, { requireAudience })) {
+    // Travel already prepared this slug — reveal immediately if board-ready.
+    if (consumeTravelCurtainSkip(slug) && isBoardRevealReady(slug, requireAudience)) {
       setPhase("ready")
       setErrorMessage(null)
-      const domain = getCachedDomainBySlug(slug)
-      if (domain) {
-        void prefetchDomainBoardDialogSession({
-          domain,
-          domainSlug: slug,
-          dialogScope: "keeper",
-        })
-      }
       return
     }
 
     let cancelled = false
-    const mountedAt = Date.now()
     setPhase("curtain")
     setErrorMessage(null)
 
     void (async () => {
-      const alreadyReady = isDomainShellReady(slug, { requireAudience })
-      if (!alreadyReady) {
-        const result = await bootstrapDomainShell(slug, {
-          requireAudience,
-          forceRefresh: retryToken > 0,
-        }).catch(() => null)
+      const preparePromise = prepareDomainBoardReveal(slug, {
+        requireAudience,
+        forceRefresh: retryToken > 0,
+        board: "domain",
+      })
 
-        if (cancelled) return
-
-        const ready =
-          result?.ready === true || isDomainShellReady(slug, { requireAudience })
-
-        if (!ready) {
-          setErrorMessage(
-            "This domain could not be loaded. Check your connection and try again.",
+      const result = await Promise.race([
+        preparePromise,
+        new Promise<Awaited<typeof preparePromise>>((resolve) => {
+          window.setTimeout(
+            () =>
+              resolve({
+                ready: false,
+                sessionId: null,
+                elapsedMs: BOARD_REVEAL_HARD_TIMEOUT_MS,
+              }),
+            BOARD_REVEAL_HARD_TIMEOUT_MS,
           )
-          setPhase("error")
-          return
-        }
-      }
-
-      const domain = getCachedDomainBySlug(slug)
-      await Promise.all([
-        waitForDomainCoverDecode(slug),
-        domain
-          ? prefetchDomainBoardDialogSession({
-              domain,
-              domainSlug: slug,
-              dialogScope: "keeper",
-            })
-          : Promise.resolve(null),
+        }),
       ])
 
       if (cancelled) return
 
-      const elapsed = Date.now() - mountedAt
-      const remaining = Math.max(0, DOMAIN_SHELL_MIN_HOLD_MS - elapsed)
-      window.setTimeout(() => {
-        if (cancelled) return
-        if (!isDomainShellReady(slug, { requireAudience })) {
-          setErrorMessage(
-            "This domain could not be loaded. Check your connection and try again.",
-          )
-          setPhase("error")
-          return
-        }
-        setPhase("ready")
-      }, remaining)
+      if (!result.ready && !isBoardRevealReady(slug, requireAudience)) {
+        setErrorMessage(
+          "This domain could not be loaded. Check your connection and try again.",
+        )
+        setPhase("error")
+        return
+      }
+
+      await holdCurtainMinimum(result.elapsedMs)
+      if (cancelled) return
+
+      if (!isBoardRevealReady(slug, requireAudience) && !result.sessionId) {
+        setErrorMessage(
+          "Dialog could not be prepared. Check your connection and try again.",
+        )
+        setPhase("error")
+        return
+      }
+
+      setPhase("ready")
     })()
 
     return () => {

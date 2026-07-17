@@ -7,11 +7,12 @@ import {
   isDomainShellWarm,
   prefetchDomainShellForTravel,
 } from "../boards/domain/domainShellCache"
-import { prefetchDomainBoardDialogSession } from "../boards/domain/dialogSessionPrefetch"
+import { markTravelCurtainShown } from "../boards/domain/domainShellBootstrap"
 import {
-  markTravelCurtainShown,
-  waitForDomainCoverDecode,
-} from "../boards/domain/domainShellBootstrap"
+  holdCurtainMinimum,
+  prepareDomainBoardReveal,
+} from "../boards/domain/prepareDomainBoardReveal"
+import { peekPrefetchedDialogSession } from "../boards/domain/dialogSessionPrefetch"
 
 export interface SceneChangeContextValue {
   travelToSlug: (slug: string, onNavigate: () => void) => Promise<void>
@@ -19,17 +20,11 @@ export interface SceneChangeContextValue {
 
 const SceneChangeCtx = React.createContext<SceneChangeContextValue | null>(null)
 
-async function warmDialogForTravel(slug: string): Promise<void> {
+function isTravelBoardReady(slug: string): boolean {
+  if (!isDomainShellWarm(slug, { requireAudience: true })) return false
   const domain = getCachedDomainBySlug(slug)
-  if (!domain) return
-  await Promise.all([
-    waitForDomainCoverDecode(slug),
-    prefetchDomainBoardDialogSession({
-      domain,
-      domainSlug: slug,
-      dialogScope: "keeper",
-    }),
-  ])
+  if (!domain?.id) return false
+  return !!peekPrefetchedDialogSession(domain.id, "domain")
 }
 
 export function SceneChangeProvider({ children }: { children: React.ReactNode }) {
@@ -41,18 +36,8 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
       const normalized = slug.trim()
       if (!normalized) return
 
-      if (isDomainShellWarm(normalized, { requireAudience: true })) {
-        await warmDialogForTravel(normalized)
-        markTravelCurtainShown(normalized)
-        onNavigate()
-        return
-      }
-
-      const warm = await prefetchDomainShellForTravel(normalized, {
-        requireAudience: true,
-      })
-      if (warm) {
-        await warmDialogForTravel(normalized)
+      // Already fully warm — still brand briefly with curtain if not board-ready.
+      if (isTravelBoardReady(normalized)) {
         markTravelCurtainShown(normalized)
         onNavigate()
         return
@@ -60,35 +45,36 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
 
       navigateRef.current = onNavigate
       setCurtainSlug(normalized)
+
+      const startedAt = Date.now()
+      await prefetchDomainShellForTravel(normalized, { requireAudience: true })
+      const prepared = await prepareDomainBoardReveal(normalized, {
+        requireAudience: true,
+        board: "domain",
+      })
+      await holdCurtainMinimum(Date.now() - startedAt)
+
+      markTravelCurtainShown(normalized)
+      const go = navigateRef.current
+      navigateRef.current = null
+      setCurtainSlug(null)
+
+      if (prepared.ready || isTravelBoardReady(normalized)) {
+        go?.()
+        return
+      }
+
+      // Fail soft — navigate anyway so the user is not stuck; boot gate can retry.
+      go?.()
     },
     [],
   )
-
-  const handleCurtainComplete = React.useCallback(() => {
-    const go = navigateRef.current
-    navigateRef.current = null
-    const slug = curtainSlug
-    if (slug) {
-      void warmDialogForTravel(slug).finally(() => {
-        markTravelCurtainShown(slug)
-        setCurtainSlug(null)
-        go?.()
-      })
-      return
-    }
-    setCurtainSlug(null)
-    go?.()
-  }, [curtainSlug])
 
   const value = React.useMemo(() => ({ travelToSlug }), [travelToSlug])
 
   return (
     <SceneChangeCtx.Provider value={value}>
-      {curtainSlug ? (
-        <DomainLoadCurtain domainSlug={curtainSlug} onComplete={handleCurtainComplete} />
-      ) : (
-        children
-      )}
+      {curtainSlug ? <DomainLoadCurtain domainSlug={curtainSlug} /> : children}
     </SceneChangeCtx.Provider>
   )
 }

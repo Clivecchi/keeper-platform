@@ -44,6 +44,28 @@ export function clearPlaybillAgentCache(slug?: string): void {
   agentInflight.clear()
 }
 
+/** Sync read — Playbill cards seed from cache to avoid reload flash across domains. */
+export function peekPlaybillAgent(slug: string): ResolvedPlaybillAgent | null {
+  const key = slug.trim()
+  if (!key) return null
+  return agentCache.get(key) ?? null
+}
+
+/** Warm every switcher lead into the shared agent cache (no wipe). */
+export async function prefetchPlaybillAgentsForDomains(
+  entries: Array<{ leadAgentSlug: string | null | undefined }>,
+): Promise<void> {
+  const slugs = [
+    ...new Set(
+      entries
+        .map((entry) => entry.leadAgentSlug?.trim())
+        .filter((slug): slug is string => !!slug),
+    ),
+  ]
+  if (!slugs.length) return
+  await Promise.all(slugs.map((slug) => resolvePlaybillAgent(slug).catch(() => null)))
+}
+
 function isAvatarImageSrc(value: string): boolean {
   const trimmed = value.trim()
   return (

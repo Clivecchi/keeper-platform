@@ -463,6 +463,18 @@ export function useAgentDialog({
     }
   }, [agentSlug, resolvedAgentId, strictAgentResolution, agentDisplayName])
 
+  // Seed prefetched session before paint so Chronicle/Dialog do not flash empty after curtain.
+  React.useLayoutEffect(() => {
+    if (mode === "ide" || mode === "designer" || manageSessionExternally) return
+    if (!domainId || String(domainId).startsWith("fallback-")) return
+    if (activeSessionIdRef.current) return
+    const board = dialogBoard ?? mode
+    const prefetched = takePrefetchedDialogSession(domainId, board)
+    if (!prefetched) return
+    if (onControlledSessionIdChange) onControlledSessionIdChange(prefetched)
+    else setInternalSessionId(prefetched)
+  }, [mode, domainId, dialogBoard, manageSessionExternally, onControlledSessionIdChange])
+
   // agent / domain: create a KipApi session once agentId is known.
   // ide and designer use controlled session lifecycle from the board shell.
   // domain: wait for a resolved domainId — shell fetch completes before session bootstrap.
@@ -474,6 +486,7 @@ export function useAgentDialog({
     ) {
       return
     }
+    if (activeSessionIdRef.current) return
     const aid = agentId
     let cancelled = false
     async function init() {

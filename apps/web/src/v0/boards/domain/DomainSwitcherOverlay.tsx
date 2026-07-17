@@ -22,7 +22,7 @@ import {
 import { prefetchDomainShell } from "./domainShellCache"
 import { persistRealmAnchor } from "../../realm/persistRealmAnchor"
 import { useSceneChangeOptional } from "../../sceneChange/SceneChangeProvider"
-import { clearPlaybillAgentCache } from "../../lib/playbillData"
+import { prefetchPlaybillAgentsForDomains } from "../../lib/playbillData"
 import {
   SWITCHER_INK_PRIMARY,
   SWITCHER_INK_SECONDARY,
@@ -156,16 +156,16 @@ export function DomainSwitcherOverlay({
       return
     }
 
-    clearPlaybillAgentCache()
-
     let cancelled = false
     const cached = getCachedDomainSwitcherEntries()
     const hasCachedList = cached !== null
-    const forceRefresh = fetchAttempt > 0 || hasCachedList
+    // Only force network refresh on explicit retry — keep list + agent caches warm.
+    const forceRefresh = fetchAttempt > 0
 
     if (hasCachedList) {
       setDomains(cached)
       setFetchState("ready")
+      void prefetchPlaybillAgentsForDomains(cached)
     } else {
       setFetchState("loading")
     }
@@ -175,6 +175,7 @@ export function DomainSwitcherOverlay({
         if (cancelled) return
         setDomains(rows)
         setFetchState("ready")
+        void prefetchPlaybillAgentsForDomains(rows)
       })
       .catch((error) => {
         console.error("[DomainSwitcherOverlay] Failed to load domains:", error)

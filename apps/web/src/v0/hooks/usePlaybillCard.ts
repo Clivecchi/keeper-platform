@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { resolvePlaybillAgent, type ResolvedPlaybillAgent } from "../lib/playbillData"
+import { peekPlaybillAgent, resolvePlaybillAgent, type ResolvedPlaybillAgent } from "../lib/playbillData"
 
 export interface PlaybillCardData {
   isUncast: boolean
@@ -21,32 +21,42 @@ export function usePlaybillCard({
 }: UsePlaybillCardInput): PlaybillCardData {
   const slug = leadAgentSlug?.trim() ?? ""
   const slugUncast = !slug
-  const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(null)
-  const [isLoading, setIsLoading] = React.useState(true)
+  const cached = slugUncast ? null : peekPlaybillAgent(slug)
+  const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(cached)
+  const [isLoading, setIsLoading] = React.useState(!slugUncast && !cached)
 
   React.useEffect(() => {
     let cancelled = false
-    setIsLoading(true)
 
-    const agentPromise = slugUncast
-      ? Promise.resolve(null)
-      : resolvePlaybillAgent(slug).catch(() => null)
-
-    void agentPromise.then((nextAgent) => {
-      if (cancelled) return
-      setAgent(nextAgent)
+    if (slugUncast) {
+      setAgent(null)
       setIsLoading(false)
-    })
+      return
+    }
+
+    const warm = peekPlaybillAgent(slug)
+    if (warm) {
+      setAgent(warm)
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    void resolvePlaybillAgent(slug)
+      .catch(() => null)
+      .then((nextAgent) => {
+        if (cancelled) return
+        setAgent(nextAgent)
+        setIsLoading(false)
+      })
 
     return () => {
       cancelled = true
     }
   }, [slug, slugUncast])
 
-  const isUncast = slugUncast
-
   return {
-    isUncast,
+    isUncast: slugUncast,
     isLoading,
     agent,
   }

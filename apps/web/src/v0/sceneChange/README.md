@@ -21,6 +21,12 @@ Scene-change load mechanics for domain travel — splash curtain with warm-skip 
 - [ ] Mobile Playbill prefetch parity
 
 ## 📆 Update Log
+### 2026-07-16 — Curtain = Playbill chrome; hold until board ready
+- Curtain is a framed Playbill card (ambient + portrait) with inline domain theme CSS vars (portal-safe)
+- Gate/travel await `prepareDomainBoardReveal` (shell + cover + dialog session + lead agent + nav warm) before reveal
+- Playbill agent cache no longer wiped on switcher open; multi-domain prefetch + sync seed
+- Board StyleScope uses `domain-resolved` tokens so theme matches curtain after reveal
+
 ### 2026-07-16 — Playbill imagery + login curtain + user menu
 - Curtain cover refreshes as shell cache fills; cover resolve uses objectTheme + frame background fallback
 - Boot gate always brands first paint (≥480ms) unless travel already showed a curtain

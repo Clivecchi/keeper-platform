@@ -61,6 +61,7 @@ import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { RealmArrivalProvider } from "../realm/RealmArrivalContext"
 import { prefetchBoardNavData } from "./boardNavDataCache"
 import { getCachedDomainBySlug, resolveDomainCoverUrl } from "./domain/domainShellCache"
+import { DOMAIN_THEME_SLUG } from "../themes/constants"
 import { BoardMobilePanelBar } from "./components/BoardMobilePanelBar"
 import { useBoardMobilePanelFocus } from "./hooks/useBoardMobilePanelFocus"
 import type { BoardMobilePanelId } from "./types/boardMobilePanel"
@@ -194,7 +195,9 @@ function UniversalBoardShell({
   onDomainClick,
   navVersions,
 }: UniversalBoardProps) {
-  const { domainSlug, styleId, themeSlug, domainFrame, domainData, shellMode } = useV0Shell()
+  const { domainSlug, styleId, themeSlug: urlThemeSlug, domainFrame, domainData, shellMode } = useV0Shell()
+  // Prefer URL theme override; otherwise use runtime domain tokens registered by V0Shell.
+  const themeSlug = urlThemeSlug ?? DOMAIN_THEME_SLUG
   const { selection, actions, navCollapsed, onToggleNavCollapsed, chronicleEngagement } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
