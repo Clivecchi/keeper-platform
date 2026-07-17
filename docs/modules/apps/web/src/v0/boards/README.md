@@ -30,6 +30,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-07-16 — Theme handoff after load curtain
+- `UniversalBoard` StyleScope remounts per domain/theme slug so board inherits curtain-registered `domain-resolved` tokens.
+- V0Shell theme bootstrap prefers `peekDomainFrame` before DEFAULT (see shell + sceneChange).
+
 ### 2026-07-12 — Phase 1b: Domain board mobile adaptive layout
 - `usesAdaptiveMobileBoardLayout()` — Domain + Realm at ≤767px use `BoardMobilePanelBar` (Nav · Dialog · Chronicle).
 - V0Shell always mounts `UniversalBoard`; legacy `UniversalMobileShell` removed from routing.

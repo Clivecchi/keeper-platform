@@ -518,7 +518,11 @@ function UniversalBoardShell({
   }
 
   return (
-    <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
+    <StyleScope
+      key={`board-theme-${slug || "none"}-${themeSlug ?? "none"}`}
+      styleId={styleId}
+      themeSlug={themeSlug ?? null}
+    >
       <div
         className={`keeper-board-scope flex flex-col w-full overflow-hidden ${useMobilePanelLayout ? "board-mobile-shell-height" : "h-screen"}`}
         style={pageBackground}

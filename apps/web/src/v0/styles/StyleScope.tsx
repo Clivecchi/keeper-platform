@@ -59,6 +59,13 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
         })
   }, [themeSlug])
 
+  // Prefer live runtime registry so curtain / V0Shell re-registers paint immediately
+  // (StyleScope must not freeze the first DEFAULT snapshot after domain-resolved updates).
+  const liveRuntime = themeSlug
+    ? (getRuntimeThemeTokens(themeSlug) as unknown as Record<string, string> | null)
+    : null
+  const effectiveThemeTokens = liveRuntime ?? themeTokens
+
   // Get base tokens - merge theme with style registry so dialogue tokens are always present
   const baseTokens = React.useMemo(() => {
     const styleDefinition = getStyleDefinition(styleId)
@@ -88,38 +95,38 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
       'dialogue.border': 'hsl(35, 20%, 88%)',
     } as StyleTokens
 
-    if (themeTokens) {
+    if (effectiveThemeTokens) {
       // Override style tokens with theme tokens; theme may omit dialogue, so keep style fallbacks
       return {
         ...styleFallback,
-        'surface.page': themeTokens['surface.page'] || styleFallback['surface.page'],
-        'surface.paper': themeTokens['surface.paper'] || styleFallback['surface.paper'],
-        'surface.panel': themeTokens['surface.panel'] || styleFallback['surface.panel'],
-        'surface.elevated': themeTokens['surface.elevated'] || styleFallback['surface.elevated'],
-        'ink.primary': themeTokens['ink.primary'] || styleFallback['ink.primary'],
-        'ink.secondary': themeTokens['ink.secondary'] || styleFallback['ink.secondary'],
-        'ink.tertiary': themeTokens['ink.tertiary'] || styleFallback['ink.tertiary'],
-        'ink.placeholder': themeTokens['ink.placeholder'] || styleFallback['ink.placeholder'],
-        'line.hairline': themeTokens['line.hairline'] || styleFallback['line.hairline'],
-        'line.ruled': themeTokens['line.ruled'] || styleFallback['line.ruled'],
-        'border.soft': themeTokens['border.soft'] || styleFallback['border.soft'],
-        'border.strong': themeTokens['border.strong'] || styleFallback['border.strong'],
-        'shadow.soft': themeTokens['shadow.soft'] || styleFallback['shadow.soft'],
-        'focus.ring': themeTokens['focus.ring'] || styleFallback['focus.ring'],
-        'hover.surface': themeTokens['hover.surface'] || styleFallback['hover.surface'],
-        'press.surface': themeTokens['press.surface'] || styleFallback['press.surface'],
-        'radius.sheet': themeTokens['radius.sheet'] || styleFallback['radius.sheet'],
-        'space.framePadding': themeTokens['space.framePadding'] || styleFallback['space.framePadding'],
-        'space.sheetPadding': themeTokens['space.sheetPadding'] || styleFallback['space.sheetPadding'],
+        'surface.page': effectiveThemeTokens['surface.page'] || styleFallback['surface.page'],
+        'surface.paper': effectiveThemeTokens['surface.paper'] || styleFallback['surface.paper'],
+        'surface.panel': effectiveThemeTokens['surface.panel'] || styleFallback['surface.panel'],
+        'surface.elevated': effectiveThemeTokens['surface.elevated'] || styleFallback['surface.elevated'],
+        'ink.primary': effectiveThemeTokens['ink.primary'] || styleFallback['ink.primary'],
+        'ink.secondary': effectiveThemeTokens['ink.secondary'] || styleFallback['ink.secondary'],
+        'ink.tertiary': effectiveThemeTokens['ink.tertiary'] || styleFallback['ink.tertiary'],
+        'ink.placeholder': effectiveThemeTokens['ink.placeholder'] || styleFallback['ink.placeholder'],
+        'line.hairline': effectiveThemeTokens['line.hairline'] || styleFallback['line.hairline'],
+        'line.ruled': effectiveThemeTokens['line.ruled'] || styleFallback['line.ruled'],
+        'border.soft': effectiveThemeTokens['border.soft'] || styleFallback['border.soft'],
+        'border.strong': effectiveThemeTokens['border.strong'] || styleFallback['border.strong'],
+        'shadow.soft': effectiveThemeTokens['shadow.soft'] || styleFallback['shadow.soft'],
+        'focus.ring': effectiveThemeTokens['focus.ring'] || styleFallback['focus.ring'],
+        'hover.surface': effectiveThemeTokens['hover.surface'] || styleFallback['hover.surface'],
+        'press.surface': effectiveThemeTokens['press.surface'] || styleFallback['press.surface'],
+        'radius.sheet': effectiveThemeTokens['radius.sheet'] || styleFallback['radius.sheet'],
+        'space.framePadding': effectiveThemeTokens['space.framePadding'] || styleFallback['space.framePadding'],
+        'space.sheetPadding': effectiveThemeTokens['space.sheetPadding'] || styleFallback['space.sheetPadding'],
         // Theme can override dialogue; if not present, keep style values
-        'dialogue.userBg': themeTokens['dialogue.userBg'] || styleFallback['dialogue.userBg'],
-        'dialogue.agentBg': themeTokens['dialogue.agentBg'] || styleFallback['dialogue.agentBg'],
-        'dialogue.areaBg': themeTokens['dialogue.areaBg'] || styleFallback['dialogue.areaBg'],
-        'dialogue.border': themeTokens['dialogue.border'] || styleFallback['dialogue.border'],
+        'dialogue.userBg': effectiveThemeTokens['dialogue.userBg'] || styleFallback['dialogue.userBg'],
+        'dialogue.agentBg': effectiveThemeTokens['dialogue.agentBg'] || styleFallback['dialogue.agentBg'],
+        'dialogue.areaBg': effectiveThemeTokens['dialogue.areaBg'] || styleFallback['dialogue.areaBg'],
+        'dialogue.border': effectiveThemeTokens['dialogue.border'] || styleFallback['dialogue.border'],
       } as StyleTokens
     }
     return styleFallback
-  }, [themeTokens, styleId])
+  }, [effectiveThemeTokens, styleId])
 
   // Get merged tokens (base + overrides) and convert to CSS vars
   const finalTokens = exportTokens(baseTokens)

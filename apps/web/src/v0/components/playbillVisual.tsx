@@ -10,7 +10,7 @@ export interface PlaybillVisualProps {
   portraitFallback: string
   accent?: string
   /** `header` = top bar; `card` = dropdown list; `rail` = chronicle (deprecated). */
-  size?: "header" | "card"
+  size?: "header" | "card" | "hero"
 }
 
 function isImageSrc(value: string): boolean {
@@ -142,9 +142,11 @@ export function PlaybillAgentPortrait({
   portraitEmoji?: string | null
   fallback: string
   accent: string
-  size: "header" | "card"
+  size: "header" | "card" | "hero"
 }) {
-  const dim = size === "header" ? 56 : 44
+  const dim = size === "hero" ? 112 : size === "header" ? 56 : 44
+  const emojiSize = size === "hero" ? 48 : size === "header" ? 26 : 22
+  const fallbackSize = size === "hero" ? 36 : size === "header" ? 20 : 17
   const emoji = portraitEmoji?.trim() || null
 
   if (portraitUrl && isImageSrc(portraitUrl)) {
@@ -175,7 +177,7 @@ export function PlaybillAgentPortrait({
         style={{
           width: dim,
           height: dim,
-          fontSize: size === "header" ? 26 : 22,
+          fontSize: emojiSize,
           lineHeight: 1,
           borderColor: `${accent}55`,
           background: `${accent}14`,
@@ -194,7 +196,7 @@ export function PlaybillAgentPortrait({
       style={{
         width: dim,
         height: dim,
-        fontSize: size === "header" ? 20 : 17,
+        fontSize: fallbackSize,
         borderColor: `${accent}55`,
         background: `${accent}14`,
         color: accent,

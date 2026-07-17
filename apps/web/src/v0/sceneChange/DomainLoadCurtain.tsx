@@ -3,6 +3,7 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { motion, useReducedMotion } from "framer-motion"
+import { useTheme } from "../../context/ThemeContext"
 import {
   prefetchDomainShell,
   resolveDomainCoverUrl,
@@ -18,15 +19,14 @@ import {
   type ResolvedPlaybillAgent,
 } from "../lib/playbillData"
 import { resolveDomainLeadContext, type DomainLeadRecord } from "../lib/domainLeadAgent"
-import {
-  PlaybillAgentPortrait,
-  PlaybillAmbientLayer,
-  resolvePlaybillAmbientUrl,
-} from "../components/playbillVisual"
+import { PlaybillAgentPortrait, resolvePlaybillAmbientUrl } from "../components/playbillVisual"
 import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
+import { registerRuntimeTheme } from "../themes/themeResolver"
+import { DOMAIN_THEME_SLUG } from "../themes/constants"
 import { tokensToCSSVars } from "../styles/styleRegistry"
 import type { StyleTokens } from "../styles/styleRegistry"
 import type { DomainFrameTheme } from "../data/domain-frame.types"
+import { getBlobProxyUrl } from "../../lib/blobProxy"
 
 export interface DomainLoadCurtainProps {
   domainSlug: string
@@ -42,29 +42,52 @@ const FALLBACK_THEME: DomainFrameTheme = {
   colors: {
     primary: "#2d6a7f",
     accent: "#b8963e",
-    surface: "#1a1d22",
+    surface: "#fdfaf4",
   },
   fonts: { display: "", ui: "" },
 }
 
-function resolveCurtainThemeVars(domainSlug: string): React.CSSProperties {
+function resolveCurtainTheme(
+  domainSlug: string,
+  colorScheme: "light" | "dark",
+): { vars: React.CSSProperties; tokens: StyleTokens } {
   const frame = peekDomainFrame(domainSlug)
   const theme = (frame?.theme ?? FALLBACK_THEME) as DomainFrameTheme
-  const tokens = resolveDomainThemeSync(theme, "dark")
-  return tokensToCSSVars(tokens as unknown as StyleTokens) as React.CSSProperties
+  const tokens = resolveDomainThemeSync(theme, colorScheme) as unknown as StyleTokens
+  return {
+    tokens,
+    vars: tokensToCSSVars(tokens) as React.CSSProperties,
+  }
 }
 
+function resolveCurtainCoverUrl(domainSlug: string): string | null {
+  const fromShell = resolveDomainCoverUrl(domainSlug)
+  if (fromShell) return fromShell
+  const frameBg = peekDomainFrame(domainSlug)?.theme?.background?.trim()
+  if (frameBg && /^(https?:|blob:|data:|\/)/i.test(frameBg)) {
+    return frameBg.includes("blob.vercel-storage.com") ? getBlobProxyUrl(frameBg) : frameBg
+  }
+  return null
+}
+
+/**
+ * Member load curtain — same scale/layout language as public Cover
+ * (full-bleed page + max-w-5xl centered identity), with lead-agent billing.
+ */
 export function DomainLoadCurtain({
   domainSlug,
   errorMessage,
   onRetry,
 }: DomainLoadCurtainProps) {
   const reducedMotion = useReducedMotion()
+  const { colorScheme } = useTheme()
   const [domainName, setDomainName] = React.useState(() =>
     resolveDomainShellDisplayName(domainSlug),
   )
-  const [coverUrl, setCoverUrl] = React.useState(() => resolveDomainCoverUrl(domainSlug))
-  const [themeVars, setThemeVars] = React.useState(() => resolveCurtainThemeVars(domainSlug))
+  const [coverUrl, setCoverUrl] = React.useState(() => resolveCurtainCoverUrl(domainSlug))
+  const [themeVars, setThemeVars] = React.useState(
+    () => resolveCurtainTheme(domainSlug, colorScheme).vars,
+  )
   const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(() => {
     const cached = getCachedDomainBySlug(domainSlug)
     const leadSlug = resolveDomainLeadContext(cached as DomainLeadRecord | null).slug
@@ -78,8 +101,11 @@ export function DomainLoadCurtain({
     const refresh = () => {
       if (cancelled) return
       setDomainName(resolveDomainShellDisplayName(domainSlug))
-      setCoverUrl(resolveDomainCoverUrl(domainSlug))
-      setThemeVars(resolveCurtainThemeVars(domainSlug))
+      setCoverUrl(resolveCurtainCoverUrl(domainSlug))
+      const { vars, tokens } = resolveCurtainTheme(domainSlug, colorScheme)
+      setThemeVars(vars)
+      // Hand theme to StyleScope before board mounts — prevents post-curtain theme loss.
+      registerRuntimeTheme(DOMAIN_THEME_SLUG, tokens as never)
     }
     refresh()
     const timers = [80, 200, 400, 800, 1600].map((ms) => window.setTimeout(refresh, ms))
@@ -101,11 +127,16 @@ export function DomainLoadCurtain({
       cancelled = true
       for (const timer of timers) window.clearTimeout(timer)
     }
-  }, [domainSlug])
+  }, [domainSlug, colorScheme])
 
   const cached = getCachedDomainBySlug(domainSlug)
   const lead = resolveDomainLeadContext(cached as DomainLeadRecord | null)
+  const frame = peekDomainFrame(domainSlug)
   const billingName = domainName.trim() || domainSlug
+  const tagline =
+    frame?.theme?.tagline?.trim() ||
+    cached?.description?.trim() ||
+    ""
   const isUncast = !lead.slug
   const starName = resolvePlaybillStarName({
     domainName: billingName,
@@ -118,14 +149,25 @@ export function DomainLoadCurtain({
   const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
   const ambientUrl = resolvePlaybillAmbientUrl(coverUrl, portraitUrl)
   const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
-  const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring, 168 45% 42%)))"
+  const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
+
+  const pageBackground: React.CSSProperties = ambientUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${ambientUrl})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+      }
+    : { backgroundColor: "hsl(var(--theme-surface-page))" }
 
   const content = (
     <motion.div
-      className="domain-load-curtain fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
+      className="domain-load-curtain fixed inset-0 z-[200] min-h-screen"
       style={{
         ...themeVars,
-        background: "hsl(var(--theme-surface-page, 220 16% 9%))",
+        ...pageBackground,
+        padding: "clamp(1.5rem, 5vw, 3.25rem)",
+        color: "var(--theme-ink-primary)",
       }}
       initial={reducedMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -135,79 +177,79 @@ export function DomainLoadCurtain({
       aria-live="polite"
       aria-label={billingName ? `Loading ${billingName}` : "Loading domain"}
     >
-      <div
-        className="relative w-full max-w-md overflow-hidden rounded-2xl"
-        style={{
-          border: "1px solid hsl(var(--theme-border-soft, 220 12% 28%) / 0.55)",
-          boxShadow: "0 24px 64px hsl(0 0% 0% / 0.45)",
-          minHeight: 120,
-        }}
-      >
-        <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
-
-        <div className="relative z-10 flex items-center gap-4 px-5 py-5">
-          <div className="min-w-0 flex-1 text-left">
-            <p
-              className="text-[10px] font-semibold uppercase tracking-[0.22em] truncate"
-              style={{ color: "hsl(var(--theme-ink-secondary, 40 12% 72%))" }}
-            >
-              {billingName} presents
-            </p>
-            <p
-              className="mt-1.5 font-serif text-2xl font-semibold leading-tight truncate"
-              style={{ color: "hsl(var(--theme-ink-primary, 40 20% 96%))" }}
-            >
-              {starName}
-            </p>
-            <p
-              className="mt-1 text-[10px] font-mono uppercase tracking-[0.14em] truncate"
-              style={{ color: accent }}
-            >
-              {roleSubtitle}
-            </p>
-          </div>
+      <div className="mx-auto flex min-h-[calc(100vh-clamp(3rem,10vw,6.5rem))] w-full max-w-5xl flex-col items-center justify-center">
+        <section
+          aria-label="Domain load identity"
+          className="flex min-h-[40vh] w-full flex-col items-center justify-center gap-4 text-center"
+        >
+          <p
+            className="text-[11px] font-semibold uppercase tracking-[0.28em]"
+            style={{ color: "var(--theme-ink-tertiary, hsl(var(--theme-ink-secondary)))" }}
+          >
+            {billingName} presents
+          </p>
 
           <PlaybillAgentPortrait
             portraitUrl={portraitUrl}
             portraitEmoji={portraitEmoji}
             fallback={portraitFallback}
             accent={accent}
-            size="header"
+            size="hero"
           />
-        </div>
-      </div>
 
-      {errorMessage ? (
-        <div className="mt-6 max-w-md space-y-3 text-center">
-          <p
-            className="text-sm leading-snug"
-            style={{ color: "hsl(var(--theme-ink-secondary, 40 12% 72%))" }}
+          <h2
+            className="font-serif text-3xl tracking-wide md:text-4xl"
+            style={{ color: "var(--theme-ink-primary)" }}
           >
-            {errorMessage}
+            {starName}
+          </h2>
+
+          <p
+            className="text-[11px] font-mono uppercase tracking-[0.14em]"
+            style={{ color: accent }}
+          >
+            {roleSubtitle}
           </p>
-          {onRetry ? (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="rounded-md px-4 py-2 text-sm font-medium"
-              style={{
-                background: "hsl(var(--theme-surface-panel, 220 16% 14%))",
-                color: "hsl(var(--theme-ink-primary, 40 20% 96%))",
-                border: "1px solid hsl(var(--theme-border-soft, 220 12% 28%) / 0.55)",
-              }}
+
+          {tagline ? (
+            <p
+              className="max-w-md text-sm leading-relaxed"
+              style={{ color: "var(--theme-ink-secondary)" }}
             >
-              Try again
-            </button>
+              {tagline}
+            </p>
           ) : null}
-        </div>
-      ) : (
-        <p
-          className="mt-5 text-xs tracking-wide"
-          style={{ color: "hsl(var(--theme-ink-tertiary, 40 10% 55%))" }}
-        >
-          Preparing board…
-        </p>
-      )}
+
+          {errorMessage ? (
+            <div className="mt-4 max-w-md space-y-3">
+              <p className="text-sm leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                {errorMessage}
+              </p>
+              {onRetry ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="rounded-full border px-5 py-2 text-[11px] font-medium uppercase tracking-[0.12em] transition-opacity hover:opacity-90"
+                  style={{
+                    borderColor: "var(--theme-border-soft)",
+                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+                    color: "var(--theme-ink-primary)",
+                  }}
+                >
+                  Try again
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <p
+              className="mt-2 text-[11px] tracking-wide"
+              style={{ color: "var(--theme-ink-tertiary, var(--theme-ink-secondary))" }}
+            >
+              Preparing board…
+            </p>
+          )}
+        </section>
+      </div>
     </motion.div>
   )
 

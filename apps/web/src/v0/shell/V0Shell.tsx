@@ -354,12 +354,14 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
 
-  // Synchronous bootstrap — StyleScope reads domain-resolved on first paint (before frame fetch).
+  // Synchronous bootstrap — prefer warm frame cache so DEFAULT never overwrites a real domain theme
+  // before StyleScope mounts (curtain already registered; board must keep it).
   if (effectiveSlug) {
+    const peekedTheme = peekDomainFrame(effectiveSlug)?.theme
     registerRuntimeTheme(
       DOMAIN_THEME_SLUG,
       resolveDomainThemeSync(
-        domainFrame?.theme ?? DEFAULT_DOMAIN_FRAME.theme,
+        peekedTheme ?? domainFrame?.theme ?? DEFAULT_DOMAIN_FRAME.theme,
         colorScheme,
       ),
     )
