@@ -66,7 +66,7 @@ export interface NavInstrumentDef {
 /** Left-nav visibility — static shows all enabled sections; contentGated hides empty entity blocks. */
 export type NavMode = "static" | "contentGated"
 
-/** Realm staged nav — Drafts → Kept → Presented (ChronicleDocument-shaped rows). */
+/** Realm staged nav — Drafts → Kept → Presented (Document-shaped rows). */
 export type RealmNavStage = "drafts" | "kept" | "presented"
 
 export interface NavPanelDef {

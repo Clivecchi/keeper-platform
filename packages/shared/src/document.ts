@@ -1,20 +1,30 @@
 /**
- * ChronicleDocument — read/presentation contract for Chronicle Focus mode.
+ * Document — read/presentation contract for Chronicle Focus mode (atomic card / Point).
  * See docs/chronicle-document-architecture.md
  */
 
 import type { GlossAnchor, GlossContentSnapshot } from './glossAnchor.js';
 
-export type ChronicleDocumentStatusTone = 'pending' | 'active' | 'error';
+export type DocumentStatusTone = 'pending' | 'active' | 'error';
 
-export interface ChronicleDocument {
+/** Atomic-card status tone — same as DocumentStatusTone. */
+export type PointStatusTone = DocumentStatusTone;
+
+/**
+ * Read/presentation contract for one atomic card (identity, title, body, status, Gloss).
+ * Architecture doc also calls this a Point; both names export the same shape.
+ */
+export interface Document {
   identity: { label: string; subtitle?: string; voice?: string };
   title: string;
   lede?: string;
   body: { text: string; clampLines?: number; expandable?: boolean };
-  status?: { label: string; tone: ChronicleDocumentStatusTone };
+  status?: { label: string; tone: DocumentStatusTone };
   gloss?: { anchor: GlossAnchor; snapshot?: GlossContentSnapshot };
 }
+
+/** Atomic-card alias — identical to Document. */
+export type Point = Document;
 
 /** Ephemeral synthetic gloss — session-scoped, anchored to Dialog message stream. */
 export function buildEphemeralSyntheticGlossAnchor(params: {

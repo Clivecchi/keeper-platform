@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChronicleDocumentView } from "../presence/chronicleDocument/ChronicleDocumentView"
+import { PointView } from "../presence/chronicleDocument/PointView"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { useRealmNavGrowth } from "./useRealmNavGrowth"
@@ -30,12 +30,12 @@ function StoryFrame({
         borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.25)",
       }}
     >
-      <ChronicleDocumentView document={entry.document} onGloss={onGloss} />
+      <PointView document={entry.document} onGloss={onGloss} />
     </div>
   )
 }
 
-/** Domain-scoped Realm Chronicle — growing story of ChronicleDocument frames. */
+/** Domain-scoped Realm Chronicle — growing story of Document (Point) frames. */
 export function DomainRealmStory({
   domainId,
   domainSlug,

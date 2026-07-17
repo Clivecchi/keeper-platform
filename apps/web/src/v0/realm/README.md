@@ -9,9 +9,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - `realmInvitations.ts` — shared invitation candidate logic (max four)
 - `RealmFeedPanel.tsx` — Realm feed in Chronicle (via invitation; no empty stub)
 - `RealmHomeChronicle.tsx` — Chronicle: user feed at `/home`; domain story at `?board=realm`
-- `DomainRealmStory.tsx` — domain-scoped ChronicleDocument story frames
+- `DomainRealmStory.tsx` — domain-scoped Document (Point) story frames via `PointView`
 - `RealmStagedNav.tsx` — Drafts → Kept → Presented staged nav
-- `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — ChronicleDocument-shaped nav data
+- `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — Document-shaped nav data
 - `DialogCastBar.tsx` — Dialog cast bar (members, agents, access keys)
 - `PresenceField.tsx` — named Treatment pattern for presence imagery
 - `useRealmFeed.ts` — client feed loader
@@ -31,6 +31,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-16 — Document/Point rename
+- Story frames use `PointView` + shared `Document` type (was `ChronicleDocument` / `ChronicleDocumentView`)
+
 ### 2026-07-15 — Domain-scoped Realm surface
 - Generalized `?board=realm` on any domain; default landing board is Realm
 - Staged nav (Drafts / Kept / Presented), Dialog cast bar, go-home via Playbill header `clearSelection`

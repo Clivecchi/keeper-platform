@@ -1,9 +1,9 @@
 /**
  * Realm staged nav — Drafts → Kept → Presented.
- * Nav rows are ChronicleDocument-shaped summaries, not static categories.
+ * Nav rows are Document-shaped summaries (atomic Points), not static categories.
  */
 
-import type { ChronicleDocument } from "@keeper/shared"
+import type { Document } from "@keeper/shared"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import type { KeptMomentSummary } from "../api/v0Moments"
 import type { LibraryNavRow } from "../presence/integrationChronicle/libraryNavUtils"
@@ -20,7 +20,7 @@ export interface RealmNavEntry {
   stage: RealmNavStage
   label: string
   description?: string
-  document: ChronicleDocument
+  document: Document
 }
 
 export function draftToRealmNavEntry(draft: KipDraftSummary): RealmNavEntry {

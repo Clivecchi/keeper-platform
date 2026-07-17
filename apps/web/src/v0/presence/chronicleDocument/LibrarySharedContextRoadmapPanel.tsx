@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { ChronicleDocumentView } from "./ChronicleDocumentView"
+import { PointView } from "./PointView"
 import { buildLibraryRoadmapDocument } from "./libraryRoadmapDocument"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
-/** Synthetic Chronicle pilot — roadmap status with no database backing. */
+/** Synthetic Document pilot — roadmap status with no database backing. */
 export function LibrarySharedContextRoadmapPanel() {
   const boardCtx = useUniversalBoardOptional()
   const doc = React.useMemo(() => buildLibraryRoadmapDocument(), [])
@@ -22,7 +22,7 @@ export function LibrarySharedContextRoadmapPanel() {
 
   return (
     <div className="px-4 py-5">
-      <ChronicleDocumentView document={doc} onGloss={handleDiscuss} />
+      <PointView document={doc} onGloss={handleDiscuss} />
     </div>
   )
 }
