@@ -39,3 +39,7 @@ Styles use a comprehensive token system covering:
 ### 2026-07-17 — Domain accent + reactive StyleScope
 - `StyleScope` uses `useSyncExternalStore` on the runtime theme registry so Curtain/V0Shell re-registers re-paint.
 - `tokensToCSSVars` sets `--theme-accent-primary` from `focus.ring` (domain Treatment) instead of hard-coded teal.
+
+### 2026-07-17 — Board chrome themeApply=treatment
+- `StyleScope` supports `themeApply`: `full` (Cover / `?theme=`) vs `treatment` (Warm Dark glass shell + domain `focus.ring` only).
+- Stops domain light cream surfaces from overwriting member Universal Board panels.

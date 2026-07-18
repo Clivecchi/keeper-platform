@@ -196,8 +196,10 @@ function UniversalBoardShell({
   navVersions,
 }: UniversalBoardProps) {
   const { domainSlug, styleId, themeSlug: urlThemeSlug, domainFrame, domainData, shellMode } = useV0Shell()
-  // Prefer URL theme override; otherwise use runtime domain tokens registered by V0Shell.
+  // Domain-resolved supplies Treatment accent only on boards (Warm Dark glass shell stays).
+  // Full theme replace is reserved for explicit ?theme= developer preview.
   const themeSlug = urlThemeSlug ?? DOMAIN_THEME_SLUG
+  const themeApply = urlThemeSlug ? "full" : "treatment"
   const { selection, actions, navCollapsed, onToggleNavCollapsed, chronicleEngagement } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -347,7 +349,7 @@ function UniversalBoardShell({
   // ── Admin guard — enforced at shell level when def.access.isAdminOnly ──────
   if (def.access.isAdminOnly && !isAdmin) {
     return (
-      <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
+      <StyleScope styleId={styleId} themeSlug={themeSlug ?? null} themeApply={themeApply}>
         <div
           className="flex h-screen items-center justify-center"
           style={{ background: "hsl(var(--theme-surface-page))" }}
@@ -519,9 +521,10 @@ function UniversalBoardShell({
 
   return (
     <StyleScope
-      key={`board-theme-${slug || "none"}-${themeSlug ?? "none"}`}
+      key={`board-theme-${slug || "none"}-${themeSlug ?? "none"}-${themeApply}`}
       styleId={styleId}
       themeSlug={themeSlug ?? null}
+      themeApply={themeApply}
     >
       <div
         className={`keeper-board-scope flex flex-col w-full overflow-hidden ${useMobilePanelLayout ? "board-mobile-shell-height" : "h-screen"}`}

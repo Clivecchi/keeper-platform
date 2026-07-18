@@ -10,15 +10,34 @@ import {
   subscribeRuntimeTheme,
 } from '../themes/themeResolver'
 
+/**
+ * How a themeSlug merges onto the style registry shell:
+ * - `full` — theme replaces surfaces, ink, dialogue, etc. (Cover / ?theme= preview)
+ * - `treatment` — keep Warm Dark (or active style) glass shell; only take focus.ring
+ *   so member boards stay dark glass while domain accent/Treatment still flows
+ */
+export type StyleThemeApply = 'full' | 'treatment'
+
 interface StyleScopeProps {
   styleId: StyleId
   themeSlug?: string | null
+  /**
+   * Member Universal Board default is `treatment` (Warm Dark glass + domain accent).
+   * Public frames and `?theme=` previews use `full`.
+   */
+  themeApply?: StyleThemeApply
   children: React.ReactNode
   /** Merged with `v0-style-scope` for flex layout in shells (e.g. boards). */
   className?: string
 }
 
-export function StyleScope({ styleId, themeSlug, children, className }: StyleScopeProps) {
+export function StyleScope({
+  styleId,
+  themeSlug,
+  themeApply = 'full',
+  children,
+  className,
+}: StyleScopeProps) {
   const { exportTokens, setCurrentStyle } = useStyleOverride()
 
   // Set the current style in the provider
@@ -108,6 +127,14 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
     } as StyleTokens
 
     if (effectiveThemeTokens) {
+      if (themeApply === 'treatment') {
+        // Board chrome: Warm Dark (style) surfaces/ink/dialogue stay; domain accent only.
+        return {
+          ...styleFallback,
+          'focus.ring': effectiveThemeTokens['focus.ring'] || styleFallback['focus.ring'],
+        } as StyleTokens
+      }
+
       // Override style tokens with theme tokens; theme may omit dialogue, so keep style fallbacks
       return {
         ...styleFallback,
@@ -138,7 +165,7 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
       } as StyleTokens
     }
     return styleFallback
-  }, [effectiveThemeTokens, styleId])
+  }, [effectiveThemeTokens, styleId, themeApply])
 
   // Get merged tokens (base + overrides) and convert to CSS vars
   const finalTokens = exportTokens(baseTokens)
