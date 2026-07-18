@@ -69,6 +69,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - 2025-12-15: Hardened updateSessionMetadata auth (user+agent), normalized tags inputs, and fixed resolvedUser initialization to prevent PATCH 500s.
 - 2025-12-15: updateSessionMetadata now accepts summary + flexible tags (array or object) and logs requestId/sessionId on success for PATCH `/api/kip/agents`.
 - 2025-12-14: Added Lens CRUD endpoints (`/api/kip/lenses`) and agent mode config routes (`/api/kip/agents/:id/mode-config`) to drive Domain/Debug mode selection with lenses and per-mode limits.
+- 2026-07-18: Director delegation accepts `instrumentRanClientSide` + `instrumentReply` so the web client can run Rendr/Cloud in a separate HTTP call before Kip synthesis (avoids Vercel 502 on nested AI turns).
 - 2025-12-13: Added structured request logging (headers/query/body/domain) for createSession/messages/sessions flows to make 400/500 causes traceable.
 - 2025-12-12: Added request-scoped logging plus 400/404 responses for create-session and message fetch failures instead of leaking 500s on bad agent/session input.
 - 2025-12-11: Added session topic/summary/tag surface area and PATCH endpoint for updating session metadata.

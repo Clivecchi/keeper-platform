@@ -116,6 +116,10 @@ function pickApiErrorMessage(errorData: ApiErrorPayload | null, response: Respon
     return errorData.error.message;
   }
 
+  if (response.status === 502 || response.status === 503 || response.status === 504) {
+    return `HTTP ${response.status}: The API gateway closed the request before Kip finished. Try again in a moment.`;
+  }
+
   return `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
 }
 

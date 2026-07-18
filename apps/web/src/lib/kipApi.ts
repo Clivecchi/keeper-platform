@@ -782,12 +782,14 @@ export class KipApi {
       attachments?: Array<{ url: string; name: string; type: "image" | "file" }>
       /** agentContext — from domain frame JSON, injected into Kip's environment */
       agentContext?: Record<string, unknown>
-      /** IDE director mode — server runs instrument then Lead synthesis. */
+      /** IDE director mode — Lead synthesis; instrument may already have run client-side. */
       directorDelegation?: {
         instrumentSlug: string
         userMessage: string
         taskMessage?: string
         directorDisplayName: string
+        instrumentRanClientSide?: boolean
+        instrumentReply?: string | null
       }
     },
   ): Promise<AgentResponse> {

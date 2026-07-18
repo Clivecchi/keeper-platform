@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-18 — Director instrument split (HTTP 502 fix)
+- `useAgentDialog` — on director boards, runs the pinned/addressed instrument (e.g. Rendr) in its own `runAgent` call, then Kip synthesis with `instrumentRanClientSide`. Avoids nested AI calls in one Vercel→Railway proxy hop that returned HTTP 502.
+
 ### 2026-07-11 — Attachment thinking beats
 - `useAgentDialog` — attachment run-trace label is now "Including … in your message" (not "Reviewing"), matching what the API actually does.
 

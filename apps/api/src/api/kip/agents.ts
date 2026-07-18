@@ -3302,6 +3302,8 @@ const AgentRunSchema = z.object({
       userMessage: z.string().min(1),
       taskMessage: z.string().min(1).optional(),
       directorDisplayName: z.string().min(1),
+      instrumentRanClientSide: z.boolean().optional(),
+      instrumentReply: z.string().nullable().optional(),
     })
     .optional(),
 }).refine(
@@ -4843,58 +4845,72 @@ export class KipAgentService {
                 };
               })();
           let instrumentReply: string | null = null;
-          try {
-            const instAgent = await ensureBoardInstrumentAgent(dd.instrumentSlug);
-            if (!instAgent) {
-              throw new Error(`Board instrument agent "${dd.instrumentSlug}" is not available`);
-            }
-            const instPrompt = buildInstrumentDelegationPrompt({
-              userMessage: resolvedTask.taskMessage,
-              instrumentLabel: instLabel,
-              directorName: dd.directorDisplayName,
-              continuityCue: resolvedTask.continuityCue,
-            });
-            const instEnvironment = await buildInstrumentRunEnvironment({
-              instAgentId: instAgent.id,
-              instrumentSlug: dd.instrumentSlug,
-              userId,
-              domainId: options.domainId,
-              fallback: options.environment,
-            });
-            const instRun = await this.runAgent(instAgent.id, instPrompt, userId, undefined, {
-              domainId: options.domainId,
-              domainSlug: options.domainSlug,
-              mode: options.mode,
-              environment: instEnvironment ?? options.environment,
-              activeJourneyId: options.activeJourneyId,
-              activeKeeperId: options.activeKeeperId,
-              attachments: options?.attachments,
-            });
-            if (!('success' in instRun) || !instRun.success) {
-              const errData = 'data' in instRun ? (instRun.data as Record<string, unknown> | undefined) : undefined;
-              const errMsg =
-                typeof errData?.error === 'string' && errData.error.trim()
-                  ? errData.error
-                  : 'Instrument run failed';
-              throw new Error(errMsg);
-            }
-            instrumentReply = extractReplyFromAgentRunResult(instRun);
+          if (dd.instrumentRanClientSide) {
+            // Client already ran the instrument in its own HTTP request (avoids proxy timeout).
+            const precomputed =
+              typeof dd.instrumentReply === 'string' ? dd.instrumentReply.trim() : '';
+            instrumentReply = precomputed || null;
             if (!instrumentReply) {
-              console.warn('[director] instrument returned empty reply', {
-                instrument: dd.instrumentSlug,
-              });
+              directorDelegationResult = {
+                attributedTo: instLabel,
+                content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+                status: 'failed',
+              };
             }
-          } catch (error) {
-            console.warn('[director] instrument delegation failed', {
-              instrument: dd.instrumentSlug,
-              error: error instanceof Error ? error.message : error,
-            });
-            directorDelegationResult = {
-              attributedTo: instLabel,
-              content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
-              status: 'failed',
-              error: error instanceof Error ? error.message : String(error),
-            };
+          } else {
+            try {
+              const instAgent = await ensureBoardInstrumentAgent(dd.instrumentSlug);
+              if (!instAgent) {
+                throw new Error(`Board instrument agent "${dd.instrumentSlug}" is not available`);
+              }
+              const instPrompt = buildInstrumentDelegationPrompt({
+                userMessage: resolvedTask.taskMessage,
+                instrumentLabel: instLabel,
+                directorName: dd.directorDisplayName,
+                continuityCue: resolvedTask.continuityCue,
+              });
+              const instEnvironment = await buildInstrumentRunEnvironment({
+                instAgentId: instAgent.id,
+                instrumentSlug: dd.instrumentSlug,
+                userId,
+                domainId: options.domainId,
+                fallback: options.environment,
+              });
+              const instRun = await this.runAgent(instAgent.id, instPrompt, userId, undefined, {
+                domainId: options.domainId,
+                domainSlug: options.domainSlug,
+                mode: options.mode,
+                environment: instEnvironment ?? options.environment,
+                activeJourneyId: options.activeJourneyId,
+                activeKeeperId: options.activeKeeperId,
+                attachments: options?.attachments,
+              });
+              if (!('success' in instRun) || !instRun.success) {
+                const errData = 'data' in instRun ? (instRun.data as Record<string, unknown> | undefined) : undefined;
+                const errMsg =
+                  typeof errData?.error === 'string' && errData.error.trim()
+                    ? errData.error
+                    : 'Instrument run failed';
+                throw new Error(errMsg);
+              }
+              instrumentReply = extractReplyFromAgentRunResult(instRun);
+              if (!instrumentReply) {
+                console.warn('[director] instrument returned empty reply', {
+                  instrument: dd.instrumentSlug,
+                });
+              }
+            } catch (error) {
+              console.warn('[director] instrument delegation failed', {
+                instrument: dd.instrumentSlug,
+                error: error instanceof Error ? error.message : error,
+              });
+              directorDelegationResult = {
+                attributedTo: instLabel,
+                content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+                status: 'failed',
+                error: error instanceof Error ? error.message : String(error),
+              };
+            }
           }
 
           if (instrumentReply) {
@@ -6333,6 +6349,8 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               userMessage: dd.userMessage,
               taskMessage: dd.taskMessage,
               directorDisplayName: dd.directorDisplayName,
+              instrumentRanClientSide: dd.instrumentRanClientSide,
+              instrumentReply: dd.instrumentReply,
             } satisfies DirectorDelegationRequest;
           }
 

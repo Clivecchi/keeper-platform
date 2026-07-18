@@ -31,6 +31,27 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-18 — Director instrument split (HTTP 502 fix)
+- `useAgentDialog` — on director boards, runs the pinned/addressed instrument (e.g. Rendr) in its own `runAgent` call, then Kip synthesis with `instrumentRanClientSide`. Avoids nested AI calls in one Vercel→Railway proxy hop that returned HTTP 502.
+
+### 2026-07-11 — Attachment thinking beats
+- `useAgentDialog` — attachment run-trace label is now "Including … in your message" (not "Reviewing"), matching what the API actually does.
+
+### 2026-07-03 — Domain/Realm composer session bootstrap
+- `useAgentDialog` — when Universal Board controls session id, domain/agent board init now calls `onControlledSessionIdChange(sessionId)` after `resumeOrCreateBoardSession` (matches IDE). Fixes composer locked with "Create a session to start chatting" after controlled-session regression.
+
+### 2026-07-03 — Session accuracy + resume scope
+- `useAgentDialog` — controlled boards ignore stale internal session ids; reset transcript on board key change.
+- `useSelectionSessionResume` — Agent Board agent nav uses board-scoped session resolve.
+
+### 2026-07-03 — First-load dedupe pass
+- `domainMomentsCache`: single fetch per slug (limit 50), callers slice — fixes limit=12 vs limit=50 double fetch
+- `boardNavDataCache`: library slice + board-aware prefetch (Domain board skips drafts)
+- `FrameContext`: keepers via shared nav cache
+- `KipApi`: inflight dedupe for `getAgentBySlug` + `getSessionMessages`
+- `frameLeadAgentIdentity`: remember missing lead slugs — one 404 then fallback to `kip`
+- `useAgentDialog`: `resolveLeadAgentId` for slug lookup (404 → `kip`); domain mode defers session history via `requestIdleCallback` so nav/frame paint first.
+
 ### 2026-07-02 — P3.2 Draft–Journey promote fallback
 - **`useDraftPointPromote`**: optional `resolveJourneyId` when Nav has no selected Journey; surfaces error on promote without resolvable target.
 

@@ -34,6 +34,22 @@ export function getAgentErrorPresentation(error: string): AgentErrorPresentation
     }
   }
 
+  if (
+    lower.includes("http 502") ||
+    lower.includes("http 503") ||
+    lower.includes("http 504") ||
+    lower.includes("bad gateway") ||
+    lower.includes("gateway")
+  ) {
+    return {
+      title: "Connection to Kip dropped",
+      detail:
+        detail ||
+        "The request was cut off before Kip finished. Try again — long board turns (Rendr + Kip) are split into shorter steps now.",
+      tone: "warning",
+    }
+  }
+
   if (lower.includes("api key") || lower.includes("provider key")) {
     return {
       title: "Kip needs a provider key",

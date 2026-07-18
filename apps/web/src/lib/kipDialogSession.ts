@@ -122,19 +122,42 @@ export async function resumeOrCreateBoardSession(
     return { sessionId: existingId, created: false }
   }
 
-  const session = await KipApi.createSession(
-    params.agentId,
-    undefined,
-    params.sessionName,
-    {
-      domainSlug: params.domainSlug ?? undefined,
-      domainId: params.domainId,
-      dialogBoard: params.board,
-      dialogFrame: params.frame,
-      dialogSubject: params.subject ?? "domain",
-      dialogScope: params.dialogScope,
-    },
-  )
+  const createOpts = {
+    domainSlug: params.domainSlug ?? undefined,
+    domainId: params.domainId,
+    dialogBoard: params.board,
+    dialogFrame: params.frame,
+    dialogSubject: params.subject ?? "domain",
+    dialogScope: params.dialogScope,
+  }
 
-  return { sessionId: session.id, created: true }
+  try {
+    const session = await KipApi.createSession(
+      params.agentId,
+      undefined,
+      params.sessionName,
+      createOpts,
+    )
+    return { sessionId: session.id, created: true }
+  } catch (firstErr: unknown) {
+    // Transient gateway / DB reconnect blips — one quick retry before failing the composer.
+    const status = (firstErr as { status?: number })?.status
+    const message = firstErr instanceof Error ? firstErr.message.toLowerCase() : ""
+    const transient =
+      status === 502 ||
+      status === 503 ||
+      status === 504 ||
+      message.includes("closed the connection") ||
+      message.includes("gateway")
+    if (!transient) throw firstErr
+
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    const session = await KipApi.createSession(
+      params.agentId,
+      undefined,
+      params.sessionName,
+      createOpts,
+    )
+    return { sessionId: session.id, created: true }
+  }
 }

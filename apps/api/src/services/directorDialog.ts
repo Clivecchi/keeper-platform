@@ -14,6 +14,13 @@ export type DirectorDelegationRequest = {
   /** When set, the task the instrument runs (continuity / try-again resolution). */
   taskMessage?: string;
   directorDisplayName: string;
+  /**
+   * When true, the client already ran the instrument in a separate HTTP call.
+   * Skip the nested server-side instrument run (avoids Vercel 502 on long director turns).
+   */
+  instrumentRanClientSide?: boolean;
+  /** Instrument reply from the client-side sub-run (may be empty on failure). */
+  instrumentReply?: string | null;
 };
 
 export type DirectorDelegationResult = {

@@ -10,6 +10,7 @@ import { extractLinkedCard } from "../components/agent/helpers"
 import { parseGlossThreads } from "@keeper/shared"
 import { apiFetch } from "../lib/api"
 import {
+  buildInstrumentDelegationPrompt,
   buildInstrumentUnavailableDelegationBeat,
   extractAgentReplyFromRunResult,
   isDirectorDelegationFailureContent,
@@ -729,14 +730,13 @@ export function useAgentDialog({
           })
         : null
 
-      if (liveDirectorConfig && instrument && content.trim()) {
-        onDirectorPhaseChange?.("instrument")
-        appendThinkingStep(`Consulting ${liveDirectorConfig.instrumentLabels[instrument]}…`)
-      }
-
-      appendThinkingStep(`${agentDisplayName} is composing a reply…`)
+      const instrumentLabel =
+        liveDirectorConfig && instrument
+          ? liveDirectorConfig.instrumentLabels[instrument] ?? instrument
+          : null
 
       let directorTaskMessage: string | undefined
+      let clientInstrumentReply: string | null = null
       if (liveDirectorConfig && instrument && content.trim()) {
         const resolved = resolveDirectorDelegationMessage({
           userMessage: content,
@@ -748,7 +748,38 @@ export function useAgentDialog({
         if (resolved.resolvedFromPrior) {
           directorTaskMessage = resolved.delegationMessage
         }
+
+        // Run the instrument in its own HTTP request first. Nested Rendr+Kip in one
+        // proxy hop often exceeds Vercel's origin timeout and surfaces as HTTP 502.
+        onDirectorPhaseChange?.("instrument")
+        appendThinkingStep(`Consulting ${instrumentLabel}…`)
+        try {
+          const instAgent = await KipApi.getAgentBySlug(instrument)
+          const instPrompt = buildInstrumentDelegationPrompt({
+            userMessage: directorTaskMessage ?? content,
+            instrumentLabel: instrumentLabel ?? instrument,
+            directorName: liveDirectorConfig.directorDisplayName,
+          })
+          const instResult = await KipApi.runAgent(
+            instAgent.id,
+            instPrompt,
+            userId ?? undefined,
+            undefined,
+            runOpts,
+          )
+          clientInstrumentReply = extractAgentReplyFromRunResult(instResult)
+          if (!clientInstrumentReply) {
+            appendThinkingStep(`${instrumentLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
+          }
+        } catch (instErr: unknown) {
+          const instMsg = instErr instanceof Error ? instErr.message : "instrument failed"
+          console.warn("[director] client instrument run failed", { instrument, instMsg })
+          appendThinkingStep(`${instrumentLabel} couldn't respond — ${agentDisplayName} will answer directly…`)
+        }
       }
+
+      onDirectorPhaseChange?.("director")
+      appendThinkingStep(`${agentDisplayName} is composing a reply…`)
 
       const kipRunOpts = {
         ...runOpts,
@@ -759,6 +790,8 @@ export function useAgentDialog({
                 userMessage: content,
                 taskMessage: directorTaskMessage,
                 directorDisplayName: liveDirectorConfig.directorDisplayName,
+                instrumentRanClientSide: true,
+                instrumentReply: clientInstrumentReply,
               },
             }
           : {}),
