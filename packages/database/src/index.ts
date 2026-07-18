@@ -23,22 +23,33 @@
 // IMPORTS
 // =============================================================================
 import { PrismaClient } from '@prisma/client'
-import type { Request } from 'express'
+import { createPrismaRetryExtension } from './prismaRetry.js'
 
 // Global singleton to prevent multiple instances in development
 declare global {
-  var __prisma: InstanceType<typeof PrismaClient> | undefined
+  var __prisma: PrismaClient | undefined
 }
 
 /**
  * Prisma Client Singleton
- * 
+ *
  * In development, we want to prevent multiple instances of Prisma Client
  * due to module reloading. In production, we create a new instance.
+ *
+ * The retry extension recovers from Railway/Postgres idle disconnects
+ * (P1017 "Server has closed the connection") so Kip and other long-lived
+ * API paths do not fail the next query after the pool socket was closed.
  */
-const prismaInstance = globalThis.__prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
-})
+function createPrismaClient(): PrismaClient {
+  const base = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  })
+
+  // Cast: $extends changes the static type; runtime behavior stays PrismaClient-compatible.
+  return base.$extends(createPrismaRetryExtension()) as unknown as PrismaClient
+}
+
+const prismaInstance = globalThis.__prisma || createPrismaClient()
 
 // Store in global for development hot reloading
 if (process.env.NODE_ENV === 'development') {
@@ -47,6 +58,14 @@ if (process.env.NODE_ENV === 'development') {
 
 // Export the prisma instance
 export { prismaInstance as prisma }
+
+export {
+  createPrismaRetryExtension,
+  isTransientConnectionError,
+  withConnectionRetry,
+  TRANSIENT_CONNECTION_ERROR_CODES,
+  type PrismaRetryOptions,
+} from './prismaRetry.js'
 
 // =============================================================================
 // PRISMA CLIENT EXPORT

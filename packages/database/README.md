@@ -38,6 +38,7 @@ The schema includes core models for the Keeper Platform:
 - **Singleton Pattern**: Prevents multiple Prisma client instances
 - **Development Logging**: Query logging in development mode
 - **Connection Pooling**: Automatic connection management
+- **Transient retry**: `$extends` retries P1017 / closed-connection failures (common on Railway idle sockets)
 - **Health Checks**: Database connectivity monitoring
 
 ### Query Optimization
@@ -323,6 +324,7 @@ This package was created during the monorepo migration to centralize all databas
 - **2025-01-13**: Removed status column from Moment model to resolve production database schema mismatch. Status is now derived from keptAt field (null = draft, set = kept).
 - **2026-07-02**: Added `scripts/wait-for-database.js` — retries PostgreSQL connectivity before `prisma migrate deploy` on Railway startup (avoids transient P1001).
 - **2026-07-04**: Domain resolution aligned to `keeper.domains` tenant hostnames (`DomainResolutionService`, `DomainVerificationService`); shared helpers in `@keeper/shared/domains/keeperDomainsHost`.
+- **2026-07-17**: Prisma singleton now uses a connection-retry `$extends` (`src/prismaRetry.ts`) so idle Railway disconnects (P1017 / "Server has closed the connection") are retried instead of failing Kip `domain.findUnique` and other queries.
 
 ---
 
