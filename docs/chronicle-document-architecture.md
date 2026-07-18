@@ -1,6 +1,6 @@
 # Chronicle — Selection, Routing, and ChronicleDocument
 
-**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point types settled (`Point` = atomic card, `Document` = Dialog-scoped container in `packages/shared/src/document.ts`; `PointView` renders Points). Reconciliation (schema, keep-with-identity, DocumentShell, Dialog DELETE) in progress on `cloud`. Layer 3 unchanged (`resolveChronicleDeclaration.ts`).
+**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE). Layer 3 unchanged (`resolveChronicleDeclaration.ts`).
 
 ---
 

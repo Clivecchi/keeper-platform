@@ -7,7 +7,8 @@
  *   POST   /kip/dialogs             — create a new Dialog
  *   GET    /kip/dialogs             — list Dialogs for a domain (filtered by scope)
  *   GET    /kip/dialogs/:dialogId   — get a single Dialog with its sessions
- *   PATCH  /kip/dialogs/:dialogId   — update title or archive
+ *   PATCH  /kip/dialogs/:dialogId   — update title, archive, or document_status
+ *   DELETE /kip/dialogs/:dialogId   — hard delete (sessions/drafts SetNull dialog_id)
  *
  * Audience scoping:
  *   available_to: ["admin"]   — domain-level; user_id is null
@@ -353,6 +354,49 @@ router.patch(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] update failed');
       return res.status(500).json({ error: 'FAILED_TO_UPDATE_DIALOG' });
+    }
+  },
+);
+
+// ─── DELETE /api/domains/:domainId/kip/dialogs/:dialogId ─────────────────────
+// Hard-delete a Dialog. Sessions and drafts keep their rows; dialog_id SetNull.
+// Mirrors create/rename/archive ownership rules on PATCH.
+
+router.delete(
+  '/:domainId/kip/dialogs/:dialogId',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const existing = await prisma.dialog.findFirst({
+        where: {
+          id: dialogId,
+          domain_id: domainId,
+          OR: [
+            { available_to: { has: 'admin' } },
+            { user_id: req.user.id, available_to: { has: 'keeper' } },
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
+      }
+
+      await prisma.dialog.delete({ where: { id: dialogId } });
+
+      logger.info({ domainId, dialogId, userId: req.user.id }, '[kip-dialogs] deleted');
+      return res.status(204).send();
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] delete failed');
+      return res.status(500).json({ error: 'FAILED_TO_DELETE_DIALOG' });
     }
   },
 );
