@@ -10,8 +10,8 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - `RealmFeedPanel.tsx` — Realm feed in Chronicle (via invitation; no empty stub)
 - `RealmHomeChronicle.tsx` — Chronicle: user feed at `/home`; domain story at `?board=realm`
 - `DomainRealmStory.tsx` — domain-scoped Document (Point) story frames via `PointView`
-- `RealmStagedNav.tsx` — Drafts → Kept → Presented staged nav
-- `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — Document-shaped nav data
+- `RealmStagedNav.tsx` — Dialog-scoped nav (Dialog → Drafts / Kept / Presented)
+- `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — Document-shaped nav data; `byDialog` + `byStage`
 - `DialogCastBar.tsx` — Dialog cast bar (members, agents, access keys)
 - `PresenceField.tsx` — named Treatment pattern for presence imagery
 - `useRealmFeed.ts` — client feed loader
@@ -25,12 +25,18 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - Playbill lives in the top-left `PlaybillHeaderCard` + `DomainSwitcher` overlay (same slot as domain boards)
 - Chronicle at arrival is quiet — no Playbill rail, no placeholder feed
 - Realm home uses solid `theme-surface-page` background (no full-bleed cover wallpaper)
+- Realm Nav growth groups entries by Dialog (`dialog_id` / Moment lineage), then by stage; unresolved → **Unassigned**
 
 ## ⚠️ Notes & ToDo
 - [ ] Remarks content polish (story vs stats) — Section 3 of design capture
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-18 — Dialog-scoped Realm Nav
+- `groupRealmNavEntries` groups by Dialog first, stage second; unresolved lineage → visible **Unassigned**
+- `useRealmNavGrowth` resolves draft `dialog_id` (detail when list omits it) and kept Moments via `sourceDraftId` / Point-id identity keep; labels groups with real Dialog titles
+- `RealmStagedNav` / `DomainRealmStory` consume `byDialog` (Presented `slice(0, 8)` heuristic untouched)
+
 ### 2026-07-17 — DocumentShell adapter
 - `DomainRealmStory` fetches Realm nav-growth and hands Points to shared `DocumentShell` (no board-specific render loop)
 

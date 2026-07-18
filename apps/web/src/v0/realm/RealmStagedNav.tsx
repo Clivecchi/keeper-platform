@@ -6,6 +6,7 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import {
+  REALM_NAV_UNASSIGNED_LABEL,
   REALM_STAGE_EMPTY_COPY,
   REALM_STAGE_LABELS,
   type RealmNavStage,
@@ -40,6 +41,10 @@ function entryToSidebarItem(
   }
 }
 
+function groupEntryCount(byStage: Record<RealmNavStage, unknown[]>): number {
+  return byStage.drafts.length + byStage.kept.length + byStage.presented.length
+}
+
 export function RealmStagedNav({
   domainId,
   domainSlug,
@@ -53,7 +58,7 @@ export function RealmStagedNav({
   onDraftCreate,
   stages = DEFAULT_STAGES,
 }: RealmStagedNavProps) {
-  const { loading, error, byStage } = useRealmNavGrowth(domainId, domainSlug, true)
+  const { loading, error, byDialog } = useRealmNavGrowth(domainId, domainSlug, true)
 
   const handleItemClick = React.useCallback(
     (kind: string, id: string) => {
@@ -64,42 +69,98 @@ export function RealmStagedNav({
     [onDraftSelect, onLibraryItemSelect, onMomentSelect],
   )
 
+  const draftCreateDialogKey = React.useMemo(() => {
+    const unassigned = byDialog.find((g) => g.dialogId === null)
+    if (unassigned) return REALM_NAV_UNASSIGNED_LABEL
+    return byDialog[0]?.title ?? null
+  }, [byDialog])
+
   const body = (
-    <div className="flex flex-col gap-4 px-1 py-2 min-h-0">
-      {stages.map((stage) => {
-        const entries = byStage[stage]
-        const items: SidebarCardItem[] = entries.map((entry) => {
-          const selectedId =
-            entry.kind === "draft"
-              ? selectedDraftId
-              : entry.kind === "library"
-                ? selectedLibraryItemId
-                : entry.kind === "moment"
-                  ? selectedMomentId
-                  : null
-          return {
-            ...entryToSidebarItem(entry, selectedId),
-            onClick: () => handleItemClick(entry.kind, entry.id),
-          }
-        })
+    <div className="flex flex-col gap-5 px-1 py-2 min-h-0">
+      {loading && byDialog.length === 0 ? (
+        <p className="text-xs px-1" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Loading…
+        </p>
+      ) : null}
+
+      {byDialog.map((group) => {
+        const total = groupEntryCount(group.byStage)
+        const isUnassigned = group.dialogId === null
+        const showDraftAdd =
+          Boolean(onDraftCreate) && group.title === draftCreateDialogKey
 
         return (
-          <SidebarCard
-            key={stage}
-            className="keeper-sidebar-card"
-            title={REALM_STAGE_LABELS[stage]}
-            description={
-              loading
-                ? "Loading…"
-                : entries.length === 0
-                  ? REALM_STAGE_EMPTY_COPY[stage]
-                  : `${entries.length} item${entries.length === 1 ? "" : "s"}`
-            }
-            items={items.length > 0 ? items : undefined}
-            onAdd={stage === "drafts" ? onDraftCreate : undefined}
-          />
+          <section
+            key={group.dialogId ?? REALM_NAV_UNASSIGNED_LABEL}
+            className="flex flex-col gap-3"
+            aria-label={group.title}
+          >
+            <div className="px-1 pt-1">
+              <h3
+                className="text-sm font-semibold tracking-wide"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
+              >
+                {group.title}
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                {loading
+                  ? "Loading…"
+                  : `${total} item${total === 1 ? "" : "s"}${
+                      isUnassigned ? " · no Dialog link" : ""
+                    }`}
+              </p>
+            </div>
+
+            {stages.map((stage) => {
+              const entries = group.byStage[stage]
+              if (entries.length === 0) return null
+
+              const items: SidebarCardItem[] = entries.map((entry) => {
+                const selectedId =
+                  entry.kind === "draft"
+                    ? selectedDraftId
+                    : entry.kind === "library"
+                      ? selectedLibraryItemId
+                      : entry.kind === "moment"
+                        ? selectedMomentId
+                        : null
+                return {
+                  ...entryToSidebarItem(entry, selectedId),
+                  onClick: () => handleItemClick(entry.kind, entry.id),
+                }
+              })
+
+              return (
+                <SidebarCard
+                  key={`${group.dialogId ?? "unassigned"}-${stage}`}
+                  className="keeper-sidebar-card"
+                  title={REALM_STAGE_LABELS[stage]}
+                  description={`${entries.length} item${entries.length === 1 ? "" : "s"}`}
+                  items={items}
+                  onAdd={stage === "drafts" && showDraftAdd ? onDraftCreate : undefined}
+                  collapsible
+                  defaultCollapsed={false}
+                />
+              )
+            })}
+          </section>
         )
       })}
+
+      {!loading && byDialog.length === 0 ? (
+        <div className="flex flex-col gap-3">
+          {stages.map((stage) => (
+            <SidebarCard
+              key={stage}
+              className="keeper-sidebar-card"
+              title={REALM_STAGE_LABELS[stage]}
+              description={REALM_STAGE_EMPTY_COPY[stage]}
+              onAdd={stage === "drafts" ? onDraftCreate : undefined}
+            />
+          ))}
+        </div>
+      ) : null}
+
       {error ? (
         <p className="text-xs px-1" style={{ color: "hsl(var(--destructive))" }}>
           {error}

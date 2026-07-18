@@ -1,5 +1,5 @@
 /**
- * Realm staged nav — Drafts → Kept → Presented.
+ * Realm staged nav — Drafts → Kept → Presented, scoped by Dialog.
  * Nav rows are Point-shaped summaries (atomic cards), not static categories.
  */
 
@@ -14,17 +14,47 @@ export type RealmNavStage = "drafts" | "kept" | "presented"
 
 export type RealmNavEntryKind = "draft" | "library" | "moment"
 
+/** Sentinel key for entries with no resolvable dialog_id. */
+export const REALM_NAV_UNASSIGNED_KEY = "unassigned"
+
+export const REALM_NAV_UNASSIGNED_LABEL = "Unassigned"
+
 export interface RealmNavEntry {
   id: string
   kind: RealmNavEntryKind
   stage: RealmNavStage
   label: string
   description?: string
+  /** Owning Dialog id when resolvable; null → Unassigned. */
+  dialogId?: string | null
   /** Atomic Point card for Chronicle / DocumentShell. */
   point: Point
 }
 
-export function draftToRealmNavEntry(draft: KipDraftSummary): RealmNavEntry {
+/** One Dialog (or Unassigned) with stage buckets inside. */
+export interface RealmNavDialogGroup {
+  dialogId: string | null
+  title: string
+  byStage: Record<RealmNavStage, RealmNavEntry[]>
+}
+
+export interface RealmNavGrouped {
+  byStage: Record<RealmNavStage, RealmNavEntry[]>
+  byDialog: RealmNavDialogGroup[]
+}
+
+export function emptyRealmNavByStage(): Record<RealmNavStage, RealmNavEntry[]> {
+  return { drafts: [], kept: [], presented: [] }
+}
+
+export function emptyRealmNavGrouped(): RealmNavGrouped {
+  return { byStage: emptyRealmNavByStage(), byDialog: [] }
+}
+
+export function draftToRealmNavEntry(
+  draft: KipDraftSummary,
+  dialogId?: string | null,
+): RealmNavEntry {
   const title = draft.title?.trim() || "Untitled draft"
   return {
     id: draft.id,
@@ -32,6 +62,7 @@ export function draftToRealmNavEntry(draft: KipDraftSummary): RealmNavEntry {
     stage: "drafts",
     label: title,
     description: draft.kind,
+    dialogId: dialogId ?? null,
     point: {
       identity: { label: "Draft", subtitle: draft.kind },
       title,
@@ -46,7 +77,10 @@ export function draftToRealmNavEntry(draft: KipDraftSummary): RealmNavEntry {
   }
 }
 
-export function libraryRowToKeptNavEntry(row: LibraryNavRow): RealmNavEntry {
+export function libraryRowToKeptNavEntry(
+  row: LibraryNavRow,
+  dialogId?: string | null,
+): RealmNavEntry {
   const title = libraryItemChronicleTitle(row)
   return {
     id: row.id,
@@ -54,6 +88,7 @@ export function libraryRowToKeptNavEntry(row: LibraryNavRow): RealmNavEntry {
     stage: "kept",
     label: title,
     description: row.source_type,
+    dialogId: dialogId ?? null,
     point: {
       identity: { label: "Library", subtitle: row.source_type },
       title,
@@ -68,7 +103,10 @@ export function libraryRowToKeptNavEntry(row: LibraryNavRow): RealmNavEntry {
   }
 }
 
-export function momentToKeptNavEntry(moment: KeptMomentSummary): RealmNavEntry {
+export function momentToKeptNavEntry(
+  moment: KeptMomentSummary,
+  dialogId?: string | null,
+): RealmNavEntry {
   const title = moment.title?.trim() || "Untitled moment"
   const bodyText = moment.body?.trim()
   return {
@@ -77,6 +115,7 @@ export function momentToKeptNavEntry(moment: KeptMomentSummary): RealmNavEntry {
     stage: "kept",
     label: title,
     description: "Moment",
+    dialogId: dialogId ?? null,
     point: {
       identity: { label: "Moment", subtitle: "Kept" },
       title,
@@ -91,7 +130,10 @@ export function momentToKeptNavEntry(moment: KeptMomentSummary): RealmNavEntry {
   }
 }
 
-export function libraryRowToPresentedNavEntry(row: LibraryNavRow): RealmNavEntry {
+export function libraryRowToPresentedNavEntry(
+  row: LibraryNavRow,
+  dialogId?: string | null,
+): RealmNavEntry {
   const title = libraryItemChronicleTitle(row)
   return {
     id: row.id,
@@ -99,6 +141,7 @@ export function libraryRowToPresentedNavEntry(row: LibraryNavRow): RealmNavEntry
     stage: "presented",
     label: title,
     description: "Public-ready",
+    dialogId: dialogId ?? null,
     point: {
       identity: { label: "Presented", subtitle: row.source_type },
       title,
@@ -113,14 +156,57 @@ export function libraryRowToPresentedNavEntry(row: LibraryNavRow): RealmNavEntry
   }
 }
 
-export function groupRealmNavEntries(
-  entries: RealmNavEntry[],
-): Record<RealmNavStage, RealmNavEntry[]> {
+function stageBuckets(entries: RealmNavEntry[]): Record<RealmNavStage, RealmNavEntry[]> {
   return {
     drafts: entries.filter((e) => e.stage === "drafts"),
     kept: entries.filter((e) => e.stage === "kept"),
     presented: entries.filter((e) => e.stage === "presented"),
   }
+}
+
+/**
+ * Group nav entries by Dialog first, stage second.
+ * Entries with no resolvable dialogId land in an explicit Unassigned group.
+ */
+export function groupRealmNavEntries(
+  entries: RealmNavEntry[],
+  dialogTitleById: ReadonlyMap<string, string> = new Map(),
+): RealmNavGrouped {
+  const byStage = stageBuckets(entries)
+
+  const groups = new Map<string, RealmNavEntry[]>()
+  for (const entry of entries) {
+    const key = entry.dialogId?.trim() ? entry.dialogId.trim() : REALM_NAV_UNASSIGNED_KEY
+    const bucket = groups.get(key)
+    if (bucket) bucket.push(entry)
+    else groups.set(key, [entry])
+  }
+
+  const namedKeys = [...groups.keys()].filter((k) => k !== REALM_NAV_UNASSIGNED_KEY)
+  namedKeys.sort((a, b) => {
+    const ta = dialogTitleById.get(a)?.trim() || a
+    const tb = dialogTitleById.get(b)?.trim() || b
+    return ta.localeCompare(tb, undefined, { sensitivity: "base" })
+  })
+
+  const orderedKeys = [
+    ...namedKeys,
+    ...(groups.has(REALM_NAV_UNASSIGNED_KEY) ? [REALM_NAV_UNASSIGNED_KEY] : []),
+  ]
+
+  const byDialog: RealmNavDialogGroup[] = orderedKeys.map((key) => {
+    const groupEntries = groups.get(key) ?? []
+    const isUnassigned = key === REALM_NAV_UNASSIGNED_KEY
+    return {
+      dialogId: isUnassigned ? null : key,
+      title: isUnassigned
+        ? REALM_NAV_UNASSIGNED_LABEL
+        : dialogTitleById.get(key)?.trim() || "Untitled dialog",
+      byStage: stageBuckets(groupEntries),
+    }
+  })
+
+  return { byStage, byDialog }
 }
 
 export const REALM_STAGE_LABELS: Record<RealmNavStage, string> = {

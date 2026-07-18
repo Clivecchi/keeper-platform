@@ -27,11 +27,15 @@ export function DomainRealmStory({
   userFeedContent,
 }: DomainRealmStoryProps) {
   const boardCtx = useUniversalBoardOptional()
-  const { loading, byStage } = useRealmNavGrowth(domainId, domainSlug, !!domainId)
+  const { loading, byDialog } = useRealmNavGrowth(domainId, domainSlug, !!domainId)
 
   const storyEntries = React.useMemo(() => {
-    return [...byStage.kept, ...byStage.drafts, ...byStage.presented]
-  }, [byStage])
+    return byDialog.flatMap((group) => [
+      ...group.byStage.kept,
+      ...group.byStage.drafts,
+      ...group.byStage.presented,
+    ])
+  }, [byDialog])
 
   const points = React.useMemo(
     () => storyEntries.map((entry) => entry.point),
