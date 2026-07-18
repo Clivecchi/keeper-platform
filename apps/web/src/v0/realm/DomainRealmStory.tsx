@@ -30,12 +30,12 @@ function StoryFrame({
         borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.25)",
       }}
     >
-      <PointView document={entry.document} onGloss={onGloss} />
+      <PointView point={entry.point} onGloss={onGloss} />
     </div>
   )
 }
 
-/** Domain-scoped Realm Chronicle — growing story of Document (Point) frames. */
+/** Domain-scoped Realm Chronicle — growing story of Point frames. */
 export function DomainRealmStory({
   domainId,
   domainSlug,
@@ -51,10 +51,10 @@ export function DomainRealmStory({
 
   const handleGloss = React.useCallback(
     (entry: RealmNavEntry) => {
-      const anchor = entry.document.gloss?.anchor
+      const anchor = entry.point.gloss?.anchor
       if (!anchor) return
       boardCtx?.actions.requestDiscussDraftPoint(anchor, {
-        glossContent: entry.document.gloss?.snapshot,
+        glossContent: entry.point.gloss?.snapshot,
       })
     },
     [boardCtx],
@@ -82,7 +82,7 @@ export function DomainRealmStory({
           key={`${entry.kind}:${entry.id}`}
           entry={entry}
           onGloss={
-            entry.document.gloss?.anchor
+            entry.point.gloss?.anchor
               ? () => handleGloss(entry)
               : undefined
           }

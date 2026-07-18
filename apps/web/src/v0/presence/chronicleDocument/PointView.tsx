@@ -1,21 +1,29 @@
 "use client"
 
 import * as React from "react"
-import type { Document } from "@keeper/shared"
+import type { Point } from "@keeper/shared"
 
 export interface PointViewProps {
-  document: Document
-  /** Opens a Gloss exchange in Dialog for this document's anchor. */
+  /** Atomic card to render. */
+  point?: Point
+  /**
+   * @deprecated Use `point`. Accepted so early call sites keep compiling during the split.
+   */
+  document?: Point
+  /** Opens a Gloss exchange in Dialog for this point's anchor. */
   onGloss?: () => void
   /** @deprecated Use onGloss */
   onDiscuss?: () => void
 }
 
-export function PointView({ document, onGloss, onDiscuss }: PointViewProps) {
+export function PointView({ point, document, onGloss, onDiscuss }: PointViewProps) {
+  const card = point ?? document
+  if (!card) return null
+
   const handleGloss = onGloss ?? onDiscuss
   const [expanded, setExpanded] = React.useState(false)
-  const clampLines = document.body.clampLines ?? 6
-  const canExpand = document.body.expandable !== false && document.body.text.length > 280
+  const clampLines = card.body.clampLines ?? 6
+  const canExpand = card.body.expandable !== false && card.body.text.length > 280
 
   return (
     <article className="keeper-chronicle-document flex flex-col gap-3">
@@ -24,35 +32,35 @@ export function PointView({ document, onGloss, onDiscuss }: PointViewProps) {
           className="text-[11px] font-semibold uppercase tracking-widest"
           style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
-          {document.identity.label}
-          {document.identity.subtitle ? ` · ${document.identity.subtitle}` : ""}
+          {card.identity.label}
+          {card.identity.subtitle ? ` · ${card.identity.subtitle}` : ""}
         </p>
         <h2
           className="text-[18px] font-semibold leading-snug"
           style={{ color: "hsl(var(--theme-ink-primary))" }}
         >
-          {document.title}
+          {card.title}
         </h2>
-        {document.lede ? (
+        {card.lede ? (
           <p className="text-[14px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            {document.lede}
+            {card.lede}
           </p>
         ) : null}
       </header>
 
-      {document.status ? (
+      {card.status ? (
         <p
           className="text-[12px] font-medium uppercase tracking-wide"
           style={{
             color:
-              document.status.tone === "error"
+              card.status.tone === "error"
                 ? "hsl(var(--theme-status-error))"
-                : document.status.tone === "active"
+                : card.status.tone === "active"
                   ? "hsl(var(--theme-status-success))"
                   : "hsl(var(--theme-ink-tertiary))",
           }}
         >
-          {document.status.label}
+          {card.status.label}
         </p>
       ) : null}
 
@@ -70,7 +78,7 @@ export function PointView({ document, onGloss, onDiscuss }: PointViewProps) {
             : {}),
         }}
       >
-        {document.body.text}
+        {card.body.text}
       </div>
 
       <div className="flex items-center gap-3">

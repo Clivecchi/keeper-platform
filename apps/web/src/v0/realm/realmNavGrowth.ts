@@ -1,9 +1,9 @@
 /**
  * Realm staged nav — Drafts → Kept → Presented.
- * Nav rows are Document-shaped summaries (atomic Points), not static categories.
+ * Nav rows are Point-shaped summaries (atomic cards), not static categories.
  */
 
-import type { Document } from "@keeper/shared"
+import type { Point } from "@keeper/shared"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import type { KeptMomentSummary } from "../api/v0Moments"
 import type { LibraryNavRow } from "../presence/integrationChronicle/libraryNavUtils"
@@ -20,7 +20,8 @@ export interface RealmNavEntry {
   stage: RealmNavStage
   label: string
   description?: string
-  document: Document
+  /** Atomic Point card for Chronicle / DocumentShell. */
+  point: Point
 }
 
 export function draftToRealmNavEntry(draft: KipDraftSummary): RealmNavEntry {
@@ -31,7 +32,7 @@ export function draftToRealmNavEntry(draft: KipDraftSummary): RealmNavEntry {
     stage: "drafts",
     label: title,
     description: draft.kind,
-    document: {
+    point: {
       identity: { label: "Draft", subtitle: draft.kind },
       title,
       lede: draft.summary?.trim() || undefined,
@@ -53,7 +54,7 @@ export function libraryRowToKeptNavEntry(row: LibraryNavRow): RealmNavEntry {
     stage: "kept",
     label: title,
     description: row.source_type,
-    document: {
+    point: {
       identity: { label: "Library", subtitle: row.source_type },
       title,
       body: {
@@ -76,7 +77,7 @@ export function momentToKeptNavEntry(moment: KeptMomentSummary): RealmNavEntry {
     stage: "kept",
     label: title,
     description: "Moment",
-    document: {
+    point: {
       identity: { label: "Moment", subtitle: "Kept" },
       title,
       lede: bodyText || undefined,
@@ -98,7 +99,7 @@ export function libraryRowToPresentedNavEntry(row: LibraryNavRow): RealmNavEntry
     stage: "presented",
     label: title,
     description: "Public-ready",
-    document: {
+    point: {
       identity: { label: "Presented", subtitle: row.source_type },
       title,
       body: {

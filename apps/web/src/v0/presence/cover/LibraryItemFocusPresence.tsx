@@ -167,7 +167,7 @@ export function LibraryItemFocusPresence({
           {feed?.item && (
             <div className="mt-6 pt-4 border-t border-[hsl(var(--theme-border-soft)/0.4)]">
               <PointView
-                document={libraryItemToDocument(feed.item)}
+                point={libraryItemToDocument(feed.item)}
                 onGloss={handleDiscussLibraryDocument}
               />
             </div>

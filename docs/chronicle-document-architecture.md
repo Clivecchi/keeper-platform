@@ -1,6 +1,6 @@
 # Chronicle — Selection, Routing, and ChronicleDocument
 
-**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point rename landed (`Document` + `Point` alias in `packages/shared/src/document.ts`; `PointView` replaces `ChronicleDocumentView`). Layer 3 unchanged (`resolveChronicleDeclaration.ts`).
+**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point types settled (`Point` = atomic card, `Document` = Dialog-scoped container in `packages/shared/src/document.ts`; `PointView` renders Points). Reconciliation (schema, keep-with-identity, DocumentShell, Dialog DELETE) in progress on `cloud`. Layer 3 unchanged (`resolveChronicleDeclaration.ts`).
 
 ---
 
@@ -114,6 +114,27 @@ Merging Known Issues into one sequence (previous section) was right, but flatten
 ### Noted (2026-07-15): a Point may be a Moment, and Moments evolve
 
 A `Point` isn't necessarily static content — it can be backed by a real `Moment` (Domain → Keeper → Journey → Path → Moment), and Moments have evolutions over time. What renders as "the Point" is the Moment's current/most-recent state, not a frozen snapshot from when it was first kept. Same adapter shape already established for `ChronicleDocument` itself (EntityKind adapter → document), applied one level down: a Moment-backed Point re-resolves to whatever the Moment's latest state is, same as a Library-backed Point already does via `buildLibraryGlossAnchor`.
+
+### Decided (2026-07-15): Draft and Document reconcile into one thing — Point = Moment, not Point-becomes-Moment
+
+Big reframe:
+
+- **Drop "Chronicle" from the name.** It's the render surface, not an entity. Container → **`Document`**. Atomic card → **`Point`**.
+- **Draft is not a separate type from Document — it's a status on Document.** `Drafts → Kept → Presented` is lifecycle status, not three models requiring conversion.
+- **Each Dialog has exactly one Document.** Points live inside it; the Document crystallizes the Dialog's conversation into structure.
+- **A Point becomes a Moment when kept** — identity carries through (same id or explicit lineage), not delete-and-recreate of a disconnected row.
+- **A kept Moment keeps evolving.** Later Points can target an existing Moment; keeping one evolves that Moment.
+- **Path assignment happens at keep-time when known;** Moments may be kept without a Path and assigned later. Extends `DraftPathEmergence`, does not replace it.
+- **Self-organization is the real gap** — named, not built in this pass.
+
+**Schema decisions (Cursor, 2026-07-17, on `cloud`):**
+1. **Document↔Dialog:** Dialog is the Document's durable identity (1:1). `Dialog.document_status` (`drafts`|`kept`|`presented`) is the lifecycle field. No separate Document table.
+2. **kip_drafts:** Repurposed as the Document's Point manuscript store (not migrated/renamed). `dialog_id` links the manuscript; Points stay in `spec_json.points`.
+3. **Point→Moment identity:** `Moment.id = Point.id` for the primary moment on first keep; `Moment.sourceDraftId` + `Moment.sourcePointId` for queryable lineage; evolution updates the existing Moment row.
+
+### Noted (2026-07-17): rename landed — container types next
+
+`Point` is the atomic card interface; `Document` is the container type in shared. `PointView` renders Points. Universal `DocumentShell` + keep-with-identity land in subsequent commits on this handoff.
 
 ---
 

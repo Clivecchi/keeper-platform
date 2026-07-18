@@ -22,7 +22,7 @@ export function LibrarySharedContextRoadmapPanel() {
 
   return (
     <div className="px-4 py-5">
-      <PointView document={doc} onGloss={handleDiscuss} />
+      <PointView point={doc} onGloss={handleDiscuss} />
     </div>
   )
 }

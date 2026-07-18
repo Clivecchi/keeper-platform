@@ -1,12 +1,16 @@
 import {
   buildEphemeralSyntheticGlossAnchor,
-  type Document,
+  type Point,
 } from "@keeper/shared"
 
 const ROADMAP_STABLE_KEY = "library-roadmap"
 
-/** Synthetic Document — Library shared-context roadmap status (no DB row). */
-export function buildLibraryRoadmapDocument(): Document {
+/** Synthetic Point — Library shared-context roadmap status (no DB row). */
+export function buildLibraryRoadmapDocument(): Point {
+  return buildLibraryRoadmapPoint()
+}
+
+export function buildLibraryRoadmapPoint(): Point {
   const title = "Library — connective index (in progress)"
   const bodyText = [
     "Completed in this sequence: domain permissions, legacy /library retired, Chronicle registry pilot, subject/overlay shim, read/search API.",

@@ -1,23 +1,25 @@
 # chronicleDocument
 
 ## 📌 Purpose
-Document (Point) read/presentation shell for Chronicle Focus mode — shared consumer for real LibraryItem records and synthetic content (roadmap status, diagnostics).
+Point read shell + Document container helpers for Chronicle Focus — shared consumer for real LibraryItem records, synthetic content, and Realm Document sequences.
 
 ## 🧱 Key Files
-- `PointView.tsx` — clamped body, status, optional Gloss action (atomic-card renderer)
-- `libraryItemDocumentAdapter.ts` — LibraryItem → Document + pointer subtitle
-- `libraryRoadmapDocument.ts` — synthetic roadmap provider
-- `LibrarySharedContextRoadmapPanel.tsx` — domain-idle synthetic pilot on Universal Board
+- `PointView.tsx` — clamped body, status, optional Gloss action (atomic Point)
+- `DocumentShell.tsx` — cover + Points sequence (universal container; Realm adapter consumes this)
+- `libraryItemDocumentAdapter.ts` — LibraryItem → Point
+- `libraryRoadmapDocument.ts` — synthetic roadmap Point
+- `LibrarySharedContextRoadmapPanel.tsx` — domain-idle synthetic pilot
 
 ## 🔄 Data & Behavior
-- Entity adapters produce `Document` (`Point` alias) from `@keeper/shared`
+- Adapters produce `Point` from `@keeper/shared`
+- `Document` (shared) is the Dialog-scoped container shape; Realm mounts `DocumentShell`
 - Gloss: library items use `buildLibraryGlossAnchor`; synthetic uses ephemeral message anchor when wired
-- Rendered inside `LibraryItemFocusPresence` (entity) and `UniversalViewPanel` domain idle (synthetic)
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm synthetic panel placement with Kip (below domain ChronicleRecordView)
 
 ## 📆 Update Log
-- **2026-07-16** — Rename: `ChronicleDocument` → `Document` (+ `Point` alias), `ChronicleDocumentView` → `PointView`, `libraryItemToChronicleDocument` → `libraryItemToDocument`. Shared module file: `packages/shared/src/document.ts`. Naming-only; no visual change.
-- **2026-07-15** — Gloss wired from view into Dialog via `requestDiscussDraftPoint` / `requestGloss`; library items pass `buildLibraryGlossAnchor` + snapshot; first Dialog exchange seeds gloss carrier thread on user message for MCP `gloss_write_turn`.
-- **2026-07-13** — Initial ChronicleDocument pilot: view, library adapter, roadmap synthetic panel.
+- **2026-07-17** — Point is atomic primary; Document is container type. `PointView` takes `point`. RealmNavEntry.point.
+- **2026-07-16** — Rename: ChronicleDocument → Document/Point, ChronicleDocumentView → PointView.
+- **2026-07-15** — Gloss wired into Dialog via `requestDiscussDraftPoint`.
+- **2026-07-13** — Initial pilot: view, library adapter, roadmap synthetic panel.

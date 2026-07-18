@@ -1,30 +1,66 @@
 /**
- * Document — read/presentation contract for Chronicle Focus mode (atomic card / Point).
+ * Document + Point — Chronicle read/presentation contracts.
+ *
+ * - Point = atomic card (identity, title, body, status, Gloss)
+ * - Document = Dialog-scoped container (cover + Points, lifecycle status)
+ *
  * See docs/chronicle-document-architecture.md
  */
 
 import type { GlossAnchor, GlossContentSnapshot } from './glossAnchor.js';
 
-export type DocumentStatusTone = 'pending' | 'active' | 'error';
+export type PointStatusTone = 'pending' | 'active' | 'error';
 
-/** Atomic-card status tone — same as DocumentStatusTone. */
-export type PointStatusTone = DocumentStatusTone;
+/** @deprecated Use PointStatusTone — alias during Document/Point naming settle. */
+export type DocumentStatusTone = PointStatusTone;
 
 /**
- * Read/presentation contract for one atomic card (identity, title, body, status, Gloss).
- * Architecture doc also calls this a Point; both names export the same shape.
+ * Atomic card — one identity, one title, one body, one status, one Gloss.
+ * This is what PointView renders.
  */
-export interface Document {
+export interface Point {
   identity: { label: string; subtitle?: string; voice?: string };
   title: string;
   lede?: string;
   body: { text: string; clampLines?: number; expandable?: boolean };
-  status?: { label: string; tone: DocumentStatusTone };
+  status?: { label: string; tone: PointStatusTone };
   gloss?: { anchor: GlossAnchor; snapshot?: GlossContentSnapshot };
 }
 
-/** Atomic-card alias — identical to Document. */
-export type Point = Document;
+/**
+ * @deprecated Use Point. Kept so early rename call sites that imported `Document`
+ * as the atomic card continue to type-check during the container split.
+ */
+export type DocumentCard = Point;
+
+/** Nav / Document lifecycle — Drafts → Kept → Presented as status, not separate models. */
+export const DOCUMENT_LIFECYCLE_STATUSES = ['drafts', 'kept', 'presented'] as const;
+export type DocumentLifecycleStatus = (typeof DOCUMENT_LIFECYCLE_STATUSES)[number];
+
+export interface DocumentPathGroup {
+  id: string;
+  title?: string;
+  prelude?: string;
+  pointIds: string[];
+}
+
+/**
+ * Document — one per Dialog. Cover + Points (optionally grouped by Path).
+ * Durable identity is Dialog.id; kip_drafts holds the Point manuscript via dialog_id.
+ */
+export interface Document {
+  dialogId: string;
+  status: DocumentLifecycleStatus;
+  title: string;
+  cover?: { label: string; subtitle?: string; voice?: string };
+  paths: DocumentPathGroup[];
+  points: Point[];
+}
+
+export function isDocumentLifecycleStatus(value: unknown): value is DocumentLifecycleStatus {
+  return typeof value === 'string'
+    && (DOCUMENT_LIFECYCLE_STATUSES as readonly string[]).includes(value);
+}
 
 /** Ephemeral synthetic gloss — session-scoped, anchored to Dialog message stream. */
 export function buildEphemeralSyntheticGlossAnchor(params: {

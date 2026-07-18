@@ -1,12 +1,16 @@
 import {
   buildLibraryGlossAnchor,
   parseLibraryPointerRef,
-  type Document,
+  type Point,
 } from "@keeper/shared"
 import { libraryItemChronicleTitle } from "../integrationChronicle/libraryNavUtils"
 import type { LibraryItemDto } from "../integrationChronicle/feeds/LibraryItemFeed"
 
-export function libraryItemToDocument(item: LibraryItemDto): Document {
+export function libraryItemToDocument(item: LibraryItemDto): Point {
+  return libraryItemToPoint(item)
+}
+
+export function libraryItemToPoint(item: LibraryItemDto): Point {
   const title = libraryItemChronicleTitle(item)
   const perspective = item.agent_perspective?.trim()
   const description = item.description?.trim()
