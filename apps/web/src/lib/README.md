@@ -35,6 +35,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-17 — Dialog hard-delete client
+- `kipDialogSession.deleteDialog` — `DELETE /api/domains/:domainId/kip/dialogs/:dialogId` (204).
+- `apiFetch` — treats 204 / empty body as success (no JSON parse) so hard deletes do not throw client-side.
+
 ### 2026-07-11 — Image upload downscale
 - Added `prepareImageUpload.ts` — resizes large JPEG/PNG/WebP to max 1920px before base64 blob upload
 

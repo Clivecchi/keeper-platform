@@ -72,6 +72,21 @@ export function invalidateBoardNavCache(domainId?: string): void {
   }
 }
 
+/** Drop one row from a cached nav list (optimistic delete without full reload). */
+export function removeCachedBoardNavRow(
+  domainId: string,
+  key: BoardNavCacheKey,
+  id: string,
+): void {
+  const list = getCachedBoardNavData<Array<{ id: string }>>(domainId, key)
+  if (!list) return
+  setCachedBoardNavData(
+    domainId,
+    key,
+    list.filter((row) => row.id !== id),
+  )
+}
+
 /** Dedupe concurrent fetches for the same domain nav slice. */
 export async function fetchBoardNavSlice<T>(
   domainId: string,

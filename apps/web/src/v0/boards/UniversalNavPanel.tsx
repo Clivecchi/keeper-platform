@@ -29,6 +29,7 @@
 
 import * as React from "react"
 import { apiFetch } from "../../lib/api"
+import { deleteDialog } from "../../lib/kipDialogSession"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
@@ -94,6 +95,7 @@ import {
   loadDrafts,
   loadJourneys,
   loadKeepers,
+  removeCachedBoardNavRow,
 } from "./boardNavDataCache"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -440,6 +442,12 @@ export function UniversalNavPanel({
 
   // ── Section data ────────────────────────────────────────────────────────────
   const [dialogs, setDialogs] = React.useState<DialogItem[] | null>(null)
+  /** Inline confirm target for hard-delete (Draft-style; Nav list only). */
+  const [confirmingDeleteDialogId, setConfirmingDeleteDialogId] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    setConfirmingDeleteDialogId(null)
+  }, [domainId])
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
@@ -1001,15 +1009,46 @@ export function UniversalNavPanel({
 
   // ── Derived SidebarCardItem arrays ───────────────────────────────────────
 
+  const handleConfirmDeleteDialog = React.useCallback(
+    async (dialogId: string) => {
+      if (!domainId) throw new Error("Domain not ready")
+      await deleteDialog(domainId, dialogId)
+      setDialogs((prev) => (prev ? prev.filter((d) => d.id !== dialogId) : prev))
+      removeCachedBoardNavRow(domainId, "dialogs", dialogId)
+      setConfirmingDeleteDialogId(null)
+      if (selectedDialogId === dialogId) {
+        boardCtx?.actions.clearSelection()
+        boardCtx?.actions.onSessionSelect(null)
+      }
+    },
+    [domainId, selectedDialogId, boardCtx],
+  )
+
+  const toDialogNavItem = React.useCallback(
+    (d: DialogItem): SidebarCardItem => {
+      const title = d.title?.trim() || "Untitled dialog"
+      return {
+        id: d.id,
+        label: d.updated_at ? `${title} · ${formatDate(d.updated_at)}` : title,
+        isSelected: d.id === selectedDialogId,
+        onClick: () => onDialogSelect?.(d.id),
+        onRequestDelete: () => setConfirmingDeleteDialogId(d.id),
+        deleteConfirming: confirmingDeleteDialogId === d.id,
+        onConfirmDelete: () => handleConfirmDeleteDialog(d.id),
+        onCancelDelete: () => setConfirmingDeleteDialogId(null),
+        deleteConfirmLabel: `Delete dialog "${title}"?`,
+      }
+    },
+    [
+      selectedDialogId,
+      onDialogSelect,
+      confirmingDeleteDialogId,
+      handleConfirmDeleteDialog,
+    ],
+  )
+
   // Dialogs: embed date suffix for recency signal
-  const allDialogItems: SidebarCardItem[] = (dialogs ?? []).map((d) => ({
-    id: d.id,
-    label: d.updated_at
-      ? `${d.title?.trim() || "Untitled dialog"} · ${formatDate(d.updated_at)}`
-      : (d.title?.trim() || "Untitled dialog"),
-    isSelected: d.id === selectedDialogId,
-    onClick: () => onDialogSelect?.(d.id),
-  }))
+  const allDialogItems: SidebarCardItem[] = (dialogs ?? []).map(toDialogNavItem)
 
   const journeyIdSet = React.useMemo(
     () => new Set((journeys ?? []).map((j) => j.id)),
@@ -1026,14 +1065,7 @@ export function UniversalNavPanel({
       ),
     [dialogs, journeyIdSet, keeperIdSet],
   )
-  const allChatterItems: SidebarCardItem[] = chatterDialogs.map((d) => ({
-    id: d.id,
-    label: d.updated_at
-      ? `${d.title?.trim() || "Untitled dialog"} · ${formatDate(d.updated_at)}`
-      : (d.title?.trim() || "Untitled dialog"),
-    isSelected: d.id === selectedDialogId,
-    onClick: () => onDialogSelect?.(d.id),
-  }))
+  const allChatterItems: SidebarCardItem[] = chatterDialogs.map(toDialogNavItem)
 
   // Journeys: embed moment count — matches IDE Board's label format
   const allJourneyItems: SidebarCardItem[] = (journeys ?? []).map((j) => ({

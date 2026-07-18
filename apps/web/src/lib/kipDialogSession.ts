@@ -1,6 +1,17 @@
 import { apiFetch } from "./api"
 import { KipApi } from "./kipApi"
 
+/**
+ * Hard-delete a Dialog. Returns on 204; throws with status/code on 404/401/500.
+ * Cannot be undone — callers must confirm before invoking.
+ */
+export async function deleteDialog(domainId: string, dialogId: string): Promise<void> {
+  await apiFetch(
+    `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}`,
+    { method: "DELETE" },
+  )
+}
+
 export type DialogSessionRow = {
   id: string
   agent_id?: string

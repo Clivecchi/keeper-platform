@@ -88,8 +88,19 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
     throw error;
   }
   
-  // For successful responses, return parsed JSON
-  return response.json();
+  // 204 / empty body — hard DELETE and similar routes return no JSON
+  if (response.status === 204) {
+    return null;
+  }
+  const text = await response.text();
+  if (!text.trim()) {
+    return null;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 function pickApiErrorMessage(errorData: ApiErrorPayload | null, response: Response): string {

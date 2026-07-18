@@ -28,7 +28,8 @@
  */
 
 import * as React from "react"
-import { ChevronDown, Plus } from "lucide-react"
+import { ChevronDown, Plus, Trash2 } from "lucide-react"
+import { InlineDeleteRow } from "./InlineDeleteRow"
 
 const SURFACE = {
   sideCard: "hsl(var(--theme-surface-paper) / 0.96)",
@@ -54,6 +55,13 @@ export interface SidebarCardItem {
   description?: string
   /** Optional single-letter provider badge shown before the label */
   iconLetter?: string
+  /** When set, shows a delete affordance (Draft-style trash → confirm row). */
+  onRequestDelete?: () => void
+  /** When true, the row is replaced by an inline confirm (hard delete). */
+  deleteConfirming?: boolean
+  onConfirmDelete?: () => Promise<void>
+  onCancelDelete?: () => void
+  deleteConfirmLabel?: string
 }
 
 function itemBulletStyle(description?: string): React.CSSProperties {
@@ -186,50 +194,72 @@ export function SidebarCard({
       {showItems && items && (
         <ul className="mt-4 space-y-2.5 text-[1.05rem] leading-snug" style={{ color: SURFACE.inkSecondary }}>
           {items.map((item) => (
-            <li key={item.id ?? item.label} className="flex items-center gap-2">
-              <span
-                className="h-2 w-2 flex-shrink-0 rounded-full"
-                style={itemBulletStyle(item.description)}
-                title={
-                  item.description === "draft"
-                    ? "Draft differs from live"
-                    : item.description === "live"
-                      ? "Live"
-                      : undefined
-                }
-              />
-              {item.iconLetter ? (
-                <span
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
-                  style={{
-                    background: "hsl(var(--theme-surface-elevated) / 0.5)",
-                    color: "hsl(var(--theme-ink-secondary))",
-                  }}
-                  aria-hidden
-                >
-                  {item.iconLetter}
-                </span>
-              ) : null}
-              {item.onClick ? (
-                <button
-                  type="button"
-                  onClick={item.onClick}
-                  className={`text-left rounded-md px-1.5 py-0.5 -mx-1.5 -my-0.5 transition-colors ${
-                    item.isSelected
-                      ? "keeper-nav-item-selected font-medium"
-                      : "underline-offset-2 decoration-dotted hover:underline hover:opacity-80"
-                  }`}
-                  style={{
-                    color: SURFACE.inkPrimary,
-                    ...(item.isSelected
-                      ? {}
-                      : {}),
-                  }}
-                >
-                  {item.label}
-                </button>
+            <li key={item.id ?? item.label}>
+              {item.deleteConfirming && item.onConfirmDelete && item.onCancelDelete ? (
+                <InlineDeleteRow
+                  label={item.deleteConfirmLabel ?? `Delete "${item.label}"?`}
+                  onConfirm={item.onConfirmDelete}
+                  onCancel={item.onCancelDelete}
+                />
               ) : (
-                <span>{item.label}</span>
+                <div className="group relative flex items-center gap-2 pr-6">
+                  <span
+                    className="h-2 w-2 flex-shrink-0 rounded-full"
+                    style={itemBulletStyle(item.description)}
+                    title={
+                      item.description === "draft"
+                        ? "Draft differs from live"
+                        : item.description === "live"
+                          ? "Live"
+                          : undefined
+                    }
+                  />
+                  {item.iconLetter ? (
+                    <span
+                      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
+                      style={{
+                        background: "hsl(var(--theme-surface-elevated) / 0.5)",
+                        color: "hsl(var(--theme-ink-secondary))",
+                      }}
+                      aria-hidden
+                    >
+                      {item.iconLetter}
+                    </span>
+                  ) : null}
+                  {item.onClick ? (
+                    <button
+                      type="button"
+                      onClick={item.onClick}
+                      className={`text-left rounded-md px-1.5 py-0.5 -mx-1.5 -my-0.5 transition-colors min-w-0 flex-1 ${
+                        item.isSelected
+                          ? "keeper-nav-item-selected font-medium"
+                          : "underline-offset-2 decoration-dotted hover:underline hover:opacity-80"
+                      }`}
+                      style={{
+                        color: SURFACE.inkPrimary,
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                  )}
+                  {item.onRequestDelete ? (
+                    <button
+                      type="button"
+                      title="Delete"
+                      aria-label={`Delete ${item.label}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        item.onRequestDelete?.()
+                      }}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 focus:opacity-90 transition-opacity rounded p-1 hover:opacity-90"
+                      style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  ) : null}
+                </div>
               )}
             </li>
           ))}

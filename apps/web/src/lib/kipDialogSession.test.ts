@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { pickBestDialogSessionId } from "../../lib/kipDialogSession"
+import { pickBestDialogSessionId } from "./kipDialogSession"
 
 describe("pickBestDialogSessionId", () => {
   it("prefers sessions for the requested agent", () => {
