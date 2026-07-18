@@ -271,6 +271,12 @@ model Moment {
   claimToken          String?
   claimTokenExpiresAt DateTime?
   presenceSchema      Json?
+  /// Originating kip_drafts.id when this Moment was kept from a Document Point.
+  sourceDraftId       String?          @db.Uuid
+  /// Originating DraftPoint.id — primary Moment keeps Point.id as Moment.id when 1:1.
+  sourcePointId       String?
+  /// Prior Moment this row evolved from (candidate-evolution keep).
+  evolvedFromMomentId String?
   domain              Domain?          @relation(fields: [domainId], references: [id])
   Journey             Journey?         @relation(fields: [journeyId], references: [id])
   Path                Path?            @relation(fields: [pathId], references: [id])
@@ -282,6 +288,9 @@ model Moment {
   @@index([pathId])
   @@index([journeyId])
   @@index([domainId])
+  @@index([sourceDraftId])
+  @@index([sourcePointId])
+  @@index([evolvedFromMomentId])
 }
 
 model Path {
@@ -700,6 +709,8 @@ model Dialog {
   available_to String[] // ["admin"] | ["keeper"] | ["admin", "keeper"]
   context      Json     // { board, frame, subject }
   is_archived  Boolean  @default(false)
+  /// Document lifecycle — drafts | kept | presented (Nav stages as status, not separate models).
+  document_status String @default("drafts")
   presenceSchema Json?
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
@@ -712,6 +723,7 @@ model Dialog {
   @@index([domain_id])
   @@index([user_id])
   @@index([domain_id, is_archived])
+  @@index([domain_id, document_status])
 }
 
 model kip_sessions {

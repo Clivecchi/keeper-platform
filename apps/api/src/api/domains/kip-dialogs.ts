@@ -39,9 +39,12 @@ const createDialogSchema = z.object({
   }),
 });
 
+const documentStatusSchema = z.enum(['drafts', 'kept', 'presented']);
+
 const updateDialogSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   is_archived: z.boolean().optional(),
+  document_status: documentStatusSchema.optional(),
 });
 
 // ─── POST /api/domains/:domainId/kip/dialogs ─────────────────────────────────
@@ -148,6 +151,7 @@ router.get(
           available_to: d.available_to,
           context: d.context,
           is_archived: d.is_archived,
+          document_status: d.document_status,
           session_count: d._count.sessions,
           created_at: d.created_at,
           updated_at: d.updated_at,
@@ -328,9 +332,16 @@ router.patch(
         return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
       }
 
-      const updateData: { title?: string; is_archived?: boolean } = {};
+      const updateData: {
+        title?: string;
+        is_archived?: boolean;
+        document_status?: 'drafts' | 'kept' | 'presented';
+      } = {};
       if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
       if (parsed.data.is_archived !== undefined) updateData.is_archived = parsed.data.is_archived;
+      if (parsed.data.document_status !== undefined) {
+        updateData.document_status = parsed.data.document_status;
+      }
 
       const updated = await prisma.dialog.update({
         where: { id: dialogId },

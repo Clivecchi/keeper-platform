@@ -16,12 +16,15 @@ export interface DraftPointMoment {
   narrative?: string;
 }
 
-/** Promotion refs persisted on a point after successful journey_spec promote */
+/** Promotion refs persisted on a point after successful journey_spec keep/promote */
 export interface DraftPointPromotion {
   promotedAt: string;
   promotedJourneyId: string;
-  promotedPathId: string;
+  /** Absent when Moment was kept without a Path yet. */
+  promotedPathId?: string;
   promotedMomentIds: string[];
+  /** True when keep evolved an existing Moment rather than creating a new one. */
+  evolved?: boolean;
 }
 
 export interface DraftPoint {
@@ -40,6 +43,8 @@ export interface DraftPoint {
   moments?: DraftPointMoment[];
   /** Cluster id for path-emergence grouping — optional in spec_json.points */
   pathGroupId?: string;
+  /** Candidate evolution — keeping this Point updates the named Moment instead of minting a new one. */
+  evolvesMomentId?: string;
   /** Set after point is promoted to Journey / Path / Moment */
   promotion?: DraftPointPromotion;
 }
@@ -78,12 +83,21 @@ function normalizeDraftPointPromotion(value: unknown): DraftPointPromotion | und
   const promotedJourneyId =
     typeof value.promotedJourneyId === 'string' ? value.promotedJourneyId : '';
   const promotedPathId =
-    typeof value.promotedPathId === 'string' ? value.promotedPathId : '';
+    typeof value.promotedPathId === 'string' && value.promotedPathId.trim()
+      ? value.promotedPathId
+      : undefined;
   const promotedMomentIds = Array.isArray(value.promotedMomentIds)
     ? value.promotedMomentIds.filter((id): id is string => typeof id === 'string')
     : [];
-  if (!promotedAt || !promotedJourneyId || !promotedPathId) return undefined;
-  return { promotedAt, promotedJourneyId, promotedPathId, promotedMomentIds };
+  if (!promotedAt || !promotedJourneyId || promotedMomentIds.length === 0) return undefined;
+  const evolved = value.evolved === true ? true : undefined;
+  return {
+    promotedAt,
+    promotedJourneyId,
+    ...(promotedPathId ? { promotedPathId } : {}),
+    promotedMomentIds,
+    ...(evolved ? { evolved: true } : {}),
+  };
 }
 
 export function isDraftPoint(value: unknown): value is DraftPoint {
@@ -127,6 +141,12 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
       : typeof value.path_group_id === 'string'
         ? value.path_group_id
         : undefined;
+  const evolvesMomentId =
+    typeof value.evolvesMomentId === 'string' && value.evolvesMomentId.trim()
+      ? value.evolvesMomentId.trim()
+      : typeof value.evolves_moment_id === 'string' && value.evolves_moment_id.trim()
+        ? value.evolves_moment_id.trim()
+        : undefined;
   const promotion = normalizeDraftPointPromotion(value.promotion);
 
   return {
@@ -141,6 +161,7 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
     ...(closer ? { closer } : {}),
     ...(moments.length > 0 ? { moments } : {}),
     ...(pathGroupId ? { pathGroupId } : {}),
+    ...(evolvesMomentId ? { evolvesMomentId } : {}),
     ...(promotion ? { promotion } : {}),
   };
 }
