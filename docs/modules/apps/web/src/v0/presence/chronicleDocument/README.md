@@ -13,13 +13,15 @@ Point read shell + Document container helpers for Chronicle Focus — shared con
 ## 🔄 Data & Behavior
 - Adapters produce `Point` from `@keeper/shared`
 - `Document` (shared) is the Dialog-scoped container shape; Realm mounts `DocumentShell`
+- `DocumentShell` accepts optional Path groups (`pointIds` as indexes into `points`)
 - Gloss: library items use `buildLibraryGlossAnchor`; synthetic uses ephemeral message anchor when wired
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm synthetic panel placement with Kip (below domain ChronicleRecordView)
 
 ## 📆 Update Log
-- **2026-07-17** — Point is atomic primary; Document is container type. `PointView` takes `point`. RealmNavEntry.point.
+- **2026-07-17** — Added `DocumentShell`; `DomainRealmStory` is a thin Realm data adapter. Point is atomic primary; Document is container type.
+
 - **2026-07-16** — Rename: ChronicleDocument → Document/Point, ChronicleDocumentView → PointView.
 - **2026-07-15** — Gloss wired into Dialog via `requestDiscussDraftPoint`.
 - **2026-07-13** — Initial pilot: view, library adapter, roadmap synthetic panel.

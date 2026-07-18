@@ -31,6 +31,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-17 — DocumentShell adapter
+- `DomainRealmStory` fetches Realm nav-growth and hands Points to shared `DocumentShell` (no board-specific render loop)
+
 ### 2026-07-16 — Document/Point rename
 - Story frames use `PointView` + shared `Document` type (was `ChronicleDocument` / `ChronicleDocumentView`)
 
