@@ -753,8 +753,23 @@ router.post(
         select: { slug: true },
       });
 
+      const pathIdRaw = req.body?.pathId;
+      const pathId =
+        pathIdRaw === null
+          ? null
+          : typeof pathIdRaw === 'string' && pathIdRaw.trim()
+            ? pathIdRaw.trim()
+            : undefined;
+      const evolvesMomentId =
+        typeof req.body?.evolvesMomentId === 'string' && req.body.evolvesMomentId.trim()
+          ? req.body.evolvesMomentId.trim()
+          : undefined;
+
       const { results } = await executeAgentActions(
-        [{ type: 'draft.point.promote', payload: { draftId, pointId, journeyId } }],
+        [{
+          type: 'draft.point.promote',
+          payload: { draftId, pointId, journeyId, pathId, evolvesMomentId },
+        }],
         {
           domainId,
           domainSlug: domain?.slug ?? null,

@@ -1602,6 +1602,18 @@ export async function executeAgentActions(
               break;
             }
 
+            const pathIdRaw = payload.pathId;
+            const pathId =
+              pathIdRaw === null
+                ? null
+                : typeof pathIdRaw === 'string' && pathIdRaw.trim()
+                  ? pathIdRaw.trim()
+                  : undefined;
+            const evolvesMomentId =
+              typeof payload.evolvesMomentId === 'string' && payload.evolvesMomentId.trim()
+                ? payload.evolvesMomentId.trim()
+                : undefined;
+
             const promoteResult = await promoteDraftPointInTransaction(tx, {
               domainId: ctx.domainId!,
               userId: ctx.userId!,
@@ -1609,6 +1621,8 @@ export async function executeAgentActions(
               pointId,
               journeyId,
               sessionId: ctx.sessionId,
+              pathId,
+              evolvesMomentId,
             });
 
             if (promoteResult.ok === false) {
@@ -1625,10 +1639,13 @@ export async function executeAgentActions(
               type: action.type,
               status: 'success',
               message: promoteResult.idempotent
-                ? 'Point already promoted'
-                : 'Point promoted to path and moments',
+                ? 'Point already kept'
+                : promoteResult.evolved
+                  ? 'Point kept — Moment evolved'
+                  : 'Point kept as Moment (identity preserved)',
               data: {
                 idempotent: promoteResult.idempotent,
+                evolved: promoteResult.evolved,
                 draftId: promoteResult.draftId,
                 point: promoteResult.point,
                 journeyId: promoteResult.journeyId,

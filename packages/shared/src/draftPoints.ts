@@ -449,7 +449,15 @@ export function updateDraftPointInSpec(
   patch: Partial<
     Pick<
       DraftPoint,
-      'status' | 'content' | 'type' | 'prelude' | 'closer' | 'moments' | 'promotion'
+      | 'status'
+      | 'content'
+      | 'type'
+      | 'prelude'
+      | 'closer'
+      | 'moments'
+      | 'pathGroupId'
+      | 'evolvesMomentId'
+      | 'promotion'
     >
   >,
 ): { spec: DraftSpecJson; point: DraftPoint | null } {

@@ -7,7 +7,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
-- `promoteDraftPoint.ts` — Promotes accepted `journey_spec` points to Prisma Path + Moments (idempotent)
+- `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
 - `modeConfig.ts` — Kip mode configuration helpers
@@ -22,6 +22,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-07-17 — Point→Moment identity keep
+- `promoteDraftPoint.ts`: primary Moment uses Point.id; `sourceDraftId`/`sourcePointId` lineage; `evolvesMomentId` updates in place; optional `pathId` (use / create / pathless); bumps Dialog.document_status drafts→kept
 
 ### 2026-06-30 — Draft point promotion service
 - Added `promoteDraftPoint.ts` — transaction: accepted point → Path + Moments; persists `point.promotion` on spec_json
