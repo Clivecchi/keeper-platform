@@ -36,3 +36,6 @@ Styles use a comprehensive token system covering:
 - Styles are applied via CSS custom properties (--theme-*) for consistency with platform ThemeProvider
 - Each Style has an associated Tone for categorization
 - Style Editor at `/v0/style` provides live token editing for rapid iteration
+### 2026-07-17 — Domain accent + reactive StyleScope
+- `StyleScope` uses `useSyncExternalStore` on the runtime theme registry so Curtain/V0Shell re-registers re-paint.
+- `tokensToCSSVars` sets `--theme-accent-primary` from `focus.ring` (domain Treatment) instead of hard-coded teal.

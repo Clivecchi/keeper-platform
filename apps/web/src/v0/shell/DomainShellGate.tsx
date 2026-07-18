@@ -11,6 +11,8 @@ import {
 import { isDomainShellReady } from "../boards/domain/domainShellBootstrap"
 import { peekPrefetchedDialogSession } from "../boards/domain/dialogSessionPrefetch"
 import { getCachedDomainBySlug } from "../boards/domain/domainShellCache"
+import { isBoardNavWarm } from "../boards/boardNavDataCache"
+import { resolveRevealNavSections } from "../boards/domain/resolveRevealNavSections"
 
 export interface DomainShellGateProps {
   domainSlug: string
@@ -25,7 +27,8 @@ function isBoardRevealReady(slug: string, requireAudience: boolean): boolean {
   if (!isDomainShellReady(slug, { requireAudience })) return false
   const domain = getCachedDomainBySlug(slug)
   if (!domain?.id) return false
-  return !!peekPrefetchedDialogSession(domain.id, "domain")
+  if (!peekPrefetchedDialogSession(domain.id, "domain")) return false
+  return isBoardNavWarm(domain.id, resolveRevealNavSections(slug, "domain"))
 }
 
 export function DomainShellGate({
@@ -73,6 +76,7 @@ export function DomainShellGate({
                 ready: false,
                 sessionId: null,
                 elapsedMs: BOARD_REVEAL_HARD_TIMEOUT_MS,
+                navWarm: false,
               }),
             BOARD_REVEAL_HARD_TIMEOUT_MS,
           )
@@ -81,7 +85,9 @@ export function DomainShellGate({
 
       if (cancelled) return
 
-      if (!result.ready && !isBoardRevealReady(slug, requireAudience)) {
+      // Fail closed only when shell/dialog never became usable. Nav may soft-fail
+      // after await — still reveal so one hung list cannot trap the curtain.
+      if (!result.ready && !result.sessionId && !isBoardRevealReady(slug, requireAudience)) {
         setErrorMessage(
           "This domain could not be loaded. Check your connection and try again.",
         )
@@ -92,7 +98,7 @@ export function DomainShellGate({
       await holdCurtainMinimum(result.elapsedMs)
       if (cancelled) return
 
-      if (!isBoardRevealReady(slug, requireAudience) && !result.sessionId) {
+      if (!result.sessionId && !isBoardRevealReady(slug, requireAudience)) {
         setErrorMessage(
           "Dialog could not be prepared. Check your connection and try again.",
         )

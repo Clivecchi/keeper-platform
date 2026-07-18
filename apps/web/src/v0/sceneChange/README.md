@@ -51,3 +51,6 @@ Scene-change load mechanics for domain travel — splash curtain with warm-skip 
 
 ### 2026-07-09 — Splash curtain v1
 - Added curtain provider, warm-skip prefetch, Playbill Enter integration
+
+### 2026-07-17 � Travel curtain waits for Nav
+- `isTravelBoardReady` requires `isBoardNavWarm` so domain travel does not skip the curtain while Nav is still empty.

@@ -1,5 +1,5 @@
 /**
- * Board reveal readiness — shell + dialog session + lead Playbill agent.
+ * Board reveal readiness — shell + dialog session + lead Playbill agent + Nav lists.
  * Used by DomainShellGate and SceneChange so the curtain hides the full load.
  */
 
@@ -18,7 +18,8 @@ import {
   peekPrefetchedDialogSession,
   prefetchDomainBoardDialogSession,
 } from "./dialogSessionPrefetch"
-import { prefetchBoardNavData } from "../boardNavDataCache"
+import { isBoardNavWarm, prepareBoardNavData } from "../boardNavDataCache"
+import { resolveRevealNavSections } from "./resolveRevealNavSections"
 
 /** Hard ceiling so a hung network never traps users on the curtain forever. */
 export const BOARD_REVEAL_HARD_TIMEOUT_MS = 12_000
@@ -27,11 +28,14 @@ export interface PrepareDomainBoardRevealResult {
   ready: boolean
   sessionId: string | null
   elapsedMs: number
+  /** True when required Nav slices are cached after prepare (may be false on soft failure). */
+  navWarm: boolean
 }
 
 /**
  * Warm everything the board needs before the curtain drops:
- * domain/frame/audience, cover decode, dialog session, lead agent portrait.
+ * domain/frame/audience, cover decode, dialog session, lead agent portrait,
+ * and board-required Nav slices (awaited — not fire-and-forget).
  */
 export async function prepareDomainBoardReveal(
   slug: string,
@@ -40,7 +44,7 @@ export async function prepareDomainBoardReveal(
   const startedAt = Date.now()
   const normalized = slug.trim()
   if (!normalized) {
-    return { ready: false, sessionId: null, elapsedMs: 0 }
+    return { ready: false, sessionId: null, elapsedMs: 0, navWarm: false }
   }
 
   prefetchDomainShell(normalized)
@@ -57,12 +61,14 @@ export async function prepareDomainBoardReveal(
       ready: false,
       sessionId: null,
       elapsedMs: Date.now() - startedAt,
+      navWarm: false,
     }
   }
 
   const domain = getCachedDomainBySlug(normalized)
   const board = options?.board ?? "domain"
   const leadSlug = domain ? resolveDialogLeadSlug(domain) : null
+  const navSections = resolveRevealNavSections(normalized, board)
 
   const [sessionId] = await Promise.all([
     domain
@@ -75,10 +81,9 @@ export async function prepareDomainBoardReveal(
       : Promise.resolve(null),
     waitForDomainCoverDecode(normalized),
     leadSlug ? resolvePlaybillAgent(leadSlug).catch(() => null) : Promise.resolve(null),
+    // Await Nav lists under the curtain so the board does not populate after reveal.
+    domain?.id ? prepareBoardNavData(domain.id, navSections) : Promise.resolve(),
   ])
-
-  // Warm Nav lists under the curtain so the board does not populate after reveal.
-  if (domain?.id) prefetchBoardNavData(domain.id)
 
   // Session may still be settling via inflight — prefer peeked value.
   const peeked =
@@ -86,7 +91,8 @@ export async function prepareDomainBoardReveal(
       ? peekPrefetchedDialogSession(domain.id, board) ?? sessionId
       : sessionId
 
-  // Dialog session is required for board-ready. Frame peek is a soft confirm.
+  // Dialog session required for board-ready. Nav was awaited above (soft — a failed
+  // slice must not trap the curtain; travel/gate skip still checks isBoardNavWarm).
   const frameOk = !!peekDomainFrame(normalized)
   const ready =
     isDomainShellReady(normalized, options) &&
@@ -97,6 +103,7 @@ export async function prepareDomainBoardReveal(
     ready,
     sessionId: peeked,
     elapsedMs: Date.now() - startedAt,
+    navWarm: !domain?.id || isBoardNavWarm(domain.id, navSections),
   }
 }
 

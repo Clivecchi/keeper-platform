@@ -3,7 +3,12 @@ import type { StyleId } from './styles'
 import { getStyleDefinition, tokensToCSSVars } from './styleRegistry'
 import type { StyleTokens } from './styleRegistry'
 import { useStyleOverride } from './StyleOverrideProvider'
-import { getRuntimeThemeTokens, resolveThemeTokens } from '../themes/themeResolver'
+import {
+  getRuntimeThemeTokens,
+  getRuntimeThemeVersion,
+  resolveThemeTokens,
+  subscribeRuntimeTheme,
+} from '../themes/themeResolver'
 
 interface StyleScopeProps {
   styleId: StyleId
@@ -20,6 +25,14 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
   React.useEffect(() => {
     setCurrentStyle(styleId)
   }, [styleId, setCurrentStyle])
+
+  // Subscribe so Curtain / V0Shell / board hierarchy registerRuntimeTheme() re-paints.
+  // A plain Map read during render never notified React — board could keep DEFAULT after curtain.
+  const runtimeVersion = React.useSyncExternalStore(
+    subscribeRuntimeTheme,
+    getRuntimeThemeVersion,
+    getRuntimeThemeVersion,
+  )
 
   // Resolve theme tokens if themeSlug is provided
   const [themeTokens, setThemeTokens] = React.useState<Record<string, string> | null>(() => {
@@ -57,10 +70,9 @@ export function StyleScope({ styleId, themeSlug, children, className }: StyleSco
           setThemeTokens(null)
           setThemeLoading(false)
         })
-  }, [themeSlug])
+  }, [themeSlug, runtimeVersion])
 
-  // Prefer live runtime registry so curtain / V0Shell re-registers paint immediately
-  // (StyleScope must not freeze the first DEFAULT snapshot after domain-resolved updates).
+  // Prefer live runtime registry (version subscription above forces re-read after register).
   const liveRuntime = themeSlug
     ? (getRuntimeThemeTokens(themeSlug) as unknown as Record<string, string> | null)
     : null

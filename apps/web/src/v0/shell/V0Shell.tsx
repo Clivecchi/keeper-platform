@@ -100,7 +100,7 @@ import { resolveDomainAudience, type DomainAudienceRole } from "@keeper/shared"
 import { usePlacementMode } from "./usePlacementMode"
 import { FrameContextProvider } from "./FrameContext"
 import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
-import { registerRuntimeTheme } from "../themes/themeResolver"
+import { getRuntimeThemeTokens, registerRuntimeTheme } from "../themes/themeResolver"
 import { DOMAIN_THEME_SLUG } from "../themes/constants"
 
 /** Placeholder used while domain is loading or when API fails. Never shows hardcoded marketing copy. */
@@ -354,17 +354,22 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
 
-  // Synchronous bootstrap — prefer warm frame cache so DEFAULT never overwrites a real domain theme
-  // before StyleScope mounts (curtain already registered; board must keep it).
+  // Synchronous bootstrap — prefer warm frame / loaded frame. Never clobber Curtain's
+  // registration with DEFAULT when neither source is ready yet (that froze board theming).
   if (effectiveSlug) {
-    const peekedTheme = peekDomainFrame(effectiveSlug)?.theme
-    registerRuntimeTheme(
-      DOMAIN_THEME_SLUG,
-      resolveDomainThemeSync(
-        peekedTheme ?? domainFrame?.theme ?? DEFAULT_DOMAIN_FRAME.theme,
-        colorScheme,
-      ),
-    )
+    const themeSource =
+      peekDomainFrame(effectiveSlug)?.theme ?? domainFrame?.theme ?? null
+    if (themeSource) {
+      registerRuntimeTheme(
+        DOMAIN_THEME_SLUG,
+        resolveDomainThemeSync(themeSource, colorScheme),
+      )
+    } else if (!getRuntimeThemeTokens(DOMAIN_THEME_SLUG)) {
+      registerRuntimeTheme(
+        DOMAIN_THEME_SLUG,
+        resolveDomainThemeSync(DEFAULT_DOMAIN_FRAME.theme, colorScheme),
+      )
+    }
   }
 
   const [domainAudienceContext, setDomainAudienceContext] = React.useState<{

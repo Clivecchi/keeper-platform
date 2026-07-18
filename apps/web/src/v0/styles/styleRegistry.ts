@@ -268,8 +268,8 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-space-framePadding': tokens['space.framePadding'],
     '--theme-space-sheetPadding': tokens['space.sheetPadding'],
 
-    /* Accent — platform teal (Chronicle feed dot, nav add icons, send actions) */
-    '--theme-accent-primary': '168 60% 42%',
+    /* Accent — domain Treatment (focus.ring); was hard-coded platform teal and ignored domain theme */
+    '--theme-accent-primary': treatmentColor,
     '--theme-accent-subtle': toVar('surface.panel', tokens['surface.panel']),
     '--theme-accent-fg': '0 0% 98%',
 

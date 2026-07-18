@@ -166,7 +166,7 @@ const LOADERS: Record<BoardNavCacheKey, (domainId: string) => Promise<unknown>> 
   library: loadLibrary,
 }
 
-function resolvePrefetchKeys(sections?: BoardNavPrefetchSections): BoardNavCacheKey[] {
+export function resolvePrefetchKeys(sections?: BoardNavPrefetchSections): BoardNavCacheKey[] {
   if (!sections) {
     return ["journeys", "keepers"]
   }
@@ -180,18 +180,43 @@ function resolvePrefetchKeys(sections?: BoardNavPrefetchSections): BoardNavCache
   return keys
 }
 
-/** Warm shared nav slices when a board mounts — best-effort, respects TTL. */
+/** True when every requested nav slice is already cached and fresh. */
+export function isBoardNavWarm(
+  domainId: string,
+  sections?: BoardNavPrefetchSections,
+): boolean {
+  if (!domainId) return false
+  const keys = resolvePrefetchKeys(sections)
+  if (keys.length === 0) return true
+  return keys.every((key) => getCachedBoardNavData(domainId, key) != null)
+}
+
+/**
+ * Await nav slices under the load curtain so the board does not populate after reveal.
+ * Failed slices are swallowed — hard curtain timeout / board mount retry still apply.
+ */
+export async function prepareBoardNavData(
+  domainId: string,
+  sections?: BoardNavPrefetchSections,
+): Promise<void> {
+  if (!domainId) return
+  const keys = resolvePrefetchKeys(sections)
+  await Promise.all(
+    keys.map((key) => {
+      if (getCachedBoardNavData(domainId, key)) return Promise.resolve()
+      return fetchBoardNavSlice(domainId, key, () => LOADERS[key](domainId)).catch(() => {
+        /* best-effort — do not trap the curtain on one failed list */
+      })
+    }),
+  )
+}
+
+/** Warm shared nav slices when a board mounts — fire-and-forget, respects TTL. */
 export function prefetchBoardNavData(
   domainId: string,
   sections?: BoardNavPrefetchSections,
 ): void {
-  if (!domainId) return
-  for (const key of resolvePrefetchKeys(sections)) {
-    if (getCachedBoardNavData(domainId, key)) continue
-    void fetchBoardNavSlice(domainId, key, () => LOADERS[key](domainId)).catch(() => {
-      /* prefetch is best-effort */
-    })
-  }
+  void prepareBoardNavData(domainId, sections)
 }
 
 export { loadDialogs, loadJourneys, loadKeepers, loadDrafts, loadAgents }

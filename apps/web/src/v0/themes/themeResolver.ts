@@ -12,29 +12,66 @@ import { getThemeTokensBySlug as getStaticTokens } from './themeRegistry';
 import type { ThemeTokens } from './themeRegistry';
 
 // ---------------------------------------------------------------------------
-// Runtime theme registry — populated by domainThemeResolver at runtime
+// Runtime theme registry — populated by domainThemeResolver / Curtain at runtime
 // ---------------------------------------------------------------------------
 
 const runtimeThemeRegistry = new Map<string, ThemeTokens>()
+/** Bumps on every register/clear so React subscribers (StyleScope) re-render. */
+let runtimeThemeVersion = 0
+const runtimeThemeListeners = new Set<() => void>()
+
+function emitRuntimeThemeChange(): void {
+  runtimeThemeVersion += 1
+  for (const listener of runtimeThemeListeners) listener()
+}
+
+/** Value equality — V0Shell may re-register identical tokens each render with a new object. */
+function runtimeTokensEqual(a: ThemeTokens | undefined, b: ThemeTokens): boolean {
+  if (a === b) return true
+  if (!a) return false
+  const keys = Object.keys(b) as Array<keyof ThemeTokens>
+  if (Object.keys(a).length !== keys.length) return false
+  for (const key of keys) {
+    if (a[key] !== b[key]) return false
+  }
+  return true
+}
 
 /**
  * Register a resolved theme for use by the slug resolver.
- * Called by V0Shell after domain theme is resolved from domain JSON.
+ * Called by V0Shell / Curtain / board hierarchy after domain theme is resolved.
  */
 export function registerRuntimeTheme(slug: string, tokens: ThemeTokens): void {
+  const previous = runtimeThemeRegistry.get(slug)
+  if (runtimeTokensEqual(previous, tokens)) return
   runtimeThemeRegistry.set(slug, tokens)
+  emitRuntimeThemeChange()
 }
 
 /**
  * Remove a previously registered runtime theme.
  */
 export function clearRuntimeTheme(slug: string): void {
-  runtimeThemeRegistry.delete(slug)
+  if (!runtimeThemeRegistry.delete(slug)) return
+  emitRuntimeThemeChange()
 }
 
 /** Synchronous read — used by StyleScope to avoid a dark-style flash before async resolve. */
 export function getRuntimeThemeTokens(slug: string): ThemeTokens | null {
   return runtimeThemeRegistry.get(slug) ?? null
+}
+
+/** Subscribe to runtime registry changes (for useSyncExternalStore). */
+export function subscribeRuntimeTheme(onStoreChange: () => void): () => void {
+  runtimeThemeListeners.add(onStoreChange)
+  return () => {
+    runtimeThemeListeners.delete(onStoreChange)
+  }
+}
+
+/** Snapshot version for useSyncExternalStore — changes whenever any runtime theme updates. */
+export function getRuntimeThemeVersion(): number {
+  return runtimeThemeVersion
 }
 
 // API timeout for theme fetching (300ms)

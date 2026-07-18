@@ -13,6 +13,8 @@ import {
   prepareDomainBoardReveal,
 } from "../boards/domain/prepareDomainBoardReveal"
 import { peekPrefetchedDialogSession } from "../boards/domain/dialogSessionPrefetch"
+import { isBoardNavWarm } from "../boards/boardNavDataCache"
+import { resolveRevealNavSections } from "../boards/domain/resolveRevealNavSections"
 
 export interface SceneChangeContextValue {
   travelToSlug: (slug: string, onNavigate: () => void) => Promise<void>
@@ -24,7 +26,8 @@ function isTravelBoardReady(slug: string): boolean {
   if (!isDomainShellWarm(slug, { requireAudience: true })) return false
   const domain = getCachedDomainBySlug(slug)
   if (!domain?.id) return false
-  return !!peekPrefetchedDialogSession(domain.id, "domain")
+  if (!peekPrefetchedDialogSession(domain.id, "domain")) return false
+  return isBoardNavWarm(domain.id, resolveRevealNavSections(slug, "domain"))
 }
 
 export function SceneChangeProvider({ children }: { children: React.ReactNode }) {

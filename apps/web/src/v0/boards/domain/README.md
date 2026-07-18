@@ -97,3 +97,8 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - prepareDomainBoardReveal warms shell, dialog session, lead Playbill agent, and nav under the curtain.
 - Playbill agent cache persists across domain switches; switcher prefetches all lead agents.
 
+
+### 2026-07-17 — Curtain awaits Nav warm
+- `resolveRevealNavSections.ts` — maps board def ? nav slices to warm before reveal.
+- `prepareDomainBoardReveal` awaits `prepareBoardNavData` alongside dialog/cover/lead.
+- Gate/travel skip require `isBoardNavWarm` so a warm shell without Nav does not skip the curtain.
