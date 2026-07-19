@@ -32,6 +32,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-19 — DocumentShell Forward/Step on Realm
+- `DomainRealmStory` passes authored `forward` + current `step` into `DocumentShell` so Realm Chronicle shows the new header (Back/Forward disabled until Layer 3)
+
 ### 2026-07-18 — Dialog-scoped Realm Nav
 - `groupRealmNavEntries` groups by Dialog first, stage second; unresolved lineage → visible **Unassigned**
 - `useRealmNavGrowth` resolves draft `dialog_id` (detail when list omits it) and kept Moments via `sourceDraftId` / Point-id identity keep; labels groups with real Dialog titles

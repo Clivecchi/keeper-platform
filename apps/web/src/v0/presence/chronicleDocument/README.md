@@ -14,12 +14,16 @@ Point read shell + Document container helpers for Chronicle Focus — shared con
 - Adapters produce `Point` from `@keeper/shared`
 - `Document` (shared) is the Dialog-scoped container shape; Realm mounts `DocumentShell`
 - `DocumentShell` accepts optional Path groups (`pointIds` as indexes into `points`)
+- Optional `forward` + `step` replace the plain title/subtitle header; Back/Forward lineage nav stays disabled until Layer 3
 - Gloss: library items use `buildLibraryGlossAnchor`; synthetic uses ephemeral message anchor when wired
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm synthetic panel placement with Kip (below domain ChronicleRecordView)
+- [ ] Wire real Step from self-organizing lineage (not faked) — Back/Forward stay disabled until then
 
 ## 📆 Update Log
+- **2026-07-19** — Forward block (collapsible description) + glassy Step + disabled Back/Forward row; theme tokens only (`--theme-status-success` for Step accent).
+
 - **2026-07-17** — Added `DocumentShell`; `DomainRealmStory` is a thin Realm data adapter. Point is atomic primary; Document is container type.
 
 - **2026-07-16** — Rename: ChronicleDocument → Document/Point, ChronicleDocumentView → PointView.

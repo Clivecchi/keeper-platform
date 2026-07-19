@@ -75,6 +75,15 @@ export function DomainRealmStory({
   ) : (
     <DocumentShell
       className="domain-realm-story"
+      forward={{
+        title: "Keep what this domain is becoming",
+        description:
+          "Authored destination for this Document — shape, keep, and show accumulate here. The live tip sits in the Step below when one is known; this Forward text stays the North Star.",
+      }}
+      step={{
+        title: "Forward and Step land in the Document shell",
+        body: "Current tip: Forward (authored) and Step (now) render above the Path groups. Back and Forward stay disabled — the self-organizing logic that would choose the next Step is not built yet, and is not faked here.",
+      }}
       points={points}
       onGlossPoint={handleGlossPoint}
       emptyState={emptyState}

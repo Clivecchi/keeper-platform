@@ -45,6 +45,24 @@ export interface DocumentPathGroup {
 }
 
 /**
+ * Authored destination (Forward Layer 1) — stable North Star for the Document.
+ * Distinct from DocumentStep, which is the live tip of the lineage.
+ */
+export interface DocumentForward {
+  title: string;
+  description: string;
+}
+
+/**
+ * Current tip of Forward's lineage — a Point/Moment role, not a new entity.
+ * See docs/chronicle-document-architecture.md (2026-07-19 Step decision).
+ */
+export interface DocumentStep {
+  title: string;
+  body: string;
+}
+
+/**
  * Document — one per Dialog. Cover + Points (optionally grouped by Path).
  * Durable identity is Dialog.id; kip_drafts holds the Point manuscript via dialog_id.
  */
@@ -53,6 +71,10 @@ export interface Document {
   status: DocumentLifecycleStatus;
   title: string;
   cover?: { label: string; subtitle?: string; voice?: string };
+  /** Authored destination — replaces a plain title/subtitle header when rendered. */
+  forward?: DocumentForward;
+  /** Live tip of the lineage when known; Back/Forward nav stays disabled until Layer 3. */
+  step?: DocumentStep;
   paths: DocumentPathGroup[];
   points: Point[];
 }
