@@ -1,50 +1,50 @@
 {
   "version": "1.0",
-  "id": "realm-nav-dialog-scoped",
-  "created_at": "2026-07-18T00:00:00Z",
+  "id": "document-forward-step",
+  "created_at": "2026-07-19T00:00:00Z",
   "created_by": "cloud",
-  "goal": "Group Realm's Draft/Kept/Presented Nav entries by their owning Dialog instead of flattening every draft, library row, and moment in the domain into one undifferentiated pool.",
+  "goal": "Add Forward and Step to DocumentShell -- a collapsible authored-destination card with a distinct, always-visible Step beneath it, and a disabled Back/Forward nav row -- replacing the current plain title/subtitle header.",
   "done_when": [
-    "useRealmNavGrowth groups entries by dialog_id instead of returning one flat domain-wide list -- drafts via kip_drafts.dialog_id directly, kept Moments via sourceDraftId -> kip_drafts.dialog_id where that lineage exists",
-    "Each Dialog's group is labeled with that Dialog's real title, not a generic placeholder",
-    "Anything with no resolvable dialog_id (older Moments predating the lineage fields, drafts that were never attached to a Dialog) is grouped under an explicit visible 'Unassigned' group -- not hidden, not deleted, not silently auto-attached anywhere",
-    "The 'Presented' bucket and its slice(0,8) heuristic are left exactly as they are today -- explicitly out of scope for this handoff, not touched, not 'improved' as a side effect",
-    "No backend or schema changes -- dialog_id and the sourceDraftId/sourcePointId lineage fields already exist and are already populated going forward; this is a frontend query/grouping change only",
+    "DocumentShell gains a new optional prop shape, e.g. forward?: { title: string; description: string }, rendered where the current plain title/subtitle header block is -- this replaces that block, it does not sit alongside it",
+    "Forward's description is collapsible, defaulting collapsed when a step is present, expanded when no step is present (mirrors the mockup's objectiveOpen = steps.length === 0 logic)",
+    "A new optional step?: { title: string; body: string } prop renders a distinct block: always visible regardless of Forward's collapsed state, positioned directly after Forward's description in DOM order (so collapsing/expanding the description visually moves the Step's position, no separate logic needed for that)",
+    "Step is visually distinct from Forward -- a translucent/backdrop-blur surface, not the same flat card treatment as everything else in the shell, using whatever accent theme token most closely matches an affirmative/progress signal (do not hardcode a hex color -- if no suitable existing theme token is found, stop and flag it rather than invent one)",
+    "A Back/Forward nav row renders beneath the Step, both buttons disabled for now, with tooltips explaining why precisely (no prior step exists yet / this is the current tip, Forward will advance once a next step exists) -- do not wire real navigation logic, that depends on undesigned self-organizing behavior",
+    "Brightness hierarchy: Forward's title dims when a Step is present (secondary to the Step), Step's title is a distinct accent tone, Step's body text is the brightest text in the shell -- express this as relative theme-token usage, not literal color values",
+    "No changes to buildGroups, PathHeader, or PointFrame -- this handoff only touches the shell's own header area, not the Path/Point rendering beneath it",
     "pnpm run quick:web passes",
-    "Manual check on /d/ke3p?board=realm: Nav no longer reads as one flat 40-item Drafts list and one flat 47-item Kept list -- it reads as multiple Dialog-scoped groups plus one Unassigned group"
+    "Manual check on /d/ke3p?board=realm: Forward/Step render above the Path groups, collapse/expand works, Back/Forward render disabled with correct tooltips"
   ],
   "territory": "cursor",
   "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md"],
   "scope": {
     "touch": [
-      "apps/web/src/v0/realm/useRealmNavGrowth.ts",
-      "apps/web/src/v0/realm/realmNavGrowth.ts",
-      "apps/web/src/v0/realm/RealmStagedNav.tsx",
-      "apps/web/src/v0/realm/DomainRealmStory.tsx"
+      "apps/web/src/v0/presence/chronicleDocument/DocumentShell.tsx",
+      "packages/shared/src/document.ts"
     ],
     "do_not_touch": [
       "apps/api/",
       "packages/database/prisma/schema.prisma",
-      "the libraryRows.slice(0, 8) heuristic in useRealmNavGrowth.ts -- leave it exactly as-is, do not fix, do not remove, do not comment further on it"
+      "buildGroups, PathHeader, PointFrame functions in DocumentShell.tsx -- structural additions only, do not refactor existing Path/Point rendering"
     ]
   },
-  "pattern_ref": "groupRealmNavEntries in realmNavGrowth.ts already groups by stage (drafts/kept/presented) -- extend that same shape to group by dialogId first, stage second, rather than inventing a new grouping mechanism. RealmStagedNav.tsx and DomainRealmStory.tsx already consume byStage -- follow the same consumption pattern for byDialog.",
+  "pattern_ref": "Mockup reference (scratchpad artifact, not in repo) demonstrates the exact shape: objectiveOpen defaults to steps.length === 0; Step renders in DOM after the collapsible description, not before; Step uses backdrop-filter blur + translucent background + accent-tinted border; Back/Forward are plain disabled buttons with explanatory titles. Translate the intent, not literal CSS values -- this file uses hsl(var(--theme-...)) tokens throughout, follow that convention exactly as PathHeader and PointFrame already do.",
   "rendr_treatment": null,
   "git": {
     "branch": "cloud",
     "base": "cloud",
     "commit": true,
     "open_pr": false,
-    "pr_title": "fix: scope Realm Nav by Dialog instead of flattening the whole domain"
+    "pr_title": "feat: add Forward and Step to DocumentShell"
   },
   "verification": {
     "commands": ["pnpm run quick:web"],
     "browser": ["/d/ke3p?board=realm"]
   },
   "context": {
-    "phase": "Follow-up to document-point-moment-reconciliation -- that handoff added Dialog.document_status and the Moment lineage fields; this handoff is the first thing that actually uses them to fix Realm's Nav",
-    "related_handoffs": ["document-point-moment-reconciliation", "dialog-delete-ui", "draft-renders-as-document (still open, not started -- unrelated to this handoff, do not attempt it here)"],
+    "phase": "Forward/Step design, decided 2026-07-18/19 in docs/chronicle-document-architecture.md",
+    "related_handoffs": ["document-point-moment-reconciliation", "dialog-delete-ui", "realm-nav-dialog-scoped", "draft-renders-as-document (still open, sequenced to run AFTER this one, not before -- see notes)"],
     "library_refs": [],
-    "notes": "Chuck caught this directly: useRealmNavGrowth fetches drafts/library rows/moments domain-wide with zero dialog_id filtering -- confirmed in code, not theorized. That's why Realm shows one flat 40-item Drafts list and one flat 47-item Kept list with no relationship to any specific Dialog, even though the schema now supports exactly that relationship. Two real decisions remain deliberately unresolved and explicitly out of scope here: (1) what 'Presented' status actually means -- per-Document or per-item -- and (2) what to actually do with the orphaned/Unassigned backlog once it's visible (Curator's job, not this handoff's). This handoff only makes the real structure visible; it does not resolve either open decision."
+    "notes": "Sequencing: draft-renders-as-document is older and still unstarted, but it should run after this handoff, not before -- it unifies Draft's rendering onto DocumentShell, and DocumentShell's own shape is changing here. Doing it first would mean redoing part of that work once this lands. Explicitly out of scope for this handoff: Layer 3 self-organizing behavior (what actually decides the current Step, and how it updates) -- that is genuinely undesigned, not just deferred, and Back/Forward stay disabled because of it, honestly, not as a placeholder to be quietly filled in. Also out of scope: the Path-accordion visual treatment (per-path color, collapse, dismissible New tags) discussed earlier in the same design conversation -- that is separate, larger scope, not part of what was just confirmed."
   }
 }

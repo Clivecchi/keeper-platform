@@ -130,6 +130,59 @@ Rendr's answers (relayed by Chuck, 2026-07-17), on what `moment_card`/`path_inde
 
 **Parked hypothesis (2026-07-18, Chuck):** a Moment is never actually context-free — the moment it's kept it already has a `journeyId`/`pathId` (confirmed real in schema). So the threshold signal may not need new data on Moment at all — it could be derived from the Path/Journey it's already related to (e.g. `Path.prelude`, already real and unsurfaced) rather than a new field or a borrowed Library hero image. A fourth option alongside the three above, probably the leading one, not decided. Chuck wants to sit with this once `moment_card`/`path_index` are actually visible in UI rather than resolve it in the abstract now.
 
+### Decided (2026-07-18): Forward — three layers, and it replaces Objective, not sits beside it
+
+Grew out of Chuck asking for a "You Are Here" marker in the Document — not a Path (too topical, cross-cutting work touches several at once), not the Cover (identity should stay stable, this needs to be volatile). Turned out the answer already existed on both counts.
+
+**`Journey.forward` is real, already shipped, already load-bearing** — a required `String` field on `Journey`, used across many real surfaces (`JourneyCard.tsx`, `KeeperJourneyPanel.tsx`, Kip's own agent messages, `ActionReceiptCard.tsx`, and more). It is not a new concept. What's missing is a capability, not a field.
+
+**Already real: `publicJourneyCache.ts` → `mapPublicJourneyToNarrative` bridges Journey/Path/Moment into a public Frame**, and its own comment says "Cover Forward, Present, and Journeys browse share one fetch." `Path.prelude` already ships through this pipeline publicly — correcting an earlier note in this doc that called it "unsurfaced anywhere"; that was true only for Chronicle, not for Present.
+
+**Three layers of Forward:**
+1. **Authored** — real today. Static text, set once, unconnected to live state.
+2. **Walks the next Moment** — for a public/static journey, advancing through already-kept Moments in sequence. Not built; a natural extension of the existing public pipeline.
+3. **Shows the next self-organized Point** — the internal, Document-side "You Are Here." Not built; requires the self-organizing capability that's still parked.
+
+**Point vs. Moment for Forward's target — resolved as context-dependent, not either/or:** Present-side Forward should target a **Moment** (kept, vetted, matches Rendr's "declared, coherent" guidance for public content). Document-side "You Are Here" should target a **Point** (the live edge of work, often not yet kept — pointing only at Moments would make it lag behind what's actually happening). Same internal/public split this whole document already runs on, applied to what Forward resolves to.
+
+**Per-user state — resolved the same way, for the same reason:** Present-side Forward should be per-visitor (a bookmark/resume position — different visitors are legitimately at different points in public content). Document-side "You Are Here" must stay singular and shared — personalizing it per agent would recreate the exact problem this whole effort exists to prevent: five agents holding five different pictures of where things stand.
+
+**Structural decision: Forward replaces the Objective card, not a new slot next to it.** The Objective card was already sitting in the right place — after the cover meta, before the Paths, always visible, never collapsed — and was already doing Forward's authored-layer job (stating the expected outcome) without the evolving layer. Same card, same position, renamed. Content stays substantively the same for now; it becomes dynamic once the self-organizing mechanism (Layer 3) is actually designed and built — not yet.
+
+### Decided (2026-07-19): Back/Forward as a nav pair, anchored to the real evolution lineage
+
+Caught a real conflation in the decision above: if the Forward card's content just keeps getting overwritten by whatever the current step is, the authored destination (Layer 1) disappears — a live position tracker replaces the North Star instead of sitting next to it. Fix: keep the evolving step content and the stable authored destination visually separate, not merged into one card.
+
+**Layout:** step content stays prominent at top of the Forward card (unchanged). A new row sits directly beneath it, before the Path list: **Back** (left) and **Forward** (right), not a continuation of the card's prose.
+
+**Not two arbitrary buttons — one lineage, two directions.** Moments already carry `evolvedFromMomentId`, a real lineage chain (decided 2026-07-15/16). **Back** walks to the Moment/step this one evolved from. **Forward** advances toward the current tip of that chain — and when already at the tip, Forward is what's anchored to the authored `Journey.forward`, the overall destination, not just "next." The authored destination is the far end of the same lineage, not a competing card.
+
+**Prototyped in the mockup, honestly non-functional:** both buttons render disabled with a tooltip explaining why — there's no real evolution lineage to walk yet since Layer 3 (self-organizing "You Are Here") isn't built. Not faked.
+
+**Worth noting:** this structure — a lineage with Back/Forward navigation — is the same shape Present will eventually need for its own filmstrip (moving between Moments/slides). Internal Document and public Present ending up with structurally compatible navigation isn't a coincidence to design around later; it's the same underlying lineage serving two audiences, matching the "must work universally, not just for this build" requirement.
+
+### Decided (2026-07-19): Step is a role, not a new type — and it needs to visually read as "now," not as the destination
+
+Caught a real gap in the previous decision: Back/Forward existed as labels with nothing to walk, because no Step existed yet. Fixed by prototyping one real Step in the mockup, with real content describing the actual current state of this design conversation — not filler.
+
+**"Step" checked against real code before adopting it** — `Step` already exists as a word in the codebase (`ProcessStep`, `SetupStep` for onboarding wizards; `ShareWorkflowStep` for an unrelated sharing feature). Close enough in meaning to be fine, not identical enough to collide the way "Frame" did. Adopted.
+
+**A Step is not a new entity.** It's a Point or Moment, specifically when it's the one currently sitting at the tip of Forward's lineage. Same underlying thing as everywhere else in this document — a role/context, not a fourth type alongside Point/Moment/Path/Document.
+
+**Placement:** inside the Forward card, directly beneath Forward's title, above Forward's own body text. Not a separate card — "inhabits that space" rather than sitting beside it.
+
+**Visual treatment: deliberately different from Forward, on purpose — a glass/frosted look** (translucent background, backdrop blur, soft inset highlight) distinct from the flat opaque cards used everywhere else in the Document. The visual difference is the signal that a Step is "now," not "the destination" — Forward stays plain prose; the Step reads as its own distinct surface floating inside that space.
+
+**Back/Forward now honestly disabled, not just unbuilt-disabled.** With exactly one Step (the first), there is genuinely no prior step (Back correctly has nothing) and no next step yet (Forward correctly has nothing beyond the authored destination). Tooltips updated to say this precisely, rather than reading as a broken/unfinished feature.
+
+### The lesson (2026-07-19): the first Step went stale within the same conversation that built it
+
+Real thing that happened, worth keeping on record because it's the clearest evidence this whole feature exists to address. The Step card's content was written, then several more rounds of real design work happened (collapse-by-default, brightness hierarchy, the glass treatment) — and the Step's own text never got updated to reflect any of it. It sat there describing an earlier version of itself while the conversation moved on. Chuck caught it directly: *"We lost the step we were on."*
+
+Fixed by re-verifying real state (git log, `DraftFocusPresence.tsx`) and rewriting the Step honestly — including the fact of its own staleness, not papering over it. Also dropped the visible word "Step" from the UI (title + text only now, no badge) and set the Step's title color to match its own outline (`--moss`) rather than a separate tone.
+
+**Why this matters beyond a copy fix:** a hand-maintained "current step" cannot stay current by itself — the exact gap Layer 3 (self-organizing Forward) was meant to close, and still hasn't been built. This incident isn't a side note to that design decision. It's the first real data point for it.
+
 ### Noted (2026-07-15): a Point may be a Moment, and Moments evolve
 
 A `Point` isn't necessarily static content — it can be backed by a real `Moment` (Domain → Keeper → Journey → Path → Moment), and Moments have evolutions over time. What renders as "the Point" is the Moment's current/most-recent state, not a frozen snapshot from when it was first kept. Same adapter shape already established for `ChronicleDocument` itself (EntityKind adapter → document), applied one level down: a Moment-backed Point re-resolves to whatever the Moment's latest state is, same as a Library-backed Point already does via `buildLibraryGlossAnchor`.
