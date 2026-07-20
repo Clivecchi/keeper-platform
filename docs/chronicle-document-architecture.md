@@ -1,6 +1,6 @@
 # Chronicle — Selection, Routing, and ChronicleDocument
 
-**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE; Forward/Step header). Layer 3 unchanged (`resolveChronicleDeclaration.ts`). Realm's Chronicle still flattens across all Dialogs and has no Path grouping wired — see `realm-chronicle-dialog-scoped` handoff, not yet built.
+**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE; Forward/Step header). Layer 3 unchanged (`resolveChronicleDeclaration.ts`). Realm's Chronicle still flattens across all Dialogs and has no Path grouping wired, and the Dialog cast bar is mislocated and misidentified — see `realm-becoming-together-parity` handoff (supersedes `realm-chronicle-dialog-scoped`), not yet built.
 
 ---
 
@@ -195,7 +195,25 @@ Chuck compared the real board (`/d/ke3p?board=realm`) against the reference mock
 1. **How Chronicle learns which Dialog to show:** both mechanisms, not either/or — clicking any draft/moment/library item (already sets real selection state) derives its owning Dialog; a new click handler on the Dialog's own Nav group header also jumps straight to that Dialog's Document. Mutually exclusive, the same "pick one, clear the rest" pattern already used for existing selection state. This does **not** attempt the full Layer 1 `ChronicleSubject` rewrite described above — it adds one more selection kind to the existing pattern, deliberately smaller in scope.
 2. **What shows before anything is selected:** an explicit prompt ("Select a Dialog to see its Document"), not an auto-picked default and not the current flattened everything-feed — consistent with this project's standing preference for an honest not-yet-built state over a guessed one.
 
-Scoped as handoff `realm-chronicle-dialog-scoped`.
+Scoped as handoff `realm-chronicle-dialog-scoped` — since superseded by `realm-becoming-together-parity` (below), not shipped separately.
+
+### Verified (2026-07-19): the cast bar is two separate real problems, not one, and Kip was never filtered out by a bug
+
+Chuck compared a second real screenshot against the mockup and asked why there's no lead, and why his own name shows instead of Ceox. Checked against real code before answering either question:
+
+- `DialogCastBar.tsx` (lines 167–175) already pushes a lead chip correctly whenever `leadAgentSlug` is set — the component itself isn't broken. It just renders in the wrong place: `KeeperDialogFrame.tsx` mounts it inside the composer footer, and there has never been a real header cast slot for it to live in instead (the header only ever held breadcrumb text).
+- The missing-Kip appearance traces to data, not a filter bug: ke3p's own lead-agent binding (`Domain.settings.primaryAgentId`, resolved through `apps/api/src/services/domains/resolveDomainLeadAgent.ts`'s `enrichDomainsWithLeadAgents`) currently points at the **Cloud** `kip_agents` row for this domain, not Kip's. The cast bar is correctly rendering whatever this domain's data says its lead is — it's just been pointed at the wrong agent. Chuck has been explicit Kip should direct this domain's Dialog; correcting the binding is a data fix, not a code fix, pending Cursor confirming it's actually stale rather than intentional.
+- Human cast members render with raw `member.name` (`DialogCastBar.tsx:191`) — no persona-resolution mechanism exists at all. This is the real reason Chuck's name shows instead of Ceox — not a display bug on an existing feature, a genuinely unbuilt one.
+
+### Decided (2026-07-19): Ceox represents Chuck by default, one chip, no selector
+
+Chuck's resolution, after discussion: Ceox is Chuck's default representative in a Dialog — not a competing independent voice like Cloud or Rendr, which is why showing both "Chuck" and "Ceox" as separate chips felt redundant to him. **One merged chip, labeled Ceox, on by default.** Chuck typing directly in the composer is unambiguously himself — no identity selector is needed or being added for that; the merge is about the cast *roster* display, not about intercepting or attributing his own typed input.
+
+**Escalation boundary — parked, not designed.** Chuck's own framing: Ceox can represent him "unless or until Ceox or another agent requires my permission or own input." Checked directly: nothing in this codebase implements an agent pausing mid-task to defer to a human — the closest analog, `requiresConfirmation` on Engagement Templates, is a pre-click browser confirm dialog, not a runtime agent-authority boundary. Recommended direction (not decided, not built): reuse the same three-bucket action classification already governing this assistant's own behavior in this environment (freely reversible / needs explicit confirmation / prohibited) rather than invent a new generic permission model — Ceox's escalation trigger would just be "hit the top bucket, stop." Not scoped as a handoff; sitting until Ceox is doing enough real things for it to matter.
+
+### Decided (2026-07-19): one consolidated handoff, not another narrow slice
+
+`realm-chronicle-dialog-scoped` (Chronicle Dialog-scoping, Path wiring, text-duplication fix) was archived unshipped and folded whole into a new handoff, `realm-becoming-together-parity`, alongside the cast-bar/lead-agent/Ceox work above — Chuck's explicit direction, the same "one big handoff over a sequence of slices" call he made once before for `document-point-moment-reconciliation`. Full director-mode orchestration (Kip-only composer, Cloud/Rendr as delegated sub-turns — see `docs/universal-board-dialog-orchestration.md`) is named as the clear next horizon after this lands, not folded in — a separate, larger initiative, not a quick addition to this one.
 
 ### Noted (2026-07-15): a Point may be a Moment, and Moments evolve
 

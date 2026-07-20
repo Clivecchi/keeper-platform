@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "id": "realm-chronicle-dialog-scoped",
+  "created_at": "2026-07-19T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Scope Realm's Chronicle Document to the selected Dialog instead of always flattening every Dialog into one feed, wire real Path grouping through from Moment.pathId, and fix the lede/body text duplication in Point rendering.",
+  "done_when": [
+    "Clicking any draft/moment/library-item row in Realm Nav (existing behavior -- already sets selectedDraftId/selectedMomentId/selectedLibraryItemId in UniversalBoardContext) causes Chronicle to scope its Document to that item's owning Dialog -- DomainRealmStory renders only that Dialog's group from byDialog, not the flattened combination of every dialog",
+    "A new click handler on each Dialog group's header in RealmStagedNav lets the user jump directly to that Dialog's Document without selecting a specific item first -- adds a new selectedDialogId selection kind to UniversalBoardContext, following the exact same state shape already used for selectedDraftId/selectedMomentId/selectedLibraryItemId",
+    "Selecting an item and selecting a Dialog header are mutually exclusive -- same 'set mine, clear the others' pattern already used across the existing selection state, applied to the new selectedDialogId alongside it",
+    "Before anything is selected, Chronicle shows an explicit prompt ('Select a Dialog to see its Document') instead of the current flattened all-dialogs feed or any auto-picked default",
+    "DocumentShell receives a real paths prop for the active Dialog's Document, built from Moment.pathId/Path.name -- requires adding pathId and the Path relation (id, name) to the Prisma select in apps/api/src/routes/v0/moments.ts, mapping them into the JSON response, extending KeptMomentSummary in v0Moments.ts, and threading them through momentToKeptNavEntry into a DocumentPathGroup[]. Points with no resolvable path fall into the existing ungrouped bucket buildGroups already handles -- no new fallback logic needed",
+    "draftToRealmNavEntry and momentToKeptNavEntry (realmNavGrowth.ts) no longer set lede and body.text to the identical string -- lede stays a short teaser (or is omitted when there's nothing shorter than the body), body always carries the full text. No duplicated text renders under any Point in PointView",
+    "pnpm run quick:web and pnpm run quick:api both pass for the touched files -- quick:web currently fails repo-wide on pre-existing, unrelated errors (see notes); confirm no NEW errors appear in any file this handoff touches, do not attempt to fix the pre-existing repo-wide failures as part of this handoff",
+    "Manual check on /d/ke3p?board=realm: clicking a draft or moment scopes the right panel to just that Dialog's Points; clicking a Dialog's own Nav header does the same without picking an item first; with nothing selected, the explicit prompt shows instead of a flattened feed; Points belonging to a Path render grouped under that Path's header; no duplicated text appears under any Point"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md"],
+  "scope": {
+    "touch": [
+      "apps/api/src/routes/v0/moments.ts",
+      "apps/web/src/v0/api/v0Moments.ts",
+      "apps/web/src/v0/realm/realmNavGrowth.ts",
+      "apps/web/src/v0/realm/useRealmNavGrowth.ts",
+      "apps/web/src/v0/realm/DomainRealmStory.tsx",
+      "apps/web/src/v0/realm/RealmStagedNav.tsx",
+      "apps/web/src/v0/boards/UniversalBoardContext.tsx",
+      "apps/web/src/v0/boards/panels/UniversalNavPanel.tsx"
+    ],
+    "do_not_touch": [
+      "packages/database/prisma/schema.prisma -- pathId and the Path relation already exist on Moment, no migration needed, this is a query-select change only",
+      "any apps/api/ route other than v0/moments.ts",
+      "DocumentShell.tsx / PointView.tsx internals (buildGroups, PathHeader, PointFrame, the Forward/Step block) -- already correct and already shipped, this handoff only needs to feed them real data, not change how they render it",
+      "the libraryRows.slice(0, 8) Presented heuristic in useRealmNavGrowth.ts -- still explicitly out of scope, do not touch",
+      "the full Layer 1 ChronicleSubject rewrite described in docs/chronicle-document-architecture.md -- this handoff adds one narrowly-scoped selectedDialogId alongside the existing selection pattern, it does not replace that pattern"
+    ]
+  },
+  "pattern_ref": "UniversalBoardContext.tsx already has a 'set mine, clear the others' shape for selectedDraftId/selectedMomentId/selectedLibraryItemId -- add selectedDialogId following that identical shape, don't invent new state management. DocumentPathGroup (packages/shared/src/document.ts) and buildGroups (DocumentShell.tsx) already handle Path grouping plus an ungrouped fallback bucket -- just needs real pathId/pathName threaded in via momentToKeptNavEntry, no shell-side changes. The existing Journey: { select: { id: true, name: true } } clause in apps/api/src/routes/v0/moments.ts is the direct precedent for adding an equivalent Path relation select.",
+  "rendr_treatment": null,
+  "git": {
+    "branch": "cloud",
+    "base": "cloud",
+    "commit": true,
+    "open_pr": false,
+    "pr_title": "fix: scope Realm Chronicle to selected Dialog, wire Path grouping, fix Point text duplication"
+  },
+  "verification": {
+    "commands": ["pnpm run quick:web", "pnpm run quick:api"],
+    "browser": ["/d/ke3p?board=realm"]
+  },
+  "context": {
+    "phase": "Follow-up to realm-nav-dialog-scoped and document-forward-step (both shipped, archived) -- Chuck compared the real board against the reference mockup directly and found neither handoff actually made Chronicle read as 'one Document' the way the mockup does",
+    "related_handoffs": ["realm-nav-dialog-scoped (archived, shipped)", "document-forward-step (archived, shipped)", "draft-renders-as-document (still open, unrelated to this handoff)"],
+    "library_refs": [],
+    "notes": "Chuck caught this by screenshot comparison, not from a bug report: the real /d/ke3p?board=realm doesn't read with the same clarity of purpose as the reference mockup. Traced to real code, not assumed: (1) DomainRealmStory.tsx flattens every Dialog's points into one feed regardless of Nav selection -- realm-nav-dialog-scoped scoped Nav's grouping but never touched Chronicle's actual content, so Chronicle still contradicts this doc's own settled model ('each Dialog has exactly one Document'); (2) DocumentShell's paths prop has never been fed real data -- Moment.pathId/Path.name are real Prisma fields but were never selected by the /api/v0/moments route, so they never reach the frontend at all, confirmed by reading apps/api/src/routes/v0/moments.ts directly; (3) draftToRealmNavEntry/momentToKeptNavEntry set lede and body.text to the identical string, so PointView visibly duplicates the same text under every Point that has a summary -- a real bug, found by tracing the screenshot back to the mapping function. Two open design questions were asked and resolved directly with Chuck before scoping this handoff: dialog selection is derived from item clicks AND has its own direct Dialog-header click (both, not either/or); the pre-selection state is an explicit prompt, not an auto-picked default. Separately noted: pnpm run quick:web currently fails with ~108 pre-existing errors across ~33 files repo-wide (re-verified 2026-07-19, full output, not truncated) -- none in this handoff's touch list as of this writing, but two commits landed on cloud during this same session (ab9b7101, 2c5123b0 'Forward 2') that already rewrote useRealmNavGrowth.ts for N+1-fetch performance (dialogId/pointIds now come from the drafts list endpoint directly, no per-draft detail fetch) and added request dedupe since Nav and Chronicle both call the hook -- re-read the file's current state before touching it, this handoff's line-level assumptions may be stale relative to whatever lands next. Do not fix the pre-existing repo-wide type errors as part of this handoff, just don't add new ones.",
+    "superseded_by": "realm-becoming-together-parity -- absorbed unchanged into that handoff's scope, plus cast-bar/lead-agent/Ceox work added alongside it, per Chuck's 2026-07-19 request for one consolidated Forward+gaps handoff rather than another narrow slice"
+  }
+}
