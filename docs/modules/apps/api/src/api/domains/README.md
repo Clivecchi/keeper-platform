@@ -42,6 +42,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-07-19: **Draft list lineage fields** — `GET /:domainId/kip/drafts` summary now includes `dialogId` + `pointIds` (from `spec_json.points`) so Realm Nav can group without N+1 detail GETs that were flooding Railway into 502s.
 - 2026-07-17: **Dialog DELETE + document_status** — `DELETE /:domainId/kip/dialogs/:dialogId` (hard delete; sessions/drafts SetNull); PATCH accepts `document_status` (`drafts`|`kept`|`presented`).
 - 2026-07-15: **External access key label** — `PATCH /:domainId/access-keys/:id` updates key label (domain admin).
 - 2026-07-14: **External access keys** — `GET/POST /:domainId/access-keys`, `POST .../:id/revoke`; hashed secrets; MCP auth resolves DB keys before legacy env.

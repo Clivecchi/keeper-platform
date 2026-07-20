@@ -35,6 +35,12 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-19 — Draft list lineage on KipApi
+- `KipDraftSummary` includes optional `dialogId` / `dialog_id` and `pointIds` from `GET .../kip/drafts` so Realm Nav can resolve Dialog lineage without per-draft detail fetches.
+
+### 2026-07-18 — createSession gateway retry
+- `kipDialogSession.resumeOrCreateBoardSession` — one retry on HTTP 502/503/504 or closed-connection errors before failing the composer.
+
 ### 2026-07-17 — Dialog hard-delete client
 - `kipDialogSession.deleteDialog` — `DELETE /api/domains/:domainId/kip/dialogs/:dialogId` (204).
 - `apiFetch` — treats 204 / empty body as success (no JSON parse) so hard deletes do not throw client-side.

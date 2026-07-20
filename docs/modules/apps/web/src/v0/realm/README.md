@@ -32,6 +32,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-19 — Realm Nav request-storm fix
+- `useRealmNavGrowth` no longer detail-fetches every draft — uses list `dialogId` + `pointIds`; only one-off GETs for Moments whose `sourceDraftId` is outside the list
+- In-flight dedupe so Nav + Chronicle sharing the hook do not double-load the same domain
+
 ### 2026-07-19 — DocumentShell Forward/Step on Realm
 - `DomainRealmStory` passes authored `forward` + current `step` into `DocumentShell` so Realm Chronicle shows the new header (Back/Forward disabled until Layer 3)
 

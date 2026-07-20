@@ -36,6 +36,13 @@ type MomentLineageFields = KeptMomentSummary & {
   source_draft_id?: string | null
 }
 
+type RealmNavGrowthPayload = {
+  grouped: RealmNavGrouped
+}
+
+/** In-flight dedupe — Nav + Chronicle both call this hook; one load per domain. */
+const growthInflight = new Map<string, Promise<RealmNavGrowthPayload>>()
+
 function readDraftDialogId(
   draft: KipDraftSummary | KipDraft | null | undefined,
 ): string | null {
@@ -46,6 +53,19 @@ function readDraftDialogId(
   }
   const id = row.dialog_id ?? row.dialogId
   return typeof id === "string" && id.trim() ? id.trim() : null
+}
+
+function readDraftPointIds(draft: KipDraftSummary | KipDraft | null | undefined): string[] {
+  if (!draft) return []
+  const fromList = (draft as KipDraftSummary).pointIds
+  if (Array.isArray(fromList)) {
+    return fromList.filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
+  }
+  const points = (draft as KipDraft).spec?.points
+  if (!Array.isArray(points)) return []
+  return points
+    .map((point) => (typeof point?.id === "string" ? point.id.trim() : ""))
+    .filter(Boolean)
 }
 
 function readMomentSourceDraftId(moment: KeptMomentSummary): string | null {
@@ -76,46 +96,22 @@ async function loadDialogTitleById(domainId: string): Promise<Map<string, string
 }
 
 /**
- * Resolve draft → dialog_id (detail fetch when list omits it) and
- * moment → dialog via sourceDraftId → draft.dialog_id, or Point-id identity keep.
+ * Resolve draft → dialog_id and moment → dialog via list fields (dialogId + pointIds).
+ * Detail-fetch only for Moments whose sourceDraftId sits outside the nav list.
  */
-async function resolveDialogLineage(
-  domainId: string,
-  drafts: KipDraftSummary[],
-): Promise<{
+function resolveDialogLineageFromList(drafts: KipDraftSummary[]): {
   draftDialogById: Map<string, string>
   pointDialogById: Map<string, string>
-}> {
+} {
   const draftDialogById = new Map<string, string>()
   const pointDialogById = new Map<string, string>()
 
-  const details = await Promise.all(
-    drafts.map(async (summary) => {
-      const fromList = readDraftDialogId(summary)
-      if (fromList) {
-        draftDialogById.set(summary.id, fromList)
-      }
-      try {
-        return await KipApi.getDraft(domainId, summary.id)
-      } catch {
-        return null
-      }
-    }),
-  )
-
-  for (const detail of details) {
-    if (!detail) continue
-    const dialogId = readDraftDialogId(detail)
-    if (dialogId) {
-      draftDialogById.set(detail.id, dialogId)
-      const points = detail.spec?.points
-      if (Array.isArray(points)) {
-        for (const point of points) {
-          if (typeof point?.id === "string" && point.id.trim()) {
-            pointDialogById.set(point.id.trim(), dialogId)
-          }
-        }
-      }
+  for (const summary of drafts) {
+    const dialogId = readDraftDialogId(summary)
+    if (!dialogId) continue
+    draftDialogById.set(summary.id, dialogId)
+    for (const pointId of readDraftPointIds(summary)) {
+      pointDialogById.set(pointId, dialogId)
     }
   }
 
@@ -134,6 +130,79 @@ function resolveMomentDialogId(
   }
   // Identity keep: primary Moment.id === Point.id
   return pointDialogById.get(moment.id) ?? null
+}
+
+async function loadRealmNavGrowthPayload(
+  domainId: string,
+  domainSlug: string | null,
+): Promise<RealmNavGrowthPayload> {
+  const cacheKey = `${domainId}:${domainSlug ?? ""}`
+  const existing = growthInflight.get(cacheKey)
+  if (existing) return existing
+
+  const promise = (async (): Promise<RealmNavGrowthPayload> => {
+    const [drafts, libraryRows, keptMoments, dialogTitleById] = await Promise.all([
+      KipApi.listDrafts(domainId, undefined, {
+        limit: 40,
+        excludeStatus: ["promoted", "archived"],
+      }).catch(() => [] as KipDraftSummary[]),
+      fetchDomainLibraryNavRows(domainId).catch(() => []),
+      domainSlug
+        ? getKeptMoments({ domainSlug, limit: 30 }).catch(() => [] as KeptMomentSummary[])
+        : Promise.resolve([] as KeptMomentSummary[]),
+      loadDialogTitleById(domainId),
+    ])
+
+    const { draftDialogById, pointDialogById } = resolveDialogLineageFromList(drafts)
+
+    // Moments whose sourceDraftId points outside the nav list (e.g. promoted) need a one-off fetch.
+    const missingSourceDraftIds = [
+      ...new Set(
+        keptMoments
+          .map(readMomentSourceDraftId)
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && id.length > 0 && !draftDialogById.has(id),
+          ),
+      ),
+    ]
+    if (missingSourceDraftIds.length > 0) {
+      const extras = await Promise.all(
+        missingSourceDraftIds.map((id) => KipApi.getDraft(domainId, id).catch(() => null)),
+      )
+      for (const detail of extras) {
+        const dialogId = readDraftDialogId(detail)
+        if (detail && dialogId) {
+          draftDialogById.set(detail.id, dialogId)
+          for (const pointId of readDraftPointIds(detail)) {
+            pointDialogById.set(pointId, dialogId)
+          }
+        }
+      }
+    }
+
+    const entries: RealmNavEntry[] = [
+      ...drafts.map((draft) =>
+        draftToRealmNavEntry(draft, draftDialogById.get(draft.id) ?? null),
+      ),
+      ...libraryRows.map((row) => libraryRowToKeptNavEntry(row, null)),
+      ...keptMoments.map((moment) =>
+        momentToKeptNavEntry(
+          moment,
+          resolveMomentDialogId(moment, draftDialogById, pointDialogById),
+        ),
+      ),
+      // Presented: library rows indexed for show — heuristic until Present surface wires status
+      ...libraryRows.slice(0, 8).map((row) => libraryRowToPresentedNavEntry(row, null)),
+    ]
+
+    return { grouped: groupRealmNavEntries(entries, dialogTitleById) }
+  })().finally(() => {
+    growthInflight.delete(cacheKey)
+  })
+
+  growthInflight.set(cacheKey, promise)
+  return promise
 }
 
 export function useRealmNavGrowth(
@@ -161,66 +230,8 @@ export function useRealmNavGrowth(
 
     void (async () => {
       try {
-        const [drafts, libraryRows, keptMoments, dialogTitleById] = await Promise.all([
-          KipApi.listDrafts(domainId, undefined, {
-            limit: 40,
-            excludeStatus: ["promoted", "archived"],
-          }).catch(() => [] as KipDraftSummary[]),
-          fetchDomainLibraryNavRows(domainId).catch(() => []),
-          domainSlug
-            ? getKeptMoments({ domainSlug, limit: 30 }).catch(() => [] as KeptMomentSummary[])
-            : Promise.resolve([] as KeptMomentSummary[]),
-          loadDialogTitleById(domainId),
-        ])
-
-        if (cancelled) return
-
-        // List endpoint omits dialog_id — detail fetch supplies it + Point ids for Moment lineage.
-        const { draftDialogById, pointDialogById } = await resolveDialogLineage(domainId, drafts)
-
-        // Moments whose sourceDraftId points outside the nav list (e.g. promoted) need a one-off fetch.
-        const missingSourceDraftIds = [
-          ...new Set(
-            keptMoments
-              .map(readMomentSourceDraftId)
-              .filter((id): id is string => Boolean(id) && !draftDialogById.has(id)),
-          ),
-        ]
-        if (missingSourceDraftIds.length > 0) {
-          const extras = await Promise.all(
-            missingSourceDraftIds.map((id) => KipApi.getDraft(domainId, id).catch(() => null)),
-          )
-          for (const detail of extras) {
-            const dialogId = readDraftDialogId(detail)
-            if (detail && dialogId) {
-              draftDialogById.set(detail.id, dialogId)
-              for (const point of detail.spec?.points ?? []) {
-                if (typeof point?.id === "string" && point.id.trim()) {
-                  pointDialogById.set(point.id.trim(), dialogId)
-                }
-              }
-            }
-          }
-        }
-
-        if (cancelled) return
-
-        const entries: RealmNavEntry[] = [
-          ...drafts.map((draft) =>
-            draftToRealmNavEntry(draft, draftDialogById.get(draft.id) ?? null),
-          ),
-          ...libraryRows.map((row) => libraryRowToKeptNavEntry(row, null)),
-          ...keptMoments.map((moment) =>
-            momentToKeptNavEntry(
-              moment,
-              resolveMomentDialogId(moment, draftDialogById, pointDialogById),
-            ),
-          ),
-          // Presented: library rows indexed for show — heuristic until Present surface wires status
-          ...libraryRows.slice(0, 8).map((row) => libraryRowToPresentedNavEntry(row, null)),
-        ]
-
-        setGrouped(groupRealmNavEntries(entries, dialogTitleById))
+        const { grouped: next } = await loadRealmNavGrowthPayload(domainId, domainSlug)
+        if (!cancelled) setGrouped(next)
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Could not load nav")

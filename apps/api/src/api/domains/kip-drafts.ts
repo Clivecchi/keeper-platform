@@ -101,7 +101,37 @@ function parseDraftListQuery(query: AuthenticatedRequest['query']): {
   return { applyFilters: true, limit, excludeStatuses };
 }
 
-const mapDraftSummary = (draft: any) => ({
+/** Lightweight Point ids from draft manuscript — avoids N+1 detail fetches for Realm Nav lineage. */
+function extractPointIdsFromSpec(specJson: unknown): string[] {
+  if (!specJson || typeof specJson !== 'object') return [];
+  const points = (specJson as { points?: unknown }).points;
+  if (!Array.isArray(points)) return [];
+  const ids: string[] = [];
+  for (const point of points) {
+    if (
+      point &&
+      typeof point === 'object' &&
+      typeof (point as { id?: unknown }).id === 'string'
+    ) {
+      const id = (point as { id: string }).id.trim();
+      if (id) ids.push(id);
+    }
+  }
+  return ids;
+}
+
+const mapDraftSummary = (draft: {
+  id: string;
+  kind: string;
+  key: string;
+  title: string;
+  status: string;
+  summary: string | null;
+  updated_at: Date | string;
+  keeper_id?: string | null;
+  dialog_id?: string | null;
+  spec_json?: unknown;
+}) => ({
   id: draft.id,
   kind: draft.kind,
   key: draft.key,
@@ -110,6 +140,8 @@ const mapDraftSummary = (draft: any) => ({
   summary: draft.summary ?? null,
   updatedAt: draft.updated_at,
   keeperId: draft.keeper_id ?? null,
+  dialogId: draft.dialog_id ?? null,
+  pointIds: extractPointIdsFromSpec(draft.spec_json),
 });
 
 const mapDraftDetail = (draft: {
@@ -171,6 +203,8 @@ router.get(
           summary: true,
           updated_at: true,
           keeper_id: true,
+          dialog_id: true,
+          spec_json: true,
         },
         orderBy: [
           { keeper_id: 'desc' },

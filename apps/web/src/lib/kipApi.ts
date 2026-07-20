@@ -197,6 +197,11 @@ export interface KipDraftSummary {
   updatedAt?: string | Date | null;
   /** When set, draft is scoped to this keeper */
   keeperId?: string | null;
+  /** Dialog lineage — included on list so Realm Nav need not detail-fetch each draft */
+  dialogId?: string | null;
+  dialog_id?: string | null;
+  /** Point ids from draft.spec.points — for Moment identity-keep lineage without detail GET */
+  pointIds?: string[] | null;
 }
 
 export interface KipDraft extends KipDraftSummary {

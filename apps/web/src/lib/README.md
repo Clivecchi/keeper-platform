@@ -35,6 +35,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-19 — Draft list lineage on KipApi
+- `KipDraftSummary` includes optional `dialogId` / `dialog_id` and `pointIds` from `GET .../kip/drafts` so Realm Nav can resolve Dialog lineage without per-draft detail fetches.
+
 ### 2026-07-18 — createSession gateway retry
 - `kipDialogSession.resumeOrCreateBoardSession` — one retry on HTTP 502/503/504 or closed-connection errors before failing the composer.
 
