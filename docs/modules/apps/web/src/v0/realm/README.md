@@ -32,6 +32,11 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-19 — Cast bar Ceox / personal-agent chip
+- `DialogCastBar` resolves the signed-in member to their primary-domain lead display name (Chuck → Ceox) — one person chip, not raw `member.name`
+- Personal-agent slug is excluded from support-agent chips so the human and their persona never double-render
+- Investigated ke3p `settings.primaryAgentId`: already points at Kip (matches `frame_json.kip.agent_id`); no data overwrite
+
 ### 2026-07-19 — Cast bar in Dialog header
 - `DialogCastBar` mounts in `KeeperDialogFrame` header (`.dialog-header-cast`), not the composer footer
 

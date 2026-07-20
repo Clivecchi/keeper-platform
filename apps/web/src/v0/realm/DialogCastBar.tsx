@@ -3,9 +3,36 @@
 import * as React from "react"
 import { apiFetch } from "../../lib/api"
 import type { DomainAccessKeyRecord } from "@keeper/shared"
+import { useAuth } from "../../context/AuthContext"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import type { DomainMemberRow } from "../presence/cover/DomainPeopleSection"
+
+/** Personal-agent identity for the signed-in member (primary domain lead). */
+export interface PersonalAgentIdentity {
+  slug: string
+  name: string
+}
+
+type DomainLeadRow = {
+  isPrimary?: boolean
+  leadAgentSlug?: string | null
+  leadAgentName?: string | null
+}
+
+async function fetchPersonalAgentIdentity(): Promise<PersonalAgentIdentity | null> {
+  try {
+    const rows = (await apiFetch("/api/domains/my")) as DomainLeadRow[] | { error?: string }
+    if (!Array.isArray(rows) || rows.length === 0) return null
+    const primary = rows.find((row) => row.isPrimary) ?? rows[0]
+    const slug = primary?.leadAgentSlug?.trim()
+    const name = primary?.leadAgentName?.trim()
+    if (!slug || !name) return null
+    return { slug, name }
+  } catch {
+    return null
+  }
+}
 
 export type CastMemberStatus = "active" | "present" | "access-unconfirmed"
 
@@ -141,20 +168,25 @@ export function DialogCastBar({
   onInvite,
   onManageAccess,
 }: DialogCastBarProps) {
+  const { user } = useAuth()
   const [members, setMembers] = React.useState<DomainMemberRow[]>([])
   const [keys, setKeys] = React.useState<DomainAccessKeyRecord[]>([])
+  const [personalAgent, setPersonalAgent] = React.useState<PersonalAgentIdentity | null>(null)
 
   React.useEffect(() => {
     if (!domainId) return
     let cancelled = false
-    void Promise.all([fetchMembers(domainId), fetchAccessKeys(domainId)]).then(
-      ([memberRows, keyRows]) => {
-        if (!cancelled) {
-          setMembers(memberRows)
-          setKeys(keyRows)
-        }
-      },
-    )
+    void Promise.all([
+      fetchMembers(domainId),
+      fetchAccessKeys(domainId),
+      fetchPersonalAgentIdentity(),
+    ]).then(([memberRows, keyRows, personal]) => {
+      if (!cancelled) {
+        setMembers(memberRows)
+        setKeys(keyRows)
+        setPersonalAgent(personal)
+      }
+    })
     return () => {
       cancelled = true
     }
@@ -163,6 +195,8 @@ export function DialogCastBar({
   const chips = React.useMemo((): CastMemberChip[] => {
     const result: CastMemberChip[] = []
     const activeKeyCount = keys.filter((k) => k.status === "active").length
+    const personalSlug = personalAgent?.slug?.trim().toLowerCase() || null
+    const currentUserId = user?.id ? String(user.id) : null
 
     if (leadAgentSlug) {
       result.push({
@@ -176,6 +210,8 @@ export function DialogCastBar({
 
     for (const agent of supportAgents) {
       if (agent.slug === leadAgentSlug) continue
+      // Personal agent represents the human — one chip, not agent + person.
+      if (personalSlug && agent.slug.trim().toLowerCase() === personalSlug) continue
       result.push({
         id: `agent:${agent.slug}`,
         slug: agent.slug,
@@ -186,16 +222,29 @@ export function DialogCastBar({
     }
 
     for (const member of members) {
+      const isCurrentUser = currentUserId != null && String(member.userId) === currentUserId
+      const resolvedPersona =
+        isCurrentUser && personalAgent?.name?.trim() ? personalAgent : null
       result.push({
         id: `person:${member.userId}`,
-        label: member.name?.trim() || "Member",
+        label: resolvedPersona?.name.trim() || member.name?.trim() || "Member",
         status: activeKeyCount > 0 ? "present" : "access-unconfirmed",
         kind: "person",
+        ...(resolvedPersona?.slug ? { slug: resolvedPersona.slug } : {}),
       })
     }
 
     return result
-  }, [leadAgentSlug, leadAgentName, supportAgents, members, keys, activeSlug])
+  }, [
+    leadAgentSlug,
+    leadAgentName,
+    supportAgents,
+    members,
+    keys,
+    activeSlug,
+    personalAgent,
+    user?.id,
+  ])
 
   const handleGetKey = React.useCallback(async () => {
     if (!domainId) return
