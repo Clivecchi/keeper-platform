@@ -628,6 +628,30 @@ export function KeeperDialogFrame({
         </div>
       )}
 
+      {/* ── Header cast slot — Realm cast bar lives here, not in the composer footer ─ */}
+      {mode !== "feed" && castBarConfig ? (
+        <div
+          className="dialog-header-cast"
+          style={{
+            padding: "0 12px",
+            borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.35)",
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.35)",
+          }}
+        >
+          <DialogCastBar
+            domainId={castBarConfig.domainId}
+            treatment={castBarConfig.treatment}
+            leadAgentSlug={castBarConfig.leadAgentSlug}
+            leadAgentName={castBarConfig.leadAgentName}
+            supportAgents={castBarConfig.supportAgents}
+            activeSlug={activeBoardInstrumentSlug}
+            onInvokeAgent={onBoardInstrumentInvoke}
+            onInvite={castBarConfig.onInvite}
+            onManageAccess={castBarConfig.onManageAccess}
+          />
+        </div>
+      ) : null}
+
       {/* ── Dialog Space — messages scroll above the Horizon ─────────────────── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
@@ -808,18 +832,6 @@ export function KeeperDialogFrame({
                   railwayStatus={railwayStatus}
                   vercelStatus={vercelStatus}
                   githubStatus={githubStatus}
-                />
-              ) : castBarConfig ? (
-                <DialogCastBar
-                  domainId={castBarConfig.domainId}
-                  treatment={castBarConfig.treatment}
-                  leadAgentSlug={castBarConfig.leadAgentSlug}
-                  leadAgentName={castBarConfig.leadAgentName}
-                  supportAgents={castBarConfig.supportAgents}
-                  activeSlug={activeBoardInstrumentSlug}
-                  onInvokeAgent={onBoardInstrumentInvoke}
-                  onInvite={castBarConfig.onInvite}
-                  onManageAccess={castBarConfig.onManageAccess}
                 />
               ) : boardInstruments?.length ? (
                 <BoardInstrumentsBar

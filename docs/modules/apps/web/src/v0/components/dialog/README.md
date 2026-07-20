@@ -20,7 +20,7 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 
 | Product name | Role | CSS / attribute |
 |---|---|---|
-| **Header Bar** | Expandable breadcrumb + session meta | `.dialog-header-banner` |
+| **Header Bar** | Expandable breadcrumb + session meta; optional cast slot below | `.dialog-header-banner` / `.dialog-header-cast` |
 | **Dialog Space** | Messages scroll here, above the dissolve | `.dialog-message-zone` / `.dialog-message-surface` |
 | **Horizon dissolve** | Gradient fade at Dialog Space floor (no live text) | `.dialog-horizon-band`, `.dialog-fade-overlay` |
 | **Broadcast Strip** | Unified working surface — live beat + ticker; upload previews when staging | `.dialog-broadcast-strip` |
@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-07-19: **Cast bar header slot** — Realm `DialogCastBar` renders in `.dialog-header-cast` under the breadcrumb banner; removed from composer footer (breadcrumb banner unchanged).
 - 2026-07-11: **Attachment send fix** — `handleComposerSubmit` awaits agent send; `isSubmittingMessage` blocks double-submit during Library commit. `DialogUploadStream` hints that Enter/Send ships image + prompt together. Attachment thinking beats no longer surface as post-run Horizon summary.
 - 2026-07-02: **P4.1 paste in Thinking Space** — `DialogUploadStream` renders `SupportingDocumentTile` for pasted context; Broadcast Strip shows paste + file uploads; composer textarea stays clean on Dialog boards.
 - 2026-06-29: **Post-run Horizon** — `Consulting …` and other in-flight beats are meta steps; composer summary no longer sticks on "Consulting vecch.io…" after a text-only reply with no action receipts.
