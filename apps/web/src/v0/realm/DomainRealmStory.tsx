@@ -1,12 +1,42 @@
 "use client"
 
 import * as React from "react"
+import type { DocumentPathGroup } from "@keeper/shared"
 import { DocumentShell } from "../presence/chronicleDocument/DocumentShell"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { useRealmNavGrowth } from "./useRealmNavGrowth"
 import type { RealmNavEntry } from "./realmNavGrowth"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
+
+function buildPathsFromEntries(entries: RealmNavEntry[]): DocumentPathGroup[] {
+  const pathOrder: string[] = []
+  const byPath = new Map<string, { title: string; indexes: number[] }>()
+
+  entries.forEach((entry, index) => {
+    const pathId = entry.pathId?.trim()
+    if (!pathId) return
+    const existing = byPath.get(pathId)
+    if (existing) {
+      existing.indexes.push(index)
+      return
+    }
+    pathOrder.push(pathId)
+    byPath.set(pathId, {
+      title: entry.pathName?.trim() || "Path",
+      indexes: [index],
+    })
+  })
+
+  return pathOrder.map((pathId) => {
+    const group = byPath.get(pathId)!
+    return {
+      id: pathId,
+      title: group.title,
+      pointIds: group.indexes.map((index) => String(index)),
+    }
+  })
+}
 
 export interface DomainRealmStoryProps {
   domainId: string | null
@@ -108,6 +138,11 @@ export function DomainRealmStory({
     [storyEntries],
   )
 
+  const paths = React.useMemo(
+    () => buildPathsFromEntries(storyEntries),
+    [storyEntries],
+  )
+
   const handleGlossPoint = React.useCallback(
     (_point: RealmNavEntry["point"], index: number) => {
       const entry = storyEntries[index]
@@ -164,6 +199,7 @@ export function DomainRealmStory({
             }
           : undefined
       }
+      paths={paths}
       points={points}
       onGlossPoint={handleGlossPoint}
       emptyState={emptyState}

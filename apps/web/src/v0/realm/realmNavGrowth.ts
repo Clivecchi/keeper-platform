@@ -27,8 +27,28 @@ export interface RealmNavEntry {
   description?: string
   /** Owning Dialog id when resolvable; null → Unassigned. */
   dialogId?: string | null
+  /** Path id when resolvable — used to build DocumentShell `paths`. */
+  pathId?: string | null
+  /** Path display name when resolvable. */
+  pathName?: string | null
   /** Atomic Point card for Chronicle / DocumentShell. */
   point: Point
+}
+
+/** Short teaser for Point.lede — omitted when nothing shorter than the body exists. */
+export function pointLedeFromBody(fullText: string | undefined | null): string | undefined {
+  const text = fullText?.trim()
+  if (!text) return undefined
+  const sentenceMatch = text.match(/^(.+?[.!?])(\s|$)/)
+  const sentence = sentenceMatch?.[1]?.trim()
+  if (sentence && sentence.length < text.length && sentence.length <= 160) {
+    return sentence
+  }
+  if (text.length <= 120) return undefined
+  const clipped = text.slice(0, 117).trimEnd()
+  const lastSpace = clipped.lastIndexOf(" ")
+  const teaser = (lastSpace > 40 ? clipped.slice(0, lastSpace) : clipped).trimEnd()
+  return teaser ? `${teaser}…` : undefined
 }
 
 /** One Dialog (or Unassigned) with stage buckets inside. */
@@ -56,6 +76,8 @@ export function draftToRealmNavEntry(
   dialogId?: string | null,
 ): RealmNavEntry {
   const title = draft.title?.trim() || "Untitled draft"
+  const bodyText =
+    draft.summary?.trim() || "In progress — open in Chronicle to continue shaping."
   return {
     id: draft.id,
     kind: "draft",
@@ -66,9 +88,9 @@ export function draftToRealmNavEntry(
     point: {
       identity: { label: "Draft", subtitle: draft.kind },
       title,
-      lede: draft.summary?.trim() || undefined,
+      lede: pointLedeFromBody(draft.summary),
       body: {
-        text: draft.summary?.trim() || "In progress — open in Chronicle to continue shaping.",
+        text: bodyText,
         clampLines: 4,
         expandable: false,
       },
@@ -116,10 +138,12 @@ export function momentToKeptNavEntry(
     label: title,
     description: "Moment",
     dialogId: dialogId ?? null,
+    pathId: moment.pathId?.trim() || null,
+    pathName: moment.pathName?.trim() || null,
     point: {
       identity: { label: "Moment", subtitle: "Kept" },
       title,
-      lede: bodyText || undefined,
+      lede: pointLedeFromBody(bodyText),
       body: {
         text: bodyText || "A kept moment on this domain.",
         clampLines: 4,

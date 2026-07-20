@@ -168,7 +168,14 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
         keptAt: true,
         createdAt: true,
         journeyId: true,
+        pathId: true,
         Journey: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        Path: {
           select: {
             id: true,
             name: true,
@@ -187,6 +194,8 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
         createdAt: moment.createdAt,
         journeyId: moment.journeyId,
         journeyName: moment.Journey?.name ?? null,
+        pathId: moment.pathId,
+        pathName: moment.Path?.name ?? null,
         domain,
       })),
     });

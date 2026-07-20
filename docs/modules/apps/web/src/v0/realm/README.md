@@ -32,6 +32,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-19 — Path grouping + Point lede/body split
+- `momentToKeptNavEntry` carries `pathId` / `pathName` from kept Moments; `DomainRealmStory` builds `DocumentPathGroup[]` for `DocumentShell`
+- `draftToRealmNavEntry` / `momentToKeptNavEntry` use `pointLedeFromBody` so lede is a short teaser (or omitted), body always holds full text
+
 ### 2026-07-19 — Chronicle Dialog-scoped Document
 - `DomainRealmStory` no longer flattens every Dialog — scopes Points to `selectedDialogId` or the Dialog owning the selected draft/moment/library row
 - Empty state prompt: "Select a Dialog to see its Document" until a scope is set

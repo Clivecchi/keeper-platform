@@ -298,6 +298,8 @@ export interface KeptMomentSummary {
   createdAt: string;
   journeyId?: string | null;
   journeyName?: string | null;
+  pathId?: string | null;
+  pathName?: string | null;
   domain?: {
     id: string;
     name: string;
