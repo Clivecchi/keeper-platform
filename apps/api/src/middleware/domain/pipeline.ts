@@ -8,12 +8,9 @@ import { resolveDomainContext, DomainContextStrategy } from './resolveDomainCont
 import { requireAuth } from './requireAuth.js';
 import { requireDomainRead, requireDomainWrite, requireDomainAdmin } from './requireDomainPermissions.js';
 import { requireMemoryAccess } from './requireMemoryAccess.js';
-import { DomainService, DomainCacheService } from '@keeper/database';
-import { PrismaClient } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
-const prisma = new PrismaClient();
-
+import { DomainService, DomainCacheService, prisma } from '@keeper/database';
 // Lazy initialization - services will be created only when needed during request processing
 let cacheService: DomainCacheService | null = null;
 let domainService: DomainService | null = null;

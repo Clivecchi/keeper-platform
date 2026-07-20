@@ -1,4 +1,4 @@
-import { PrismaClient, DomainPermissionService, DomainCacheService, DomainService } from '@keeper/database';
+import { prisma, DomainPermissionService, DomainCacheService, DomainService } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
@@ -69,8 +69,6 @@ export type KipEnvironmentContext = {
     github?: GitHubServiceBinding;
   };
 };
-
-const prisma = new PrismaClient();
 
 // Lazy initialization - services will be created only when needed
 let cacheService: DomainCacheService | null = null;

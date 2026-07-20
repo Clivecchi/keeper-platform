@@ -14,10 +14,10 @@
   },
   "scripts": {
     "prisma": "prisma",
-    "generate": "prisma generate",
-    "build": "prisma generate && tsc",
-    "migrate:deploy": "prisma migrate deploy",
-    "migrate:deploy:railway": "prisma migrate resolve --rolled-back 20260215_sole_memory_links 2>/dev/null || true && prisma migrate deploy",
+    "generate": "node scripts/run-with-direct-url.js --allow-placeholder prisma generate",
+    "build": "node scripts/run-with-direct-url.js --allow-placeholder prisma generate && tsc",
+    "migrate:deploy": "node scripts/run-with-direct-url.js prisma migrate deploy",
+    "migrate:deploy:railway": "node scripts/run-with-direct-url.js prisma migrate resolve --rolled-back 20260215_sole_memory_links || true; node scripts/run-with-direct-url.js prisma migrate deploy",
     "wait-for-database": "node scripts/wait-for-database.js",
     "migrate:resolve": "node scripts/resolve-failed-migration.js",
     "check:boards": "node scripts/check-board-data.js",
@@ -25,12 +25,12 @@
     "check:table": "node scripts/check-table-structure.js",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "push": "prisma db push",
-    "pull": "prisma db pull",
-    "studio": "prisma studio",
-    "migrate": "prisma migrate dev",
-    "reset": "prisma migrate reset",
-    "seed": "tsx prisma/seed.ts"
+    "push": "node scripts/run-with-direct-url.js prisma db push",
+    "pull": "node scripts/run-with-direct-url.js prisma db pull",
+    "studio": "node scripts/run-with-direct-url.js prisma studio",
+    "migrate": "node scripts/run-with-direct-url.js prisma migrate dev",
+    "reset": "node scripts/run-with-direct-url.js prisma migrate reset",
+    "seed": "node scripts/run-with-direct-url.js tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

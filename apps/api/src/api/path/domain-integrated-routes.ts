@@ -7,14 +7,12 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { mergePresenceSchemaCover } from '@keeper/shared';
-import { PrismaClient, type Prisma } from '@keeper/database';
+import { prisma, type Prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { queryValidationMiddleware, validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 const pathQuerySchema = z.object({
   search: z.string().optional(),
   domainId: z.string().uuid().optional(),

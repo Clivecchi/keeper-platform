@@ -8,12 +8,10 @@
  * Equivalent API (domain admin auth required):
  *   POST /api/domains/:id/provision
  */
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { domainFrameLooksUnseeded } from '@keeper/shared';
 import 'dotenv/config';
 import { provisionDomainOnCreate } from '../services/domains/provisionDomainOnCreate.js';
-
-const prisma = new PrismaClient();
 
 function isEmptyJson(value: unknown): boolean {
   return (
@@ -119,4 +117,4 @@ main()
     console.error('Error:', error);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  

@@ -5,13 +5,10 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
-import { DomainServiceFactory, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { AuthenticatedRequest, authMiddlewareCompat, optionalAuthMiddleware } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
-import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
 import contactRoutes from './contact.js';
 import boardDataRoutes from './board-data.js';
@@ -21,9 +18,9 @@ import kipDialogRoutes from './kip-dialogs.js';
 import presenceSchemaRoutes from './presence-schema-routes.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
-import { DomainService } from '@keeper/database';
 import { ensureDomainHomeBoard, ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
 import { resolveDomainForCustomHostname } from '../../services/customDomainVerificationSync.js';
+import { prisma, DomainServiceFactory, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType, getFeatureFlagService, DomainService } from '@keeper/database';
 import {
   omitOperationalFrameKeysFromPatch,
   patchTouchesFrozenFrameKeys,
@@ -59,8 +56,6 @@ import {
 import domainAccessKeyRoutes from './domain-access-key-routes.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 // Lazy initialization - services will be created only when needed during request processing
 let cacheService: DomainCacheService | null = null;
 let domainService: DomainService | null = null;

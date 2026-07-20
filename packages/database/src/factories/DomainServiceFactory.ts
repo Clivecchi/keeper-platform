@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import { prisma } from '../client.js';
 import { DomainService } from '../services/DomainService.js';
 import { DomainCacheService } from '../services/DomainCacheService.js';
 import { DomainContextService } from '../services/DomainContextService.js';
@@ -159,9 +160,7 @@ export class DomainServiceFactory {
 
   private static async _initializePrisma(): Promise<void> {
     logger.debug('Initializing Prisma connection');
-    this.prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    });
+    this.prisma = prisma;
 
     // Test Prisma connection
     await this.prisma.$connect();

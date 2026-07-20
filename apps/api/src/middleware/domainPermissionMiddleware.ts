@@ -4,10 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { AuthenticatedRequest } from './authMiddleware.js';
-
-const prisma = new PrismaClient();
 
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
 

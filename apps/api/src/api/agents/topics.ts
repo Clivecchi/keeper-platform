@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
 import { emitActivity } from './_activity-util.js';
 import { broadcastAgentEvent } from './events.js';
@@ -20,7 +20,6 @@ topicsRouter.get('/:id/topics', async (req: Request, res: Response) => {
     ]);
   }
   // Proxy once boardId mapping is resolved via agentId column
-  const prisma = new PrismaClient();
   const { agentId: queryAgentId } = req.query as any;
   if (queryAgentId) {
     try {

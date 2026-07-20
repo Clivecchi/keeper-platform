@@ -4,15 +4,12 @@
  */
 
 import { Router, Response } from 'express';
-import { PrismaClient } from '@keeper/database';
 import { AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { attachUser } from '../../middleware/auth.js';
-import { DomainPermissionService, DomainCacheService } from '@keeper/database';
 import { getRedis } from '../../lib/redis.js';
 
+import { prisma, DomainPermissionService, DomainCacheService, type PrismaClient } from '@keeper/database';
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 // Lazy initialization - services will be created only when needed during request processing
 let cacheService: DomainCacheService | null = null;
 let permissionService: DomainPermissionService | null = null;

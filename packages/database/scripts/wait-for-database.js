@@ -1,8 +1,8 @@
 /**
  * Wait for PostgreSQL to accept connections before prisma migrate deploy.
- * Railway sometimes starts the API container before the DB proxy is ready (P1001).
+ * Prefer DIRECT_URL (direct Postgres) so we do not wait on a saturated pooler.
  *
- * Usage: DATABASE_URL=... node packages/database/scripts/wait-for-database.js
+ * Usage: node packages/database/scripts/wait-for-database.js
  */
 import pg from 'pg';
 
@@ -13,14 +13,35 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function stripPoolerParams(url) {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete('pgbouncer');
+    parsed.searchParams.delete('connection_limit');
+    parsed.searchParams.delete('pool_timeout');
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 function redactDatabaseUrl(url) {
   try {
     const parsed = new URL(url);
     if (parsed.password) parsed.password = '***';
     return parsed.toString();
   } catch {
-    return '(invalid DATABASE_URL)';
+    return '(invalid connection URL)';
   }
+}
+
+function resolveWaitUrl() {
+  const direct = process.env.DIRECT_URL?.trim();
+  if (direct) return direct;
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (!databaseUrl) return null;
+  // Derive a direct-ish URL when DIRECT_URL is unset (pre-PgBouncer or misconfig).
+  return stripPoolerParams(databaseUrl);
 }
 
 async function canConnect(connectionString) {
@@ -32,7 +53,9 @@ async function canConnect(connectionString) {
     await client.connect();
     await client.query('SELECT 1');
     return true;
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`[wait-for-database] connect failed: ${message}`);
     return false;
   } finally {
     await client.end().catch(() => {});
@@ -40,10 +63,14 @@ async function canConnect(connectionString) {
 }
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL?.trim();
+  const connectionString = resolveWaitUrl();
   if (!connectionString) {
-    console.error('[wait-for-database] DATABASE_URL is not set');
+    console.error('[wait-for-database] DATABASE_URL (or DIRECT_URL) is not set');
     process.exit(1);
+  }
+
+  if (!process.env.DIRECT_URL?.trim()) {
+    process.env.DIRECT_URL = connectionString;
   }
 
   console.log(

@@ -4,16 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../lib/redis.js';
-import { 
-  DomainService, 
-  DomainCacheService,
-  FeatureFlagService
-} from '@keeper/database';
-
-const prisma = new PrismaClient();
-
+import { prisma, DomainService, DomainCacheService, FeatureFlagService, type PrismaClient } from '@keeper/database';
 // Lazy initialization - Redis will be initialized only when needed during request processing
 let cacheService: DomainCacheService | null = null;
 let domainService: DomainService | null = null;

@@ -6,13 +6,10 @@
  */
 import 'dotenv/config';
 import seedAgentPersonalities from '../../../../packages/database/prisma/seeds/agent-personalities.seed.js';
-import { PrismaClient } from '@keeper/database';
-
-const prisma = new PrismaClient();
-
+import { prisma } from '@keeper/database';
 seedAgentPersonalities()
   .catch((err) => {
     console.error('[seed-agent-personalities] Error:', err);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  

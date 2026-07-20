@@ -20,44 +20,20 @@
  */
 
 // =============================================================================
-// IMPORTS
+// IMPORTS / SHARED CLIENT
 // =============================================================================
-import { PrismaClient } from '@prisma/client'
-import { createPrismaRetryExtension } from './prismaRetry.js'
+export {
+  prisma,
+  disconnectDatabase,
+  connectDatabase,
+  checkDatabaseHealth,
+} from './client.js'
 
-// Global singleton to prevent multiple instances in development
-declare global {
-  var __prisma: PrismaClient | undefined
-}
-
-/**
- * Prisma Client Singleton
- *
- * In development, we want to prevent multiple instances of Prisma Client
- * due to module reloading. In production, we create a new instance.
- *
- * The retry extension recovers from Railway/Postgres idle disconnects
- * (P1017 "Server has closed the connection") so Kip and other long-lived
- * API paths do not fail the next query after the pool socket was closed.
- */
-function createPrismaClient(): PrismaClient {
-  const base = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
-
-  // Cast: $extends changes the static type; runtime behavior stays PrismaClient-compatible.
-  return base.$extends(createPrismaRetryExtension()) as unknown as PrismaClient
-}
-
-const prismaInstance = globalThis.__prisma || createPrismaClient()
-
-// Store in global for development hot reloading
-if (process.env.NODE_ENV === 'development') {
-  globalThis.__prisma = prismaInstance
-}
-
-// Export the prisma instance
-export { prismaInstance as prisma }
+export {
+  ensureDatasourceUrls,
+  withDatabaseUrlParam,
+  isPooledDatabaseUrl,
+} from './datasourceUrl.js'
 
 export {
   createPrismaRetryExtension,
@@ -195,37 +171,3 @@ export type {
 } from './types.js'
 
 // Authentication types are exported from ./types/domain.ts
-
-// =============================================================================
-// UTILITY FUNCTIONS
-// =============================================================================
-
-/**
- * Gracefully disconnect from database
- */
-export async function disconnectDatabase() {
-  await prismaInstance.$disconnect()
-}
-
-/**
- * Connect to database (usually not needed as Prisma connects lazily)
- */
-export async function connectDatabase() {
-  await prismaInstance.$connect()
-}
-
-/**
- * Check database connection health
- */
-export async function checkDatabaseHealth() {
-  try {
-    await prismaInstance.$queryRaw`SELECT 1`
-    return { status: 'healthy', timestamp: new Date() }
-  } catch (error) {
-    return { 
-      status: 'unhealthy', 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date() 
-    }
-  }
-} 

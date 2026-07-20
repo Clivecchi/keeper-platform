@@ -1,5 +1,5 @@
 import { Router, type Response } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { z } from 'zod';
 import { logger } from '@keeper/shared';
@@ -26,7 +26,6 @@ function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
   return `${webOrigin}${path}`;
 }
 
-const prisma = new PrismaClient();
 const router = Router();
 
 const draftStatusEnum = z.enum(['draft', 'reviewed', 'approved', 'promoted', 'archived']);

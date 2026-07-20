@@ -5,16 +5,14 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient, type Prisma } from '@keeper/database';
 import { resolveKeeperChronicleDefaults, mergePresenceSchemaAvatar } from '@keeper/shared';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
-import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
+import { prisma, type Prisma, DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 const router: Router = Router();
-const prisma = new PrismaClient();
 const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);

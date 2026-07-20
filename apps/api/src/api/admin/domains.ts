@@ -1,17 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
-import { DomainService, DomainCacheService } from '@keeper/database';
-import { DomainPermissionService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 import { ensureDomainAgentPolicy } from '../../governance/index.js';
 import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
 
+import { prisma, DomainService, DomainCacheService, DomainPermissionService } from '@keeper/database';
 const router: Router = Router();
-
-const prisma = new PrismaClient();
 
 // Lazy initialization - services will be created only when needed during request processing
 let cacheService: DomainCacheService | null = null;

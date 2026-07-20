@@ -4,10 +4,8 @@
  * Provides audit logging for board operations
  */
 
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
 
 export interface AuditLogInput {
   who: string;

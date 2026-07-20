@@ -15,7 +15,7 @@
  */
 
 import { Router, type Response } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { z } from 'zod';
 import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
@@ -28,7 +28,6 @@ import {
 } from '../../services/structure/contracts.js';
 import { generateDomainFrameSlice } from '../../services/structure/generateDomainFrameSlice.js';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 // ─── Request schema ───────────────────────────────────────────────────────────

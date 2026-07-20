@@ -6,12 +6,10 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { mergePresenceSchemaCover } from '@keeper/shared';
-import { PrismaClient, type Prisma } from '@keeper/database';
+import { prisma, type Prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 // Validation schemas
 const journeyQuerySchema = z.object({
   domainId: z.string().optional(),

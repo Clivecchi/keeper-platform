@@ -8,13 +8,11 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { validationMiddleware } from '../middleware/validationMiddleware.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 // =============================================================================
 // FRAME TYPE REGISTRY
 // =============================================================================

@@ -6,12 +6,10 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // Rate limiter for contact form (prevent spam)
 const contactRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

@@ -5,12 +5,10 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 // Validation schemas
 const keeperTypeQuerySchema = z.object({
   system: z.boolean().optional(),

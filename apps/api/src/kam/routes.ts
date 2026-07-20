@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { kamAuth, kamScope, kamRateLimit, kamAudit } from './middleware.js';
 
-const prisma = new PrismaClient();
 export const kamRouter = Router();
 
 // Shared helpers

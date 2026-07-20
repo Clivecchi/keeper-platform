@@ -6,19 +6,17 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { mergePresenceSchemaCover } from '@keeper/shared';
-import { PrismaClient, type Prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { queryValidationMiddleware, validationMiddleware } from '../../middleware/validationMiddleware.js';
+import { prisma, type Prisma, DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 import { 
   requireDomainReadCompat, 
   requireDomainWriteCompat, 
   requireDomainAdminCompat
 } from '../../middleware/domainPermissionMiddleware.js';
-import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
 const featureFlags = getFeatureFlagService();
 
 // Validation schemas

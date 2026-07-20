@@ -1,6 +1,6 @@
 # Chronicle — Selection, Routing, and ChronicleDocument
 
-**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE). Layer 3 unchanged (`resolveChronicleDeclaration.ts`).
+**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE; Forward/Step header). Layer 3 unchanged (`resolveChronicleDeclaration.ts`). Realm's Chronicle still flattens across all Dialogs and has no Path grouping wired — see `realm-chronicle-dialog-scoped` handoff, not yet built.
 
 ---
 
@@ -182,6 +182,20 @@ Real thing that happened, worth keeping on record because it's the clearest evid
 Fixed by re-verifying real state (git log, `DraftFocusPresence.tsx`) and rewriting the Step honestly — including the fact of its own staleness, not papering over it. Also dropped the visible word "Step" from the UI (title + text only now, no badge) and set the Step's title color to match its own outline (`--moss`) rather than a separate tone.
 
 **Why this matters beyond a copy fix:** a hand-maintained "current step" cannot stay current by itself — the exact gap Layer 3 (self-organizing Forward) was meant to close, and still hasn't been built. This incident isn't a side note to that design decision. It's the first real data point for it.
+
+### Verified (2026-07-19): Realm's Story never actually scoped to one Dialog — Chronicle still shows everything, always
+
+Chuck compared the real board (`/d/ke3p?board=realm`) against the reference mockup directly and called it: doesn't read as one Document, reads as noise. Checked against real code, not assumed:
+
+- `DomainRealmStory.tsx`'s `storyEntries` flattens every Dialog group's kept/drafts/presented into one combined `points` array, unconditionally. The flattening problem `realm-nav-dialog-scoped` fixed for Nav was never applied to the Document body itself — Nav shows Dialog-scoped groups, Chronicle ignores them and always renders the full domain. Contradicts this doc's own settled model: "Each Dialog has exactly one Document."
+- `DocumentShell`'s `paths` prop (built specifically for Path grouping — see "Path, not tone" above) has never been fed real data by Realm; `DomainRealmStory` doesn't pass it at all. Root cause confirmed by reading the backend route directly: `Moment.pathId`/`Path.name` are real Prisma fields (`schema.prisma:262,282,296-298`), but `apps/api/src/routes/v0/moments.ts`'s Prisma `select` never included them, so they never reach the frontend's `KeptMomentSummary` type. Not a rendering bug — the data never left the database.
+- `draftToRealmNavEntry`/`momentToKeptNavEntry` (`realmNavGrowth.ts`) set `lede` and `body.text` to the identical string whenever a summary exists — `PointView` renders both fields, so the same text visibly repeats under every Point that has one. A real bug, not a design choice — found by tracing the screenshot back to the mapping function, not by inspecting the doc.
+
+**Decided (2026-07-19), asked directly before scoping the fix:**
+1. **How Chronicle learns which Dialog to show:** both mechanisms, not either/or — clicking any draft/moment/library item (already sets real selection state) derives its owning Dialog; a new click handler on the Dialog's own Nav group header also jumps straight to that Dialog's Document. Mutually exclusive, the same "pick one, clear the rest" pattern already used for existing selection state. This does **not** attempt the full Layer 1 `ChronicleSubject` rewrite described above — it adds one more selection kind to the existing pattern, deliberately smaller in scope.
+2. **What shows before anything is selected:** an explicit prompt ("Select a Dialog to see its Document"), not an auto-picked default and not the current flattened everything-feed — consistent with this project's standing preference for an honest not-yet-built state over a guessed one.
+
+Scoped as handoff `realm-chronicle-dialog-scoped`.
 
 ### Noted (2026-07-15): a Point may be a Moment, and Moments evolve
 

@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { kamAuth, kamScope } from '../kam/middleware.js';
 import { randomUUID } from 'crypto';
@@ -18,7 +18,6 @@ import { ensureDomainManagementBoard } from '../services/boards/domainManagement
 import { logReq } from '../utils/requestLog.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
 // Import ensure so Studio alias uses the same canonical ensure logic for AHB
 import { ensureAgentHomeBoard } from './agents.js';
 

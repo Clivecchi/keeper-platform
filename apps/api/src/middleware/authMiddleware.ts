@@ -4,10 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 // Augment Express Request interface globally
 declare global {

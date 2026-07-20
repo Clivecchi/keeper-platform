@@ -4,13 +4,11 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { rateLimit } from 'express-rate-limit';
 import { filterContentByAudience } from '@keeper/shared';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 const publicJourneyRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 10,

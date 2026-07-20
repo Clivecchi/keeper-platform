@@ -1,11 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 /**
  * GET /api/admin/users
  * Optional ?search= query filters by name or email (ILIKE)

@@ -2,10 +2,8 @@
  * Diagnostic: Check default domain frame_json state
  * Run with: npx tsx src/scripts/diagnose-default-domain.ts
  */
-import { PrismaClient } from '@keeper/database'
+import { prisma } from '@keeper/database';
 import 'dotenv/config'
-
-const prisma = new PrismaClient()
 
 const GOVERNED_KEYS = [
   'cover',
@@ -65,4 +63,4 @@ main()
     console.error('Error:', e)
     process.exit(1)
   })
-  .finally(() => prisma.$disconnect())
+  

@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { authMiddlewareCompat, optionalAuthMiddleware } from '../../middleware/authMiddleware.js';
 import crypto from 'crypto';
@@ -13,8 +13,6 @@ import {
 import { shapeRecordTitle } from '@keeper/shared';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 // Domain resolution middleware - applied only to routes that need it
 const domainResolutionMiddleware = (req: Request, res: Response, next: NextFunction) => {
   if (req.method === 'OPTIONS') {

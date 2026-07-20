@@ -4,10 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@keeper/database';
-
-const prisma = new PrismaClient();
-
+import { prisma } from '@keeper/database';
 export interface DomainPermissionRequest extends Request {
   user?: {
     id: string;

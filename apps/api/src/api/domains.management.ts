@@ -3,13 +3,12 @@ import { Router } from 'express';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { ensureDomainManagementBoard } from '../services/ensureDomainManagementBoard.js';
 import { ensureDomainTableShape } from '../lib/db-guards.js';
-import { PrismaClient, getFeatureFlagService } from '@keeper/database';
+import { prisma, getFeatureFlagService } from '@keeper/database';
 import { addLog as addInternalLog } from '../utils/LogStore.js';
 import crypto from 'node:crypto';
 
 export const domainsManagementRouter = Router();
 domainsManagementRouter.use(authMiddlewareCompat);
-const prisma = new PrismaClient();
 const featureFlags = getFeatureFlagService();
 
 // GET /api/domains/:id/management-board

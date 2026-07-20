@@ -5,9 +5,8 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
-import { SoleMemoryIsolationService, DomainCacheService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { prisma, SoleMemoryIsolationService, DomainCacheService } from '@keeper/database';
 import { 
   requireDomainReadCompat, 
   requireDomainWriteCompat, 
@@ -20,7 +19,6 @@ import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
 const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const memoryService = new SoleMemoryIsolationService(prisma, cacheService);

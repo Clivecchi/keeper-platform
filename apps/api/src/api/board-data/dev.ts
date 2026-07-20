@@ -1,10 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
-import { PrismaClient } from '@keeper/database';
-
+import { prisma } from '@keeper/database';
 export const boardDataDevRouter = Router();
-const prisma = new PrismaClient();
-
 // PATCH /api/board-data/dev/frames/:id/max-messages
 boardDataDevRouter.patch('/dev/frames/:id/max-messages', async (req: Request, res: Response) => {
   try {

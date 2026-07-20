@@ -5,16 +5,8 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
-import { 
-  DomainService, 
-  DomainVerificationService, 
-  SslCertificateService, 
-  DomainHealthMonitoringService, 
-  DomainCacheService,
-  DomainPermissionService
-} from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { prisma, DomainService, DomainVerificationService, SslCertificateService, DomainHealthMonitoringService, DomainCacheService, DomainPermissionService } from '@keeper/database';
 import { 
   requireDomainAdminCompat, 
   requireDomainWriteCompat, 
@@ -72,8 +64,6 @@ router.param('domainId', async (req, res, next, domainId) => {
 router.use(authMiddlewareCompat);
 // Load permissions only for routes that include :domainId (after param ran)
 router.use('/:domainId', loadDomainPermissionsCompat);
-
-const prisma = new PrismaClient();
 
 // Lazy initialization - services will be created only when needed during request processing
 let cacheService: DomainCacheService | null = null;

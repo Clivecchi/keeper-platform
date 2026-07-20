@@ -10,10 +10,8 @@
  * - Returns standardized result
  */
 
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import type { Request } from 'express';
-
-const prisma = new PrismaClient();
 
 export interface ExecutionContext {
   userId: string;

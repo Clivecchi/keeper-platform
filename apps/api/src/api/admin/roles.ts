@@ -1,12 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 import { randomUUID } from 'crypto';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 /**
  * GET /api/admin/roles
  * Returns list of all platform roles

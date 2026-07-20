@@ -11,13 +11,11 @@
 
 import { Router, Response } from 'express'
 import { z } from 'zod'
-import { PrismaClient } from '@keeper/database'
+import { prisma } from '@keeper/database';
 import { AuthenticatedRequest, authMiddlewareCompat } from '../../middleware/authMiddleware.js'
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js'
 
 const router: Router = Router()
-const prisma = new PrismaClient()
-
 const VALID_OBJECT_TYPES = ['journey', 'moment', 'keeper', 'agent', 'draft', 'dialog', 'service', 'domain'] as const
 type ValidObjectType = (typeof VALID_OBJECT_TYPES)[number]
 

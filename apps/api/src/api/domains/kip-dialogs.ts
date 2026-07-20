@@ -19,13 +19,12 @@
  */
 
 import { Router, type Response } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { z } from 'zod';
 import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 // ─── Validation schemas ───────────────────────────────────────────────────────

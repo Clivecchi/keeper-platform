@@ -1,21 +1,20 @@
-# Build Handoff — document-forward-step
+# Build Handoff — realm-chronicle-dialog-scoped
 
-**Goal:** Add Forward and Step to DocumentShell — a collapsible authored-destination card with a distinct, always-visible Step beneath it, and a disabled Back/Forward nav row — replacing the current plain title/subtitle header.
+**Goal:** Scope Realm's Chronicle Document to the selected Dialog instead of always flattening every Dialog into one feed, wire real Path grouping through from `Moment.pathId`, and fix the lede/body text duplication in Point rendering.
 **Territory:** cursor
 **Branch:** cloud (direct — no feature branch, no PR)
 **Created:** 2026-07-19T00:00:00Z by cloud
 
 ## Done when
 
-- `DocumentShell` gains a new optional prop shape, e.g. `forward?: { title: string; description: string }`, rendered where the current plain title/subtitle header block is — this replaces that block, it does not sit alongside it
-- Forward's description is collapsible, defaulting collapsed when a step is present, expanded when no step is present (mirrors the mockup's `objectiveOpen = steps.length === 0` logic)
-- A new optional `step?: { title: string; body: string }` prop renders a distinct block: always visible regardless of Forward's collapsed state, positioned directly after Forward's description in DOM order (so collapsing/expanding the description visually moves the Step's position, no separate logic needed for that)
-- Step is visually distinct from Forward — a translucent/backdrop-blur surface, not the same flat card treatment as everything else in the shell, using whatever accent theme token most closely matches an affirmative/progress signal (do not hardcode a hex color — if no suitable existing theme token is found, stop and flag it rather than invent one)
-- A Back/Forward nav row renders beneath the Step, both buttons disabled for now, with tooltips explaining why precisely (no prior step exists yet / this is the current tip, Forward will advance once a next step exists) — do not wire real navigation logic, that depends on undesigned self-organizing behavior
-- Brightness hierarchy: Forward's title dims when a Step is present (secondary to the Step), Step's title is a distinct accent tone, Step's body text is the brightest text in the shell — express this as relative theme-token usage, not literal color values
-- No changes to `buildGroups`, `PathHeader`, or `PointFrame` — this handoff only touches the shell's own header area, not the Path/Point rendering beneath it
-- `pnpm run quick:web` passes
-- Manual check on `/d/ke3p?board=realm`: Forward/Step render above the Path groups, collapse/expand works, Back/Forward render disabled with correct tooltips
+- Clicking any draft/moment/library-item row in Realm Nav (existing behavior — already sets `selectedDraftId`/`selectedMomentId`/`selectedLibraryItemId` in `UniversalBoardContext`) causes Chronicle to scope its Document to that item's owning Dialog — `DomainRealmStory` renders only that Dialog's group from `byDialog`, not the flattened combination of every dialog
+- A new click handler on each Dialog group's header in `RealmStagedNav` lets the user jump directly to that Dialog's Document without selecting a specific item first — adds a new `selectedDialogId` selection kind to `UniversalBoardContext`, following the exact same state shape already used for `selectedDraftId`/`selectedMomentId`/`selectedLibraryItemId`
+- Selecting an item and selecting a Dialog header are mutually exclusive — same "set mine, clear the others" pattern already used across the existing selection state, applied to the new `selectedDialogId` alongside it
+- Before anything is selected, Chronicle shows an explicit prompt ("Select a Dialog to see its Document") instead of the current flattened all-dialogs feed or any auto-picked default
+- `DocumentShell` receives a real `paths` prop for the active Dialog's Document, built from `Moment.pathId`/`Path.name` — requires adding `pathId` and the `Path` relation (`id`, `name`) to the Prisma select in `apps/api/src/routes/v0/moments.ts`, mapping them into the JSON response, extending `KeptMomentSummary` in `v0Moments.ts`, and threading them through `momentToKeptNavEntry` into a `DocumentPathGroup[]`. Points with no resolvable path fall into the existing ungrouped bucket `buildGroups` already handles — no new fallback logic needed
+- `draftToRealmNavEntry` and `momentToKeptNavEntry` (`realmNavGrowth.ts`) no longer set `lede` and `body.text` to the identical string — lede stays a short teaser (or is omitted when there's nothing shorter than the body), body always carries the full text. No duplicated text renders under any Point in `PointView`
+- `pnpm run quick:web` and `pnpm run quick:api` both pass for the touched files — `quick:web` currently fails repo-wide on pre-existing, unrelated errors (see Context below); confirm no NEW errors appear in any touched file, do not attempt to fix the pre-existing repo-wide failures as part of this handoff
+- Manual check on `/d/ke3p?board=realm`: clicking a draft or moment scopes the right panel to just that Dialog's Points; clicking a Dialog's own Nav header does the same without picking an item first; with nothing selected, the explicit prompt shows instead of a flattened feed; Points belonging to a Path render grouped under that Path's header; no duplicated text appears under any Point
 
 ## Canon (read first)
 
@@ -24,21 +23,21 @@
 
 ## Scope
 
-**Touch:** `apps/web/src/v0/presence/chronicleDocument/DocumentShell.tsx`, `packages/shared/src/document.ts`
+**Touch:** `apps/api/src/routes/v0/moments.ts`, `apps/web/src/v0/api/v0Moments.ts`, `apps/web/src/v0/realm/realmNavGrowth.ts`, `apps/web/src/v0/realm/useRealmNavGrowth.ts`, `apps/web/src/v0/realm/DomainRealmStory.tsx`, `apps/web/src/v0/realm/RealmStagedNav.tsx`, `apps/web/src/v0/boards/UniversalBoardContext.tsx`, `apps/web/src/v0/boards/panels/UniversalNavPanel.tsx`
 
-**Do not touch:** `apps/api/`, `packages/database/prisma/schema.prisma`, `buildGroups`/`PathHeader`/`PointFrame` functions — structural additions only, do not refactor existing Path/Point rendering
+**Do not touch:** `packages/database/prisma/schema.prisma` (`pathId`/`Path` relation already exist on `Moment`, no migration needed — query-select change only); any `apps/api/` route other than `v0/moments.ts`; `DocumentShell.tsx`/`PointView.tsx` internals (`buildGroups`, `PathHeader`, `PointFrame`, the Forward/Step block — already shipped and correct, this only needs to feed them real data); the `libraryRows.slice(0, 8)` Presented heuristic in `useRealmNavGrowth.ts`; the full Layer 1 `ChronicleSubject` rewrite described in the architecture doc — this handoff adds one narrowly-scoped `selectedDialogId` alongside the existing selection pattern, it does not replace that pattern
 
 ## Pattern
 
-Mockup reference (scratchpad artifact, not in repo) demonstrates the exact shape: `objectiveOpen` defaults to `steps.length === 0`; Step renders in DOM after the collapsible description, not before; Step uses backdrop-filter blur + translucent background + accent-tinted border; Back/Forward are plain disabled buttons with explanatory titles. Translate the intent, not literal CSS values — this file already uses `hsl(var(--theme-...))` tokens throughout via `PathHeader` and `PointFrame`, follow that convention exactly.
+`UniversalBoardContext.tsx` already has a "set mine, clear the others" shape for `selectedDraftId`/`selectedMomentId`/`selectedLibraryItemId` — add `selectedDialogId` following that identical shape, don't invent new state management. `DocumentPathGroup` (`packages/shared/src/document.ts`) and `buildGroups` (`DocumentShell.tsx`) already handle Path grouping plus an ungrouped fallback bucket — just needs real `pathId`/`pathName` threaded in via `momentToKeptNavEntry`, no shell-side changes. The existing `Journey: { select: { id: true, name: true } }` clause in `apps/api/src/routes/v0/moments.ts` is the direct precedent for adding an equivalent `Path` relation select.
 
 ## Rendr treatment
 
-N/A on the record, but treat this cautiously: express the brightness hierarchy and the "distinct, glassy" Step surface through existing theme tokens only. If no accent/progress-adjacent token exists in the real theme system, stop and flag it — do not invent a hardcoded color to fill the gap.
+N/A — no new visual treatment prescribed. The empty-state prompt should read as plain, quiet text matching the existing loading/empty copy style already in `DomainRealmStory`'s `emptyState` — not a new illustrated or styled state.
 
 ## Verification
 
-**Commands:** `pnpm run quick:web`
+**Commands:** `pnpm run quick:web`, `pnpm run quick:api`
 **Browser:** `/d/ke3p?board=realm`
 
 ## Constraints
@@ -46,11 +45,17 @@ N/A on the record, but treat this cautiously: express the brightness hierarchy a
 - Match conventions in touched folders.
 - **Commit directly to `cloud` — no feature branch, no PR.**
 - Codebase wins over docs when they conflict.
-- No hardcoded colors — theme tokens only.
-- Back/Forward stay disabled. Do not fabricate navigation logic.
+- No new colors or hardcoded values — reuse existing theme tokens and the existing empty-state copy style.
+- Do not attempt the full Layer 1 `ChronicleSubject` refactor — add `selectedDialogId` to the existing pattern instead.
 
 ## Context
 
-Sequencing: `draft-renders-as-document` is older and still unstarted, but it should run **after** this handoff, not before — it unifies Draft's rendering onto `DocumentShell`, and `DocumentShell`'s own shape is changing here. Doing it first would mean redoing part of that work once this lands.
+Chuck caught this by screenshot comparison, not from a bug report: the real `/d/ke3p?board=realm` doesn't read with the same clarity of purpose as the reference mockup. Traced to real code, not assumed:
 
-Explicitly out of scope for this handoff: Layer 3 self-organizing behavior (what actually decides the current Step, and how it updates) — that is genuinely undesigned, not just deferred, and Back/Forward stay disabled because of it, honestly, not as a placeholder to be quietly filled in later. Also out of scope: the Path-accordion visual treatment (per-path color, collapse, dismissible New tags) discussed earlier in the same design conversation — that is separate, larger scope, not part of what was just confirmed.
+1. `DomainRealmStory.tsx` flattens every Dialog's points into one feed regardless of Nav selection — `realm-nav-dialog-scoped` scoped Nav's grouping but never touched Chronicle's actual content, so Chronicle still contradicts this doc's own settled model ("each Dialog has exactly one Document").
+2. `DocumentShell`'s `paths` prop has never been fed real data — `Moment.pathId`/`Path.name` are real Prisma fields but were never selected by the `/api/v0/moments` route, so they never reach the frontend at all, confirmed by reading `apps/api/src/routes/v0/moments.ts` directly.
+3. `draftToRealmNavEntry`/`momentToKeptNavEntry` set `lede` and `body.text` to the identical string, so `PointView` visibly duplicates the same text under every Point that has a summary — a real bug, found by tracing the screenshot back to the mapping function.
+
+Two open design questions were asked and resolved directly with Chuck before scoping this handoff: dialog selection is derived from item clicks **and** has its own direct Dialog-header click (both, not either/or); the pre-selection state is an explicit prompt, not an auto-picked default.
+
+Separately noted: `pnpm run quick:web` currently fails on pre-existing errors unrelated to any file in this handoff's touch list (`ChronicleActPresence.tsx`, `serviceConfig.tsx`, `presenceEnrichment.ts`, `useRealmNavGrowth.ts`'s own pre-existing null-narrowing issue at line 186, `V0Shell.tsx`, `StyleOverrideProvider.tsx`, one test file) — do not fix those as part of this handoff, just don't add new ones.

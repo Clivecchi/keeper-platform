@@ -108,11 +108,11 @@ prisma/
 
 #### Prisma Client Singleton
 ```typescript
-// Prevents multiple instances in development
-export const prisma = globalThis.__prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
-})
+// Always import the shared client — never new PrismaClient() in apps/api
+import { prisma } from '@keeper/database'
 ```
+
+See `CONNECTION_POOLING.md` for Railway PgBouncer + `DIRECT_URL` / `DATABASE_URL` setup.
 
 #### Query Helpers
 Pre-built functions for common operations:
@@ -310,6 +310,7 @@ This package was created during the monorepo migration to centralize all databas
 
 ## 📆 Update Log
 
+- **2026-07-19**: Connection saturation fix — `directUrl` / `DIRECT_URL` for migrate, shared `src/client.ts` singleton with `connection_limit` (default 5), `run-with-direct-url.js` wrapper, and `CONNECTION_POOLING.md` for Railway PgBouncer. API routes must use `import { prisma } from '@keeper/database'` only.
 - **2025-06-23**: Created @keeper/database package during monorepo migration
 - **2025-06-23**: Moved Prisma schema and configuration
 - **2025-06-23**: Added query helpers for user and theme operations
@@ -323,6 +324,7 @@ This package was created during the monorepo migration to centralize all databas
 - **2025-01-13**: Fixed Moment model schema - added @default(cuid()) to id field and @updatedAt to updatedAt field to fix Railway build TypeScript errors.
 - **2025-01-13**: Removed status column from Moment model to resolve production database schema mismatch. Status is now derived from keptAt field (null = draft, set = kept).
 - **2026-07-02**: Added `scripts/wait-for-database.js` — retries PostgreSQL connectivity before `prisma migrate deploy` on Railway startup (avoids transient P1001).
+- **2026-07-04**: Domain resolution aligned to `keeper.domains` tenant hostnames (`DomainResolutionService`, `DomainVerificationService`); shared helpers in `@keeper/shared/domains/keeperDomainsHost`.
 - **2026-07-17**: Prisma singleton now uses a connection-retry `$extends` (`src/prismaRetry.ts`) so idle Railway disconnects (P1017 / "Server has closed the connection") are retried instead of failing Kip `domain.findUnique` and other queries.
 
 ---
@@ -334,7 +336,15 @@ This package was created during the monorepo migration to centralize all databas
 ## 🛠️ Development Setup
 
 ### Environment Variables
-The database requires a `DATABASE_URL` environment variable. Create a `.env` file in the project root:
+Required:
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | App runtime (PgBouncer pooled URL in production) |
+| `DIRECT_URL` | Migrations / seed (direct Postgres; falls back to `DATABASE_URL` via scripts) |
+| `PRISMA_CONNECTION_LIMIT` | Optional; default `5` |
+
+Create a `.env` file in the project root:
 
 ```env
 # For local development with PostgreSQL

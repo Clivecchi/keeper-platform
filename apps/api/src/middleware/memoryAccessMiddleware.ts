@@ -4,15 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../lib/redis.js';
-import { 
-  DomainCacheService,
-  SoleMemoryIsolationService,
-  FeatureFlagService
-} from '@keeper/database';
-
-const prisma = new PrismaClient();
+import { prisma, DomainCacheService, SoleMemoryIsolationService, FeatureFlagService, type PrismaClient } from '@keeper/database';
 const featureFlagService = new FeatureFlagService();
 
 // Basic feature flag service implementation
@@ -678,8 +671,6 @@ export class MemoryAccessManager {
 export function createMemoryAccessMiddleware(
   config?: MemoryAccessConfig
 ): (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void> {
-  const prisma = new PrismaClient();
-
   // Lazy initialization - create services only when middleware is called
   let cacheService: DomainCacheService | null = null;
   let memoryService: SoleMemoryIsolationService | null = null;
@@ -714,8 +705,6 @@ export function createCrossDomainMemoryMiddleware(): (
   res: Response,
   next: NextFunction
 ) => Promise<void> {
-  const prisma = new PrismaClient();
-
   // Lazy initialization - create services only when middleware is called
   let cacheService: DomainCacheService | null = null;
   let memoryService: SoleMemoryIsolationService | null = null;

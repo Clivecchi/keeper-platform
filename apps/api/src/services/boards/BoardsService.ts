@@ -4,10 +4,8 @@
  * Core business logic for board operations
  */
 
-import { PrismaClient, Prisma } from '@keeper/database';
+import { prisma, Prisma } from '@keeper/database';
 import { randomUUID } from 'crypto';
-
-const prisma = new PrismaClient();
 
 export interface SetViewerModeInput {
   boardId: string;

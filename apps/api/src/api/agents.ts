@@ -11,7 +11,7 @@ import { tasksRouter } from './agents/tasks.js';
 import eventsRouter from './agents/events.js';
 import { z } from 'zod';
 import { mergePresenceSchemaAvatar } from '@keeper/shared';
-import { PrismaClient, updateKipAgent } from '@keeper/database';
+import { prisma, updateKipAgent, type PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { KipAgentService } from './kip/agents.js';
 import { randomUUID } from 'crypto';
@@ -190,8 +190,6 @@ router.use(topicsRouter);
 router.use(activityRouter);
 router.use(tasksRouter);
 router.use(eventsRouter);
-const prisma = new PrismaClient();
-
 // Ensure the Agent Home Board exists and has the required frames (idempotent)
 export async function ensureAgentHomeBoard(client: PrismaClient, agentId: string, opts?: { reqId?: string; fallbackKeeperId?: string }) {
   const reqId = opts?.reqId || '';

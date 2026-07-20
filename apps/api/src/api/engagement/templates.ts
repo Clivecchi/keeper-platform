@@ -5,12 +5,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 
 const router: Router = Router();
-const prisma = new PrismaClient();
-
 /**
  * GET /api/engagement/templates/:key
  * Fetch a single engagement template by slug/key

@@ -12,10 +12,8 @@
  *
  * KE3P · Keeper Platform · Phase 1 · March 2026
  */
-import { PrismaClient, Prisma } from '@keeper/database'
+import { prisma, Prisma } from '@keeper/database'
 import 'dotenv/config'
-
-const prisma = new PrismaClient()
 
 // ─── Default frame blocks ─────────────────────────────────────────────────────
 // Embedded directly from domain-frame.default.ts to keep this script
@@ -570,4 +568,4 @@ main()
     console.error('❌ Seed failed:', e)
     process.exit(1)
   })
-  .finally(() => prisma.$disconnect())
+  
