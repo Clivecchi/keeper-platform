@@ -28,7 +28,7 @@
     "db:pull": "pnpm --filter @keeper/database pull",
     "db:studio": "pnpm --filter @keeper/database studio",
     "db:migrate": "pnpm --filter @keeper/database migrate",
-    "db:migrate:resolve": "pnpm --filter @keeper/database exec prisma migrate resolve",
+    "db:migrate:resolve": "pnpm --filter @keeper/database run prisma migrate resolve",
     "db:reset": "pnpm --filter @keeper/database reset",
     "preinstall": "npx only-allow pnpm",
     "build:railway": "pnpm run clean && RAILWAY_DISABLE_BUILD_CACHE=true pnpm install --frozen-lockfile --no-cache && pnpm --filter @keeper/database run migrate:deploy:railway && pnpm run build",

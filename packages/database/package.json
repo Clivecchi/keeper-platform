@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "prisma": "prisma",
+    "prisma": "node scripts/run-with-direct-url.js --allow-placeholder prisma",
     "generate": "node scripts/run-with-direct-url.js --allow-placeholder prisma generate",
     "build": "node scripts/run-with-direct-url.js --allow-placeholder prisma generate && tsc",
     "migrate:deploy": "node scripts/run-with-direct-url.js prisma migrate deploy",

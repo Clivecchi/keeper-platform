@@ -311,6 +311,7 @@ This package was created during the monorepo migration to centralize all databas
 ## 📆 Update Log
 
 - **2026-07-19**: Connection saturation fix — `directUrl` / `DIRECT_URL` for migrate, shared `src/client.ts` singleton with `connection_limit` (default 5), `run-with-direct-url.js` wrapper, and `CONNECTION_POOLING.md` for Railway PgBouncer. API routes must use `import { prisma } from '@keeper/database'` only.
+- **2026-07-19**: P1012 fix — the package `prisma` script always runs via `run-with-direct-url.js` so Railway pre-deploy / `pnpm … prisma migrate deploy` derives `DIRECT_URL` from `DATABASE_URL` when unset.
 - **2025-06-23**: Created @keeper/database package during monorepo migration
 - **2025-06-23**: Moved Prisma schema and configuration
 - **2025-06-23**: Added query helpers for user and theme operations

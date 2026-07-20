@@ -12,7 +12,7 @@
     "test": "vitest",
     "test:smoke": "vitest run --reporter=dot --silent=true src/tests/smoke",
     "postinstall": "pnpm --filter @keeper/database generate",
-    "migrate:deploy": "pnpm --filter @keeper/database prisma migrate deploy",
+    "migrate:deploy": "pnpm --filter @keeper/database run migrate:deploy",
     "type-check": "tsc --noEmit",
     "lint": "eslint ."
   },

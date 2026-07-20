@@ -57,10 +57,11 @@ if (args.length === 0) {
 }
 
 const [command, ...commandArgs] = args;
+// Always use a shell so `prisma` resolves via node_modules/.bin on Railway/Linux.
 const child = spawn(command, commandArgs, {
   stdio: 'inherit',
   env: process.env,
-  shell: process.platform === 'win32',
+  shell: true,
   cwd: pkgRoot,
 });
 

@@ -39,7 +39,9 @@ datasource db {
    - `PRISMA_CONNECTION_LIMIT=5` (optional; default is 5)
 4. Redeploy the API.
 
-Until PgBouncer is added, set both `DATABASE_URL` and `DIRECT_URL` to the same direct URL. The singleton + `connection_limit=5` still prevents the old multi-client explosion.
+Until PgBouncer is added, you can omit `DIRECT_URL` — deploy scripts derive it from `DATABASE_URL`. Setting both explicitly is still recommended once PgBouncer is on.
+
+If a Railway **Pre-Deploy Command** runs `pnpm … prisma migrate deploy`, that path now goes through the same wrapper (the `@keeper/database` `prisma` script). Prefer `pnpm --filter @keeper/database run migrate:deploy`.
 
 ## Local development
 
