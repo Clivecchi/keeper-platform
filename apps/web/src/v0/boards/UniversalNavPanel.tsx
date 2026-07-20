@@ -1706,9 +1706,11 @@ export function UniversalNavPanel({
             domainSlug={domainSlug}
             treatment={realmTreatment}
             stages={navStages}
+            selectedDialogId={selectedDialogId}
             selectedDraftId={selectedDraftId}
             selectedLibraryItemId={selectedLibraryItemId}
             selectedMomentId={selectedMomentId}
+            onDialogSelect={onDialogSelect}
             onDraftSelect={onDraftSelect}
             onLibraryItemSelect={onLibraryItemSelect}
             onMomentSelect={onMomentSelect}

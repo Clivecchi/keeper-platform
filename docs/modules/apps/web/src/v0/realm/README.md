@@ -32,6 +32,12 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-19 — Chronicle Dialog-scoped Document
+- `DomainRealmStory` no longer flattens every Dialog — scopes Points to `selectedDialogId` or the Dialog owning the selected draft/moment/library row
+- Empty state prompt: "Select a Dialog to see its Document" until a scope is set
+- `RealmStagedNav` Dialog headers are clickable (`onDialogSelect`); mutually exclusive with row selection
+- Realm board Chronicle stays on `DomainRealmStory` for dialog/draft/moment/library subjects (not entity Focus presence)
+
 ### 2026-07-19 — Realm Nav request-storm fix
 - `useRealmNavGrowth` no longer detail-fetches every draft — uses list `dialogId` + `pointIds`; only one-off GETs for Moments whose `sourceDraftId` is outside the list
 - In-flight dedupe so Nav + Chronicle sharing the hook do not double-load the same domain

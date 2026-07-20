@@ -17,9 +17,11 @@ export interface RealmStagedNavProps {
   domainId: string | null
   domainSlug: string
   treatment: ResolvedDomainTreatment
+  selectedDialogId?: string | null
   selectedDraftId?: string | null
   selectedLibraryItemId?: string | null
   selectedMomentId?: string | null
+  onDialogSelect?: (id: string) => void
   onDraftSelect?: (id: string) => void
   onLibraryItemSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
@@ -49,9 +51,11 @@ export function RealmStagedNav({
   domainId,
   domainSlug,
   treatment,
+  selectedDialogId,
   selectedDraftId,
   selectedLibraryItemId,
   selectedMomentId,
+  onDialogSelect,
   onDraftSelect,
   onLibraryItemSelect,
   onMomentSelect,
@@ -67,6 +71,14 @@ export function RealmStagedNav({
       else if (kind === "moment") onMomentSelect?.(id)
     },
     [onDraftSelect, onLibraryItemSelect, onMomentSelect],
+  )
+
+  const handleDialogHeaderClick = React.useCallback(
+    (dialogId: string | null) => {
+      if (!dialogId || !onDialogSelect) return
+      onDialogSelect(dialogId)
+    },
+    [onDialogSelect],
   )
 
   const draftCreateDialogKey = React.useMemo(() => {
@@ -86,8 +98,11 @@ export function RealmStagedNav({
       {byDialog.map((group) => {
         const total = groupEntryCount(group.byStage)
         const isUnassigned = group.dialogId === null
+        const isDialogSelected =
+          !isUnassigned && !!group.dialogId && group.dialogId === selectedDialogId
         const showDraftAdd =
           Boolean(onDraftCreate) && group.title === draftCreateDialogKey
+        const headerInteractive = !isUnassigned && Boolean(onDialogSelect && group.dialogId)
 
         return (
           <section
@@ -96,19 +111,47 @@ export function RealmStagedNav({
             aria-label={group.title}
           >
             <div className="px-1 pt-1">
-              <h3
-                className="text-sm font-semibold tracking-wide"
-                style={{ color: "hsl(var(--theme-ink-primary))" }}
-              >
-                {group.title}
-              </h3>
-              <p className="text-xs mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-                {loading
-                  ? "Loading…"
-                  : `${total} item${total === 1 ? "" : "s"}${
-                      isUnassigned ? " · no Dialog link" : ""
-                    }`}
-              </p>
+              {headerInteractive ? (
+                <button
+                  type="button"
+                  onClick={() => handleDialogHeaderClick(group.dialogId)}
+                  aria-pressed={isDialogSelected}
+                  className="w-full text-left rounded-md px-1 py-0.5 -mx-1 transition-opacity hover:opacity-80"
+                  style={{
+                    backgroundColor: isDialogSelected
+                      ? "hsl(var(--theme-surface-elevated) / 0.55)"
+                      : "transparent",
+                  }}
+                >
+                  <h3
+                    className="text-sm font-semibold tracking-wide"
+                    style={{ color: "hsl(var(--theme-ink-primary))" }}
+                  >
+                    {group.title}
+                  </h3>
+                  <p className="text-xs mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                    {loading
+                      ? "Loading…"
+                      : `${total} item${total === 1 ? "" : "s"}`}
+                  </p>
+                </button>
+              ) : (
+                <>
+                  <h3
+                    className="text-sm font-semibold tracking-wide"
+                    style={{ color: "hsl(var(--theme-ink-primary))" }}
+                  >
+                    {group.title}
+                  </h3>
+                  <p className="text-xs mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                    {loading
+                      ? "Loading…"
+                      : `${total} item${total === 1 ? "" : "s"}${
+                          isUnassigned ? " · no Dialog link" : ""
+                        }`}
+                  </p>
+                </>
+              )}
             </div>
 
             {stages.map((stage) => {
