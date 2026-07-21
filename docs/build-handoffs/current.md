@@ -1,83 +1,69 @@
-# Build Handoff — realm-becoming-together-parity
+# Build Handoff — ke3p-becoming-together-consolidation
 
-**Goal:** Bring Realm's real board into parity with the Becoming Together reference Document: Chronicle scoped per-Dialog with real Path grouping and no text duplication, the cast bar correctly placed and populated (Kip as lead, Ceox representing Chuck), on top of the already-shipped Document/Point/Forward/Step shell.
+**Goal:** Create a real "Becoming Together" Dialog on ke3p as the one active dialog, archive the domain's other 16 real dialogs, and convert its 78 dialog-less drafts into real LibraryItem records tagged Archive — so Realm's actual data matches the reference Document's premise, not just its rendering.
 **Territory:** cursor
 **Branch:** cloud (direct — no feature branch, no PR)
-**Created:** 2026-07-19T00:00:00Z by cloud
+**Created:** 2026-07-20T00:00:00Z by cloud
 
 ---
 
-## Forward — the end state, not built yet in full
+## Why this handoff exists
 
-Realm's real board (`/d/ke3p?board=realm`) should read the way the **Becoming Together** reference Document reads: one Dialog, one scoped Document, Points grouped by Path when more than one thread is active, a Forward/Step header stating the authored destination and the live tip, and a cast bar in the header showing exactly who is building this — **Kip as lead/director, Cloud and Rendr as instruments, Ceox representing Chuck by default.**
+`realm-becoming-together-parity` shipped and its fixes are real — Chronicle scoping, Path grouping, cast bar placement all verified in code. But Chuck's actual complaint after seeing it deployed was direct: *"I still have forty two thousand drafts and zero dialogs."* Checked against a real, read-only production query, not assumed: **ke3p has 17 real Dialog rows, all auto-titled by board and date, and none of them is named Becoming Together.** 86 total drafts exist; only 8 carry a `dialog_id`. The other **78 are orphaned** — that's the real source of the Unassigned pile in Nav.
 
-Beyond this handoff (not now, named so it isn't lost): Kip should direct the conversation the way `docs/universal-board-dialog-orchestration.md` already describes as **`director` mode** — composer always Kip, other instruments invoked *by* Kip as delegated sub-turns, not swapped into the composer one at a time the way it works today. That doc already calls today's one-at-a-time swap an anti-pattern to migrate away from, not the target.
-
-## Current Step — verified against real code and git history, not assumed
-
-- **Shipped:** Document/Point/Forward/Step shell (`document-point-moment-reconciliation`, `document-forward-step`). Nav is Dialog-scoped (`realm-nav-dialog-scoped`).
-- **Not yet scoped:** Chronicle itself still flattens every Dialog into one feed, has no real Path data, and duplicates Point text. This is this handoff's core.
-- **Cast bar — partially working, not broken the way it looks:** `DialogCastBar.tsx` correctly renders a lead chip whenever `leadAgentSlug` is set (lines 167–175, confirmed by reading the component directly) and correctly reads a real members list. Two real, separate problems, not one:
-  1. It mounts in the composer footer (`KeeperDialogFrame.tsx`), not the header — there has never been a real header cast slot to begin with.
-  2. `ke3p`'s own lead-agent binding (`Domain.settings.primaryAgentId`, resolved in `apps/api/src/services/domains/resolveDomainLeadAgent.ts`) currently points at the **Cloud** agent record, not Kip — that's why the lead chip has read "Cloud." Kip was never filtered out by a bug; this domain's own data just isn't pointing at Kip. Confirm this against ke3p's actual data before changing it.
-  3. Human members render with raw `member.name` (line 191) — no persona resolution exists at all, which is why Chuck's real name shows instead of Ceox.
-
-## Known gaps explicitly OUT of this handoff's scope
-
-Named so they don't get silently guessed at later:
-
-- **Full director-mode orchestration** — separate, larger initiative, the clear next horizon after this lands, not part of this handoff.
-- **Agent-permission/escalation boundary for Ceox** — parked, not designed. Chuck's own framing: Ceox can represent him "unless or until Ceox or another agent requires my permission or own input," but no mechanism for that trigger exists anywhere in this codebase today (confirmed by search — nothing resembling agent-to-human escalation exists).
-- **`draft-renders-as-document`** — older, separate, still queued to run *after* this lands (unifies Draft's own rendering onto `DocumentShell`).
+Every previous fix was correct rendering machinery for data that never matched the end state. This handoff creates the actual data.
 
 ## Done when
 
-- Chronicle scopes to one Dialog's Points — derived from clicking any draft/moment/library-item row (existing selection state), or from a new direct click on a Dialog's own Nav header — instead of `DomainRealmStory` flattening every Dialog into one feed. The two selection paths are mutually exclusive, same "set mine, clear the others" pattern already used for `selectedDraftId`/`selectedMomentId`/`selectedLibraryItemId`
-- Before any Dialog is selected, Chronicle shows an explicit "Select a Dialog to see its Document" prompt — not the current flattened all-dialogs feed, not an auto-picked default
-- `DocumentShell` receives a real `paths` prop built from `Moment.pathId`/`Path.name` — Prisma select added in `apps/api/src/routes/v0/moments.ts`, mapped through `KeptMomentSummary` in `v0Moments.ts`, threaded through `momentToKeptNavEntry` into a `DocumentPathGroup[]`. Points with no resolvable path fall into the existing ungrouped bucket `buildGroups` already handles
-- `draftToRealmNavEntry` and `momentToKeptNavEntry` (`realmNavGrowth.ts`) no longer set `lede` and `body.text` to the identical string — lede is a short teaser or omitted, body always carries the full text
-- `DialogCastBar` renders inside Dialog's header, not the composer footer where it renders today — the header has never had a real cast slot; add one, don't repurpose the breadcrumb-only banner
-- ke3p domain's lead-agent binding investigated and, if simply misconfigured, corrected: `Domain.settings.primaryAgentId` currently resolves to the Cloud `kip_agents` row for this domain. Chuck has been explicit Kip should direct this domain's Dialog. If the binding is just stale data, correct it; if it's intentional for some reason not visible in code, **stop and report back rather than overwrite silently**
-- `DialogCastBar` resolves a human member to a linked personal-agent display name when one exists, instead of always rendering raw `member.name` — Chuck and Ceox appear as **one chip** ("Ceox"), on by default, not two. Chuck typing directly in the composer remains attributed to him as the human — no separate identity selector is introduced or required for that
-- `pnpm run quick:web` and `pnpm run quick:api` pass for every file this handoff touches — `quick:web` currently fails repo-wide (~108 pre-existing errors across ~33 files, none in this handoff's scope); don't fix those, just don't add new ones
-- Manual check on `/d/ke3p?board=realm`: Chronicle shows one Dialog's Document at a time with Path-grouped, non-duplicated Points; the cast bar renders in the header showing Kip (lead), Cloud, Rendr, and a single Ceox chip; Kip is visibly present, not missing
+- A real `Dialog` row is created on ke3p titled **"Becoming Together"** — fields follow existing `Dialog` conventions (`title`, `domain_id`, `available_to`, `context`, `document_status` defaulting to `drafts`); document the `user_id` choice (null for domain-scoped/cast-shared vs. Chuck's own id) since existing real dialogs use both patterns inconsistently
+- `LibraryItem` gains a real category mechanism — e.g. `category: String[] @default([])` — since none exists today (confirmed: only `source_type: upload|url|github|gdrive` exists, no tag/category field at all). Migration only, no other shape changes
+- `LibraryItemSourceType` gains an honest value for drafts converted this way — the existing enum has nothing for "originated from an internal Draft"; do not mislabel these as upload/url/github/gdrive
+- A dedicated, **manually-invoked** migration script (not auto-run on deploy, not run as part of committing this handoff) that, for each of ke3p's 78 `kip_drafts` rows with `dialog_id IS NULL`: creates one new `LibraryItem` with `source_ref = keeper://draft/{draftId}` (the existing pointer convention already documented in `AGENTS.md`), `display_label` = the draft's title, `description` = the draft's summary, `category` including `"archive"`, and the new `source_type` value — then sets that same draft's own `status` to `'archived'`
+- The same script archives ke3p's other 16 real Dialog rows (`is_archived = true` — not deleted, reversible) and sets `status = 'archived'` on the 8 drafts still attached to those dialogs, for the same reason
+- The script **defaults to dry-run**: prints exact counts and a sample of before/after mappings without writing anything; the real write only happens behind an explicit `--execute` flag
+- **Nothing is permanently deleted anywhere in this handoff** — archive/convert only, everything reversible
+- Confirm (don't assume) existing filtering already produces a clean result once this data is in place: `kip-dialogs.ts`'s list route already excludes `is_archived` dialogs by default, and `KipApi.listDrafts` already excludes `status: ['promoted','archived']` drafts. No new frontend filtering code should be needed — if verification shows otherwise, report back rather than add speculative logic
+- `pnpm run quick:api` passes for every touched file
+- **Dry-run output is reviewed and shared back before the real `--execute` run happens against production** — this is a hard gate, not a formality
 
 ## Canon (read first)
 
 - @AGENTS.md
 - @docs/chronicle-document-architecture.md
-- @docs/universal-board-dialog-orchestration.md
+- @docs/library-shared-context-roadmap.md
 
 ## Scope
 
-**Touch:** `apps/api/src/routes/v0/moments.ts`, `apps/web/src/v0/api/v0Moments.ts`, `apps/web/src/v0/realm/realmNavGrowth.ts`, `apps/web/src/v0/realm/useRealmNavGrowth.ts`, `apps/web/src/v0/realm/DomainRealmStory.tsx`, `apps/web/src/v0/realm/RealmStagedNav.tsx`, `apps/web/src/v0/realm/DialogCastBar.tsx`, `apps/web/src/v0/boards/UniversalBoardContext.tsx`, `apps/web/src/v0/boards/panels/UniversalNavPanel.tsx`, `apps/web/src/v0/components/dialog/KeeperDialogFrame.tsx`, `apps/web/src/v0/boards/UniversalConversation.tsx`, and ke3p's `Domain.settings.primaryAgentId` data (investigate via `apps/api/src/services/domains/resolveDomainLeadAgent.ts`).
+**Touch:** `packages/database/prisma/schema.prisma` (LibraryItem category field + new source_type enum value), a new migration script (e.g. `apps/api/src/scripts/consolidate-ke3p-dialogs.ts`, matching the existing precedent of `diagnose-default-domain.ts` / `repair-domain-frame.ts`), the generated Prisma migration.
 
-**Do not touch:** `packages/database/prisma/schema.prisma` (no schema change needed anywhere here); any `apps/api/` route other than `v0/moments.ts`; `DocumentShell.tsx`/`PointView.tsx` internals; the `libraryRows.slice(0, 8)` Presented heuristic; the full Layer 1 `ChronicleSubject` rewrite; full director-mode orchestration; any agent-permission/escalation model for Ceox.
+**Do not touch:** any domain other than ke3p — this is scoped to one domain's data, not platform-wide; any Dialog/draft row beyond archiving or status-updating — no deletions anywhere; Nav/`RealmStagedNav`/`useRealmNavGrowth` frontend filtering — the existing filters are already documented as sufficient, don't add redundant logic without first confirming it's actually needed; the already-shipped `realm-becoming-together-parity` UI work.
 
 ## Pattern
 
-`UniversalBoardContext.tsx` already has a "set mine, clear the others" shape for `selectedDraftId`/`selectedMomentId`/`selectedLibraryItemId` — add `selectedDialogId` following that identical shape. `DocumentPathGroup` and `buildGroups` already handle Path grouping plus an ungrouped fallback — just needs real `pathId`/`pathName` threaded in. `DialogCastBar.tsx` already pushes a lead chip when `leadAgentSlug` is set (lines 167–175) and already has a `kind: "person" | "agent"` chip shape — extend the person-chip path to check for a linked personal-agent identity before falling back to `member.name`, rather than building a new chip type. The existing `Journey: { select: { id: true, name: true } }` clause in `apps/api/src/routes/v0/moments.ts` is the direct precedent for the `Path` relation select.
+`AGENTS.md`'s Library section already documents the exact pointer convention this handoff uses: *"Pointers (`keeper://draft/{id}`, `keeper://sole/{id}`, `doc://{path}` in `source_ref`) surface other stores read-only."* This isn't a new pattern — it's the first real use of an already-documented one. `KipApi.listDrafts`'s existing `excludeStatus: ['promoted','archived']` and `kip-dialogs.ts`'s existing `is_archived` filter are why no new frontend code should be needed — confirm this holds before writing anything new.
 
 ## Rendr treatment
 
-N/A — no new visual treatment prescribed. Cast bar header placement should match existing header conventions in `KeeperDialogFrame.tsx`; empty-state prompt matches existing quiet copy style already used in `DomainRealmStory`'s `emptyState`.
+N/A — this is a data migration, not a UI change.
 
 ## Verification
 
-**Commands:** `pnpm run quick:web`, `pnpm run quick:api`
-**Browser:** `/d/ke3p?board=realm`
+**Commands:** `pnpm run quick:api`
+**Browser:** `/d/ke3p?board=realm` — only after the real `--execute` run, not before.
 
 ## Constraints
 
 - Match conventions in touched folders.
 - **Commit directly to `cloud` — no feature branch, no PR.**
-- Codebase wins over docs when they conflict.
-- No new colors or hardcoded values — reuse existing theme tokens and copy style.
-- If ke3p's lead-agent binding looks intentional rather than stale, stop and report back — do not overwrite domain data on a guess.
-- Do not attempt director-mode orchestration or a Ceox permission-escalation model in this handoff — both are explicitly out of scope, named above so they aren't rebuilt on a guess later.
+- **Nothing gets permanently deleted.** Archive and convert only.
+- **The real `--execute` run against production is a separate, deliberate step from committing this code.** Ship the script with dry-run as the default; do not invoke `--execute` unattended.
+- Scoped to ke3p only — do not generalize to a platform-wide migration in this handoff.
 
 ## Context
 
-Consolidated handoff replacing `realm-chronicle-dialog-scoped` (archived, absorbed unchanged into this one). Chuck asked directly for one document describing current state, end-state goals, and known gaps, rather than another narrow slice — after comparing two real screenshots of `/d/ke3p?board=realm` against the Becoming Together reference Document and finding it didn't match either time.
+Two decisions confirmed directly with Chuck before scoping this:
 
-Sequencing: `draft-renders-as-document` is older, separate, and still queued to run *after* this lands.
+1. Create a **new** Dialog rather than rename an existing one, and **archive** (not delete) the other 16.
+2. The 78 orphaned drafts convert into real `LibraryItem` rows tagged Archive, not just a status flag on the drafts alone — Chuck's own framing was *"Archive them where Archive is a Library category... Archive them type in the Library Archive,"* which requires the real schema addition above since `LibraryItem` has no category field today.
+
+This is production data. The dry-run-before-execute gate is not decorative.

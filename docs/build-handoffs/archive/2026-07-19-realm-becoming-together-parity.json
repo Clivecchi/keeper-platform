@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "id": "realm-becoming-together-parity",
+  "created_at": "2026-07-19T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Bring Realm's real board into parity with the Becoming Together reference Document: Chronicle scoped per-Dialog with real Path grouping and no text duplication, the cast bar correctly placed and populated (Kip as lead, Ceox representing Chuck), on top of the already-shipped Document/Point/Forward/Step shell.",
+  "shipped": {
+    "commits": ["65dc9885 (Chronicle Dialog-scoping)", "d432877b (Path wiring + text dedup)", "1d0e2cbd (cast bar to header)", "df1fb6ee (Ceox chip; confirmed Kip already correct lead binding)"],
+    "verified": "Chronicle dialog-scoping confirmed correct in code (scope derived from selectedDialogId or resolved from selected draft/moment/library item, gated empty state). Cast bar confirmed moved to header in KeeperDialogFrame.tsx. Kip's lead binding was already correct in ke3p's DB -- Cursor's own investigation (not mine) found this, correcting an assumption in this handoff's own done_when.",
+    "gap_found_after_shipping": "Ceox/Chuck merge chip never renders for Chuck specifically -- DialogCastBar's person-chip loop only fires for rows returned by GET /api/domains/:id/members, which reads only the domainPermission table (granted collaborators), not the Domain.ownerId. Chuck owns ke3p directly, so he never appears in that list and the merge logic (correct in isolation) has nothing to attach to. Real, confirmed gap -- not yet re-scoped as its own fix at archive time.",
+    "deeper_gap_found_after_shipping": "None of this mattered for Chuck's actual goal because 'Becoming Together' was never a real Dialog row -- confirmed by direct read-only query against ke3p's production data: 17 real Dialog rows exist, all auto-titled by board+date, none named Becoming Together. 86 total drafts, only 8 have a dialog_id; 78 are orphaned. Every fix in this handoff is real and working, but it was all rendering machinery for data that never matched the end state Chuck was waiting for. Superseded by ke3p-becoming-together-consolidation."
+  },
+  "done_when": [
+    "Chronicle scopes to one Dialog's Points -- derived from clicking any draft/moment/library-item row (existing selection state), or from a new direct click on a Dialog's own Nav header -- instead of DomainRealmStory flattening every Dialog into one feed. The two selection paths are mutually exclusive, same 'set mine, clear the others' pattern already used for selectedDraftId/selectedMomentId/selectedLibraryItemId",
+    "Before any Dialog is selected, Chronicle shows an explicit 'Select a Dialog to see its Document' prompt -- not the current flattened all-dialogs feed, not an auto-picked default",
+    "DocumentShell receives a real paths prop built from Moment.pathId/Path.name",
+    "draftToRealmNavEntry and momentToKeptNavEntry no longer set lede and body.text to the identical string",
+    "DialogCastBar renders inside Dialog's header, not the composer footer",
+    "ke3p domain's lead-agent binding investigated and corrected if misconfigured",
+    "DialogCastBar resolves a human member to a linked personal-agent display name when one exists",
+    "pnpm run quick:web and pnpm run quick:api pass for every file this handoff touches",
+    "Manual check on /d/ke3p?board=realm"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md", "docs/universal-board-dialog-orchestration.md"],
+  "context": {
+    "related_handoffs": ["realm-chronicle-dialog-scoped (archived, absorbed unchanged)", "ke3p-becoming-together-consolidation (supersedes -- the real data gap this handoff's fixes were rendering on top of)"],
+    "notes": "Chuck's own words on seeing the shipped result: 'I still have forty two thousand drafts and zero dialogs' -- accurate in spirit: 78 of 86 real drafts are orphaned, and the one Dialog he actually wants (Becoming Together) has never existed as a database row. The UI/rendering work in this handoff was necessary but not sufficient -- it needed real data to operate on, which is what ke3p-becoming-together-consolidation now creates."
+  }
+}
