@@ -1,0 +1,5 @@
+{
+  "version": "1.0",
+  "id": "draft-renders-as-document",
+  "note": "Re-parked, not dropped. Sequenced after realm-director-mode-unification -- Chuck raised three urgent findings (Nav noise, dialog auto-creation drift, castBar/boardInstruments divergence) that took priority. Full spec unchanged -- see docs/build-handoffs/current.md history or the original 2026-07-16 scoping in this archive folder's earlier draft-renders-as-document entries."
+}

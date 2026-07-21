@@ -1,60 +1,62 @@
-# Build Handoff — draft-renders-as-document
+# Build Handoff — realm-director-mode-unification
 
-**Goal:** Unify Draft's Focus-mode rendering onto the shared DocumentShell/PointView shell, so a Draft looks structurally identical to any other Document — differing only by status — without losing any of its accept/discuss/rewrite/promote functionality.
+**Goal:** Unify agent-invocation across boards that declare `dialogOrchestration: 'director'` — Domain/Realm uses `DialogCastBar`, IDE and Designer use a different component, `BoardInstrumentsBar`. Same declared orchestration mode, two different implementations. Replace with one shared mechanism.
 **Territory:** cursor
 **Branch:** cloud (direct — no feature branch, no PR)
-**Created:** 2026-07-20T00:00:00Z by cloud (originally scoped 2026-07-16)
+**Created:** 2026-07-21T00:00:00Z by cloud
 
-## Done when
+## Why this exists
 
-- `DraftFocusPresence` renders through `DocumentShell` (cover = draft identity/title/status, Points = the draft's DraftPoints) instead of its own bespoke layout
-- Each point renders via `PointView` (or `PointView` extended with an optional action-slot) for identity/title/body/status/gloss — same card shape as a kept Moment or Library item, viewed side by side
-- Accept, discuss, rewrite, and promote remain fully functional per point — this is a restructure, not a functionality cut. If any of these can't fit cleanly into `PointView`'s existing read-only shape, extend `PointView` with an optional action-slot prop rather than forking a second component
-- Path clustering (`DraftPathEmergence` / `clusterDraftPoints`) still visibly groups points when paths exist, using the same `DocumentPathGroup`/`buildGroups` presentation now shared with Realm's real Path grouping — not a separate clustering UI
-- `DocumentShell`'s `forward`/`step` props (shipped since this handoff was first written — see `document-forward-step`) are handled sanely for a Draft: either omitted, or given Draft-appropriate content — Cursor's call, documented, since a Draft's own "authored destination" framing wasn't designed when Forward/Step shipped
-- Status differences (proposed vs accepted vs promoted, and Drafts vs Kept vs Presented) show only through the existing status/tone mechanism already used elsewhere — no new bespoke styling introduced for this
-- No new colors, fonts, or spacing values — `DraftPointRow.tsx` already uses theme tokens correctly (`hsl(var(--theme-ink-primary))` etc.); carry those same tokens through, do not hardcode anything new
-- `DraftPointsSection.tsx`, `DraftPointRow.tsx`, and `DraftFilmStrip.tsx` are either retired (if fully superseded) or reduced to thin wrappers around `DocumentShell`/`PointView` — Cursor's call which, documented in commit messages
+Chuck flagged this directly: *"why is Realm starting to look different than the rest of the universal boards... not following the universal pattern."* Confirmed real, not paranoia, by reading `UniversalBoardDefinition.ts` directly: IDE declares `boardInstruments: ['cloud','rendr']`, Designer declares `boardInstruments: ['kip']`, Domain/Realm declares `castBar: true` with no `boardInstruments` at all. All three declare `dialogOrchestration: 'director'` — but two genuinely different components implement it.
+
+## Two smaller things from the same round, already fixed directly (not part of this handoff)
+
+1. **Nav noise** — `GET /api/library-items` had no category filter, so the 78 archive-tagged `LibraryItem`s from the ke3p consolidation were flooding Realm's Kept nav bucket unfiltered. Fixed: excludes `category: archive` by default now (commit `6afa46b7`), matching the `includeArchived` pattern already used for dialogs.
+2. **Dialog auto-creation drift** — ke3p kept spawning new dialogs on every board visit because `findOrCreateKipDialog`'s reuse lookup (`domain + scope + user_id + board + frame`) never matched how "Becoming Together" was originally created (`user_id: null`, `available_to: ['admin']`, `context.board: 'realm'`). Real sessions use `user_id: Chuck's id`, `available_to: ['keeper']`, `context.board: 'domain'`, `context.frame: 'conversation'`. Fixed directly — updated Becoming Together's binding to match real usage, archived the one duplicate that had already spawned (verified empty first, 0 messages). Both fixes verified by direct query, not assumed: ke3p is back to exactly 1 active dialog, 17 clean Kept library items.
+
+## Done when (this handoff — the one that's real design work, not a patch)
+
+- One shared component/pattern renders agent roster + invocation for every board declaring `dialogOrchestration: 'director'` — do not keep two parallel implementations of the same concept
+- Cursor decides and documents which existing component wins (`DialogCastBar` extended to cover `BoardInstrumentsBar`'s job, or vice versa, or a new shared component both delegate to) — real design decision, not a mechanical merge; document the reasoning in the commit message
+- The lead agent (`directorAgentSlug`) always renders distinctly from invocable instruments in the unified component, on every board — matching the distinction `DialogCastBar` already draws (lead chip vs. support-agent chips)
+- Clicking an instrument still invokes it the same way it does today on each board (`onInvokeAgent` / `activeBoardInstrumentSlug` wiring preserved) — presentation unification, not a behavior change to which boards can invoke which agents
+- IDE, Designer, and Domain/Realm boards all visually read as the same underlying pattern afterward — verified by comparing screenshots, not just by reading the code
+- No change to which boards declare which instruments (IDE's `['cloud','rendr']`, Designer's `['kip']`, Domain's cast roster) — unifies the rendering, not the assignments
 - `pnpm run quick:web` passes
-- Manual check: opening a Draft and opening a kept Moment or Library item in Focus mode show the same card shape and layout, differing only by which status and which actions are present
+- Manual check: `/d/ke3p?board=realm`, `?board=ide`, and Designer board all show agent invocation through the same visual/interaction pattern
 
 ## Canon (read first)
 
 - @AGENTS.md
+- @docs/universal-board-dialog-orchestration.md
 - @docs/chronicle-document-architecture.md
 
 ## Scope
 
-**Touch:** `apps/web/src/v0/presence/cover/DraftFocusPresence.tsx`, `apps/web/src/v0/presence/DraftPointsSection.tsx`, `apps/web/src/v0/presence/DraftPointRow.tsx`, `apps/web/src/v0/presence/integrationChronicle/DraftFilmStrip.tsx`, `apps/web/src/v0/presence/chronicleDocument/DocumentShell.tsx`, `apps/web/src/v0/presence/chronicleDocument/PointView.tsx`, `apps/web/src/v0/presence/integrationChronicle/draftManuscriptUtils.ts`
+**Touch:** `apps/web/src/v0/realm/DialogCastBar.tsx`, `apps/web/src/v0/boards/components/BoardInstrumentsBar.tsx`, `apps/web/src/v0/components/dialog/KeeperDialogFrame.tsx`, `apps/web/src/v0/boards/UniversalBoardDefinition.ts` (only if the `castBar`/`boardInstruments` board-def fields themselves need to become one field — Cursor's call, document it).
 
-**Do not touch:** `apps/api/`, `packages/database/prisma/schema.prisma`, the Realm/ke3p data consolidation work (`ke3p-becoming-together-consolidation`, shipped) — unrelated, don't touch dialogs/drafts data.
+**Do not touch:** `packages/database/prisma/schema.prisma`; `apps/api/`; the actual full "director" mode target behavior (Kip-only composer, Cloud/Rendr invoked as delegated sub-turns with action cards) — this handoff unifies today's two partial implementations, it does not build the real director-mode delegation model described in the orchestration doc. That remains future work, named so it isn't conflated with this handoff; ke3p's real dialog/library data — already fixed this session, unrelated here.
 
 ## Pattern
 
-`DocumentShell`/`PointView` is already treatment-compliant and already reused by `DomainRealmStory` as a thin adapter, now including real `forward`/`step`/`paths` support (shipped since this handoff was first scoped) — extend that same pattern here, do not build a third rendering path. `DraftPointRow` already uses theme tokens correctly (`hsl(var(--theme-...))`) — carry the same tokens forward, do not replace with new hardcoded values.
+`docs/universal-board-dialog-orchestration.md` already names this exact gap: *"Board preset today: ide — partially wired (Cloud/Rendr tool chips swap the dialog agent; not true director)."* `DialogCastBar.tsx` already distinguishes lead vs. support chips and wires `onInvokeAgent` — `BoardInstrumentsBar` likely does something structurally similar; compare both before deciding which one generalizes.
 
 ## Rendr treatment
 
-N/A — no new visual treatment. This is structural reuse of an already treatment-compliant shell, not a redesign.
+N/A on record — flag if a real visual unification decision needs Rendr's input once the two components are compared side by side.
 
 ## Verification
 
 **Commands:** `pnpm run quick:web`
-**Browser:** `/d/ke3p?board=realm`
+**Browser:** `/d/ke3p?board=realm`, `/d/ke3p?board=ide`, Designer board
 
 ## Constraints
 
 - Match conventions in touched folders.
 - **Commit directly to `cloud` — no feature branch, no PR.**
-- Codebase wins over docs when they conflict.
-- No functionality regression — accept/discuss/rewrite/promote must all still work.
+- Do not build full director-mode delegation in this handoff — that's separate, larger, future work.
+- Do not change which agents are instruments on which board — only how invocation renders.
 
 ## Context
 
-Oldest still-open handoff in the sequence, originally scoped 2026-07-16 — deliberately sequenced to run *after* `document-forward-step` and the Realm/ke3p consolidation work, both now shipped, so this doesn't need to be redone once `DocumentShell`'s shape settled.
-
-Chuck caught this directly back on 2026-07-16: after `document-point-moment-reconciliation` shipped, Draft still visually looked different from Document, which exposed that "Draft and Document becoming one thing" had only happened in the schema, not on screen. This handoff closes that gap.
-
-Since it was first written, `DocumentShell` gained real `forward`/`step` props (`document-forward-step`) and ke3p's own data was consolidated into a real "Becoming Together" Dialog with archived drafts converted to Library items (`ke3p-becoming-together-consolidation`) — good context for what Realm's real data looks like now, though unrelated to this handoff's scope.
-
-**Explicitly NOT in scope:** self-organizing behavior (Document actively shaping itself as a Dialog proceeds) — that remains a separate, parked, not-yet-designed thread. Do not attempt it here; this handoff is about one shell rendering both states of the same thing, not about the surface organizing itself.
+`draft-renders-as-document` is re-parked, sequenced to run *after* this one — see `archive/2026-07-20-draft-renders-as-document-requeued.json`. Not dropped, just resequenced behind this more urgent finding.
