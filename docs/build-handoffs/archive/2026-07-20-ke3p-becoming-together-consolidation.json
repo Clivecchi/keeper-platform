@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "id": "ke3p-becoming-together-consolidation",
+  "created_at": "2026-07-20T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Create a real 'Becoming Together' Dialog on ke3p as the one active dialog, archive the domain's other 16 real dialogs, and convert its 78 dialog-less drafts into real LibraryItem records tagged Archive -- so Realm's actual data matches the reference Document's premise, not just its rendering.",
+  "shipped": {
+    "commits": ["39f0e6bf (schema: LibraryItem.category + source_type=draft, migration)", "0d3c661c (fix: transaction timeout raised to 120s/10s maxWait, --execute run)"],
+    "execution_log": "First --execute attempt (Cloud, not Cursor) rolled back cleanly at draft 1/78 -- Prisma's default 5s interactive-transaction timeout wasn't enough for 78 sequential round-trips to the remote Railway DB. Verified rollback was complete and clean via a direct read-only query before doing anything else (0 archived dialogs, 0 archived drafts, 0 LibraryItems -- exactly pre-execute state). Raised the transaction's timeout/maxWait options, re-ran --execute successfully.",
+    "verified_result": "Direct, read-only post-execute query, not assumed: ke3p now has 18 total Dialog rows, exactly 1 active/non-archived -- 'Becoming Together' (id cmrtyoraw0001ot0033p5wiwm). All 86 kip_drafts rows now status='archived' (78 converted orphans + 8 attached-to-archived-dialogs). 78 LibraryItem rows created, category=['archive'], source_type='draft'. Nothing deleted anywhere."
+  },
+  "done_when": [
+    "A real Dialog row is created on ke3p titled 'Becoming Together'",
+    "LibraryItem gains a real category mechanism",
+    "LibraryItemSourceType gains an honest value for drafts converted this way",
+    "A dedicated, manually-invoked migration script exists, defaulting to dry-run",
+    "The script archives ke3p's other 16 real Dialog rows and their attached drafts",
+    "No drafts or dialogs are permanently deleted anywhere in this handoff",
+    "Existing Nav/Realm filtering confirmed sufficient, no new frontend filtering added",
+    "Dry-run output reviewed before the real --execute run"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md", "docs/library-shared-context-roadmap.md"],
+  "context": {
+    "related_handoffs": ["realm-becoming-together-parity (archived, shipped)", "draft-renders-as-document (next queued, now current)"],
+    "notes": "Chuck's original complaint fully resolved and verified, not assumed: 'a Realm where only Becoming Together exists as a dialog' is now real -- 18 dialogs total, exactly 1 active. Real bug found and fixed during execution (Prisma interactive-transaction timeout on 78 sequential round-trips) -- caught by actually running the script and reading its output, not by trusting the commit message. Chuck explicitly delegated the dry-run review and did not want to be in the loop for --execute; Cloud held that gate as agreed."
+  }
+}

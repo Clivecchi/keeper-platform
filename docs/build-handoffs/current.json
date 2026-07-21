@@ -1,57 +1,61 @@
 {
   "version": "1.0",
-  "id": "ke3p-becoming-together-consolidation",
+  "id": "draft-renders-as-document",
   "created_at": "2026-07-20T00:00:00Z",
   "created_by": "cloud",
-  "goal": "Create a real 'Becoming Together' Dialog on ke3p as the one active dialog, archive the domain's other 16 real dialogs, and convert its 78 dialog-less drafts into real LibraryItem records tagged Archive -- so Realm's actual data matches the reference Document's premise, not just its rendering.",
+  "goal": "Unify Draft's Focus-mode rendering onto the shared DocumentShell/PointView shell, so a Draft looks structurally identical to any other Document -- differing only by status -- without losing any of its accept/discuss/rewrite/promote functionality.",
   "done_when": [
-    "A real Dialog row is created on ke3p titled 'Becoming Together' -- fields follow the existing Dialog model conventions (title, domain_id, available_to, context, document_status defaulting to 'drafts'); document the choice of user_id (null for domain-scoped/cast-shared vs Chuck's own id) since existing real dialogs use both patterns inconsistently",
-    "LibraryItem gains a real category mechanism -- e.g. category: String[] @default([]) -- since none exists today (confirmed: LibraryItem has no category/tag field, only source_type: upload|url|github|gdrive). Prisma migration only, no data-shape changes beyond the new column",
-    "LibraryItemSourceType gains an honest value for drafts converted this way (the existing enum has no 'originated from an internal Draft' option) -- do not mislabel converted drafts as upload/url/github/gdrive",
-    "A dedicated, manually-invoked migration script exists (not auto-run on deploy, not run as part of committing this handoff) that: for each of ke3p's 78 kip_drafts rows with domain_id=ke3p and dialog_id IS NULL, creates one new LibraryItem with source_ref = keeper://draft/{draftId} (the existing pointer convention documented in AGENTS.md), display_label = the draft's title, description = the draft's summary, category including 'archive', and the new source_type value -- then sets that same draft's own status to 'archived'",
-    "The same script archives ke3p's other 16 real Dialog rows (is_archived = true) -- not deleted, reversible -- and also sets status = 'archived' on the small number of drafts (8 total) still attached to those dialogs via dialog_id, for the same reason: consistency with the orphaned-draft treatment",
-    "The script defaults to dry-run: printing exact counts and a sample of before/after mappings (dialog titles being archived, draft-to-LibraryItem mappings) without writing anything, and only performs the real writes behind an explicit --execute flag",
-    "No drafts or dialogs are permanently deleted anywhere in this handoff -- archive/convert only, everything reversible",
-    "Confirm (do not assume) that existing Nav/Realm filtering already produces a clean result once this data is in place: kip-dialogs.ts's list route already excludes is_archived dialogs by default, and KipApi.listDrafts already excludes status: ['promoted','archived'] drafts -- no new frontend filtering code should be needed; if verification shows otherwise, report back rather than add speculative filtering logic",
-    "pnpm run quick:api passes for every file this handoff touches",
-    "Dry-run output reviewed and shared back before the real --execute run happens against production -- this is a hard gate, not a formality"
+    "DraftFocusPresence renders through DocumentShell (cover = draft identity/title/status, Points = the draft's DraftPoints) instead of its own bespoke layout",
+    "Each point renders via PointView (or PointView extended with an optional action-slot) for identity/title/body/status/gloss -- same card shape as a kept Moment or Library item, viewed side by side",
+    "Accept, discuss, rewrite, and promote remain fully functional per point -- this is a restructure, not a functionality cut. If any of these can't fit cleanly into PointView's existing read-only shape, extend PointView with an optional action-slot prop rather than forking a second component",
+    "Path clustering (DraftPathEmergence / clusterDraftPoints) still visibly groups points when paths exist, using the same DocumentPathGroup/buildGroups presentation now shared with Realm's real Path grouping -- not a separate clustering UI",
+    "DocumentShell's forward/step props (shipped since this handoff was first written -- see document-forward-step) are handled sanely for a Draft: either omitted, or given Draft-appropriate content -- Cursor's call, documented, since a Draft's own 'authored destination' framing wasn't designed when Forward/Step shipped",
+    "Status differences (proposed vs accepted vs promoted, and Drafts vs Kept vs Presented) show only through the existing status/tone mechanism already used elsewhere -- no new bespoke styling introduced for this",
+    "No new colors, fonts, or spacing values -- DraftPointRow.tsx already uses theme tokens correctly (hsl(var(--theme-ink-primary)) etc.); carry those same tokens through, do not hardcode anything new",
+    "DraftPointsSection.tsx, DraftPointRow.tsx, and DraftFilmStrip.tsx are either retired (if fully superseded) or reduced to thin wrappers around DocumentShell/PointView -- Cursor's call which, documented in commit messages",
+    "pnpm run quick:web passes",
+    "Manual check: opening a Draft and opening a kept Moment or Library item in Focus mode show the same card shape and layout, differing only by which status and which actions are present"
   ],
   "territory": "cursor",
-  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md", "docs/library-shared-context-roadmap.md"],
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md"],
   "scope": {
     "touch": [
-      "packages/database/prisma/schema.prisma -- add category field to LibraryItem, add a new LibraryItemSourceType enum value",
-      "a new migration script, e.g. apps/api/src/scripts/consolidate-ke3p-dialogs.ts, matching the existing precedent of apps/api/src/scripts/diagnose-default-domain.ts and repair-domain-frame.ts",
-      "packages/database/prisma migrations directory (generated migration for the schema change)"
+      "apps/web/src/v0/presence/cover/DraftFocusPresence.tsx",
+      "apps/web/src/v0/presence/DraftPointsSection.tsx",
+      "apps/web/src/v0/presence/DraftPointRow.tsx",
+      "apps/web/src/v0/presence/integrationChronicle/DraftFilmStrip.tsx",
+      "apps/web/src/v0/presence/chronicleDocument/DocumentShell.tsx",
+      "apps/web/src/v0/presence/chronicleDocument/PointView.tsx",
+      "apps/web/src/v0/presence/integrationChronicle/draftManuscriptUtils.ts"
     ],
     "do_not_touch": [
-      "any domain other than ke3p -- this migration is scoped to one domain's data, not a platform-wide change",
-      "any existing Dialog or kip_drafts row beyond archiving/status-updating them -- no deletions anywhere in this handoff",
-      "Nav/RealmStagedNav/useRealmNavGrowth frontend filtering logic -- the existing is_archived and excludeStatus filters already documented as sufficient; do not add redundant or speculative filtering unless verification proves it's actually needed",
-      "the realm-becoming-together-parity UI work (Chronicle scoping, cast bar, Path grouping) -- already shipped, do not touch"
+      "apps/api/",
+      "packages/database/prisma/schema.prisma",
+      "the Realm/ke3p data consolidation work (ke3p-becoming-together-consolidation, shipped) -- unrelated, do not touch dialogs/drafts data"
     ]
   },
-  "pattern_ref": "AGENTS.md's Library section already documents the pointer convention this handoff uses: 'Pointers (keeper://draft/{id}, keeper://sole/{id}, doc://{path} in source_ref) surface other stores read-only' -- this is not a new pattern, it's the first real use of an already-documented one. KipApi.listDrafts's existing excludeStatus: ['promoted','archived'] option and kip-dialogs.ts's existing is_archived: includeArchived ? undefined : false filter are the reason no new frontend code should be needed -- confirm this holds before writing any new filtering logic.",
+  "pattern_ref": "DocumentShell/PointView is already treatment-compliant and already reused by DomainRealmStory as a thin adapter, now including real forward/step/paths support (shipped since this handoff was first scoped) -- extend that same pattern here, do not build a third rendering path. DraftPointRow already uses theme tokens correctly (hsl(var(--theme-...))) -- carry the same tokens forward, do not replace with new hardcoded values.",
   "rendr_treatment": null,
   "git": {
     "branch": "cloud",
     "base": "cloud",
     "commit": true,
     "open_pr": false,
-    "pr_title": "feat: create real Becoming Together Dialog, archive ke3p's other dialogs, convert orphaned drafts to Library Archive items"
+    "pr_title": "refactor: unify Draft rendering onto DocumentShell/PointView"
   },
   "verification": {
-    "commands": ["pnpm run quick:api"],
-    "browser": ["/d/ke3p?board=realm (after the real --execute run, not before)"]
+    "commands": ["pnpm run quick:web"],
+    "browser": ["/d/ke3p?board=realm"]
   },
   "context": {
-    "phase": "Data-consolidation follow-up to realm-becoming-together-parity (archived, shipped) -- that handoff's UI/rendering fixes were real but had no real 'Becoming Together' Dialog to operate on. Chuck confirmed this directly: 'I still have forty two thousand drafts and zero dialogs.'",
+    "phase": "Oldest still-open handoff in the sequence (originally scoped 2026-07-16) -- deliberately sequenced to run after document-forward-step and the Realm/ke3p consolidation work, both now shipped, so this doesn't need to be redone once DocumentShell's shape settled",
     "related_handoffs": [
-      "realm-becoming-together-parity (archived, shipped -- UI/rendering work this consolidation now has real data to render)",
-      "realm-chronicle-dialog-scoped (archived, absorbed earlier)",
-      "draft-renders-as-document (still open, unrelated, unaffected by this data change)"
+      "document-point-moment-reconciliation (archived, shipped)",
+      "document-forward-step (archived, shipped -- DocumentShell gained forward/step props since this handoff was first written)",
+      "realm-becoming-together-parity (archived, shipped)",
+      "ke3p-becoming-together-consolidation (archived, shipped -- ke3p now has a real Becoming Together Dialog with real archived-draft Library items; unrelated to this handoff but good context for what Realm's data actually looks like now)"
     ],
     "library_refs": [],
-    "notes": "Verified against a direct, read-only production query (not assumed): ke3p has 17 real Dialog rows, all auto-titled by board+date ('Ide - conversation - Apr 23', 'Domain - conversation - Jul 4', etc.), none named Becoming Together. 86 total kip_drafts rows; only 8 have a dialog_id, 78 are orphaned (dialog_id null) -- this is the real source of the 87-item Unassigned pile Chuck has been seeing in Nav since realm-nav-dialog-scoped shipped. Two decisions confirmed directly with Chuck before scoping this: (1) create a new Dialog rather than rename an existing one, and archive (not delete) the other 16; (2) the 78 orphaned drafts convert into real LibraryItem rows tagged Archive, not just a status flag flip on the drafts alone -- Chuck's own framing was 'Archive them where Archive is a Library category... Archive them type in the Library Archive,' which requires a real schema addition since LibraryItem has no category field today. This is production data. The dry-run-before-execute gate in done_when is not decorative -- do not run the real migration unattended as part of shipping the code; the script existing and being committed is fine to do directly per this repo's git.commit:true convention, but the actual --execute invocation against ke3p's real data is a separate, deliberate step that should happen with Chuck's review of the dry-run output first."
+    "notes": "Chuck caught this directly back on 2026-07-16: after document-point-moment-reconciliation shipped, Draft still visually looked different from Document, which exposed that 'Draft and Document becoming one thing' had only happened in the schema, not on screen. This handoff closes that gap. Explicitly NOT in scope: self-organizing behavior (Document actively shaping itself as a Dialog proceeds) -- that remains a separate, parked, not-yet-designed thread. Do not attempt it here."
   }
 }

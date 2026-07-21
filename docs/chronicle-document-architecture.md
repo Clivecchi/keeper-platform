@@ -1,6 +1,6 @@
 # Chronicle — Selection, Routing, and ChronicleDocument
 
-**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE; Forward/Step header). Layer 3 unchanged (`resolveChronicleDeclaration.ts`). `realm-becoming-together-parity` (Chronicle Dialog-scoping, Path grouping, cast bar header placement, Ceox chip logic) shipped 2026-07-19 and is verified real — but ke3p has no Dialog actually named "Becoming Together," and 78 of its 86 drafts are orphaned (no `dialog_id`), so none of that rendering work had real data to operate on. See `ke3p-becoming-together-consolidation`, the data-side follow-up, not yet run.
+**Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE; Forward/Step header). Layer 3 unchanged (`resolveChronicleDeclaration.ts`). `realm-becoming-together-parity` (rendering) and `ke3p-becoming-together-consolidation` (data) both shipped 2026-07-20 — verified by direct query: ke3p now has 18 Dialog rows, exactly 1 active ("Becoming Together"), 86 drafts archived, 78 converted into real Library items tagged `archive`. `draft-renders-as-document` is now current — the last open item in this sequence.
 
 ---
 
@@ -220,6 +220,16 @@ All the scoping, Path-grouping, and cast-bar work was correct rendering machiner
 **Decided (2026-07-20), confirmed directly before scoping the fix:** a new Dialog gets created (not an existing one renamed), titled "Becoming Together," as the one active dialog. The other 16 real dialogs get archived (`is_archived = true`, not deleted). The 78 orphaned drafts convert into real `LibraryItem` rows tagged `"archive"` — Chuck's own framing: *"Archive them where Archive is a Library category... Archive them type in the Library Archive."* This requires a real schema addition (`LibraryItem` has no category field today, only `source_type`) — not a status flag on the drafts alone. Each converted item uses the `keeper://draft/{id}` pointer convention already documented above (Gloss anchor table), not a new mechanism.
 
 **Confirmed, not assumed:** the existing `excludeStatus: ["promoted","archived"]` filter on `KipApi.listDrafts` and the existing `is_archived` filter on the dialog-list route already do the work of keeping archived content out of Nav — this consolidation should need no new frontend filtering code, only the data itself moved into the right state. Scoped as `ke3p-becoming-together-consolidation`. Production data — the real `--execute` run against ke3p is a deliberate, separate step from shipping the migration script, gated on Chuck reviewing dry-run output first.
+
+### Verified (2026-07-20): ke3p consolidation shipped and ran — a real Dialog now exists
+
+`ke3p-becoming-together-consolidation` landed: `39f0e6bf` (schema — `LibraryItem.category`, `LibraryItemSourceType.draft`, migration script, defaulting to dry-run) and `0d3c661c` (transaction-timeout fix + the real `--execute` run). Cloud ran the dry-run, reviewed it, ran `--execute` directly (Chuck delegated that review rather than doing it himself).
+
+**First `--execute` attempt rolled back** — Prisma's default 5s interactive-transaction timeout wasn't enough for 78 sequential round-trips to the remote database. Verified the rollback was complete and clean via a direct read-only query (0 archived dialogs, 0 archived drafts, 0 LibraryItems — exactly the pre-execute state) before touching anything further, consistent with this whole effort's standing rule: verify, don't assume. Raised the timeout, re-ran successfully.
+
+**Verified result, direct query, not assumed:** ke3p now has 18 total Dialog rows, **exactly 1 active** — "Becoming Together" (`cmrtyoraw0001ot0033p5wiwm`). All 86 `kip_drafts` rows are `status: archived`. 78 `LibraryItem` rows exist, `category: ["archive"]`, `source_type: "draft"`, each pointing back via `keeper://draft/{id}`. Nothing deleted.
+
+Chuck's original complaint — *"I still have forty two thousand drafts and zero dialogs"* — is resolved, not just addressed in rendering. `draft-renders-as-document` is now the current handoff, the last open item in this sequence.
 
 ### Decided (2026-07-19): one consolidated handoff, not another narrow slice
 
