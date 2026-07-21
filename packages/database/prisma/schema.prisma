@@ -2078,6 +2078,8 @@ enum LibraryItemSourceType {
   url
   github
   gdrive
+  /// Originated from an internal kip_drafts row (connective-index pointer).
+  draft
 }
 
 /// Library EntityKind — domain-scoped reference materials (upload, URL, external sources).
@@ -2089,6 +2091,8 @@ model LibraryItem {
   display_label       String?
   description         String?
   agent_perspective   String?
+  /** Category tags (e.g. "archive") — connective index organization, not a hierarchy layer. */
+  category            String[]              @default([])
   /** 1536-d embedding vector — stored as float[] until pgvector extension is enabled on the DB host. */
   embedding           Float[] @default([])
   assigned_keeper_id  String?
