@@ -262,6 +262,8 @@ async function main(): Promise<void> {
   console.log('\n--- EXECUTE beginning ---');
 
   const result = await prisma.$transaction(async (tx) => {
+    // 78 sequential draft->LibraryItem conversions each round-trip to the DB;
+    // Prisma's default 5s interactive-transaction timeout isn't enough headroom.
     let becomingDialogId = existingBecoming?.id ?? null;
     let createdDialog = false;
 
@@ -348,7 +350,7 @@ async function main(): Promise<void> {
       archivedOrphanDraftIds,
       skippedExistingPointers,
     };
-  });
+  }, { timeout: 120_000, maxWait: 10_000 });
 
   console.log(`Becoming Together dialog id: ${result.becomingDialogId} (created=${result.createdDialog})`);
   console.log(`Dialogs archived: ${result.archivedDialogIds.length}`);
