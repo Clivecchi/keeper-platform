@@ -72,5 +72,5 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - 2026-02-09: Initial extraction from KipAgentBoardPage. Created DialogueMessageList, SessionCard, CockpitPanel, AgentContextBar, types, and helpers.
 - 2026-02-14: Added showCompliance prop and GovernanceCompliancePanel to CockpitPanel. When showCompliance (admin view), displays Draft Trigger Success %, Tool-First Violations, Total checks via GET /api/domains/:domainId/governance/compliance.
 
-- 2026-07-15: **keeper-card reliability** — AgentMessageContent prefers structured metadata.card; fences remain fallback. Unit tests for parse/normalize/strip.
+- 2026-07-15: **keeper-card reliability** ï¿½ AgentMessageContent prefers structured metadata.card; fences remain fallback. Unit tests for parse/normalize/strip.
 
