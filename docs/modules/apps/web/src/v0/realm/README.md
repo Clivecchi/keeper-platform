@@ -12,7 +12,7 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - `DomainRealmStory.tsx` — domain-scoped Document (Point) story frames via `PointView`
 - `RealmStagedNav.tsx` — Dialog-scoped nav (Dialog → Drafts / Kept / Presented)
 - `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — Document-shaped nav data; `byDialog` + `byStage`
-- `DialogCastBar.tsx` — Dialog cast bar (members, agents, access keys)
+- `DialogCastBar.tsx` — `RealmCastAccessActions` (Invite / Get key / Manage trailing chrome); agent chips live on shared `BoardInstrumentsBar`
 - `PresenceField.tsx` — named Treatment pattern for presence imagery
 - `useRealmFeed.ts` — client feed loader
 - `realmInvitationActions.ts` — invitation + feed click handlers
@@ -32,13 +32,20 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-20 — Director-mode unification
+- Agent roster + invocation moved to shared `BoardInstrumentsBar` in the composer footer (same pattern as Domain / IDE / Designer)
+- `DialogCastBar.tsx` now exports `RealmCastAccessActions` only — Invite / Get key / Manage as trailing actions when `castBar: true`
+- Header `.dialog-header-cast` slot removed; `castBar` no longer means a separate invocation UI
+
 ### 2026-07-19 — Cast bar Ceox / personal-agent chip
 - `DialogCastBar` resolves the signed-in member to their primary-domain lead display name (Chuck → Ceox) — one person chip, not raw `member.name`
 - Personal-agent slug is excluded from support-agent chips so the human and their persona never double-render
 - Investigated ke3p `settings.primaryAgentId`: already points at Kip (matches `frame_json.kip.agent_id`); no data overwrite
+- *(Person-chip roster retired 2026-07-20 — domain lead still surfaces as an instrument chip via `domainDirectorBoardInstruments`.)*
 
 ### 2026-07-19 — Cast bar in Dialog header
 - `DialogCastBar` mounts in `KeeperDialogFrame` header (`.dialog-header-cast`), not the composer footer
+- *(Superseded 2026-07-20 — footer BoardInstrumentsBar.)*
 
 ### 2026-07-19 — Path grouping + Point lede/body split
 - `momentToKeptNavEntry` carries `pathId` / `pathName` from kept Moments; `DomainRealmStory` builds `DocumentPathGroup[]` for `DocumentShell`

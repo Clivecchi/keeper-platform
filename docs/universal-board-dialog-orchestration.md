@@ -56,8 +56,8 @@ type DialogOrchestrationMode =
 | **Thread** | One session; handoffs visible as action cards (“Cloud opened PR #12”, “Rendr proposed treatment…”) |
 | **External** | Cursor via Cloud handoff (`docs/build-handoffs/schema.md`) — not a board persona |
 
-**Board preset today:** `ide` — **partially wired** (Cloud/Rendr tool chips *swap* the dialog agent; not true director).  
-**Board preset target:** `ide` / future `dev` with `dialogOrchestration: "director"`.
+**Board preset today:** `ide` / `designer` / `domain` / `realm` — **partially wired** (shared `BoardInstrumentsBar` Agents chips pin instruments; composer still may follow pin — not true director delegation).  
+**Board preset target:** `ide` / future `dev` with `dialogOrchestration: "director"` (Kip-only composer; instruments as delegated sub-turns).
 
 **Territory routing (Kip delegates):** see build handoff schema — Cloud mechanical vs Cursor reasoning vs Rendr treatment.
 
@@ -161,4 +161,5 @@ When implementing `director` on IDE/Dev preset:
 
 | Date | Change |
 |---|---|
+| 2026-07-20 | Presentation unification: `BoardInstrumentsBar` is the shared Agents roster for every director board; Realm header `DialogCastBar` retired to trailing access actions only. Full director delegation (Kip-only composer) remains future work. |
 | 2026-06-17 | Initial spec — five orchestration modes; director near-term; roundtable, hot_seat, chorus reserved |

@@ -4,17 +4,21 @@
 IDE Board-specific UI pieces mounted inside the Universal Board shell — notably the Composer Service Bar.
 
 ## 🧱 Key Files
-- `IntegratedServicesBar.tsx` — Composer footer (left): **Agents** (Cloud, Rendr — invoke agents) and **Services** (Railway, Vercel, GitHub — open Chronicle integrations). Pairs with `ComposerDebugToolbar` on the right via `.dialog-composer-footer` in `KeeperDialogFrame`.
+- `IntegratedServicesBar.tsx` — Composer footer (left): composes shared `BoardInstrumentsBar` for **Agents** (Kip director + Cloud / Rendr) and appends **Services** (Railway, Vercel, GitHub). Pairs with `ComposerDebugToolbar` on the right via `.dialog-composer-footer` in `KeeperDialogFrame`.
 
 ## 🔄 Data & Behavior
 - Rendered inside `.dialog-composer-footer` when `def.conversation.showServiceBar` is true (IDE Board only). Debug icon (`ComposerDebugToolbar`) sits on the right of the same footer at all times in dialog mode.
-- `onToolInvoke` shifts the Dialog to the Cloud or Rendr agent via `UniversalConversation`.
+- Agent chips come from `UniversalConversation` (`ideBoardInstruments`) via `instruments` / `onInstrumentInvoke` / `activeInstrumentSlug` — same wiring as Domain / Realm / Designer.
 - `onOpen` opens the integrations panel in Chronicle (`UniversalViewPanel` → `ServicesFrame`).
 
 ## ⚠️ Notes & ToDo
 - [ ] Wire live connection status for Railway, Vercel, GitHub chips.
 
 ## 📆 Update Log
+
+### 2026-07-20 — Director-mode unification
+- Agents section delegates to shared `BoardInstrumentsBar` (Kip as `isDirector` + declared `boardInstruments`).
+- Legacy `onToolInvoke` / `activeToolSlug` retained as fallback only.
 
 ### 2026-07-03 — Agents label (not Tools)
 - Renamed composer footer eyebrow from **Tools** to **Agents** for Cloud/Rendr chips — matches Domain board `BoardInstrumentsBar` vocabulary.
