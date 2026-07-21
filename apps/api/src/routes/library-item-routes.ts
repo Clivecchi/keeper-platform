@@ -87,6 +87,7 @@ export type LibraryItemRecord = {
   source_ref: string;
   display_label: string | null;
   description: string | null;
+  category: string[];
   agent_perspective: string | null;
   assigned_keeper_id: string | null;
   assigned_agent_id: string | null;
@@ -106,6 +107,7 @@ type LibraryItemRow = {
   source_ref: string;
   display_label: string | null;
   description: string | null;
+  category: string[];
   agent_perspective: string | null;
   assigned_keeper_id: string | null;
   assigned_agent_id: string | null;
@@ -188,6 +190,7 @@ function toLibraryItemRecord(row: LibraryItemRow, hasEmb = false): LibraryItemRe
     source_ref: row.source_ref,
     display_label: row.display_label,
     description: row.description,
+    category: row.category,
     agent_perspective: row.agent_perspective,
     assigned_keeper_id: row.assigned_keeper_id,
     assigned_agent_id: row.assigned_agent_id,
@@ -254,8 +257,13 @@ router.get('/', authMiddlewareCompat, requireDomainReadCompat, async (req: Reque
       return res.status(400).json({ error: 'domainId query parameter is required' });
     }
 
+    const includeArchived = req.query.includeArchived === 'true';
+
     const rows = await prisma.libraryItem.findMany({
-      where: { domain_id: domainId },
+      where: {
+        domain_id: domainId,
+        ...(includeArchived ? {} : { NOT: { category: { has: 'archive' } } }),
+      },
       include: libraryInclude,
       orderBy: [{ created_at: 'desc' }],
     });
