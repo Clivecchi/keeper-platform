@@ -145,7 +145,11 @@ export interface ConversationPanelDef {
    * Echo agent — resolved from def.conversation.agentSlug for now; echo registry is a future layer.
    */
   agentEcho?: boolean
-  /** Realm board: Dialog footer cast bar (members + agents + access keys). */
+  /**
+   * Realm board: show trailing access actions (Invite / Get key / Manage) beside
+   * the shared BoardInstrumentsBar Agents chips. Does not select a separate
+   * invocation UI — agent roster always uses boardInstruments / domain roster.
+   */
   castBar?: boolean
   /**
    * Capability ceiling for this board — agent capabilities are intersected with this set at runtime.

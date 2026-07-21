@@ -240,10 +240,6 @@ export function UniversalConversation({
   const kipMode = def.conversation.kipMode
   const guidedArrival = useGuidedArrivalOptional()
   const isRealmHomeArrival = def.boardId === "realm" && shellMode === "home"
-  const domainTreatment = React.useMemo(
-    () => resolveDomainTreatment(domainFrame ?? null),
-    [domainFrame],
-  )
   const realmArrival = useRealmArrivalOptional()
   const { feed: realmFeed, isLoading: realmFeedLoading } = useRealmFeed(isRealmHomeArrival)
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
@@ -552,33 +548,70 @@ export function UniversalConversation({
     ]
   }, [isLeadLedDomain])
 
-  /** Design Board — Rendr owns composer; domain lead + Kip always pin-able in footer. */
+  /** Design Board — Rendr is director; declared boardInstruments (Kip) + domain lead pin-able. */
   const designerBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
     if (kipMode !== "designer" || !isDirectorMode) return []
-    const instruments: BoardInstrumentChip[] = []
-    if (normalizedDomainLeadSlug && domainLeadDisplayName) {
+    const instruments: BoardInstrumentChip[] = [
+      {
+        slug: directorAgentSlug,
+        label: defaultAgentName,
+        isDirector: true,
+      },
+    ]
+    if (
+      normalizedDomainLeadSlug
+      && domainLeadDisplayName
+      && canonicalAgentSlug(normalizedDomainLeadSlug) !== canonicalAgentSlug(directorAgentSlug)
+    ) {
       instruments.push({
         slug: normalizedDomainLeadSlug,
         label: domainLeadDisplayName,
       })
     }
-    if (!normalizedDomainLeadSlug) {
+    for (const slug of def.conversation.boardInstruments ?? []) {
+      const key = canonicalAgentSlug(slug)
+      if (!key || key === canonicalAgentSlug(directorAgentSlug)) continue
+      if (key === normalizedDomainLeadSlug) continue
       instruments.push({
-        slug: KIP_FALLBACK_SLUG,
-        label: KIP_FALLBACK_DISPLAY_NAME,
-      })
-    } else if (normalizedDomainLeadSlug !== KIP_FALLBACK_SLUG) {
-      instruments.push({
-        slug: KIP_FALLBACK_SLUG,
-        label: KIP_FALLBACK_DISPLAY_NAME,
+        slug,
+        label: BOARD_INSTRUMENT_LABELS[slug] ?? (slug === KIP_FALLBACK_SLUG ? KIP_FALLBACK_DISPLAY_NAME : slug),
       })
     }
     return instruments
   }, [
     kipMode,
     isDirectorMode,
+    directorAgentSlug,
+    defaultAgentName,
     normalizedDomainLeadSlug,
     domainLeadDisplayName,
+    def.conversation.boardInstruments,
+  ])
+
+  /** IDE Board — Kip is director; Cloud / Rendr from boardInstruments. */
+  const ideBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
+    if (kipMode !== "ide" || !isDirectorMode) return []
+    const instruments: BoardInstrumentChip[] = [
+      {
+        slug: directorAgentSlug,
+        label: defaultAgentName,
+        isDirector: true,
+      },
+    ]
+    for (const slug of def.conversation.boardInstruments ?? []) {
+      if (canonicalAgentSlug(slug) === canonicalAgentSlug(directorAgentSlug)) continue
+      instruments.push({
+        slug,
+        label: BOARD_INSTRUMENT_LABELS[slug] ?? slug,
+      })
+    }
+    return instruments
+  }, [
+    kipMode,
+    isDirectorMode,
+    directorAgentSlug,
+    defaultAgentName,
+    def.conversation.boardInstruments,
   ])
 
   const composerAgentChips = React.useMemo((): ComposerAgentChip[] => {
@@ -2017,32 +2050,31 @@ export function UniversalConversation({
     realmFeedLoading,
   ])
 
-  const castBarConfig = React.useMemo(() => {
+  /** Realm trailing access chrome only — agent roster uses BoardInstrumentsBar. */
+  const castAccessActions = React.useMemo(() => {
     if (!def.conversation.castBar) return undefined
-    const supportAgents = domainScopedAgents
-      .filter((agent) => {
-        const key = canonicalAgentSlug(agent.slug)
-        return key && key !== normalizedDomainLeadSlug && key !== canonicalAgentSlug(directorAgentSlug)
-      })
-      .map((agent) => ({ slug: agent.slug, name: agent.name }))
     return {
       domainId,
-      treatment: domainTreatment,
-      leadAgentSlug: normalizedDomainLeadSlug,
-      leadAgentName: domainLeadDisplayName,
-      supportAgents,
       onInvite: () => actions.clearSelection(),
       onManageAccess: () => actions.onKeySelect("external-access"),
     }
+  }, [def.conversation.castBar, domainId, actions])
+
+  const resolvedBoardInstruments = React.useMemo((): BoardInstrumentChip[] | undefined => {
+    if (isLeadLedDomain && kipMode === "domain") return domainCollaborationInstruments
+    if (!isDirectorMode) return undefined
+    if (kipMode === "ide") return ideBoardInstruments
+    if (kipMode === "designer") return designerBoardInstruments
+    if (kipMode === "domain") return domainDirectorBoardInstruments
+    return undefined
   }, [
-    def.conversation.castBar,
-    domainId,
-    domainTreatment,
-    domainScopedAgents,
-    normalizedDomainLeadSlug,
-    domainLeadDisplayName,
-    directorAgentSlug,
-    actions,
+    isLeadLedDomain,
+    kipMode,
+    isDirectorMode,
+    ideBoardInstruments,
+    designerBoardInstruments,
+    domainDirectorBoardInstruments,
+    domainCollaborationInstruments,
   ])
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -2068,37 +2100,28 @@ export function UniversalConversation({
         showServiceBar={def.conversation.showServiceBar}
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
         onToolInvoke={isDirectorMode && kipMode === "ide" ? handleToolInvoke : undefined}
-        activeToolSlug={isDirectorMode && kipMode === "ide" ? activeBoardInstrument : null}
-        boardInstruments={
-          def.conversation.castBar
-            ? undefined
-            : isLeadLedDomain && kipMode === "domain"
-              ? domainCollaborationInstruments
-              : isDirectorMode && kipMode === "domain"
-                ? domainDirectorBoardInstruments
-                : isDirectorMode && kipMode === "designer"
-                  ? designerBoardInstruments
-                  : undefined
+        activeToolSlug={
+          isDirectorMode && kipMode === "ide"
+            ? (activeBoardInstrument === "cloud" || activeBoardInstrument === "rendr"
+                ? activeBoardInstrument
+                : null)
+            : null
         }
+        boardInstruments={resolvedBoardInstruments}
         onBoardInstrumentInvoke={
-          def.conversation.castBar
-            ? handleBoardInstrumentInvoke
-            : (isLeadLedDomain && kipMode === "domain")
-            || (isDirectorMode && (kipMode === "domain" || kipMode === "designer"))
-              ? handleBoardInstrumentInvoke
-              : undefined
+          resolvedBoardInstruments?.length ? handleBoardInstrumentInvoke : undefined
         }
         activeBoardInstrumentSlug={
           isLeadLedDomain && kipMode === "domain"
             ? (kipSupportInvoked ? KIP_FALLBACK_SLUG : KIP_SUPPORT_DISENGAGED)
-            : isDirectorMode && (kipMode === "domain" || kipMode === "designer")
+            : isDirectorMode && (kipMode === "domain" || kipMode === "designer" || kipMode === "ide")
               ? activeBoardInstrument
               : null
         }
         boardInstrumentsCollaborationMode={
           isLeadLedDomain && kipMode === "domain" ? true : undefined
         }
-        castBarConfig={castBarConfig}
+        castAccessActions={castAccessActions}
         composerAgents={composerAgentChips.length > 0 ? composerAgentChips : undefined}
         onRemoveComposerAgent={
           composerAgentChips.length > 0 ? handleRemoveComposerAgent : undefined

@@ -2,21 +2,34 @@
 
 import * as React from "react"
 
+/**
+ * Shared director-mode agent roster + invocation chips.
+ *
+ * Wins over DialogCastBar for presentation: pure props (no fetch), explicit
+ * `isDirector` lead-vs-instrument distinction, and the composer-footer slot
+ * every Universal Board already uses. Realm-specific access chrome (Invite /
+ * Get key / Manage) is optional `trailing` — not a second invocation pattern.
+ */
+
 export type BoardInstrumentChip = {
   slug: string
   label: string
-  /** Director (Kip) — always shown as invoked; clears delegation when clicked. */
+  /** Director (Lead) — always shown as invoked; clears delegation when clicked. */
   isDirector?: boolean
 }
 
 export interface BoardInstrumentsBarProps {
-  /** Eyebrow label — "Agents" on Domain and IDE boards. */
+  /** Eyebrow label — "Agents" on director boards. */
   eyebrow?: string
   instruments: ReadonlyArray<BoardInstrumentChip>
   activeSlug?: string | null
   onInvoke?: (slug: string) => void
   /** Lead-led domain: chips toggle support inclusion; lead stays in composer toolbar. */
   collaborationMode?: boolean
+  /** Right-aligned actions (e.g. Realm Invite / Get key / Manage). */
+  trailing?: React.ReactNode
+  /** Extra sections after agent chips (e.g. IDE Services). */
+  after?: React.ReactNode
 }
 
 export function BoardInstrumentsBar({
@@ -25,6 +38,8 @@ export function BoardInstrumentsBar({
   activeSlug = null,
   onInvoke,
   collaborationMode = false,
+  trailing = null,
+  after = null,
 }: BoardInstrumentsBarProps) {
   if (!onInvoke || instruments.length === 0) return null
 
@@ -58,7 +73,7 @@ export function BoardInstrumentsBar({
       >
         <BarEyebrow label={eyebrow} />
         <BarRule />
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
           {instruments.map(({ slug, label, isDirector }) => (
             <InstrumentChip
               key={slug}
@@ -71,6 +86,20 @@ export function BoardInstrumentsBar({
             />
           ))}
         </div>
+        {after}
+        {trailing ? (
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              gap: 8,
+              flexShrink: 0,
+              alignItems: "center",
+            }}
+          >
+            {trailing}
+          </div>
+        ) : null}
       </div>
     </div>
   )
@@ -165,7 +194,13 @@ function InstrumentChip({
         alignItems: "center",
         gap: "5px",
         padding: "3px 8px",
-        border: `1px solid ${isActive ? "hsl(var(--theme-ink-primary) / 0.35)" : "hsl(var(--theme-border-soft) / 0.4)"}`,
+        border: `1px solid ${
+          isDirector
+            ? "hsl(var(--theme-ink-primary) / 0.45)"
+            : isActive
+              ? "hsl(var(--theme-ink-primary) / 0.35)"
+              : "hsl(var(--theme-border-soft) / 0.4)"
+        }`,
         borderRadius: "999px",
         backgroundColor: isActive
           ? "hsl(var(--theme-surface-elevated) / 0.9)"
@@ -183,7 +218,7 @@ function InstrumentChip({
           width: "6px",
           height: "6px",
           borderRadius: "50%",
-          backgroundColor: isActive
+          backgroundColor: isDirector || isActive
             ? "hsl(var(--theme-ink-primary))"
             : "hsl(var(--theme-ink-tertiary))",
           flexShrink: 0,
@@ -192,10 +227,10 @@ function InstrumentChip({
       <span
         className="text-xs"
         style={{
-          color: isActive
+          color: isActive || isDirector
             ? "var(--theme-ink-primary-color)"
             : "var(--theme-ink-secondary-color)",
-          fontWeight: isActive ? 600 : 500,
+          fontWeight: isDirector || isActive ? 600 : 500,
           whiteSpace: "nowrap",
         }}
       >

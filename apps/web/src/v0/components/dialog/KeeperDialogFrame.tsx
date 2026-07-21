@@ -27,8 +27,11 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
-import { BoardInstrumentsBar } from "../../boards/components/BoardInstrumentsBar"
-import { DialogCastBar } from "../../realm/DialogCastBar"
+import {
+  BoardInstrumentsBar,
+  type BoardInstrumentChip,
+} from "../../boards/components/BoardInstrumentsBar"
+import { RealmCastAccessActions } from "../../realm/DialogCastBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 import { installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
 import { ComposerDebugToolbar } from "./ComposerDebugToolbar"
@@ -108,20 +111,19 @@ export interface KeeperDialogFrameProps {
   onServiceOpen?: (service?: ServiceSlug) => void
   onToolInvoke?: (tool: ToolSlug) => void
   activeToolSlug?: ToolSlug | null
-  /** Domain board director mode — pin domain lead agents (Ceox, etc.). */
-  boardInstruments?: ReadonlyArray<{ slug: string; label: string }>
+  /** Director-mode agent chips — shared BoardInstrumentsBar on every director board. */
+  boardInstruments?: ReadonlyArray<BoardInstrumentChip>
   onBoardInstrumentInvoke?: (slug: string) => void
   activeBoardInstrumentSlug?: string | null
   boardInstrumentsEyebrow?: string
   /** Lead-led domain: footer toggles support-agent inclusion, not dialog lead. */
   boardInstrumentsCollaborationMode?: boolean
-  /** Realm board cast bar — members, agents, access keys. */
-  castBarConfig?: {
+  /**
+   * Realm-only trailing access chrome (Invite / Get key / Manage) beside Agents chips.
+   * Agent roster itself always uses boardInstruments + BoardInstrumentsBar.
+   */
+  castAccessActions?: {
     domainId: string | null
-    treatment: import("../../treatment/resolveDomainTreatment").ResolvedDomainTreatment
-    leadAgentSlug?: string | null
-    leadAgentName?: string | null
-    supportAgents?: ReadonlyArray<{ slug: string; name: string }>
     onInvite?: () => void
     onManageAccess?: () => void
   }
@@ -240,7 +242,7 @@ export function KeeperDialogFrame({
   activeBoardInstrumentSlug = null,
   boardInstrumentsEyebrow = "Agents",
   boardInstrumentsCollaborationMode = false,
-  castBarConfig,
+  castAccessActions,
   thinkingStatusLabel,
   thinkingSteps = [],
   railwayStatus = "disconnected",
@@ -628,30 +630,6 @@ export function KeeperDialogFrame({
         </div>
       )}
 
-      {/* ── Header cast slot — Realm cast bar lives here, not in the composer footer ─ */}
-      {mode !== "feed" && castBarConfig ? (
-        <div
-          className="dialog-header-cast"
-          style={{
-            padding: "0 12px",
-            borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.35)",
-            backgroundColor: "hsl(var(--theme-surface-paper) / 0.35)",
-          }}
-        >
-          <DialogCastBar
-            domainId={castBarConfig.domainId}
-            treatment={castBarConfig.treatment}
-            leadAgentSlug={castBarConfig.leadAgentSlug}
-            leadAgentName={castBarConfig.leadAgentName}
-            supportAgents={castBarConfig.supportAgents}
-            activeSlug={activeBoardInstrumentSlug}
-            onInvokeAgent={onBoardInstrumentInvoke}
-            onInvite={castBarConfig.onInvite}
-            onManageAccess={castBarConfig.onManageAccess}
-          />
-        </div>
-      ) : null}
-
       {/* ── Dialog Space — messages scroll above the Horizon ─────────────────── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
@@ -827,6 +805,10 @@ export function KeeperDialogFrame({
               {showServiceBar ? (
                 <IntegratedServicesBar
                   onOpen={onServiceOpen ?? (() => {})}
+                  instruments={boardInstruments}
+                  onInstrumentInvoke={onBoardInstrumentInvoke}
+                  activeInstrumentSlug={activeBoardInstrumentSlug}
+                  agentsEyebrow={boardInstrumentsEyebrow}
                   onToolInvoke={onToolInvoke}
                   activeToolSlug={activeToolSlug}
                   railwayStatus={railwayStatus}
@@ -840,6 +822,15 @@ export function KeeperDialogFrame({
                   activeSlug={activeBoardInstrumentSlug}
                   onInvoke={onBoardInstrumentInvoke}
                   collaborationMode={boardInstrumentsCollaborationMode}
+                  trailing={
+                    castAccessActions ? (
+                      <RealmCastAccessActions
+                        domainId={castAccessActions.domainId}
+                        onInvite={castAccessActions.onInvite}
+                        onManageAccess={castAccessActions.onManageAccess}
+                      />
+                    ) : null
+                  }
                 />
               ) : (
                 <div className="dialog-composer-footer-spacer" aria-hidden />
