@@ -479,6 +479,7 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     kipMode: "domain",
     dialogOrchestration: "director",
     directorAgentSlug: "kip",
+    boardInstruments: ["cloud", "rendr"],
     castBar: true,
   },
   contextSurface: {

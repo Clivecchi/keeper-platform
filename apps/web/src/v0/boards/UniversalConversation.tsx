@@ -512,6 +512,11 @@ export function UniversalConversation({
       })
     }
 
+    for (const slug of def.conversation.boardInstruments ?? []) {
+      if (canonicalAgentSlug(slug) === canonicalAgentSlug(directorAgentSlug)) continue
+      addInstrument({ slug, label: BOARD_INSTRUMENT_LABELS[slug] ?? slug })
+    }
+
     const leadKey = normalizedDomainLeadSlug
     const directorKey = canonicalAgentSlug(directorAgentSlug)
     for (const agent of domainScopedAgents) {
@@ -535,6 +540,7 @@ export function UniversalConversation({
     normalizedDomainLeadSlug,
     domainLeadDisplayName,
     domainScopedAgents,
+    def.conversation.boardInstruments,
   ])
 
   /** Lead-led domain — footer Agents bar: support agents only (Kip). Lead lives in composer toolbar. */
