@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "id": "realm-director-mode-unification",
+  "created_at": "2026-07-21T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Unify agent-invocation across boards that declare dialogOrchestration: 'director' -- Domain/Realm uses DialogCastBar, IDE uses a different component (BoardInstrumentsBar), Designer uses BoardInstrumentsBar too. Same declared orchestration mode, two different implementations. Replace with one shared mechanism.",
+  "shipped": {
+    "commits": ["95336d32 (Cursor -- unification), 100f346c (docs), eacf7e6b (docs)", "3b63f701 (Cloud -- fixed Cloud/Rendr regression found in 95336d32)"],
+    "verified": "BoardInstrumentsBar confirmed as the one shared component across Realm/Domain/IDE/Designer; DialogCastBar demoted to trailing Invite/Get key/Manage chrome. Real regression found and fixed same day: Domain board never got a boardInstruments list added, so old roster-scan logic (platformComposerSlugs exclusion, written for a different original purpose) silently dropped Cloud and Rendr from Realm's bar. Fixed by adding boardInstruments: ['cloud','rendr'] to the Domain board def and threading it through domainDirectorBoardInstruments the same way ideBoardInstruments already does. Compiles clean.",
+    "gap_found_after_shipping": "Human/Ceox chip representation was fully removed with no replacement (not migrated into the new shared bar) -- decided acceptable by Chuck given only one human is on ke3p today; recorded as a parked question in the Becoming Together reference Document rather than an open bug."
+  },
+  "superseded_context": "Chuck reviewed the shipped result and raised three further real requirements that go beyond what this handoff scoped: (1) cast/identity should be managed through a universal header, not just the composer footer; (2) Kip (lead) should be invoked/active by default, always shown as a chip, not requiring a click; (3) Domain/Realm specifically needs true multi-select instrument invocation (several non-lead agents simultaneously active for collaboration) -- confirmed by code review that BoardInstrumentsBar's entire architecture is built around a single activeSlug, not a set; no multi-select mechanism exists anywhere today. Scoped as a new handoff, realm-header-cast-and-multiselect.",
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/universal-board-dialog-orchestration.md", "docs/chronicle-document-architecture.md"]
+}
