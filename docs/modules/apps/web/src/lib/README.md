@@ -35,6 +35,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-22 — stop-eager-dialog-creation
+- `kipDialogSession.resumeBoardSession` — resume-only resolve for board mount/prefetch.
+- `resumeOrCreateBoardSession` reserved for first real user send (not mount).
+
 ### 2026-07-19 — Draft list lineage on KipApi
 - `KipDraftSummary` includes optional `dialogId` / `dialog_id` and `pointIds` from `GET .../kip/drafts` so Realm Nav can resolve Dialog lineage without per-draft detail fetches.
 

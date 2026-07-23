@@ -30,6 +30,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-22 — stop-eager-dialog-creation
+- `UniversalConversation` IDE/Designer mount effects use `resumeBoardSession` only; first send creates via `useAgentDialog.sendMessage`.
+- Prefetch / curtain paths no longer create empty Dialogs on visit.
+
+### 2026-07-22 — Cross-domain cast membership
+- `UniversalConversation` loads Dialog cast members/candidates from kip-dialogs APIs; merges enabled leads into `domainDirectorBoardInstruments` / labels.
+- Cast Header **Add** (via `DirectorCastHeader`) enables a lead by `homeDomainId` only — Admin + lead resolution stay server-side.
+- Phase 1 enablement only; no per-agent delegation.
+
 ### 2026-07-19 — Realm Chronicle Dialog scope
 - `UniversalNavPanel` passes `selectedDialogId` / `onDialogSelect` into `RealmStagedNav` so Dialog headers can scope Chronicle
 - `UniversalViewPanel` keeps Realm Chronicle on `DomainRealmStory` for dialog / draft / moment / library subjects (Document scope, not entity Focus)

@@ -21,7 +21,7 @@ import {
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
 import { resolveDirectorDelegationMessage } from "@keeper/shared"
-import { resumeOrCreateBoardSession } from "../lib/kipDialogSession"
+import { resumeBoardSession, resumeOrCreateBoardSession } from "../lib/kipDialogSession"
 import { takePrefetchedDialogSession } from "../v0/boards/domain/dialogSessionPrefetch"
 import {
   actionResultsToThinkingSteps,
@@ -364,7 +364,6 @@ export function useAgentDialog({
   const [thinkingSteps, setThinkingSteps] = React.useState<DialogThinkingStep[]>([])
   const [agentId, setAgentId] = React.useState<string | null>(null)
 
-  const ideSessionInitDoneRef = React.useRef(false)
   const activeSessionIdRef = React.useRef<string | null>(activeSessionId)
   activeSessionIdRef.current = activeSessionId
 
@@ -374,7 +373,6 @@ export function useAgentDialog({
     if (prevBoardSessionKeyRef.current === boardSessionKey) return
     prevBoardSessionKeyRef.current = boardSessionKey
     setInternalSessionId(null)
-    ideSessionInitDoneRef.current = false
     setMessages(boardSessionKey === "ide" ? [greeting] : [])
   }, [boardSessionKey, greeting])
 
@@ -476,9 +474,11 @@ export function useAgentDialog({
     else setInternalSessionId(prefetched)
   }, [mode, domainId, dialogBoard, manageSessionExternally, onControlledSessionIdChange])
 
-  // agent / domain: create a KipApi session once agentId is known.
+  // agent / domain: resume existing board session only — create deferred to first send.
   // ide and designer use controlled session lifecycle from the board shell.
   // domain: wait for a resolved domainId — shell fetch completes before session bootstrap.
+  // Dead path removed (was useAgentDialog IDE bootstrap ~553-620): only callers are
+  // UniversalConversation (manageSessionExternally=true for ide) and KipScreen (mode=domain).
   React.useEffect(() => {
     if (mode === "ide" || mode === "designer" || manageSessionExternally || !agentId) return
     if (
@@ -492,15 +492,6 @@ export function useAgentDialog({
     let cancelled = false
     async function init() {
       try {
-        let name: string
-        if (typeof sessionDisplayName === "function") {
-          name = await sessionDisplayName()
-        } else {
-          name =
-            sessionDisplayName ??
-            (mode === "agent" ? "Agent Board" : sessionNameDateFallback())
-        }
-        if (cancelled) return
         if (!domainId) return
         const board = dialogBoard ?? mode
         const prefetched = takePrefetchedDialogSession(domainId, board)
@@ -512,24 +503,21 @@ export function useAgentDialog({
           }
           return
         }
-        const { sessionId } = await resumeOrCreateBoardSession({
+        const sessionId = await resumeBoardSession({
           domainId,
           agentId: aid,
           board,
           frame: dialogFrame ?? "conversation",
-          subject: dialogSubject ?? "domain",
           dialogScope: resolvedAudience === "admin" ? "admin" : "keeper",
-          domainSlug,
-          sessionName: name,
         })
-        if (cancelled) return
+        if (cancelled || !sessionId) return
         if (onControlledSessionIdChange) {
           if (!activeSessionIdRef.current) onControlledSessionIdChange(sessionId)
         } else {
           setInternalSessionId(sessionId)
         }
       } catch {
-        /* composer stays disabled */
+        /* idle until first send */
       }
     }
     void init()
@@ -545,78 +533,7 @@ export function useAgentDialog({
     resolvedAudience,
     dialogBoard,
     dialogFrame,
-    dialogSubject,
-    sessionDisplayName,
     onControlledSessionIdChange,
-  ])
-
-  // ide: controlled session bootstrap
-  React.useEffect(() => {
-    if (mode !== "ide" || manageSessionExternally) return
-    if (ideSessionInitDoneRef.current) return
-    if (activeSessionId) {
-      ideSessionInitDoneRef.current = true
-      return
-    }
-    if (!agentId) return
-    const aid = agentId
-    if (frameCtx?.isResolving) return
-    const rid = frameCtx?.domain?.id
-    const resolvedDomainId =
-      rid && !String(rid).startsWith("fallback-")
-        ? rid
-        : domainId && !String(domainId).startsWith("fallback-")
-          ? domainId
-          : undefined
-
-    let cancelled = false
-    async function init() {
-      try {
-        const sessionName = await buildIdeSessionName({
-          domainId: resolvedDomainId,
-          activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? null,
-          activeKeeperId: frameCtx?.selection?.activeKeeperId ?? null,
-        })
-        if (cancelled) return
-        if (!resolvedDomainId) return
-        const { sessionId } = await resumeOrCreateBoardSession({
-          domainId: resolvedDomainId,
-          agentId: aid,
-          board: dialogBoard ?? "ide",
-          frame: dialogFrame ?? "conversation",
-          subject: dialogSubject ?? "domain",
-          dialogScope: resolvedAudience === "admin" ? "admin" : "keeper",
-          domainSlug,
-          sessionName,
-        })
-        if (cancelled) return
-        ideSessionInitDoneRef.current = true
-        if (!activeSessionIdRef.current) onControlledSessionIdChange?.(sessionId)
-      } catch {
-        /* composer stays disabled */
-      }
-    }
-    void init()
-    return () => {
-      cancelled = true
-    }
-  }, [
-    mode,
-    agentId,
-    activeSessionId,
-    domainSlug,
-    domainId,
-    resolvedAudience,
-    dialogBoard,
-    dialogFrame,
-    dialogSubject,
-    frameCtx?.isResolving,
-    frameCtx?.domain?.id,
-    frameCtx?.selection?.activeJourneyId,
-    frameCtx?.selection?.activeKeeperId,
-    activeJourneyId,
-    onControlledSessionIdChange,
-    manageSessionExternally,
   ])
 
   React.useEffect(() => {
@@ -658,9 +575,63 @@ export function useAgentDialog({
       if (mode === "designer" && !frameKey) return
 
       // ── ide / agent / domain / designer: KipApi.runAgent ──────────────────
-      if ((!content.trim() && !attachments?.length) || isSending || !agentId || !activeSessionId) {
+      if ((!content.trim() && !attachments?.length) || isSending || !agentId) {
         return
       }
+
+      const resolvedDomainId =
+        domainId && !String(domainId).startsWith("fallback-")
+          ? domainId
+          : frameCtx?.domain?.id && !String(frameCtx.domain.id).startsWith("fallback-")
+            ? frameCtx.domain.id
+            : undefined
+
+      let sessionId = activeSessionIdRef.current
+      if (!sessionId) {
+        if (!resolvedDomainId) return
+        try {
+          let name: string
+          if (typeof sessionDisplayName === "function") {
+            name = await sessionDisplayName()
+          } else if (sessionDisplayName) {
+            name = sessionDisplayName
+          } else if (mode === "ide") {
+            name = await buildIdeSessionName({
+              domainId: resolvedDomainId,
+              activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? null,
+              activeKeeperId: frameCtx?.selection?.activeKeeperId ?? null,
+            })
+          } else if (mode === "agent") {
+            name = "Agent Board"
+          } else if (mode === "designer") {
+            name = frameKey ?? "Designer"
+          } else {
+            name = sessionNameDateFallback()
+          }
+          const ensured = await resumeOrCreateBoardSession({
+            domainId: resolvedDomainId,
+            agentId,
+            board: dialogBoard ?? mode,
+            frame: dialogFrame ?? frameKey ?? "conversation",
+            subject: dialogSubject ?? (mode === "designer" ? "boardDef" : "domain"),
+            dialogScope: resolvedAudience === "admin" || mode === "designer" ? "admin" : "keeper",
+            domainSlug,
+            sessionName: name,
+          })
+          sessionId = ensured.sessionId
+          if (onControlledSessionIdChange) {
+            onControlledSessionIdChange(sessionId)
+          } else {
+            setInternalSessionId(sessionId)
+          }
+          activeSessionIdRef.current = sessionId
+        } catch {
+          setError(`Couldn't start a session with ${agentDisplayName}. Try again.`)
+          return
+        }
+      }
+
+      if (!sessionId) return
 
       const ts = Date.now()
 
@@ -710,7 +681,7 @@ export function useAgentDialog({
 
       const runOpts = {
         domainSlug: domainSlug || undefined,
-        domainId: domainId || undefined,
+        domainId: resolvedDomainId || domainId || undefined,
         mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
@@ -804,7 +775,7 @@ export function useAgentDialog({
             agentId,
             content,
             userId ?? undefined,
-            activeSessionId,
+            sessionId,
             kipRunOpts,
           )
         } catch (firstErr: unknown) {
@@ -816,7 +787,7 @@ export function useAgentDialog({
                 agentId,
                 content,
                 userId ?? undefined,
-                activeSessionId,
+                sessionId,
                 kipRunOpts,
               )
             } else {
@@ -832,9 +803,9 @@ export function useAgentDialog({
 
         let latestRaw: KipMessage[] | undefined
         try {
-          latestRaw = await KipApi.getSessionMessages(activeSessionId)
+          latestRaw = await KipApi.getSessionMessages(sessionId)
         } catch {
-          latestRaw = await fetchMessages(activeSessionId)
+          latestRaw = await fetchMessages(sessionId)
         }
 
         const {
@@ -975,12 +946,12 @@ export function useAgentDialog({
       agentId,
       agentSlug,
       agentDisplayName,
-      activeSessionId,
       domainSlug,
       domainId,
       activeJourneyId,
       agentRunMode,
       agentContext,
+      frameCtx?.domain?.id,
       frameCtx?.selection?.activeJourneyId,
       frameCtx?.selection?.activeKeeperId,
       fetchMessages,
@@ -988,6 +959,12 @@ export function useAgentDialog({
       onAfterAgentRun,
       onRefreshDraftsAfterRun,
       frameKey,
+      dialogBoard,
+      dialogFrame,
+      dialogSubject,
+      sessionDisplayName,
+      resolvedAudience,
+      onControlledSessionIdChange,
       onDirectorPhaseChange,
       userId,
       userDisplayName,

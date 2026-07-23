@@ -86,18 +86,16 @@ export async function prepareDomainBoardReveal(
   ])
 
   // Session may still be settling via inflight — prefer peeked value.
+  // Null session is OK: board opens idle until first send creates Dialog/session.
   const peeked =
     domain?.id != null
       ? peekPrefetchedDialogSession(domain.id, board) ?? sessionId
       : sessionId
 
-  // Dialog session required for board-ready. Nav was awaited above (soft — a failed
-  // slice must not trap the curtain; travel/gate skip still checks isBoardNavWarm).
+  // Dialog session is optional for board-ready (lazy create on first message).
+  // Nav was awaited above (soft — a failed slice must not trap the curtain).
   const frameOk = !!peekDomainFrame(normalized)
-  const ready =
-    isDomainShellReady(normalized, options) &&
-    frameOk &&
-    !!peeked
+  const ready = isDomainShellReady(normalized, options) && frameOk
 
   return {
     ready,

@@ -31,6 +31,14 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-22 — stop-eager-dialog-creation
+- `useAgentDialog` — mount path resumes only; `sendMessage` ensures Dialog+session on first send.
+- Removed dead IDE bootstrap effect (never reached: UC sets `manageSessionExternally` for ide; KipScreen uses domain mode).
+- `useSelectionSessionResume` — agent-board resume no longer creates on nav select.
+
+### 2026-07-18 — Director instrument split (HTTP 502 fix)
+- `useAgentDialog` — on director boards, runs the pinned/addressed instrument (e.g. Rendr) in its own `runAgent` call, then Kip synthesis with `instrumentRanClientSide`. Avoids nested AI calls in one Vercel→Railway proxy hop that returned HTTP 502.
+
 ### 2026-07-11 — Attachment thinking beats
 - `useAgentDialog` — attachment run-trace label is now "Including … in your message" (not "Reviewing"), matching what the API actually does.
 

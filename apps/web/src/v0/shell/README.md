@@ -20,6 +20,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` — roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## 📆 Update Log
+- 2026-07-22: **stop-eager-dialog-creation** ? `DomainShellGate` board-ready no longer requires a prefetched Dialog session; idle boards reveal and create on first send.
 - 2026-07-12: **Domain shell load gate (Phase A+B)** — `DomainShellGate` blocks `UniversalBoard` mount until by-slug + frame + audience are cached; opaque `DomainLoadCurtain` covers cold loads; warm cache skips curtain.
 - 2026-07-12: Phase 1b — Domain + Realm mobile use adaptive `UniversalBoard`; `UniversalMobileShell` no longer mounted by V0Shell.
 - 2026-07-12: Phase 1 — `/home` on mobile mounts `UniversalBoard` (adaptive Nav · Dialog · Chronicle).

@@ -107,17 +107,29 @@ export async function resolveActiveDialogSessions(
   return res.dialog?.sessions ?? []
 }
 
-/** Resume the best session for a board dialog context, or create one if none exist. */
-export async function resumeOrCreateBoardSession(
-  params: ResumeBoardSessionParams,
-): Promise<ResumeBoardSessionResult> {
+/**
+ * Resume-only: return the best existing board Dialog session, or null.
+ * Board mount / curtain prefetch must use this — never create on visit alone.
+ */
+export async function resumeBoardSession(
+  params: Pick<ResumeBoardSessionParams, "domainId" | "agentId" | "board" | "frame" | "dialogScope">,
+): Promise<string | null> {
   const sessions = await resolveActiveDialogSessions(params.domainId, {
     board: params.board,
     frame: params.frame,
     dialogScope: params.dialogScope,
   })
+  return pickBestDialogSessionId(sessions, params.agentId)
+}
 
-  const existingId = pickBestDialogSessionId(sessions, params.agentId)
+/**
+ * Resume the best session for a board dialog context, or create one if none exist.
+ * Call only from first real user send (or an explicit ensure path) — not from board mount.
+ */
+export async function resumeOrCreateBoardSession(
+  params: ResumeBoardSessionParams,
+): Promise<ResumeBoardSessionResult> {
+  const existingId = await resumeBoardSession(params)
   if (existingId) {
     return { sessionId: existingId, created: false }
   }

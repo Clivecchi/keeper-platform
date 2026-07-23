@@ -3,7 +3,7 @@
 import * as React from "react"
 import { apiFetch } from "../lib/api"
 import { KipApi, type KipSession } from "../lib/kipApi"
-import { pickBestDialogSessionId, resumeOrCreateBoardSession } from "../lib/kipDialogSession"
+import { pickBestDialogSessionId, resumeBoardSession } from "../lib/kipDialogSession"
 import type { AgentDialogueMessage } from "../components/agent/types"
 
 type DialogSessionRow = {
@@ -161,17 +161,13 @@ export function useSelectionSessionResume({
 
     async function resumeAgentBoardSession(agentForLookup: string): Promise<string | null> {
       try {
-        const { sessionId } = await resumeOrCreateBoardSession({
+        return await resumeBoardSession({
           domainId: domainId!,
           agentId: agentForLookup,
           board: "agent",
           frame: "conversation",
-          subject: "domain",
           dialogScope: "keeper",
-          domainSlug,
-          sessionName: "Agent Board",
         })
-        return sessionId
       } catch {
         return null
       }

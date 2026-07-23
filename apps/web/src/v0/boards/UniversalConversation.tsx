@@ -61,7 +61,7 @@ import { normalizeActionReceipt } from "../../components/agent/types"
 import { commitComposerAttachmentsToLibrary, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
 import {
   pickBestDialogSessionId,
-  resumeOrCreateBoardSession,
+  resumeBoardSession,
   resolveActiveDialogSessions,
 } from "../../lib/kipDialogSession"
 import { createDraftMoment, keepMoment } from "../api/v0Moments"
@@ -1717,6 +1717,7 @@ export function UniversalConversation({
   )
 
   // IDE Board owns Kip session lifecycle (instruments do not swap the dialog agent).
+  // Resume-only on mount — Dialog/session create waits for first real send.
   React.useEffect(() => {
     if (kipMode !== "ide" || !agentId) return
     if (frameCtx?.isResolving) return
@@ -1730,21 +1731,18 @@ export function UniversalConversation({
     let cancelled = false
     void (async () => {
       try {
-        const { sessionId } = await resumeOrCreateBoardSession({
+        const sessionId = await resumeBoardSession({
           domainId: resolvedDomainId,
           agentId,
           board: "ide",
           frame: "conversation",
-          dialogSubject: "domain",
           dialogScope: audience === "admin" ? "admin" : "keeper",
-          domainSlug,
-          sessionName: `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`,
         })
-        if (cancelled) return
+        if (cancelled || !sessionId) return
         handleSessionChange(sessionId)
         await fetchMessages(sessionId)
       } catch {
-        /* composer stays disabled until session resolves */
+        /* idle until first send */
       }
     })()
 
@@ -1770,7 +1768,7 @@ export function UniversalConversation({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kipMode, domainFrame])
 
-  // ── designer mode: resume or create session per board definition ───────────
+  // ── designer mode: resume existing session per board definition (create on first send)
   React.useEffect(() => {
     if (kipMode !== "designer") return
     if (designerDraftCtx) {
@@ -1791,18 +1789,21 @@ export function UniversalConversation({
 
     void (async () => {
       try {
-        const { sessionId } = await resumeOrCreateBoardSession({
+        const sessionId = await resumeBoardSession({
           domainId,
           agentId: aid,
           board: "designer",
           frame: focusKey,
-          dialogSubject: "boardDef",
           dialogScope: "admin",
-          domainSlug,
-          sessionName: BOARD_DEFINITIONS[focusKey]?.displayName ?? focusKey,
         })
 
         if (cancelled) return
+
+        if (!sessionId) {
+          handleSessionChange(null)
+          setMessages([])
+          return
+        }
 
         handleSessionChange(sessionId)
         await fetchMessages(sessionId)

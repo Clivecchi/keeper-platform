@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-07-22 — stop-eager-dialog-creation
+- `kipDialogLifecycle.findOrCreateKipDialog` — documented that board UIs must call via createSession on first send, not mount.
+
 ### 2026-07-15 — Gloss MCP write (thread only)
 - `GlossWriteService.ts` — `appendGlossTurn()` writes `kip_messages.metadata.glossThreads` only; read-only anchor entity checks; no LibraryItem/Draft/Moment mutation.
 

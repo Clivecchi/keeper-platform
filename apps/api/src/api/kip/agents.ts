@@ -3597,6 +3597,8 @@ export class KipAgentService {
       // Validate agent exists
       const agent = await this.getAgentSafely(agentId);
 
+      // Board Dialogs are created here when clients pass dialogLink — web boards
+      // must only call createSession on first real send (not mount). See resumeBoardSession.
       let dialogId: string | undefined;
       if (dialogLink) {
         const dialog = await findOrCreateKipDialog(prisma, {

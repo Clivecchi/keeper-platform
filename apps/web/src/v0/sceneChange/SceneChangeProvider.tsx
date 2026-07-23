@@ -12,7 +12,6 @@ import {
   holdCurtainMinimum,
   prepareDomainBoardReveal,
 } from "../boards/domain/prepareDomainBoardReveal"
-import { peekPrefetchedDialogSession } from "../boards/domain/dialogSessionPrefetch"
 import { isBoardNavWarm } from "../boards/boardNavDataCache"
 import { resolveRevealNavSections } from "../boards/domain/resolveRevealNavSections"
 
@@ -22,11 +21,11 @@ export interface SceneChangeContextValue {
 
 const SceneChangeCtx = React.createContext<SceneChangeContextValue | null>(null)
 
+/** Shell + Nav warm. Dialog session optional — created on first send. */
 function isTravelBoardReady(slug: string): boolean {
   if (!isDomainShellWarm(slug, { requireAudience: true })) return false
   const domain = getCachedDomainBySlug(slug)
   if (!domain?.id) return false
-  if (!peekPrefetchedDialogSession(domain.id, "domain")) return false
   return isBoardNavWarm(domain.id, resolveRevealNavSections(slug, "domain"))
 }
 

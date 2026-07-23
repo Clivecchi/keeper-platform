@@ -1,6 +1,9 @@
 /**
  * Shared find-or-create for Kip Dialog records (admin vs keeper scoped).
  * Used by designer, agent createSession, and related flows.
+ *
+ * Board UIs must call createSession (which reaches this) on first real user send,
+ * not on board mount — see stop-eager-dialog-creation / resumeBoardSession on web.
  */
 
 import type { PrismaClient } from '@keeper/database';

@@ -32,6 +32,10 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## 📆 Update Log
 
+### 2026-07-22 ? stop-eager-dialog-creation
+- `dialogSessionPrefetch` ? resume-only during curtain (no Dialog create on visit).
+- `prepareDomainBoardReveal` ? board-ready no longer requires a session id.
+
 ### 2026-07-15 — External Access nav dedupe + Chronicle manage
 - Removed duplicate `DomainExternalAccessNav` render (was mounted in both `externalAccess` block and inside Library).
 - Nav key rows show label + prefix; click opens Chronicle `ExternalAccessKeyPresence` (label edit, revoke).

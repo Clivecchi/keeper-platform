@@ -3,7 +3,7 @@
  * can unlock as soon as the board reveals.
  */
 
-import { resumeOrCreateBoardSession } from "../../../lib/kipDialogSession"
+import { resumeBoardSession } from "../../../lib/kipDialogSession"
 import { resolveLeadAgentId } from "../../lib/frameLeadAgentIdentity"
 import { resolveDialogLeadSlug } from "../../lib/domainLeadAgent"
 import type { DomainBySlugRecord } from "./domainShellCache"
@@ -69,7 +69,8 @@ export interface PrefetchDomainBoardDialogParams {
 }
 
 /**
- * Resume/create board dialog session while the curtain is up.
+ * Resume-only board dialog session while the curtain is up.
+ * Does not create Dialog/session — first message owns that (stop-eager-dialog-creation).
  * Callers that need a hard ceiling wrap with Promise.race at the gate level.
  */
 export async function prefetchDomainBoardDialogSession(
@@ -96,19 +97,15 @@ export async function prefetchDomainBoardDialogSession(
 
       if (!leadId) return null
 
-      const { sessionId } = await resumeOrCreateBoardSession({
+      const sessionId = await resumeBoardSession({
         domainId,
         agentId: leadId,
         board,
         frame: "conversation",
-        subject: "domain",
         dialogScope: params.dialogScope ?? "keeper",
-        domainSlug: params.domainSlug,
-        sessionName: `Session · ${new Date().toLocaleString(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })}`,
       })
+
+      if (!sessionId) return null
 
       prefetchStore.set(key, {
         sessionId,

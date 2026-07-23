@@ -9,7 +9,6 @@ import {
   prepareDomainBoardReveal,
 } from "../boards/domain/prepareDomainBoardReveal"
 import { isDomainShellReady } from "../boards/domain/domainShellBootstrap"
-import { peekPrefetchedDialogSession } from "../boards/domain/dialogSessionPrefetch"
 import { getCachedDomainBySlug } from "../boards/domain/domainShellCache"
 import { isBoardNavWarm } from "../boards/boardNavDataCache"
 import { resolveRevealNavSections } from "../boards/domain/resolveRevealNavSections"
@@ -23,11 +22,11 @@ export interface DomainShellGateProps {
 
 type GatePhase = "curtain" | "ready" | "error"
 
+/** Shell + Nav warm enough to reveal. Dialog session is optional (lazy on first send). */
 function isBoardRevealReady(slug: string, requireAudience: boolean): boolean {
   if (!isDomainShellReady(slug, { requireAudience })) return false
   const domain = getCachedDomainBySlug(slug)
   if (!domain?.id) return false
-  if (!peekPrefetchedDialogSession(domain.id, "domain")) return false
   return isBoardNavWarm(domain.id, resolveRevealNavSections(slug, "domain"))
 }
 
@@ -85,9 +84,10 @@ export function DomainShellGate({
 
       if (cancelled) return
 
-      // Fail closed only when shell/dialog never became usable. Nav may soft-fail
+      // Fail closed only when shell never became usable. Nav may soft-fail
       // after await — still reveal so one hung list cannot trap the curtain.
-      if (!result.ready && !result.sessionId && !isBoardRevealReady(slug, requireAudience)) {
+      // Missing dialog session is OK — first send creates it.
+      if (!result.ready && !isBoardRevealReady(slug, requireAudience)) {
         setErrorMessage(
           "This domain could not be loaded. Check your connection and try again.",
         )
@@ -97,14 +97,6 @@ export function DomainShellGate({
 
       await holdCurtainMinimum(result.elapsedMs)
       if (cancelled) return
-
-      if (!result.sessionId && !isBoardRevealReady(slug, requireAudience)) {
-        setErrorMessage(
-          "Dialog could not be prepared. Check your connection and try again.",
-        )
-        setPhase("error")
-        return
-      }
 
       setPhase("ready")
     })()
