@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "id": "realm-home-chronicle-routing",
+  "created_at": "2026-07-22T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Make the real Document/Chronicle renderer (DomainRealmStory) reachable on the personal /home route when a Dialog is genuinely selected, instead of RealmHomeChronicle's isUserHome branch always short-circuiting to an empty aria-hidden div.",
+  "done_when": [
+    "On /home?board=realm, selecting a real Dialog (e.g. 'Becoming Together') in Nav renders that Dialog's actual Document -- cover, Forward/Step, Points grouped into Paths -- the same DomainRealmStory component already used correctly on /d/:slug?board=realm",
+    "When isUserHome is true AND no Dialog is selected (browsing the general realm feed), Chronicle's empty/feed state is a deliberate, visible placeholder -- not the current silent `<div aria-hidden />` that is visually indistinguishable from a layout bug",
+    "The domain-scoped route (/d/:slug?board=realm) is unchanged -- this handoff only extends reachability to /home, it does not alter the already-correct DomainRealmStory logic itself",
+    "pnpm run quick:web passes",
+    "Manual check: on /home?board=realm, click 'Becoming Together' in Nav, confirm the Chronicle panel actually renders a Document (not empty space) with real width per KeeperBoardPanelGroup's existing 35% right-column allocation"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md", "docs/universal-board-dialog-orchestration.md", "docs/becoming-together-cast-strip-proposal.md"],
+  "scope": {
+    "touch": [
+      "apps/web/src/v0/realm/RealmHomeChronicle.tsx (the isUserHome branch, ~lines 39-90)",
+      "apps/web/src/v0/boards/panels/UniversalViewPanel.tsx (the showRealmDocument routing gate, ~lines 314-337, only if the routing condition itself needs to change, not just RealmHomeChronicle's internals)"
+    ],
+    "do_not_touch": [
+      "apps/web/src/v0/realm/DomainRealmStory.tsx -- already correct, derives scope generically from selection.selectedDialogId, do not hardcode it to any specific dialog",
+      "apps/web/src/v0/boards/KeeperBoardPanelGroup.tsx -- panel width allocation is already correct (flex: 0 0 35%), this is not a CSS/layout bug",
+      "Which of Strip/Cast Reel/Original visual treatment the real Document should use once reachable -- that is a separate, later decision for Rendr (see docs/becoming-together-cast-strip-proposal.md), not part of this handoff. This handoff only makes SOME real Document reachable at all on /home; it does not redesign it."
+    ]
+  },
+  "pattern_ref": "DomainRealmStory.tsx:81-123 already resolves scope from selection.selectedDialogId (with fallback through draft/moment/library selection) generically -- reuse that resolution as-is. The fix is in RealmHomeChronicle.tsx's branch condition: currently `if (!useUserFeed && treatment && domainSlug) return <DomainRealmStory ... />` gates on isUserHome being false; it should also render DomainRealmStory when isUserHome is true but a real Dialog is selected, falling back to the feed/empty treatment only when isUserHome is true AND nothing is selected.",
+  "rendr_treatment": null,
+  "git": {
+    "branch": "cloud",
+    "base": "cloud",
+    "commit": true,
+    "open_pr": false,
+    "pr_title": "fix: render the real Document on /home when a Dialog is selected"
+  },
+  "verification": {
+    "commands": ["pnpm run quick:web"],
+    "browser": ["/home?board=realm"]
+  },
+  "context": {
+    "phase": "Second of three follow-on handoffs from today's live testing (full punch list in docs/chronicle-document-architecture.md, 2026-07-22 section).",
+    "related_handoffs": [
+      "stop-eager-dialog-creation (current, ships first)",
+      "realm-becoming-together-parity (archived, shipped 2026-07-19 -- built DomainRealmStory correctly, just never wired for /home)",
+      "kip-roster-dialog-cast-sync (queued, ships after this one)"
+    ],
+    "library_refs": [],
+    "notes": "This is why 'Chronicle does not look like Document' in Chuck's own screenshot: on /home, RealmHomeChronicle.tsx's isUserHome branch (true whenever shellMode is 'home', independent of the ?board=realm query param -- see apps/web/src/v0/shell/V0Shell.tsx:838,840) always skips DomainRealmStory and falls through to an empty, unstyled aria-hidden div when the feed has no events. It isn't broken machinery -- DomainRealmStory works correctly and is not hardcoded to one dialog -- it's simply never been wired for the /home route at all. Once this ships, the next real decision (separate from this handoff) is which of today's three design passes -- Strip, Cast Reel, or the reconstructed Original -- Rendr wants to actually build; see docs/becoming-together-cast-strip-proposal.md for the proposal and the live comparison artifact."
+  }
+}

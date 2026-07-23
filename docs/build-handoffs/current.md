@@ -1,74 +1,63 @@
-# Build Handoff — cross-domain-cast-membership
+# Build Handoff — stop-eager-dialog-creation
 
-**Goal:** Replace the hardcoded domain-agent roster with a real permission-driven mechanism: a user participating in a Dialog can enable the lead agent of any *other* domain where they hold real Admin-level `DomainPermission` — starting with Ceox, Chuck's own agent, becoming addable to ke3p's cast through the Cast Header. This is infrastructure — real per-agent delegation is deliberately a separate, later phase.
+**Goal:** Stop persisting a Dialog and kip_agent_session the instant a board mounts. Create both lazily, on the first real message a user actually sends, across every board preset that shares the resumeOrCreateBoardSession / findOrCreateKipDialog path.
 **Territory:** cursor
 **Branch:** cloud (direct — no feature branch, no PR)
 **Created:** 2026-07-22T00:00:00Z by cloud
 
 ## Why this exists
 
-Chuck tested the shipped multi-select live and found two real gaps underneath it, not one:
+Chuck visited the IDE board — nothing more, no message sent — and it created a real, persisted Dialog titled "Ide · conversation · Jul 23," which then showed up in Realm's Nav "Dialogs" group alongside "Becoming Together." Confirmed by code review, not assumed:
 
-1. **No real delegation** — multi-select only stamps "engaged" in the UI. Kip's own session is the only thing that actually runs; it tried to fake reaching Cloud with an `mcp.call` action that isn't even in its allowed pack.
-2. **Cast membership is entirely hardcoded** — verified directly in code:
-   ```ts
-   // loadDomainScopedAgents.ts
-   export const DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud', 'rendr'] as const;
-   ```
-   Every domain's roster resolves to exactly its own `primaryAgentId` (if set — which *replaces* Kip as lead, doesn't add a member), Kip, Cloud, Rendr. That's it. No database relationship, no way for a domain to gain a new cast member without a code change. Ceox can't appear because the roster has no room for it — this is the real reason, not a bug in the multi-select work.
-
-Chuck's own framing, verbatim, is the actual spec for the fix:
-
-> "A User that is involved in a dialog is able to enable lead agents from any domain they themselves have Admin privilege over."
-
-Ceox is *his* agent — tied to him as a user, not hardcoded to any one domain. Kip/Cloud/Rendr are ke3p's own domain agents. The permission model should follow the user, not the domain.
+- `apps/web/src/v0/boards/UniversalConversation.tsx:1720` — an effect literally commented *"IDE Board owns Kip session lifecycle"* fires as soon as `kipMode === "ide" && agentId && !activeSessionId` — mount, not message-send.
+- It calls `resumeOrCreateBoardSession` (`apps/web/src/lib/kipDialogSession.ts:111-163`), which falls back to `KipApi.createSession(...)` whenever `resolveActiveDialogSessions` finds nothing.
+- That POST reaches `apps/api/src/api/kip/agents.ts:3602`, which calls `findOrCreateKipDialog` (`apps/api/src/services/kipDialogLifecycle.ts:36-93`) — and that function unconditionally `prisma.dialog.create(...)`s (lines 77-90) if no matching Dialog exists yet.
+- The literal title template lives at `kipDialogLifecycle.ts:72-75`: `` `${boardLabel} · ${frameName} · ${dateLabel}` ``.
+- The same pattern is shared by **four** call sites, not just IDE: `UniversalConversation.tsx:1720` (IDE), `UniversalConversation.tsx:1774` (Designer), `useAgentDialog.ts:482-551` (Agent/Domain/Realm), and a second, possibly-dead parallel path at `useAgentDialog.ts:553-620`. One root cause, one fix, four places it currently fires.
 
 ## Done when
 
-- A real backend capability resolves, for the current authenticated user, every domain where they hold Admin-level `DomainPermission` (or are `Domain.ownerId`) — and for each, resolves that domain's real lead agent (reuse `resolveDomainLeadContext` / `loadDomainScopedAgents`, don't reinvent lead resolution)
-- Those agents are surfaced as addable candidates via a real **"Add" action in `DirectorCastHeader`** — clicking it shows the candidate list (e.g. "Ceox — from [Chuck's domain]"), selecting one enables that agent for the current dialog
-- The enablement **persists for that Dialog** (survives reload) — Cursor decides and documents the storage shape (new field/array on `Dialog`, or a join table; check whether `CrossDomainShare`'s `contentType`/`contentId` pattern fits before inventing something new — it may not, since it's approval-gated domain-to-domain sharing and this is user-permission-driven; document the reasoning either way)
-- Once enabled, the agent renders through the **exact same** `BoardInstrumentsBar`/`DirectorCastHeader` machinery already shipped — no new chip component, no new invocation UI
-- **Strict security boundary**: an agent is only addable if the current user genuinely holds Admin-level `DomainPermission` (or ownership) on that agent's home domain, checked at request time, never trusted from the frontend — the one hard non-negotiable here
-- The existing hardcoded `DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud','rendr']` stays as the platform baseline every domain still gets automatically — this is additive, not a replacement
+- Visiting any board (ide, agent, domain, realm, designer) and sending zero messages creates zero new Dialog rows and zero new kip_agent_session rows — confirmed by direct query before/after, not assumed
+- Sending the first real message in a fresh board still creates exactly one Dialog + one kip_agent_session, same as today's behavior, just deferred to send-time instead of mount-time
+- Revisiting a board that already has an active session still resumes it correctly via the existing read-only `resolveActiveDialogSessions` path — unchanged
+- All four call sites are covered, including confirming whether `useAgentDialog.ts:553-620` is genuinely dead code or a second live path
 - `pnpm run quick:web` and `pnpm run quick:api` pass
-- Manual check: on ke3p (Chuck as Admin), the Cast Header's Add action surfaces Ceox as a real candidate, enabling it makes Ceox appear and persist as a cast member on reload
+- Manual check: open the IDE board fresh, confirm no new Dialog appears in Realm's Nav until a message is actually sent; then send one message and confirm exactly one Dialog appears
 
 ## Canon (read first)
 
 - @AGENTS.md
-- @docs/universal-board-dialog-orchestration.md
 - @docs/chronicle-document-architecture.md
+- @docs/universal-board-dialog-orchestration.md
 
 ## Scope
 
-**Touch:** `apps/api/src/services/domains/loadDomainScopedAgents.ts` (extend, don't replace the hardcoded baseline); a new backend endpoint for resolving a user's cross-domain-admin addable agents and enabling/persisting one onto a Dialog; `apps/web/src/v0/boards/components/DirectorCastHeader.tsx` (Add action + candidate picker); `apps/web/src/v0/boards/UniversalConversation.tsx` (wire enabled agents alongside the hardcoded baseline); `packages/database/prisma/schema.prisma` (new field/table — Cursor's call on shape, documented).
+**Touch:** `UniversalConversation.tsx` (both board-session effects), `useAgentDialog.ts` (both create-session paths), `kipDialogSession.ts` (`resumeOrCreateBoardSession`), `kipDialogLifecycle.ts` (`findOrCreateKipDialog`), `agents.ts` (`createSession` action).
 
-**Do not touch:** real per-agent delegation/execution — explicitly the next, separate phase; the `DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS` baseline — additive only; IDE/Designer's single-select behavior — unrelated.
+**Do not touch:** `resolveActiveDialogSessions` (correct as-is); `DialogCastMember`/cast-membership work (shipped, unrelated); real per-agent delegation (Phase 2, still not in scope).
 
 ## Pattern
 
-`DomainPermission.role` already carries admin/user roles per domain — use it directly, don't build a parallel permission system. `resolveDomainLeadContext` and `loadDomainScopedAgents.ts` already resolve "this domain's lead agent" correctly — reuse that resolution for the *other* domain, don't reimplement it.
+Timing fix, not a new pattern: move the existing `findOrCreateKipDialog` + session-create call from the board-mount effect to the `sendMessage` callback (`useAgentDialog.ts` ~line 649), gated the same way it is today ("no active session yet") — just triggered by the user's first send instead of the effect's mount.
 
 ## Rendr treatment
 
-N/A on record — flag if the Add/candidate-picker UI needs a real design pass.
+N/A — not a presence job.
 
 ## Verification
 
 **Commands:** `pnpm run quick:web`, `pnpm run quick:api`
-**Browser:** `/d/ke3p?board=realm`
+**Browser:** `/home?board=ide`, `/d/ke3p?board=realm`
 
 ## Constraints
 
 - Match conventions in touched folders.
 - **Commit directly to `cloud` — no feature branch, no PR.**
-- Security check must happen server-side, at request time — never trust a client-supplied "I'm admin" claim.
-- Additive only — do not remove or gate the existing Cloud/Rendr baseline.
-- Do not start real delegation (Phase 2) as part of this handoff.
+- Small, focused diff — this is a timing change, not a rewrite.
+- Codebase wins over docs when they conflict.
 
 ## Context
 
-**Two-phase plan, both scoped now so nothing shows up as a surprise later — but deliberately sequenced.** Chuck's own explicit direction: get this infrastructure right first; treat real delegation as a separate, later, more careful piece of work because of token-cost implications.
+First of three follow-on handoffs from today's live testing (full punch list and priority order in `docs/chronicle-document-architecture.md`, 2026-07-22 section). First in line because it's the most bounded and mechanical, and because it's actively creating garbage in production right now — every board visit until this ships writes another empty Dialog. A related Nav-side symptom (the same dialog's name rendering twice — once in the new "Dialogs" group, once again as its own "0 items" stage-group card) was fixed directly by Cloud in `RealmStagedNav.tsx` (skip a per-dialog stage section entirely when it has zero items in every stage) rather than scoped here — small, well-understood, no architectural judgment call involved.
 
-**Phase 2 (`director-lead-initiated-delegation`, not yet a handoff file, described here for continuity):** the *lead* agent — not the user directly, and not an automatic call-everyone-every-turn model — decides whether and which enabled cast agents to consult for a given reply. When consulted, their contribution should be deliberately minimal/collapsed feedback, not a full independent completion — matching the already-designed "chorus" shape in `docs/universal-board-dialog-orchestration.md` (collapsed beats under the Lead's reply, not full agent swaps). Explicit constraint from Chuck: do not build something that multiplies LLM calls linearly with cast size by default — "minimal feedback" exists to bound token cost, not maximize participation. **Do not start Phase 2 until Phase 1 (this handoff) ships and is verified.**
+**Next in line after this ships:** `realm-home-chronicle-routing` and `kip-roster-dialog-cast-sync` (both fully scoped and queued in `docs/build-handoffs/archive/`, ready to become `current` in turn).

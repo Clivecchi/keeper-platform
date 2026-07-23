@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "id": "cross-domain-cast-membership",
+  "created_at": "2026-07-22T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Replace the hardcoded domain-agent roster with a real permission-driven mechanism: a user participating in a Dialog can enable the lead agent of any OTHER domain where they hold real Admin-level DomainPermission -- starting with Ceox, Chuck's own agent, becoming addable to ke3p's cast through the Cast Header. This is infrastructure -- real per-agent delegation is deliberately a separate, later phase.",
+  "shipped": {
+    "commits": ["33df0721 (db: DialogCastMember join table)", "b46d0359 (api: cast membership endpoints, request-time Admin checks)", "149f6897 (web: Cast Header Add picker)", "9a878493 (docs)"],
+    "verified": "Confirmed live: Ceox now appears as a real, persisted cast chip in the header after being added via the Cast Header on ke3p. DialogCastMember table exists and is read by listDialogCastMembers for display.",
+    "follow_on_gaps_found": "Chuck tested it live and found Ceox 'exists but doesn't work' -- three further real gaps, all investigated and file:line-confirmed 2026-07-22: (1) resolveAgentEnvironment (apps/api/src/services/kip/resolveAgentEnvironment.ts) has no dialogId parameter and never reads DialogCastMember -- it only calls loadDomainScopedAgents (domain-baseline roster), so Kip's own prompt tells the model Ceox isn't on the team even though the UI shows it enabled. (2) Every board preset (ide/agent/domain/realm/designer) eagerly creates a real Dialog + kip_agent_session the moment a board mounts (apps/web/src/v0/boards/UniversalConversation.tsx:1720,1774 and apps/web/src/hooks/useAgentDialog.ts:482-551,553-620, both funneling through resumeOrCreateBoardSession -> findOrCreateKipDialog in apps/api/src/services/kipDialogLifecycle.ts) -- merely visiting a board persists a Dialog, polluting Nav with empty 'conversation' dialogs. (3) RealmHomeChronicle.tsx's isUserHome branch (true whenever shellMode is 'home', i.e. the personal /home route regardless of ?board=realm) always skips the real per-Dialog Document renderer (DomainRealmStory) and falls through to an empty aria-hidden div when the feed has no events -- so Chronicle/Document is genuinely unreachable on /home even though the renderer itself works correctly on the domain-scoped /d/:slug route. Scoped as three follow-on handoffs: stop-eager-dialog-creation (now current), realm-home-chronicle-routing (queued), kip-roster-dialog-cast-sync (queued)."
+  },
+  "done_when": [
+    "A real backend capability resolves, for the current authenticated user, every domain where they hold Admin-level DomainPermission (or are Domain.ownerId) -- and for each, resolves that domain's real lead agent (reuse the existing resolveDomainLeadContext / loadDomainScopedAgents pattern, do not reinvent lead resolution)",
+    "Those agents are surfaced as addable candidates via a real 'Add' action in DirectorCastHeader -- clicking it shows the candidate list (e.g. 'Ceox -- from [Chuck's domain]'), selecting one enables that agent for the CURRENT dialog",
+    "The enablement persists for that Dialog (survives reload) -- Cursor decides and documents the storage shape (a new field/array on Dialog, or a join table; review whether the existing CrossDomainShare model's contentType/contentId pattern fits before inventing something new -- it may not, since it's approval-gated domain-to-domain sharing and this is user-permission-driven, not domain-to-domain -- document the reasoning either way)",
+    "Once enabled, the agent renders through the exact same BoardInstrumentsBar/DirectorCastHeader machinery already shipped -- no new chip component, no new invocation UI",
+    "Strict security boundary: an agent is only addable if the CURRENT user genuinely holds Admin-level DomainPermission (or ownership) on that agent's home domain, checked at request time, not cached client-side or trusted from the frontend -- this is the one hard non-negotiable in this handoff",
+    "The existing hardcoded DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud','rendr'] stays as the platform baseline every domain still gets automatically -- this handoff is additive (a domain can gain MORE agents via user permission), it does not remove or replace the baseline",
+    "pnpm run quick:web and pnpm run quick:api pass",
+    "Manual check: on ke3p (Chuck as Admin), the Cast Header's Add action surfaces Ceox as a real candidate (from Chuck's own domain where Ceox is lead), enabling it makes Ceox appear and persist as a cast member on reload"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/universal-board-dialog-orchestration.md", "docs/chronicle-document-architecture.md"],
+  "scope": {
+    "touch": [
+      "apps/api/src/services/domains/loadDomainScopedAgents.ts (extend, do not replace the hardcoded platform baseline)",
+      "a new backend endpoint for resolving a user's cross-domain-admin addable agents and for enabling/persisting one onto a Dialog",
+      "apps/web/src/v0/boards/components/DirectorCastHeader.tsx (Add action + candidate picker)",
+      "apps/web/src/v0/boards/UniversalConversation.tsx (wire the enabled-agent list into the existing instrument list alongside the hardcoded baseline)",
+      "packages/database/prisma/schema.prisma (new field/table for persisted per-Dialog agent enablement -- Cursor's call on shape, documented)"
+    ],
+    "do_not_touch": [
+      "real per-agent delegation / execution (Kip actually routing a turn to another agent's session and getting a distinct response) -- explicitly the next, separate phase, not this handoff",
+      "the existing DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS baseline -- additive only, do not remove Cloud/Rendr's automatic availability",
+      "IDE/Designer's single-select instrument behavior -- unrelated to this handoff"
+    ]
+  },
+  "pattern_ref": "Chuck's own framing, verbatim: 'a User that is involved in a dialog is able to enable lead agents from any domain they themselves have Admin privilege over.' DomainPermission.role already carries admin/user roles per domain -- use it directly, don't build a parallel permission system. resolveDomainLeadContext (apps/web/src/v0/lib/domainLeadAgent.ts) and loadDomainScopedAgents.ts already resolve 'this domain's lead agent' correctly -- reuse that resolution for the OTHER domain, don't reimplement it. CrossDomainShare exists in schema but is approval-gated domain-to-domain content sharing -- check whether it fits before assuming it does; this feature is user-permission-driven, which is a different shape.",
+  "rendr_treatment": null,
+  "git": {
+    "branch": "cloud",
+    "base": "cloud",
+    "commit": true,
+    "open_pr": false,
+    "pr_title": "feat: cross-domain cast membership -- users can add agents from domains they admin"
+  },
+  "verification": {
+    "commands": ["pnpm run quick:web", "pnpm run quick:api"],
+    "browser": ["/d/ke3p?board=realm"]
+  },
+  "context": {
+    "phase": "Follow-on to realm-header-cast-and-multiselect (archived, shipped). Chuck tested the shipped multi-select live and found two real gaps underneath it: no real delegation, and no real cast-membership mechanism -- cast is entirely hardcoded (DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud','rendr']) with no way for a domain to gain a new agent without a code change.",
+    "related_handoffs": [
+      "realm-header-cast-and-multiselect (archived, shipped)",
+      "director-lead-initiated-delegation (queued, deliberately NOT started -- see notes)"
+    ],
+    "library_refs": [],
+    "notes": "Two-phase plan, both scoped now so nothing shows up as a surprise later, but deliberately sequenced -- Chuck's own explicit direction: get this infrastructure right first, treat real delegation as a separate, later, more careful piece of work because of token-cost implications. Phase 2 (director-lead-initiated-delegation, not yet a handoff file, described here for continuity): the LEAD agent (not the user directly, and not an automatic multi-call-everyone-every-turn model) decides whether and which enabled cast agents to consult for a given reply; when consulted, their contribution should be deliberately minimal/collapsed feedback, not a full independent completion -- this matches the already-designed 'chorus' shape in docs/universal-board-dialog-orchestration.md (collapsed beats under the Lead's reply, not full agent swaps). Explicit design constraint carried from Chuck directly: do not build something that multiplies LLM calls linearly with cast size by default -- the whole point of 'minimal feedback' is bounding token cost, not maximizing agent participation. Do not start Phase 2 until Phase 1 (this handoff) is shipped and verified."
+  }
+}
