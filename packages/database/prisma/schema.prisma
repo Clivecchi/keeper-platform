@@ -280,6 +280,8 @@ model Moment {
   sourcePointId       String?
   /// Prior Moment this row evolved from (candidate-evolution keep).
   evolvedFromMomentId String?
+  /// Archived (not deleted) -- excluded from default Kept listings, same convention as Dialog.is_archived.
+  archived            Boolean          @default(false)
   domain              Domain?          @relation(fields: [domainId], references: [id])
   Journey             Journey?         @relation(fields: [journeyId], references: [id])
   Path                Path?            @relation(fields: [pathId], references: [id])

@@ -48,6 +48,7 @@ const listMomentsSchema = z.object({
   status: z.enum(['kept', 'draft']).optional(),
   limit: z.string().optional(),
   journeyId: z.string().optional(),
+  includeArchived: z.string().optional(),
 });
 
 function getAnonKey(req: Request) {
@@ -142,8 +143,11 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
     const limit = Math.min(Number(parsed.data.limit) || 10, 50);
     const status = parsed.data.status || 'kept';
 
+    const includeArchived = parsed.data.includeArchived === 'true';
+
     const where: Record<string, unknown> = {
       domainId: domain.id,
+      ...(includeArchived ? {} : { archived: false }),
     };
 
     if (status === 'kept') {

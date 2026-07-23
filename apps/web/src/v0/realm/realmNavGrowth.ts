@@ -199,6 +199,12 @@ export function groupRealmNavEntries(
   const byStage = stageBuckets(entries)
 
   const groups = new Map<string, RealmNavEntry[]>()
+  // Seed every real, active Dialog (dialogTitleById only ever holds non-archived
+  // dialogs) so it appears in Nav even with zero content -- a Dialog is a real
+  // "start here" entry point, not something that only exists once it has drafts.
+  for (const dialogId of dialogTitleById.keys()) {
+    if (!groups.has(dialogId)) groups.set(dialogId, [])
+  }
   for (const entry of entries) {
     const key = entry.dialogId?.trim() ? entry.dialogId.trim() : REALM_NAV_UNASSIGNED_KEY
     const bucket = groups.get(key)
