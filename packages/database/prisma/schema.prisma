@@ -638,6 +638,7 @@ model kip_agents {
   AgentLens              AgentLens[]
   agent_capabilities     AgentCapability[]
   library_items          LibraryItem[]     @relation("LibraryItemAssignedAgent")
+  dialogCastMembers      DialogCastMember[]
 }
 
 model kip_agent_logs {
@@ -724,11 +725,41 @@ model Dialog {
   user     users?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
   sessions kip_sessions[]
   drafts   kip_drafts[]
+  /// Cross-domain cast members — lead agents from domains the enabler administers.
+  castMembers DialogCastMember[]
 
   @@index([domain_id])
   @@index([user_id])
   @@index([domain_id, is_archived])
   @@index([domain_id, document_status])
+}
+
+/**
+ * Dialog-scoped cast enablement (Phase 1 — membership only, not delegation).
+ *
+ * Why a join table (not CrossDomainShare, not Dialog JSON):
+ * - CrossDomainShare is approval-gated domain→domain content sharing — wrong shape.
+ * - A JSON array on Dialog can't re-validate Admin on the agent's home domain at read time.
+ * - Join rows carry homeDomainId + enabledBy so every list/enable checks Admin server-side.
+ */
+model DialogCastMember {
+  id              String   @id @default(cuid())
+  dialogId        String
+  agentId         String   @db.Uuid
+  homeDomainId    String
+  enabledByUserId String
+  enabledAt       DateTime @default(now())
+
+  dialog        Dialog     @relation(fields: [dialogId], references: [id], onDelete: Cascade)
+  agent         kip_agents @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  homeDomain    Domain     @relation("DialogCastMemberHomeDomain", fields: [homeDomainId], references: [id], onDelete: Cascade)
+  enabledByUser users      @relation("DialogCastMemberEnabledBy", fields: [enabledByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([dialogId, agentId])
+  @@index([dialogId])
+  @@index([agentId])
+  @@index([homeDomainId])
+  @@index([enabledByUserId])
 }
 
 model kip_sessions {
@@ -827,6 +858,7 @@ model users {
   kip_sessions                                         kip_sessions[]
   kip_drafts                                           kip_drafts[]
   dialogs                                              Dialog[]
+  dialogCastMembersEnabled                             DialogCastMember[]         @relation("DialogCastMemberEnabledBy")
   claimed_session_handoff_keys                         SessionHandoffKey[]        @relation("UserClaimedSessionHandoffKey")
   provider_keys                                        Key[]
 }
@@ -1146,6 +1178,7 @@ model Domain {
   moments                                                  Moment[]
   kip_drafts                                               kip_drafts[]
   dialogs                                                  Dialog[]
+  dialogCastMembersHome                                    DialogCastMember[]         @relation("DialogCastMemberHomeDomain")
   session_handoff_keys                                     SessionHandoffKey[]
   provider_keys                                            Key[]
   capabilities                                             Capability[]
