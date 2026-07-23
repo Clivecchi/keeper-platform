@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "id": "realm-header-cast-and-multiselect",
+  "created_at": "2026-07-21T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Rework director-mode agent presentation universally: cast/roster identity displayed in the header, invocation happens at the composer, the lead agent is invoked by default, and Domain/Realm supports true multi-select of non-lead instruments.",
+  "shipped": {
+    "commits": ["e4ba7856 (DirectorCastHeader + BoardInstrumentsBar multi-select)", "53addae4 (docs)", "b395f0dc (Cloud -- real Dialogs Nav group)", "ebd67854 (Cloud -- archived pre-existing Kept/Presented noise, Nav shows active Dialog)"],
+    "verified": "DirectorCastHeader is identity-only (no click handlers). BoardInstrumentsBar gained leadLocked (lead always engaged, click is a no-op) and selectionMode 'single'|'multi'. instrumentMultiSelect:true set only on Domain/Realm board defs, confirmed absent from IDE/Designer. Type-checks clean.",
+    "follow_on_gaps_found": "Chuck tested it live: (1) real per-agent delegation doesn't exist -- multi-select only stamps 'engaged' in the UI, Kip's own session is the only thing that actually runs, and Kip's attempt to reach Cloud used an mcp.call action not in its allowed pack. (2) Cast membership is entirely hardcoded -- DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud','rendr'] in loadDomainScopedAgents.ts is a literal platform-wide constant, not a database relationship; there is no mechanism for a domain to gain a new cast member (e.g. Ceox) without a code change. Both are real, substantial, separate pieces of work -- scoped as cross-domain-cast-membership (now current) and a queued follow-on for real lead-initiated delegation."
+  },
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/universal-board-dialog-orchestration.md", "docs/chronicle-document-architecture.md"]
+}

@@ -1,35 +1,38 @@
-# Build Handoff — realm-header-cast-and-multiselect
+# Build Handoff — cross-domain-cast-membership
 
-**Goal:** Rework director-mode agent presentation universally: cast/roster identity displayed in the header, invocation happens at the composer, the lead agent is invoked by default (always-on, not a click), and Domain/Realm specifically supports true multi-select of non-lead instruments for collaboration — unlike IDE/Designer's single-active-instrument swap.
+**Goal:** Replace the hardcoded domain-agent roster with a real permission-driven mechanism: a user participating in a Dialog can enable the lead agent of any *other* domain where they hold real Admin-level `DomainPermission` — starting with Ceox, Chuck's own agent, becoming addable to ke3p's cast through the Cast Header. This is infrastructure — real per-agent delegation is deliberately a separate, later phase.
 **Territory:** cursor
 **Branch:** cloud (direct — no feature branch, no PR)
-**Created:** 2026-07-21T00:00:00Z by cloud
+**Created:** 2026-07-22T00:00:00Z by cloud
 
 ## Why this exists
 
-`realm-director-mode-unification` shipped a genuinely shared `BoardInstrumentsBar` across Realm/Domain/IDE/Designer — real progress, verified. But reviewing the result, Chuck named three real requirements that unification never covered, in his own words:
+Chuck tested the shipped multi-select live and found two real gaps underneath it, not one:
 
-> "I want the cast to be managed through the header. But invokeable at the composer."
+1. **No real delegation** — multi-select only stamps "engaged" in the UI. Kip's own session is the only thing that actually runs; it tried to fake reaching Cloud with an `mcp.call` action that isn't even in its allowed pack.
+2. **Cast membership is entirely hardcoded** — verified directly in code:
+   ```ts
+   // loadDomainScopedAgents.ts
+   export const DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud', 'rendr'] as const;
+   ```
+   Every domain's roster resolves to exactly its own `primaryAgentId` (if set — which *replaces* Kip as lead, doesn't add a member), Kip, Cloud, Rendr. That's it. No database relationship, no way for a domain to gain a new cast member without a code change. Ceox can't appear because the roster has no room for it — this is the real reason, not a bug in the multi-select work.
 
-> "Kip is the lead agent and should be invoked by default and shown as a chip. The other agents can be selected as needed. The minor difference than what exists on IDE is that multiple cast agents can be selected for collaboration versus just one."
+Chuck's own framing, verbatim, is the actual spec for the fix:
 
-Checked before scoping, not assumed: `BoardInstrumentsBar`'s entire architecture — `activeSlug: string | null`, `onInvoke(slug)`, `UniversalConversation`'s `activeBoardInstrument` state — is built around exactly one active instrument at a time, everywhere. There is no multi-select mechanism anywhere in the codebase today. This is real new work, not a config flip.
+> "A User that is involved in a dialog is able to enable lead agents from any domain they themselves have Admin privilege over."
 
-## Two clarifications from the same conversation, so they don't get relitigated
-
-1. **Library items are intentionally domain-wide, not Dialog-scoped.** `Domain → LibraryItem` is the platform's real, documented architecture (not hierarchical, not per-Dialog). An earlier report wrongly framed the absence of a Library↔Dialog relationship as a gap — it isn't one. Corrected here.
-2. **The 47 Kept + 8 Presented items in Realm's Nav are a separate, older population** — real, pre-existing `LibraryItem` rows and kept `Moment`s, unrelated to the 78 archived drafts from `ke3p-becoming-together-consolidation` (which are already correctly excluded from the default view, verified). The flat, undifferentiated feel of that list is the long-parked Curator/grouping work — not something this handoff or the consolidation was ever meant to solve. Explicitly out of scope here.
+Ceox is *his* agent — tied to him as a user, not hardcoded to any one domain. Kip/Cloud/Rendr are ke3p's own domain agents. The permission model should follow the user, not the domain.
 
 ## Done when
 
-- A header slot (**universal** — every board using `dialogOrchestration: 'director'`, not just Domain/Realm) displays the cast/roster: who is lead, which instruments are available. Identity display, not necessarily the click target itself.
-- The actual invoke/select interaction for instruments lives at or near the composer, not only in the header — Cursor decides and documents the concrete split, as long as "cast managed in header, invoked at composer" is genuinely true afterward, not just relabeled
-- The lead agent (`directorAgentSlug`) is invoked/active **by default on load** — no click required to engage Kip (or Rendr on Designer). Real behavior change from today, where `activeBoardInstrumentSlug` starts null/disengaged
-- **On Domain/Realm specifically: true multi-select** — multiple non-lead instruments (e.g. Cloud *and* Rendr) can be simultaneously active for collaboration, not one-at-a-time swap. Requires changing the active-instrument model from a single `activeSlug` to a set, for this board only
-- IDE and Designer explicitly **keep** today's single-active-instrument swap behavior — this handoff does not change their interaction model
-- Whatever agent is actually invoked for a given message (lead alone, or lead + one or more collaborating instruments) is visually clear in the Dialog stream itself, not just in the header/composer control — Cursor's call on presentation, document it
-- `pnpm run quick:web` passes
-- Manual check on `/d/ke3p?board=realm`: Kip is active by default without clicking anything; Cloud and Rendr can both be turned on simultaneously alongside Kip; cast identity reads from the header; the invoke control is at the composer. Manual check on `/d/ke3p?board=ide`: unchanged single-swap behavior still works exactly as before.
+- A real backend capability resolves, for the current authenticated user, every domain where they hold Admin-level `DomainPermission` (or are `Domain.ownerId`) — and for each, resolves that domain's real lead agent (reuse `resolveDomainLeadContext` / `loadDomainScopedAgents`, don't reinvent lead resolution)
+- Those agents are surfaced as addable candidates via a real **"Add" action in `DirectorCastHeader`** — clicking it shows the candidate list (e.g. "Ceox — from [Chuck's domain]"), selecting one enables that agent for the current dialog
+- The enablement **persists for that Dialog** (survives reload) — Cursor decides and documents the storage shape (new field/array on `Dialog`, or a join table; check whether `CrossDomainShare`'s `contentType`/`contentId` pattern fits before inventing something new — it may not, since it's approval-gated domain-to-domain sharing and this is user-permission-driven; document the reasoning either way)
+- Once enabled, the agent renders through the **exact same** `BoardInstrumentsBar`/`DirectorCastHeader` machinery already shipped — no new chip component, no new invocation UI
+- **Strict security boundary**: an agent is only addable if the current user genuinely holds Admin-level `DomainPermission` (or ownership) on that agent's home domain, checked at request time, never trusted from the frontend — the one hard non-negotiable here
+- The existing hardcoded `DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud','rendr']` stays as the platform baseline every domain still gets automatically — this is additive, not a replacement
+- `pnpm run quick:web` and `pnpm run quick:api` pass
+- Manual check: on ke3p (Chuck as Admin), the Cast Header's Add action surfaces Ceox as a real candidate, enabling it makes Ceox appear and persist as a cast member on reload
 
 ## Canon (read first)
 
@@ -39,31 +42,33 @@ Checked before scoping, not assumed: `BoardInstrumentsBar`'s entire architecture
 
 ## Scope
 
-**Touch:** `apps/web/src/v0/boards/components/BoardInstrumentsBar.tsx`, `apps/web/src/v0/components/dialog/KeeperDialogFrame.tsx`, `apps/web/src/v0/boards/UniversalConversation.tsx`, `apps/web/src/v0/realm/DialogCastBar.tsx` (if a header identity component is still needed, or its trailing-actions role changes), `apps/web/src/v0/boards/UniversalBoardDefinition.ts` (only if a new board-def flag is needed to express multi-select vs single-select — Cursor's call, document it).
+**Touch:** `apps/api/src/services/domains/loadDomainScopedAgents.ts` (extend, don't replace the hardcoded baseline); a new backend endpoint for resolving a user's cross-domain-admin addable agents and enabling/persisting one onto a Dialog; `apps/web/src/v0/boards/components/DirectorCastHeader.tsx` (Add action + candidate picker); `apps/web/src/v0/boards/UniversalConversation.tsx` (wire enabled agents alongside the hardcoded baseline); `packages/database/prisma/schema.prisma` (new field/table — Cursor's call on shape, documented).
 
-**Do not touch:** `packages/database/prisma/schema.prisma`; `apps/api/`; the full future "director" delegation model (Kip receiving a message and internally delegating to Cloud/Rendr as sub-turns with action cards) — this handoff is about invocation UI and simultaneous engagement, not that delegation pipeline; the Library/Kept-Presented curation question — already parked separately, unrelated here.
+**Do not touch:** real per-agent delegation/execution — explicitly the next, separate phase; the `DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS` baseline — additive only; IDE/Designer's single-select behavior — unrelated.
 
 ## Pattern
 
-Chuck's own framing, verbatim, is the spec — quoted above, not inferred. Verify `BoardInstrumentsBar`'s `activeSlug`/`onInvoke` shape and `UniversalConversation`'s `activeBoardInstrument` state before assuming how much needs to change — confirmed single-slug throughout as of `realm-director-mode-unification` (archived).
+`DomainPermission.role` already carries admin/user roles per domain — use it directly, don't build a parallel permission system. `resolveDomainLeadContext` and `loadDomainScopedAgents.ts` already resolve "this domain's lead agent" correctly — reuse that resolution for the *other* domain, don't reimplement it.
 
 ## Rendr treatment
 
-N/A on record — flag if the header/composer split needs a real visual design pass once the mechanism is working.
+N/A on record — flag if the Add/candidate-picker UI needs a real design pass.
 
 ## Verification
 
-**Commands:** `pnpm run quick:web`
-**Browser:** `/d/ke3p?board=realm`, `/d/ke3p?board=ide`
+**Commands:** `pnpm run quick:web`, `pnpm run quick:api`
+**Browser:** `/d/ke3p?board=realm`
 
 ## Constraints
 
 - Match conventions in touched folders.
 - **Commit directly to `cloud` — no feature branch, no PR.**
-- Do not change IDE/Designer's single-select interaction model.
-- Do not build the full director-delegation pipeline — invocation/engagement only.
-- Do not touch the Library/Curator question — separate, already parked.
+- Security check must happen server-side, at request time — never trust a client-supplied "I'm admin" claim.
+- Additive only — do not remove or gate the existing Cloud/Rendr baseline.
+- Do not start real delegation (Phase 2) as part of this handoff.
 
 ## Context
 
-Direct follow-up to `realm-director-mode-unification` (archived, shipped). Two populations of "pre-existing items" exist in Realm's Nav and should not be conflated: the 78 archived drafts (resolved, excluded by the existing filter) and the 47+8 original Library/Moment items (real, separate, parked Curator work).
+**Two-phase plan, both scoped now so nothing shows up as a surprise later — but deliberately sequenced.** Chuck's own explicit direction: get this infrastructure right first; treat real delegation as a separate, later, more careful piece of work because of token-cost implications.
+
+**Phase 2 (`director-lead-initiated-delegation`, not yet a handoff file, described here for continuity):** the *lead* agent — not the user directly, and not an automatic call-everyone-every-turn model — decides whether and which enabled cast agents to consult for a given reply. When consulted, their contribution should be deliberately minimal/collapsed feedback, not a full independent completion — matching the already-designed "chorus" shape in `docs/universal-board-dialog-orchestration.md` (collapsed beats under the Lead's reply, not full agent swaps). Explicit constraint from Chuck: do not build something that multiplies LLM calls linearly with cast size by default — "minimal feedback" exists to bound token cost, not maximize participation. **Do not start Phase 2 until Phase 1 (this handoff) ships and is verified.**
