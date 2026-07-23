@@ -160,6 +160,64 @@ function MessageSenderFooter({
   )
 }
 
+/**
+ * Domain/Realm multi-select — shows who was engaged for this turn beneath the
+ * lead reply. Honest engagement stamp (not fake sub-turn bubbles).
+ */
+function EngagedCollaboratorsStrip({
+  collaborators,
+}: {
+  collaborators: ReadonlyArray<{ slug: string; label: string }>
+}) {
+  if (!collaborators.length) return null
+  const labels = collaborators.map((c) => c.label).join(" · ")
+  return (
+    <div
+      className="dialog-engaged-collaborators"
+      aria-label={`Collaborating with ${labels}`}
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 4,
+        marginTop: 4,
+      }}
+    >
+      <span
+        className="text-[10px]"
+        style={{
+          color: "hsl(var(--theme-ink-placeholder))",
+          letterSpacing: "0.03em",
+          marginRight: 2,
+        }}
+      >
+        With
+      </span>
+      {collaborators.map((c) => (
+        <span
+          key={c.slug}
+          className="text-[10px]"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 3,
+            padding: "1px 6px",
+            borderRadius: 999,
+            border: "1px solid hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.28)",
+            backgroundColor:
+              "hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.12)",
+            color: "var(--theme-ink-secondary-color)",
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {c.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function MultiAgentTurnGroup({ children }: { children: React.ReactNode }) {
   return (
     <div className="dialog-multi-agent-turn">
@@ -263,6 +321,7 @@ function AgentMessageTurn({
           timestamp={formatTime(message.createdAt)}
           timestampStyle={{ color: "var(--theme-ink-tertiary-color)" }}
         />
+        <EngagedCollaboratorsStrip collaborators={message.engagedCollaborators ?? []} />
       </div>
     )
   }
@@ -327,6 +386,7 @@ function AgentMessageTurn({
         timestamp={formatTime(message.createdAt)}
         timestampStyle={{ color: "var(--theme-ink-tertiary-color)" }}
       />
+      <EngagedCollaboratorsStrip collaborators={message.engagedCollaborators ?? []} />
     </div>
   )
 }

@@ -108,6 +108,15 @@ function isThinkingPlaceholder(content: string, agentDisplayName: string): boole
   return trimmed === `${agentDisplayName} is thinking…` || trimmed.endsWith(" is thinking…")
 }
 
+function resolvedBoardInstrumentLabel(
+  slug: string,
+  agents: ReadonlyArray<DomainScopedAgent>,
+): string {
+  const fromRoster = agents.find((a) => a.slug === slug)?.name?.trim()
+  if (fromRoster) return fromRoster
+  return BOARD_INSTRUMENT_LABELS[slug] ?? slug
+}
+
 function lastExchangeFromRaw(
   messages: KipMessage[] | undefined,
 ): { id: string; userMessage: string; agentMessage: string } | null {
@@ -344,6 +353,8 @@ export function UniversalConversation({
 
   const directorAgentSlug = def.conversation.directorAgentSlug ?? defaultAgentSlug
   const activeBoardInstrument = selection.activeBoardInstrument
+  const activeBoardInstruments = selection.activeBoardInstruments
+  const instrumentMultiSelect = def.conversation.instrumentMultiSelect === true
 
   const [domainScopedAgents, setDomainScopedAgents] = React.useState<DomainScopedAgent[]>([])
 
@@ -433,6 +444,7 @@ export function UniversalConversation({
     if (kipMode === "domain") {
       const labels: Record<string, string> = {
         [KIP_FALLBACK_SLUG]: KIP_FALLBACK_DISPLAY_NAME,
+        ...BOARD_INSTRUMENT_LABELS,
       }
       const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
       if (normalizedDomainLeadSlug && domainLeadDisplayName) {
@@ -691,17 +703,46 @@ export function UniversalConversation({
   const dialogUserDisplayName =
     user?.name?.trim() || user?.email?.trim() || "You"
 
+  /**
+   * IDE/Designer keep single-instrument delegation via activeBoardInstrument.
+   * Domain/Realm multi-select is engagement UI only — Lead answers; collaborators
+   * stamp on the Dialog stream (full multi-delegation is separate work).
+   */
   const directorConfig = React.useMemo(
     () =>
-      isDirectorMode
+      isDirectorMode && !instrumentMultiSelect
         ? {
             activeInstrument: activeBoardInstrument,
             instrumentLabels: directorInstrumentLabels,
             directorDisplayName: defaultAgentName,
           }
         : undefined,
-    [isDirectorMode, activeBoardInstrument, defaultAgentName, directorInstrumentLabels],
+    [
+      isDirectorMode,
+      instrumentMultiSelect,
+      activeBoardInstrument,
+      defaultAgentName,
+      directorInstrumentLabels,
+    ],
   )
+
+  const engagedCollaboratorStamp = React.useMemo(() => {
+    if (!instrumentMultiSelect || !activeBoardInstruments.length) return []
+    return activeBoardInstruments.map((slug) => ({
+      slug,
+      label:
+        directorInstrumentLabels[slug]
+        ?? resolvedBoardInstrumentLabel(slug, domainScopedAgents),
+    }))
+  }, [
+    instrumentMultiSelect,
+    activeBoardInstruments,
+    directorInstrumentLabels,
+    domainScopedAgents,
+  ])
+
+  const engagedCollaboratorStampRef = React.useRef(engagedCollaboratorStamp)
+  engagedCollaboratorStampRef.current = engagedCollaboratorStamp
 
   const [directorSendPhase, setDirectorSendPhase] = React.useState<DirectorSendPhase | null>(null)
 
@@ -1200,6 +1241,23 @@ export function UniversalConversation({
         onAfterAgentRun(latestRaw, actionResults)
       }
 
+      // Domain/Realm multi-select — stamp who was engaged on the lead reply.
+      const stamp = engagedCollaboratorStampRef.current
+      if (instrumentMultiSelect && stamp.length > 0 && setMessagesRef.current) {
+        setMessagesRef.current((prev) => {
+          const targetIdx = prev.findLastIndex(
+            (m) => m.role === "agent" && !isThinkingPlaceholder(m.content, dialogAgentDisplayName),
+          )
+          if (targetIdx < 0) return prev
+          const updated = [...prev]
+          updated[targetIdx] = {
+            ...updated[targetIdx],
+            engagedCollaborators: stamp,
+          }
+          return updated
+        })
+      }
+
       const runAgentBoardEcho =
         agentEcho && kipMode === "agent" && dialogAgentSlug !== defaultAgentSlug
       const runDomainCollaboration =
@@ -1293,6 +1351,7 @@ export function UniversalConversation({
       agentContext,
       dialogAgentDisplayName,
       defaultAgentName,
+      instrumentMultiSelect,
     ],
   )
 
@@ -1515,7 +1574,7 @@ export function UniversalConversation({
     idleMessages,
   })
 
-  // ── Director mode: pin board instruments for dialog delegation only ─────────
+  // ── Director mode: composer invoke — multi (Domain/Realm) vs single-swap (IDE/Designer)
   const handleBoardInstrumentInvoke = React.useCallback(
     (slug: string) => {
       if (isLeadLedDomain && kipMode === "domain") {
@@ -1528,10 +1587,15 @@ export function UniversalConversation({
         return
       }
       if (!isDirectorMode) return
-      if (slug === directorAgentSlug) {
-        actions.onSetActiveBoardInstrument(null)
+      // Lead is always engaged — composer chip is locked; ignore clicks.
+      if (slug === directorAgentSlug) return
+
+      if (instrumentMultiSelect) {
+        actions.onToggleBoardInstrument(slug)
         return
       }
+
+      // IDE / Designer — single-active-instrument swap (unchanged).
       if (normalizedDomainLeadSlug && slug === normalizedDomainLeadSlug) {
         setComposerLeadSlug(slug)
         actions.onSetActiveBoardInstrument(slug)
@@ -1546,6 +1610,7 @@ export function UniversalConversation({
       kipSupportInvoked,
       isDirectorMode,
       directorAgentSlug,
+      instrumentMultiSelect,
       normalizedDomainLeadSlug,
       activeBoardInstrument,
       actions,
@@ -1798,12 +1863,16 @@ export function UniversalConversation({
         return {
           primary: wordmark,
           ...(tagline ? { tagline } : {}),
-          ...(activeBoardInstrument
+          ...(instrumentMultiSelect && engagedCollaboratorStamp.length
             ? {
-                secondary:
-                  directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument,
+                secondary: engagedCollaboratorStamp.map((c) => c.label).join(" · "),
               }
-            : {}),
+            : activeBoardInstrument
+              ? {
+                  secondary:
+                    directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument,
+                }
+              : {}),
           livePulse: { color: primaryAccent },
           stats: [
             { label: "Journeys", value: statJourneys },
@@ -1834,6 +1903,8 @@ export function UniversalConversation({
     selectedBoardDefId,
     hasDraftSpec,
     activeBoardInstrument,
+    instrumentMultiSelect,
+    engagedCollaboratorStamp,
     defaultAgentName,
     directorInstrumentLabels,
     journeyCount,
@@ -2120,10 +2191,17 @@ export function UniversalConversation({
         activeBoardInstrumentSlug={
           isLeadLedDomain && kipMode === "domain"
             ? (kipSupportInvoked ? KIP_FALLBACK_SLUG : KIP_SUPPORT_DISENGAGED)
-            : isDirectorMode && (kipMode === "domain" || kipMode === "designer" || kipMode === "ide")
+            : isDirectorMode && !instrumentMultiSelect
+              && (kipMode === "designer" || kipMode === "ide")
               ? activeBoardInstrument
               : null
         }
+        activeBoardInstrumentSlugs={
+          instrumentMultiSelect && isDirectorMode ? activeBoardInstruments : []
+        }
+        instrumentSelectionMode={instrumentMultiSelect ? "multi" : "single"}
+        boardInstrumentsLeadLocked
+        castHeaderEyebrow={def.conversation.castBar ? "Cast" : "Agents"}
         boardInstrumentsCollaborationMode={
           isLeadLedDomain && kipMode === "domain" ? true : undefined
         }

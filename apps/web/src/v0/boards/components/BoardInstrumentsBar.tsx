@@ -3,30 +3,40 @@
 import * as React from "react"
 
 /**
- * Shared director-mode agent roster + invocation chips.
+ * Composer invoke bar for director-mode boards.
  *
- * Wins over DialogCastBar for presentation: pure props (no fetch), explicit
- * `isDirector` lead-vs-instrument distinction, and the composer-footer slot
- * every Universal Board already uses. Realm-specific access chrome (Invite /
- * Get key / Manage) is optional `trailing` — not a second invocation pattern.
+ * Header cast identity lives in DirectorCastHeader. This bar is the click target:
+ * lead is always engaged (leadLocked); instruments pin/toggle here.
+ *
+ * selectionMode:
+ *   - "single" (IDE/Designer) — one active instrument at a time (swap)
+ *   - "multi" (Domain/Realm) — many non-lead instruments may be engaged together
  */
 
 export type BoardInstrumentChip = {
   slug: string
   label: string
-  /** Director (Lead) — always shown as invoked; clears delegation when clicked. */
+  /** Director (Lead) — always shown as engaged; click is a no-op when leadLocked. */
   isDirector?: boolean
 }
+
+export type InstrumentSelectionMode = "single" | "multi"
 
 export interface BoardInstrumentsBarProps {
   /** Eyebrow label — "Agents" on director boards. */
   eyebrow?: string
   instruments: ReadonlyArray<BoardInstrumentChip>
+  /** Single-swap active pin (IDE/Designer). Ignored when selectionMode is "multi". */
   activeSlug?: string | null
+  /** Multi-select engaged instruments (Domain/Realm). Ignored when selectionMode is "single". */
+  activeSlugs?: ReadonlyArray<string>
   onInvoke?: (slug: string) => void
+  selectionMode?: InstrumentSelectionMode
+  /** Lead chip stays engaged; clicking lead does not clear instruments. Default true. */
+  leadLocked?: boolean
   /** Lead-led domain: chips toggle support inclusion; lead stays in composer toolbar. */
   collaborationMode?: boolean
-  /** Right-aligned actions (e.g. Realm Invite / Get key / Manage). */
+  /** Right-aligned actions (rarely used — Realm manage chrome prefers the header). */
   trailing?: React.ReactNode
   /** Extra sections after agent chips (e.g. IDE Services). */
   after?: React.ReactNode
@@ -36,7 +46,10 @@ export function BoardInstrumentsBar({
   eyebrow = "Agents",
   instruments,
   activeSlug = null,
+  activeSlugs = [],
   onInvoke,
+  selectionMode = "single",
+  leadLocked = true,
   collaborationMode = false,
   trailing = null,
   after = null,
@@ -44,6 +57,10 @@ export function BoardInstrumentsBar({
   if (!onInvoke || instruments.length === 0) return null
 
   const [barHovered, setBarHovered] = React.useState(false)
+  const activeSet = React.useMemo(
+    () => new Set(activeSlugs.map((s) => s.trim()).filter(Boolean)),
+    [activeSlugs],
+  )
 
   return (
     <div
@@ -74,17 +91,26 @@ export function BoardInstrumentsBar({
         <BarEyebrow label={eyebrow} />
         <BarRule />
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-          {instruments.map(({ slug, label, isDirector }) => (
-            <InstrumentChip
-              key={slug}
-              slug={slug}
-              label={label}
-              isDirector={isDirector}
-              isActive={isDirector ? true : activeSlug === slug}
-              onInvoke={onInvoke}
-              collaborationMode={collaborationMode}
-            />
-          ))}
+          {instruments.map(({ slug, label, isDirector }) => {
+            const isActive = isDirector
+              ? true
+              : selectionMode === "multi"
+                ? activeSet.has(slug)
+                : activeSlug === slug
+            return (
+              <InstrumentChip
+                key={slug}
+                slug={slug}
+                label={label}
+                isDirector={isDirector}
+                isActive={isActive}
+                leadLocked={leadLocked}
+                onInvoke={onInvoke}
+                selectionMode={selectionMode}
+                collaborationMode={collaborationMode}
+              />
+            )
+          })}
         </div>
         {after}
         {trailing ? (
@@ -140,42 +166,55 @@ function InstrumentChip({
   label,
   isActive,
   isDirector = false,
+  leadLocked = true,
   onInvoke,
   slug,
+  selectionMode,
   collaborationMode = false,
 }: {
   slug: string
   label: string
   isDirector?: boolean
   isActive: boolean
+  leadLocked?: boolean
   onInvoke: (slug: string) => void
+  selectionMode: InstrumentSelectionMode
   collaborationMode?: boolean
 }) {
   const [hovered, setHovered] = React.useState(false)
+  const leadIsLocked = Boolean(isDirector && leadLocked)
 
   const ariaLabel = collaborationMode
     ? isActive
       ? `Remove ${label} from this conversation`
       : `Include ${label} in this conversation`
-    : isDirector
-      ? isActive
-        ? `${label} is collaborating — click to delegate only to ${label}`
-        : `${label} is pinned for delegation — click to restore ${label} as collaborator`
-      : isActive
-        ? `Unpin ${label} — stop delegating to ${label}`
-        : `Pin ${label} for delegation`
+    : leadIsLocked
+      ? `${label} is Lead — always engaged`
+      : selectionMode === "multi"
+        ? isActive
+          ? `Remove ${label} from collaboration`
+          : `Include ${label} in collaboration`
+        : isDirector
+          ? `${label} is collaborating — click to clear instrument pin`
+          : isActive
+            ? `Unpin ${label} — stop delegating to ${label}`
+            : `Pin ${label} for delegation`
 
   const title = collaborationMode
     ? isActive
       ? `${label} will chime in after the lead — click to exclude`
       : `${label} is excluded — click to include in collaboration`
-    : isDirector
-      ? isActive
-        ? `${label} is collaborating — click when you want ${label} to answer alone`
-        : `${label} is leading this turn — click to restore ${label} as collaborator`
-      : isActive
-        ? `Unpin ${label} — Kip keeps the composer`
-        : `Pin ${label} — delegate turns to ${label}, Kip synthesizes`
+    : leadIsLocked
+      ? `${label} leads this board — always engaged`
+      : selectionMode === "multi"
+        ? isActive
+          ? `${label} is collaborating — click to leave`
+          : `Include ${label} alongside the Lead`
+        : isDirector
+          ? `${label} is collaborating — click when you want ${label} to answer alone`
+          : isActive
+            ? `Unpin ${label} — Kip keeps the composer`
+            : `Pin ${label} — delegate turns to ${label}, Kip synthesizes`
 
   return (
     <button
@@ -183,8 +222,10 @@ function InstrumentChip({
       aria-label={ariaLabel}
       title={title}
       aria-pressed={isActive}
+      disabled={leadIsLocked}
       onClick={(e) => {
         e.stopPropagation()
+        if (leadIsLocked) return
         onInvoke(slug)
       }}
       onMouseEnter={() => setHovered(true)}
@@ -204,12 +245,13 @@ function InstrumentChip({
         borderRadius: "999px",
         backgroundColor: isActive
           ? "hsl(var(--theme-surface-elevated) / 0.9)"
-          : hovered
+          : hovered && !leadIsLocked
             ? "hsl(var(--theme-surface-paper) / 0.8)"
             : "hsl(var(--theme-surface-paper) / 0.35)",
-        cursor: "pointer",
+        cursor: leadIsLocked ? "default" : "pointer",
         transition: "background-color 100ms ease, border-color 100ms ease",
         flexShrink: 0,
+        opacity: leadIsLocked ? 1 : undefined,
       }}
     >
       <span

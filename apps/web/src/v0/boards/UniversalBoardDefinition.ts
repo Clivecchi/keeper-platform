@@ -146,11 +146,15 @@ export interface ConversationPanelDef {
    */
   agentEcho?: boolean
   /**
-   * Realm board: show trailing access actions (Invite / Get key / Manage) beside
-   * the shared BoardInstrumentsBar Agents chips. Does not select a separate
-   * invocation UI — agent roster always uses boardInstruments / domain roster.
+   * Realm board: show trailing access actions (Invite / Get key / Manage) on the
+   * header cast strip. Agent roster always uses boardInstruments / domain roster.
    */
   castBar?: boolean
+  /**
+   * Domain/Realm: multiple non-lead instruments may be engaged at once.
+   * IDE/Designer omit this (single-active-instrument swap unchanged).
+   */
+  instrumentMultiSelect?: boolean
   /**
    * Capability ceiling for this board — agent capabilities are intersected with this set at runtime.
    * Declared as data; editable through Chronicle / Design Board in future steps.
@@ -436,6 +440,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     kipMode: "domain",
     dialogOrchestration: "director",
     directorAgentSlug: "kip",
+    instrumentMultiSelect: true,
   },
   contextSurface: {
     viewStates: mergeViewStates({
@@ -481,6 +486,7 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     directorAgentSlug: "kip",
     boardInstruments: ["cloud", "rendr"],
     castBar: true,
+    instrumentMultiSelect: true,
   },
   contextSurface: {
     viewStates: mergeViewStates({

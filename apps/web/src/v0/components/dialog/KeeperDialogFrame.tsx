@@ -30,7 +30,9 @@ import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedSer
 import {
   BoardInstrumentsBar,
   type BoardInstrumentChip,
+  type InstrumentSelectionMode,
 } from "../../boards/components/BoardInstrumentsBar"
+import { DirectorCastHeader } from "../../boards/components/DirectorCastHeader"
 import { RealmCastAccessActions } from "../../realm/DialogCastBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 import { installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
@@ -111,16 +113,26 @@ export interface KeeperDialogFrameProps {
   onServiceOpen?: (service?: ServiceSlug) => void
   onToolInvoke?: (tool: ToolSlug) => void
   activeToolSlug?: ToolSlug | null
-  /** Director-mode agent chips — shared BoardInstrumentsBar on every director board. */
+  /**
+   * Director-mode cast — header shows identity (DirectorCastHeader); composer
+   * BoardInstrumentsBar is the invoke control. Same roster array for both.
+   */
   boardInstruments?: ReadonlyArray<BoardInstrumentChip>
   onBoardInstrumentInvoke?: (slug: string) => void
+  /** IDE/Designer single-swap pin. */
   activeBoardInstrumentSlug?: string | null
+  /** Domain/Realm multi-select engaged instruments. */
+  activeBoardInstrumentSlugs?: ReadonlyArray<string>
   boardInstrumentsEyebrow?: string
+  /** Header cast eyebrow — defaults to "Cast". */
+  castHeaderEyebrow?: string
+  instrumentSelectionMode?: InstrumentSelectionMode
+  /** Lead chip always engaged at composer (default true). */
+  boardInstrumentsLeadLocked?: boolean
   /** Lead-led domain: footer toggles support-agent inclusion, not dialog lead. */
   boardInstrumentsCollaborationMode?: boolean
   /**
-   * Realm-only trailing access chrome (Invite / Get key / Manage) beside Agents chips.
-   * Agent roster itself always uses boardInstruments + BoardInstrumentsBar.
+   * Realm trailing access chrome (Invite / Get key / Manage) on the header cast strip.
    */
   castAccessActions?: {
     domainId: string | null
@@ -240,7 +252,11 @@ export function KeeperDialogFrame({
   boardInstruments,
   onBoardInstrumentInvoke,
   activeBoardInstrumentSlug = null,
+  activeBoardInstrumentSlugs = [],
   boardInstrumentsEyebrow = "Agents",
+  castHeaderEyebrow = "Cast",
+  instrumentSelectionMode = "single",
+  boardInstrumentsLeadLocked = true,
   boardInstrumentsCollaborationMode = false,
   castAccessActions,
   thinkingStatusLabel,
@@ -630,6 +646,23 @@ export function KeeperDialogFrame({
         </div>
       )}
 
+      {/* ── Header cast — identity roster (invoke lives at composer) ─────────── */}
+      {mode !== "feed" && boardInstruments?.length ? (
+        <DirectorCastHeader
+          eyebrow={castHeaderEyebrow}
+          instruments={boardInstruments}
+          trailing={
+            castAccessActions ? (
+              <RealmCastAccessActions
+                domainId={castAccessActions.domainId}
+                onInvite={castAccessActions.onInvite}
+                onManageAccess={castAccessActions.onManageAccess}
+              />
+            ) : null
+          }
+        />
+      ) : null}
+
       {/* ── Dialog Space — messages scroll above the Horizon ─────────────────── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
@@ -820,17 +853,11 @@ export function KeeperDialogFrame({
                   eyebrow={boardInstrumentsEyebrow}
                   instruments={boardInstruments}
                   activeSlug={activeBoardInstrumentSlug}
+                  activeSlugs={activeBoardInstrumentSlugs}
+                  selectionMode={instrumentSelectionMode}
+                  leadLocked={boardInstrumentsLeadLocked}
                   onInvoke={onBoardInstrumentInvoke}
                   collaborationMode={boardInstrumentsCollaborationMode}
-                  trailing={
-                    castAccessActions ? (
-                      <RealmCastAccessActions
-                        domainId={castAccessActions.domainId}
-                        onInvite={castAccessActions.onInvite}
-                        onManageAccess={castAccessActions.onManageAccess}
-                      />
-                    ) : null
-                  }
                 />
               ) : (
                 <div className="dialog-composer-footer-spacer" aria-hidden />

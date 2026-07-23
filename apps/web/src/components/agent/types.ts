@@ -30,6 +30,11 @@ export interface AgentDialogueMessage {
   echo?: DialogResponseEcho
   /** Director mode — instrument reply above Lead content (Cloud, Rendr, …). */
   delegation?: DirectorDelegationBeat
+  /**
+   * Domain/Realm multi-select — collaborators engaged for this turn (UI stamp).
+   * Does not imply each produced a sub-turn; full multi-delegation is separate work.
+   */
+  engagedCollaborators?: ReadonlyArray<{ slug: string; label: string }>
   linkedCard?: LinkedCardProps
   /** Structured keeper-card from message metadata (preferred over content fences). */
   keeperCard?: {

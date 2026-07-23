@@ -118,8 +118,13 @@ export interface UniversalBoardSelection {
   trainingMode: boolean
   /** Agent Board training storyboard — which voice-prompt frame is in focus. */
   activeTrainingFrame: VoicePromptSectionKey
-  /** Director mode: pinned board instrument for dialog delegation (Chronicle unchanged). */
+  /** Director mode (IDE/Designer): single pinned instrument for dialog delegation. */
   activeBoardInstrument: BoardInstrumentSlug | null
+  /**
+   * Domain/Realm multi-select: engaged non-lead instruments (Cloud + Rendr, etc.).
+   * Lead is always engaged separately — not represented in this list.
+   */
+  activeBoardInstruments: ReadonlyArray<BoardInstrumentSlug>
 }
 
 export interface UniversalBoardActions {
@@ -178,7 +183,12 @@ export interface UniversalBoardActions {
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
   onTrainingFrameSelect: (frame: VoicePromptSectionKey) => void
+  /** IDE/Designer single-swap — replaces the active pin. */
   onSetActiveBoardInstrument: (slug: BoardInstrumentSlug | null) => void
+  /** Domain/Realm multi-select — toggle one non-lead instrument in/out of the engaged set. */
+  onToggleBoardInstrument: (slug: BoardInstrumentSlug) => void
+  /** Domain/Realm — replace the engaged set (e.g. clear all). */
+  onSetActiveBoardInstruments: (slugs: ReadonlyArray<BoardInstrumentSlug>) => void
 }
 
 export interface UniversalBoardContextValue {
@@ -271,6 +281,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     React.useState<VoicePromptSectionKey>("currently")
   const [activeBoardInstrument, setActiveBoardInstrument] =
     React.useState<BoardInstrumentSlug | null>(null)
+  const [activeBoardInstruments, setActiveBoardInstruments] =
+    React.useState<BoardInstrumentSlug[]>([])
 
   const urlDraftId = shell?.draftId ?? searchParams.get("draftId")
 
@@ -523,9 +535,27 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setActiveBoardInstrument(slug)
   }, [])
 
+  const onToggleBoardInstrument = React.useCallback((slug: BoardInstrumentSlug) => {
+    const key = slug.trim()
+    if (!key) return
+    setActiveBoardInstruments((prev) =>
+      prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key],
+    )
+  }, [])
+
+  const onSetActiveBoardInstruments = React.useCallback(
+    (slugs: ReadonlyArray<BoardInstrumentSlug>) => {
+      setActiveBoardInstruments(
+        slugs.map((s) => s.trim()).filter(Boolean),
+      )
+    },
+    [],
+  )
+
   const clearSelection = React.useCallback(() => {
     setTrainingMode(false)
     setActiveBoardInstrument(null)
+    setActiveBoardInstruments([])
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
@@ -808,6 +838,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         trainingMode,
         activeTrainingFrame,
         activeBoardInstrument,
+        activeBoardInstruments,
       },
       actions: {
         onSessionSelect,
@@ -848,6 +879,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onExitTrainingMode,
         onTrainingFrameSelect,
         onSetActiveBoardInstrument,
+        onToggleBoardInstrument,
+        onSetActiveBoardInstruments,
       },
       navCollapsed,
       onToggleNavCollapsed,
@@ -893,6 +926,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       trainingMode,
       activeTrainingFrame,
       activeBoardInstrument,
+      activeBoardInstruments,
       onSessionSelect,
       onSetActiveJourney,
       onDialogSelect,
@@ -930,6 +964,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onExitTrainingMode,
       onTrainingFrameSelect,
       onSetActiveBoardInstrument,
+      onToggleBoardInstrument,
+      onSetActiveBoardInstruments,
       navCollapsed,
       onToggleNavCollapsed,
       chronicleEngagement,
