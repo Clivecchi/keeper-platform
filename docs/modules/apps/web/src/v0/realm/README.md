@@ -32,6 +32,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-22 — realm-home-chronicle-routing
+- `RealmHomeChronicle` — when a Dialog (or Document-scoped draft/moment/library) is selected on `/home`, render `DomainRealmStory` instead of short-circuiting on `isUserHome`.
+- Idle `/home` Chronicle shows a visible "Select a Dialog…" empty state (or feed when events exist), not an `aria-hidden` empty node.
+
 ### 2026-07-22 — Header cast + multi-select
 - Cast identity in `DirectorCastHeader` (Lead + available); Invite / Get key / Manage trail the header
 - Composer `BoardInstrumentsBar` multi-selects Cloud + Rendr alongside always-on Kip (`instrumentMultiSelect`)

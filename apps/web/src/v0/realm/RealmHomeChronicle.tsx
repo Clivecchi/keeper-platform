@@ -42,6 +42,14 @@ export function RealmHomeChronicle({
   const anchorSlug = shell?.anchorDomainSlug ?? shell?.domainSlug ?? domainSlug ?? null
   const events = feed?.events ?? []
 
+  const selection = board?.selection
+  const hasDocumentSelection = !!(
+    selection?.selectedDialogId ||
+    selection?.selectedDraftId ||
+    selection?.selectedMomentId ||
+    selection?.selectedLibraryItemId
+  )
+
   const handleEventSelect = React.useCallback(
     (event: Parameters<typeof applyRealmFeedEvent>[0]) => {
       if (!board?.actions) return
@@ -74,6 +82,20 @@ export function RealmHomeChronicle({
       />
     ) : null
 
+  // Dialog (or Document-scoped draft/moment/library) selected → real Document renderer
+  // on both `/home` and `/d/:slug?board=realm`.
+  if (hasDocumentSelection && treatment && domainSlug) {
+    return (
+      <DomainRealmStory
+        domainId={domainId}
+        domainSlug={domainSlug}
+        treatment={treatment}
+        userFeedContent={userFeedContent}
+      />
+    )
+  }
+
+  // Domain-scoped Realm (not `/home`): story shell even when nothing is selected.
   if (!useUserFeed && treatment && domainSlug) {
     return (
       <DomainRealmStory
@@ -85,13 +107,30 @@ export function RealmHomeChronicle({
     )
   }
 
-  if (!showFeed || events.length === 0) {
-    return <div className="realm-home-chronicle min-h-0 flex-1" aria-hidden />
+  // `/home` with no Dialog selected — feed when events exist, else a visible idle state
+  // (never the prior silent aria-hidden empty node).
+  if (useUserFeed) {
+    if (showFeed && events.length > 0) {
+      return (
+        <div className="realm-home-chronicle flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
+          {userFeedContent}
+        </div>
+      )
+    }
+
+    return (
+      <div className="realm-home-chronicle flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-10">
+        <p
+          className="max-w-[16rem] text-center text-[13px] leading-relaxed"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
+        >
+          Select a Dialog in Nav to open its Document.
+        </p>
+      </div>
+    )
   }
 
   return (
-    <div className="realm-home-chronicle flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
-      {userFeedContent}
-    </div>
+    <div className="realm-home-chronicle min-h-0 flex-1" aria-hidden />
   )
 }
