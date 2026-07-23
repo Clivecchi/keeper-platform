@@ -87,12 +87,38 @@ export function RealmStagedNav({
     return byDialog[0]?.title ?? null
   }, [byDialog])
 
+  /** Real Dialogs as a Nav group -- "Dialog" is the group, each Dialog is an item, same
+   * SidebarCard pattern every other Universal Board uses for its Dialogs section. */
+  const dialogListItems: SidebarCardItem[] = React.useMemo(
+    () =>
+      byDialog
+        .filter((group) => group.dialogId !== null)
+        .map((group) => ({
+          id: group.dialogId as string,
+          label: group.title,
+          isSelected: group.dialogId === selectedDialogId,
+          onClick: onDialogSelect ? () => onDialogSelect(group.dialogId as string) : undefined,
+        })),
+    [byDialog, selectedDialogId, onDialogSelect],
+  )
+
   const body = (
     <div className="flex flex-col gap-5 px-1 py-2 min-h-0">
       {loading && byDialog.length === 0 ? (
         <p className="text-xs px-1" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           Loading…
         </p>
+      ) : null}
+
+      {dialogListItems.length > 0 ? (
+        <SidebarCard
+          className="keeper-sidebar-card"
+          title="Dialogs"
+          description={`${dialogListItems.length} item${dialogListItems.length === 1 ? "" : "s"}`}
+          items={dialogListItems}
+          collapsible
+          defaultCollapsed={false}
+        />
       ) : null}
 
       {byDialog.map((group) => {
