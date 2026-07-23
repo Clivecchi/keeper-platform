@@ -20,7 +20,7 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 
 | Product name | Role | CSS / attribute |
 |---|---|---|
-| **Header Bar** | Expandable breadcrumb + session meta | `.dialog-header-banner` |
+| **Header Bar** | Expandable breadcrumb + session meta; director cast identity below | `.dialog-header-banner` / `.dialog-header-cast` |
 | **Dialog Space** | Messages scroll here, above the dissolve | `.dialog-message-zone` / `.dialog-message-surface` |
 | **Horizon dissolve** | Gradient fade at Dialog Space floor (no live text) | `.dialog-horizon-band`, `.dialog-fade-overlay` |
 | **Broadcast Strip** | Unified working surface — live beat + ticker; upload previews when staging | `.dialog-broadcast-strip` |
@@ -75,7 +75,8 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
-- 2026-07-20: **Director-mode unification** — Realm agent roster leaves the header cast slot; all director boards (`realm` / `domain` / `ide` / `designer`) render Agents chips via shared `BoardInstrumentsBar` in the composer footer. Realm Invite / Get key / Manage remain as trailing actions (`castAccessActions`). Header `.dialog-header-cast` removed.
+- 2026-07-22: **Header cast + composer invoke** — Every director board shows `DirectorCastHeader` (identity) under the banner; composer `BoardInstrumentsBar` is the invoke control. Realm access actions trail the header cast. Domain/Realm multi-select at composer; IDE/Designer single-swap unchanged.
+- 2026-07-20: **Director-mode unification** — Realm agent roster leaves the header cast slot; all director boards (`realm` / `domain` / `ide` / `designer`) render Agents chips via shared `BoardInstrumentsBar` in the composer footer. Realm Invite / Get key / Manage remain as trailing actions (`castAccessActions`). Header `.dialog-header-cast` removed. *(Header identity restored 2026-07-22; invoke stays at composer.)*
 - 2026-07-19: **Cast bar header slot** — Realm `DialogCastBar` renders in `.dialog-header-cast` under the breadcrumb banner; removed from composer footer (breadcrumb banner unchanged). *(Superseded 2026-07-20.)*
 - 2026-07-11: **Attachment send fix** — `handleComposerSubmit` awaits agent send; `isSubmittingMessage` blocks double-submit during Library commit. `DialogUploadStream` hints that Enter/Send ships image + prompt together. Attachment thinking beats no longer surface as post-run Horizon summary.
 - 2026-07-02: **P4.1 paste in Thinking Space** — `DialogUploadStream` renders `SupportingDocumentTile` for pasted context; Broadcast Strip shows paste + file uploads; composer textarea stays clean on Dialog boards.

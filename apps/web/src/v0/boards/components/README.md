@@ -4,17 +4,22 @@
 Shared UI pieces for Universal Board orchestration — composer instrument bars and related controls.
 
 ## 🧱 Key Files
-- `BoardInstrumentsBar.tsx` — Shared director-mode Agents roster + invocation for Realm, Domain, Designer, and IDE (IDE wraps it inside `IntegratedServicesBar` with Services after).
+- `DirectorCastHeader.tsx` — Header cast identity (Lead + available instruments); not click-to-invoke.
+- `BoardInstrumentsBar.tsx` — Composer invoke bar: lead locked-on; instruments single-swap (IDE/Designer) or multi-select (Domain/Realm).
 - `BoardMobilePanelBar.tsx` — Bottom bar switching Nav · Dialog · Chronicle on narrow Realm Home (`/home`).
 
 ## 🔄 Data & Behavior
-- Rendered in `KeeperDialogFrame` composer footer when `boardInstruments` is set (all director boards).
-- `isDirector` chips always render distinctly (lead); other chips pin/unpin via `activeBoardInstrument`.
-- Optional `trailing` (Realm access actions) and `after` (IDE Services) — presentation slots, not separate invocation UIs.
-- Pinning sets `activeBoardInstrument` in `UniversalBoardContext` for director delegation; Chronicle stays on current focus.
+- **Header** (`DirectorCastHeader`): who is Lead / available — manage chrome (Invite / Get key / Manage) may trail here.
+- **Composer** (`BoardInstrumentsBar`): invoke/select only. Lead always engaged (`leadLocked`). Domain/Realm use `selectionMode: "multi"` + `activeBoardInstruments`; IDE/Designer keep single `activeBoardInstrument` swap.
+- IDE wraps the composer bar inside `IntegratedServicesBar` with Services after.
 - `BoardMobilePanelBar` is used by `UniversalBoard` when member board + viewport ≤767px — same three panels as desktop, one visible at a time.
 
 ## 📆 Update Log
+
+### 2026-07-22 — Header cast + Domain/Realm multi-select
+- Split: cast identity in header, invoke at composer (Chuck's wording).
+- `instrumentMultiSelect` on Domain/Realm board defs; `activeBoardInstruments` set in context; IDE/Designer unchanged single-swap.
+- Dialog stream stamps engaged collaborators (`With Cloud · Rendr`) on the lead reply — not fake sub-turns.
 
 ### 2026-07-20 — Director-mode unification
 - `BoardInstrumentsBar` wins as the single agent-invocation presentation for every `dialogOrchestration: "director"` board.

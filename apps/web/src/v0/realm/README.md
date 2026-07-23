@@ -32,10 +32,16 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-22 — Header cast + multi-select
+- Cast identity in `DirectorCastHeader` (Lead + available); Invite / Get key / Manage trail the header
+- Composer `BoardInstrumentsBar` multi-selects Cloud + Rendr alongside always-on Kip (`instrumentMultiSelect`)
+- Dialog replies stamp engaged collaborators (`With …`) — not multi sub-turn delegation
+
 ### 2026-07-20 — Director-mode unification
 - Agent roster + invocation moved to shared `BoardInstrumentsBar` in the composer footer (same pattern as Domain / IDE / Designer)
 - `DialogCastBar.tsx` now exports `RealmCastAccessActions` only — Invite / Get key / Manage as trailing actions when `castBar: true`
 - Header `.dialog-header-cast` slot removed; `castBar` no longer means a separate invocation UI
+- *(Header identity restored 2026-07-22 with manage chrome; invoke remains at composer.)*
 
 ### 2026-07-19 — Cast bar Ceox / personal-agent chip
 - `DialogCastBar` resolves the signed-in member to their primary-domain lead display name (Chuck → Ceox) — one person chip, not raw `member.name`

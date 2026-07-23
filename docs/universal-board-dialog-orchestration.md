@@ -161,5 +161,6 @@ When implementing `director` on IDE/Dev preset:
 
 | Date | Change |
 |---|---|
+| 2026-07-22 | Header cast identity + composer invoke split (all director boards). Domain/Realm: `instrumentMultiSelect` engages multiple non-lead instruments; IDE/Designer keep single-swap. Dialog stamps engaged collaborators on the lead reply. Full multi-delegation pipeline still future work. |
 | 2026-07-20 | Presentation unification: `BoardInstrumentsBar` is the shared Agents roster for every director board; Realm header `DialogCastBar` retired to trailing access actions only. Full director delegation (Kip-only composer) remains future work. |
 | 2026-06-17 | Initial spec — five orchestration modes; director near-term; roundtable, hot_seat, chorus reserved |
