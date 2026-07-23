@@ -161,9 +161,10 @@ When implementing `director` on IDE/Dev preset:
 
 | Date | Change |
 |---|---|
+| 2026-07-22 | **Shipped `kip-roster-dialog-cast-sync`:** Kip's prompt roster merges `DialogCastMember`-enabled agents (via `resolveAgentEnvironment` + session `dialog_id`) into `domainAgents` — additive only; no per-agent turn delegation. |
 | 2026-07-22 | **Shipped `realm-home-chronicle-routing`:** `/home?board=realm` Chronicle reaches `DomainRealmStory` when a Dialog is selected; idle home shows a visible empty/feed state instead of an `aria-hidden` node. |
 | 2026-07-22 | **Shipped `stop-eager-dialog-creation`:** board mount/prefetch resume-only via `resumeBoardSession`; Dialog+session create deferred to first `sendMessage`. Dead IDE bootstrap in `useAgentDialog` removed. Curtain no longer requires a session id. |
-| 2026-07-22 | **Live-testing punch list:** four gaps found post-Phase-1. (1) Eager Dialog on mount — shipped. (2) `/home` Chronicle Document routing — shipped. (3) Kip roster vs `DialogCastMember` — `kip-roster-dialog-cast-sync`, queued. (4) Nav duplication fixed directly. Full detail in `docs/chronicle-document-architecture.md`. |
+| 2026-07-22 | **Live-testing punch list:** four gaps found post-Phase-1 — (1)–(3) shipped above; (4) Nav duplication fixed directly. Full detail in `docs/chronicle-document-architecture.md`. |
 | 2026-07-22 | **Cross-domain cast membership (Phase 1):** users who administer another domain can **Add** that domain's lead onto the current Dialog via Cast Header. Persisted as `DialogCastMember` (join table — not `CrossDomainShare`). Admin re-checked server-side every request. Platform baseline `cloud`/`rendr` unchanged. Real lead-initiated delegation remains Phase 2. |
 | 2026-07-22 | Header cast identity + composer invoke split (all director boards). Domain/Realm: `instrumentMultiSelect` engages multiple non-lead instruments; IDE/Designer keep single-swap. Dialog stamps engaged collaborators on the lead reply. Full multi-delegation pipeline still future work. |
 | 2026-07-20 | Presentation unification: `BoardInstrumentsBar` is the shared Agents roster for every director board; Realm header `DialogCastBar` retired to trailing access actions only. Full director delegation (Kip-only composer) remains future work. |

@@ -816,6 +816,7 @@ async function buildInstrumentRunEnvironment(params: {
   instrumentSlug: string;
   userId?: string;
   domainId?: string | null;
+  sessionId?: string;
   fallback?: AgentEnvironmentContext | KipEnvironmentContext | null;
 }): Promise<AgentEnvironmentContext | KipEnvironmentContext | null | undefined> {
   let env: AgentEnvironmentContext | null = null;
@@ -824,6 +825,7 @@ async function buildInstrumentRunEnvironment(params: {
       agentId: params.instAgentId,
       userId: params.userId,
       domainId: params.domainId ?? undefined,
+      sessionId: params.sessionId,
       intent: 'interactive',
     });
   } catch (error) {
@@ -3844,6 +3846,7 @@ export class KipAgentService {
       keeperId?: string | null;
       journeyId?: string | null;
       userId?: string | null;
+      sessionId?: string | null;
     },
   ): Promise<string> {
     const agent = await this.getAgentSafely(agentId);
@@ -3853,6 +3856,7 @@ export class KipAgentService {
         agentId,
         userId: options.userId ?? undefined,
         domainId: options.domainId ?? undefined,
+        sessionId: options.sessionId ?? undefined,
         intent: 'interactive',
       });
     } catch {
@@ -4876,6 +4880,7 @@ export class KipAgentService {
                 instrumentSlug: dd.instrumentSlug,
                 userId,
                 domainId: options.domainId,
+                sessionId: currentSessionId,
                 fallback: options.environment,
               });
               const instRun = await this.runAgent(instAgent.id, instPrompt, userId, undefined, {
@@ -5927,6 +5932,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
                 agentId: apAgentId,
                 userId: resolvedUser.userId ?? undefined,
                 domainId,
+                sessionId: typeof querySessionId === 'string' ? querySessionId : undefined,
                 intent: 'interactive',
               });
             } catch (err) {
@@ -5963,6 +5969,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
                   keeperId: keeperId ?? undefined,
                   journeyId: journeyId ?? undefined,
                   userId: resolvedUser.userId ?? undefined,
+                  sessionId: typeof querySessionId === 'string' ? querySessionId : undefined,
                 });
               } catch (err) {
                 console.warn('[kip/agents] composePrompt failed', { agentId: apAgentId, err });

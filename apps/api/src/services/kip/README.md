@@ -23,6 +23,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-07-22 — kip-roster-dialog-cast-sync
+- `resolveAgentEnvironment` — optional `dialogId`; resolves `kip_sessions.dialog_id` from `sessionId`; merges `listDialogCastMembers` into `domainAgents` (additive). Awareness only — not turn delegation.
+
 ### 2026-07-17 — Point→Moment identity keep
 - `promoteDraftPoint.ts`: primary Moment uses Point.id; `sourceDraftId`/`sourcePointId` lineage; `evolvesMomentId` updates in place; optional `pathId` (use / create / pathless); bumps Dialog.document_status drafts→kept
 

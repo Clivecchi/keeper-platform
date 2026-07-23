@@ -28,6 +28,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-07-22: **kip-roster-dialog-cast-sync** — `resolveAgentEnvironment` merges DialogCastMember agents into Kip's `domainAgents` roster when `sessionId`/`dialogId` is known; all four agents.ts call sites thread session where available.
 - 2026-07-22: **stop-eager-dialog-creation** — `createSession` + `findOrCreateKipDialog` unchanged; board clients must only pass `dialogLink` on first real send (not mount).
 - 2026-07-11: **Director delegation attachments** — instrument sub-runs (`ceox`, Cloud, Rendr, etc.) now receive `attachments` so vision-capable lead agents can analyze screenshots delegated from Kip.
 - 2026-07-07: **`callAIModel` Rendr prompt** — define `rendrDesignPrompt` in the environment-context branch (fixes Railway `tsc` build).

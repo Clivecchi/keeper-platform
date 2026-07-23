@@ -40,6 +40,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-07-22 — kip-roster-dialog-cast-sync
+- `listDialogCastMembers` reused by `resolveAgentEnvironment` to add enabled cast leads into Kip's prompt roster (additive; no delegation).
+
 ### 2026-07-22 — Cross-domain cast membership (Phase 1)
 - `dialogCastMembership.ts` — list/enable/disable lead agents from domains the user administers onto a Dialog.
 - Storage: `DialogCastMember` join table (not `CrossDomainShare`, not Dialog JSON) — permission-driven, re-validates Admin on home domain at every read/write.

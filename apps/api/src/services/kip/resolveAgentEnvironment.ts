@@ -7,6 +7,7 @@ import { summarizeDraftPointsForAgent } from '@keeper/shared';
 import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
 import { loadDomainScopedAgents } from '../domains/loadDomainScopedAgents.js';
+import { listDialogCastMembers } from '../domains/dialogCastMembership.js';
 
 export type AgentEnvironmentContext = {
   version: 'env-v1';
@@ -63,7 +64,10 @@ export type AgentEnvironmentContext = {
     canary?: string;
   };
   governance?: AgentPolicyView | null;
-  /** Domain lead + Kip — same roster as GET /api/domains/:domainId/kip/agents */
+  /**
+   * Domain baseline (lead + Kip + platform instruments) plus DialogCastMember-enabled
+   * leads when dialogId/session.dialog_id is known — additive merge for Kip's roster prompt.
+   */
   domainAgents?: Array<{
     id: string;
     slug: string;
@@ -185,9 +189,11 @@ export async function resolveAgentEnvironment(args: {
   userId?: string;
   domainId?: string;
   sessionId?: string;
+  /** When omitted, resolved from kip_sessions.dialog_id when sessionId is present. */
+  dialogId?: string;
   intent: 'interactive';
 }): Promise<AgentEnvironmentContext> {
-  const { agentId, userId, domainId, sessionId } = args;
+  const { agentId, userId, domainId, sessionId, dialogId } = args;
 
   const resolvedAt = new Date().toISOString();
   const environment: AgentEnvironmentContext = {
@@ -221,6 +227,28 @@ export async function resolveAgentEnvironment(args: {
       resolvedAt,
     },
   };
+
+  // One session fetch for dialog_id (cast roster) + active draft — avoid double query later.
+  let sessionRow: {
+    id: string;
+    user_id: string | null;
+    active_draft_id: string | null;
+    dialog_id: string | null;
+  } | null = null;
+  let effectiveDialogId = dialogId;
+  if (sessionId) {
+    try {
+      sessionRow = await prisma.kip_sessions.findUnique({
+        where: { id: sessionId },
+        select: { id: true, user_id: true, active_draft_id: true, dialog_id: true },
+      });
+      if (!effectiveDialogId) {
+        effectiveDialogId = sessionRow?.dialog_id ?? undefined;
+      }
+    } catch (error) {
+      console.warn('[resolveAgentEnvironment] session lookup failed', { sessionId, error });
+    }
+  }
 
   try {
     const agent = await prisma.kip_agents.findUnique({
@@ -367,7 +395,39 @@ export async function resolveAgentEnvironment(args: {
             })),
           };
           try {
-            environment.domainAgents = await loadDomainScopedAgents(primaryDomainId);
+            const baseline = await loadDomainScopedAgents(primaryDomainId);
+            let merged = baseline;
+            if (effectiveDialogId && userId) {
+              try {
+                const castMembers = await listDialogCastMembers({
+                  userId,
+                  domainId: primaryDomainId,
+                  dialogId: effectiveDialogId,
+                });
+                if (castMembers.length > 0) {
+                  const seen = new Set(baseline.map((agent) => agent.id));
+                  merged = [...baseline];
+                  for (const member of castMembers) {
+                    if (seen.has(member.agentId)) continue;
+                    seen.add(member.agentId);
+                    merged.push({
+                      id: member.agentId,
+                      slug: member.agentSlug,
+                      name: member.agentName,
+                      purpose: null,
+                      role: 'Lead',
+                    });
+                  }
+                }
+              } catch (error) {
+                console.warn('[resolveAgentEnvironment] dialog cast lookup failed', {
+                  domainId: primaryDomainId,
+                  dialogId: effectiveDialogId,
+                  error,
+                });
+              }
+            }
+            environment.domainAgents = merged;
           } catch (error) {
             console.warn('[resolveAgentEnvironment] domain agents lookup failed', {
               domainId: primaryDomainId,
@@ -425,19 +485,14 @@ export async function resolveAgentEnvironment(args: {
     environment.capabilities.canPromote = false;
   }
 
-  if (sessionId) {
+  if (sessionId && sessionRow) {
     try {
-      const session = await prisma.kip_sessions.findUnique({
-        where: { id: sessionId },
-        select: { id: true, user_id: true, active_draft_id: true },
-      });
+      const ownsSession = !sessionRow.user_id || (userId ? sessionRow.user_id === userId : false);
 
-      const ownsSession = !session?.user_id || (userId ? session.user_id === userId : false);
-
-      if (session?.active_draft_id && ownsSession) {
+      if (sessionRow.active_draft_id && ownsSession) {
         const draft = await prisma.kip_drafts.findFirst({
           where: {
-            id: session.active_draft_id,
+            id: sessionRow.active_draft_id,
             ...(domainId ? { domain_id: domainId } : {}),
             ...(userId ? { owner_id: userId } : {}),
           },

@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-07-22 — kip-roster-dialog-cast-sync
+- `resolveAgentEnvironment` — optional `dialogId` / session `dialog_id`; merges `listDialogCastMembers` into `domainAgents` (additive to domain baseline). Awareness only — not turn delegation.
+
 ### 2026-07-22 — stop-eager-dialog-creation
 - `kipDialogLifecycle.findOrCreateKipDialog` — documented that board UIs must call via createSession on first send, not mount.
 
