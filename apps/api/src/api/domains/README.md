@@ -10,7 +10,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `contact.ts` – Domain contact form submission handler.
 - `kip-drafts.ts` – Domain-scoped Kip draft directory and session active-draft pointer routes.
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
-- `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, update/archive/document_status, delete, resolve-active.
+- `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, update/archive/document_status, delete, resolve-active; cast membership (`cast-candidates`, `cast-members`).
 - `domain-access-key-routes.ts` – Domain external access keys (MCP): list, create (secret once), revoke, PATCH label.
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
 - `frameOperationalKeys.ts` – Frozen operational keys (`session_notes`, `platform_gaps`) stripped on boot GET, omitted from PATCH/publish writes.
@@ -42,6 +42,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-07-22: **Cast membership** — `GET …/cast-candidates`, `GET|POST …/cast-members`, `DELETE …/cast-members/:agentId` on `kip-dialogs.ts` (server-side Admin on home domain; body is `homeDomainId` only).
 - 2026-07-19: **Draft list lineage fields** — `GET /:domainId/kip/drafts` summary now includes `dialogId` + `pointIds` (from `spec_json.points`) so Realm Nav can group without N+1 detail GETs that were flooding Railway into 502s.
 - 2026-07-17: **Dialog DELETE + document_status** — `DELETE /:domainId/kip/dialogs/:dialogId` (hard delete; sessions/drafts SetNull); PATCH accepts `document_status` (`drafts`|`kept`|`presented`).
 - 2026-07-15: **External access key label** — `PATCH /:domainId/access-keys/:id` updates key label (domain admin).

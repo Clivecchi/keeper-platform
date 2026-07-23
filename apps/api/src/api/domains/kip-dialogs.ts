@@ -24,6 +24,12 @@ import { z } from 'zod';
 import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
+import {
+  disableDialogCastMember,
+  enableDialogCastMember,
+  listDialogCastCandidates,
+  listDialogCastMembers,
+} from '../../services/domains/dialogCastMembership.js';
 
 const router = Router();
 
@@ -46,6 +52,28 @@ const updateDialogSchema = z.object({
   is_archived: z.boolean().optional(),
   document_status: documentStatusSchema.optional(),
 });
+
+const enableCastMemberSchema = z.object({
+  /** Home domain whose lead agent to enable — server resolves the lead; never trust a client agentId. */
+  homeDomainId: z.string().min(1),
+});
+
+function castMembershipErrorStatus(code: string | undefined): number {
+  switch (code) {
+    case 'DIALOG_NOT_FOUND':
+    case 'HOME_DOMAIN_NOT_FOUND':
+    case 'CAST_MEMBER_NOT_FOUND':
+      return 404;
+    case 'ADMIN_REQUIRED_ON_HOME_DOMAIN':
+      return 403;
+    case 'CANNOT_ENABLE_CURRENT_DOMAIN_LEAD':
+    case 'HOME_DOMAIN_HAS_NO_LEAD':
+    case 'AGENT_ALREADY_ON_DOMAIN_ROSTER':
+      return 400;
+    default:
+      return 500;
+  }
+}
 
 // ─── POST /api/domains/:domainId/kip/dialogs ─────────────────────────────────
 // Create a new Dialog. Auth required for all scopes.
@@ -396,6 +424,127 @@ router.delete(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] delete failed');
       return res.status(500).json({ error: 'FAILED_TO_DELETE_DIALOG' });
+    }
+  },
+);
+
+// ─── Cast membership (cross-domain lead agents) ───────────────────────────────
+// Phase 1: enablement + persistence only. Delegation is a later phase.
+
+router.get(
+  '/:domainId/kip/dialogs/:dialogId/cast-candidates',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const candidates = await listDialogCastCandidates({
+        userId: req.user.id,
+        domainId,
+        dialogId,
+      });
+      return res.json({ candidates });
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code) {
+        return res.status(castMembershipErrorStatus(code)).json({ error: code });
+      }
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] cast-candidates failed');
+      return res.status(500).json({ error: 'FAILED_TO_LIST_CAST_CANDIDATES' });
+    }
+  },
+);
+
+router.get(
+  '/:domainId/kip/dialogs/:dialogId/cast-members',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const members = await listDialogCastMembers({
+        userId: req.user.id,
+        domainId,
+        dialogId,
+      });
+      return res.json({ members });
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code) {
+        return res.status(castMembershipErrorStatus(code)).json({ error: code });
+      }
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] cast-members list failed');
+      return res.status(500).json({ error: 'FAILED_TO_LIST_CAST_MEMBERS' });
+    }
+  },
+);
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/cast-members',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const parsed = enableCastMemberSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
+      }
+      const member = await enableDialogCastMember({
+        userId: req.user.id,
+        domainId,
+        dialogId,
+        homeDomainId: parsed.data.homeDomainId,
+      });
+      logger.info(
+        { domainId, dialogId, homeDomainId: member.homeDomainId, agentSlug: member.agentSlug },
+        '[kip-dialogs] cast member enabled',
+      );
+      return res.status(201).json({ member });
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code) {
+        return res.status(castMembershipErrorStatus(code)).json({ error: code });
+      }
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] cast-members enable failed');
+      return res.status(500).json({ error: 'FAILED_TO_ENABLE_CAST_MEMBER' });
+    }
+  },
+);
+
+router.delete(
+  '/:domainId/kip/dialogs/:dialogId/cast-members/:agentId',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId, agentId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      await disableDialogCastMember({
+        userId: req.user.id,
+        domainId,
+        dialogId,
+        agentId,
+      });
+      return res.status(204).send();
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code) {
+        return res.status(castMembershipErrorStatus(code)).json({ error: code });
+      }
+      logger.error({ err: error, domainId, dialogId, agentId }, '[kip-dialogs] cast-members delete failed');
+      return res.status(500).json({ error: 'FAILED_TO_DISABLE_CAST_MEMBER' });
     }
   },
 );
