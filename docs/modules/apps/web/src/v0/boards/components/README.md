@@ -9,12 +9,16 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 - `BoardMobilePanelBar.tsx` — Bottom bar switching Nav · Dialog · Chronicle on narrow Realm Home (`/home`).
 
 ## 🔄 Data & Behavior
-- **Header** (`DirectorCastHeader`): who is Lead / available — manage chrome (Invite / Get key / Manage) may trail here.
-- **Composer** (`BoardInstrumentsBar`): invoke/select only. Lead always engaged (`leadLocked`). Domain/Realm use `selectionMode: "multi"` + `activeBoardInstruments`; IDE/Designer keep single `activeBoardInstrument` swap.
+- **Header** (`DirectorCastHeader`): who is Lead / available — manage chrome (Invite / Get key / Manage) may trail here. **Add** opens candidates from domains the user administers (`CastCandidate`); enable POSTs `homeDomainId` only — server resolves lead + Admin.
+- **Composer** (`BoardInstrumentsBar`): invoke/select only. Lead always engaged (`leadLocked`). Domain/Realm use `selectionMode: "multi"` + `activeBoardInstruments`; IDE/Designer keep single `activeBoardInstrument` swap. Enabled cast members merge into the same chip list.
 - IDE wraps the composer bar inside `IntegratedServicesBar` with Services after.
 - `BoardMobilePanelBar` is used by `UniversalBoard` when member board + viewport ≤767px — same three panels as desktop, one visible at a time.
 
 ## 📆 Update Log
+
+### 2026-07-22 — Cross-domain cast Add
+- `DirectorCastHeader`: **Add** + candidate picker; `onEnableCandidate(homeDomainId)`.
+- Wired from `UniversalConversation` when `castBar` / `instrumentMultiSelect` + domain director mode; members/candidates from kip-dialogs cast APIs.
 
 ### 2026-07-22 — Header cast + Domain/Realm multi-select
 - Split: cast identity in header, invoke at composer (Chuck's wording).

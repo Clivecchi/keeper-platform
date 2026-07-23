@@ -86,6 +86,7 @@ import { PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_N
 import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
 import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
+import type { CastCandidate } from "./components/DirectorCastHeader"
 import type { ComposerAgentChip, AgentAttachment } from "../../components/agent/AgentComposer"
 
 type ToolSlug = "cloud" | "rendr"
@@ -430,6 +431,66 @@ export function UniversalConversation({
   const kipSupportInvoked =
     isLeadLedDomain && activeBoardInstrument !== KIP_SUPPORT_DISENGAGED
 
+  /** Persisted cross-domain cast members for the active Dialog (server-validated). */
+  const [dialogCastMembers, setDialogCastMembers] = React.useState<CastCandidate[]>([])
+  const [dialogCastCandidates, setDialogCastCandidates] = React.useState<CastCandidate[]>([])
+  const [enablingCast, setEnablingCast] = React.useState(false)
+  const [castMembersRevision, setCastMembersRevision] = React.useState(0)
+
+  const supportsDialogCastAdd =
+    (def.conversation.castBar === true || instrumentMultiSelect)
+    && kipMode === "domain"
+    && isDirectorMode
+
+  React.useEffect(() => {
+    if (!supportsDialogCastAdd || !domainId || !selectedDialogId) {
+      setDialogCastMembers([])
+      setDialogCastCandidates([])
+      return
+    }
+    let cancelled = false
+    const base = `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}`
+    void Promise.all([
+      apiFetch(`${base}/cast-members`) as Promise<{ members?: CastCandidate[] }>,
+      apiFetch(`${base}/cast-candidates`) as Promise<{ candidates?: CastCandidate[] }>,
+    ])
+      .then(([membersRes, candidatesRes]) => {
+        if (cancelled) return
+        setDialogCastMembers(Array.isArray(membersRes.members) ? membersRes.members : [])
+        setDialogCastCandidates(
+          Array.isArray(candidatesRes.candidates) ? candidatesRes.candidates : [],
+        )
+      })
+      .catch(() => {
+        if (cancelled) return
+        setDialogCastMembers([])
+        setDialogCastCandidates([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [supportsDialogCastAdd, domainId, selectedDialogId, castMembersRevision])
+
+  const handleEnableCastCandidate = React.useCallback(
+    async (homeDomainId: string) => {
+      if (!domainId || !selectedDialogId || !homeDomainId.trim()) return
+      setEnablingCast(true)
+      try {
+        await apiFetch(
+          `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}/cast-members`,
+          {
+            method: "POST",
+            body: JSON.stringify({ homeDomainId }),
+          },
+        )
+        setCastMembersRevision((n) => n + 1)
+      } finally {
+        setEnablingCast(false)
+      }
+    },
+    [domainId, selectedDialogId],
+  )
+
   const directorInstrumentLabels = React.useMemo((): Record<string, string> => {
     if (kipMode === "ide") return { ...BOARD_INSTRUMENT_LABELS }
     if (kipMode === "designer") {
@@ -455,10 +516,19 @@ export function UniversalConversation({
           labels[agent.slug] = agent.name
         }
       }
+      for (const member of dialogCastMembers) {
+        labels[member.agentSlug] = member.agentName
+      }
       return labels
     }
     return {}
-  }, [kipMode, domainScopedAgents, normalizedDomainLeadSlug, domainLeadDisplayName])
+  }, [
+    kipMode,
+    domainScopedAgents,
+    normalizedDomainLeadSlug,
+    domainLeadDisplayName,
+    dialogCastMembers,
+  ])
 
   const [composerLeadSlug, setComposerLeadSlug] = React.useState<string | null>(null)
   const defaultLeadPinnedRef = React.useRef(false)
@@ -543,6 +613,12 @@ export function UniversalConversation({
       }
       addInstrument({ slug: agent.slug, label: agent.name })
     }
+
+    // Cross-domain enabled leads (DialogCastMember) — same chip machinery.
+    for (const member of dialogCastMembers) {
+      addInstrument({ slug: member.agentSlug, label: member.agentName })
+    }
+
     return instruments
   }, [
     kipMode,
@@ -553,6 +629,7 @@ export function UniversalConversation({
     domainLeadDisplayName,
     domainScopedAgents,
     def.conversation.boardInstruments,
+    dialogCastMembers,
   ])
 
   /** Lead-led domain — footer Agents bar: support agents only (Kip). Lead lives in composer toolbar. */
@@ -2206,6 +2283,12 @@ export function UniversalConversation({
           isLeadLedDomain && kipMode === "domain" ? true : undefined
         }
         castAccessActions={castAccessActions}
+        castCandidates={supportsDialogCastAdd ? dialogCastCandidates : undefined}
+        onEnableCastCandidate={
+          supportsDialogCastAdd ? handleEnableCastCandidate : undefined
+        }
+        enablingCast={enablingCast}
+        castAddEnabled={supportsDialogCastAdd && !!selectedDialogId}
         composerAgents={composerAgentChips.length > 0 ? composerAgentChips : undefined}
         onRemoveComposerAgent={
           composerAgentChips.length > 0 ? handleRemoveComposerAgent : undefined

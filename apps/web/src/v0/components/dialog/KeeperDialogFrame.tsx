@@ -32,7 +32,10 @@ import {
   type BoardInstrumentChip,
   type InstrumentSelectionMode,
 } from "../../boards/components/BoardInstrumentsBar"
-import { DirectorCastHeader } from "../../boards/components/DirectorCastHeader"
+import {
+  DirectorCastHeader,
+  type CastCandidate,
+} from "../../boards/components/DirectorCastHeader"
 import { RealmCastAccessActions } from "../../realm/DialogCastBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 import { installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
@@ -139,6 +142,11 @@ export interface KeeperDialogFrameProps {
     onInvite?: () => void
     onManageAccess?: () => void
   }
+  /** Cross-domain cast Add — candidates from domains the user administers. */
+  castCandidates?: ReadonlyArray<CastCandidate>
+  onEnableCastCandidate?: (homeDomainId: string) => void | Promise<void>
+  enablingCast?: boolean
+  castAddEnabled?: boolean
   /** Overrides Horizon summary while sending; otherwise derived from thinkingSteps. */
   thinkingStatusLabel?: string
   /** Run trace for Broadcast Strip while sending. */
@@ -259,6 +267,10 @@ export function KeeperDialogFrame({
   boardInstrumentsLeadLocked = true,
   boardInstrumentsCollaborationMode = false,
   castAccessActions,
+  castCandidates,
+  onEnableCastCandidate,
+  enablingCast = false,
+  castAddEnabled = true,
   thinkingStatusLabel,
   thinkingSteps = [],
   railwayStatus = "disconnected",
@@ -651,6 +663,10 @@ export function KeeperDialogFrame({
         <DirectorCastHeader
           eyebrow={castHeaderEyebrow}
           instruments={boardInstruments}
+          castCandidates={castCandidates}
+          onEnableCandidate={onEnableCastCandidate}
+          enablingCast={enablingCast}
+          castAddEnabled={castAddEnabled}
           trailing={
             castAccessActions ? (
               <RealmCastAccessActions
