@@ -123,6 +123,10 @@ export function RealmStagedNav({
 
       {byDialog.map((group) => {
         const total = groupEntryCount(group.byStage)
+        // The "Dialogs" group above already lists every Dialog by name. A per-dialog
+        // stage breakdown with nothing in any stage is pure duplication of that same
+        // name, not new information -- skip it instead of rendering a "0 items" echo.
+        if (total === 0) return null
         const isUnassigned = group.dialogId === null
         const isDialogSelected =
           !isUnassigned && !!group.dialogId && group.dialogId === selectedDialogId
