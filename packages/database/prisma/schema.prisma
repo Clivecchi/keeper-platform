@@ -774,6 +774,8 @@ model kip_sessions {
   primary_journey_id String?
   active_draft_id    String?        @db.Uuid
   dialog_id    String?
+  /// Archived (not deleted) — same convention as Dialog.is_archived / Moment.archived.
+  is_archived  Boolean        @default(false)
   /// Reserved for Beat — structured Kip response markers. See Beat prompt.
   beat_metadata Json?
   created_at   DateTime       @default(now())
@@ -790,6 +792,7 @@ model kip_sessions {
   @@index([active_draft_id])
   @@index([dialog_id])
   @@index([created_at])
+  @@index([is_archived])
 }
 
 model kip_messages {

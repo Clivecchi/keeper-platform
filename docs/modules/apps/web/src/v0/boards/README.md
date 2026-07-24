@@ -30,6 +30,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-23 — stop-orphan-echo-sessions
+- Echo/collaboration effect in `UniversalConversation` is resume-only (no create on effect). Create deferred to first real echo via `resumeOrCreateBoardSession` with correct `dialogBoard`/`dialogFrame` keys — stops dialog_id=null orphan multiplication.
+
 ### 2026-07-22 — stop-eager-dialog-creation
 - `UniversalConversation` IDE/Designer mount effects use `resumeBoardSession` only; first send creates via `useAgentDialog.sendMessage`.
 - Prefetch / curtain paths no longer create empty Dialogs on visit.

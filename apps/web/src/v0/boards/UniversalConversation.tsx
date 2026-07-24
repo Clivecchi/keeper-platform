@@ -62,6 +62,7 @@ import { commitComposerAttachmentsToLibrary, uploadLibraryFile } from "../presen
 import {
   pickBestDialogSessionId,
   resumeBoardSession,
+  resumeOrCreateBoardSession,
   resolveActiveDialogSessions,
 } from "../../lib/kipDialogSession"
 import { createDraftMoment, keepMoment } from "../api/v0Moments"
@@ -1069,6 +1070,9 @@ export function UniversalConversation({
     }
   }, [agentEcho, kipMode, kipCollaborationAfterLead])
 
+  // Resume-only: never create echo sessions from this effect.
+  // Bug (pre-2026-07-23): createSession was called with `board`/`frame` keys KipApi
+  // ignores (expects dialogBoard/dialogFrame), so every miss produced a dialog_id=null orphan.
   React.useEffect(() => {
     const needsKipEcho =
       (agentEcho && kipMode === "agent") || kipCollaborationAfterLead
@@ -1097,19 +1101,7 @@ export function UniversalConversation({
                 : ""
           return name === echoSessionName
         })
-        if (echoSession?.id) {
-          setEchoSessionId(echoSession.id)
-          return
-        }
-        const session = await KipApi.createSession(echoAgentId, undefined, echoSessionName, {
-          domainSlug: domainSlug ?? undefined,
-          domainId,
-          board: echoBoard,
-          frame: "conversation",
-          dialogSubject: "domain",
-          dialogScope: "keeper",
-        })
-        if (!cancelled) setEchoSessionId(session.id)
+        if (!cancelled) setEchoSessionId(echoSession?.id ?? null)
       } catch {
         if (!cancelled) setEchoSessionId(null)
       }
@@ -1117,7 +1109,7 @@ export function UniversalConversation({
     return () => {
       cancelled = true
     }
-  }, [agentEcho, kipMode, kipCollaborationAfterLead, echoAgentId, domainId, domainSlug])
+  }, [agentEcho, kipMode, kipCollaborationAfterLead, echoAgentId, domainId])
 
   const setMessagesRef = React.useRef<React.Dispatch<React.SetStateAction<AgentDialogueMessage[]>> | null>(null)
 
@@ -1341,7 +1333,7 @@ export function UniversalConversation({
         kipCollaborationAfterLead && kipMode === "domain"
 
       if (!runAgentBoardEcho && !runDomainCollaboration) return
-      if (!echoAgentId || !echoSessionId) return
+      if (!echoAgentId || !domainId) return
 
       const exchange = lastExchangeFromRaw(latestRaw)
       if (!exchange?.agentMessage) return
@@ -1372,11 +1364,32 @@ export function UniversalConversation({
           ].join("\n")
 
       try {
+        // Create only at first real echo use, via resumeOrCreateBoardSession (correct dialogLink keys).
+        let sessionIdForEcho = echoSessionId
+        if (!sessionIdForEcho) {
+          const echoSessionName = runDomainCollaboration
+            ? "Domain Lead Collaboration"
+            : "Agent Board Echo"
+          const echoBoard = runDomainCollaboration ? "domain" : "agent"
+          const ensured = await resumeOrCreateBoardSession({
+            domainId,
+            agentId: echoAgentId,
+            board: echoBoard,
+            frame: "conversation",
+            dialogScope: "keeper",
+            subject: "domain",
+            sessionName: echoSessionName,
+            domainSlug: domainSlug ?? undefined,
+          })
+          sessionIdForEcho = ensured.sessionId
+          setEchoSessionId(ensured.sessionId)
+        }
+
         const echoResult = await KipApi.runAgent(
           echoAgentId,
           echoPrompt,
           undefined,
-          echoSessionId,
+          sessionIdForEcho,
           {
             domainSlug: domainSlug || undefined,
             domainId: domainId || undefined,

@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "id": "stop-orphan-echo-sessions",
+  "created_at": "2026-07-23T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Stop the 'Kip echo' mechanism in UniversalConversation.tsx from creating a new, dialog-less kip_session every time it fails to find an exact-name match. Archive the existing orphaned sessions this has already created.",
+  "status": "shipped",
+  "shipped_at": "2026-07-23T00:00:00Z",
+  "territory": "cursor",
+  "git": {
+    "branch": "cloud",
+    "base": "cloud",
+    "commit": true,
+    "open_pr": false
+  },
+  "notes": "Root cause: createSession called with board/frame instead of dialogBoard/dialogFrame. Effect is now resume-only; create via resumeOrCreateBoardSession at first echo. kip_sessions.is_archived + archive-orphan-echo-sessions.ts (dry-run default)."
+}
