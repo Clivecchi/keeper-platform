@@ -227,6 +227,33 @@ Every domain's agent roster resolves to exactly its own `primaryAgentId` (if set
 
 **Separately, real delegation still doesn't exist.** Multi-select only stamps "engaged" in the UI — Kip's own session is the only thing that runs, and its attempt to reach Cloud used an `mcp.call` action not in its allowed pack. Chuck's proposed shape for this, independently, matches what this doc already named as the `director`+`chorus` target: the *lead* agent decides whether and which cast members to consult, and their contributions are minimal/collapsed feedback, not full independent completions — explicitly to bound token cost, not maximize participation. Deliberately sequenced *after* cross-domain-cast-membership, not started — Chuck's own pacing call, not a technical blocker.
 
+### Verified (2026-07-23): "Chronicle" showing session history instead of the Document — traced to the database, and it's bigger than one bug
+
+All three 2026-07-22 follow-ons shipped (`8655d654`, `4a3f9ca1`, `0b56adc7`). Live testing immediately after surfaced a new, real problem: on the Domain board (`/d/ke3p?board=domain`), with "Becoming Together" focused, Chronicle showed a list of session entries mixing "KE3P" and "CHUCK LIVECCHI" (Chuck's own separate personal domain) instead of the Document. Two false leads were chased and corrected before landing on the real cause — worth recording so the same missteps aren't repeated:
+
+- **False lead #1:** initially claimed Kip's "isn't actively participating" reply about Ceox was "correct post-fix behavior" without having verified the actual runtime roster sent to the model — an inference stated as a fact. Corrected directly.
+- **False lead #2:** misread a small UI badge as a panel labeled "SOLE" and built an entire theory (agent-memory subsystem, `SoleMemoryScope`/`SoleReflection` models) on top of it. No such label exists in the product. Retracted; an agent already dispatched on that false premise was stopped before completing.
+
+**The real, DB-confirmed findings, from actually tracing the code:**
+
+1. **A real cross-domain-lead labeling bug.** `resolveAgentEnvironment.ts`'s `DialogCastMember` merge (shipped 2026-07-22) hardcoded `role: 'Lead'` on every cross-domain agent it adds, regardless of whose domain it's actually lead of. Ceox on ke3p — a guest, brought in from Chuck's own domain — got labeled identically to how ke3p's own lead (Kip) would be, and Kip's own prompt explicitly treats `role: 'Lead'` as "they own the dialog voice."
+
+**Shipped (2026-07-23) as cast role-label fix:** DialogCastMember merge now labels guests `role: 'Cast'` (not `'Lead'`). Additive only — still no turn delegation.
+
+2. **A second, distinct orphaned-session bug — 36 confirmed rows.** `UniversalConversation.tsx`'s "Kip echo" effect called `KipApi.createSession(...)` with `board`/`frame` keys the client API ignores (expects `dialogBoard`/`dialogFrame`), so every miss produced a `dialog_id: null` orphan named "Domain Lead Collaboration." Direct query: 36 such rows, same agent (Kip), same user (Chuck), since 2026-07-20. `kip_sessions` has no `domain_id` column — an orphan can never be honestly attributed to any domain.
+
+**Shipped (2026-07-23) as `stop-orphan-echo-sessions`:** Echo effect is resume-only; create deferred to first real echo via `resumeOrCreateBoardSession` (correct dialogLink). Added `kip_sessions.is_archived` + `apps/api/src/scripts/archive-orphan-echo-sessions.ts` (dry-run default; `--execute` archives orphans). Nothing deleted.
+
+3. **The actual mechanism behind the cross-domain leak.** `GET /api/agents/:id` fetched `kip_sessions` with no domain filter — the agent's 5 globally-most-recent sessions. Kip is one shared agent across domains, so viewing it mixed every domain's activity (and the orphans from #2).
+
+**Shipped (2026-07-23) as `scope-agent-recent-sessions-by-domain`:** `GET /api/agents/:id?domainId=` scopes via `dialog.domain_id`, excludes archived + dialog-less orphans. `presenceEnrichment` passes `domainId` it already has.
+
+**Why this was even reachable: Chronicle's "show the Document" fix from 2026-07-22 was Realm-only.** `showRealmDocument` was hard-restricted to `boardId === "realm"`. Chuck confirmed: **Chronicle should show the Document whenever a Dialog is focused, on every board.**
+
+**Shipped (2026-07-23) as `chronicle-shows-document-universally`:** focused `dialog` → `RealmHomeChronicle` / `DomainRealmStory` on every board; Realm still Document-routes domain/draft/moment/library. Per-object presence for non-dialog subjects unchanged.
+
+All four (three handoffs + role-label fix) shipped on `cloud`. Verify against commits + DB (archive script `--execute` after migrate) before treating as done.
+
 ### Verified (2026-07-22): cross-domain-cast-membership shipped, then live testing found four real, separate gaps — punch list and priority order
 
 `cross-domain-cast-membership` Phase 1 shipped (`33df0721`/`b46d0359`/`149f6897`/`9a878493`) — Ceox correctly appears as a real, persisted cast chip after being added via the Cast Header. Chuck then tested it live on `ke3p.com` and found four distinct, unrelated problems, each verified against the actual code (not assumed):

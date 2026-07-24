@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "id": "stop-eager-dialog-creation",
+  "created_at": "2026-07-22T00:00:00Z",
+  "created_by": "cloud",
+  "goal": "Stop persisting a Dialog and kip_agent_session the instant a board mounts. Create both lazily, on the first real message a user actually sends, across every board preset that shares the resumeOrCreateBoardSession / findOrCreateKipDialog path.",
+  "done_when": [
+    "Visiting any board (ide, agent, domain, realm, designer) and sending zero messages creates zero new Dialog rows and zero new kip_agent_session rows -- confirmed by direct query before/after, not assumed",
+    "Sending the first real message in a fresh board still creates exactly one Dialog + one kip_agent_session, same as today's behavior, just deferred to send-time instead of mount-time",
+    "Revisiting a board that already has an active session still resumes it correctly via the existing read-only resolveActiveDialogSessions path -- unchanged",
+    "The four call sites that currently trigger eager creation are all covered: UniversalConversation.tsx's IDE effect (~line 1720), UniversalConversation.tsx's Designer effect (~line 1774), useAgentDialog.ts's Agent/Domain/Realm path (~lines 482-551), and useAgentDialog.ts's parallel IDE path (~lines 553-620) -- confirm whether that last one is genuinely dead code or a second live call site, and handle accordingly",
+    "pnpm run quick:web and pnpm run quick:api pass",
+    "Manual check: open the IDE board fresh (no prior session), confirm no new Dialog appears in Realm's Nav 'Dialogs' group until a message is actually sent; then send one message and confirm exactly one Dialog appears"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md", "docs/universal-board-dialog-orchestration.md"],
+  "scope": {
+    "touch": [
+      "apps/web/src/v0/boards/UniversalConversation.tsx (the two board-session-lifecycle effects)",
+      "apps/web/src/hooks/useAgentDialog.ts (both create-session paths, lines ~482-551 and ~553-620)",
+      "apps/web/src/lib/kipDialogSession.ts (resumeOrCreateBoardSession)",
+      "apps/api/src/services/kipDialogLifecycle.ts (findOrCreateKipDialog)",
+      "apps/api/src/api/kip/agents.ts (the createSession action, ~lines 3580-3627)"
+    ],
+    "do_not_touch": [
+      "resolveActiveDialogSessions / GET /kip/dialogs/resolve/active -- this read-only resolution path is correct as-is, do not change its semantics",
+      "DialogCastMember / cast-membership work -- shipped separately, unrelated",
+      "Real per-agent delegation (Phase 2, director-lead-initiated-delegation) -- still not in scope"
+    ]
+  },
+  "pattern_ref": "This is a timing fix, not a new pattern: move the existing findOrCreateKipDialog + session-create call from the board-mount effect to the sendMessage callback (useAgentDialog.ts's sendMessage, ~line 649), gated on 'no active session yet' the same way it's gated today -- just triggered by the user's first send instead of the effect's mount.",
+  "rendr_treatment": null,
+  "git": {
+    "branch": "cloud",
+    "base": "cloud",
+    "commit": true,
+    "open_pr": false,
+    "pr_title": "fix: create Dialog + session lazily on first message, not on board mount"
+  },
+  "verification": {
+    "commands": ["pnpm run quick:web", "pnpm run quick:api"],
+    "browser": ["/home?board=ide", "/d/ke3p?board=realm"]
+  },
+  "context": {
+    "phase": "Follow-on to cross-domain-cast-membership (archived, shipped 2026-07-22). Chuck observed live that visiting the IDE board alone created a persisted, empty 'Ide · conversation · Jul 23' Dialog that then polluted Realm's Nav.",
+    "related_handoffs": [
+      "cross-domain-cast-membership (archived, shipped)",
+      "realm-home-chronicle-routing (queued, see docs/build-handoffs/archive/2026-07-22-realm-home-chronicle-routing-queued.json)",
+      "kip-roster-dialog-cast-sync (queued, see docs/build-handoffs/archive/2026-07-22-kip-roster-dialog-cast-sync-queued.json)"
+    ],
+    "library_refs": [],
+    "notes": "First of three follow-on handoffs from today's live testing (see chronicle-document-architecture.md, 2026-07-22 section, for the full punch list and priority order Chuck asked for). This one is first because it's the most bounded and mechanical, and because it stops ongoing data pollution -- every board visit until this ships keeps writing another empty Dialog. A related Nav-side symptom (the same dialog's name rendering twice -- once in the new 'Dialogs' group, once again as its own '0 items' stage-group card) was fixed directly by Cloud in RealmStagedNav.tsx (skip a per-dialog stage section entirely when it has zero items in every stage), not scoped to Cursor -- small, well-understood, no architectural judgment call involved."
+  }
+}
