@@ -312,14 +312,18 @@ function PanelBody({
   const boardCtx = useUniversalBoardOptional()
   const shell = useV0ShellOptional()
   const realmArrival = useRealmArrivalOptional()
-  /** Realm Chronicle Document — stay on DomainRealmStory for Dialog scope + Point rows. */
+  /**
+   * Chronicle Document via DomainRealmStory.
+   * Dialog is universal (every board) — Chuck confirmed: focused Dialog → Document, not Realm-only.
+   * Realm keeps Document routing for domain/draft/moment/library subjects.
+   */
   const showRealmDocument =
-    boardId === "realm" &&
-    (subject.kind === "domain" ||
-      subject.kind === "dialog" ||
-      subject.kind === "draft" ||
-      subject.kind === "moment" ||
-      subject.kind === "library")
+    subject.kind === "dialog" ||
+    (boardId === "realm" &&
+      (subject.kind === "domain" ||
+        subject.kind === "draft" ||
+        subject.kind === "moment" ||
+        subject.kind === "library"))
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]
   const objectId = subject.kind === "domain" ? domainId : subject.id
   const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(subject.kind) ? "config" : "focus"

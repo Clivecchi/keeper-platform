@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "id": "chronicle-shows-document-universally",
+  "created_at": "2026-07-23T00:00:00Z",
+  "created_by": "cloud",
+  "status": "shipped",
+  "shipped_at": "2026-07-23T00:00:00Z",
+  "goal": "Generalize the 'when a Dialog is focused, Chronicle shows the real Document' behavior beyond the Realm board to every board preset (Domain, IDE, Designer, Agent) -- Chuck's own confirmed expectation: Chronicle is one universal concept, not something Realm alone gets.",
+  "done_when": [
+    "On the Domain board (and IDE, Designer, Agent), focusing a real Dialog in Nav renders that Dialog's actual Document (cover, Forward/Step, Points grouped into Paths) via the same DomainRealmStory component already used correctly on Realm -- not the generic per-object presence view (agent/journey/draft/etc.) that currently shows there instead",
+    "The existing per-object presence views (agent details, journey details, draft details, etc.) still render correctly when the focused subject is NOT a dialog -- this is additive to the dialog case, not a removal of the other views",
+    "The Realm board's existing behavior (already correct, shipped in realm-home-chronicle-routing) is unchanged",
+    "pnpm run quick:web passes",
+    "Manual check: on /d/ke3p?board=domain, with 'Becoming Together' focused, Chronicle shows the real Document, not Kip's agent-presence/session view"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md", "docs/universal-board-dialog-orchestration.md", "docs/becoming-together-cast-strip-proposal.md"],
+  "scope": {
+    "touch": [
+      "apps/web/src/v0/boards/panels/UniversalViewPanel.tsx (the showRealmDocument gate, ~lines 314-338 -- generalize the boardId === 'realm' condition to apply whenever subject.kind === 'dialog', regardless of board)"
+    ],
+    "do_not_touch": [
+      "DomainRealmStory.tsx -- already correct, derives scope generically from selection.selectedDialogId, reuse as-is",
+      "The per-object presence views (KeeperPresence.tsx's AgentFocusPresence/JourneyFocusPresence/DraftFocusPresence/etc.) -- these stay exactly as they are for every non-dialog subject",
+      "Which of Strip/Cast Reel/Original visual treatment the Document uses -- separate Rendr decision, see docs/becoming-together-cast-strip-proposal.md, not part of this handoff"
+    ]
+  },
+  "pattern_ref": "UniversalViewPanel.tsx:316-322 currently computes `showRealmDocument = boardId === 'realm' && (subject.kind === 'domain' || 'dialog' || 'draft' || 'moment' || 'library')`. Drop the boardId==='realm' restriction (or narrow it to just `subject.kind === 'dialog'` universally, since that's the specific case Chuck confirmed he wants) so every board preset routes a focused Dialog to RealmHomeChronicle/DomainRealmStory the same way Realm already does. Verify this doesn't regress the realm-home-chronicle-routing fix's own isUserHome handling.",
+  "rendr_treatment": null,
+  "git": {
+    "branch": "cloud",
+    "base": "cloud",
+    "commit": true,
+    "open_pr": false,
+    "pr_title": "feat: show the real Document in Chronicle on every board, not just Realm"
+  },
+  "verification": {
+    "commands": ["pnpm run quick:web"],
+    "browser": ["/d/ke3p?board=domain", "/d/ke3p?board=realm"]
+  },
+  "context": {
+    "phase": "Fifth in today's sequence of live-testing follow-ons -- ships after stop-orphan-echo-sessions.",
+    "related_handoffs": [
+      "realm-home-chronicle-routing (archived, shipped -- built this exact behavior for Realm only)",
+      "stop-orphan-echo-sessions (ships before this)",
+      "scope-agent-recent-sessions-by-domain (queued, ships after this)"
+    ],
+    "library_refs": [],
+    "notes": "Chuck's own words, confirmed explicitly when asked: Chronicle should show the Document whenever a Dialog is focused, on every board, not just Realm. This directly explains why viewing 'Becoming Together' on the Domain board showed Kip's agent-presence view (complete with a cross-domain session list) instead of the Document -- the showRealmDocument gate that was added for Realm's fix never got generalized to other boards. This is the single biggest lever for making 'the Document' feel like a real, consistent platform concept rather than a Realm-only special case."
+  }
+}
