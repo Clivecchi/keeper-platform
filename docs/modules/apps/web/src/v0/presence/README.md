@@ -62,6 +62,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-07-23 — scope-agent-recent-sessions-by-domain
+- `presenceEnrichment.fetchPresenceRecord` (agent case) passes `domainId` to `GET /api/agents/:id` so recent sessions are domain-scoped.
+
 ### 2026-07-13 — ChronicleDocument pilot
 - Added `chronicleDocument/` — shared read shell, Library adapter, synthetic roadmap panel on domain idle
 

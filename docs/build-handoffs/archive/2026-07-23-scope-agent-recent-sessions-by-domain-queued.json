@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "id": "scope-agent-recent-sessions-by-domain",
+  "created_at": "2026-07-23T00:00:00Z",
+  "created_by": "cloud",
+  "status": "shipped",
+  "shipped_at": "2026-07-23T00:00:00Z",
+  "goal": "Fix GET /api/agents/:id so its recent_sessions data is scoped to the domain currently being viewed, instead of returning an agent's most-recent sessions globally across every domain and every user.",
+  "done_when": [
+    "GET /api/agents/:id accepts a domainId (query param) and, when present, only includes kip_sessions whose related Dialog belongs to that domain -- sessions with no Dialog (orphans) are correctly excluded rather than surfacing as unattributed noise",
+    "The frontend call site (apps/web/src/v0/presence/presenceEnrichment.ts, the 'agent' case in fetchPresenceRecord, ~line 1305-1312) passes the domainId it already has in scope",
+    "Viewing a shared platform agent (Kip, Cloud, Rendr) from within one domain no longer surfaces another domain's session activity in its 'Recent Sessions' list",
+    "pnpm run quick:api and pnpm run quick:web pass",
+    "Manual check: viewing Kip's agent card from ke3p shows only ke3p-related sessions, not Chuck's own 'Chuck Livecchi' domain activity"
+  ],
+  "territory": "cursor",
+  "canon": ["AGENTS.md", "docs/chronicle-document-architecture.md"],
+  "scope": {
+    "touch": [
+      "apps/api/src/api/agents.ts (GET /:id route, ~lines 440-467 -- add domainId query param, scope the kip_sessions include via a join on dialog.domain_id)",
+      "apps/web/src/v0/presence/presenceEnrichment.ts (the 'agent' case in fetchPresenceRecord, pass domainId as a query param)"
+    ],
+    "do_not_touch": [
+      "kip_sessions schema -- no domain_id column exists on it directly (confirmed: packages/database/prisma/schema.prisma:765-793), and none should be added; scope via the existing dialog relation's domain_id instead, or via kip_drafts.domain_id for sessions tied to a draft",
+      "The orphan-session creation bug itself -- that's stop-orphan-echo-sessions, a separate handoff; this one only fixes the read-side query, it doesn't stop new orphans from being created"
+    ]
+  },
+  "pattern_ref": "apps/api/src/api/agents.ts:449-461 currently does `prisma.kip_agents.findUnique({ where: { id }, include: { kip_sessions: { take: 5, orderBy: { created_at: 'desc' } } } })` -- no domain_id filter, no user_id filter at all. Since kip_sessions has no direct domain_id column, scope via `kip_sessions: { where: { dialog: { domain_id: domainId } }, take: 5, orderBy: { created_at: 'desc' } }` when domainId is provided -- this also naturally excludes dialog_id-null orphans, which is correct (an orphan can't be honestly attributed to any domain).",
+  "rendr_treatment": null,
+  "git": {
+    "branch": "cloud",
+    "base": "cloud",
+    "commit": true,
+    "open_pr": false,
+    "pr_title": "fix: scope agent recent-sessions query by domain instead of returning it globally"
+  },
+  "verification": {
+    "commands": ["pnpm run quick:api", "pnpm run quick:web"],
+    "browser": ["/d/ke3p?board=domain"]
+  },
+  "context": {
+    "phase": "Sixth in today's sequence of live-testing follow-ons -- ships after chronicle-shows-document-universally.",
+    "related_handoffs": [
+      "stop-orphan-echo-sessions (ships first, stops the data pollution feeding this bug)",
+      "chronicle-shows-document-universally (ships second, makes this display path less commonly hit for Dialogs specifically)"
+    ],
+    "library_refs": [],
+    "notes": "Found by tracing Chuck's screenshot all the way to the database: GET /api/agents/:id's unscoped kip_sessions include is the exact mechanism that surfaced 'Chuck Livecchi' domain sessions while he was viewing ke3p. Confirmed with an exact file:line read of the route, not inferred. Even after chronicle-shows-document-universally ships (so a focused Dialog shows the Document instead of this view), this bug is still real and still reachable whenever a user views an agent card directly -- worth fixing on its own, not just papered over by the display fix."
+  }
+}

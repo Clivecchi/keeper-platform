@@ -446,6 +446,18 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    const domainId =
+      typeof req.query.domainId === 'string' && req.query.domainId.trim()
+        ? req.query.domainId.trim()
+        : null;
+
+    // Scope recent sessions via Dialog.domain_id when domainId is present.
+    // kip_sessions has no domain_id column; dialog-less orphans cannot be attributed and are excluded.
+    const sessionWhere = {
+      is_archived: false,
+      ...(domainId ? { dialog: { domain_id: domainId } } : {}),
+    };
+
     const agent = await prisma.kip_agents.findUnique({
       where: { id },
       include: {
@@ -454,6 +466,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
           orderBy: { created_at: 'desc' },
         },
         kip_sessions: {
+          where: sessionWhere,
           take: 5,
           orderBy: { created_at: 'desc' },
         },

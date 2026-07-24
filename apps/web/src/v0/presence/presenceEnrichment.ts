@@ -1303,7 +1303,12 @@ export async function fetchPresenceRecord(
     case "keeper":
       return fetchKeeperRecord(objectId, domainId)
     case "agent": {
-      const res = await apiFetch(`/api/agents/${encodeURIComponent(objectId)}`)
+      const agentQs = domainId
+        ? `?domainId=${encodeURIComponent(domainId)}`
+        : ""
+      const res = await apiFetch(
+        `/api/agents/${encodeURIComponent(objectId)}${agentQs}`,
+      )
       return (
         (res as { agent?: Record<string, unknown> })?.agent ??
         (res as { data?: Record<string, unknown> })?.data ??
