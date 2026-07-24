@@ -74,6 +74,7 @@ import V0Page from './pages/V0Page';
 import StyleEditorPage from './pages/StyleEditorPage';
 import { RealmsRedirect } from './mobile/screens/RealmsRedirect';
 import HomeShellPage from './pages/home/HomeShellPage';
+import AcceptDomainInvitePage from './pages/AcceptDomainInvitePage';
 import { HostnameSlugGuard } from './components/HostnameSlugGuard';
 import { RealmRoot } from './components/RealmRoot';
 import {
@@ -344,6 +345,7 @@ const App: React.FC = () => {
         <Route path="/home" element={<HomeShellPage />} />
         <Route path="/realms" element={<RealmsRedirect />} />
         <Route path="/kip" element={<KipAgentBoardPage />} />
+        <Route path="/invite/accept" element={<AcceptDomainInvitePage />} />
         {/* Domain admin: any authenticated user can access; API enforces domain ownership for edits */}
         <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
       </Route>

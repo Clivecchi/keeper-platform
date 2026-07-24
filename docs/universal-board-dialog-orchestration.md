@@ -161,6 +161,7 @@ When implementing `director` on IDE/Dev preset:
 
 | Date | Change |
 |---|---|
+| 2026-07-23 | **Shipped lead-initiated cast consultation:** `delegate.consult` action + Domain/Realm multi-select consults engaged cast members for real minimal replies; synthesis attributes only real text or says plainly it got nothing back (no fabrication). Invite second human via Cast Header + `/invite/accept`. |
 | 2026-07-22 | **Shipped `kip-roster-dialog-cast-sync`:** Kip's prompt roster merges `DialogCastMember`-enabled agents (via `resolveAgentEnvironment` + session `dialog_id`) into `domainAgents` — additive only; no per-agent turn delegation. |
 | 2026-07-22 | **Shipped `realm-home-chronicle-routing`:** `/home?board=realm` Chronicle reaches `DomainRealmStory` when a Dialog is selected; idle home shows a visible empty/feed state instead of an `aria-hidden` node. |
 | 2026-07-22 | **Shipped `stop-eager-dialog-creation`:** board mount/prefetch resume-only via `resumeBoardSession`; Dialog+session create deferred to first `sendMessage`. Dead IDE bootstrap in `useAgentDialog` removed. Curtain no longer requires a session id. |

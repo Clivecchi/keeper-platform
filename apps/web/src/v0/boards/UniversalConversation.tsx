@@ -45,6 +45,7 @@ import type { AgentBoardMessaging } from "../data/domain-frame.types"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
+import { InviteCollaboratorDialog } from "./components/InviteCollaboratorDialog"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
@@ -782,23 +783,32 @@ export function UniversalConversation({
     user?.name?.trim() || user?.email?.trim() || "You"
 
   /**
-   * IDE/Designer keep single-instrument delegation via activeBoardInstrument.
-   * Domain/Realm multi-select is engagement UI only — Lead answers; collaborators
-   * stamp on the Dialog stream (full multi-delegation is separate work).
+   * IDE/Designer: single-instrument delegation via activeBoardInstrument.
+   * Domain/Realm multi-select: consult each engaged cast member for real minimal
+   * input (or honest empty) before Lead synthesizes.
    */
   const directorConfig = React.useMemo(
-    () =>
-      isDirectorMode && !instrumentMultiSelect
-        ? {
-            activeInstrument: activeBoardInstrument,
-            instrumentLabels: directorInstrumentLabels,
-            directorDisplayName: defaultAgentName,
-          }
-        : undefined,
+    () => {
+      if (!isDirectorMode) return undefined
+      if (instrumentMultiSelect) {
+        return {
+          activeInstrument: null as string | null,
+          consultInstruments: [...activeBoardInstruments],
+          instrumentLabels: directorInstrumentLabels,
+          directorDisplayName: defaultAgentName,
+        }
+      }
+      return {
+        activeInstrument: activeBoardInstrument,
+        instrumentLabels: directorInstrumentLabels,
+        directorDisplayName: defaultAgentName,
+      }
+    },
     [
       isDirectorMode,
       instrumentMultiSelect,
       activeBoardInstrument,
+      activeBoardInstruments,
       defaultAgentName,
       directorInstrumentLabels,
     ],
@@ -2218,12 +2228,14 @@ export function UniversalConversation({
     realmFeedLoading,
   ])
 
+  const [inviteOpen, setInviteOpen] = React.useState(false)
+
   /** Realm trailing access chrome only — agent roster uses BoardInstrumentsBar. */
   const castAccessActions = React.useMemo(() => {
     if (!def.conversation.castBar) return undefined
     return {
       domainId,
-      onInvite: () => actions.clearSelection(),
+      onInvite: () => setInviteOpen(true),
       onManageAccess: () => actions.onKeySelect("external-access"),
     }
   }, [def.conversation.castBar, domainId, actions])
@@ -2356,6 +2368,14 @@ export function UniversalConversation({
           onUpdateMessageThreads: handleGlossThreadUpdate,
         }}
       />
+
+      {domainId ? (
+        <InviteCollaboratorDialog
+          domainId={domainId}
+          open={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

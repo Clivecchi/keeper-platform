@@ -23,6 +23,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-07-23 — becoming-together-complete (delegation + honesty)
+- `actionFollowUp` treats `delegate.consult` as follow-up-eligible; synthesis attributes quotes only from real replies, else “got nothing back.”
+- Director fallback prompts no longer invent another agent’s voice when consultation is empty.
+
 ### 2026-07-23 — cast role-label fix
 - DialogCastMember merge into `domainAgents` uses `role: 'Cast'` (not `'Lead'`) so guest leads are not labeled as owning this domain's dialog voice.
 

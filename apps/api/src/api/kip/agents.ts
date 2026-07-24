@@ -65,6 +65,7 @@ import {
   shouldRunReadActionFollowUp,
 } from '../../services/kip/actionFollowUp.js';
 import {
+  buildCastConsultationsSynthesisPrompt,
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
   buildInstrumentDelegationPrompt,
@@ -173,6 +174,16 @@ type RunAgentOptions = {
   agentContext?: Record<string, unknown>;
   /** IDE / Domain director mode — run board instrument before Lead synthesis. */
   directorDelegation?: DirectorDelegationRequest;
+  /** Domain/Realm multi-cast consultation — client already ran sub-turns. */
+  castConsultations?: {
+    userMessage: string;
+    directorDisplayName: string;
+    consultations: Array<{
+      instrumentSlug: string;
+      instrumentReply?: string | null;
+      status: 'ok' | 'empty' | 'failed' | 'error';
+    }>;
+  };
 };
 
 function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown }): boolean {
@@ -799,6 +810,11 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('journey.read');
   allow.add('moment.read');
   allow.add('keeper.read');
+  // Lead may consult cast members listed in environment.domainAgents.
+  const domainAgents = (environment as { domainAgents?: unknown[] } | null | undefined)?.domainAgents;
+  if (Array.isArray(domainAgents) && domainAgents.length > 0) {
+    allow.add('delegate.consult');
+  }
   return allow;
 }
 
@@ -1108,6 +1124,7 @@ export async function executeAgentActions(
     'moment.read',
     'keeper.read',
     'mcp.call',
+    'delegate.consult',
   ]);
 
   for (const coreAction of CORE_ACTIONS) {
@@ -2719,6 +2736,101 @@ export async function executeAgentActions(
             break;
           }
 
+          case 'delegate.consult': {
+            const payload = action.payload ?? {};
+            const agentSlug =
+              typeof payload.agentSlug === 'string' ? payload.agentSlug.trim().toLowerCase() : '';
+            const question =
+              typeof payload.question === 'string' && payload.question.trim()
+                ? payload.question.trim()
+                : null;
+            if (!agentSlug) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'delegate.consult requires payload.agentSlug',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            try {
+              const instAgent = await ensureBoardInstrumentAgent(agentSlug);
+              if (!instAgent) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `Cast member "${agentSlug}" is not available`,
+                  errorCode: 'NOT_FOUND',
+                  data: { agentSlug, reply: null },
+                });
+                break;
+              }
+              const instLabel = await resolveInstrumentLabel(agentSlug);
+              const instPrompt = buildInstrumentDelegationPrompt({
+                userMessage:
+                  question || 'Please share a brief, minimal perspective on the current thread.',
+                instrumentLabel: instLabel,
+                directorName: 'Lead',
+              });
+              const instEnvironment = await buildInstrumentRunEnvironment({
+                instAgentId: instAgent.id,
+                instrumentSlug: agentSlug,
+                userId: ctx.userId ?? undefined,
+                domainId: ctx.domainId,
+                sessionId: ctx.sessionId ?? undefined,
+              });
+              const instRun = await KipAgentService.runAgent(
+                instAgent.id,
+                instPrompt,
+                ctx.userId ?? undefined,
+                undefined,
+                {
+                  domainId: ctx.domainId,
+                  domainSlug: ctx.domainSlug,
+                  environment: instEnvironment ?? undefined,
+                  skipActionTypes: new Set([
+                    'delegate.consult',
+                    'mcp.call',
+                    'draft.create',
+                    'draft.update',
+                  ]),
+                },
+              );
+              const reply = extractReplyFromAgentRunResult(instRun);
+              if (reply) {
+                results.push({
+                  type: action.type,
+                  status: 'success',
+                  message: `${instLabel} responded`,
+                  data: { agentSlug, label: instLabel, reply },
+                });
+              } else {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `${instLabel} returned nothing`,
+                  errorCode: 'EMPTY_REPLY',
+                  data: { agentSlug, label: instLabel, reply: null },
+                });
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'delegate.consult failed';
+              logger.error(
+                { requestId, actionType: action.type, agentSlug, error: errorMessage },
+                '[kip.actions] delegate.consult failed',
+              );
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+                data: { agentSlug, reply: null },
+              });
+            }
+            break;
+          }
+
           case 'mcp.call': {
             const payload = action.payload ?? {};
             const toolName = typeof payload.name === 'string' ? payload.name.trim() : '';
@@ -3306,6 +3418,19 @@ const AgentRunSchema = z.object({
       directorDisplayName: z.string().min(1),
       instrumentRanClientSide: z.boolean().optional(),
       instrumentReply: z.string().nullable().optional(),
+    })
+    .optional(),
+  castConsultations: z
+    .object({
+      userMessage: z.string().min(1),
+      directorDisplayName: z.string().min(1),
+      consultations: z.array(
+        z.object({
+          instrumentSlug: z.string().min(1),
+          instrumentReply: z.string().nullable().optional(),
+          status: z.enum(['ok', 'empty', 'failed', 'error']),
+        }),
+      ).min(1),
     })
     .optional(),
 }).refine(
@@ -3924,6 +4049,10 @@ export class KipAgentService {
             roster,
             'When a domain lead agent exists (not Kip), they own the dialog voice. Kip is platform support only — not the lead.',
             'Do not claim domain agents are absent when they appear in this list.',
+            'To hear from a cast member, use delegate.consult with { agentSlug, question? } — only for agents in this list.',
+            'Never invent, paraphrase-as-quote, or fabricate what another agent said.',
+            'Only attribute words to another agent when a delegate.consult (or cast consultation) result for that agent is present in this turn.',
+            'If consultation returned nothing, say plainly you got nothing back — do not invent their voice.',
           ].join('\n'),
         );
       }
@@ -4826,7 +4955,38 @@ export class KipAgentService {
         let leadModelInput = input || '';
         let directorDelegationResult: DirectorDelegationResult | undefined;
 
-        if (options?.directorDelegation) {
+        if (options?.castConsultations?.consultations?.length) {
+          const cc = options.castConsultations;
+          const labeled = await Promise.all(
+            cc.consultations.map(async (row) => {
+              const label = await resolveInstrumentLabel(row.instrumentSlug);
+              const reply =
+                typeof row.instrumentReply === 'string' ? row.instrumentReply.trim() : '';
+              return {
+                label,
+                reply: reply || null,
+                status: row.status,
+              };
+            }),
+          );
+          leadModelInput = buildCastConsultationsSynthesisPrompt({
+            userMessage: cc.userMessage,
+            directorName: cc.directorDisplayName,
+            consultations: labeled,
+          });
+          const firstOk = labeled.find((row) => row.status === 'ok' && row.reply);
+          directorDelegationResult = firstOk
+            ? {
+                attributedTo: firstOk.label,
+                content: firstOk.reply!,
+                status: 'ok',
+              }
+            : {
+                attributedTo: labeled[0]?.label ?? 'Cast',
+                content: 'Cast consultation returned nothing this turn.',
+                status: 'empty',
+              };
+        } else if (options?.directorDelegation) {
           const dd = options.directorDelegation;
           const instLabel = await resolveInstrumentLabel(dd.instrumentSlug);
           const priorContinuityMessages: DirectorContinuityMessage[] = previousMessages.map((msg) => {
@@ -6210,6 +6370,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             activeKeeperId: (req.body as any)?.activeKeeperId ?? null,
             agentContext: (req.body as any)?.agentContext ?? undefined,
             directorDelegation: (req.body as { directorDelegation?: unknown })?.directorDelegation,
+            castConsultations: (req.body as { castConsultations?: unknown })?.castConsultations,
           });
           if (!validation.success) {
             return respond(400, { 
@@ -6351,7 +6512,18 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             })) ?? undefined,
             agentContext: validation.data.agentContext,
           };
-          if (validation.data.directorDelegation) {
+          if (validation.data.castConsultations) {
+            const cc = validation.data.castConsultations;
+            runAgentOptions.castConsultations = {
+              userMessage: cc.userMessage,
+              directorDisplayName: cc.directorDisplayName,
+              consultations: cc.consultations.map((row) => ({
+                instrumentSlug: row.instrumentSlug,
+                status: row.status,
+                instrumentReply: row.instrumentReply ?? null,
+              })),
+            };
+          } else if (validation.data.directorDelegation) {
             const dd = validation.data.directorDelegation;
             runAgentOptions.directorDelegation = {
               instrumentSlug: dd.instrumentSlug,

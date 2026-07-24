@@ -45,6 +45,36 @@ export interface DocumentPathGroup {
 }
 
 /**
+ * Path declaration stored on Dialog.document_paths — titles once per Document.
+ * Point membership is resolved at read time via DraftPoint.pathGroupId / entry.pathId.
+ */
+export interface DocumentPathDeclaration {
+  id: string;
+  title: string;
+  prelude?: string;
+}
+
+export function isDocumentPathDeclaration(value: unknown): value is DocumentPathDeclaration {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.id === 'string' && row.id.trim().length > 0
+    && typeof row.title === 'string' && row.title.trim().length > 0;
+}
+
+export function parseDocumentPathDeclarations(value: unknown): DocumentPathDeclaration[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isDocumentPathDeclaration)
+    .map((row) => ({
+      id: row.id.trim(),
+      title: row.title.trim(),
+      ...(typeof row.prelude === 'string' && row.prelude.trim()
+        ? { prelude: row.prelude.trim() }
+        : {}),
+    }));
+}
+
+/**
  * Authored destination (Forward Layer 1) — stable North Star for the Document.
  * Distinct from DocumentStep, which is the live tip of the lineage.
  */

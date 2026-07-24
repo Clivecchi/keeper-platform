@@ -32,6 +32,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-23 — becoming-together-complete (real Document content)
+- `DomainRealmStory` loads Forward/Step/document_paths from the Dialog — hardcoded placeholders removed.
+- Manuscript drafts (`document_manuscript`) expand `spec_json.points` into Document Points with cast voice + Path grouping via `buildDocumentPaths` / `manuscriptPointsToRealmNavEntries`.
+
 ### 2026-07-22 — realm-home-chronicle-routing
 - `RealmHomeChronicle` — when a Dialog (or Document-scoped draft/moment/library) is selected on `/home`, render `DomainRealmStory` instead of short-circuiting on `isUserHome`.
 - Idle `/home` Chronicle shows a visible "Select a Dialog…" empty state (or feed when events exist), not an `aria-hidden` empty node.

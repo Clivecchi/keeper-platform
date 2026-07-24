@@ -230,6 +230,15 @@ const mcpCallPayloadSchema = z.object({
 
 export type McpCallAction = z.infer<typeof mcpCallPayloadSchema> & { type: 'mcp.call' };
 
+const delegateConsultPayloadSchema = z.object({
+  agentSlug: z.string().min(1, 'agentSlug is required'),
+  question: z.string().max(4000).optional(),
+});
+
+export type DelegateConsultAction = z.infer<typeof delegateConsultPayloadSchema> & {
+  type: 'delegate.consult';
+};
+
 /**
  * Action payload schemas by type
  */
@@ -255,6 +264,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'image.generate': imageGeneratePayloadSchema,
   'treatment.propose': treatmentProposePayloadSchema,
   'mcp.call': mcpCallPayloadSchema,
+  'delegate.consult': delegateConsultPayloadSchema,
 };
 
 /**

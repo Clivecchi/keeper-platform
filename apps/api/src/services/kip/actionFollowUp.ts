@@ -20,6 +20,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'keeper.read',
   'sole.read',
   'library.read',
+  'delegate.consult',
 ]);
 
 export function isReadOnlyActionType(type: string): boolean {
@@ -32,6 +33,10 @@ export function shouldRunReadActionFollowUp(
 ): boolean {
   if (!actions.length || !results.length) return false;
   if (!actions.every((action) => isReadOnlyActionType(action.type))) return false;
+  // Consult may "fail" with empty reply — still follow up so Lead reports honestly.
+  if (actions.some((action) => action.type === 'delegate.consult')) {
+    return results.some((result) => result.type === 'delegate.consult');
+  }
   return results.some(
     (result) => result.status === 'success' && isReadOnlyActionType(result.type),
   );
@@ -101,6 +106,35 @@ export function buildReadActionFollowUpInput(params: {
   actionResults: ActionResultLike[];
   priorResponseText?: string;
 }): string {
+  const consultResults = params.actionResults.filter((result) => result.type === 'delegate.consult');
+  if (consultResults.length > 0) {
+    const lines = consultResults.map((result) => {
+      const data = result.data ?? {};
+      const label =
+        typeof data.label === 'string'
+          ? data.label
+          : typeof data.agentSlug === 'string'
+            ? data.agentSlug
+            : 'cast member';
+      const reply = typeof data.reply === 'string' ? data.reply.trim() : '';
+      if (result.status === 'success' && reply) {
+        return `- ${label}: "${reply}"`;
+      }
+      return `- ${label}: (nothing returned)`;
+    });
+    return [
+      `[Cast consultation results — reply as ${params.agentName}.]`,
+      ...lines,
+      '',
+      `Original user message: "${params.originalInput}"`,
+      'Synthesize for the user using ONLY the real results above.',
+      '- Attribute a quote only when a real reply is present.',
+      '- If a cast member returned nothing, say plainly you got nothing back from them.',
+      '- Never invent another agent\'s words.',
+      '- Do NOT call delegate.consult again in this follow-up.',
+    ].join('\n');
+  }
+
   const findings = formatReadActionResultsForFollowUp(params.actionResults);
   return [
     `[Read action results — reply as ${params.agentName}. Do NOT call draft.read again in this turn unless the user asks for a different draft.]`,

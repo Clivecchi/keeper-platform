@@ -796,6 +796,16 @@ export class KipApi {
         instrumentRanClientSide?: boolean
         instrumentReply?: string | null
       }
+      /** Domain/Realm multi-cast consultation — real replies only; empty is honest. */
+      castConsultations?: {
+        userMessage: string
+        directorDisplayName: string
+        consultations: Array<{
+          instrumentSlug: string
+          instrumentReply?: string | null
+          status: 'ok' | 'empty' | 'failed' | 'error'
+        }>
+      }
     },
   ): Promise<AgentResponse> {
     const response = await apiFetch('/api/kip/agents', {
@@ -816,6 +826,7 @@ export class KipApi {
         attachments: options?.attachments ?? undefined,
         agentContext: options?.agentContext ?? undefined,
         directorDelegation: options?.directorDelegation ?? undefined,
+        castConsultations: options?.castConsultations ?? undefined,
       })
     });
 

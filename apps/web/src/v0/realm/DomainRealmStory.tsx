@@ -1,42 +1,25 @@
 "use client"
 
 import * as React from "react"
-import type { DocumentPathGroup } from "@keeper/shared"
+import type {
+  DocumentForward,
+  DocumentPathDeclaration,
+  DocumentStep,
+} from "@keeper/shared"
+import { parseDocumentPathDeclarations } from "@keeper/shared"
 import { DocumentShell } from "../presence/chronicleDocument/DocumentShell"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { useRealmNavGrowth } from "./useRealmNavGrowth"
-import type { RealmNavEntry } from "./realmNavGrowth"
+import {
+  buildDocumentPaths,
+  DOCUMENT_MANUSCRIPT_KIND,
+  manuscriptPointsToRealmNavEntries,
+  type RealmNavEntry,
+} from "./realmNavGrowth"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
-
-function buildPathsFromEntries(entries: RealmNavEntry[]): DocumentPathGroup[] {
-  const pathOrder: string[] = []
-  const byPath = new Map<string, { title: string; indexes: number[] }>()
-
-  entries.forEach((entry, index) => {
-    const pathId = entry.pathId?.trim()
-    if (!pathId) return
-    const existing = byPath.get(pathId)
-    if (existing) {
-      existing.indexes.push(index)
-      return
-    }
-    pathOrder.push(pathId)
-    byPath.set(pathId, {
-      title: entry.pathName?.trim() || "Path",
-      indexes: [index],
-    })
-  })
-
-  return pathOrder.map((pathId) => {
-    const group = byPath.get(pathId)!
-    return {
-      id: pathId,
-      title: group.title,
-      pointIds: group.indexes.map((index) => String(index)),
-    }
-  })
-}
+import { apiFetch } from "../../lib/apiFetch"
+import { KipApi, type KipDraft } from "../../lib/kipApi"
 
 export interface DomainRealmStoryProps {
   domainId: string | null
@@ -49,6 +32,12 @@ export interface DomainRealmStoryProps {
 type DialogDocumentScope =
   | { status: "none" }
   | { status: "dialog"; dialogId: string | null }
+
+type DialogDocumentMeta = {
+  forward?: DocumentForward
+  step?: DocumentStep
+  paths: DocumentPathDeclaration[]
+}
 
 function entryMatchesSelection(
   entry: RealmNavEntry,
@@ -64,10 +53,30 @@ function entryMatchesSelection(
   return false
 }
 
+function readDialogDocumentMeta(raw: unknown): DialogDocumentMeta {
+  if (!raw || typeof raw !== "object") return { paths: [] }
+  const dialog = raw as Record<string, unknown>
+  const forwardTitle =
+    typeof dialog.forward_title === "string" ? dialog.forward_title.trim() : ""
+  const forwardDescription =
+    typeof dialog.forward_description === "string"
+      ? dialog.forward_description.trim()
+      : ""
+  const stepTitle = typeof dialog.step_title === "string" ? dialog.step_title.trim() : ""
+  const stepBody = typeof dialog.step_body === "string" ? dialog.step_body.trim() : ""
+  return {
+    ...(forwardTitle && forwardDescription
+      ? { forward: { title: forwardTitle, description: forwardDescription } }
+      : {}),
+    ...(stepTitle && stepBody ? { step: { title: stepTitle, body: stepBody } } : {}),
+    paths: parseDocumentPathDeclarations(dialog.document_paths),
+  }
+}
+
 /**
  * Domain-scoped Realm Chronicle — thin adapter over DocumentShell.
- * Fetches Realm nav-growth data; shared shell owns the Point sequence render.
- * Document is scoped to one Dialog (header click or derived from a selected row).
+ * Loads Dialog Forward/Step/Paths from the Dialog itself; expands manuscript
+ * DraftPoints into Document cards. No hardcoded placeholder Forward/Step.
  */
 export function DomainRealmStory({
   domainId,
@@ -122,7 +131,80 @@ export function DomainRealmStory({
     selectedLibraryItemId,
   ])
 
-  const storyEntries = React.useMemo(() => {
+  const [documentMeta, setDocumentMeta] = React.useState<DialogDocumentMeta>({ paths: [] })
+  const [manuscriptEntries, setManuscriptEntries] = React.useState<RealmNavEntry[]>([])
+  const [documentLoading, setDocumentLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    if (scope.status !== "dialog" || !scope.dialogId || !domainId) {
+      setDocumentMeta({ paths: [] })
+      setManuscriptEntries([])
+      setDocumentLoading(false)
+      return
+    }
+
+    let cancelled = false
+    const dialogId = scope.dialogId
+    setDocumentLoading(true)
+
+    void (async () => {
+      try {
+        const [dialogRes, drafts] = await Promise.all([
+          apiFetch(
+            `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}`,
+          ),
+          KipApi.listDrafts(domainId, undefined, {
+            limit: 40,
+            excludeStatus: ["promoted", "archived"],
+          }).catch(() => [] as Awaited<ReturnType<typeof KipApi.listDrafts>>),
+        ])
+
+        if (cancelled) return
+
+        const dialogPayload = (dialogRes as { dialog?: unknown })?.dialog
+        const meta = readDialogDocumentMeta(dialogPayload)
+        setDocumentMeta(meta)
+
+        const pathTitles = new Map(
+          meta.paths.map((path) => [path.id, path.title] as const),
+        )
+
+        const manuscriptSummaries = drafts.filter((draft) => {
+          const row = draft as { dialogId?: string | null; dialog_id?: string | null; kind?: string }
+          const draftDialogId = row.dialogId ?? row.dialog_id
+          return (
+            draftDialogId === dialogId
+            && (row.kind === DOCUMENT_MANUSCRIPT_KIND
+              || (Array.isArray(draft.pointIds) && draft.pointIds.length > 0
+                && draft.title?.toLowerCase().includes("becoming together")))
+          )
+        })
+
+        const expanded: RealmNavEntry[] = []
+        for (const summary of manuscriptSummaries) {
+          const detail = await KipApi.getDraft(domainId, summary.id).catch(() => null)
+          if (!detail || cancelled) continue
+          expanded.push(
+            ...manuscriptPointsToRealmNavEntries(detail as KipDraft, dialogId, pathTitles),
+          )
+        }
+        if (!cancelled) setManuscriptEntries(expanded)
+      } catch {
+        if (!cancelled) {
+          setDocumentMeta({ paths: [] })
+          setManuscriptEntries([])
+        }
+      } finally {
+        if (!cancelled) setDocumentLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [domainId, scope])
+
+  const legacyEntries = React.useMemo(() => {
     if (scope.status !== "dialog") return [] as RealmNavEntry[]
     const group = byDialog.find((row) => row.dialogId === scope.dialogId)
     if (!group) return []
@@ -130,8 +212,22 @@ export function DomainRealmStory({
       ...group.byStage.kept,
       ...group.byStage.drafts,
       ...group.byStage.presented,
-    ]
+    ].filter((entry) => {
+      // Manuscript wrapper draft is represented by its expanded Points, not the draft card.
+      if (entry.kind !== "draft") return true
+      return entry.description !== DOCUMENT_MANUSCRIPT_KIND
+        && !entry.label.toLowerCase().includes("becoming together · manuscript")
+    })
   }, [byDialog, scope])
+
+  const storyEntries = React.useMemo(() => {
+    if (manuscriptEntries.length > 0) {
+      // Prefer manuscript Points; keep non-draft kept/presented alongside.
+      const extras = legacyEntries.filter((entry) => entry.kind !== "draft")
+      return [...manuscriptEntries, ...extras]
+    }
+    return legacyEntries
+  }, [manuscriptEntries, legacyEntries])
 
   const points = React.useMemo(
     () => storyEntries.map((entry) => entry.point),
@@ -139,8 +235,8 @@ export function DomainRealmStory({
   )
 
   const paths = React.useMemo(
-    () => buildPathsFromEntries(storyEntries),
-    [storyEntries],
+    () => buildDocumentPaths(documentMeta.paths, storyEntries),
+    [documentMeta.paths, storyEntries],
   )
 
   const handleGlossPoint = React.useCallback(
@@ -163,7 +259,7 @@ export function DomainRealmStory({
             ? "Loading story…"
             : "Select a Dialog to see its Document"}
         </p>
-      ) : loading && storyEntries.length === 0 ? (
+      ) : (loading || documentLoading) && storyEntries.length === 0 ? (
         <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           Loading story…
         </p>
@@ -182,23 +278,8 @@ export function DomainRealmStory({
   ) : (
     <DocumentShell
       className="domain-realm-story"
-      forward={
-        scope.status === "dialog"
-          ? {
-              title: "Keep what this domain is becoming",
-              description:
-                "Authored destination for this Document — shape, keep, and show accumulate here. The live tip sits in the Step below when one is known; this Forward text stays the North Star.",
-            }
-          : undefined
-      }
-      step={
-        scope.status === "dialog"
-          ? {
-              title: "Forward and Step land in the Document shell",
-              body: "Current tip: Forward (authored) and Step (now) render above the Path groups. Back and Forward stay disabled — the self-organizing logic that would choose the next Step is not built yet, and is not faked here.",
-            }
-          : undefined
-      }
+      forward={scope.status === "dialog" ? documentMeta.forward : undefined}
+      step={scope.status === "dialog" ? documentMeta.step : undefined}
       paths={paths}
       points={points}
       onGlossPoint={handleGlossPoint}

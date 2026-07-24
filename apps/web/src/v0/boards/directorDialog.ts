@@ -16,6 +16,8 @@ export type BoardInstrumentSlug = string
 
 export type DirectorDialogConfig = {
   activeInstrument: BoardInstrumentSlug | null
+  /** Domain/Realm multi-select — consult each engaged cast member for real minimal input. */
+  consultInstruments?: BoardInstrumentSlug[]
   instrumentLabels: Record<string, string>
   directorDisplayName: string
 }
@@ -95,14 +97,48 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
     "",
     `${params.instrumentLabel} did not return a reply this turn (delegation empty or failed).`,
     "",
-    `Reply as Lead (${params.directorName}). Answer the user's question directly and practically.`,
-    `- Draw on what ${params.instrumentLabel} would typically know or do for this kind of request.`,
-    `- Do NOT say the user is "talking to ${params.directorName}, not ${params.instrumentLabel}".`,
-    `- Do NOT offer to "hand off", "try again", or "coordinate with" ${params.instrumentLabel}.`,
-    `- Do NOT mention delegation, routing, or that ${params.instrumentLabel} failed to respond.`,
+    `Reply as Lead (${params.directorName}). Be honest about the empty consultation.`,
+    `- Say plainly that you reached out to ${params.instrumentLabel} and got nothing back.`,
+    `- Do NOT invent, paraphrase, or role-play ${params.instrumentLabel}'s voice or opinion.`,
+    `- Do NOT claim ${params.instrumentLabel} said, decided, or agreed to anything.`,
+    `- Answer the user's question from your own knowledge only, and mark that clearly if you do.`,
     `- Do NOT claim this session starts cold or that earlier thread turns are unavailable.`,
     `- Stay brief and useful.`,
   ].join("\n")
+}
+
+export function buildCastConsultationsSynthesisPrompt(params: {
+  userMessage: string
+  directorName: string
+  consultations: Array<{
+    label: string
+    reply: string | null
+    status: "ok" | "empty" | "failed" | "error"
+  }>
+}): string {
+  const lines = [
+    `[Cast consultation synthesis — ${params.directorName}]`,
+    `The user asked:`,
+    `"${params.userMessage.trim()}"`,
+    "",
+    "Real consultation results (use ONLY these — never invent missing voices):",
+  ]
+  for (const row of params.consultations) {
+    if (row.status === "ok" && row.reply?.trim()) {
+      lines.push(`- ${row.label}: "${row.reply.trim()}"`)
+    } else {
+      lines.push(`- ${row.label}: (nothing returned — say you got nothing back)`)
+    }
+  }
+  lines.push(
+    "",
+    `Reply as Lead (${params.directorName}).`,
+    "- Attribute a quote or stance to a cast member ONLY when a real reply is listed above.",
+    "- If a cast member returned nothing, say plainly you got nothing back from them.",
+    "- Never invent, paraphrase-as-quote, or fabricate another agent's words.",
+    "- Stay brief; collapse each consult into a minimal beat.",
+  )
+  return lines.join("\n")
 }
 
 const DIRECTOR_INTERNAL_PROMPT_PATTERN = /^\[Director (delegation|synthesis)/

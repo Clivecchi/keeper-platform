@@ -1,39 +1,42 @@
 {
   "version": "1.0",
-  "id": "idle",
-  "created_at": "2026-07-23T00:00:00Z",
+  "id": "becoming-together-complete",
+  "created_at": "2026-07-23T02:00:00Z",
   "created_by": "cloud",
-  "goal": "No active handoff — 2026-07-23 sequence (stop-orphan-echo-sessions, chronicle-shows-document-universally, scope-agent-recent-sessions-by-domain, cast role-label) shipped on cloud. Awaiting next Cloud handoff.",
+  "status": "shipped",
+  "shipped_at": "2026-07-23T21:00:00Z",
+  "goal": "Complete docs/becoming-together-document.md in full -- real Document content attached directly to the real Dialog (no Journey, no new top-level entity), the DomainRealmStory placeholder gone, real per-agent delegation with honest fallback instead of fabrication, the cast genuinely growable by agent and human, and Cursor's own contributions visible as real entries in the same document.",
   "done_when": [
-    "Cloud writes the next current.json / current.md when ready"
+    "See docs/becoming-together-document.md -- Desired end state is now shipped; verify live on /d/ke3p?board=domain with Becoming Together focused"
   ],
   "territory": "cursor",
-  "canon": ["AGENTS.md"],
+  "canon": ["AGENTS.md", "docs/becoming-together-document.md", "docs/chronicle-document-architecture.md", "docs/universal-board-dialog-orchestration.md"],
   "scope": {
     "touch": [],
-    "do_not_touch": []
+    "do_not_touch": ["Do not create a Journey record or any new top-level entity for this -- the real Dialog (cmrtyoraw0001ot0033p5wiwm) is the anchor"]
   },
-  "pattern_ref": "",
+  "pattern_ref": "docs/becoming-together-document.md is authoritative.",
   "rendr_treatment": null,
   "git": {
     "branch": "cloud",
     "base": "cloud",
-    "commit": false,
+    "commit": true,
     "open_pr": false,
-    "pr_title": ""
+    "pr_title": "feat: Becoming Together becomes a real, persisted, complete Document"
   },
   "verification": {
-    "commands": [],
-    "browser": []
+    "commands": ["pnpm -F keeper-api run type-check", "pnpm -F keeper-api exec vitest run src/tests/action-follow-up.test.ts"],
+    "browser": ["/d/ke3p?board=domain", "/d/ke3p?board=realm", "/home?domain=ke3p"],
+    "ops": [
+      "migration 20260723210000_dialog_document_forward_step applied",
+      "seed-becoming-together-document.ts --execute ran (manuscript created)",
+      "archive-orphan-echo-sessions dry-run: 0 orphans remaining"
+    ]
   },
   "context": {
-    "phase": "Idle between Cloud handoffs.",
-    "related_handoffs": [
-      "stop-orphan-echo-sessions (shipped)",
-      "chronicle-shows-document-universally (shipped)",
-      "scope-agent-recent-sessions-by-domain (shipped)"
-    ],
+    "phase": "Shipped.",
+    "related_handoffs": [],
     "library_refs": [],
-    "notes": "DB archive of orphans still requires migrate + archive-orphan-echo-sessions.ts --execute against the live DB — verify independently."
+    "notes": "See docs/becoming-together-document.md for shipped detail."
   }
 }

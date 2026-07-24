@@ -1,14 +1,16 @@
-# Build Handoff — idle
+# Build Handoff — becoming-together-complete
 
-**Status:** no active handoff
-**Branch:** cloud
-**Updated:** 2026-07-23
+**Status: shipped on `cloud` (2026-07-23).** See `docs/becoming-together-document.md` for the authoritative end state and what landed.
 
-The 2026-07-23 sequence shipped on `cloud` (verify against commits + DB before trusting the report):
+**Territory:** cursor · **Branch:** cloud (direct, no PR) · **Do not create a Journey or any new top-level entity** — the real Dialog (`cmrtyoraw0001ot0033p5wiwm`) is the anchor.
 
-1. `stop-orphan-echo-sessions` — archive/`docs/build-handoffs/archive/2026-07-23-stop-orphan-echo-sessions.md`
-2. `chronicle-shows-document-universally` — archive/`…-chronicle-shows-document-universally-queued.md` (status: shipped)
-3. `scope-agent-recent-sessions-by-domain` — archive/`…-scope-agent-recent-sessions-by-domain-queued.md` (status: shipped)
-4. Cast role-label fix (`role: 'Cast'` for DialogCastMember merge) — recorded in `docs/chronicle-document-architecture.md`
+## Shipped checklist
 
-Awaiting next Cloud handoff in `current.json` / `current.md`.
+- [x] Dialog Document fields (Forward / Step / Paths) + migration applied
+- [x] Seed manuscript Points (incl. Cursor credits) on Becoming Together
+- [x] DomainRealmStory placeholder Forward/Step removed
+- [x] Real cast consultation + honest empty fallback (no fabrication)
+- [x] Invite second human (form + accept token route)
+- [x] Orphan echo sessions dry-run verified at 0 remaining
+
+Live check: `/d/ke3p?board=domain` → focus Becoming Together → Chronicle Document.

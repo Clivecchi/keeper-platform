@@ -21,7 +21,7 @@
 import { Router, type Response } from 'express';
 import { prisma } from '@keeper/database';
 import { z } from 'zod';
-import { logger } from '@keeper/shared';
+import { logger, parseDocumentPathDeclarations } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import {
@@ -47,10 +47,21 @@ const createDialogSchema = z.object({
 
 const documentStatusSchema = z.enum(['drafts', 'kept', 'presented']);
 
+const documentPathDeclarationSchema = z.object({
+  id: z.string().min(1).max(80),
+  title: z.string().min(1).max(200),
+  prelude: z.string().max(2000).optional(),
+});
+
 const updateDialogSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   is_archived: z.boolean().optional(),
   document_status: documentStatusSchema.optional(),
+  forward_title: z.string().min(1).max(300).nullable().optional(),
+  forward_description: z.string().min(1).max(8000).nullable().optional(),
+  step_title: z.string().min(1).max(300).nullable().optional(),
+  step_body: z.string().min(1).max(8000).nullable().optional(),
+  document_paths: z.array(documentPathDeclarationSchema).max(40).nullable().optional(),
 });
 
 const enableCastMemberSchema = z.object({
@@ -180,6 +191,11 @@ router.get(
           context: d.context,
           is_archived: d.is_archived,
           document_status: d.document_status,
+          forward_title: d.forward_title,
+          forward_description: d.forward_description,
+          step_title: d.step_title,
+          step_body: d.step_body,
+          document_paths: parseDocumentPathDeclarations(d.document_paths),
           session_count: d._count.sessions,
           created_at: d.created_at,
           updated_at: d.updated_at,
@@ -364,11 +380,34 @@ router.patch(
         title?: string;
         is_archived?: boolean;
         document_status?: 'drafts' | 'kept' | 'presented';
+        forward_title?: string | null;
+        forward_description?: string | null;
+        step_title?: string | null;
+        step_body?: string | null;
+        document_paths?: object | null;
       } = {};
       if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
       if (parsed.data.is_archived !== undefined) updateData.is_archived = parsed.data.is_archived;
       if (parsed.data.document_status !== undefined) {
         updateData.document_status = parsed.data.document_status;
+      }
+      if (parsed.data.forward_title !== undefined) {
+        updateData.forward_title = parsed.data.forward_title;
+      }
+      if (parsed.data.forward_description !== undefined) {
+        updateData.forward_description = parsed.data.forward_description;
+      }
+      if (parsed.data.step_title !== undefined) {
+        updateData.step_title = parsed.data.step_title;
+      }
+      if (parsed.data.step_body !== undefined) {
+        updateData.step_body = parsed.data.step_body;
+      }
+      if (parsed.data.document_paths !== undefined) {
+        updateData.document_paths =
+          parsed.data.document_paths === null
+            ? null
+            : parseDocumentPathDeclarations(parsed.data.document_paths);
       }
 
       const updated = await prisma.dialog.update({

@@ -3,12 +3,15 @@
  * Nav rows are Point-shaped summaries (atomic cards), not static categories.
  */
 
-import type { Point } from "@keeper/shared"
-import type { KipDraftSummary } from "../../lib/kipApi"
+import type { DraftPoint, DocumentPathDeclaration, Point } from "@keeper/shared"
+import { buildLibraryGlossAnchor, draftPointBeatLabel } from "@keeper/shared"
+import type { KipDraft, KipDraftSummary } from "../../lib/kipApi"
 import type { KeptMomentSummary } from "../api/v0Moments"
 import type { LibraryNavRow } from "../presence/integrationChronicle/libraryNavUtils"
 import { libraryItemChronicleTitle } from "../presence/integrationChronicle/libraryNavUtils"
-import { buildLibraryGlossAnchor } from "@keeper/shared"
+
+/** Manuscript draft kind — Points in spec_json expand into Document cards. */
+export const DOCUMENT_MANUSCRIPT_KIND = "document_manuscript"
 
 export type RealmNavStage = "drafts" | "kept" | "presented"
 
@@ -97,6 +100,124 @@ export function draftToRealmNavEntry(
       status: { label: draft.status, tone: "pending" },
     },
   }
+}
+
+function draftPointStatusTone(
+  status: DraftPoint["status"],
+): NonNullable<Point["status"]>["tone"] {
+  if (status === "accepted") return "active"
+  if (status === "pending") return "error"
+  return "pending"
+}
+
+function draftPointTitle(point: DraftPoint): string {
+  const fromMoment = point.moments?.[0]?.title?.trim()
+  if (fromMoment) return fromMoment
+  const fromPrelude = point.prelude?.trim()
+  if (fromPrelude) return fromPrelude
+  const beat = draftPointBeatLabel(point).trim()
+  if (beat) return beat
+  const firstLine = point.content.trim().split(/\n/)[0]?.trim()
+  return firstLine || "Untitled point"
+}
+
+/**
+ * Expand a Document manuscript draft's Points into RealmNavEntry rows for DocumentShell.
+ * One Dialog → one manuscript; Points are the atomic cards, not the draft wrapper.
+ */
+export function manuscriptPointsToRealmNavEntries(
+  draft: KipDraft,
+  dialogId: string | null | undefined,
+  pathTitles?: ReadonlyMap<string, string>,
+): RealmNavEntry[] {
+  const points = draft.spec?.points
+  if (!Array.isArray(points) || points.length === 0) return []
+
+  const resolvedDialogId = dialogId ?? draft.dialogId ?? draft.dialog_id ?? null
+
+  return points.map((point) => {
+    const title = draftPointTitle(point)
+    const bodyText = point.content.trim() || "—"
+    const voice = point.proposedBy?.trim() || "Cast"
+    const pathId = point.pathGroupId?.trim() || null
+    const pathName = pathId
+      ? pathTitles?.get(pathId) ?? pathId
+      : null
+    return {
+      id: point.id,
+      kind: "draft" as const,
+      stage: "drafts" as const,
+      label: title,
+      description: voice,
+      dialogId: resolvedDialogId,
+      pathId,
+      pathName,
+      point: {
+        identity: {
+          label: voice,
+          subtitle: point.type,
+          voice,
+        },
+        title,
+        lede: pointLedeFromBody(bodyText),
+        body: {
+          text: bodyText,
+          clampLines: 4,
+          expandable: true,
+        },
+        status: {
+          label: point.status,
+          tone: draftPointStatusTone(point.status),
+        },
+      },
+    }
+  })
+}
+
+/** Build DocumentShell path groups from Dialog declarations + entry membership. */
+export function buildDocumentPaths(
+  declarations: DocumentPathDeclaration[],
+  entries: RealmNavEntry[],
+): import("@keeper/shared").DocumentPathGroup[] {
+  if (!declarations.length) {
+    const pathOrder: string[] = []
+    const byPath = new Map<string, { title: string; indexes: number[] }>()
+    entries.forEach((entry, index) => {
+      const pathId = entry.pathId?.trim()
+      if (!pathId) return
+      const existing = byPath.get(pathId)
+      if (existing) {
+        existing.indexes.push(index)
+        return
+      }
+      pathOrder.push(pathId)
+      byPath.set(pathId, {
+        title: entry.pathName?.trim() || "Path",
+        indexes: [index],
+      })
+    })
+    return pathOrder.map((pathId) => {
+      const group = byPath.get(pathId)!
+      return {
+        id: pathId,
+        title: group.title,
+        pointIds: group.indexes.map((index) => String(index)),
+      }
+    })
+  }
+
+  return declarations.map((declaration) => {
+    const indexes: number[] = []
+    entries.forEach((entry, index) => {
+      if (entry.pathId?.trim() === declaration.id) indexes.push(index)
+    })
+    return {
+      id: declaration.id,
+      title: declaration.title,
+      ...(declaration.prelude ? { prelude: declaration.prelude } : {}),
+      pointIds: indexes.map((index) => String(index)),
+    }
+  })
 }
 
 export function libraryRowToKeptNavEntry(

@@ -693,6 +693,13 @@ export function useAgentDialog({
       }
 
       const liveDirectorConfig = directorConfigRef.current
+      const consultSlugs = Array.from(
+        new Set(
+          (liveDirectorConfig?.consultInstruments ?? [])
+            .map((slug) => slug.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      )
       const instrument = liveDirectorConfig
         ? resolveDirectorInstrument({
             pinned: liveDirectorConfig.activeInstrument,
@@ -708,7 +715,62 @@ export function useAgentDialog({
 
       let directorTaskMessage: string | undefined
       let clientInstrumentReply: string | null = null
-      if (liveDirectorConfig && instrument && content.trim()) {
+      let castConsultations:
+        | {
+            userMessage: string
+            directorDisplayName: string
+            consultations: Array<{
+              instrumentSlug: string
+              instrumentReply?: string | null
+              status: "ok" | "empty" | "failed" | "error"
+            }>
+          }
+        | undefined
+
+      if (liveDirectorConfig && consultSlugs.length > 0 && content.trim()) {
+        onDirectorPhaseChange?.("instrument")
+        const consultations: Array<{
+          instrumentSlug: string
+          instrumentReply?: string | null
+          status: "ok" | "empty" | "failed" | "error"
+        }> = []
+        for (const slug of consultSlugs) {
+          const label = liveDirectorConfig.instrumentLabels[slug] ?? slug
+          appendThinkingStep(`Consulting ${label}…`)
+          try {
+            const instAgent = await KipApi.getAgentBySlug(slug)
+            const instPrompt = buildInstrumentDelegationPrompt({
+              userMessage: content,
+              instrumentLabel: label,
+              directorName: liveDirectorConfig.directorDisplayName,
+            })
+            const instResult = await KipApi.runAgent(
+              instAgent.id,
+              instPrompt,
+              userId ?? undefined,
+              undefined,
+              runOpts,
+            )
+            const reply = extractAgentReplyFromRunResult(instResult)
+            if (reply) {
+              consultations.push({ instrumentSlug: slug, instrumentReply: reply, status: "ok" })
+            } else {
+              appendThinkingStep(`${label} returned nothing.`)
+              consultations.push({ instrumentSlug: slug, instrumentReply: null, status: "empty" })
+            }
+          } catch (instErr: unknown) {
+            const instMsg = instErr instanceof Error ? instErr.message : "instrument failed"
+            console.warn("[director] cast consult failed", { slug, instMsg })
+            appendThinkingStep(`${label} — nothing back.`)
+            consultations.push({ instrumentSlug: slug, instrumentReply: null, status: "failed" })
+          }
+        }
+        castConsultations = {
+          userMessage: content,
+          directorDisplayName: liveDirectorConfig.directorDisplayName,
+          consultations,
+        }
+      } else if (liveDirectorConfig && instrument && content.trim()) {
         const resolved = resolveDirectorDelegationMessage({
           userMessage: content,
           priorMessages: messagesRef.current.map((message) => ({
@@ -754,18 +816,20 @@ export function useAgentDialog({
 
       const kipRunOpts = {
         ...runOpts,
-        ...(liveDirectorConfig && instrument && content.trim()
-          ? {
-              directorDelegation: {
-                instrumentSlug: instrument,
-                userMessage: content,
-                taskMessage: directorTaskMessage,
-                directorDisplayName: liveDirectorConfig.directorDisplayName,
-                instrumentRanClientSide: true,
-                instrumentReply: clientInstrumentReply,
-              },
-            }
-          : {}),
+        ...(castConsultations
+          ? { castConsultations }
+          : liveDirectorConfig && instrument && content.trim()
+            ? {
+                directorDelegation: {
+                  instrumentSlug: instrument,
+                  userMessage: content,
+                  taskMessage: directorTaskMessage,
+                  directorDisplayName: liveDirectorConfig.directorDisplayName,
+                  instrumentRanClientSide: true,
+                  instrumentReply: clientInstrumentReply,
+                },
+              }
+            : {}),
       }
 
       try {

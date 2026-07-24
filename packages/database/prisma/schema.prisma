@@ -717,6 +717,14 @@ model Dialog {
   is_archived  Boolean  @default(false)
   /// Document lifecycle — drafts | kept | presented (Nav stages as status, not separate models).
   document_status String @default("drafts")
+  /// Document Forward (authored North Star) — Dialog is the Document's durable identity.
+  forward_title       String?
+  forward_description String?
+  /// Document Step (honest current tip of the lineage) — role, not a new entity.
+  step_title String?
+  step_body  String?
+  /// Declared Path groups for Document Points — [{ id, title, prelude? }], not Journey Path rows.
+  document_paths Json?
   presenceSchema Json?
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt

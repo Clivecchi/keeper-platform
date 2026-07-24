@@ -48,6 +48,7 @@ import {
   listDomainConnections,
   revokeDomainConnection,
 } from '../../services/domains/domainConnectionInvite.js';
+import { DomainAuthManager } from '@keeper/kam';
 import {
   filterContentByAudience,
   resolveDomainAudience,
@@ -1434,6 +1435,9 @@ router.post(
           email: result.invitation.email,
           role: result.invitation.role,
           expiresAt: result.invitation.expiresAt,
+          /** Copyable redeem path — email delivery is not wired; clipboard is the honest path. */
+          token: result.invitation.token,
+          acceptPath: `/invite/accept?token=${encodeURIComponent(result.invitation.token)}`,
         },
       });
     } catch (error) {
@@ -1465,6 +1469,38 @@ router.post(
     }
   },
 );
+
+// POST /api/domains/invitations/accept — redeem a DomainInvitation token (second human).
+router.post('/invitations/accept', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const token =
+      typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+    if (!token) {
+      return res.status(400).json({ error: 'Invitation token is required' });
+    }
+
+    const authManager = new DomainAuthManager(prisma);
+    await authManager.acceptDomainInvitation(token, req.user.id);
+    return res.status(200).json({ outcome: 'accepted' });
+  } catch (error) {
+    console.error('Error accepting domain invitation:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid invitation token')) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (
+        error.message.includes('expired')
+        || error.message.includes('already accepted')
+      ) {
+        return res.status(400).json({ error: error.message });
+      }
+    }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // DELETE /api/domains/:id/connections/:userId — revoke a connection
 router.delete('/:id/connections/:userId', authMiddlewareCompat, async (req: Request, res: Response) => {
