@@ -23,6 +23,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-07-23 — cast role-label fix
+- DialogCastMember merge into `domainAgents` uses `role: 'Cast'` (not `'Lead'`) so guest leads are not labeled as owning this domain's dialog voice.
+
 ### 2026-07-22 — kip-roster-dialog-cast-sync
 - `resolveAgentEnvironment` — optional `dialogId`; resolves `kip_sessions.dialog_id` from `sessionId`; merges `listDialogCastMembers` into `domainAgents` (additive). Awareness only — not turn delegation.
 

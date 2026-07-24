@@ -410,12 +410,14 @@ export async function resolveAgentEnvironment(args: {
                   for (const member of castMembers) {
                     if (seen.has(member.agentId)) continue;
                     seen.add(member.agentId);
+                    // Cast membership ≠ this domain's dialog lead. Hardcoding 'Lead'
+                    // made Kip treat guest leads (e.g. Ceox on ke3p) as owning dialog voice.
                     merged.push({
                       id: member.agentId,
                       slug: member.agentSlug,
                       name: member.agentName,
                       purpose: null,
-                      role: 'Lead',
+                      role: 'Cast',
                     });
                   }
                 }
