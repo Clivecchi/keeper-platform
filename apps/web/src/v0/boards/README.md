@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-24 — cast-select-must-not-change-atmosphere
+- Board page cover is locked to the current domain slug (shell state only when slug matches; else per-slug cache). Cast/instrument toggles never supply cover.
+- `useBoardThemeRegistration` depends only on Moment/Path/Journey/Keeper ids — engaging Ceox (or any instrument) no longer re-registers global `domain-resolved` theme.
+- Shell cache exposes a version subscription so late cover prefetch paints without unrelated selection churn.
+
 ### 2026-07-23 — becoming-together-complete
 - Domain/Realm multi-select now consults engaged cast members for real minimal replies (or honest empty) before Lead synthesis — not stamp-only.
 - Cast Header Invite opens `InviteCollaboratorDialog` → `POST /connections/invite` with copyable accept link; `/invite/accept` redeems tokens.

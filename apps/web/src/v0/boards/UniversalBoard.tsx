@@ -60,7 +60,13 @@ import { GuidedArrivalOrchestrator } from "../guidedArrival/GuidedArrivalOrchest
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { RealmArrivalProvider } from "../realm/RealmArrivalContext"
 import { prefetchBoardNavData } from "./boardNavDataCache"
-import { getCachedDomainBySlug, resolveDomainCoverUrl } from "./domain/domainShellCache"
+import {
+  getCachedDomainBySlug,
+  getDomainShellCacheVersion,
+  resolveDomainCoverUrl,
+  subscribeDomainShellCache,
+} from "./domain/domainShellCache"
+import { extractDomainThemeCover } from "@keeper/shared"
 import { DOMAIN_THEME_SLUG } from "../themes/constants"
 import { BoardMobilePanelBar } from "./components/BoardMobilePanelBar"
 import { useBoardMobilePanelFocus } from "./hooks/useBoardMobilePanelFocus"
@@ -346,6 +352,45 @@ function UniversalBoardShell({
     try { localStorage.setItem(DENSITY_KEY, density) } catch { /* ignore */ }
   }, [def.access.requiresDensity, density])
 
+  // ── Background ─────────────────────────────────────────────────────────────
+  // Atmosphere is domain-shell only. Cast / instrument selection must never change it.
+  // Subscribe to shell cache so late cover prefetch paints without unrelated re-renders.
+  const shellCacheVersion = React.useSyncExternalStore(
+    subscribeDomainShellCache,
+    getDomainShellCacheVersion,
+    getDomainShellCacheVersion,
+  )
+
+  const coverImageMode =
+    domainRecordMatchesSlug(domainData as { slug?: string | null } | null | undefined, slug)
+      ? ((domainData as { theme?: { coverImageMode?: string } } | undefined)?.theme?.coverImageMode ?? "cover")
+      : "cover"
+
+  const displayCoverUrl = React.useMemo(() => {
+    if (!slug) return null
+
+    // Shell React state — only when it still matches the URL slug (soft-switch race guard).
+    if (domainRecordMatchesSlug(domainData as { slug?: string | null } | null | undefined, slug)) {
+      const fromShell = extractDomainThemeCover(
+        (domainData as { theme?: unknown } | null | undefined)?.theme,
+      ).coverImage?.trim()
+      if (fromShell) return getBlobProxyUrl(fromShell)
+    }
+
+    // Per-slug cache / frame background — never another domain's cover.
+    return resolveDomainCoverUrl(slug)
+  }, [slug, domainData, shellCacheVersion])
+
+  const pageBackground: React.CSSProperties =
+    isRealmHome || !displayCoverUrl
+      ? { background: "hsl(var(--theme-surface-page))" }
+      : {
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
+        backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
+        backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
+        backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
+      }
+
   // ── Admin guard — enforced at shell level when def.access.isAdminOnly ──────
   if (def.access.isAdminOnly && !isAdmin) {
     return (
@@ -372,26 +417,6 @@ function UniversalBoardShell({
       </StyleScope>
     )
   }
-
-  // ── Background ─────────────────────────────────────────────────────────────
-  // Prefer shared shell helper so curtain → board cover sources stay aligned.
-  const coverImageMode = (domainData as { theme?: { coverImageMode?: string } } | undefined)?.theme?.coverImageMode ?? "cover"
-  const coverFromData = (domainData as { theme?: { coverImage?: string } } | undefined)?.theme?.coverImage
-  const displayCoverUrl =
-    (slug ? resolveDomainCoverUrl(slug) : null) ||
-    (typeof coverFromData === "string" && coverFromData.trim()
-      ? getBlobProxyUrl(coverFromData)
-      : null)
-
-  const pageBackground: React.CSSProperties =
-    isRealmHome || !displayCoverUrl
-      ? { background: "hsl(var(--theme-surface-page))" }
-      : {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
-        backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
-        backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
-        backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
-      }
 
   // ── Panel group board kind — maps boardId to known layout presets ──────────
   // ide and agent have distinct persisted layout preferences.

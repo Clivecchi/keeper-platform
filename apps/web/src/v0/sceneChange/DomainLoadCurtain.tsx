@@ -19,7 +19,7 @@ import {
   type ResolvedPlaybillAgent,
 } from "../lib/playbillData"
 import { resolveDomainLeadContext, type DomainLeadRecord } from "../lib/domainLeadAgent"
-import { PlaybillAgentPortrait, resolvePlaybillAmbientUrl } from "../components/playbillVisual"
+import { PlaybillAgentPortrait } from "../components/playbillVisual"
 import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
 import { registerRuntimeTheme } from "../themes/themeResolver"
 import { DOMAIN_THEME_SLUG } from "../themes/constants"
@@ -147,7 +147,9 @@ export function DomainLoadCurtain({
   const roleSubtitle = formatPlaybillRoleSubtitle(agent, domainSlug, isUncast)
   const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null
   const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
-  const ambientUrl = resolvePlaybillAmbientUrl(coverUrl, portraitUrl)
+  // Full-page atmosphere = domain cover only. Agent portrait stays on the identity card —
+  // never promote a lead/cast portrait into board/curtain wallpaper.
+  const ambientUrl = coverUrl
   const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
 

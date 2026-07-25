@@ -17,6 +17,9 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 
 ## 📆 Update Log
 
+### 2026-07-24 — cast-select-must-not-change-atmosphere
+- `loadDomainFrame` cache keys are lowercased (aligned with `domainShellCache`) so soft-switch casing cannot miss the warm frame and fall back to the wrong atmosphere source.
+
 ### 2026-07-02 — domainMomentsCache
 - Shared TTL + inflight dedupe for `/api/v0/moments?status=kept` — Chronicle and Domain banner reuse one fetch per slug
 

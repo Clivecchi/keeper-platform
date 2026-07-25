@@ -8,10 +8,18 @@
 import { apiFetch } from '../../lib/api'
 import type { DomainFrameTheme } from '../data/domain-frame.types'
 import type { ColorScheme } from '../../context/ThemeContext'
-import type { UniversalBoardSelection } from '../boards/UniversalBoardContext'
 import { resolveDomainThemeSync } from './domainThemeResolver'
 import type { ThemeTokens } from './themeRegistry'
 import { DEFAULT_BASE_THEME_SLUG } from './constants'
+
+/** Hierarchy-only inputs for board theme — never cast/instruments/session chrome. */
+export type BoardThemeHierarchySelection = {
+  selectedMomentId?: string | null
+  selectedPathId?: string | null
+  selectedJourneyId?: string | null
+  activeJourneyId?: string | null
+  selectedKeeperId?: string | null
+}
 
 export interface DbThemeRecord {
   id: string
@@ -86,7 +94,7 @@ export async function fetchDbThemeById(themeId: string): Promise<DbThemeRecord |
 
 /** Walk entity chain — most specific theme_id wins. */
 export async function resolveThemeIdFromSelection(
-  selection: UniversalBoardSelection | undefined,
+  selection: BoardThemeHierarchySelection | undefined,
 ): Promise<string | null> {
   if (!selection) return null
 
@@ -121,7 +129,7 @@ export async function resolveThemeIdFromSelection(
 export async function resolveBoardThemeTokens(params: {
   domainTheme: DomainFrameTheme
   colorScheme: ColorScheme
-  selection?: UniversalBoardSelection
+  selection?: BoardThemeHierarchySelection
 }): Promise<ThemeTokens> {
   const { domainTheme, colorScheme, selection } = params
   const domainTokens = resolveDomainThemeSync(domainTheme, colorScheme)

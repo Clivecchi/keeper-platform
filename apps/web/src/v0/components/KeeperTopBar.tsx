@@ -198,12 +198,17 @@ export function KeeperTopBar({
     (typeof domainData?.name === "string" ? domainData.name.trim() : "") ||
     (typeof domainData?.displayName === "string" ? domainData.displayName.trim() : "") ||
     ""
-  const coverImageUrl =
-    (domainSlug ? resolveDomainCoverUrl(domainSlug) : null) ||
-    (() => {
+  // Atmosphere/cover is domain-shell only — never borrow another domain's theme during soft-switch.
+  const coverImageUrl = (() => {
+    const shellSlug =
+      typeof domainData?.slug === "string" ? domainData.slug.trim().toLowerCase() : ""
+    const currentSlug = domainSlug?.trim().toLowerCase() ?? ""
+    if (shellSlug && currentSlug && shellSlug === currentSlug) {
       const fromTheme = extractDomainThemeCover(domainData?.theme).coverImage?.trim()
-      return fromTheme ? getBlobProxyUrl(fromTheme) : null
-    })()
+      if (fromTheme) return getBlobProxyUrl(fromTheme)
+    }
+    return domainSlug ? resolveDomainCoverUrl(domainSlug) : null
+  })()
 
   const initials = getInitials(user?.name ?? null, user?.email ?? null)
   const displayName = user?.name?.trim() || user?.email?.trim() || "Guest"

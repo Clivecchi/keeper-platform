@@ -34,6 +34,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-07-24: **cast-select-must-not-change-atmosphere** — `KeeperTopBar` cover uses shell theme only when `domainData.slug` matches the current shell slug (soft-switch race guard).
 - 2026-07-17: **InlineDeleteRow + SidebarCard delete** — extracted shared confirm row (`InlineDeleteRow.tsx`, same tokens as IDE Draft delete); `SidebarCardItem` supports hover trash → confirm/cancel for Nav hard-delete (Dialogs).
 - 2026-07-12: **Playbill portraits** — `resolvePlaybillAgent` uses `KipApi` + Chronicle `/api/agents/:id` enrichment; avatar reads `presenceSchema`, `config.avatar`, and `resolveCoverAvatarDisplay` (same path as Agent cover).
 - 2026-07-12: **Playbill quality pass** — dropdown anchors under header card (not fixed modal); travel rows show only presents / agent / role; whole row is Enter; portraits resolve from `presenceSchema` + `config.avatar` (emoji fallback).

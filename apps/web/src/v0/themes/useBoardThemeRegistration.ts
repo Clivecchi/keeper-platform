@@ -1,8 +1,11 @@
 "use client"
 
 /**
- * Re-registers domain-resolved theme tokens when board selection changes.
+ * Re-registers domain-resolved theme tokens when hierarchy selection changes.
  * Runs inside UniversalBoardProvider so Moment → Path → Journey hierarchy applies.
+ *
+ * Atmosphere rule: cast / instrument toggles must NOT touch global theme.
+ * Only Moment / Path / Journey / Keeper theme_id walks may re-register tokens.
  */
 
 import * as React from 'react'
@@ -11,7 +14,10 @@ import { useV0ShellOptional } from '../shell/V0ShellContext'
 import { useUniversalBoardOptional } from '../boards/UniversalBoardContext'
 import { DOMAIN_THEME_SLUG } from './constants'
 import { registerRuntimeTheme } from './themeResolver'
-import { resolveBoardThemeTokens } from './hierarchyThemeResolver'
+import {
+  resolveBoardThemeTokens,
+  type BoardThemeHierarchySelection,
+} from './hierarchyThemeResolver'
 import { resolveDomainThemeSync } from './domainThemeResolver'
 import type { DomainFrameTheme } from '../data/domain-frame.types'
 
@@ -32,10 +38,10 @@ export function useBoardThemeRegistration(): void {
   const urlThemeSlug = shell?.themeSlug
 
   const selection = board?.selection
-  const momentId = selection?.selectedMomentId
-  const pathId = selection?.selectedPathId
-  const journeyId = selection?.selectedJourneyId ?? selection?.activeJourneyId
-  const keeperId = selection?.selectedKeeperId
+  const momentId = selection?.selectedMomentId ?? null
+  const pathId = selection?.selectedPathId ?? null
+  const journeyId = selection?.selectedJourneyId ?? selection?.activeJourneyId ?? null
+  const keeperId = selection?.selectedKeeperId ?? null
 
   React.useEffect(() => {
     if (urlThemeSlug) return
@@ -43,15 +49,20 @@ export function useBoardThemeRegistration(): void {
 
     let cancelled = false
 
+    const hierarchy: BoardThemeHierarchySelection = {
+      selectedMomentId: momentId,
+      selectedPathId: pathId,
+      selectedJourneyId: journeyId,
+      selectedKeeperId: keeperId,
+    }
+
     void (async () => {
       try {
-        const tokens = selection
-          ? await resolveBoardThemeTokens({
-              domainTheme: domainFrame.theme ?? EMPTY_DOMAIN_THEME,
-              colorScheme,
-              selection,
-            })
-          : resolveDomainThemeSync(domainFrame.theme ?? EMPTY_DOMAIN_THEME, colorScheme)
+        const tokens = await resolveBoardThemeTokens({
+          domainTheme: domainFrame.theme ?? EMPTY_DOMAIN_THEME,
+          colorScheme,
+          selection: hierarchy,
+        })
 
         if (!cancelled) {
           registerRuntimeTheme(DOMAIN_THEME_SLUG, tokens)
@@ -74,7 +85,6 @@ export function useBoardThemeRegistration(): void {
     urlThemeSlug,
     domainFrame?.theme,
     colorScheme,
-    selection,
     momentId,
     pathId,
     journeyId,

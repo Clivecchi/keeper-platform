@@ -45,6 +45,26 @@ const domainInflight = new Map<string, Promise<DomainBySlugRecord>>()
 const audienceInflight = new Map<string, Promise<DomainAudienceRecord>>()
 const prefetchInflight = new Set<string>()
 
+/** Bumps when by-slug/audience cache writes — board atmosphere can subscribe. */
+let domainShellCacheVersion = 0
+const domainShellCacheListeners = new Set<() => void>()
+
+function bumpDomainShellCacheVersion(): void {
+  domainShellCacheVersion += 1
+  for (const listener of domainShellCacheListeners) listener()
+}
+
+export function subscribeDomainShellCache(onStoreChange: () => void): () => void {
+  domainShellCacheListeners.add(onStoreChange)
+  return () => {
+    domainShellCacheListeners.delete(onStoreChange)
+  }
+}
+
+export function getDomainShellCacheVersion(): number {
+  return domainShellCacheVersion
+}
+
 function normalizeSlug(slug: string): string {
   return slug.trim().toLowerCase()
 }
@@ -67,10 +87,12 @@ export function getCachedDomainAudience(slug: string): DomainAudienceRecord | nu
 
 export function setCachedDomainBySlug(slug: string, data: DomainBySlugRecord): void {
   domainStore.set(normalizeSlug(slug), { fetchedAt: Date.now(), data })
+  bumpDomainShellCacheVersion()
 }
 
 export function setCachedDomainAudience(slug: string, data: DomainAudienceRecord): void {
   audienceStore.set(normalizeSlug(slug), { fetchedAt: Date.now(), data })
+  bumpDomainShellCacheVersion()
 }
 
 async function loadDomainBySlug(slug: string, attempt = 0): Promise<DomainBySlugRecord> {
@@ -167,6 +189,7 @@ export function invalidateDomainShellCache(slug?: string): void {
     audienceInflight.clear()
     prefetchInflight.clear()
   }
+  bumpDomainShellCacheVersion()
 }
 
 /** Warm shell data before navigation (hover / select on domain switcher). */

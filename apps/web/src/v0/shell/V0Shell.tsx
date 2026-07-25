@@ -356,9 +356,15 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
 
   // Synchronous bootstrap — prefer warm frame / loaded frame. Never clobber Curtain's
   // registration with DEFAULT when neither source is ready yet (that froze board theming).
+  // Only bind DOMAIN_THEME_SLUG from *this* slug's frame — ignore stale domainFrame
+  // left over from a soft domain switch (singleton theme slot).
   if (effectiveSlug) {
+    const slugKey = effectiveSlug.trim().toLowerCase()
+    const stateMatchesSlug =
+      !!domainFrame && domainFrame.domain.trim().toLowerCase() === slugKey
     const themeSource =
-      peekDomainFrame(effectiveSlug)?.theme ?? domainFrame?.theme ?? null
+      peekDomainFrame(effectiveSlug)?.theme ??
+      (stateMatchesSlug ? domainFrame.theme : null)
     if (themeSource) {
       registerRuntimeTheme(
         DOMAIN_THEME_SLUG,

@@ -31,8 +31,12 @@ function frameFallbackForSlug(domainSlug: string): DomainFrameJson {
 const frameCache = new Map<string, { fetchedAt: number; frame: DomainFrameJson }>()
 const FRAME_CACHE_TTL_MS = 5 * 60 * 1000
 
+function normalizeFrameSlug(domainSlug: string): string {
+  return domainSlug.trim().toLowerCase()
+}
+
 export function getCachedDomainFrame(domainSlug: string): DomainFrameJson | null {
-  const cached = frameCache.get(domainSlug)
+  const cached = frameCache.get(normalizeFrameSlug(domainSlug))
   if (!cached) return null
   if (Date.now() - cached.fetchedAt >= FRAME_CACHE_TTL_MS) return null
   return cached.frame
@@ -40,7 +44,7 @@ export function getCachedDomainFrame(domainSlug: string): DomainFrameJson | null
 
 /** Stale-allowed read for soft domain switch (prefetch may have just populated). */
 export function peekDomainFrame(domainSlug: string): DomainFrameJson | null {
-  return frameCache.get(domainSlug)?.frame ?? null
+  return frameCache.get(normalizeFrameSlug(domainSlug))?.frame ?? null
 }
 
 function normalizeDomainFrame(frame: DomainFrameJson): DomainFrameJson {
@@ -60,21 +64,22 @@ export async function loadDomainFrame(
   domainSlug: string,
   options?: { forceRefresh?: boolean },
 ): Promise<DomainFrameJson> {
+  const key = normalizeFrameSlug(domainSlug)
   const now = Date.now()
-  const cached = frameCache.get(domainSlug)
+  const cached = frameCache.get(key)
   if (!options?.forceRefresh && cached && now - cached.fetchedAt < FRAME_CACHE_TTL_MS) {
     return cached.frame
   }
 
   try {
     const base = getApiBase()
-    const response = await fetch(`${base}/api/domains/${domainSlug}/frame`)
+    const response = await fetch(`${base}/api/domains/${encodeURIComponent(domainSlug)}/frame`)
     if (!response.ok) {
       console.warn(`[DomainFrame] API fetch failed (${response.status}), falling back to static default`)
       return frameFallbackForSlug(domainSlug)
     }
     const frame = normalizeDomainFrame(await response.json() as DomainFrameJson)
-    frameCache.set(domainSlug, { fetchedAt: Date.now(), frame })
+    frameCache.set(key, { fetchedAt: Date.now(), frame })
     console.log(`[DomainFrame] Loaded for domain: ${domainSlug}`)
     return frame
   } catch (err) {
