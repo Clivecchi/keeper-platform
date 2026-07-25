@@ -14,12 +14,29 @@ import type { DirectorDelegationBeat } from "../../components/agent/types"
 /** Agent slug delegated by Lead on director-mode boards (IDE tools or domain lead agents). */
 export type BoardInstrumentSlug = string
 
+export type DialogParticipationMode = "voice" | "support_only" | "silent"
+
 export type DirectorDialogConfig = {
   activeInstrument: BoardInstrumentSlug | null
   /** Domain/Realm multi-select — consult each engaged cast member for real minimal input. */
   consultInstruments?: BoardInstrumentSlug[]
   instrumentLabels: Record<string, string>
+  /** Declared participation per slug — support_only / silent skip Dialog-voice fetches. */
+  instrumentParticipation?: Record<string, DialogParticipationMode>
   directorDisplayName: string
+}
+
+export function resolveInstrumentParticipation(
+  config: DirectorDialogConfig | undefined,
+  slug: string,
+): DialogParticipationMode {
+  const key = slug.trim().toLowerCase()
+  const fromConfig = config?.instrumentParticipation?.[key]
+  if (fromConfig === "voice" || fromConfig === "support_only" || fromConfig === "silent") {
+    return fromConfig
+  }
+  if (key === "cloud") return "support_only"
+  return "voice"
 }
 
 export const BOARD_INSTRUMENT_LABELS: Record<string, string> = {
@@ -59,6 +76,7 @@ export function buildInstrumentDelegationPrompt(params: {
     "",
     `Answer in first person as ${params.instrumentLabel}. One focused paragraph unless they asked for a list.`,
     `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
+    `If they ask you to name an item from the Dialog Document / a Path, quote ONLY a title or preview from the DIALOG DOCUMENT Points block in your system prompt. Never invent a title. Never treat a system-rule heading as a Document item. If you cannot find a matching Point, say you cannot name one.`,
   ].join("\n")
 }
 
@@ -136,6 +154,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     "- Attribute a quote or stance to a cast member ONLY when a real reply is listed above.",
     "- If a cast member returned nothing, say plainly you got nothing back from them.",
     "- Never invent, paraphrase-as-quote, or fabricate another agent's words.",
+    "- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.",
+    "- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.",
     "- Stay brief; collapse each consult into a minimal beat.",
   )
   return lines.join("\n")

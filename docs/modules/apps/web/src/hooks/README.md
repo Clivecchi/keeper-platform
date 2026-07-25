@@ -31,6 +31,12 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-25 — cast consult honesty + Document on instruments
+- `useAgentDialog` — Mechanism A passes `dialogId` into every instrument + Lead `runAgent` so Document reaches consult context.
+- Support-only / silent direct address declines with an honest participation message (no fetch).
+- All-failed cast consults surface "Couldn't reach the cast…" with accurate ok/failed counts (never inflate success).
+- Director-phase `[AgentTurn]` logs use `addressedInstrument` / `consultedSlugs` / `consultOkCount` (not a misleading `instrument` field).
+
 ### 2026-07-22 — stop-eager-dialog-creation
 - `useAgentDialog` — mount path resumes only; `sendMessage` ensures Dialog+session on first send.
 - Removed dead IDE bootstrap effect (never reached: UC sets `manageSessionExternally` for ide; KipScreen uses domain mode).

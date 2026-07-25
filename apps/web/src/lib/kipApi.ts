@@ -779,6 +779,8 @@ export class KipApi {
     options?: {
       domainId?: string | null
       domainSlug?: string | null
+      /** Active Dialog — loads Document into instrument/Lead context */
+      dialogId?: string | null
       mode?: AgentModeKey
       debugBundle?: unknown
       activeJourneyId?: string | null
@@ -818,6 +820,7 @@ export class KipApi {
         sessionId,
         domainId: options?.domainId ?? undefined,
         domainSlug: options?.domainSlug ?? undefined,
+        dialogId: options?.dialogId ?? undefined,
         mode: options?.mode,
         debugBundle: options?.debugBundle,
         activeJourneyId: options?.activeJourneyId ?? undefined,

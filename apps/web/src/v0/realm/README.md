@@ -32,6 +32,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-25 — Nav: hide manuscript peer row
+- `useRealmNavGrowth` filters `document_manuscript` drafts out of Nav Drafts — Dialog appears once under Dialogs; Points still expand in Chronicle via `DomainRealmStory`.
+
 ### 2026-07-23 — becoming-together-complete (real Document content)
 - `DomainRealmStory` loads Forward/Step/document_paths from the Dialog — hardcoded placeholders removed.
 - Manuscript drafts (`document_manuscript`) expand `spec_json.points` into Document Points with cast voice + Path grouping via `buildDocumentPaths` / `manuscriptPointsToRealmNavEntries`.

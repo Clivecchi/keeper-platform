@@ -35,6 +35,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-25 — network fetch clarity + dialogId on runAgent
+- `apiFetch` — browser `Failed to fetch` / network errors map to an explicit "Could not reach the Keeper API…" message (`NETWORK_UNREACHABLE`).
+- `KipApi.runAgent` options accept `dialogId` and forward it on the run payload.
+
 ### 2026-07-22 — stop-eager-dialog-creation
 - `kipDialogSession.resumeBoardSession` — resume-only resolve for board mount/prefetch.
 - `resumeOrCreateBoardSession` reserved for first real user send (not mount).

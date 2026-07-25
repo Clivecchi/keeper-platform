@@ -829,6 +829,17 @@ export function UniversalConversation({
    * Domain/Realm multi-select: consult each engaged cast member for real minimal
    * input (or honest empty) before Lead synthesizes.
    */
+  const instrumentParticipation = React.useMemo(() => {
+    const map: Record<string, "voice" | "support_only" | "silent"> = {}
+    for (const chip of domainDirectorBoardInstruments) {
+      if (chip.dialogParticipation) {
+        map[chip.slug.trim().toLowerCase()] = chip.dialogParticipation
+      }
+    }
+    if (!map.cloud) map.cloud = "support_only"
+    return map
+  }, [domainDirectorBoardInstruments])
+
   const directorConfig = React.useMemo(
     () => {
       if (!isDirectorMode) return undefined
@@ -837,12 +848,14 @@ export function UniversalConversation({
           activeInstrument: null as string | null,
           consultInstruments: [...activeBoardInstruments],
           instrumentLabels: directorInstrumentLabels,
+          instrumentParticipation,
           directorDisplayName: defaultAgentName,
         }
       }
       return {
         activeInstrument: activeBoardInstrument,
         instrumentLabels: directorInstrumentLabels,
+        instrumentParticipation,
         directorDisplayName: defaultAgentName,
       }
     },
@@ -853,6 +866,7 @@ export function UniversalConversation({
       activeBoardInstruments,
       defaultAgentName,
       directorInstrumentLabels,
+      instrumentParticipation,
     ],
   )
 
@@ -1614,6 +1628,7 @@ export function UniversalConversation({
     userId: user?.id ?? null,
     userDisplayName: dialogUserDisplayName,
     strictAgentResolution: kipMode === "designer",
+    dialogId: selectedDialogId ?? null,
   })
 
   React.useEffect(() => {

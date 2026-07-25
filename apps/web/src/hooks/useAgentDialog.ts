@@ -15,6 +15,7 @@ import {
   extractAgentReplyFromRunResult,
   isDirectorDelegationFailureContent,
   resolveDirectorInstrument,
+  resolveInstrumentParticipation,
   sanitizeUserMessageContent,
   sanitizeAgentMessageContent,
   type DirectorDialogConfig,
@@ -224,6 +225,8 @@ export interface UseAgentDialogOptions {
   userDisplayName?: string
   /** When true, missing agent slug throws instead of silently substituting Kip. */
   strictAgentResolution?: boolean
+  /** Active Dialog — forwarded so instrument sub-runs load Document context without a session. */
+  dialogId?: string | null
 }
 
 export type { DirectorDialogConfig, DirectorSendPhase }
@@ -321,6 +324,7 @@ export function useAgentDialog({
   userId,
   userDisplayName,
   strictAgentResolution = false,
+  dialogId = null,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
   const isSessionControlled = onControlledSessionIdChange != null
@@ -383,6 +387,8 @@ export function useAgentDialog({
 
   const directorConfigRef = React.useRef(directorConfig)
   directorConfigRef.current = directorConfig
+  const dialogIdRef = React.useRef(dialogId)
+  dialogIdRef.current = dialogId
 
   const composerDraftScope = React.useMemo(
     () =>
@@ -679,9 +685,11 @@ export function useAgentDialog({
         )
       }
 
+      const activeDialogId = dialogIdRef.current ?? undefined
       const runOpts = {
         domainSlug: domainSlug || undefined,
         domainId: resolvedDomainId || domainId || undefined,
+        dialogId: activeDialogId,
         mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
@@ -726,6 +734,7 @@ export function useAgentDialog({
             }>
           }
         | undefined
+      let skipLeadRunForParticipation = false
 
       if (liveDirectorConfig && consultSlugs.length > 0 && content.trim()) {
         onDirectorPhaseChange?.("instrument")
@@ -734,6 +743,7 @@ export function useAgentDialog({
           phase: "instrument",
           consultSlugs,
           sessionId,
+          dialogId: activeDialogId ?? null,
           agentDisplayName,
         })
         const consultations: Array<{
@@ -743,6 +753,26 @@ export function useAgentDialog({
         }> = []
         for (const slug of consultSlugs) {
           const label = liveDirectorConfig.instrumentLabels[slug] ?? slug
+          const participation = resolveInstrumentParticipation(liveDirectorConfig, slug)
+          if (participation === "silent") {
+            appendThinkingStep(`${label} is silent — skipped.`)
+            consultations.push({
+              instrumentSlug: slug,
+              instrumentReply: null,
+              status: "empty",
+            })
+            continue
+          }
+          if (participation === "support_only") {
+            appendThinkingStep(`${label} is support-only — not consulted as a Dialog voice.`)
+            consultations.push({
+              instrumentSlug: slug,
+              instrumentReply:
+                `${label} is support-only — not a Dialog voice. Do not invent a first-person reply for them.`,
+              status: "empty",
+            })
+            continue
+          }
           appendThinkingStep(`Consulting ${label}…`)
           try {
             const instAgent = await KipApi.getAgentBySlug(slug)
@@ -767,8 +797,16 @@ export function useAgentDialog({
             }
           } catch (instErr: unknown) {
             const instMsg = instErr instanceof Error ? instErr.message : "instrument failed"
+            const isNetworkFail =
+              /failed to fetch|could not reach the keeper api|network_unreachable|network request failed/i.test(
+                instMsg,
+              )
             console.warn("[director] cast consult failed", { slug, instMsg })
-            appendThinkingStep(`${label} — nothing back.`)
+            appendThinkingStep(
+              isNetworkFail
+                ? `${label} — couldn't reach (network).`
+                : `${label} — nothing back.`,
+            )
             consultations.push({ instrumentSlug: slug, instrumentReply: null, status: "failed" })
           }
         }
@@ -778,44 +816,82 @@ export function useAgentDialog({
           consultations,
         }
       } else if (liveDirectorConfig && instrument && content.trim()) {
-        const resolved = resolveDirectorDelegationMessage({
-          userMessage: content,
-          priorMessages: messagesRef.current.map((message) => ({
-            role: message.role,
-            content: sanitizeUserMessageContent(message.content),
-          })),
-        })
-        if (resolved.resolvedFromPrior) {
-          directorTaskMessage = resolved.delegationMessage
-        }
-
-        // Run the instrument in its own HTTP request first. Nested Rendr+Kip in one
-        // proxy hop often exceeds Vercel's origin timeout and surfaces as HTTP 502.
-        onDirectorPhaseChange?.("instrument")
-        appendThinkingStep(`Consulting ${instrumentLabel}…`)
-        try {
-          const instAgent = await KipApi.getAgentBySlug(instrument)
-          const instPrompt = buildInstrumentDelegationPrompt({
-            userMessage: directorTaskMessage ?? content,
-            instrumentLabel: instrumentLabel ?? instrument,
-            directorName: liveDirectorConfig.directorDisplayName,
-          })
-          const instResult = await KipApi.runAgent(
-            instAgent.id,
-            instPrompt,
-            userId ?? undefined,
-            undefined,
-            runOpts,
+        const participation = resolveInstrumentParticipation(liveDirectorConfig, instrument)
+        if (participation === "support_only" || participation === "silent") {
+          const statusLabel = participation === "silent" ? "silent" : "support-only"
+          appendThinkingStep(
+            `${instrumentLabel} is ${statusLabel} — not a Dialog voice.`,
           )
-          clientInstrumentReply = extractAgentReplyFromRunResult(instResult)
-          if (!clientInstrumentReply) {
-            appendThinkingStep(`${instrumentLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
+          const honest =
+            participation === "silent"
+              ? `${instrumentLabel} is marked silent — they are not consulted and do not hold a Dialog voice.`
+              : `${instrumentLabel} is support-only — not a Dialog voice. They don't take first-person Dialog turns. Ask ${liveDirectorConfig.directorDisplayName} (Lead), or use ${instrumentLabel} for platform/support work — not as a cast Dialog speaker.`
+          setMessages((prev) => [
+            ...prev,
+            stampSenderName({
+              id: `agent-participation-${Date.now()}`,
+              role: "agent",
+              content: honest,
+              createdAt: new Date().toISOString(),
+            }),
+          ])
+          skipLeadRunForParticipation = true
+          console.info("[AgentTurn]", {
+            mechanism: "participation_decline",
+            phase: "director",
+            addressedInstrument: instrument,
+            participation,
+            sessionId,
+            dialogId: activeDialogId ?? null,
+          })
+        } else {
+          const resolved = resolveDirectorDelegationMessage({
+            userMessage: content,
+            priorMessages: messagesRef.current.map((message) => ({
+              role: message.role,
+              content: sanitizeUserMessageContent(message.content),
+            })),
+          })
+          if (resolved.resolvedFromPrior) {
+            directorTaskMessage = resolved.delegationMessage
           }
-        } catch (instErr: unknown) {
-          const instMsg = instErr instanceof Error ? instErr.message : "instrument failed"
-          console.warn("[director] client instrument run failed", { instrument, instMsg })
-          appendThinkingStep(`${instrumentLabel} couldn't respond — ${agentDisplayName} will answer directly…`)
+
+          // Run the instrument in its own HTTP request first. Nested Rendr+Kip in one
+          // proxy hop often exceeds Vercel's origin timeout and surfaces as HTTP 502.
+          onDirectorPhaseChange?.("instrument")
+          appendThinkingStep(`Consulting ${instrumentLabel}…`)
+          try {
+            const instAgent = await KipApi.getAgentBySlug(instrument)
+            const instPrompt = buildInstrumentDelegationPrompt({
+              userMessage: directorTaskMessage ?? content,
+              instrumentLabel: instrumentLabel ?? instrument,
+              directorName: liveDirectorConfig.directorDisplayName,
+            })
+            const instResult = await KipApi.runAgent(
+              instAgent.id,
+              instPrompt,
+              userId ?? undefined,
+              undefined,
+              runOpts,
+            )
+            clientInstrumentReply = extractAgentReplyFromRunResult(instResult)
+            if (!clientInstrumentReply) {
+              appendThinkingStep(`${instrumentLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
+            }
+          } catch (instErr: unknown) {
+            const instMsg = instErr instanceof Error ? instErr.message : "instrument failed"
+            console.warn("[director] client instrument run failed", { instrument, instMsg })
+            appendThinkingStep(`${instrumentLabel} couldn't respond — ${agentDisplayName} will answer directly…`)
+          }
         }
+      }
+
+      if (skipLeadRunForParticipation) {
+        clearSavedDraft()
+        setThinkingSteps([])
+        onDirectorPhaseChange?.(null)
+        setIsSending(false)
+        return
       }
 
       onDirectorPhaseChange?.("director")
@@ -844,14 +920,56 @@ export function useAgentDialog({
         : liveDirectorConfig && instrument && content.trim()
           ? "director_instrument"
           : "plain_lead"
+      const consultRows = castConsultations?.consultations ?? []
+      const consultOkCount = consultRows.filter((row) => row.status === "ok").length
+      const consultFailedCount = consultRows.filter((row) => row.status === "failed").length
+      const consultEmptyCount = consultRows.filter((row) => row.status === "empty").length
       console.info("[AgentTurn]", {
         mechanism: clientMechanism,
         phase: "director",
         sessionId,
+        dialogId: activeDialogId ?? null,
         agentDisplayName,
-        consultCount: castConsultations?.consultations.length ?? 0,
-        instrument: instrument ?? null,
+        // Accurate counts — never report requested consults as if they succeeded.
+        consultRequestedCount: consultRows.length,
+        consultOkCount,
+        consultFailedCount,
+        consultEmptyCount,
+        // Single-pin address only (IDE). Omit for multi-select Mechanism A.
+        addressedInstrument:
+          clientMechanism === "director_instrument" ? (instrument ?? null) : null,
+        consultedSlugs:
+          clientMechanism === "cast_consultation_a"
+            ? consultRows.map((row) => row.instrumentSlug)
+            : [],
       })
+
+      // No successful voice replies + at least one hard failure → do not synthesize.
+      // (support_only / silent rows are "empty" and must not inflate success counts.)
+      if (
+        clientMechanism === "cast_consultation_a"
+        && consultRows.length > 0
+        && consultOkCount === 0
+        && consultFailedCount > 0
+      ) {
+        const honest =
+          `Couldn't reach the cast this turn (${consultFailedCount} failed, ${consultOkCount} ok of ${consultRows.length} engaged). Nothing to synthesize. Try again in a moment.`
+        setError(null)
+        setMessages((prev) => [
+          ...prev,
+          stampSenderName({
+            id: `agent-cast-unreachable-${Date.now()}`,
+            role: "agent",
+            content: honest,
+            createdAt: new Date().toISOString(),
+          }),
+        ])
+        clearSavedDraft()
+        setThinkingSteps([])
+        onDirectorPhaseChange?.(null)
+        setIsSending(false)
+        return
+      }
 
       try {
         let result: Awaited<ReturnType<typeof KipApi.runAgent>>
@@ -1057,6 +1175,7 @@ export function useAgentDialog({
       greeting,
       clearSavedDraft,
       restoreSavedDraft,
+      dialogId,
     ],
   )
 

@@ -6,6 +6,7 @@ import { apiFetch } from "../../lib/apiFetch"
 import { getKeptMoments, type KeptMomentSummary } from "../api/v0Moments"
 import { fetchDomainLibraryNavRows } from "../presence/integrationChronicle/libraryNavUtils"
 import {
+  DOCUMENT_MANUSCRIPT_KIND,
   draftToRealmNavEntry,
   emptyRealmNavGrouped,
   groupRealmNavEntries,
@@ -181,8 +182,12 @@ async function loadRealmNavGrowthPayload(
       }
     }
 
+    // document_manuscript is Dialog Document storage (Points) — Chronicle expands it.
+    // Do not list it as a peer Draft row (that duplicated "Becoming Together" in Nav).
+    const navDrafts = drafts.filter((draft) => draft.kind !== DOCUMENT_MANUSCRIPT_KIND)
+
     const entries: RealmNavEntry[] = [
-      ...drafts.map((draft) =>
+      ...navDrafts.map((draft) =>
         draftToRealmNavEntry(draft, draftDialogById.get(draft.id) ?? null),
       ),
       ...libraryRows.map((row) => libraryRowToKeptNavEntry(row, null)),

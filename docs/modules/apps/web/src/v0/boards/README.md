@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-25 — post-deploy cast honesty + consult reporting
+- `directorDialog` — Document-item quoting rules on instrument + cast synthesis prompts; participation helper for support_only/silent.
+- `UniversalConversation` — passes `dialogId` + `instrumentParticipation` into `useAgentDialog` / director config.
+- Client director logs: `addressedInstrument` (single-pin only) vs `consultedSlugs` + accurate consult counts.
+
 ### 2026-07-24 — cast-select-must-not-change-atmosphere
 - Board page cover is locked to the current domain slug (shell state only when slug matches; else per-slug cache). Cast/instrument toggles never supply cover.
 - `useBoardThemeRegistration` depends only on Moment/Path/Journey/Keeper ids — engaging Ceox (or any instrument) no longer re-registers global `domain-resolved` theme.

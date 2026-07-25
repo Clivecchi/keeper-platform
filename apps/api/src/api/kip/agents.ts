@@ -162,6 +162,8 @@ type AgentAttachmentInput = { url: string; name: string; type: 'image' | 'file' 
 type RunAgentOptions = {
   domainId?: string | null;
   domainSlug?: string | null;
+  /** Active Dialog id — loads Document into context (esp. instrument sub-runs without session). */
+  dialogId?: string | null;
   mode?: AgentModeKey;
   debugBundle?: DebugBundleInput | null;
   environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
@@ -784,13 +786,16 @@ function buildCastHonestySystemPrompt(environment: unknown): string | null {
     'DOMAIN AGENTS — registered on this domain (not the global platform registry):',
     roster,
     '',
-    'CAST HONESTY (non-negotiable — every Dialog turn):',
+    // Heading deliberately avoids looking like a Document Point title (prior incident:
+    // instruments named "Cast Honesty" when asked to pick a Cast & Orchestration item).
+    'RULE — never invent another agent\'s words (every Dialog turn):',
     'Never invent, paraphrase-as-quote, or fabricate what another agent said.',
     'Only attribute words to another agent when a real consultation result for that agent is present in this turn:',
     '  - Mechanism A: multi-select cast consultation results (client ran each engaged instrument, then Lead synthesizes), or',
     '  - Mechanism B: delegate.consult action results (Lead-initiated consult during the turn).',
     'These are two distinct mechanisms — do not conflate them. If neither produced a reply for an agent, say plainly you got nothing back — do not invent their voice.',
     'To hear from a cast member mid-turn without multi-select, use delegate.consult with { agentSlug, question? } — only for agents in this list with dialog participation Voice (not Silent).',
+    'When the user asks you to name an item from the Dialog Document / a Path (e.g. Cast & Orchestration), quote ONLY titles or previews from the DIALOG DOCUMENT Points block in this prompt. Never invent a title. Never treat a system-rule heading as a Document item.',
     supportOnly.length
       ? `Support-only (not Dialog voices): ${supportOnly.join(', ')}. Do not invent first-person Dialog dialogue for them. If asked for their voice, say they are support-only — not a Dialog voice.`
       : null,
@@ -860,6 +865,7 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
   }
   lines.push(
     'When the user asks about this Dialog\'s Document, Forward, Step, or Points, use this block — do not claim the Document is absent when fields above are present.',
+    'When asked to pick or name one item from a Path, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
   );
   return lines.join('\n');
 }
@@ -958,6 +964,7 @@ async function buildInstrumentRunEnvironment(params: {
   userId?: string;
   domainId?: string | null;
   sessionId?: string;
+  dialogId?: string | null;
   fallback?: AgentEnvironmentContext | KipEnvironmentContext | null;
 }): Promise<AgentEnvironmentContext | KipEnvironmentContext | null | undefined> {
   let env: AgentEnvironmentContext | null = null;
@@ -967,6 +974,7 @@ async function buildInstrumentRunEnvironment(params: {
       userId: params.userId,
       domainId: params.domainId ?? undefined,
       sessionId: params.sessionId,
+      dialogId: params.dialogId ?? undefined,
       intent: 'interactive',
     });
   } catch (error) {
@@ -1090,7 +1098,18 @@ function getRequestId(ctx: { requestId?: string }): string {
 
 export async function executeAgentActions(
   actions: StructuredAgentAction[],
-  ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null; keeperId?: string | null; requestId?: string; skipActionTypes?: Set<string> },
+  ctx: {
+    domainId?: string | null;
+    domainSlug?: string | null;
+    userId?: string;
+    agentId?: string | null;
+    allowlist: Set<string>;
+    sessionId?: string | null;
+    dialogId?: string | null;
+    keeperId?: string | null;
+    requestId?: string;
+    skipActionTypes?: Set<string>;
+  },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
   const results: ActionExecutionResult[] = [];
@@ -2917,6 +2936,7 @@ export async function executeAgentActions(
                 userId: ctx.userId ?? undefined,
                 domainId: ctx.domainId,
                 sessionId: ctx.sessionId ?? undefined,
+                dialogId: ctx.dialogId ?? undefined,
               });
               const instRun = await KipAgentService.runAgent(
                 instAgent.id,
@@ -3541,6 +3561,8 @@ const AgentRunSchema = z.object({
   sessionId: z.string().optional(),
   domainId: z.string().optional(),
   domainSlug: z.string().optional(),
+  /** Active Dialog — loads Document into agent context even when sessionId is omitted (instrument sub-runs). */
+  dialogId: z.string().optional(),
   mode: z.enum(['domain', 'debug']).optional(),
   debugBundle: DebugBundleSchema,
   attachments: z.array(AgentAttachmentSchema).optional(),
@@ -5192,6 +5214,11 @@ export class KipAgentService {
                 userId,
                 domainId: options.domainId,
                 sessionId: currentSessionId,
+                dialogId:
+                  options.dialogId
+                  ?? (options.environment as AgentEnvironmentContext | null | undefined)
+                    ?.dialogDocument?.dialogId
+                  ?? undefined,
                 fallback: options.environment,
               });
               const instRun = await this.runAgent(instAgent.id, instPrompt, userId, undefined, {
@@ -5278,6 +5305,17 @@ export class KipAgentService {
         const dialogDocument = envForTurn?.dialogDocument;
         const castConsultSlugs =
           options?.castConsultations?.consultations?.map((row) => row.instrumentSlug) ?? [];
+        const castConsultRecords =
+          options?.castConsultations?.consultations?.map((row) => {
+            const reply =
+              typeof row.instrumentReply === 'string' ? row.instrumentReply.trim() : '';
+            return {
+              slug: row.instrumentSlug,
+              status: row.status,
+              replyExcerpt: reply ? reply.slice(0, 280) : null,
+              replyChars: reply.length,
+            };
+          }) ?? [];
         const agentTurnSummary = {
           mechanism: orchestrationMechanism,
           agentSlug: agent.slug,
@@ -5292,11 +5330,17 @@ export class KipAgentService {
             ? dialogDocument.points.length
             : 0,
           castConsultSlugs,
-          castConsultStatuses:
-            options?.castConsultations?.consultations?.map((row) => ({
-              slug: row.instrumentSlug,
-              status: row.status,
-            })) ?? [],
+          castConsultStatuses: castConsultRecords.map((row) => ({
+            slug: row.slug,
+            status: row.status,
+          })),
+          /** Per-instrument replies for post-hoc diagnosis (excerpt + length). */
+          castConsultRecords,
+          consultOkCount: castConsultRecords.filter((row) => row.status === 'ok').length,
+          consultFailedCount: castConsultRecords.filter(
+            (row) => row.status === 'failed' || row.status === 'error',
+          ).length,
+          consultEmptyCount: castConsultRecords.filter((row) => row.status === 'empty').length,
           domainAgentParticipation:
             envForTurn?.domainAgents?.map((entry) => ({
               slug: entry.slug,
@@ -5471,6 +5515,11 @@ export class KipAgentService {
               agentId: agent.id,
               allowlist: allowActions,
               sessionId: currentSessionId,
+              dialogId:
+                options?.dialogId
+                ?? (options?.environment as AgentEnvironmentContext | null | undefined)
+                  ?.dialogDocument?.dialogId
+                ?? null,
               keeperId: options?.activeKeeperId ?? null,
               requestId,
               skipActionTypes: options?.skipActionTypes,
@@ -5558,6 +5607,11 @@ export class KipAgentService {
                   agentId: agent.id,
                   allowlist: allowActions,
                   sessionId: currentSessionId,
+                  dialogId:
+                    options?.dialogId
+                    ?? (options?.environment as AgentEnvironmentContext | null | undefined)
+                      ?.dialogDocument?.dialogId
+                    ?? null,
                   keeperId: options?.activeKeeperId ?? null,
                   requestId,
                   skipActionTypes: options?.skipActionTypes,
@@ -5626,6 +5680,11 @@ export class KipAgentService {
               agentId: agent.id,
               allowlist: allowActions,
               sessionId: currentSessionId,
+              dialogId:
+                options?.dialogId
+                ?? (options?.environment as AgentEnvironmentContext | null | undefined)
+                  ?.dialogDocument?.dialogId
+                ?? null,
               keeperId: options?.activeKeeperId ?? null,
               requestId,
               skipActionTypes: options?.skipActionTypes,
@@ -5910,6 +5969,11 @@ export class KipAgentService {
               agentId: agent.id,
               allowlist: allowActions,
               sessionId: currentSessionId,
+              dialogId:
+                options?.dialogId
+                ?? (options?.environment as AgentEnvironmentContext | null | undefined)
+                  ?.dialogDocument?.dialogId
+                ?? null,
               keeperId: options?.activeKeeperId ?? null,
               requestId: systemRequestId,
               skipActionTypes: options?.skipActionTypes,
@@ -6585,6 +6649,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             sessionId,
             domainId: resolvedDomain.domainId ?? undefined,
             domainSlug: resolvedDomain.domainSlug ?? undefined,
+            dialogId: (req.body as { dialogId?: string })?.dialogId ?? undefined,
             mode: (req.body as any)?.mode,
             debugBundle: (req.body as any)?.debugBundle,
             attachments: (req.body as any)?.attachments,
@@ -6609,6 +6674,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               userId: requestUserId,
               domainId: validation.data.domainId ?? resolvedDomain.domainId ?? undefined,
               sessionId,
+              dialogId: validation.data.dialogId ?? undefined,
               intent: 'interactive',
             });
           } catch (error) {
@@ -6617,6 +6683,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               agentId,
               userId: requestUserId,
               domainId: validation.data.domainId ?? resolvedDomain.domainId ?? null,
+              dialogId: validation.data.dialogId ?? null,
               error: error instanceof Error ? error.message : error,
             });
           }
@@ -6719,6 +6786,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           const runAgentOptions: RunAgentOptions = {
             domainId: validation.data.domainId ?? resolvedDomain.domainId,
             domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
+            dialogId: validation.data.dialogId ?? null,
             mode: validation.data.mode as AgentModeKey | undefined,
             debugBundle: validation.data.debugBundle || null,
             environment,

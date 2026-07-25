@@ -23,6 +23,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-07-25 — instrument Document + consult excerpts
+- `run` accepts `dialogId` even when `sessionId` is omitted (Mechanism A instrument sub-runs).
+- Standing honesty heading renamed so models do not treat it as a Document Point title.
+- Orchestration metadata persists `castConsultRecords` (reply excerpt + length) for post-hoc diagnosis.
+
 ### 2026-07-24 — dialog document + standing honesty
 - `loadDialogDocumentForAgent.ts` — loads Dialog Forward/Step/Paths + `document_manuscript` Points for agent context.
 - `resolveAgentEnvironment` attaches `environment.dialogDocument` and `dialogParticipation` on `domainAgents`.

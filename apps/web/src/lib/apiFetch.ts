@@ -62,7 +62,23 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
     headers,
   };
 
-  const response = await fetch(url, nextInit);
+  let response: Response
+  try {
+    response = await fetch(url, nextInit)
+  } catch (err) {
+    // Browser TypeError "Failed to fetch" = network/CORS/TLS/offline — not an HTTP body.
+    const raw = err instanceof Error ? err.message : String(err)
+    const networkish =
+      /failed to fetch|networkerror|load failed|network request failed/i.test(raw)
+    const error: Error & { code?: string; cause?: unknown } = new Error(
+      networkish
+        ? `Could not reach the Keeper API (${url.split('?')[0]}). Check connection or try again.`
+        : raw || 'Request failed',
+    )
+    error.code = networkish ? 'NETWORK_UNREACHABLE' : 'FETCH_ERROR'
+    error.cause = err
+    throw error
+  }
   
   // Parse JSON response
   if (!response.ok) {

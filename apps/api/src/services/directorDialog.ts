@@ -81,6 +81,7 @@ export function buildInstrumentDelegationPrompt(params: {
     '',
     `Answer in first person as ${params.instrumentLabel}. One focused paragraph unless they asked for a list.`,
     `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
+    `If they ask you to name an item from the Dialog Document / a Path, quote ONLY a title or preview from the DIALOG DOCUMENT Points block in your system prompt. Never invent a title. Never treat a system-rule heading as a Document item. If you cannot find a matching Point, say you cannot name one.`,
   );
 
   return lines.join('\n');
@@ -177,6 +178,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     '- Attribute a quote or stance to a cast member ONLY when a real reply is listed above.',
     '- If a cast member returned nothing, say plainly you got nothing back from them.',
     '- Never invent, paraphrase-as-quote, or fabricate another agent\'s words.',
+    '- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.',
+    '- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
     '- Stay brief; collapse each consult into a minimal beat.',
   );
 
