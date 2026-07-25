@@ -56,8 +56,8 @@ type DialogOrchestrationMode =
 | **Thread** | One session; handoffs visible as action cards (“Cloud opened PR #12”, “Rendr proposed treatment…”) |
 | **External** | Cursor via Cloud handoff (`docs/build-handoffs/schema.md`) — not a board persona |
 
-**Board preset today:** `ide` — **partially wired** (Cloud/Rendr tool chips *swap* the dialog agent; not true director).  
-**Board preset target:** `ide` / future `dev` with `dialogOrchestration: "director"`.
+**Board preset today:** `ide` / `designer` / `domain` / `realm` — **partially wired** (shared `BoardInstrumentsBar` Agents chips pin instruments; composer still may follow pin — not true director delegation).  
+**Board preset target:** `ide` / future `dev` with `dialogOrchestration: "director"` (Kip-only composer; instruments as delegated sub-turns).
 
 **Territory routing (Kip delegates):** see build handoff schema — Cloud mechanical vs Cursor reasoning vs Rendr treatment.
 
@@ -157,8 +157,35 @@ When implementing `director` on IDE/Dev preset:
 
 ---
 
+## Cast consultation — two distinct mechanisms
+
+Do **not** describe these as one path. Both are real; both carry honesty rules when engaged.
+
+| | Mechanism A | Mechanism B |
+|---|---|---|
+| **Name** | Multi-select cast consultation | Lead-initiated `delegate.consult` |
+| **Trigger** | User engages instruments in Cast / Agents bar (`consultInstruments`) before send | Lead emits `delegate.consult` action during its turn |
+| **Execution** | Client loops `KipApi.runAgent` per engaged slug (`useAgentDialog`) | Server `case 'delegate.consult'` runs a real sub-turn |
+| **Synthesis** | `buildCastConsultationsSynthesisPrompt` rewrites Lead input | `buildReadActionFollowUpInput` after action results |
+| **When idle** | Skipped if no instruments engaged → plain Lead turn | Optional; Lead may answer without consulting |
+
+**Standing honesty (2026-07-24):** every Lead Dialog turn also receives `buildCastHonestySystemPrompt` inside live `callAIModel` — inventing another agent's words is forbidden even when neither A nor B ran. Agents may be declared `support_only` / `silent` via `config.dialog_participation` (Cloud defaults `support_only`).
+
+**Agent Echo** is a separate solo / Agent-board beat — not on the director cast-synthesis path.
+
+---
+
 ## Changelog
 
 | Date | Change |
 |---|---|
+| 2026-07-24 | **Standing cast honesty + Document in context + participation:** honesty rules in live `callAIModel`; `environment.dialogDocument` from Dialog columns + manuscript; `config.dialog_participation`; Mechanisms A/B documented as distinct; `[AgentTurn]` debug. |
+| 2026-07-23 | **Shipped lead-initiated cast consultation:** Mechanism B (`delegate.consult`) + Mechanism A (Domain/Realm multi-select) with honest empty fallback. Invite second human via Cast Header + `/invite/accept`. |
+| 2026-07-22 | **Shipped `kip-roster-dialog-cast-sync`:** Kip's prompt roster merges `DialogCastMember`-enabled agents (via `resolveAgentEnvironment` + session `dialog_id`) into `domainAgents` — additive only; no per-agent turn delegation. |
+| 2026-07-22 | **Shipped `realm-home-chronicle-routing`:** `/home?board=realm` Chronicle reaches `DomainRealmStory` when a Dialog is selected; idle home shows a visible empty/feed state instead of an `aria-hidden` node. |
+| 2026-07-22 | **Shipped `stop-eager-dialog-creation`:** board mount/prefetch resume-only via `resumeBoardSession`; Dialog+session create deferred to first `sendMessage`. Dead IDE bootstrap in `useAgentDialog` removed. Curtain no longer requires a session id. |
+| 2026-07-22 | **Live-testing punch list:** four gaps found post-Phase-1 — (1)–(3) shipped above; (4) Nav duplication fixed directly. Full detail in `docs/chronicle-document-architecture.md`. |
+| 2026-07-22 | **Cross-domain cast membership (Phase 1):** users who administer another domain can **Add** that domain's lead onto the current Dialog via Cast Header. Persisted as `DialogCastMember` (join table — not `CrossDomainShare`). Admin re-checked server-side every request. Platform baseline `cloud`/`rendr` unchanged. Real lead-initiated delegation remains Phase 2. |
+| 2026-07-22 | Header cast identity + composer invoke split (all director boards). Domain/Realm: `instrumentMultiSelect` engages multiple non-lead instruments; IDE/Designer keep single-swap. Dialog stamps engaged collaborators on the lead reply. Full multi-delegation pipeline still future work. |
+| 2026-07-20 | Presentation unification: `BoardInstrumentsBar` is the shared Agents roster for every director board; Realm header `DialogCastBar` retired to trailing access actions only. Full director delegation (Kip-only composer) remains future work. |
 | 2026-06-17 | Initial spec — five orchestration modes; director near-term; roundtable, hot_seat, chorus reserved |

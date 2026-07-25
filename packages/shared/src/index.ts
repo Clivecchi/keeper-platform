@@ -26,5 +26,7 @@ export * from './recordNaming.js';
 export * from './realm/feed.js';
 export * from './chronicleSubject.js';
 export * from './document.js';
+export * from './dialogParticipation.js';
+export * from './redactForLog.js';
 export * from './libraryPointer.js';
 export * from './domainAccessKey.js';

@@ -11,17 +11,20 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { Prisma } from '@prisma/client';
-import { logger } from '@keeper/shared';
+import { logger, redactForLog } from '@keeper/shared';
 import {
   appendDraftPointToSpec,
   buildDraftSummaryFromAcceptedPoints,
   canonicalizeDraftSpecJson,
   createDraftPoint,
+  dialogParticipationLabel,
   findDraftPoint,
   mergeDraftSpecPatch,
+  resolveDialogParticipation,
   rewriteDraftPointInSpec,
   summarizeDraftPointsForAgent,
   updateDraftPointInSpec,
+  type DialogParticipation,
   type DraftPoint,
   type DraftPointType,
   type DirectorContinuityMessage,
@@ -744,13 +747,135 @@ function buildRendrIdentityPrompt(agent: { slug?: string | null }): string | nul
 
 const PLATFORM_DIALOG_AGENT_SLUGS = new Set(['kip', 'cloud', 'rendr']);
 
+type DomainAgentRosterEntry = {
+  slug: string;
+  name: string;
+  role?: string | null;
+  purpose?: string | null;
+  dialogParticipation?: DialogParticipation;
+};
+
+/**
+ * Standing cast-honesty rules for every Lead Dialog turn (live callAIModel path).
+ * Applies whether or not multi-select consult / delegate.consult ran this turn.
+ */
+function buildCastHonestySystemPrompt(environment: unknown): string | null {
+  const domainAgents = (environment as { domainAgents?: DomainAgentRosterEntry[] })?.domainAgents;
+  if (!Array.isArray(domainAgents) || domainAgents.length === 0) return null;
+
+  const roster = domainAgents
+    .map((agent) => {
+      const role = agent.role?.trim() ? ` (${agent.role})` : '';
+      const purpose = agent.purpose?.trim() ? ` — ${agent.purpose.trim()}` : '';
+      const participation = agent.dialogParticipation ?? 'voice';
+      const partLabel = dialogParticipationLabel(participation);
+      return `- ${agent.name}${role} [slug: ${agent.slug}] [dialog: ${partLabel}]${purpose}`;
+    })
+    .join('\n');
+
+  const supportOnly = domainAgents
+    .filter((agent) => (agent.dialogParticipation ?? 'voice') === 'support_only')
+    .map((agent) => agent.name);
+  const silent = domainAgents
+    .filter((agent) => (agent.dialogParticipation ?? 'voice') === 'silent')
+    .map((agent) => agent.name);
+
+  return [
+    'DOMAIN AGENTS — registered on this domain (not the global platform registry):',
+    roster,
+    '',
+    'CAST HONESTY (non-negotiable — every Dialog turn):',
+    'Never invent, paraphrase-as-quote, or fabricate what another agent said.',
+    'Only attribute words to another agent when a real consultation result for that agent is present in this turn:',
+    '  - Mechanism A: multi-select cast consultation results (client ran each engaged instrument, then Lead synthesizes), or',
+    '  - Mechanism B: delegate.consult action results (Lead-initiated consult during the turn).',
+    'These are two distinct mechanisms — do not conflate them. If neither produced a reply for an agent, say plainly you got nothing back — do not invent their voice.',
+    'To hear from a cast member mid-turn without multi-select, use delegate.consult with { agentSlug, question? } — only for agents in this list with dialog participation Voice (not Silent).',
+    supportOnly.length
+      ? `Support-only (not Dialog voices): ${supportOnly.join(', ')}. Do not invent first-person Dialog dialogue for them. If asked for their voice, say they are support-only — not a Dialog voice.`
+      : null,
+    silent.length
+      ? `Silent (do not consult or speak for): ${silent.join(', ')}.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
+  const doc = (
+    environment as {
+      dialogDocument?: {
+        dialogId?: string;
+        title?: string;
+        status?: string;
+        forward?: { title: string; description: string };
+        step?: { title: string; body: string };
+        paths?: Array<{ id: string; title: string; prelude?: string }>;
+        points?: Array<{
+          id?: string;
+          type?: string;
+          preview?: string;
+          status?: string;
+        }>;
+        manuscriptDraftId?: string;
+      };
+    }
+  )?.dialogDocument;
+  if (!doc?.dialogId) return null;
+
+  const lines = [
+    'DIALOG DOCUMENT (live Document for this Dialog — same source Chronicle renders):',
+    `Dialog id: ${doc.dialogId}${doc.title ? ` — ${doc.title}` : ''}${doc.status ? ` [${doc.status}]` : ''}`,
+  ];
+  if (doc.forward) {
+    lines.push(`Forward — ${doc.forward.title}: ${doc.forward.description}`);
+  }
+  if (doc.step) {
+    lines.push(`Step — ${doc.step.title}: ${doc.step.body}`);
+  }
+  if (Array.isArray(doc.paths) && doc.paths.length > 0) {
+    lines.push(
+      `Paths: ${doc.paths.map((path) => path.title).join('; ')}`,
+    );
+  }
+  if (Array.isArray(doc.points) && doc.points.length > 0) {
+    lines.push('Points (manuscript summaries):');
+    for (const point of doc.points.slice(0, 24)) {
+      const typeLabel = typeof point.type === 'string' && point.type.trim()
+        ? point.type.trim()
+        : 'point';
+      const preview = typeof point.preview === 'string' ? point.preview.trim() : '';
+      const status = typeof point.status === 'string' && point.status.trim()
+        ? ` [${point.status.trim()}]`
+        : '';
+      lines.push(
+        preview
+          ? `- (${typeLabel})${status}: ${preview}`
+          : `- (${typeLabel})${status}`,
+      );
+    }
+  } else {
+    lines.push('Points: (none loaded for this Dialog manuscript yet).');
+  }
+  lines.push(
+    'When the user asks about this Dialog\'s Document, Forward, Step, or Points, use this block — do not claim the Document is absent when fields above are present.',
+  );
+  return lines.join('\n');
+}
+
 function buildDomainLeadCollaborationPrompt(
   agent: { slug?: string | null; name?: string | null },
   environment: unknown,
 ): string | null {
   const domainAgents = (
     environment as {
-      domainAgents?: Array<{ slug: string; name: string; role?: string | null }>;
+      domainAgents?: Array<{
+        slug: string;
+        name: string;
+        role?: string | null;
+        dialogParticipation?: DialogParticipation;
+      }>;
     }
   )?.domainAgents;
   if (!Array.isArray(domainAgents) || domainAgents.length === 0) return null;
@@ -2766,6 +2891,19 @@ export async function executeAgentActions(
                 });
                 break;
               }
+              const participation = resolveDialogParticipation(instAgent.config, {
+                slug: instAgent.slug,
+              });
+              if (participation === 'silent') {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `${instAgent.name} is marked silent — not a Dialog consult target`,
+                  errorCode: 'SILENT_AGENT',
+                  data: { agentSlug, reply: null, dialogParticipation: participation },
+                });
+                break;
+              }
               const instLabel = await resolveInstrumentLabel(agentSlug);
               const instPrompt = buildInstrumentDelegationPrompt({
                 userMessage:
@@ -4034,27 +4172,15 @@ export class KipAgentService {
     if (environment) {
       systemParts.push(`Environment context (resolved via KAM):\n${JSON.stringify(environment, null, 2)}`);
 
-      const domainAgents = (environment as { domainAgents?: Array<{ slug: string; name: string; role?: string | null; purpose?: string | null }> }).domainAgents;
-      if (Array.isArray(domainAgents) && domainAgents.length > 0) {
-        const roster = domainAgents
-          .map((agent) => {
-            const role = agent.role?.trim() ? ` (${agent.role})` : '';
-            const purpose = agent.purpose?.trim() ? ` — ${agent.purpose.trim()}` : '';
-            return `- ${agent.name}${role} [slug: ${agent.slug}]${purpose}`;
-          })
-          .join('\n');
-        systemParts.push(
-          [
-            'DOMAIN AGENTS — registered on this domain (not the global platform registry):',
-            roster,
-            'When a domain lead agent exists (not Kip), they own the dialog voice. Kip is platform support only — not the lead.',
-            'Do not claim domain agents are absent when they appear in this list.',
-            'To hear from a cast member, use delegate.consult with { agentSlug, question? } — only for agents in this list.',
-            'Never invent, paraphrase-as-quote, or fabricate what another agent said.',
-            'Only attribute words to another agent when a delegate.consult (or cast consultation) result for that agent is present in this turn.',
-            'If consultation returned nothing, say plainly you got nothing back — do not invent their voice.',
-          ].join('\n'),
-        );
+      // Cockpit preview only — live rules are composed in callAIModel via
+      // buildCastHonestySystemPrompt / buildDialogDocumentSystemPrompt.
+      const castHonestyPreview = buildCastHonestySystemPrompt(environment);
+      if (castHonestyPreview) {
+        systemParts.push(castHonestyPreview);
+      }
+      const dialogDocumentPreview = buildDialogDocumentSystemPrompt(environment);
+      if (dialogDocumentPreview) {
+        systemParts.push(dialogDocumentPreview);
       }
 
       const agentContextRecord =
@@ -4456,6 +4582,24 @@ export class KipAgentService {
           messages.push({
             role: 'system',
             content: domainLeadPrompt,
+          });
+        }
+
+        // Standing cast honesty — every Lead Dialog turn (not only consult synthesis paths).
+        const castHonestyPrompt = buildCastHonestySystemPrompt(environmentContext);
+        if (castHonestyPrompt) {
+          messages.push({
+            role: 'system',
+            content: castHonestyPrompt,
+          });
+        }
+
+        // Dialog Document — same Forward/Step/Points Chronicle renders for this Dialog.
+        const dialogDocumentPrompt = buildDialogDocumentSystemPrompt(environmentContext);
+        if (dialogDocumentPrompt) {
+          messages.push({
+            role: 'system',
+            content: dialogDocumentPrompt,
           });
         }
 
@@ -4954,8 +5098,14 @@ export class KipAgentService {
 
         let leadModelInput = input || '';
         let directorDelegationResult: DirectorDelegationResult | undefined;
+        let orchestrationMechanism:
+          | 'plain_lead'
+          | 'cast_consultation_a'
+          | 'director_instrument'
+          | 'director_instrument_fallback' = 'plain_lead';
 
         if (options?.castConsultations?.consultations?.length) {
+          orchestrationMechanism = 'cast_consultation_a';
           const cc = options.castConsultations;
           const labeled = await Promise.all(
             cc.consultations.map(async (row) => {
@@ -4987,6 +5137,7 @@ export class KipAgentService {
                 status: 'empty',
               };
         } else if (options?.directorDelegation) {
+          orchestrationMechanism = 'director_instrument';
           const dd = options.directorDelegation;
           const instLabel = await resolveInstrumentLabel(dd.instrumentSlug);
           const priorContinuityMessages: DirectorContinuityMessage[] = previousMessages.map((msg) => {
@@ -5097,6 +5248,7 @@ export class KipAgentService {
               directorName: dd.directorDisplayName,
             });
           } else {
+            orchestrationMechanism = 'director_instrument_fallback';
             if (!directorDelegationResult) {
               directorDelegationResult = {
                 attributedTo: instLabel,
@@ -5121,6 +5273,37 @@ export class KipAgentService {
           typeof leadAgentConfig.voice_prompt === 'string'
             ? leadAgentConfig.voice_prompt.trim()
             : '';
+
+        const envForTurn = options?.environment as AgentEnvironmentContext | null | undefined;
+        const dialogDocument = envForTurn?.dialogDocument;
+        const castConsultSlugs =
+          options?.castConsultations?.consultations?.map((row) => row.instrumentSlug) ?? [];
+        const agentTurnSummary = {
+          mechanism: orchestrationMechanism,
+          agentSlug: agent.slug,
+          model: agent.model,
+          modelProvider: agent.model_provider,
+          sessionId: currentSessionId,
+          dialogId: dialogDocument?.dialogId ?? null,
+          documentInContext: Boolean(dialogDocument?.dialogId),
+          documentHasForward: Boolean(dialogDocument?.forward),
+          documentHasStep: Boolean(dialogDocument?.step),
+          documentPointCount: Array.isArray(dialogDocument?.points)
+            ? dialogDocument.points.length
+            : 0,
+          castConsultSlugs,
+          castConsultStatuses:
+            options?.castConsultations?.consultations?.map((row) => ({
+              slug: row.instrumentSlug,
+              status: row.status,
+            })) ?? [],
+          domainAgentParticipation:
+            envForTurn?.domainAgents?.map((entry) => ({
+              slug: entry.slug,
+              dialogParticipation: entry.dialogParticipation,
+            })) ?? [],
+        };
+        console.info('[AgentTurn]', agentTurnSummary);
 
         // Generate response using real AI model with memory context
         const aiResult = await this.callAIModel(agent, leadModelInput, previousMessages, userId, {
@@ -5484,6 +5667,18 @@ export class KipAgentService {
           && !isGlossMode(options?.agentContext)
         ) {
           try {
+            const consultActionCount = actionResults.filter(
+              (row) => row.type === 'delegate.consult',
+            ).length;
+            const resolvedMechanism =
+              consultActionCount > 0 ? 'delegate_consult_b' : orchestrationMechanism;
+            if (consultActionCount > 0) {
+              console.info('[AgentTurn] mechanism upgraded after actions', {
+                from: orchestrationMechanism,
+                to: 'delegate_consult_b',
+                consultActionCount,
+              });
+            }
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
@@ -5491,6 +5686,11 @@ export class KipAgentService {
               senderName: agent.name,
               model: agent.model,
               actionResults: actionResults.length ? actionResults : undefined,
+              orchestration: {
+                ...agentTurnSummary,
+                mechanism: resolvedMechanism,
+                delegateConsultCount: consultActionCount,
+              },
               ...(structured.card ? { card: structured.card } : {}),
             });
           } catch (error) {
@@ -5499,6 +5699,9 @@ export class KipAgentService {
         }
         
         const config = agent.config || {};
+        const consultActionCountForResult = actionResults.filter(
+          (row) => row.type === 'delegate.consult',
+        ).length;
         result = {
           action: 'lead_interaction',
           keeper_id: userId || 'lead_user',
@@ -5522,6 +5725,14 @@ export class KipAgentService {
             model_response_raw: response,
             draftIntent: options?.draftIntentResult ?? null,
             timestamp: new Date().toISOString(),
+            orchestration: {
+              ...agentTurnSummary,
+              mechanism:
+                consultActionCountForResult > 0
+                  ? 'delegate_consult_b'
+                  : orchestrationMechanism,
+              delegateConsultCount: consultActionCountForResult,
+            },
             ...(directorDelegationResult
               ? { directorDelegation: directorDelegationResult }
               : {}),
@@ -6311,7 +6522,18 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
         console.info('[kip/agents] post request', {
           ...baseContext,
           action,
-          body: req.body,
+          body: redactForLog({
+            action,
+            agentId: (req.body as { agentId?: unknown })?.agentId,
+            sessionId: (req.body as { sessionId?: unknown })?.sessionId,
+            hasInput: typeof (req.body as { input?: unknown })?.input === 'string',
+            hasCastConsultations: Boolean(
+              (req.body as { castConsultations?: unknown })?.castConsultations,
+            ),
+            hasDirectorDelegation: Boolean(
+              (req.body as { directorDelegation?: unknown })?.directorDelegation,
+            ),
+          }),
           query: req.query,
           requestUserId,
           requestUserIdSource,

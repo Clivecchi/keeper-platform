@@ -35,10 +35,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `useBoardThemeRegistration` depends only on Moment/Path/Journey/Keeper ids — engaging Ceox (or any instrument) no longer re-registers global `domain-resolved` theme.
 - Shell cache exposes a version subscription so late cover prefetch paints without unrelated selection churn.
 
+### 2026-07-24 — standing honesty + Dialog participation
+- Cast Header chips show Support / Silent from `config.dialog_participation` (Cloud defaults support-only).
+- Client `[AgentTurn]` logs mechanism A vs plain Lead / director instrument before `runAgent`.
+- Docs: Mechanisms A (multi-select) and B (`delegate.consult`) kept distinct; standing honesty lives in live `callAIModel`.
+
 ### 2026-07-23 — becoming-together-complete
 - Domain/Realm multi-select now consults engaged cast members for real minimal replies (or honest empty) before Lead synthesis — not stamp-only.
 - Cast Header Invite opens `InviteCollaboratorDialog` → `POST /connections/invite` with copyable accept link; `/invite/accept` redeems tokens.
-- Anti-fabrication: director fallback + cast synthesis never invent another agent's words; `delegate.consult` action + follow-up for Lead-initiated consults.
+- Anti-fabrication on consult paths: director fallback + cast synthesis never invent another agent's words; `delegate.consult` action + follow-up for Lead-initiated consults.
 
 ### 2026-07-23 — stop-orphan-echo-sessions
 - Echo/collaboration effect in `UniversalConversation` is resume-only (no create on effect). Create deferred to first real echo via `resumeOrCreateBoardSession` with correct `dialogBoard`/`dialogFrame` keys — stops dialog_id=null orphan multiplication.

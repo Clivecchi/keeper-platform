@@ -729,6 +729,13 @@ export function useAgentDialog({
 
       if (liveDirectorConfig && consultSlugs.length > 0 && content.trim()) {
         onDirectorPhaseChange?.("instrument")
+        console.info("[AgentTurn]", {
+          mechanism: "cast_consultation_a",
+          phase: "instrument",
+          consultSlugs,
+          sessionId,
+          agentDisplayName,
+        })
         const consultations: Array<{
           instrumentSlug: string
           instrumentReply?: string | null
@@ -831,6 +838,20 @@ export function useAgentDialog({
               }
             : {}),
       }
+
+      const clientMechanism = castConsultations
+        ? "cast_consultation_a"
+        : liveDirectorConfig && instrument && content.trim()
+          ? "director_instrument"
+          : "plain_lead"
+      console.info("[AgentTurn]", {
+        mechanism: clientMechanism,
+        phase: "director",
+        sessionId,
+        agentDisplayName,
+        consultCount: castConsultations?.consultations.length ?? 0,
+        instrument: instrument ?? null,
+      })
 
       try {
         let result: Awaited<ReturnType<typeof KipApi.runAgent>>

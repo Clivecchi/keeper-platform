@@ -99,6 +99,12 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
       model_provider:     { role: 'quiet',     minDensity: 'standard', editable: true,  label: 'Model provider' },
       memory_enabled:     { role: 'quiet',     minDensity: 'standard', editable: true,  label: 'Memory' },
       visibility:         { role: 'quiet',     minDensity: 'standard', editable: true,  label: 'Visibility' },
+      dialog_participation: {
+        role: 'quiet',
+        minDensity: 'standard',
+        editable: true,
+        label: 'Dialog voice',
+      },
       status:             { role: 'quiet',     always: true,             editable: false },
       tools:              {
         role: 'ambient',

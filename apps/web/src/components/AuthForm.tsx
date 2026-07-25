@@ -57,7 +57,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
       });
 
       if (!isRegister) {
-        console.log('✅ Login success:', result);
+        // Never log JWT / token payloads — success + user identity only.
+        const data =
+          result && typeof result === 'object' && 'data' in result
+            ? (result as { data?: { user?: { id?: string; email?: string } } }).data
+            : undefined;
+        console.log('✅ Login success:', {
+          success: Boolean((result as { success?: boolean })?.success),
+          userId: data?.user?.id ?? null,
+          email: data?.user?.email ?? null,
+        });
       }
 
       if (result.success) {

@@ -17,12 +17,24 @@ async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
   const existing = await prisma.kip_agents.findUnique({ where: { slug: 'cloud' } });
   if (existing) {
     const current = existing.capabilities ?? [];
-    const needsUpdate = CLOUD_AGENT_CAPABILITIES.some((cap) => !current.includes(cap));
-    if (needsUpdate) {
+    const needsCaps = CLOUD_AGENT_CAPABILITIES.some((cap) => !current.includes(cap));
+    const config = (existing.config ?? {}) as Record<string, unknown>;
+    const needsParticipation = config.dialog_participation !== 'support_only';
+    if (needsCaps || needsParticipation) {
       return prisma.kip_agents.update({
         where: { slug: 'cloud' },
         data: {
-          capabilities: Array.from(new Set([...current, ...CLOUD_AGENT_CAPABILITIES])),
+          ...(needsCaps
+            ? {
+                capabilities: Array.from(
+                  new Set([...current, ...CLOUD_AGENT_CAPABILITIES]),
+                ),
+              }
+            : {}),
+          config: {
+            ...config,
+            dialog_participation: 'support_only',
+          } as Prisma.InputJsonValue,
         },
       });
     }
@@ -50,6 +62,7 @@ async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
           personality: 'Technical Execution Agent. I read, build, and ship.',
           suppress_kip_system_prompt: true,
           suppress_sole_memory: true,
+          dialog_participation: 'support_only',
           domain: 'default',
         },
         model_settings: {},

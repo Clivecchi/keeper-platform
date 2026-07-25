@@ -74,6 +74,7 @@ export default async function seedCloudAgent() {
         config: {
           ...existingConfig,
           personality: 'Technical Execution Agent. I read, build, and ship.',
+          dialog_participation: 'support_only',
         },
       },
     });
@@ -103,6 +104,7 @@ export default async function seedCloudAgent() {
         personality: 'Technical Execution Agent. I read, build, and ship.',
         suppress_kip_system_prompt: true,
         suppress_sole_memory: true,
+        dialog_participation: 'support_only',
         domain: 'default',
       },
       model_settings: {},

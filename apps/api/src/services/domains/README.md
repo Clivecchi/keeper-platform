@@ -72,6 +72,9 @@ Failures in individual steps log warnings and do not fail domain create.
 - Confirmed primary paths wired: `POST /api/domains` (routes.ts), signup (`/api/kam/auth/register`), repair `POST /api/domains/:id/provision`.
 - Added provisioner to legacy flat `POST /api/domains` (domains.ts) and super-admin `POST /api/admin/domains`.
 
+### 2026-07-24 — Dialog participation on roster
+- `loadDomainScopedAgents` summary includes `dialogParticipation` from `config.dialog_participation` (Cloud defaults `support_only`).
+
 ### 2026-06-28 — Domain-accessible agent roster (Agent board Nav)
 - `loadDomainScopedAgents.ts` — merges domain lead + Kip + platform agents (`cloud`, `rendr`) for every domain.
 - `loadDomainAccessibleAgents()` — full agent rows for `GET /:domainId/kip/agents` (Agent board Nav + Chronicle Config).

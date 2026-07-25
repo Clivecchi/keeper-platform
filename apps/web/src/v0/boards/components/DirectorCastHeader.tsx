@@ -229,10 +229,22 @@ export function DirectorCastHeader({
 
 function CastIdentityChip({ chip }: { chip: BoardInstrumentChip }) {
   const isLead = Boolean(chip.isDirector)
+  const participation = chip.dialogParticipation ?? "voice"
+  const participationLabel =
+    participation === "support_only"
+      ? "Support"
+      : participation === "silent"
+        ? "Silent"
+        : null
+  const title = isLead
+    ? `${chip.label} — Lead`
+    : participationLabel
+      ? `${chip.label} — ${participationLabel}`
+      : `${chip.label} — available`
   return (
     <span
-      title={isLead ? `${chip.label} — Lead` : `${chip.label} — available`}
-      aria-label={isLead ? `${chip.label} — Lead` : `${chip.label} — available`}
+      title={title}
+      aria-label={title}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -284,6 +296,18 @@ function CastIdentityChip({ chip }: { chip: BoardInstrumentChip }) {
             }}
           >
             Lead
+          </span>
+        ) : participationLabel ? (
+          <span
+            style={{
+              marginLeft: 4,
+              fontSize: "9px",
+              letterSpacing: "0.04em",
+              color: "hsl(var(--theme-ink-placeholder))",
+              fontWeight: 500,
+            }}
+          >
+            {participationLabel}
           </span>
         ) : null}
       </span>

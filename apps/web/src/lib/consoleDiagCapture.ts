@@ -3,7 +3,10 @@
  *
  * Intercepts browser console output for the Dialog Thinking Space Diag stream.
  * Original console methods are preserved — logs still reach DevTools.
+ * Secret fields (JWT token, passwords) are redacted before buffering.
  */
+
+import { redactForLog, redactStringForLog } from "@keeper/shared"
 
 export type ConsoleDiagLevel = "log" | "warn" | "error" | "info" | "debug"
 
@@ -25,12 +28,14 @@ const originals: Partial<Record<ConsoleDiagLevel, (...args: unknown[]) => void>>
 const listeners = new Set<() => void>()
 
 function formatArg(value: unknown): string {
-  if (typeof value === "string") return value
-  if (value instanceof Error) return value.stack ?? value.message
+  if (typeof value === "string") return redactStringForLog(value)
+  if (value instanceof Error) {
+    return redactStringForLog(value.stack ?? value.message)
+  }
   try {
-    return JSON.stringify(value)
+    return JSON.stringify(redactForLog(value))
   } catch {
-    return String(value)
+    return redactStringForLog(String(value))
   }
 }
 

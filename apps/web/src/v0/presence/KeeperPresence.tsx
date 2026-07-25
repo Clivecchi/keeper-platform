@@ -621,6 +621,34 @@ function PresenceFieldEditor({
     )
   }
 
+  if (fieldKey === "dialog_participation") {
+    return (
+      <>
+        <select
+          value={value || "voice"}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
+          style={{
+            borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+            color: "hsl(var(--theme-ink-secondary))",
+          }}
+        >
+          <option value="voice">Voice — Dialog participant</option>
+          <option value="support_only">Support only — not a Dialog voice</option>
+          <option value="silent">Silent — do not consult or speak for</option>
+        </select>
+        {fieldError ? (
+          <p
+            className="text-[13px] mt-1.5 leading-relaxed"
+            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+          >
+            {fieldError}
+          </p>
+        ) : null}
+      </>
+    )
+  }
+
   const isPromptField =
     fieldKey === "lensSystemPrompt" || fieldKey === "composedSystemPrompt"
 

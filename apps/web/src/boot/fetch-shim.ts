@@ -34,11 +34,44 @@ import { usesSameOriginApi } from '../lib/platformHost';
   keeperDebug.apiBase = API_BASE || 'https://api.ke3p.com';
   keeperDebug.origin = location.origin;
 
+  const SECRET_KEYS = new Set([
+    'token',
+    'accesstoken',
+    'access_token',
+    'refreshtoken',
+    'refresh_token',
+    'password',
+    'secret',
+    'apikey',
+    'api_key',
+    'authorization',
+  ]);
+
   const redactString = (value: string): string =>
     value
       .replace(/authorization:[^\n]+/gi, 'authorization:<redacted>')
       .replace(/keeper_session=[^;]+/gi, 'keeper_session=<redacted>')
-      .replace(/bearer\s+[a-z0-9._-]+/gi, 'bearer <redacted>');
+      .replace(/bearer\s+[a-z0-9._-]+/gi, 'bearer <redacted>')
+      .replace(/\beyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]+\b/g, '<jwt-redacted>');
+
+  const redactJsonValue = (value: unknown, depth = 0): unknown => {
+    if (depth > 8) return '[max-depth]';
+    if (typeof value === 'string') return redactString(value);
+    if (value == null || typeof value === 'number' || typeof value === 'boolean') return value;
+    if (Array.isArray(value)) return value.map((entry) => redactJsonValue(entry, depth + 1));
+    if (typeof value === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+        if (SECRET_KEYS.has(key.toLowerCase())) {
+          out[key] = '<redacted>';
+        } else {
+          out[key] = redactJsonValue(entry, depth + 1);
+        }
+      }
+      return out;
+    }
+    return String(value);
+  };
 
   const headersToObject = (headers: Headers | undefined) => {
     const result: Record<string, string> = {};
@@ -58,9 +91,9 @@ import { usesSameOriginApi } from '../lib/platformHost';
     if (!text) return null;
     if (isJsonHint) {
       try {
-        return JSON.parse(text);
+        return redactJsonValue(JSON.parse(text));
       } catch {
-        return text;
+        return redactString(text);
       }
     }
     return '<non-json>';

@@ -173,6 +173,10 @@ Core utility functions and API clients for the Keeper web application, including
 - **kipApi.ts**: Cast `agentResult.data` to `any` before accessing `.error`/`.errorCode` — `AgentResponse.data` is typed as `unknown`, so direct property access caused TS2339.
 - **DomainsPage.tsx**: Removed broken `import { __internal }` from `apiFetch` (symbol does not exist).
 
+### 2026-07-24 — Debug capture hardening
+- `consoleDiagCapture.ts` redacts JWT/token fields via `@keeper/shared` `redactForLog` before buffering Dialog Diag stream.
+- Client `[AgentTurn]` logs (in `useAgentDialog`) surface orchestration mechanism without dumping secrets.
+
 ### 2026-02-14 - Governance API client
 - Added `governanceApi.ts`: getDomainGovernance, updateDomainGovernance, getContractDetail, getDomainCompliance. Used by DomainGovernanceCard and CockpitPanel compliance panel.
 

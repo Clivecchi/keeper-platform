@@ -51,6 +51,7 @@ const CONFIG_FIELD_ORDER = [
   "model_provider",
   "memory_enabled",
   "visibility",
+  "dialog_participation",
   "theme_color",
   "tools",
 ] as const

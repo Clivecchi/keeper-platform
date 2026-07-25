@@ -6,6 +6,10 @@
  */
 
 import { prisma, type Prisma } from '@keeper/database';
+import {
+  resolveDialogParticipation,
+  type DialogParticipation,
+} from '@keeper/shared';
 
 /** Platform agents every domain can configure on Agent board (not the full global registry). */
 export const DOMAIN_ACCESSIBLE_PLATFORM_AGENT_SLUGS = ['cloud', 'rendr'] as const;
@@ -19,6 +23,8 @@ export type DomainScopedAgentSummary = {
   name: string;
   purpose: string | null;
   role: string | null;
+  /** Declared Dialog-voice mode — from config.dialog_participation (Cloud defaults support_only). */
+  dialogParticipation: DialogParticipation;
 };
 
 const summarySelect = {
@@ -27,6 +33,7 @@ const summarySelect = {
   name: true,
   purpose: true,
   role: true,
+  config: true,
 } as const;
 
 export const domainAccessibleAgentSelect = {
@@ -122,6 +129,7 @@ export async function loadDomainScopedAgents(
     name: agent.name,
     purpose: agent.purpose ?? null,
     role: agent.role ?? null,
+    dialogParticipation: resolveDialogParticipation(agent.config, { slug: agent.slug }),
   }));
 }
 

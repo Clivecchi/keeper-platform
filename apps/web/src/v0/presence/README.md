@@ -62,6 +62,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-07-24 — Dialog participation on Agent Config
+- Agent schema field `dialog_participation` (`voice` | `support_only` | `silent`) editable in Config; flattened from `config` in `enrichAgent`; PATCH via agents API config merge.
+
 ### 2026-07-23 — scope-agent-recent-sessions-by-domain
 - `presenceEnrichment.fetchPresenceRecord` (agent case) passes `domainId` to `GET /api/agents/:id` so recent sessions are domain-scoped.
 

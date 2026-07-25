@@ -20,6 +20,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 Audience is resolved once via `GET /api/domains/by-slug/:slug/audience` (optional auth) and `@keeper/shared` `resolveDomainAudience` â€” roles: `guest | friend | keeper | admin`. Child frames consume `resolvedAudience` from context; they do not re-resolve independently.
 
 ## ðŸ“† Update Log
+- 2026-07-24: **DomainFrame log summary** — console logs contentHash + keys only (full frame on `window.__keeper_domainFrame`); unchanged hash logs once as Unchanged.
 - 2026-07-24: **cast-select-must-not-change-atmosphere** — runtime theme bind ignores stale domainFrame from a prior soft-switch (slug must match domainFrame.domain before registering domain-resolved).
 - 2026-07-22: **stop-eager-dialog-creation** ? `DomainShellGate` board-ready no longer requires a prefetched Dialog session; idle boards reveal and create on first send.
 - 2026-07-12: **Domain shell load gate (Phase A+B)** â€” `DomainShellGate` blocks `UniversalBoard` mount until by-slug + frame + audience are cached; opaque `DomainLoadCurtain` covers cold loads; warm cache skips curtain.

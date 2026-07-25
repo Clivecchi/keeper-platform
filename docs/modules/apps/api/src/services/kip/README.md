@@ -23,6 +23,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-07-24 — dialog document + standing honesty
+- `loadDialogDocumentForAgent.ts` — loads Dialog Forward/Step/Paths + `document_manuscript` Points for agent context.
+- `resolveAgentEnvironment` attaches `environment.dialogDocument` and `dialogParticipation` on `domainAgents`.
+- Live `callAIModel` injects standing cast-honesty + Document system prompts (Mechanisms A/B remain distinct consult paths).
+
 ### 2026-07-23 — becoming-together-complete (delegation + honesty)
 - `actionFollowUp` treats `delegate.consult` as follow-up-eligible; synthesis attributes quotes only from real replies, else “got nothing back.”
 - Director fallback prompts no longer invent another agent’s voice when consultation is empty.

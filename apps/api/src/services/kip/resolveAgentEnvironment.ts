@@ -3,11 +3,19 @@ import { DomainAuthManager } from '@keeper/kam';
 import { getRedis, isNoOpRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
-import { summarizeDraftPointsForAgent } from '@keeper/shared';
+import {
+  resolveDialogParticipation,
+  summarizeDraftPointsForAgent,
+  type DialogParticipation,
+} from '@keeper/shared';
 import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
 import { loadDomainScopedAgents } from '../domains/loadDomainScopedAgents.js';
 import { listDialogCastMembers } from '../domains/dialogCastMembership.js';
+import {
+  loadDialogDocumentForAgent,
+  type AgentDialogDocument,
+} from './loadDialogDocumentForAgent.js';
 
 export type AgentEnvironmentContext = {
   version: 'env-v1';
@@ -74,12 +82,18 @@ export type AgentEnvironmentContext = {
     name: string;
     purpose: string | null;
     role: string | null;
+    dialogParticipation: DialogParticipation;
   }>;
   domainIndex?: {
     keepers: Array<{ id: string; title: string; purpose?: string | null }>;
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
     library: Array<{ id: string; label: string; sourceType: string }>;
   };
+  /**
+   * Dialog Document (Forward / Step / Paths / manuscript Points) for the active Dialog.
+   * Loaded when session.dialog_id (or args.dialogId) is known — same source Chronicle reads.
+   */
+  dialogDocument?: AgentDialogDocument;
   /**
    * agentContext — injected by the frontend from the domain frame JSON.
    * Carries: audience role, model, forward destination, available directions,
@@ -96,6 +110,45 @@ export type AgentEnvironmentContext = {
     kip_context: string;
   };
 };
+
+async function enrichDomainAgentsParticipation(
+  agents: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    purpose: string | null;
+    role: string | null;
+    dialogParticipation: DialogParticipation;
+  }>,
+): Promise<
+  Array<{
+    id: string;
+    slug: string;
+    name: string;
+    purpose: string | null;
+    role: string | null;
+    dialogParticipation: DialogParticipation;
+  }>
+> {
+  if (agents.length === 0) return agents;
+  try {
+    const rows = await prisma.kip_agents.findMany({
+      where: { id: { in: agents.map((agent) => agent.id) } },
+      select: { id: true, slug: true, config: true },
+    });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return agents.map((agent) => {
+      const row = byId.get(agent.id);
+      if (!row) return agent;
+      return {
+        ...agent,
+        dialogParticipation: resolveDialogParticipation(row.config, { slug: row.slug }),
+      };
+    });
+  } catch {
+    return agents;
+  }
+}
 
 // Lazy initialization - services will be created only when needed
 let cacheService: DomainCacheService | null = null;
@@ -418,6 +471,7 @@ export async function resolveAgentEnvironment(args: {
                       name: member.agentName,
                       purpose: null,
                       role: 'Cast',
+                      dialogParticipation: 'voice',
                     });
                   }
                 }
@@ -429,12 +483,32 @@ export async function resolveAgentEnvironment(args: {
                 });
               }
             }
-            environment.domainAgents = merged;
+            // Prefer declared participation from agent config when cast members
+            // are also in the baseline (or when we can resolve config by slug).
+            environment.domainAgents = await enrichDomainAgentsParticipation(merged);
           } catch (error) {
             console.warn('[resolveAgentEnvironment] domain agents lookup failed', {
               domainId: primaryDomainId,
               error,
             });
+          }
+
+          if (effectiveDialogId) {
+            try {
+              const dialogDocument = await loadDialogDocumentForAgent(
+                effectiveDialogId,
+                primaryDomainId,
+              );
+              if (dialogDocument) {
+                environment.dialogDocument = dialogDocument;
+              }
+            } catch (error) {
+              console.warn('[resolveAgentEnvironment] dialogDocument load failed', {
+                domainId: primaryDomainId,
+                dialogId: effectiveDialogId,
+                error,
+              });
+            }
           }
         } catch (error) {
           console.warn('[resolveAgentEnvironment] domain index lookup failed', { domainId: primaryDomainId, error });

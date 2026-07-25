@@ -531,7 +531,37 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
       .then((frame) => {
         if (ignore) return
         setDomainFrame(frame)
-        console.log("[DomainFrame] Loaded for domain:", effectiveSlug, frame)
+        // Summary only — full frame stays on window.__keeper_domainFrame.
+        // Re-dumping the static payload on every load drowns audience/role signal.
+        const keys = frame && typeof frame === "object" ? Object.keys(frame) : []
+        let contentHash = "empty"
+        try {
+          const raw = JSON.stringify(frame)
+          let hash = 0
+          for (let i = 0; i < raw.length; i += 1) {
+            hash = (hash * 31 + raw.charCodeAt(i)) >>> 0
+          }
+          contentHash = hash.toString(16).padStart(8, "0")
+        } catch {
+          contentHash = "unhashable"
+        }
+        const prevHash = (window as unknown as { __keeper_domainFrameHash?: string })
+          .__keeper_domainFrameHash
+        ;(window as unknown as { __keeper_domainFrameHash?: string }).__keeper_domainFrameHash =
+          contentHash
+        if (prevHash === contentHash) {
+          console.log("[DomainFrame] Unchanged for domain:", effectiveSlug, {
+            contentHash,
+            keyCount: keys.length,
+          })
+        } else {
+          console.log("[DomainFrame] Loaded for domain:", effectiveSlug, {
+            contentHash,
+            keyCount: keys.length,
+            keys: keys.slice(0, 24),
+            changedFrom: prevHash ?? null,
+          })
+        }
       })
       .catch((err) => {
         if (ignore) return

@@ -18,6 +18,8 @@ export type BoardInstrumentChip = {
   label: string
   /** Director (Lead) — always shown as engaged; click is a no-op when leadLocked. */
   isDirector?: boolean
+  /** Declared Dialog-voice mode from agent config.dialog_participation. */
+  dialogParticipation?: "voice" | "support_only" | "silent"
 }
 
 export type InstrumentSelectionMode = "single" | "multi"

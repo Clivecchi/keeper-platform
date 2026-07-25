@@ -98,6 +98,24 @@ interface DomainScopedAgent {
   slug: string
   name: string
   purpose?: string | null
+  config?: Record<string, unknown> | null
+  dialogParticipation?: "voice" | "support_only" | "silent"
+}
+
+function resolveAgentDialogParticipation(
+  agent: Pick<DomainScopedAgent, "slug" | "config" | "dialogParticipation">,
+): "voice" | "support_only" | "silent" {
+  if (
+    agent.dialogParticipation === "voice"
+    || agent.dialogParticipation === "support_only"
+    || agent.dialogParticipation === "silent"
+  ) {
+    return agent.dialogParticipation
+  }
+  const raw = agent.config?.dialog_participation
+  if (raw === "voice" || raw === "support_only" || raw === "silent") return raw
+  if (agent.slug === "cloud") return "support_only"
+  return "voice"
 }
 
 interface SelectedAgentRecord {
@@ -579,6 +597,7 @@ export function UniversalConversation({
       slug: directorAgentSlug,
       label: defaultAgentName,
       isDirector: true,
+      dialogParticipation: "voice",
     })
 
     if (normalizedDomainLeadSlug && domainLeadDisplayName) {
@@ -588,17 +607,32 @@ export function UniversalConversation({
       addInstrument({
         slug: rosterLead?.slug ?? normalizedDomainLeadSlug,
         label: domainLeadDisplayName,
+        dialogParticipation: rosterLead
+          ? resolveAgentDialogParticipation(rosterLead)
+          : "voice",
       })
     } else if (directorAgentSlug !== KIP_FALLBACK_SLUG) {
       addInstrument({
         slug: KIP_FALLBACK_SLUG,
         label: KIP_FALLBACK_DISPLAY_NAME,
+        dialogParticipation: "voice",
       })
     }
 
     for (const slug of def.conversation.boardInstruments ?? []) {
       if (canonicalAgentSlug(slug) === canonicalAgentSlug(directorAgentSlug)) continue
-      addInstrument({ slug, label: BOARD_INSTRUMENT_LABELS[slug] ?? slug })
+      const rosterMatch = domainScopedAgents.find(
+        (agent) => canonicalAgentSlug(agent.slug) === canonicalAgentSlug(slug),
+      )
+      addInstrument({
+        slug,
+        label: BOARD_INSTRUMENT_LABELS[slug] ?? slug,
+        dialogParticipation: rosterMatch
+          ? resolveAgentDialogParticipation(rosterMatch)
+          : slug === "cloud"
+            ? "support_only"
+            : "voice",
+      })
     }
 
     const leadKey = normalizedDomainLeadSlug
@@ -613,12 +647,20 @@ export function UniversalConversation({
       ) {
         continue
       }
-      addInstrument({ slug: agent.slug, label: agent.name })
+      addInstrument({
+        slug: agent.slug,
+        label: agent.name,
+        dialogParticipation: resolveAgentDialogParticipation(agent),
+      })
     }
 
     // Cross-domain enabled leads (DialogCastMember) — same chip machinery.
     for (const member of dialogCastMembers) {
-      addInstrument({ slug: member.agentSlug, label: member.agentName })
+      addInstrument({
+        slug: member.agentSlug,
+        label: member.agentName,
+        dialogParticipation: "voice",
+      })
     }
 
     return instruments

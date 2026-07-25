@@ -22,6 +22,9 @@ Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/d
 
 ## 📆 Update Log
 
+### 2026-07-24 — verify Dialog Document agent context
+- Added `verify-dialog-document-context.ts` — read-only check that Becoming Together Dialog loads into `loadDialogDocumentForAgent` (Forward/Step/Points) + redaction helpers.
+
 ### 2026-07-23 — seed Becoming Together Document
 - Added `seed-becoming-together-document.ts`: Dialog Forward/Step/document_paths + `document_manuscript` Points (incl. Cursor-credited entries). Dry-run by default; `--execute` gated.
 

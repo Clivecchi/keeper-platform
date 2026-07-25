@@ -110,7 +110,15 @@ function isLeadAgentRecord(agent: { role?: string | null; slug?: string | null }
 function mergeAgentConfigFields(
   existing: unknown,
   fields: Partial<
-    Record<'tagline' | 'personality' | 'avatar' | 'theme_color' | 'voice_prompt', string>
+    Record<
+      | 'tagline'
+      | 'personality'
+      | 'avatar'
+      | 'theme_color'
+      | 'voice_prompt'
+      | 'dialog_participation',
+      string
+    >
   >,
   configOverride?: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
@@ -125,6 +133,9 @@ function mergeAgentConfigFields(
     ...(fields.avatar !== undefined ? { avatar: fields.avatar } : {}),
     ...(fields.theme_color !== undefined ? { theme_color: fields.theme_color } : {}),
     ...(fields.voice_prompt !== undefined ? { voice_prompt: fields.voice_prompt } : {}),
+    ...(fields.dialog_participation !== undefined
+      ? { dialog_participation: fields.dialog_participation }
+      : {}),
   };
 }
 
@@ -174,6 +185,8 @@ const patchAgentSchema = z
     avatar: z.string().max(500).nullable().optional(),
     avatarKey: z.string().nullable().optional(),
     theme_color: z.string().max(100).optional(),
+    /** Declared Dialog-voice mode: voice | support_only | silent */
+    dialog_participation: z.enum(['voice', 'support_only', 'silent']).optional(),
     model_settings: z.record(z.any()).optional(),
     temperature: z.number().min(0).max(1).optional(),
     max_tokens: z.number().int().min(1).max(128000).optional(),
@@ -541,6 +554,7 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
         personality: body.personality,
         avatar: body.avatar,
         theme_color: body.theme_color,
+        dialog_participation: body.dialog_participation,
       },
       configFromBody,
     );
