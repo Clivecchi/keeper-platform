@@ -9,8 +9,8 @@ export interface PlaybillVisualProps {
   portraitUrl: string | null
   portraitFallback: string
   accent?: string
-  /** `header` = top bar; `card` = dropdown list; `rail` = chronicle (deprecated). */
-  size?: "header" | "card" | "hero"
+  /** `header` = top bar; `card` = dropdown list; `compact` = mobile dropdown denser row; `rail` = chronicle (deprecated). */
+  size?: "header" | "card" | "hero" | "compact"
 }
 
 function isImageSrc(value: string): boolean {
@@ -142,11 +142,11 @@ export function PlaybillAgentPortrait({
   portraitEmoji?: string | null
   fallback: string
   accent: string
-  size: "header" | "card" | "hero"
+  size: "header" | "card" | "hero" | "compact"
 }) {
-  const dim = size === "hero" ? 112 : size === "header" ? 56 : 44
-  const emojiSize = size === "hero" ? 48 : size === "header" ? 26 : 22
-  const fallbackSize = size === "hero" ? 36 : size === "header" ? 20 : 17
+  const dim = size === "hero" ? 112 : size === "header" ? 56 : size === "compact" ? 36 : 44
+  const emojiSize = size === "hero" ? 48 : size === "header" ? 26 : size === "compact" ? 18 : 22
+  const fallbackSize = size === "hero" ? 36 : size === "header" ? 20 : size === "compact" ? 15 : 17
   const emoji = portraitEmoji?.trim() || null
 
   if (portraitUrl && isImageSrc(portraitUrl)) {

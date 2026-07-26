@@ -18,7 +18,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
-- 2026-07-24: `dialogParticipation.ts` — `voice` | `support_only` | `silent` on agent config; Cloud defaults support_only. `redactForLog.ts` — JWT/token redaction for console/debug capture.
+- 2026-07-25: `dialogParticipation` default is `voice` for every agent (including Cloud). `support_only` / `silent` only via Agent Config.
+- 2026-07-24: `dialogParticipation.ts` — `voice` | `support_only` | `silent` on agent config. `redactForLog.ts` — JWT/token redaction for console/debug capture.
 - 2026-07-19: `document.ts` — added `DocumentForward` / `DocumentStep` on the Document container (authored destination vs live tip).
 - 2026-07-16: Renamed `chronicleDocument.ts` → `document.ts`; exported type `Document` (+ `Point` alias) replaces `ChronicleDocument`.
 - 2026-07-13: Added `chronicleSubject.ts` — Layer-1 ChronicleSubject/ChronicleOverlay types, `resolveChronicleView`, and legacy ID compat helpers (see `docs/chronicle-document-architecture.md`).

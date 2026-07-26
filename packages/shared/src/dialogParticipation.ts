@@ -19,20 +19,18 @@ export function isDialogParticipation(value: unknown): value is DialogParticipat
 }
 
 /**
- * Read participation from agent config. Defaults:
- * - cloud → support_only (platform instrument, not a Dialog voice)
- * - otherwise → voice
+ * Read participation from agent config.
+ * Default is `voice` for every agent (including Cloud).
+ * Prefer Agent Config `dialog_participation` when an agent should be support-only or silent.
  */
 export function resolveDialogParticipation(
   config: unknown,
-  options?: { slug?: string | null },
+  _options?: { slug?: string | null },
 ): DialogParticipation {
   if (config && typeof config === 'object' && !Array.isArray(config)) {
     const raw = (config as Record<string, unknown>).dialog_participation;
     if (isDialogParticipation(raw)) return raw;
   }
-  const slug = options?.slug?.trim().toLowerCase() ?? '';
-  if (slug === 'cloud') return 'support_only';
   return 'voice';
 }
 

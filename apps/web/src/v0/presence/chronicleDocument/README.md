@@ -22,6 +22,7 @@ Point read shell + Document container helpers for Chronicle Focus — shared con
 - [ ] Wire real Step from self-organizing lineage (not faked) — Back/Forward stay disabled until then
 
 ## 📆 Update Log
+- **2026-07-25** — Path hierarchy: accent dots + counts, path panel grouping, Point cards with left rail; Forward labeled + brass border; Step labeled "Now". Keeper theme tokens (Cormorant, brass/success accents).
 - **2026-07-19** — Forward block (collapsible description) + glassy Step + disabled Back/Forward row; theme tokens only (`--theme-status-success` for Step accent).
 
 - **2026-07-17** — Added `DocumentShell`; `DomainRealmStory` is a thin Realm data adapter. Point is atomic primary; Document is container type.

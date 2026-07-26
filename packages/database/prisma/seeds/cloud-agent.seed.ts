@@ -74,7 +74,11 @@ export default async function seedCloudAgent() {
         config: {
           ...existingConfig,
           personality: 'Technical Execution Agent. I read, build, and ship.',
-          dialog_participation: 'support_only',
+          // Dialog voice like other cast agents — override via Agent Config if needed.
+          dialog_participation:
+            existingConfig.dialog_participation === 'silent'
+              ? 'silent'
+              : 'voice',
         },
       },
     });
@@ -102,11 +106,11 @@ export default async function seedCloudAgent() {
       config: {
         persona: null,
         personality: 'Technical Execution Agent. I read, build, and ship.',
-        suppress_kip_system_prompt: true,
-        suppress_sole_memory: true,
-        dialog_participation: 'support_only',
-        domain: 'default',
-      },
+          suppress_kip_system_prompt: true,
+          suppress_sole_memory: true,
+          dialog_participation: 'voice',
+          domain: 'default',
+        },
       model_settings: {},
     },
   });

@@ -32,3 +32,28 @@
   height: 100dvh;
   max-height: 100dvh;
 }
+
+/*
+ * Mobile-staged composer reclaim (Domain/Realm adaptive board).
+ * Reuses AgentComposer mobile-compact / mobile-expanded values.
+ * Must beat .keeper-board-scope .dialog-bottom-zone .keeper-composer-input (108/220).
+ * Desktop (>767px) never sets data-dialog-layout="mobile-staged" on this path.
+ */
+@media (max-width: 767px) {
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
+    .dialog-bottom-zone
+    .keeper-composer-input {
+    min-height: 44px;
+    max-height: 56px;
+    padding: 8px 12px;
+  }
+
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="composing"]
+    .dialog-bottom-zone
+    .keeper-composer-input {
+    min-height: 38vh;
+    max-height: 50vh;
+  }
+}

@@ -169,7 +169,7 @@ Do **not** describe these as one path. Both are real; both carry honesty rules w
 | **Synthesis** | `buildCastConsultationsSynthesisPrompt` rewrites Lead input | `buildReadActionFollowUpInput` after action results |
 | **When idle** | Skipped if no instruments engaged → plain Lead turn | Optional; Lead may answer without consulting |
 
-**Standing honesty (2026-07-24):** every Lead Dialog turn also receives `buildCastHonestySystemPrompt` inside live `callAIModel` — inventing another agent's words is forbidden even when neither A nor B ran. Agents may be declared `support_only` / `silent` via `config.dialog_participation` (Cloud defaults `support_only`).
+**Standing honesty (2026-07-24):** every Lead Dialog turn also receives `buildCastHonestySystemPrompt` inside live `callAIModel` — inventing another agent's words is forbidden even when neither A nor B ran. Agents may be declared `support_only` / `silent` via Agent Config `dialog_participation` (default `voice` for every agent, including Cloud).
 
 **Agent Echo** is a separate solo / Agent-board beat — not on the director cast-synthesis path.
 
@@ -179,6 +179,7 @@ Do **not** describe these as one path. Both are real; both carry honesty rules w
 
 | Date | Change |
 |---|---|
+| 2026-07-25 | **Equal cast voices + Cloud parity:** Mechanism A attaches `castVoices[]` (one UI card per engaged agent); Lead synthesizes without nested roll-call. Cloud no longer defaults `support_only` — Agent Config only. |
 | 2026-07-24 | **Standing cast honesty + Document in context + participation:** honesty rules in live `callAIModel`; `environment.dialogDocument` from Dialog columns + manuscript; `config.dialog_participation`; Mechanisms A/B documented as distinct; `[AgentTurn]` debug. |
 | 2026-07-23 | **Shipped lead-initiated cast consultation:** Mechanism B (`delegate.consult`) + Mechanism A (Domain/Realm multi-select) with honest empty fallback. Invite second human via Cast Header + `/invite/accept`. |
 | 2026-07-22 | **Shipped `kip-roster-dialog-cast-sync`:** Kip's prompt roster merges `DialogCastMember`-enabled agents (via `resolveAgentEnvironment` + session `dialog_id`) into `domainAgents` — additive only; no per-agent turn delegation. |

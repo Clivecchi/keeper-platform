@@ -25,8 +25,14 @@ export function getApiBase(): string {
     if (usesSameOriginApi(window.location.hostname)) {
       return ''; // Same-origin: /api → Vercel rewrite
     }
+    // Dev: Vite proxies /api → local API. Absolute api.ke3p.com fails CORS from localhost.
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return ''
+    }
   }
-  const env = (import.meta as any)?.env?.VITE_API_URL;
+  // Prefer direct import.meta.env access so Vite can statically replace VITE_API_URL.
+  const env = import.meta.env.VITE_API_URL as string | undefined
   return (env || 'https://api.ke3p.com').replace(/\/$/, '');
 }
 

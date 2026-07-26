@@ -23,7 +23,7 @@ Becoming Together is one shared document, attached directly to the real "Becomin
 
 - **Standing cast honesty on every Lead turn:** `buildCastHonestySystemPrompt` is injected in live `callAIModel` (not only on consult synthesis paths). Plain Lead turns must not invent another agent's words — honest “got nothing back” / support-only disclosure.
 - **Dialog Document in agent context:** `resolveAgentEnvironment` loads `environment.dialogDocument` (Forward / Step / Paths / manuscript Points) when `session.dialog_id` is set — same fields Chronicle renders. `callAIModel` surfaces them via `buildDialogDocumentSystemPrompt`.
-- **Declared Dialog participation:** `config.dialog_participation` (`voice` | `support_only` | `silent`) on agent records. Cloud defaults to `support_only`. Editable in Agent Config; Cast Header shows Support / Silent badges. Additive to `DialogCastMember` enable/disable.
+- **Declared Dialog participation:** `config.dialog_participation` (`voice` | `support_only` | `silent`) on agent records. Default is `voice` for every agent (including Cloud). Editable in Agent Config; Cast Header shows Support / Silent badges. Additive to `DialogCastMember` enable/disable.
 - **AgentTurn debug:** `[AgentTurn]` logs mechanism, document-in-context flags, cast consult statuses; message `metadata.orchestration` persists the same. JWT tokens redacted from login / diag / fetch-shim bodies.
 
 ## Authored Forward (recovered / restored)

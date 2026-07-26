@@ -7,11 +7,8 @@ import {
 import { redactForLog, redactStringForLog } from './redactForLog.js';
 
 describe('dialogParticipation', () => {
-  it('defaults Cloud to support_only when unset', () => {
-    expect(resolveDialogParticipation({}, { slug: 'cloud' })).toBe('support_only');
-  });
-
-  it('defaults other agents to voice when unset', () => {
+  it('defaults every agent to voice when unset (including Cloud)', () => {
+    expect(resolveDialogParticipation({}, { slug: 'cloud' })).toBe('voice');
     expect(resolveDialogParticipation({}, { slug: 'rendr' })).toBe('voice');
     expect(resolveDialogParticipation(null, { slug: 'ceox' })).toBe('voice');
   });

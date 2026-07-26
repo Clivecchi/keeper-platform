@@ -31,8 +31,13 @@ export interface AgentDialogueMessage {
   /** Director mode — instrument reply above Lead content (Cloud, Rendr, …). */
   delegation?: DirectorDelegationBeat
   /**
+   * Multi-select cast consultation — one equal voice beat per engaged instrument.
+   * Prefer this over a single `delegation` when present so every agent stands alone.
+   */
+  castVoices?: ReadonlyArray<DirectorDelegationBeat & { slug?: string }>
+  /**
    * Domain/Realm multi-select — collaborators engaged for this turn (UI stamp).
-   * Does not imply each produced a sub-turn; full multi-delegation is separate work.
+   * Prefer `castVoices` for real per-agent replies; this stamp remains for legacy turns.
    */
   engagedCollaborators?: ReadonlyArray<{ slug: string; label: string }>
   linkedCard?: LinkedCardProps

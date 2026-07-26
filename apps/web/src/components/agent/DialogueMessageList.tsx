@@ -110,11 +110,14 @@ function AgentChatBubble({
 
   if (grouped) {
     return (
-      <div className="dialog-multi-agent-turn__beat" data-agent-variant={variant}>
-        <MessageSenderLabel name={name} variant={senderVariant} />
-        <p className="dialog-multi-agent-turn__content">
-          <AgentMessageContent content={trimmed} card={card} />
-        </p>
+      <div className="dialog-voice-card" data-agent-variant={variant}>
+        <div className="dialog-voice-card__rail" aria-hidden />
+        <div className="dialog-voice-card__body">
+          <MessageSenderLabel name={name} variant={senderVariant} />
+          <div className="dialog-voice-card__content">
+            <AgentMessageContent content={trimmed} card={card} />
+          </div>
+        </div>
       </div>
     )
   }
@@ -253,12 +256,18 @@ function AgentMessageTurn({
   applyingTreatmentProposal?: boolean
   onArrivalInvitation?: (id: RealmInvitationId) => void
 }) {
-  const delegation = visibleDelegationBeat(message.delegation)
+  const castVoices = (message.castVoices ?? []).filter((voice) => {
+    const content = voice.content?.trim()
+    if (!content) return voice.status === "failed" || voice.status === "empty"
+    return !isDirectorDelegationFailureContent(content)
+  })
+  const delegation =
+    castVoices.length > 0 ? null : visibleDelegationBeat(message.delegation)
   const echo =
     message.echo?.content?.trim() && !isDirectorDelegationFailureContent(message.echo.content)
       ? message.echo
       : null
-  const isMultiAgentTurn = Boolean(delegation || echo)
+  const isMultiAgentTurn = Boolean(castVoices.length > 0 || delegation || echo)
   const resolvedAgentName = message.senderName?.trim() || agentName
   const visibleContent = sanitizeAgentMessageContent(message.content)
 
@@ -331,6 +340,22 @@ function AgentMessageTurn({
   return (
     <div className="max-w-xl space-y-2.5">
       <MultiAgentTurnGroup>
+        {castVoices.map((voice, index) => (
+          <AgentChatBubble
+            key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${index}`}
+            grouped
+            variant={
+              voice.status === "failed" || voice.status === "empty"
+                ? "delegation-failed"
+                : "collaborator"
+            }
+            name={voice.attributedTo ?? "Agent"}
+            content={
+              voice.content?.trim()
+              || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`
+            }
+          />
+        ))}
         {delegation && (
           <AgentChatBubble
             grouped

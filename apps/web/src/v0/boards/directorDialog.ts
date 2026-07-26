@@ -35,7 +35,6 @@ export function resolveInstrumentParticipation(
   if (fromConfig === "voice" || fromConfig === "support_only" || fromConfig === "silent") {
     return fromConfig
   }
-  if (key === "cloud") return "support_only"
   return "voice"
 }
 
@@ -151,12 +150,14 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   lines.push(
     "",
     `Reply as Lead (${params.directorName}).`,
-    "- Attribute a quote or stance to a cast member ONLY when a real reply is listed above.",
+    "- The Dialog UI already shows each cast member's real reply as their own voice card.",
+    "- Your reply is Lead synthesis only — do NOT re-quote or roll-call their full answers.",
+    "- Attribute a stance to a cast member ONLY when a real reply is listed above.",
     "- If a cast member returned nothing, say plainly you got nothing back from them.",
     "- Never invent, paraphrase-as-quote, or fabricate another agent's words.",
     "- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.",
     "- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.",
-    "- Stay brief; collapse each consult into a minimal beat.",
+    "- Stay brief. Prefer a short synthesis plus an optional keeper-card summary — not a nested voice list.",
   )
   return lines.join("\n")
 }

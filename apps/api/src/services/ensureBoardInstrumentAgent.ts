@@ -18,23 +18,12 @@ async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
   if (existing) {
     const current = existing.capabilities ?? [];
     const needsCaps = CLOUD_AGENT_CAPABILITIES.some((cap) => !current.includes(cap));
-    const config = (existing.config ?? {}) as Record<string, unknown>;
-    const needsParticipation = config.dialog_participation !== 'support_only';
-    if (needsCaps || needsParticipation) {
+    // Do not rewrite dialog_participation — Agent Config owns voice vs support_only.
+    if (needsCaps) {
       return prisma.kip_agents.update({
         where: { slug: 'cloud' },
         data: {
-          ...(needsCaps
-            ? {
-                capabilities: Array.from(
-                  new Set([...current, ...CLOUD_AGENT_CAPABILITIES]),
-                ),
-              }
-            : {}),
-          config: {
-            ...config,
-            dialog_participation: 'support_only',
-          } as Prisma.InputJsonValue,
+          capabilities: Array.from(new Set([...current, ...CLOUD_AGENT_CAPABILITIES])),
         },
       });
     }
@@ -62,7 +51,7 @@ async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
           personality: 'Technical Execution Agent. I read, build, and ship.',
           suppress_kip_system_prompt: true,
           suppress_sole_memory: true,
-          dialog_participation: 'support_only',
+          dialog_participation: 'voice',
           domain: 'default',
         },
         model_settings: {},

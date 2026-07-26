@@ -23,7 +23,7 @@ export type DomainScopedAgentSummary = {
   name: string;
   purpose: string | null;
   role: string | null;
-  /** Declared Dialog-voice mode — from config.dialog_participation (Cloud defaults support_only). */
+  /** Declared Dialog-voice mode — from config.dialog_participation (default voice). */
   dialogParticipation: DialogParticipation;
 };
 

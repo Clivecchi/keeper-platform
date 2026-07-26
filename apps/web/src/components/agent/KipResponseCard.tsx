@@ -53,14 +53,29 @@ export function KipResponseCard({
 
   return (
     <div
+      className="kip-response-card"
       style={{
+        display: "flex",
+        alignItems: "stretch",
+        gap: 0,
         background: "hsl(var(--theme-surface-paper) / 0.90)",
-        border: "1px solid hsl(var(--theme-surface-paper) / 0.40)",
+        border: "1px solid hsl(var(--theme-border-soft) / 0.45)",
         borderRadius: "8px",
-        padding: "12px 16px",
         marginTop: "8px",
+        overflow: "hidden",
       }}
     >
+      <div
+        aria-hidden
+        style={{
+          width: 3,
+          flexShrink: 0,
+          background: isError
+            ? "hsl(0 60% 50%)"
+            : "hsl(var(--theme-accent-primary, 42 55% 48%) / 0.9)",
+        }}
+      />
+      <div style={{ flex: 1, minWidth: 0, padding: "12px 16px" }}>
       {/* Type label — hidden for "status" */}
       {typeLabel && (
         <p
@@ -142,6 +157,7 @@ export function KipResponseCard({
           {meta}
         </p>
       )}
+      </div>
     </div>
   )
 }

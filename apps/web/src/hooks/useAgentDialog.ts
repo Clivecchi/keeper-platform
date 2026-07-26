@@ -767,8 +767,7 @@ export function useAgentDialog({
             appendThinkingStep(`${label} is support-only — not consulted as a Dialog voice.`)
             consultations.push({
               instrumentSlug: slug,
-              instrumentReply:
-                `${label} is support-only — not a Dialog voice. Do not invent a first-person reply for them.`,
+              instrumentReply: null,
               status: "empty",
             })
             continue
@@ -1034,15 +1033,55 @@ export function useAgentDialog({
           onDirectorPhaseChange?.("director")
         }
 
+        // Equal voice cards for every engaged cast member (Mechanism A).
+        // Prefer these over a single first-ok `delegation` beat so Rendr/Cloud
+        // stand alone instead of nesting inside Kip's synthesis.
+        const castVoices: Array<DirectorDelegationBeat & { slug: string }> | undefined =
+          castConsultations?.consultations.length
+            ? castConsultations.consultations.map((row) => {
+                const label =
+                  liveDirectorConfig?.instrumentLabels[row.instrumentSlug]
+                  ?? row.instrumentSlug
+                const reply = row.instrumentReply?.trim() ?? ""
+                if (row.status === "ok" && reply) {
+                  return {
+                    slug: row.instrumentSlug,
+                    attributedTo: label,
+                    content: reply,
+                    status: "ok" as const,
+                  }
+                }
+                if (row.status === "failed") {
+                  return {
+                    slug: row.instrumentSlug,
+                    attributedTo: label,
+                    content: `${label} couldn't respond this turn.`,
+                    status: "failed" as const,
+                  }
+                }
+                return {
+                  slug: row.instrumentSlug,
+                  attributedTo: label,
+                  content: reply || `${label} returned nothing this turn.`,
+                  status: "empty" as const,
+                }
+              })
+            : undefined
+
         const mergeOntoLastAgent = (list: AgentDialogueMessage[]): AgentDialogueMessage[] => {
           const withUser = patchLastUserContent(list, transcriptContent)
-          if (!directorDelegation && !actionsArr?.length) return withUser
+          if (!directorDelegation && !actionsArr?.length && !castVoices?.length) return withUser
           const updated = [...withUser]
           const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
           if (lastAgentIdx < 0) return withUser
           updated[lastAgentIdx] = {
             ...updated[lastAgentIdx],
-            ...(directorDelegation ? { delegation: directorDelegation } : {}),
+            // Multi-voice turns own the instrument beats; skip single-delegation duplicate.
+            ...(castVoices?.length
+              ? { castVoices }
+              : directorDelegation
+                ? { delegation: directorDelegation }
+                : {}),
             ...(actionsArr?.length ? { actionResults: actionsArr as RunAgentActionInput[] } : {}),
           }
           return updated

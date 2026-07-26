@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-25 — Domain mobile composer reclaim (compact-after-send)
+- `UniversalConversation` — on adaptive mobile Domain/Realm (`usesAdaptiveMobileBoardLayout`, ≤767px), wires existing `dialogLayout="mobile-staged"` + `useMobileKipDialogStage` so the composer shrinks to `mobile-compact` after send/idle and re-expands on focus. Reuses KeeperDialogFrame → AgentComposer size mapping; no second sizing path. Desktop and non-adaptive boards unchanged. Does not mount UniversalMobileShell.
+- `board-mobile.css` — ≤767px overrides so staged compact (44/56) and expanded (38vh/50vh) beat `.keeper-board-scope` composer 108/220 floors.
+- Focus expand: deferred blur handler so class/rows updates don’t collapse mid-tap; clear focus only when a send finishes.
+
 ### 2026-07-25 — post-deploy cast honesty + consult reporting
 - `directorDialog` — Document-item quoting rules on instrument + cast synthesis prompts; participation helper for support_only/silent.
 - `UniversalConversation` — passes `dialogId` + `instrumentParticipation` into `useAgentDialog` / director config.
@@ -41,7 +46,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Shell cache exposes a version subscription so late cover prefetch paints without unrelated selection churn.
 
 ### 2026-07-24 — standing honesty + Dialog participation
-- Cast Header chips show Support / Silent from `config.dialog_participation` (Cloud defaults support-only).
+- Cast Header chips show Support / Silent from `config.dialog_participation` (default voice; Agent Config override).
 - Client `[AgentTurn]` logs mechanism A vs plain Lead / director instrument before `runAgent`.
 - Docs: Mechanisms A (multi-select) and B (`delegate.consult`) kept distinct; standing honesty lives in live `callAIModel`.
 

@@ -610,8 +610,6 @@ async function enrichAgent(
     }
     if (typeof cfg.dialog_participation === "string") {
       record.dialog_participation = cfg.dialog_participation
-    } else if (typeof record.slug === "string" && record.slug === "cloud") {
-      record.dialog_participation = "support_only"
     }
     const schemaAvatar =
       record.presenceSchema && typeof record.presenceSchema === "object"

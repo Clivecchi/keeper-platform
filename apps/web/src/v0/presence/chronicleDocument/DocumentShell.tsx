@@ -29,21 +29,77 @@ export interface DocumentShellProps {
   className?: string
 }
 
-function PathHeader({ title, prelude }: { title?: string; prelude?: string }) {
+type PathAccent = "progress" | "issue" | "development" | "cast" | "neutral"
+
+function resolvePathAccent(title?: string): PathAccent {
+  const key = (title ?? "").trim().toLowerCase()
+  if (!key) return "neutral"
+  if (/(known\s*issue|issue|gap|blocker)/.test(key)) return "issue"
+  if (/(develop|build|ship|work)/.test(key)) return "development"
+  if (/(cast|orchestrat|voice|roster)/.test(key)) return "cast"
+  if (/(progress|shipped|done|kept)/.test(key)) return "progress"
+  return "neutral"
+}
+
+function pathAccentColor(accent: PathAccent): string {
+  switch (accent) {
+    case "progress":
+      return "hsl(var(--theme-status-success))"
+    case "issue":
+      return "hsl(var(--theme-status-warning, 38 70% 48%))"
+    case "development":
+      return "hsl(var(--theme-focus-ring, 210 45% 52%))"
+    case "cast":
+      return "hsl(var(--theme-accent-primary, 42 55% 48%))"
+    default:
+      return "hsl(var(--theme-ink-tertiary))"
+  }
+}
+
+function PathHeader({
+  title,
+  prelude,
+  count,
+  accent,
+}: {
+  title?: string
+  prelude?: string
+  count: number
+  accent: PathAccent
+}) {
   if (!title && !prelude) return null
+  const accentColor = pathAccentColor(accent)
   return (
-    <header className="px-4 pt-5 pb-1">
-      {title ? (
-        <h3
-          className="text-[13px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          {title}
-        </h3>
-      ) : null}
+    <header className="document-shell-path__header px-1 pb-2 pt-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="inline-block h-2 w-2 shrink-0 rounded-full"
+            style={{ background: accentColor }}
+            aria-hidden
+          />
+          {title ? (
+            <h3
+              className="truncate text-[12px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: accentColor }}
+            >
+              {title}
+            </h3>
+          ) : null}
+        </div>
+        {count > 0 ? (
+          <span
+            className="shrink-0 text-[11px] font-medium tabular-nums"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            aria-label={`${count} points`}
+          >
+            {count}
+          </span>
+        ) : null}
+      </div>
       {prelude ? (
         <p
-          className="mt-1 text-[14px] leading-relaxed"
+          className="mt-1.5 pl-4 text-[13px] leading-relaxed"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {prelude}
@@ -56,18 +112,37 @@ function PathHeader({ title, prelude }: { title?: string; prelude?: string }) {
 function PointFrame({
   point,
   onGloss,
+  accent,
 }: {
   point: Point
   onGloss?: () => void
+  accent: PathAccent
 }) {
   return (
     <div
-      className="document-shell-point px-4 py-3"
+      className="document-shell-point"
       style={{
-        borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.25)",
+        display: "flex",
+        alignItems: "stretch",
+        borderRadius: 10,
+        overflow: "hidden",
+        background: "hsl(var(--theme-surface-paper) / 0.72)",
+        border: "1px solid hsl(var(--theme-border-soft) / 0.42)",
+        boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.04)",
       }}
     >
-      <PointView point={point} onGloss={onGloss} />
+      <div
+        aria-hidden
+        style={{
+          width: 3,
+          flexShrink: 0,
+          background: pathAccentColor(accent),
+          opacity: 0.85,
+        }}
+      />
+      <div className="min-w-0 flex-1 px-3.5 py-3">
+        <PointView point={point} onGloss={onGloss} />
+      </div>
     </div>
   )
 }
@@ -164,13 +239,23 @@ function ForwardBlock({
         className="rounded-xl px-4 py-3"
         style={{
           background: "hsl(var(--theme-surface-paper) / 0.92)",
-          border: "1px solid hsl(var(--theme-border-soft) / 0.45)",
+          border: "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.35)",
+          boxShadow: "0 1px 3px hsl(var(--theme-ink-primary) / 0.06)",
         }}
       >
+        <p
+          className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+          style={{ color: "hsl(var(--theme-accent-primary, 42 55% 48%))" }}
+        >
+          Forward
+        </p>
         <div className="flex items-start gap-2">
           <h2
             className="min-w-0 flex-1 text-[18px] font-semibold leading-snug"
-            style={{ color: titleColor }}
+            style={{
+              color: titleColor,
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+            }}
           >
             {forward.title}
           </h2>
@@ -212,6 +297,12 @@ function ForwardBlock({
               boxShadow: "inset 0 1px 0 hsl(var(--theme-surface-paper) / 0.35)",
             }}
           >
+            <p
+              className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "hsl(var(--theme-status-success))" }}
+            >
+              Now
+            </p>
             {step.title?.trim() ? (
               <h3
                 className="text-[15px] font-semibold leading-snug"
@@ -248,7 +339,7 @@ function ForwardBlock({
               cursor: "not-allowed",
             }}
           >
-            Back
+            ← Back
           </button>
           <button
             type="button"
@@ -263,7 +354,7 @@ function ForwardBlock({
               cursor: "not-allowed",
             }}
           >
-            Forward
+            Forward →
           </button>
         </nav>
       </div>
@@ -302,24 +393,50 @@ export function DocumentShell({
 
       {points.length === 0 ? emptyState : null}
 
-      {groups.map((group) => (
-        <section key={group.key} className="document-shell-path">
-          {group.path ? (
-            <PathHeader title={group.path.title} prelude={group.path.prelude} />
-          ) : null}
-          {group.items.map(({ point, index }) => (
-            <PointFrame
-              key={`${group.key}-${index}`}
-              point={point}
-              onGloss={
-                onGlossPoint && point.gloss?.anchor
-                  ? () => onGlossPoint(point, index)
-                  : undefined
-              }
-            />
-          ))}
-        </section>
-      ))}
+      <div className="document-shell-paths flex flex-col gap-5 px-4 pb-6 pt-1">
+        {groups.map((group) => {
+          const accent = resolvePathAccent(group.path?.title)
+          return (
+            <section
+              key={group.key}
+              className="document-shell-path"
+              style={{
+                borderRadius: 12,
+                padding: group.path ? "12px 12px 10px" : "0",
+                background: group.path
+                  ? "hsl(var(--theme-surface-panel) / 0.28)"
+                  : "transparent",
+                border: group.path
+                  ? "1px solid hsl(var(--theme-border-soft) / 0.35)"
+                  : "none",
+              }}
+            >
+              {group.path ? (
+                <PathHeader
+                  title={group.path.title}
+                  prelude={group.path.prelude}
+                  count={group.items.length}
+                  accent={accent}
+                />
+              ) : null}
+              <div className="flex flex-col gap-2.5">
+                {group.items.map(({ point, index }) => (
+                  <PointFrame
+                    key={`${group.key}-${index}`}
+                    point={point}
+                    accent={accent}
+                    onGloss={
+                      onGlossPoint && point.gloss?.anchor
+                        ? () => onGlossPoint(point, index)
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }

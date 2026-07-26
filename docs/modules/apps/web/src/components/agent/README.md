@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-07-25: **Equal cast voice cards** — multi-select consults attach `castVoices[]` on the lead message; each engaged agent renders as its own accent-rail voice card before Lead synthesis. `KipResponseCard` gets matching left rail. Lead synthesis prompt told not to re-roll-call nested quotes.
 - 2026-07-11: **Attachment + Enter send** — Enter now requires typed prompt text (staged files ride along); Send button still allows attachment-only. Controlled Thinking Space attachments clear only after parent send completes. Dialog submit awaits agent run and blocks double-send during Library commit.
 - 2026-07-08: **Gloss bubble framing** — `GlossSurface` wraps the chat bubble shell (not just `<p>`); hover recolors the existing border and places the Gloss pill on the top border rail without overlapping message text.
 - 2026-07-02: **P4.1 paste in Thinking Space** — large paste tiles render in Broadcast Strip (`DialogUploadStream`) on Dialog boards; transcript uses `displayContent` not raw supporting context. **P2.3 Cloud routing** — failed/empty director delegation shows amber notice beat (`status: failed|empty`) instead of hiding routing failure.
@@ -72,5 +73,5 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - 2026-02-09: Initial extraction from KipAgentBoardPage. Created DialogueMessageList, SessionCard, CockpitPanel, AgentContextBar, types, and helpers.
 - 2026-02-14: Added showCompliance prop and GovernanceCompliancePanel to CockpitPanel. When showCompliance (admin view), displays Draft Trigger Success %, Tool-First Violations, Total checks via GET /api/domains/:domainId/governance/compliance.
 
-- 2026-07-15: **keeper-card reliability** � AgentMessageContent prefers structured metadata.card; fences remain fallback. Unit tests for parse/normalize/strip.
+- 2026-07-15: **keeper-card reliability** � AgentMessageContent prefers structured metadata.card; fences remain fallback. Unit tests for parse/normalize/strip.
 

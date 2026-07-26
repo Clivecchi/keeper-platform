@@ -52,6 +52,9 @@ import type { UniversalBoardCenterProps } from "./UniversalBoard"
 import { useUniversalBoard } from "./UniversalBoardContext"
 import { useDesignerDraftOptional } from "./DesignerDraftContext"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
+import { usesAdaptiveMobileBoardLayout } from "./workspaceBoardNav"
+import { useIsMobile } from "../../mobile/hooks/useIsMobile"
+import { useMobileKipDialogStage } from "../../mobile/hooks/useMobileKipDialogStage"
 import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson, DomainFrameTreatment } from "../data/domain-frame.types"
@@ -114,7 +117,6 @@ function resolveAgentDialogParticipation(
   }
   const raw = agent.config?.dialog_participation
   if (raw === "voice" || raw === "support_only" || raw === "silent") return raw
-  if (agent.slug === "cloud") return "support_only"
   return "voice"
 }
 
@@ -266,6 +268,9 @@ export function UniversalConversation({
   const boardDefinitionId = useBoardDefinitionFromUrl()
   const frameCtx = useFrameContextOptional()
   const { refreshSession, user } = useAuth()
+  const isMobile = useIsMobile()
+  const useMobileStagedComposer = usesAdaptiveMobileBoardLayout(def.boardId, isMobile)
+  const [composerFocused, setComposerFocused] = React.useState(false)
   const audience = shellAudience ?? "keeper"
   const kipMode = def.conversation.kipMode
   const guidedArrival = useGuidedArrivalOptional()
@@ -629,9 +634,7 @@ export function UniversalConversation({
         label: BOARD_INSTRUMENT_LABELS[slug] ?? slug,
         dialogParticipation: rosterMatch
           ? resolveAgentDialogParticipation(rosterMatch)
-          : slug === "cloud"
-            ? "support_only"
-            : "voice",
+          : "voice",
       })
     }
 
@@ -836,7 +839,6 @@ export function UniversalConversation({
         map[chip.slug.trim().toLowerCase()] = chip.dialogParticipation
       }
     }
-    if (!map.cloud) map.cloud = "support_only"
     return map
   }, [domainDirectorBoardInstruments])
 
@@ -2285,6 +2287,48 @@ export function UniversalConversation({
     realmFeedLoading,
   ])
 
+  // Adaptive mobile Domain/Realm: reuse KipScreen mobile-staged composer sizing
+  // (compact after send/idle; expand on focus). Desktop and non-adaptive boards unchanged.
+  const { stage: mobileDialogStage } = useMobileKipDialogStage({
+    messages: dialogMessages,
+    input,
+    isSending,
+    composerFocused: useMobileStagedComposer ? composerFocused : false,
+  })
+
+  // Clear focus only when a send finishes — not on every idle render.
+  const wasSendingRef = React.useRef(false)
+  React.useEffect(() => {
+    if (!useMobileStagedComposer) return
+    if (wasSendingRef.current && !isSending) {
+      setComposerFocused(false)
+    }
+    wasSendingRef.current = isSending
+  }, [useMobileStagedComposer, isSending])
+
+  // Defer blur so composerSize class/rows updates don't collapse mid-focus transition.
+  const handleComposerFocusChange = React.useCallback(
+    (focused: boolean) => {
+      if (!useMobileStagedComposer) return
+      if (focused) {
+        setComposerFocused(true)
+        return
+      }
+      window.setTimeout(() => {
+        const active = document.activeElement
+        if (
+          active instanceof HTMLElement
+          && active.classList.contains("keeper-composer-input")
+        ) {
+          setComposerFocused(true)
+          return
+        }
+        setComposerFocused(false)
+      }, 0)
+    },
+    [useMobileStagedComposer],
+  )
+
   const [inviteOpen, setInviteOpen] = React.useState(false)
 
   /** Realm trailing access chrome only — agent roster uses BoardInstrumentsBar. */
@@ -2334,6 +2378,9 @@ export function UniversalConversation({
         soleActive={false}
         modelProvider={modelProvider}
         onSaveTitle={kipMode === "ide" ? handleSaveTitle : undefined}
+        dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}
+        mobileDialogStage={useMobileStagedComposer ? mobileDialogStage : undefined}
+        onComposerFocusChange={useMobileStagedComposer ? handleComposerFocusChange : undefined}
         showServiceBar={def.conversation.showServiceBar}
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
         onToolInvoke={isDirectorMode && kipMode === "ide" ? handleToolInvoke : undefined}

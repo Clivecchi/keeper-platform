@@ -72,8 +72,11 @@ Failures in individual steps log warnings and do not fail domain create.
 - Confirmed primary paths wired: `POST /api/domains` (routes.ts), signup (`/api/kam/auth/register`), repair `POST /api/domains/:id/provision`.
 - Added provisioner to legacy flat `POST /api/domains` (domains.ts) and super-admin `POST /api/admin/domains`.
 
+### 2026-07-25 — Cloud Dialog voice parity
+- Participation defaults to `voice` for every agent; Cloud is no longer hardcoded `support_only`. Agent Config remains the override.
+
 ### 2026-07-24 — Dialog participation on roster
-- `loadDomainScopedAgents` summary includes `dialogParticipation` from `config.dialog_participation` (Cloud defaults `support_only`).
+- `loadDomainScopedAgents` summary includes `dialogParticipation` from `config.dialog_participation`.
 
 ### 2026-06-28 — Domain-accessible agent roster (Agent board Nav)
 - `loadDomainScopedAgents.ts` — merges domain lead + Kip + platform agents (`cloud`, `rendr`) for every domain.

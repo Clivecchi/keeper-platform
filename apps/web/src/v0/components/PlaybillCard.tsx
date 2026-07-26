@@ -6,6 +6,7 @@ import {
   SWITCHER_INK_PRIMARY,
 } from "../boards/domain/domainSwitcherTheme"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
+import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { sealPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
 import {
@@ -47,6 +48,7 @@ export function PlaybillCard({
   variant = "overlay",
   className = "",
 }: PlaybillCardProps) {
+  const isMobile = useIsMobile()
   const { isUncast, isLoading, agent } = usePlaybillCard({
     domainId: domain.id,
     leadAgentSlug: domain.leadAgentSlug,
@@ -104,11 +106,19 @@ export function PlaybillCard({
       >
         <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
 
-        <div className="relative z-10 flex items-center gap-2.5 px-3 py-2.5">
+        <div
+          className={[
+            "relative z-10 flex items-center",
+            isMobile ? "gap-2 px-2.5 py-1.5" : "gap-2.5 px-3 py-2.5",
+          ].join(" ")}
+        >
           <div className="min-w-0 flex-1">
             <p className="playbill-dropdown-row__presents truncate">{billingName} presents</p>
             <p
-              className="playbill-dropdown-row__name truncate font-serif text-[15px] font-bold leading-tight"
+              className={[
+                "playbill-dropdown-row__name truncate font-serif font-bold leading-tight",
+                isMobile ? "text-[14px]" : "text-[15px]",
+              ].join(" ")}
               style={{ color: inkPrimary }}
             >
               {isLoading && !isUncast ? "…" : starName}
@@ -126,7 +136,7 @@ export function PlaybillCard({
             portraitEmoji={portraitEmoji}
             fallback={portraitFallback}
             accent={accent}
-            size="card"
+            size={isMobile ? "compact" : "card"}
           />
         </div>
       </button>
