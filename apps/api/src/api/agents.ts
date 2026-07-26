@@ -134,7 +134,11 @@ function mergeAgentConfigFields(
     ...(fields.theme_color !== undefined ? { theme_color: fields.theme_color } : {}),
     ...(fields.voice_prompt !== undefined ? { voice_prompt: fields.voice_prompt } : {}),
     ...(fields.dialog_participation !== undefined
-      ? { dialog_participation: fields.dialog_participation }
+      ? {
+          dialog_participation: fields.dialog_participation,
+          // Stops legacy Cloud support_only → voice promote from overwriting Agent Config.
+          dialog_participation_user_set: true,
+        }
       : {}),
   };
 }

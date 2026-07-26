@@ -585,6 +585,9 @@ export function UniversalConversation({
     actions,
   ])
 
+  /** Seed multi-select once so Cast chips match who will be consulted (full voice cast). */
+  const castMultiSelectSeededRef = React.useRef(false)
+
   const domainDirectorBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
     if (kipMode !== "domain" || !isDirectorMode) return []
     const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
@@ -677,6 +680,28 @@ export function UniversalConversation({
     domainScopedAgents,
     def.conversation.boardInstruments,
     dialogCastMembers,
+  ])
+
+  React.useEffect(() => {
+    if (!instrumentMultiSelect || !isDirectorMode) return
+    if (castMultiSelectSeededRef.current) return
+    if (activeBoardInstruments.length > 0) {
+      castMultiSelectSeededRef.current = true
+      return
+    }
+    const defaults = domainDirectorBoardInstruments
+      .filter((chip) => !chip.isDirector)
+      .filter((chip) => (chip.dialogParticipation ?? "voice") !== "silent")
+      .map((chip) => chip.slug)
+    if (defaults.length === 0) return
+    castMultiSelectSeededRef.current = true
+    actions.onSetActiveBoardInstruments(defaults)
+  }, [
+    instrumentMultiSelect,
+    isDirectorMode,
+    activeBoardInstruments.length,
+    domainDirectorBoardInstruments,
+    actions,
   ])
 
   /** Lead-led domain — footer Agents bar: support agents only (Kip). Lead lives in composer toolbar. */
@@ -842,13 +867,33 @@ export function UniversalConversation({
     return map
   }, [domainDirectorBoardInstruments])
 
+  /**
+   * Multi-select cast consult targets.
+   * Empty chip selection used to mean "consult nobody" — Kip then invented roll calls.
+   * Empty now means "consult the full non-Lead cast" so Roll Call / everyone-speak works
+   * without requiring the user to click every chip first. Explicit chip selection narrows.
+   */
+  const resolvedConsultInstruments = React.useMemo(() => {
+    if (!instrumentMultiSelect || !isDirectorMode) return [] as string[]
+    if (activeBoardInstruments.length > 0) return [...activeBoardInstruments]
+    return domainDirectorBoardInstruments
+      .filter((chip) => !chip.isDirector)
+      .filter((chip) => (chip.dialogParticipation ?? "voice") !== "silent")
+      .map((chip) => chip.slug)
+  }, [
+    instrumentMultiSelect,
+    isDirectorMode,
+    activeBoardInstruments,
+    domainDirectorBoardInstruments,
+  ])
+
   const directorConfig = React.useMemo(
     () => {
       if (!isDirectorMode) return undefined
       if (instrumentMultiSelect) {
         return {
           activeInstrument: null as string | null,
-          consultInstruments: [...activeBoardInstruments],
+          consultInstruments: resolvedConsultInstruments,
           instrumentLabels: directorInstrumentLabels,
           instrumentParticipation,
           directorDisplayName: defaultAgentName,
@@ -865,7 +910,7 @@ export function UniversalConversation({
       isDirectorMode,
       instrumentMultiSelect,
       activeBoardInstrument,
-      activeBoardInstruments,
+      resolvedConsultInstruments,
       defaultAgentName,
       directorInstrumentLabels,
       instrumentParticipation,
@@ -873,8 +918,8 @@ export function UniversalConversation({
   )
 
   const engagedCollaboratorStamp = React.useMemo(() => {
-    if (!instrumentMultiSelect || !activeBoardInstruments.length) return []
-    return activeBoardInstruments.map((slug) => ({
+    if (!instrumentMultiSelect || !resolvedConsultInstruments.length) return []
+    return resolvedConsultInstruments.map((slug) => ({
       slug,
       label:
         directorInstrumentLabels[slug]
@@ -882,7 +927,7 @@ export function UniversalConversation({
     }))
   }, [
     instrumentMultiSelect,
-    activeBoardInstruments,
+    resolvedConsultInstruments,
     directorInstrumentLabels,
     domainScopedAgents,
   ])

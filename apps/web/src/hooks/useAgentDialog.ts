@@ -411,7 +411,7 @@ export function useAgentDialog({
     ],
   )
 
-  const { clearSavedDraft, restoreSavedDraft } = useComposerDraftAutosave({
+  const { clearSavedDraft, restoreSavedDraft, armSendDraft } = useComposerDraftAutosave({
     scope: composerDraftScope,
     input,
     setInput,
@@ -664,6 +664,9 @@ export function useAgentDialog({
       }
 
       setInput("")
+      // Clear sessionStorage immediately so a mid-send session-key change cannot
+      // re-fill the composer (blocks mobile compact-after-send). Hold text for failure restore.
+      armSendDraft(content)
       setIsSending(true)
       if (mode === "ide") setError(null)
 
@@ -1214,6 +1217,7 @@ export function useAgentDialog({
       greeting,
       clearSavedDraft,
       restoreSavedDraft,
+      armSendDraft,
       dialogId,
     ],
   )

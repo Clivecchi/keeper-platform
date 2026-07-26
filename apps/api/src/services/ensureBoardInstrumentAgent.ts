@@ -18,12 +18,31 @@ async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
   if (existing) {
     const current = existing.capabilities ?? [];
     const needsCaps = CLOUD_AGENT_CAPABILITIES.some((cap) => !current.includes(cap));
-    // Do not rewrite dialog_participation — Agent Config owns voice vs support_only.
-    if (needsCaps) {
+    const config = (existing.config ?? {}) as Record<string, unknown>;
+    // Legacy platform default was support_only — kept Cloud silent on Roll Call.
+    // Promote unless Agent Config explicitly set participation (user_set flag).
+    const needsVoiceParity =
+      config.dialog_participation === 'support_only'
+      && config.dialog_participation_user_set !== true;
+    if (needsCaps || needsVoiceParity) {
       return prisma.kip_agents.update({
         where: { slug: 'cloud' },
         data: {
-          capabilities: Array.from(new Set([...current, ...CLOUD_AGENT_CAPABILITIES])),
+          ...(needsCaps
+            ? {
+                capabilities: Array.from(
+                  new Set([...current, ...CLOUD_AGENT_CAPABILITIES]),
+                ),
+              }
+            : {}),
+          ...(needsVoiceParity
+            ? {
+                config: {
+                  ...config,
+                  dialog_participation: 'voice',
+                } as Prisma.InputJsonValue,
+              }
+            : {}),
         },
       });
     }

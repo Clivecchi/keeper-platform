@@ -30,6 +30,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-26 — Roll Call consults full cast by default
+- Empty multi-select no longer means “consult nobody.” Domain/Realm consults all non-Lead, non-silent cast members so voice cards appear without clicking every chip. Explicit chip selection still narrows the set.
+
 ### 2026-07-25 — Domain mobile composer reclaim (compact-after-send)
 - `UniversalConversation` — on adaptive mobile Domain/Realm (`usesAdaptiveMobileBoardLayout`, ≤767px), wires existing `dialogLayout="mobile-staged"` + `useMobileKipDialogStage` so the composer shrinks to `mobile-compact` after send/idle and re-expands on focus. Reuses KeeperDialogFrame → AgentComposer size mapping; no second sizing path. Desktop and non-adaptive boards unchanged. Does not mount UniversalMobileShell.
 - `board-mobile.css` — ≤767px overrides so staged compact (44/56) and expanded (38vh/50vh) beat `.keeper-board-scope` composer 108/220 floors.

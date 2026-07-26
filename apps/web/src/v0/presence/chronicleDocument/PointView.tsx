@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { ChevronDown } from "lucide-react"
 import type { Point } from "@keeper/shared"
 
 export interface PointViewProps {
@@ -14,23 +15,46 @@ export interface PointViewProps {
   onGloss?: () => void
   /** @deprecated Use onGloss */
   onDiscuss?: () => void
+  /** Start expanded. Default false — older-eye readability: title + short blurb only. */
+  defaultExpanded?: boolean
 }
 
-export function PointView({ point, document, onGloss, onDiscuss }: PointViewProps) {
+/** ~two sentences for collapsed preview — not a wall of body text. */
+function collapsedBlurb(point: Point): string {
+  const lede = point.lede?.trim()
+  if (lede) return lede
+  const body = point.body.text.trim()
+  if (!body) return ""
+  // Prefer first 1–2 sentences, then hard-cap length.
+  const sentenceMatch = body.match(/^(.+?[.!?])(?:\s+(.+?[.!?]))?/)
+  const preview = sentenceMatch
+    ? [sentenceMatch[1], sentenceMatch[2]].filter(Boolean).join(" ")
+    : body
+  if (preview.length <= 180) return preview
+  return `${preview.slice(0, 177).trimEnd()}…`
+}
+
+export function PointView({
+  point,
+  document,
+  onGloss,
+  onDiscuss,
+  defaultExpanded = false,
+}: PointViewProps) {
   const card = point ?? document
   if (!card) return null
 
   const handleGloss = onGloss ?? onDiscuss
-  const [expanded, setExpanded] = React.useState(false)
-  const clampLines = card.body.clampLines ?? 6
-  const canExpand = card.body.expandable !== false && card.body.text.length > 280
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const blurb = collapsedBlurb(card)
+  const bodyText = card.body.text.trim()
 
   return (
-    <article className="keeper-chronicle-document flex flex-col gap-2">
-      <header className="flex flex-col gap-1">
+    <article className="keeper-chronicle-document flex flex-col gap-2.5">
+      <header className="flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p
-            className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+            className="text-[13px] font-semibold uppercase tracking-[0.1em]"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
             {card.identity.label}
@@ -38,7 +62,7 @@ export function PointView({ point, document, onGloss, onDiscuss }: PointViewProp
           </p>
           {card.status ? (
             <span
-              className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+              className="rounded px-2 py-0.5 text-[12px] font-semibold uppercase tracking-wide"
               style={{
                 color:
                   card.status.tone === "error"
@@ -58,55 +82,74 @@ export function PointView({ point, document, onGloss, onDiscuss }: PointViewProp
             </span>
           ) : null}
         </div>
-        <h2
-          className="text-[16px] font-semibold leading-snug"
-          style={{
-            color: "hsl(var(--theme-ink-primary))",
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-          }}
+        <button
+          type="button"
+          onClick={() => setExpanded((open) => !open)}
+          className="group flex w-full items-start gap-2 text-left"
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse point" : "Expand point"}
         >
-          {card.title}
-        </h2>
-        {card.lede ? (
-          <p className="text-[13px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            {card.lede}
-          </p>
-        ) : null}
+          <h2
+            className="min-w-0 flex-1 text-[22px] font-semibold leading-snug"
+            style={{
+              color: "hsl(var(--theme-ink-primary))",
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+            }}
+          >
+            {card.title}
+          </h2>
+          <ChevronDown
+            className={`mt-1.5 h-5 w-5 shrink-0 transition-transform ${expanded ? "" : "-rotate-90"}`}
+            strokeWidth={2}
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            aria-hidden
+          />
+        </button>
       </header>
 
-
-      <div
-        className="text-[14px] leading-relaxed whitespace-pre-wrap"
-        style={{
-          color: "hsl(var(--theme-ink-secondary))",
-          ...(canExpand && !expanded
-            ? {
-                display: "-webkit-box",
-                WebkitLineClamp: clampLines,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
-              }
-            : {}),
-        }}
-      >
-        {card.body.text}
-      </div>
-
-      <div className="flex items-center gap-3">
-        {canExpand ? (
-          <button
-            type="button"
-            className="text-[12px] font-medium underline-offset-2 hover:underline"
-            style={{ color: "hsl(var(--theme-accent-primary))" }}
-            onClick={() => setExpanded((v) => !v)}
+      {!expanded ? (
+        blurb ? (
+          <p
+            className="text-[17px] leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
-            {expanded ? "Show less" : "Show more"}
-          </button>
-        ) : null}
+            {blurb}
+          </p>
+        ) : null
+      ) : (
+        <>
+          {card.lede?.trim() && card.lede.trim() !== bodyText ? (
+            <p
+              className="text-[17px] leading-relaxed"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              {card.lede.trim()}
+            </p>
+          ) : null}
+          {bodyText ? (
+            <div
+              className="text-[17px] leading-relaxed whitespace-pre-wrap"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              {bodyText}
+            </div>
+          ) : null}
+        </>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          className="text-[15px] font-medium underline-offset-2 hover:underline"
+          style={{ color: "hsl(var(--theme-accent-primary))" }}
+          onClick={() => setExpanded((open) => !open)}
+        >
+          {expanded ? "Close" : "Open"}
+        </button>
         {handleGloss ? (
           <button
             type="button"
-            className="text-[12px] font-semibold rounded-md px-2.5 py-1"
+            className="text-[15px] font-semibold rounded-md px-3 py-1.5"
             style={{
               background: "hsl(var(--theme-accent-primary) / 0.12)",
               color: "hsl(var(--theme-accent-primary))",

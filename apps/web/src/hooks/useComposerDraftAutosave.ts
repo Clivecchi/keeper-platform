@@ -26,8 +26,14 @@ export interface UseComposerDraftAutosaveOptions {
 export interface UseComposerDraftAutosaveResult {
   /** Clears stored draft for the active scope (and pending bucket when session-bound). */
   clearSavedDraft: () => void
-  /** Re-applies stored draft to the composer (e.g. after a failed send). */
+  /** Re-applies held/stored draft to the composer (e.g. after a failed send). */
   restoreSavedDraft: () => void
+  /**
+   * Call when a send starts (with the outbound text). Clears sessionStorage so a
+   * mid-send session-key change cannot re-fill the composer, and holds the text
+   * in memory for `restoreSavedDraft` on failure.
+   */
+  armSendDraft: (sentText: string) => void
 }
 
 function resolveDraftForScope(scope: ComposerDraftScope): string | null {
@@ -46,8 +52,11 @@ export function useComposerDraftAutosave({
 }: UseComposerDraftAutosaveOptions): UseComposerDraftAutosaveResult {
   const scopeKey = scope ? buildComposerDraftKey(scope) : null
   const lastRestoredKeyRef = React.useRef<string | null>(null)
+  /** In-memory hold for failure restore after storage was cleared on send start. */
+  const pendingRestoreRef = React.useRef<string | null>(null)
 
   const clearSavedDraft = React.useCallback(() => {
+    pendingRestoreRef.current = null
     if (!scope) return
     clearComposerDraft(buildComposerDraftKey(scope))
     if (scope.sessionId) {
@@ -55,7 +64,23 @@ export function useComposerDraftAutosave({
     }
   }, [scope])
 
+  const armSendDraft = React.useCallback(
+    (sentText: string) => {
+      pendingRestoreRef.current = sentText
+      if (!scope) return
+      clearComposerDraft(buildComposerDraftKey(scope))
+      clearComposerDraft(buildComposerDraftKey({ ...scope, sessionId: null }))
+    },
+    [scope],
+  )
+
   const restoreSavedDraft = React.useCallback(() => {
+    const held = pendingRestoreRef.current
+    pendingRestoreRef.current = null
+    if (held != null) {
+      setInput(held)
+      return
+    }
     if (!scope) return
     const draft = resolveDraftForScope(scope)
     if (draft != null) setInput(draft)
@@ -63,12 +88,14 @@ export function useComposerDraftAutosave({
 
   React.useEffect(() => {
     if (!enabled || !scope || !scopeKey) return
+    // Mid-send session create changes scopeKey — never re-apply draft into the composer.
+    if (isSending) return
     if (lastRestoredKeyRef.current === scopeKey) return
     lastRestoredKeyRef.current = scopeKey
 
     const draft = resolveDraftForScope(scope)
     if (draft != null) setInput(draft)
-  }, [enabled, scope, scopeKey, setInput])
+  }, [enabled, scope, scopeKey, setInput, isSending])
 
   React.useEffect(() => {
     if (!enabled || !scope || !scopeKey || isSending) return
@@ -85,5 +112,5 @@ export function useComposerDraftAutosave({
     return () => window.clearTimeout(timer)
   }, [enabled, input, isSending, scope, scopeKey])
 
-  return { clearSavedDraft, restoreSavedDraft }
+  return { clearSavedDraft, restoreSavedDraft, armSendDraft }
 }

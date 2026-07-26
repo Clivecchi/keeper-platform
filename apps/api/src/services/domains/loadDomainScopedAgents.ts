@@ -25,6 +25,31 @@ export type DomainScopedAgentSummary = {
   role: string | null;
   /** Declared Dialog-voice mode — from config.dialog_participation (default voice). */
   dialogParticipation: DialogParticipation;
+}
+
+/**
+ * Legacy Cloud rows were seeded `support_only`, which skipped Dialog consult.
+ * Promote to `voice` on roster load so Roll Call includes Cloud. Agent Config
+ * may set `silent` afterward; `support_only` is no longer the Cloud default.
+ */
+async function promoteLegacyCloudDialogVoice(): Promise<void> {
+  const cloud = await prisma.kip_agents.findUnique({
+    where: { slug: 'cloud' },
+    select: { id: true, config: true },
+  });
+  if (!cloud) return;
+  const config =
+    cloud.config && typeof cloud.config === 'object' && !Array.isArray(cloud.config)
+      ? ({ ...(cloud.config as Record<string, unknown>) } as Record<string, unknown>)
+      : {};
+  if (config.dialog_participation !== 'support_only') return;
+  // Honor intentional Agent Config choices.
+  if (config.dialog_participation_user_set === true) return;
+  config.dialog_participation = 'voice';
+  await prisma.kip_agents.update({
+    where: { id: cloud.id },
+    data: { config: config as Prisma.InputJsonValue },
+  });
 };
 
 const summarySelect = {
@@ -115,6 +140,7 @@ function orderAgentsByIds<T extends { id: string }>(agents: T[], ids: string[]):
 export async function loadDomainScopedAgents(
   domainId: string,
 ): Promise<DomainScopedAgentSummary[]> {
+  await promoteLegacyCloudDialogVoice();
   const ids = await resolveDomainAccessibleAgentIds(domainId);
   if (ids.length === 0) return [];
 
@@ -136,6 +162,7 @@ export async function loadDomainScopedAgents(
 export async function loadDomainAccessibleAgents(
   domainId: string,
 ): Promise<FullDomainAccessibleAgent[]> {
+  await promoteLegacyCloudDialogVoice();
   const ids = await resolveDomainAccessibleAgentIds(domainId);
   if (ids.length === 0) return [];
 

@@ -31,6 +31,10 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-07-26 — composer draft: clear storage on send start
+- `useComposerDraftAutosave` — `armSendDraft(sentText)` clears sessionStorage when a send begins and holds text in memory for failure restore. Scope-change restore is skipped while `isSending`.
+- `useAgentDialog` — calls `armSendDraft` with `setInput("")` so mid-send session create cannot re-fill the composer (unblocks mobile compact-after-send).
+
 ### 2026-07-25 — cast consult honesty + Document on instruments
 - `useAgentDialog` — Mechanism A passes `dialogId` into every instrument + Lead `runAgent` so Document reaches consult context.
 - Support-only / silent direct address declines with an honest participation message (no fetch).

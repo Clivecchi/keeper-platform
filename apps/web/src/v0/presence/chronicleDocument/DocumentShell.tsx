@@ -70,17 +70,17 @@ function PathHeader({
   if (!title && !prelude) return null
   const accentColor = pathAccentColor(accent)
   return (
-    <header className="document-shell-path__header px-1 pb-2 pt-1">
+    <header className="document-shell-path__header px-1 pb-3 pt-1">
       <div className="flex items-baseline justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span
-            className="inline-block h-2 w-2 shrink-0 rounded-full"
+            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ background: accentColor }}
             aria-hidden
           />
           {title ? (
             <h3
-              className="truncate text-[12px] font-semibold uppercase tracking-[0.14em]"
+              className="truncate text-[15px] font-semibold uppercase tracking-[0.12em]"
               style={{ color: accentColor }}
             >
               {title}
@@ -89,7 +89,7 @@ function PathHeader({
         </div>
         {count > 0 ? (
           <span
-            className="shrink-0 text-[11px] font-medium tabular-nums"
+            className="shrink-0 text-[14px] font-medium tabular-nums"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             aria-label={`${count} points`}
           >
@@ -99,7 +99,7 @@ function PathHeader({
       </div>
       {prelude ? (
         <p
-          className="mt-1.5 pl-4 text-[13px] leading-relaxed"
+          className="mt-2 pl-5 text-[16px] leading-relaxed"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {prelude}
@@ -140,7 +140,7 @@ function PointFrame({
           opacity: 0.85,
         }}
       />
-      <div className="min-w-0 flex-1 px-3.5 py-3">
+      <div className="min-w-0 flex-1 px-4 py-3.5">
         <PointView point={point} onGloss={onGloss} />
       </div>
     </div>
@@ -244,14 +244,14 @@ function ForwardBlock({
         }}
       >
         <p
-          className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+          className="mb-1.5 text-[13px] font-semibold uppercase tracking-[0.14em]"
           style={{ color: "hsl(var(--theme-accent-primary, 42 55% 48%))" }}
         >
           Forward
         </p>
         <div className="flex items-start gap-2">
           <h2
-            className="min-w-0 flex-1 text-[18px] font-semibold leading-snug"
+            className="min-w-0 flex-1 text-[24px] font-semibold leading-snug"
             style={{
               color: titleColor,
               fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -263,13 +263,13 @@ function ForwardBlock({
             <button
               type="button"
               onClick={() => setDescriptionOpen((open) => !open)}
-              className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1 transition-opacity hover:opacity-80"
+              className="mt-1 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 transition-opacity hover:opacity-80"
               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
               aria-expanded={descriptionOpen}
               aria-label={descriptionOpen ? "Collapse description" : "Expand description"}
             >
               <ChevronDown
-                className={`h-4 w-4 transition-transform ${descriptionOpen ? "" : "-rotate-90"}`}
+                className={`h-5 w-5 transition-transform ${descriptionOpen ? "" : "-rotate-90"}`}
                 strokeWidth={2}
                 aria-hidden
               />
@@ -279,7 +279,7 @@ function ForwardBlock({
 
         {forward.description && descriptionOpen ? (
           <p
-            className="mt-2 text-[14px] leading-relaxed"
+            className="mt-2.5 text-[17px] leading-relaxed"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {forward.description}
@@ -288,7 +288,7 @@ function ForwardBlock({
 
         {hasStep && step ? (
           <div
-            className="mt-3 rounded-lg px-3 py-3"
+            className="mt-4 rounded-lg px-4 py-3.5"
             style={{
               background: "hsl(var(--theme-surface-elevated) / 0.42)",
               border: "1px solid hsl(var(--theme-status-success) / 0.45)",
@@ -298,14 +298,14 @@ function ForwardBlock({
             }}
           >
             <p
-              className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
+              className="mb-1.5 text-[13px] font-semibold uppercase tracking-[0.12em]"
               style={{ color: "hsl(var(--theme-status-success))" }}
             >
               Now
             </p>
             {step.title?.trim() ? (
               <h3
-                className="text-[15px] font-semibold leading-snug"
+                className="text-[18px] font-semibold leading-snug"
                 style={{ color: "hsl(var(--theme-status-success))" }}
               >
                 {step.title.trim()}
@@ -313,7 +313,7 @@ function ForwardBlock({
             ) : null}
             {step.body?.trim() ? (
               <p
-                className={`text-[14px] leading-relaxed ${step.title?.trim() ? "mt-1.5" : ""}`}
+                className={`text-[17px] leading-relaxed ${step.title?.trim() ? "mt-2" : ""}`}
                 style={{ color: "hsl(var(--theme-ink-primary))" }}
               >
                 {step.body.trim()}
@@ -323,7 +323,7 @@ function ForwardBlock({
         ) : null}
 
         <nav
-          className="mt-3 flex items-center justify-between gap-3"
+          className="mt-4 flex items-center justify-between gap-3"
           aria-label="Step lineage"
         >
           <button
@@ -331,7 +331,7 @@ function ForwardBlock({
             disabled
             title={BACK_TOOLTIP}
             aria-label={`Back — ${BACK_TOOLTIP}`}
-            className="rounded-md px-3 py-1.5 text-[13px] font-medium opacity-45"
+            className="rounded-md px-3.5 py-2 text-[15px] font-medium opacity-45"
             style={{
               color: "hsl(var(--theme-ink-secondary))",
               border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
@@ -346,7 +346,7 @@ function ForwardBlock({
             disabled
             title={FORWARD_TOOLTIP}
             aria-label={`Forward — ${FORWARD_TOOLTIP}`}
-            className="rounded-md px-3 py-1.5 text-[13px] font-medium opacity-45"
+            className="rounded-md px-3.5 py-2 text-[15px] font-medium opacity-45"
             style={{
               color: "hsl(var(--theme-ink-secondary))",
               border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
