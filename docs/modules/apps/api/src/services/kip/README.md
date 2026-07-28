@@ -6,6 +6,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ## 🧱 Key Files
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
+- `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
+- `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
@@ -22,6 +24,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-07-27 — compact prompt env + run timings
+- `buildCompactEnvironmentForPrompt.ts` — drops policy packs, registries, full dialog/roster dumps from the stringified KAM block (roster + Document stay in dedicated prompt builders).
+- `agentRunTimings.ts` — collector summarized as `data.timings` on lead/system runs and logged as `[AgentTurnTiming]`.
 
 ### 2026-07-25 — instrument Document + consult excerpts
 - `run` accepts `dialogId` even when `sessionId` is omitted (Mechanism A instrument sub-runs).

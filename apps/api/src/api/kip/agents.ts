@@ -37,6 +37,16 @@ import {
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
+import {
+  buildCompactEnvironmentForPrompt,
+  measureEnvironmentPromptSize,
+} from '../../services/kip/buildCompactEnvironmentForPrompt.js';
+import {
+  createAgentRunTimings,
+  recordModelCall,
+  summarizeAgentRunTimings,
+  type AgentRunPhaseTimings,
+} from '../../services/kip/agentRunTimings.js';
 import { resolveAgentCapabilities } from '../../capabilities/resolveCapabilities.js';
 import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import { searchLibraryItems } from '../../services/LibraryItemSearchService.js';
@@ -190,6 +200,8 @@ type RunAgentOptions = {
       status: 'ok' | 'empty' | 'failed' | 'error';
     }>;
   };
+  /** Mutable per-turn timing bag (filled by handler + runAgent + callAIModel). */
+  timings?: AgentRunPhaseTimings;
 };
 
 function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown }): boolean {
@@ -4278,7 +4290,10 @@ export class KipAgentService {
     );
 
     if (environment) {
-      systemParts.push(`Environment context (resolved via KAM):\n${JSON.stringify(environment, null, 2)}`);
+      const compactEnvironment = buildCompactEnvironmentForPrompt(environment);
+      systemParts.push(
+        `Environment context (resolved via KAM):\n${JSON.stringify(compactEnvironment, null, 2)}`,
+      );
 
       // Cockpit preview only — live rules are composed in callAIModel via
       // buildCastHonestySystemPrompt / buildDialogDocumentSystemPrompt.
@@ -4577,8 +4592,12 @@ export class KipAgentService {
       activeKeeperId?: string | null;
       domainId?: string | null;
       attachments?: { url: string; name: string; type: 'image' | 'file' }[];
+      /** Optional mutable timing bag from the parent run. */
+      timings?: AgentRunPhaseTimings;
+      /** Label for this model call in timings.modelCalls (default: model). */
+      timingLabel?: string;
     },
-  ): Promise<{ content: string; composedSystemPrompt: string }> {
+  ): Promise<{ content: string; composedSystemPrompt: string; durationMs: number }> {
     try {
       const modelProvider = (agent.model_provider || 'openai') as ModelProvider;
       const defaults = ModelProviderService.getDefaultSettings(modelProvider);
@@ -4654,9 +4673,18 @@ export class KipAgentService {
       };
 
       if (environmentContext) {
+        const envSize = measureEnvironmentPromptSize(environmentContext);
+        if (promptOptions?.timings) {
+          // Prefer first (main) model call measurements; later calls keep them.
+          if (promptOptions.timings.promptEnvFullChars == null) {
+            promptOptions.timings.promptEnvFullChars = envSize.fullChars;
+            promptOptions.timings.promptEnvCompactChars = envSize.compactChars;
+          }
+        }
+        const compactEnvironment = buildCompactEnvironmentForPrompt(environmentContext);
         messages.push({
           role: 'system',
-          content: `Environment context (resolved via KAM):\n${JSON.stringify(environmentContext, null, 2)}`,
+          content: `Environment context (resolved via KAM):\n${JSON.stringify(compactEnvironment, null, 2)}`,
         });
 
         const agentContextRecord =
@@ -5051,6 +5079,7 @@ export class KipAgentService {
 
       // Call the model provider (jsonMode only when structured output is required and the model supports it)
       const requiresStructuredOutput = !!promptOptions?.environment;
+      const modelStartedAt = Date.now();
       const response = await ModelProviderService.callModel({
         messages,
         settings: modelSettings,
@@ -5060,9 +5089,15 @@ export class KipAgentService {
         environment: promptOptions?.environment ?? undefined,
         jsonMode: requiresStructuredOutput && capabilities.jsonMode,
       });
+      const durationMs = Date.now() - modelStartedAt;
+      recordModelCall(
+        promptOptions?.timings,
+        promptOptions?.timingLabel || 'model',
+        durationMs,
+      );
       
       if (response.success) {
-        return { content: response.content, composedSystemPrompt };
+        return { content: response.content, composedSystemPrompt, durationMs };
       }
 
       const mappedCode = mapProviderCodeToAgentCode(response.errorCode);
@@ -5152,7 +5187,11 @@ export class KipAgentService {
           if (sessionId) {
             // Load existing session memory
             try {
+              const memoryStartedAt = Date.now();
               previousMessages = await this.getSessionMemoryForAgent(sessionId, agentId);
+              if (options?.timings) {
+                options.timings.sessionMemoryMs = Date.now() - memoryStartedAt;
+              }
             } catch (error) {
               console.warn('Failed to load session memory:', error);
               // Continue without memory if loading fails
@@ -5480,6 +5519,8 @@ export class KipAgentService {
           activeKeeperId: options?.activeKeeperId ?? null,
           domainId: options?.domainId ?? null,
           attachments: options?.attachments ?? undefined,
+          timings: options?.timings,
+          timingLabel: 'lead_main',
         });
 
         const response = aiResult.content;
@@ -5588,6 +5629,8 @@ export class KipAgentService {
             activeJourneyId: options?.activeJourneyId ?? null,
             activeKeeperId: options?.activeKeeperId ?? null,
             domainId: options?.domainId ?? null,
+            timings: options?.timings,
+            timingLabel: `governance_retry_${governanceRetryCount + 1}`,
           });
           lastResponse = retryResult.content;
           lastStructured = await ensureKipAgentOutputEnvelope(lastResponse, {
@@ -5624,6 +5667,7 @@ export class KipAgentService {
               message: 'Action execution disabled by server (draft pipeline owns persistence)',
             }));
           } else {
+            const actionsStartedAt = Date.now();
             const execution = await executeAgentActions(structured.actions, {
               domainId: options?.domainId ?? null,
               domainSlug: options?.domainSlug ?? null,
@@ -5640,6 +5684,9 @@ export class KipAgentService {
               requestId,
               skipActionTypes: options?.skipActionTypes,
             });
+            if (options?.timings) {
+              options.timings.actionsMs = (options.timings.actionsMs ?? 0) + (Date.now() - actionsStartedAt);
+            }
             actionResults = execution.results;
 
             const draftFailureNotice = buildDraftMutationFailureNotice(
@@ -5700,6 +5747,8 @@ export class KipAgentService {
                   activeKeeperId: options?.activeKeeperId ?? null,
                   domainId: options?.domainId ?? null,
                   attachments: options?.attachments ?? undefined,
+                  timings: options?.timings,
+                  timingLabel: 'read_follow_up',
                 },
               );
               const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
@@ -5716,6 +5765,7 @@ export class KipAgentService {
               }
 
               if (followUpStructured.actions.length) {
+                const followUpActionsStartedAt = Date.now();
                 const followUpExecution = await executeAgentActions(followUpStructured.actions, {
                   domainId: options?.domainId ?? null,
                   domainSlug: options?.domainSlug ?? null,
@@ -5732,6 +5782,10 @@ export class KipAgentService {
                   requestId,
                   skipActionTypes: options?.skipActionTypes,
                 });
+                if (options?.timings) {
+                  options.timings.actionsMs =
+                    (options.timings.actionsMs ?? 0) + (Date.now() - followUpActionsStartedAt);
+                }
                 actionResults = [...actionResults, ...followUpExecution.results];
                 if (followUpExecution.failedMessage) {
                   finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
@@ -5773,6 +5827,8 @@ export class KipAgentService {
               activeKeeperId: options?.activeKeeperId ?? null,
               domainId: options?.domainId ?? null,
               attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'mutation_deferral_follow_up',
             },
           );
           const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
@@ -5789,6 +5845,7 @@ export class KipAgentService {
           }
 
           if (followUpStructured.actions.length) {
+            const mutationActionsStartedAt = Date.now();
             const followUpExecution = await executeAgentActions(followUpStructured.actions, {
               domainId: options?.domainId ?? null,
               domainSlug: options?.domainSlug ?? null,
@@ -5805,6 +5862,10 @@ export class KipAgentService {
               requestId,
               skipActionTypes: options?.skipActionTypes,
             });
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - mutationActionsStartedAt);
+            }
             actionResults = [...actionResults, ...followUpExecution.results];
             if (followUpExecution.failedMessage) {
               finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
@@ -6057,6 +6118,8 @@ export class KipAgentService {
           activeKeeperId: options?.activeKeeperId ?? null,
           domainId: options?.domainId ?? null,
           attachments: options?.attachments ?? undefined,
+          timings: options?.timings,
+          timingLabel: 'system_main',
         });
 
         const systemRequestId = randomUUID();
@@ -6092,6 +6155,7 @@ export class KipAgentService {
               message: 'Action execution disabled by server (draft pipeline owns persistence)',
             }));
           } else {
+            const systemActionsStartedAt = Date.now();
             const execution = await executeAgentActions(structured.actions, {
               domainId: options?.domainId ?? null,
               domainSlug: options?.domainSlug ?? null,
@@ -6108,6 +6172,10 @@ export class KipAgentService {
               requestId: systemRequestId,
               skipActionTypes: options?.skipActionTypes,
             });
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - systemActionsStartedAt);
+            }
             actionResults = execution.results;
 
             if (hasSuccessfulMcpResults(actionResults)) {
@@ -6130,6 +6198,8 @@ export class KipAgentService {
                   activeKeeperId: options?.activeKeeperId ?? null,
                   domainId: options?.domainId ?? null,
                   attachments: options?.attachments ?? undefined,
+                  timings: options?.timings,
+                  timingLabel: 'mcp_follow_up',
                 },
               );
               const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
@@ -6203,6 +6273,23 @@ export class KipAgentService {
       const processingTime = Date.now() - startTime;
       logData.execution_time_ms = processingTime;
       logData.output = JSON.stringify(result);
+
+      if (options?.timings) {
+        options.timings.totalMs = processingTime;
+        const timingSummary = summarizeAgentRunTimings(options.timings);
+        console.info('[AgentTurnTiming]', {
+          agentId: agent.id,
+          agentSlug: agent.slug,
+          role: agent.role,
+          ...timingSummary,
+        });
+        if (result && typeof result === 'object' && result !== null && 'data' in result) {
+          const resultData = (result as { data?: unknown }).data;
+          if (resultData && typeof resultData === 'object' && resultData !== null) {
+            (resultData as Record<string, unknown>).timings = timingSummary;
+          }
+        }
+      }
 
       // Log successful execution
       try {
@@ -6797,8 +6884,10 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             });
           }
           
+          const runTimings = createAgentRunTimings();
           let environment: AgentEnvironmentContext | null = null;
           try {
+            const envStartedAt = Date.now();
             environment = await resolveAgentEnvironment({
               agentId,
               userId: requestUserId,
@@ -6807,6 +6896,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               dialogId: validation.data.dialogId ?? undefined,
               intent: 'interactive',
             });
+            runTimings.envResolveMs = Date.now() - envStartedAt;
           } catch (error) {
             console.warn('[kip/agents] environment resolution failed', {
               requestId,
@@ -6931,6 +7021,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               type: a.type,
             })) ?? undefined,
             agentContext: validation.data.agentContext,
+            timings: runTimings,
           };
           if (validation.data.castConsultations) {
             const cc = validation.data.castConsultations;
