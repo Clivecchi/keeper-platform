@@ -19,6 +19,7 @@ import {
   createDraftPoint,
   dialogParticipationLabel,
   findDraftPoint,
+  mergeDraftPointCastNotes,
   mergeDraftSpecPatch,
   resolveDialogParticipation,
   rewriteDraftPointInSpec,
@@ -202,9 +203,9 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content, optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
+    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content, optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical on journey drafts.';
   const rewritePoints =
-    '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), payload.content, and optional payload.prelude, payload.closer, payload.moments. Only points with status proposed or pending are rewritable. Accepted (kept) points are anchors — never rewrite them; treat their text as fixed context when revising nearby points.';
+    '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), payload.content, and optional payload.prelude, payload.closer, payload.moments. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place (the Document is a living work tool; the human still publishes/keeps). Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
     '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
   if (isOperationalDraftAgent(agent)) {
@@ -642,7 +643,7 @@ function buildDraftDiscussPrompt(
       'DRAFT POINT REWRITE (immediate action required when user confirms):',
       `- Target draft id: ${draftDiscuss.draftId}`,
       `- Target pointId: ${draftDiscuss.pointId} (exact UUID — do not invent or truncate)`,
-      '- Use draft.point.rewrite with payload { id, pointId, content }. Accepted points are anchors — never rewrite them.',
+      '- Use draft.point.rewrite with payload { id, pointId, content }. On journey drafts, accepted points are anchors. On document_manuscript, Lead may rewrite accepted Points.',
       '- If the user asked to revise this point, call draft.point.rewrite in this turn — do not use edit, add_point, or draft.update with spec.points.',
     ].join('\n');
   }
@@ -650,12 +651,82 @@ function buildDraftDiscussPrompt(
     'DRAFT POINT FOCUS:',
     `- User selected draft point ${draftDiscuss.pointId} on draft ${draftDiscuss.draftId}.`,
     '- To revise this point, use draft.point.rewrite with the exact pointId above.',
-    '- Accepted points on this draft are anchors — treat their text as fixed context.',
+    '- On document_manuscript, Lead may rewrite accepted Points. Cast agents should draft.update.propose with referencesPointId set to this pointId — those become Cast Notes on the Point.',
+    '- Accepted journey-draft points are anchors — treat their text as fixed context.',
   ].join('\n');
 }
 
 function isGlossMode(agentContext: Record<string, unknown> | undefined | null): boolean {
   return agentContext?.glossMode === true;
+}
+
+/**
+ * When Mechanism A runs with a Point in Gloss/discuss focus, stamp those voice
+ * cards onto the Point as Cast Notes — Chronicle Cast link opens them later.
+ */
+async function stampCastNotesOntoFocusedPoint(params: {
+  domainId?: string | null;
+  userId?: string | null;
+  agentContext?: Record<string, unknown> | null;
+  castVoices: Array<{
+    slug: string;
+    attributedTo: string;
+    content: string;
+    status: 'ok' | 'empty' | 'failed';
+  }>;
+}): Promise<void> {
+  const { domainId, userId, agentContext, castVoices } = params;
+  if (!domainId || !userId || !castVoices.length) return;
+
+  let draftId: string | undefined;
+  let pointId: string | undefined;
+  const draftDiscuss = agentContext?.draftDiscuss as DraftDiscussContext | undefined;
+  if (draftDiscuss?.draftId && draftDiscuss.pointId) {
+    draftId = draftDiscuss.draftId;
+    pointId = draftDiscuss.pointId;
+  } else if (isGlossAnchor(agentContext?.glossAnchor)) {
+    const anchor = agentContext!.glossAnchor as {
+      entityKind?: string;
+      entityId?: string;
+      nodeId?: string;
+    };
+    if (anchor.entityKind === 'draft' && anchor.entityId && anchor.nodeId) {
+      draftId = anchor.entityId;
+      pointId = String(anchor.nodeId);
+    }
+  }
+  if (!draftId || !pointId) return;
+
+  try {
+    const draft = await prisma.kip_drafts.findFirst({
+      where: { id: draftId, domain_id: domainId, owner_id: userId },
+      select: { id: true, spec_json: true },
+    });
+    if (!draft) return;
+    const existing = findDraftPoint(draft.spec_json, pointId);
+    if (!existing) return;
+
+    const now = new Date().toISOString();
+    const incoming = castVoices.map((voice) => ({
+      slug: voice.slug,
+      attributedTo: voice.attributedTo,
+      content: voice.content,
+      status: voice.status,
+      at: now,
+    }));
+    const castNotes = mergeDraftPointCastNotes(existing.castNotes, incoming);
+    const { spec } = updateDraftPointInSpec(draft.spec_json, pointId, { castNotes });
+    await prisma.kip_drafts.update({
+      where: { id: draft.id },
+      data: { spec_json: spec as object, updated_at: new Date() },
+    });
+  } catch (error) {
+    console.warn('[kip.agents] stampCastNotesOntoFocusedPoint failed', {
+      draftId,
+      pointId,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
 }
 
 function buildGlossDiscussPrompt(
@@ -1543,6 +1614,14 @@ export async function executeAgentActions(
               ? payload.type as DraftPointType
               : 'general';
 
+            const referencesPointId =
+              typeof payload.referencesPointId === 'string' && payload.referencesPointId.trim()
+                ? payload.referencesPointId.trim()
+                : typeof payload.references_point_id === 'string'
+                    && payload.references_point_id.trim()
+                  ? payload.references_point_id.trim()
+                  : undefined;
+
             const point = createDraftPoint({
               content,
               type: pointType,
@@ -1557,6 +1636,7 @@ export async function executeAgentActions(
               ...(Array.isArray(payload.moments) && payload.moments.length > 0
                 ? { moments: payload.moments }
                 : {}),
+              ...(referencesPointId ? { referencesPointId } : {}),
             });
 
             const nextSpec = appendDraftPointToSpec(draft.spec_json, point);
@@ -1869,17 +1949,23 @@ export async function executeAgentActions(
               rewriteExtras.moments = payload.moments;
             }
 
+            // Dialog Document manuscript is a living work tool — Lead may revise accepted Points.
+            // Journey drafts keep anchor protection on accepted (kept) Points.
+            const isDocumentManuscript = draft.kind === 'document_manuscript';
             const rewriteResult = rewriteDraftPointInSpec(
               draft.spec_json,
               pointId,
               content,
               pointType,
               rewriteExtras,
+              { allowAnchored: isDocumentManuscript },
             );
             if (rewriteResult.ok === false) {
               const message =
                 rewriteResult.code === 'POINT_ANCHORED'
-                  ? 'Cannot rewrite an accepted (kept) point — it is an anchor. Revise a proposed point instead.'
+                  ? isDocumentManuscript
+                    ? 'Cannot rewrite this point.'
+                    : 'Cannot rewrite an accepted (kept) point — it is an anchor. On journey drafts, propose a revision with draft.update.propose (optional referencesPointId). On the Dialog Document (document_manuscript), Lead may rewrite accepted Points — check draft.kind.'
                   : rewriteResult.code === 'POINT_NOT_FOUND'
                     ? 'Point not found — call draft.read first and use an exact pointId from spec.points'
                     : 'Point content is required';
@@ -4385,7 +4471,7 @@ export class KipAgentService {
         'with { limit: 20 } first, then { id } for full detail on your choice.',
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
-        'draft.point.rewrite — rewrites one proposed/pending point in place. Payload: { id, pointId, content, type? }. Accepted points are anchors — not rewritable.',
+        'draft.point.rewrite — rewrites one point in place. Payload: { id, pointId, content, type? }. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead. Cast agents should draft.update.propose with optional referencesPointId instead of overwriting.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -5120,6 +5206,15 @@ export class KipAgentService {
 
         let leadModelInput = input || '';
         let directorDelegationResult: DirectorDelegationResult | undefined;
+        /** Persisted on the Lead message so voice cards survive session reload. */
+        let castVoicesForPersist:
+          | Array<{
+              slug: string;
+              attributedTo: string;
+              content: string;
+              status: 'ok' | 'empty' | 'failed';
+            }>
+          | undefined;
         let orchestrationMechanism:
           | 'plain_lead'
           | 'cast_consultation_a'
@@ -5135,6 +5230,7 @@ export class KipAgentService {
               const reply =
                 typeof row.instrumentReply === 'string' ? row.instrumentReply.trim() : '';
               return {
+                slug: row.instrumentSlug,
                 label,
                 reply: reply || null,
                 status: row.status,
@@ -5146,6 +5242,26 @@ export class KipAgentService {
             directorName: cc.directorDisplayName,
             consultations: labeled,
           });
+          castVoicesForPersist = labeled.map((row) => {
+            const status: 'ok' | 'empty' | 'failed' =
+              row.status === 'ok' && row.reply
+                ? 'ok'
+                : row.status === 'failed'
+                  ? 'failed'
+                  : 'empty';
+            return {
+              slug: row.slug,
+              attributedTo: row.label,
+              content:
+                status === 'ok' && row.reply
+                  ? row.reply
+                  : status === 'failed'
+                    ? `${row.label} couldn't respond this turn.`
+                    : `${row.label} returned nothing this turn.`,
+              status,
+            };
+          });
+          // Prefer equal castVoices in UI; keep firstOk delegation for older clients.
           const firstOk = labeled.find((row) => row.status === 'ok' && row.reply);
           directorDelegationResult = firstOk
             ? {
@@ -5751,7 +5867,20 @@ export class KipAgentService {
                 delegateConsultCount: consultActionCount,
               },
               ...(structured.card ? { card: structured.card } : {}),
+              ...(castVoicesForPersist?.length ? { castVoices: castVoicesForPersist } : {}),
+              // Only persist single-instrument delegation when not a multi-voice turn.
+              ...(directorDelegationResult && !castVoicesForPersist?.length
+                ? { delegation: directorDelegationResult }
+                : {}),
             });
+            if (castVoicesForPersist?.length) {
+              await stampCastNotesOntoFocusedPoint({
+                domainId: options?.domainId,
+                userId,
+                agentContext: options?.agentContext ?? null,
+                castVoices: castVoicesForPersist,
+              });
+            }
           } catch (error) {
             console.warn('Failed to save agent response:', error);
           }
@@ -5792,6 +5921,7 @@ export class KipAgentService {
                   : orchestrationMechanism,
               delegateConsultCount: consultActionCountForResult,
             },
+            ...(castVoicesForPersist?.length ? { castVoices: castVoicesForPersist } : {}),
             ...(directorDelegationResult
               ? { directorDelegation: directorDelegationResult }
               : {}),

@@ -15,7 +15,18 @@ export type PointStatusTone = 'pending' | 'active' | 'error';
 export type DocumentStatusTone = PointStatusTone;
 
 /**
- * Atomic card — one identity, one title, one body, one status, one Gloss.
+ * Cast Note — a voice-card beat attached to a Document Point.
+ * Same shape as Dialog castVoices; Cast link on the Point opens these.
+ */
+export interface PointCastNote {
+  slug?: string;
+  attributedTo: string;
+  content: string;
+  status?: 'ok' | 'failed' | 'empty';
+}
+
+/**
+ * Atomic card — one identity, one title, one body, one status, Gloss, Cast Notes.
  * This is what PointView renders.
  */
 export interface Point {
@@ -25,6 +36,8 @@ export interface Point {
   body: { text: string; clampLines?: number; expandable?: boolean };
   status?: { label: string; tone: PointStatusTone };
   gloss?: { anchor: GlossAnchor; snapshot?: GlossContentSnapshot };
+  /** Cast Notes — voice cards associated with this Point (Cast link opens them). */
+  cast?: { notes: PointCastNote[] };
 }
 
 /**

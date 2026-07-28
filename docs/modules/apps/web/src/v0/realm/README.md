@@ -32,6 +32,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-26 — Cast Notes on Document Points
+- `manuscriptPointsToRealmNavEntries` attaches `Point.cast.notes` from `DraftPoint.castNotes` + sibling Points with `referencesPointId` (those siblings are not Path cards). Gloss anchors wired for manuscript Points.
+- Chronicle `PointView` **Cast · N** opens the same voice-card chrome as Dialog.
+
 ### 2026-07-25 — Nav: hide manuscript peer row
 - `useRealmNavGrowth` filters `document_manuscript` drafts out of Nav Drafts — Dialog appears once under Dialogs; Points still expand in Chronicle via `DomainRealmStory`.
 

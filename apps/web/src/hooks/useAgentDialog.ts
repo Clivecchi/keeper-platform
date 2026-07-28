@@ -49,6 +49,32 @@ function sessionNameDateFallback(): string {
   return `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
 }
 
+function normalizeCastVoiceBeat(
+  value: unknown,
+): (DirectorDelegationBeat & { slug?: string }) | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  const content = typeof row.content === "string" ? row.content : ""
+  const attributedTo =
+    typeof row.attributedTo === "string"
+      ? row.attributedTo
+      : typeof row.label === "string"
+        ? row.label
+        : undefined
+  const status =
+    row.status === "ok" || row.status === "failed" || row.status === "empty"
+      ? row.status
+      : undefined
+  const slug = typeof row.slug === "string" ? row.slug : undefined
+  if (!content.trim() && status !== "failed" && status !== "empty") return null
+  return {
+    content,
+    ...(attributedTo ? { attributedTo } : {}),
+    ...(status ? { status } : {}),
+    ...(slug ? { slug } : {}),
+  }
+}
+
 function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const role = (message.sender || message.role) === "user" ? "user" : "agent"
   const meta = message.metadata as Record<string, unknown> | null | undefined
@@ -72,6 +98,21 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
           : typeof meta?.userName === "string"
             ? meta.userName
             : undefined
+  const castVoices = Array.isArray(meta?.castVoices)
+    ? meta.castVoices
+        .map(normalizeCastVoiceBeat)
+        .filter((beat): beat is DirectorDelegationBeat & { slug?: string } => Boolean(beat))
+    : undefined
+  const delegationBeat = normalizeCastVoiceBeat(meta?.delegation)
+  const delegation: DirectorDelegationBeat | undefined = delegationBeat
+    ? {
+        content: delegationBeat.content,
+        ...(delegationBeat.attributedTo
+          ? { attributedTo: delegationBeat.attributedTo }
+          : {}),
+        ...(delegationBeat.status ? { status: delegationBeat.status } : {}),
+      }
+    : undefined
   return {
     id: message.id,
     role,
@@ -82,6 +123,8 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(keeperCard ? { keeperCard } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),
+    ...(castVoices?.length ? { castVoices } : {}),
+    ...(delegation && !castVoices?.length ? { delegation } : {}),
   }
 }
 

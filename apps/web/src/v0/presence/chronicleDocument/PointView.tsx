@@ -1,8 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDown } from "lucide-react"
-import type { Point } from "@keeper/shared"
+import type { Point, PointCastNote } from "@keeper/shared"
 
 export interface PointViewProps {
   /** Atomic card to render. */
@@ -25,13 +24,56 @@ function collapsedBlurb(point: Point): string {
   if (lede) return lede
   const body = point.body.text.trim()
   if (!body) return ""
-  // Prefer first 1–2 sentences, then hard-cap length.
   const sentenceMatch = body.match(/^(.+?[.!?])(?:\s+(.+?[.!?]))?/)
   const preview = sentenceMatch
     ? [sentenceMatch[1], sentenceMatch[2]].filter(Boolean).join(" ")
     : body
-  if (preview.length <= 180) return preview
-  return `${preview.slice(0, 177).trimEnd()}…`
+  if (preview.length <= 200) return preview
+  return `${preview.slice(0, 197).trimEnd()}…`
+}
+
+function CastNotesPanel({ notes }: { notes: readonly PointCastNote[] }) {
+  return (
+    <div
+      className="document-point-cast-notes flex flex-col gap-2.5"
+      role="region"
+      aria-label="Cast notes"
+    >
+      <p
+        className="text-[13px] font-semibold uppercase tracking-[0.1em]"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+      >
+        Cast Notes
+      </p>
+      {notes.map((note, index) => {
+        const failed = note.status === "failed" || note.status === "empty"
+        return (
+          <div
+            key={`${note.slug ?? note.attributedTo}-${index}`}
+            className="dialog-voice-card"
+            data-agent-variant={failed ? "delegation-failed" : "collaborator"}
+          >
+            <div className="dialog-voice-card__rail" aria-hidden />
+            <div className="dialog-voice-card__body">
+              <p
+                className="text-[13px] font-semibold uppercase tracking-[0.06em]"
+                style={{
+                  color: failed
+                    ? "hsl(38 70% 48%)"
+                    : "hsl(var(--treatment-color, var(--theme-focus-ring, 152 45% 42%)) / 0.92)",
+                }}
+              >
+                {note.attributedTo}
+              </p>
+              <div className="dialog-voice-card__content whitespace-pre-wrap">
+                {note.content}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export function PointView({
@@ -46,15 +88,17 @@ export function PointView({
 
   const handleGloss = onGloss ?? onDiscuss
   const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const castNotes = card.cast?.notes ?? []
+  const [castOpen, setCastOpen] = React.useState(false)
   const blurb = collapsedBlurb(card)
   const bodyText = card.body.text.trim()
 
   return (
-    <article className="keeper-chronicle-document flex flex-col gap-2.5">
-      <header className="flex flex-col gap-1.5">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <article className="keeper-chronicle-document flex flex-col gap-3">
+      <header className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <p
-            className="text-[13px] font-semibold uppercase tracking-[0.1em]"
+            className="text-[14px] font-semibold uppercase tracking-[0.08em]"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
             {card.identity.label}
@@ -62,7 +106,7 @@ export function PointView({
           </p>
           {card.status ? (
             <span
-              className="rounded px-2 py-0.5 text-[12px] font-semibold uppercase tracking-wide"
+              className="rounded px-2 py-0.5 text-[13px] font-semibold uppercase tracking-wide"
               style={{
                 color:
                   card.status.tone === "error"
@@ -82,35 +126,21 @@ export function PointView({
             </span>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((open) => !open)}
-          className="group flex w-full items-start gap-2 text-left"
-          aria-expanded={expanded}
-          aria-label={expanded ? "Collapse point" : "Expand point"}
+        <h2
+          className="text-[24px] font-semibold leading-snug"
+          style={{
+            color: "hsl(var(--theme-ink-primary))",
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+          }}
         >
-          <h2
-            className="min-w-0 flex-1 text-[22px] font-semibold leading-snug"
-            style={{
-              color: "hsl(var(--theme-ink-primary))",
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-            }}
-          >
-            {card.title}
-          </h2>
-          <ChevronDown
-            className={`mt-1.5 h-5 w-5 shrink-0 transition-transform ${expanded ? "" : "-rotate-90"}`}
-            strokeWidth={2}
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            aria-hidden
-          />
-        </button>
+          {card.title}
+        </h2>
       </header>
 
       {!expanded ? (
         blurb ? (
           <p
-            className="text-[17px] leading-relaxed"
+            className="text-[18px] leading-relaxed"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {blurb}
@@ -120,7 +150,7 @@ export function PointView({
         <>
           {card.lede?.trim() && card.lede.trim() !== bodyText ? (
             <p
-              className="text-[17px] leading-relaxed"
+              className="text-[18px] leading-relaxed"
               style={{ color: "hsl(var(--theme-ink-secondary))" }}
             >
               {card.lede.trim()}
@@ -128,7 +158,7 @@ export function PointView({
           ) : null}
           {bodyText ? (
             <div
-              className="text-[17px] leading-relaxed whitespace-pre-wrap"
+              className="text-[18px] leading-relaxed whitespace-pre-wrap"
               style={{ color: "hsl(var(--theme-ink-secondary))" }}
             >
               {bodyText}
@@ -137,19 +167,38 @@ export function PointView({
         </>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      {castOpen && castNotes.length > 0 ? <CastNotesPanel notes={castNotes} /> : null}
+
+      <div className="flex flex-wrap items-center gap-3 pt-0.5">
         <button
           type="button"
-          className="text-[15px] font-medium underline-offset-2 hover:underline"
+          className="text-[16px] font-semibold underline-offset-2 hover:underline"
           style={{ color: "hsl(var(--theme-accent-primary))" }}
           onClick={() => setExpanded((open) => !open)}
+          aria-expanded={expanded}
         >
           {expanded ? "Close" : "Open"}
         </button>
+        {castNotes.length > 0 ? (
+          <button
+            type="button"
+            className="text-[16px] font-semibold underline-offset-2 hover:underline"
+            style={{ color: "hsl(var(--theme-accent-primary))" }}
+            onClick={() => setCastOpen((open) => !open)}
+            aria-expanded={castOpen}
+            aria-label={
+              castOpen
+                ? "Hide cast notes"
+                : `Cast notes (${castNotes.length})`
+            }
+          >
+            {castOpen ? "Cast · Hide" : `Cast · ${castNotes.length}`}
+          </button>
+        ) : null}
         {handleGloss ? (
           <button
             type="button"
-            className="text-[15px] font-semibold rounded-md px-3 py-1.5"
+            className="text-[16px] font-semibold rounded-md px-3 py-1.5"
             style={{
               background: "hsl(var(--theme-accent-primary) / 0.12)",
               color: "hsl(var(--theme-accent-primary))",

@@ -80,7 +80,7 @@ function PathHeader({
           />
           {title ? (
             <h3
-              className="truncate text-[15px] font-semibold uppercase tracking-[0.12em]"
+              className="truncate text-[16px] font-semibold uppercase tracking-[0.1em]"
               style={{ color: accentColor }}
             >
               {title}
@@ -89,7 +89,7 @@ function PathHeader({
         </div>
         {count > 0 ? (
           <span
-            className="shrink-0 text-[14px] font-medium tabular-nums"
+            className="shrink-0 text-[15px] font-medium tabular-nums"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             aria-label={`${count} points`}
           >
@@ -99,7 +99,7 @@ function PathHeader({
       </div>
       {prelude ? (
         <p
-          className="mt-2 pl-5 text-[16px] leading-relaxed"
+          className="mt-2 pl-5 text-[17px] leading-relaxed"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {prelude}

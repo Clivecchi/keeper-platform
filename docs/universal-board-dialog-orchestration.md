@@ -179,6 +179,9 @@ Do **not** describe these as one path. Both are real; both carry honesty rules w
 
 | Date | Change |
 |---|---|
+| 2026-07-26 | **Cast Notes on Points:** Chronicle Point `Cast` link opens voice cards. Notes = `DraftPoint.castNotes` (Mechanism A while Point is in Gloss focus) + proposed Points with `referencesPointId`. Not a new surface — same voice-card chrome. |
+| 2026-07-26 | **Persist castVoices:** Mechanism A writes `castVoices` (+ optional `delegation`) onto the Lead `kip_messages.metadata` so voice cards reload with the session. |
+| 2026-07-26 | **Document manuscript CRUD:** Lead may `draft.point.rewrite` accepted Points on `document_manuscript`. Cast agents may `draft.update.propose` with `referencesPointId` to capture contributions without overwriting anchors. |
 | 2026-07-25 | **Equal cast voices + Cloud parity:** Mechanism A attaches `castVoices[]` (one UI card per engaged agent); Lead synthesizes without nested roll-call. Cloud no longer defaults `support_only` — Agent Config only. |
 | 2026-07-24 | **Standing cast honesty + Document in context + participation:** honesty rules in live `callAIModel`; `environment.dialogDocument` from Dialog columns + manuscript; `config.dialog_participation`; Mechanisms A/B documented as distinct; `[AgentTurn]` debug. |
 | 2026-07-23 | **Shipped lead-initiated cast consultation:** Mechanism B (`delegate.consult`) + Mechanism A (Domain/Realm multi-select) with honest empty fallback. Invite second human via Cast Header + `/invite/accept`. |

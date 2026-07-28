@@ -57,8 +57,11 @@ export async function loadDialogDocumentForAgent(
   });
 
   const manuscript = manuscripts[0];
+  // Document manuscript is a living work tool — Lead may rewrite accepted Points.
   const points = manuscript
-    ? summarizeDraftPointsForAgent(manuscript.spec_json)
+    ? summarizeDraftPointsForAgent(manuscript.spec_json, {
+        treatAcceptedAsRewritable: true,
+      })
     : [];
 
   return {

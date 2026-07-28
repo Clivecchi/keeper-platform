@@ -22,6 +22,8 @@ Point read shell + Document container helpers for Chronicle Focus — shared con
 - [ ] Wire real Step from self-organizing lineage (not faked) — Back/Forward stay disabled until then
 
 ## 📆 Update Log
+- **2026-07-26** — **Cast Notes:** PointView `Cast · N` link opens voice cards for notes on that Point (`Point.cast.notes`). Sourced from `DraftPoint.castNotes` + sibling Points with `referencesPointId`. Same `dialog-voice-card` chrome as Dialog.
+- **2026-07-26** — Readability pass 2: larger type (title ~24px, body ~18px); single Open/Close control (chevron removed). Document manuscript Lead rewrite + castVoices session persistence noted in orchestration docs.
 - **2026-07-26** — Readability: larger type (title ~22px, body ~17px); Points default collapsed to title + 1–2 sentence blurb with Open/Close.
 - **2026-07-25** — Path hierarchy: accent dots + counts, path panel grouping, Point cards with left rail; Forward labeled + brass border; Step labeled "Now". Keeper theme tokens (Cormorant, brass/success accents).
 - **2026-07-19** — Forward block (collapsible description) + glassy Step + disabled Back/Forward row; theme tokens only (`--theme-status-success` for Step accent).

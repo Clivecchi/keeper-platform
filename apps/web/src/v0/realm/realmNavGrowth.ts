@@ -3,7 +3,12 @@
  * Nav rows are Point-shaped summaries (atomic cards), not static categories.
  */
 
-import type { DraftPoint, DocumentPathDeclaration, Point } from "@keeper/shared"
+import type {
+  DraftPoint,
+  DocumentPathDeclaration,
+  Point,
+  PointCastNote,
+} from "@keeper/shared"
 import { buildLibraryGlossAnchor, draftPointBeatLabel } from "@keeper/shared"
 import type { KipDraft, KipDraftSummary } from "../../lib/kipApi"
 import type { KeptMomentSummary } from "../api/v0Moments"
@@ -121,9 +126,42 @@ function draftPointTitle(point: DraftPoint): string {
   return firstLine || "Untitled point"
 }
 
+function castNotesForManuscriptPoint(
+  point: DraftPoint,
+  allPoints: readonly DraftPoint[],
+): PointCastNote[] {
+  const stored: PointCastNote[] = (point.castNotes ?? []).map((note) => ({
+    attributedTo: note.attributedTo,
+    content: note.content,
+    ...(note.slug ? { slug: note.slug } : {}),
+    ...(note.status ? { status: note.status } : {}),
+  }))
+  const referenced: PointCastNote[] = allPoints
+    .filter((row) => row.referencesPointId?.trim() === point.id)
+    .map((row) => ({
+      attributedTo: row.proposedBy?.trim() || "Cast",
+      content: row.content.trim(),
+      ...(row.proposedBy?.trim()
+        ? { slug: row.proposedBy.trim().toLowerCase() }
+        : {}),
+      status: "ok" as const,
+    }))
+  const out: PointCastNote[] = []
+  const seen = new Set<string>()
+  for (const note of [...stored, ...referenced]) {
+    if (!note.content.trim()) continue
+    const key = `${note.attributedTo.trim().toLowerCase()}::${note.content.trim()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(note)
+  }
+  return out
+}
+
 /**
  * Expand a Document manuscript draft's Points into RealmNavEntry rows for DocumentShell.
  * One Dialog → one manuscript; Points are the atomic cards, not the draft wrapper.
+ * Points that only `referencesPointId` another Point are Cast Notes — not Path cards.
  */
 export function manuscriptPointsToRealmNavEntries(
   draft: KipDraft,
@@ -134,8 +172,11 @@ export function manuscriptPointsToRealmNavEntries(
   if (!Array.isArray(points) || points.length === 0) return []
 
   const resolvedDialogId = dialogId ?? draft.dialogId ?? draft.dialog_id ?? null
+  const draftId = draft.id
 
-  return points.map((point) => {
+  return points
+    .filter((point) => !point.referencesPointId?.trim())
+    .map((point) => {
     const title = draftPointTitle(point)
     const bodyText = point.content.trim() || "—"
     const voice = point.proposedBy?.trim() || "Cast"
@@ -143,6 +184,7 @@ export function manuscriptPointsToRealmNavEntries(
     const pathName = pathId
       ? pathTitles?.get(pathId) ?? pathId
       : null
+    const castNotes = castNotesForManuscriptPoint(point, points)
     return {
       id: point.id,
       kind: "draft" as const,
@@ -169,6 +211,14 @@ export function manuscriptPointsToRealmNavEntries(
           label: point.status,
           tone: draftPointStatusTone(point.status),
         },
+        gloss: {
+          anchor: {
+            entityKind: "draft" as const,
+            entityId: draftId,
+            nodeId: point.id,
+          },
+        },
+        ...(castNotes.length > 0 ? { cast: { notes: castNotes } } : {}),
       },
     }
   })

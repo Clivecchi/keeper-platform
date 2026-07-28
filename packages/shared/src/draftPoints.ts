@@ -45,8 +45,29 @@ export interface DraftPoint {
   pathGroupId?: string;
   /** Candidate evolution — keeping this Point updates the named Moment instead of minting a new one. */
   evolvesMomentId?: string;
+  /**
+   * Optional reference to another point this contribution responds to / revises.
+   * Used when cast agents post a proposed Point against an accepted Document Point
+   * without overwriting the anchor — Lead may later fold or present it differently.
+   * Referencing Points surface as Cast Notes on the target Point (not Path cards).
+   */
+  referencesPointId?: string;
+  /**
+   * Cast Notes — Dialog voice-card beats stamped onto this Point
+   * (e.g. Mechanism A consult while the Point is in Gloss/discuss focus).
+   */
+  castNotes?: DraftPointCastNote[];
   /** Set after point is promoted to Journey / Path / Moment */
   promotion?: DraftPointPromotion;
+}
+
+/** Voice-card beat stored on a DraftPoint — Cast Notes on Document Points. */
+export interface DraftPointCastNote {
+  slug?: string;
+  attributedTo: string;
+  content: string;
+  status?: 'ok' | 'failed' | 'empty';
+  at?: string;
 }
 
 /** @deprecated Legacy sections shape — read compat only; canonical content is `points`. */
@@ -147,6 +168,13 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
       : typeof value.evolves_moment_id === 'string' && value.evolves_moment_id.trim()
         ? value.evolves_moment_id.trim()
         : undefined;
+  const referencesPointId =
+    typeof value.referencesPointId === 'string' && value.referencesPointId.trim()
+      ? value.referencesPointId.trim()
+      : typeof value.references_point_id === 'string' && value.references_point_id.trim()
+        ? value.references_point_id.trim()
+        : undefined;
+  const castNotes = normalizeDraftPointCastNotes(value.castNotes ?? value.cast_notes);
   const promotion = normalizeDraftPointPromotion(value.promotion);
 
   return {
@@ -162,8 +190,59 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
     ...(moments.length > 0 ? { moments } : {}),
     ...(pathGroupId ? { pathGroupId } : {}),
     ...(evolvesMomentId ? { evolvesMomentId } : {}),
+    ...(referencesPointId ? { referencesPointId } : {}),
+    ...(castNotes.length > 0 ? { castNotes } : {}),
     ...(promotion ? { promotion } : {}),
   };
+}
+
+function normalizeDraftPointCastNotes(value: unknown): DraftPointCastNote[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry): DraftPointCastNote | null => {
+      if (!isRecord(entry)) return null;
+      const content = typeof entry.content === 'string' ? entry.content.trim() : '';
+      const attributedTo =
+        typeof entry.attributedTo === 'string' && entry.attributedTo.trim()
+          ? entry.attributedTo.trim()
+          : typeof entry.label === 'string' && entry.label.trim()
+            ? entry.label.trim()
+            : '';
+      if (!content || !attributedTo) return null;
+      const slug =
+        typeof entry.slug === 'string' && entry.slug.trim()
+          ? entry.slug.trim()
+          : undefined;
+      const status =
+        entry.status === 'ok' || entry.status === 'failed' || entry.status === 'empty'
+          ? entry.status
+          : undefined;
+      const at = typeof entry.at === 'string' && entry.at.trim() ? entry.at.trim() : undefined;
+      return {
+        attributedTo,
+        content,
+        ...(slug ? { slug } : {}),
+        ...(status ? { status } : {}),
+        ...(at ? { at } : {}),
+      };
+    })
+    .filter((row): row is DraftPointCastNote => row !== null);
+}
+
+/** Merge new cast notes onto a point, newest last; skip exact content+speaker dupes. */
+export function mergeDraftPointCastNotes(
+  existing: DraftPointCastNote[] | undefined,
+  incoming: DraftPointCastNote[],
+): DraftPointCastNote[] {
+  const out = [...(existing ?? [])];
+  for (const note of incoming) {
+    const key = `${note.attributedTo.trim().toLowerCase()}::${note.content.trim()}`;
+    const already = out.some(
+      (row) => `${row.attributedTo.trim().toLowerCase()}::${row.content.trim()}` === key,
+    );
+    if (!already) out.push(note);
+  }
+  return out;
 }
 
 function normalizeDraftPointMoments(value: unknown): DraftPointMoment[] {
@@ -292,6 +371,7 @@ export interface CreateDraftPointInput {
   closer?: string;
   moments?: DraftPointMoment[];
   pathGroupId?: string;
+  referencesPointId?: string;
   id?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -304,6 +384,7 @@ export function createDraftPoint(input: CreateDraftPointInput): DraftPoint {
   const closer = input.closer?.trim();
   const moments = normalizeDraftPointMoments(input.moments);
   const pathGroupId = input.pathGroupId?.trim();
+  const referencesPointId = input.referencesPointId?.trim();
 
   return {
     id: input.id ?? crypto.randomUUID(),
@@ -317,6 +398,7 @@ export function createDraftPoint(input: CreateDraftPointInput): DraftPoint {
     ...(closer ? { closer } : {}),
     ...(moments.length > 0 ? { moments } : {}),
     ...(pathGroupId ? { pathGroupId } : {}),
+    ...(referencesPointId ? { referencesPointId } : {}),
   };
 }
 
@@ -326,7 +408,10 @@ export function isDraftPointRewritable(status: DraftPointStatus): boolean {
 }
 
 /** Compact point index for agent environment (ids + rewrite eligibility). */
-export function summarizeDraftPointsForAgent(spec: unknown): Array<{
+export function summarizeDraftPointsForAgent(
+  spec: unknown,
+  options?: { treatAcceptedAsRewritable?: boolean },
+): Array<{
   id: string;
   status: DraftPointStatus;
   type: DraftPointType;
@@ -334,6 +419,7 @@ export function summarizeDraftPointsForAgent(spec: unknown): Array<{
   prelude?: string;
   momentCount?: number;
   rewritable: boolean;
+  referencesPointId?: string;
 }> {
   return parseDraftPoints(spec).map((point) => ({
     id: point.id,
@@ -344,7 +430,10 @@ export function summarizeDraftPointsForAgent(spec: unknown): Array<{
     ...(point.moments && point.moments.length > 0
       ? { momentCount: point.moments.length }
       : {}),
-    rewritable: isDraftPointRewritable(point.status),
+    rewritable:
+      isDraftPointRewritable(point.status)
+      || (options?.treatAcceptedAsRewritable === true && point.status === 'accepted'),
+    ...(point.referencesPointId ? { referencesPointId: point.referencesPointId } : {}),
   }));
 }
 
@@ -408,13 +497,23 @@ export type RewriteDraftPointResult =
   | { ok: true; spec: DraftSpecJson; point: DraftPoint }
   | { ok: false; code: 'POINT_NOT_FOUND' | 'POINT_ANCHORED' | 'VALIDATION_ERROR' };
 
-/** Rewrite draft point content in place. Accepted (kept) points cannot be rewritten. */
+export type RewriteDraftPointOptions = {
+  /**
+   * When true, accepted (kept) points may be rewritten in place.
+   * Used for Dialog `document_manuscript` — a living work surface for the Lead.
+   * Journey drafts keep the default anchor protection.
+   */
+  allowAnchored?: boolean;
+};
+
+/** Rewrite draft point content in place. Accepted (kept) points cannot be rewritten unless allowAnchored. */
 export function rewriteDraftPointInSpec(
   spec: unknown,
   pointId: string,
   content: string,
   type?: DraftPointType,
   extras?: Partial<Pick<DraftPoint, 'prelude' | 'closer' | 'moments'>>,
+  options?: RewriteDraftPointOptions,
 ): RewriteDraftPointResult {
   const trimmed = content.trim();
   if (!trimmed) {
@@ -425,7 +524,7 @@ export function rewriteDraftPointInSpec(
   if (!existing) {
     return { ok: false, code: 'POINT_NOT_FOUND' };
   }
-  if (!isDraftPointRewritable(existing.status)) {
+  if (!isDraftPointRewritable(existing.status) && !options?.allowAnchored) {
     return { ok: false, code: 'POINT_ANCHORED' };
   }
 
@@ -457,6 +556,8 @@ export function updateDraftPointInSpec(
       | 'moments'
       | 'pathGroupId'
       | 'evolvesMomentId'
+      | 'referencesPointId'
+      | 'castNotes'
       | 'promotion'
     >
   >,
