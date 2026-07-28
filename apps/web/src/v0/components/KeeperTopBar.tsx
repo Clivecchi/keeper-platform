@@ -8,7 +8,11 @@ import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
 import { useAuth } from "../../context/AuthContext"
 import { PlaybillHeaderCard } from "./PlaybillHeaderCard"
-import { PLAYBILL_ANCHOR_MAX_WIDTH } from "../boards/domain/domainSwitcherTheme"
+import {
+  PLAYBILL_ANCHOR_MAX_WIDTH,
+  PLAYBILL_ANCHOR_MAX_WIDTH_MOBILE,
+} from "../boards/domain/domainSwitcherTheme"
+import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import {
   fetchDomainSwitcherEntries,
   getCachedDomainSwitcherEntries,
@@ -188,6 +192,7 @@ export function KeeperTopBar({
     shellMode,
   } = useV0Shell()
   const { user, logout } = useAuth()
+  const isMobile = useIsMobile()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
@@ -239,10 +244,19 @@ export function KeeperTopBar({
 
   return (
     <div className="keeper-platform-top-bar relative z-50 shrink-0">
-      <div className="keeper-topbar-identity-row">
+      <div
+        className={[
+          "keeper-topbar-identity-row",
+          isMobile ? "keeper-topbar-identity-row--mobile" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <div
           className="keeper-topbar-playbill-anchor"
-          style={{ maxWidth: PLAYBILL_ANCHOR_MAX_WIDTH }}
+          style={{
+            maxWidth: isMobile ? PLAYBILL_ANCHOR_MAX_WIDTH_MOBILE : PLAYBILL_ANCHOR_MAX_WIDTH,
+          }}
         >
           <PlaybillHeaderCard
             domainSlug={domainSlug}
@@ -263,7 +277,7 @@ export function KeeperTopBar({
         </div>
 
         <div className="keeper-topbar-user">
-          {!isGuest ? (
+          {!isGuest && !isMobile ? (
             <button
               type="button"
               onClick={handleUserClick}

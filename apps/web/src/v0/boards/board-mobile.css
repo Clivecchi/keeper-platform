@@ -56,4 +56,38 @@
     min-height: 38vh;
     max-height: 50vh;
   }
+
+  /* Compact domain Dialog banner — name + LIVE row */
+  .keeper-board-scope .dialog-header-banner--mobile-compact {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .keeper-board-scope .dialog-header-banner--mobile-compact .dialog-banner-main-row {
+    gap: 6px;
+  }
+
+  .keeper-board-scope .dialog-banner-mobile-access button {
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 13px;
+    text-decoration: none;
+    border-radius: 8px;
+    background: hsl(var(--theme-surface-panel) / 0.55);
+  }
+
+  /* Response stage: thinner composer chrome */
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
+    .keeper-composer-toolbar {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
+    .dialog-composer-footer {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
 }

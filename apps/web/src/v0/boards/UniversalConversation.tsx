@@ -2468,7 +2468,11 @@ export function UniversalConversation({
         onRemoveComposerAgent={
           composerAgentChips.length > 0 ? handleRemoveComposerAgent : undefined
         }
-        showToolbarAgentIdentity={showComposerToolbarAgentIdentity}
+        showToolbarAgentIdentity={
+          useMobileStagedComposer && mobileDialogStage === "response"
+            ? false
+            : showComposerToolbarAgentIdentity
+        }
         thinkingStatusLabel={horizonThinkingLabel}
         thinkingSteps={thinkingSteps}
         messages={dialogMessages}

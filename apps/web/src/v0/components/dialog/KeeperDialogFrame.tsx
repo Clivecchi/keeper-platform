@@ -51,6 +51,7 @@ import {
   type DialogThinkingStep,
 } from "./dialogThinking"
 import { useTalkMode } from "../../../hooks/useTalkMode"
+import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
 import "../../../components/gloss/gloss.css"
@@ -327,6 +328,7 @@ export function KeeperDialogFrame({
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const broadcastStripRef = React.useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
   const [debugPanelOpen, setDebugPanelOpen] = React.useState(false)
@@ -337,6 +339,14 @@ export function KeeperDialogFrame({
   const isWorking = isSending || isFileUploading || isSubmittingMessage
   const showBroadcastStrip = mode !== "feed" && (isWorking || hasUploads)
   const showComposerFooter = mode !== "feed"
+  /** Mobile Domain banner: name + LIVE by default; tagline/stats behind expand. */
+  const domainBannerCompact = isMobile && !!bannerContext?.livePulse
+  const showDomainBannerDetails = !domainBannerCompact || bannerExpanded
+  /** Response stage reclaims chrome — cast strip returns when composing. */
+  const hideCastHeaderOnMobileResponse =
+    isMobile
+    && dialogLayout === "mobile-staged"
+    && mobileDialogStage === "response"
   const toggleDebugPanel = React.useCallback(() => {
     setDebugPanelOpen((open) => !open)
   }, [])
@@ -484,80 +494,119 @@ export function KeeperDialogFrame({
 
       {/* ── Header Bar — expandable breadcrumb; hidden in feed mode ─────────── */}
       {showBanner && (
-        <div className="dialog-header-banner">
+        <div
+          className={[
+            "dialog-header-banner",
+            domainBannerCompact ? "dialog-header-banner--mobile-compact" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           {bannerContext?.livePulse
             ? (
-              /* Domain-mode banner: wordmark + tagline + live pulse + stats */
-              <div className="dialog-banner-main-row" style={{ alignItems: 'center' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <p
-                      className="font-serif text-lg font-semibold leading-tight truncate"
-                      style={{ color: 'hsl(var(--theme-ink-primary))' }}
-                    >
-                      {bannerContext.primary}
-                    </p>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        paddingLeft: 8,
-                        borderLeft: '1px solid hsl(var(--theme-line-hairline))',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={
-                          bannerContext.livePulse.color
-                            ? {
-                                backgroundColor: bannerContext.livePulse.color,
-                                boxShadow: `0 0 0 2px color-mix(in srgb, ${bannerContext.livePulse.color} 35%, transparent)`,
-                              }
-                            : {
-                                backgroundColor: 'hsl(var(--theme-border-strong))',
-                                boxShadow: '0 0 0 2px hsl(var(--theme-border-soft) / 0.6)',
-                              }
-                        }
-                        aria-hidden
-                      />
-                      <span
-                        className="text-[10px] font-semibold uppercase tracking-widest"
-                        style={{ color: 'hsl(var(--theme-ink-secondary))' }}
+              /* Domain-mode banner: wordmark + live pulse; tagline/stats expand on mobile */
+              <>
+                <div className="dialog-banner-main-row" style={{ alignItems: "center" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <p
+                        className={[
+                          "font-serif font-semibold leading-tight truncate",
+                          domainBannerCompact ? "text-[15px]" : "text-lg",
+                        ].join(" ")}
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
                       >
-                        Live
-                      </span>
-                    </div>
-                  </div>
-                  {bannerContext.tagline && (
-                    <p
-                      className="text-xs leading-snug truncate mt-0.5"
-                      style={{ color: 'hsl(var(--theme-ink-secondary))' }}
-                    >
-                      {bannerContext.tagline}
-                    </p>
-                  )}
-                </div>
-                {bannerContext.stats && bannerContext.stats.length > 0 && (
-                  <dl
-                    className="shrink-0 flex items-center gap-4 text-right"
-                    style={{ color: 'hsl(var(--theme-ink-secondary))' }}
-                  >
-                    {bannerContext.stats.map((s) => (
-                      <div key={s.label}>
-                        <dt className="text-[9px] font-semibold uppercase tracking-widest">{s.label}</dt>
-                        <dd
-                          className="text-sm font-medium tabular-nums"
-                          style={{ color: 'hsl(var(--theme-ink-primary))' }}
+                        {bannerContext.primary}
+                      </p>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          paddingLeft: 8,
+                          borderLeft: "1px solid hsl(var(--theme-line-hairline))",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={
+                            bannerContext.livePulse.color
+                              ? {
+                                  backgroundColor: bannerContext.livePulse.color,
+                                  boxShadow: `0 0 0 2px color-mix(in srgb, ${bannerContext.livePulse.color} 35%, transparent)`,
+                                }
+                              : {
+                                  backgroundColor: "hsl(var(--theme-border-strong))",
+                                  boxShadow: "0 0 0 2px hsl(var(--theme-border-soft) / 0.6)",
+                                }
+                          }
+                          aria-hidden
+                        />
+                        <span
+                          className="text-[10px] font-semibold uppercase tracking-widest"
+                          style={{ color: "hsl(var(--theme-ink-secondary))" }}
                         >
-                          {s.value}
-                        </dd>
+                          Live
+                        </span>
                       </div>
-                    ))}
-                  </dl>
-                )}
-              </div>
+                    </div>
+                    {showDomainBannerDetails && bannerContext.tagline ? (
+                      <p
+                        className="text-xs leading-snug truncate mt-0.5"
+                        style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                      >
+                        {bannerContext.tagline}
+                      </p>
+                    ) : null}
+                  </div>
+                  {showDomainBannerDetails
+                    && bannerContext.stats
+                    && bannerContext.stats.length > 0 ? (
+                    <dl
+                      className="shrink-0 flex items-center gap-4 text-right"
+                      style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                    >
+                      {bannerContext.stats.map((s) => (
+                        <div key={s.label}>
+                          <dt className="text-[9px] font-semibold uppercase tracking-widest">
+                            {s.label}
+                          </dt>
+                          <dd
+                            className="text-sm font-medium tabular-nums"
+                            style={{ color: "hsl(var(--theme-ink-primary))" }}
+                          >
+                            {s.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
+                  {domainBannerCompact ? (
+                    <button
+                      type="button"
+                      className={`banner-chevron${bannerExpanded ? " open" : ""}`}
+                      onClick={() => setBannerExpanded((v) => !v)}
+                      aria-expanded={bannerExpanded}
+                      aria-label={bannerExpanded ? "Collapse domain details" : "Expand domain details"}
+                    >
+                      ›
+                    </button>
+                  ) : null}
+                </div>
+                {domainBannerCompact && bannerExpanded && castAccessActions ? (
+                  <div
+                    className="dialog-banner-mobile-access flex flex-wrap items-center gap-3 px-0 pb-1.5 pt-1"
+                    style={{ borderTop: "1px solid hsl(var(--theme-border-soft) / 0.35)" }}
+                  >
+                    <RealmCastAccessActions
+                      domainId={castAccessActions.domainId}
+                      onInvite={castAccessActions.onInvite}
+                      onManageAccess={castAccessActions.onManageAccess}
+                    />
+                  </div>
+                ) : null}
+              </>
             )
             : (
               /* Standard breadcrumb banner */
@@ -659,7 +708,7 @@ export function KeeperDialogFrame({
       )}
 
       {/* ── Header cast — identity roster (invoke lives at composer) ─────────── */}
-      {mode !== "feed" && boardInstruments?.length ? (
+      {mode !== "feed" && boardInstruments?.length && !hideCastHeaderOnMobileResponse ? (
         <DirectorCastHeader
           eyebrow={castHeaderEyebrow}
           instruments={boardInstruments}
@@ -668,7 +717,7 @@ export function KeeperDialogFrame({
           enablingCast={enablingCast}
           castAddEnabled={castAddEnabled}
           trailing={
-            castAccessActions ? (
+            castAccessActions && !domainBannerCompact ? (
               <RealmCastAccessActions
                 domainId={castAccessActions.domainId}
                 onInvite={castAccessActions.onInvite}

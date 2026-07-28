@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-07-27: **Mobile-compact composer height** — `composerSize="mobile-compact"` uses `rows={1}` and skips the auto-resize MIN_ROWS floor so staged response height (44–56px) is not forced back to 80px+.
 - 2026-07-25: **Equal cast voice cards** — multi-select consults attach `castVoices[]` on the lead message; each engaged agent renders as its own accent-rail voice card before Lead synthesis. `KipResponseCard` gets matching left rail. Lead synthesis prompt told not to re-roll-call nested quotes.
 - 2026-07-11: **Attachment + Enter send** — Enter now requires typed prompt text (staged files ride along); Send button still allows attachment-only. Controlled Thinking Space attachments clear only after parent send completes. Dialog submit awaits agent run and blocks double-send during Library commit.
 - 2026-07-08: **Gloss bubble framing** — `GlossSurface` wraps the chat bubble shell (not just `<p>`); hover recolors the existing border and places the Gloss pill on the top border rail without overlapping message text.

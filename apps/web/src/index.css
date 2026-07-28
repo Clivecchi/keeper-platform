@@ -1987,6 +1987,17 @@ button.dialog-prelude:hover {
   border-bottom: 1px solid hsla(38, 22%, 42%, 0.28);
 }
 
+.keeper-platform-top-bar .keeper-topbar-identity-row--mobile {
+  gap: 0.5rem;
+  padding: 6px 0.75rem 6px 0.65rem;
+}
+
+@media (max-width: 767px) {
+  .keeper-platform-top-bar .keeper-topbar-nav-row {
+    padding: 6px 0.75rem 8px 0.65rem;
+  }
+}
+
 .keeper-platform-top-bar .keeper-topbar-avatar-button {
   display: flex;
   align-items: center;

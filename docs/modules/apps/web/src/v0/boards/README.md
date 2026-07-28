@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-27 — Mobile Dialog density (Playbill + banner + composer)
+- Top-bar Playbill + Dialog banner collapse on ≤767px (see `v0/components`); adaptive Domain/Realm already wires `mobile-staged` composer.
+- `UniversalConversation` — response stage hides composer toolbar agent chips so the compact input floor stays thin.
+- `board-mobile.css` — compact banner padding + larger tap targets for expanded access actions; thinner response-stage composer chrome.
+
 ### 2026-07-26 — Roll Call consults full cast by default
 - Empty multi-select no longer means “consult nobody.” Domain/Realm consults all non-Lead, non-silent cast members so voice cards appear without clicking every chip. Explicit chip selection still narrows the set.
 

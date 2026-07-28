@@ -6,6 +6,7 @@ import { usePlaybillCard } from "../hooks/usePlaybillCard"
 import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
 import { resolveDomainLeadContext, type DomainLeadRecord } from "../lib/domainLeadAgent"
 import type { DomainFrameJson } from "../data/domain-frame.types"
+import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import {
   PlaybillAgentPortrait,
   PlaybillAmbientLayer,
@@ -31,6 +32,7 @@ export interface PlaybillHeaderCardProps {
 
 /**
  * Top-bar Playbill anchor — domain presents its lead agent. Opens the travel dropdown.
+ * On ≤767px: single-line domain name + compact portrait (no presents/role stack).
  */
 export function PlaybillHeaderCard({
   domainSlug,
@@ -45,6 +47,7 @@ export function PlaybillHeaderCard({
   isOpen = false,
   className = "",
 }: PlaybillHeaderCardProps) {
+  const isMobile = useIsMobile()
   const leadContext = resolveDomainLeadContext(
     domainLead ?? {
       leadAgentSlug: leadAgentSlugProp,
@@ -74,6 +77,76 @@ export function PlaybillHeaderCard({
   const ambientUrl = resolvePlaybillAmbientUrl(coverImageUrl, portraitUrl)
   const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
 
+  const borderStyle = isOpen
+    ? "1.5px solid hsl(var(--theme-focus-ring) / 0.75)"
+    : "1px solid hsl(var(--theme-border-soft) / 0.45)"
+
+  if (isMobile) {
+    return (
+      <div
+        className={[
+          "playbill-header-card playbill-header-card--mobile group relative min-w-0 w-full overflow-hidden rounded-lg text-left transition-opacity",
+          className,
+        ].join(" ")}
+        style={{
+          border: borderStyle,
+          minHeight: 44,
+        }}
+      >
+        <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
+
+        <div className="relative z-10 flex items-center gap-2 px-2.5 py-1.5">
+          <button
+            type="button"
+            onClick={onGoHome ?? (() => {})}
+            className="min-w-0 flex-1 text-left hover:opacity-95 transition-opacity"
+            aria-label={`${billingName} — return to Realm`}
+            title="Return to Realm"
+          >
+            <h1
+              className="font-serif text-[15px] font-bold leading-tight tracking-tight truncate"
+              style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
+            >
+              {billingName}
+            </h1>
+            {starName && starName !== billingName ? (
+              <p
+                className="mt-0.5 text-[10px] truncate"
+                style={{ color: accent }}
+              >
+                {isLoading && !isUncast ? "…" : starName}
+              </p>
+            ) : null}
+          </button>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <PlaybillAgentPortrait
+              portraitUrl={portraitUrl}
+              portraitEmoji={portraitEmoji}
+              fallback={portraitFallback}
+              accent={accent}
+              size="compact"
+            />
+            <button
+              type="button"
+              onClick={onOpenPlaybill}
+              className="shrink-0 opacity-50 transition-opacity hover:opacity-80 p-0.5"
+              aria-label={`${billingName} — open domain travel`}
+              aria-haspopup="menu"
+              aria-expanded={isOpen}
+            >
+              <ChevronDown
+                className={isOpen ? "rotate-180" : ""}
+                style={{ width: 14, height: 14, color: "hsl(var(--theme-header-text-secondary))" }}
+                aria-hidden
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className={[
@@ -81,9 +154,7 @@ export function PlaybillHeaderCard({
         className,
       ].join(" ")}
       style={{
-        border: isOpen
-          ? "1.5px solid hsl(var(--theme-focus-ring) / 0.75)"
-          : "1px solid hsl(var(--theme-border-soft) / 0.45)",
+        border: borderStyle,
         minHeight: 68,
       }}
     >

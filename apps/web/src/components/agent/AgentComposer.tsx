@@ -316,15 +316,23 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
   }
 
-  // Auto-resize textarea
+  // Auto-resize textarea (respect mobile-staged compact/expanded floors)
   React.useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
+    if (composerSize === "mobile-compact") {
+      ta.style.height = ""
+      return
+    }
     ta.style.height = "auto"
     const lineHeight = 20
-    const newHeight = Math.min(MAX_ROWS * lineHeight, Math.max(MIN_ROWS * lineHeight, ta.scrollHeight))
+    const minRows = composerSize === "mobile-expanded" ? 8 : MIN_ROWS
+    const newHeight = Math.min(
+      MAX_ROWS * lineHeight,
+      Math.max(minRows * lineHeight, ta.scrollHeight),
+    )
     ta.style.height = `${newHeight}px`
-  }, [inputValue])
+  }, [inputValue, composerSize])
 
   const placeholder = disabled
     ? "Preparing conversation…"
@@ -569,7 +577,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={!activeSessionId || isSending || disabled}
-            rows={composerSize === "mobile-expanded" ? 8 : MIN_ROWS}
+            rows={
+              composerSize === "mobile-expanded"
+                ? 8
+                : composerSize === "mobile-compact"
+                  ? 1
+                  : MIN_ROWS
+            }
             className={[
               "keeper-composer-input w-full resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none",
               composerSize === "mobile-expanded"
