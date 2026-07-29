@@ -109,6 +109,11 @@ export interface AgentComposerProps {
   attachmentDisplay?: "composer" | "thinking-space"
   onUploadingChange?: (uploading: boolean) => void
   isSending: boolean
+  /**
+   * Session id when a Dialog already exists. Optional for typing/send —
+   * Universal Boards create the session on first send (`useAgentDialog`).
+   * Kept on the prop surface so callers can pass it without a second composer API.
+   */
   activeSessionId: string | null
   disabled?: boolean
   /** When false, Enter inserts a new line; send only via the send button. Default true. */
@@ -167,7 +172,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   onInputChange,
   onSubmit,
   isSending,
-  activeSessionId,
+  activeSessionId: _activeSessionId,
   disabled = false,
   feedbackSlot,
   submitOnEnter = true,
@@ -296,7 +301,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       .map((a) => ({ url: a.url, name: a.name, type: a.type as "image" | "file" }))
     const { content, displayContent } = buildComposerSubmitContent(inputValue, attachments)
     const hasContent = content.length > 0 || agentAttachments.length > 0
-    if (!hasContent || !activeSessionId || isSending) return
+    // Session may be null on Universal Boards (create deferred to first send in useAgentDialog).
+    if (!hasContent || isSending || disabled) return
     // Controlled attachment state (Dialog Thinking Space) clears after parent send completes.
     if (!onAttachmentsChange) {
       setAttachments([])
@@ -310,7 +316,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       e.preventDefault()
       // Enter always sends prompt + staged files together; attachment-only sends use the button.
       const hasPrompt = inputValue.trim().length > 0
-      if (formRef.current && hasPrompt && activeSessionId && !isSending) {
+      if (formRef.current && hasPrompt && !isSending && !disabled) {
         formRef.current.requestSubmit()
       }
     }
@@ -338,14 +344,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     ? "Preparing conversation…"
     : inputPlaceholder?.trim()
       ? inputPlaceholder.trim()
-      : activeSessionId
-        ? submitOnEnter
-          ? "Share your thoughts… (Shift+Enter for new line)"
-          : "Share your thoughts…"
-        : "Create a session to start chatting"
+      : submitOnEnter
+        ? "Share your thoughts… (Shift+Enter for new line)"
+        : "Share your thoughts…"
 
+  // Session id is optional: Universal Boards create the Dialog on first send.
   const canSend =
-    (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled
+    (inputValue.trim() || attachments.length > 0) && !isSending && !disabled
 
   const showTalkMic = talkMode && talkSupported
   const showTalkUnsupported = talkMode && !talkSupported
@@ -576,7 +581,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             onBlur={() => onInputFocusChange?.(false)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            disabled={!activeSessionId || isSending || disabled}
+            disabled={isSending || disabled}
             rows={
               composerSize === "mobile-expanded"
                 ? 8
