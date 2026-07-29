@@ -37,10 +37,11 @@ export function resolvePlaybillStarName(input: {
   isUncast: boolean
   isLoading: boolean
 }): string {
-  if (input.isLoading && !input.isUncast) return "…"
+  const name = input.agentDisplayName?.trim() ?? ""
+  // Only show ellipsis when we truly have nothing to paint yet.
+  if (input.isLoading && !input.isUncast && !name) return "…"
   if (input.isUncast) return "Agent"
 
-  const name = input.agentDisplayName?.trim() ?? ""
   if (!name) return "Agent"
 
   const domainLower = input.domainName.trim().toLowerCase()

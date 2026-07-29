@@ -16,6 +16,7 @@ Shared React hooks for Universal Board and shell behavior — cross-board concer
 - [ ] Consider React context if many nested consumers need the same lead agent identity without duplicate fetches
 
 ## 📆 Update Log
+- 2026-07-28: `usePlaybillCard` honors `leadAgentName` — does not block paint / force loading when API enrichment already has the name.
 - 2026-07-12: `usePlaybillCard` loads lead agent identity only (no domain stats); portraits use `avatarEmoji` when config stores emoji.
 
 ### 2026-06-30 — Frame lead agent identity

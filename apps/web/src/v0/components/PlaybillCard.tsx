@@ -121,7 +121,7 @@ export function PlaybillCard({
               ].join(" ")}
               style={{ color: inkPrimary }}
             >
-              {isLoading && !isUncast ? "…" : starName}
+              {starName}
             </p>
             <p
               className="playbill-dropdown-row__role mt-0.5 truncate text-[9px] font-mono uppercase tracking-[0.12em]"
@@ -175,7 +175,7 @@ export function PlaybillCard({
             className="mt-1 font-serif font-bold leading-tight truncate text-[16px]"
             style={{ color: inkPrimary }}
           >
-            {isLoading && !isUncast ? "…" : starName}
+            {starName}
           </h3>
           <p
             className="mt-0.5 text-[9px] font-mono uppercase tracking-[0.12em] truncate"

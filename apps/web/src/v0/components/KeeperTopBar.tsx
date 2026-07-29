@@ -197,14 +197,12 @@ export function KeeperTopBar({
     resolvedAudience,
     workspaceBoardId,
     switchWorkspace,
-    shellMode,
   } = useV0Shell()
   const { user, logout } = useAuth()
   const isMobile = useIsMobile()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
-  const isHomeShell = shellMode === "home"
   const domainId = useDomainIdForSlug(domainSlug)
   const domainName =
     domainFrame?.theme?.wordmark?.trim() ||
@@ -229,9 +227,11 @@ export function KeeperTopBar({
   const avatarUrl = user?.avatar_url?.trim() ? getBlobProxyUrl(user.avatar_url.trim()) : null
   const isGuest = resolvedAudience === "guest"
 
+  // Keep Realm · Domain · Agent (etc.) on `/home` so members can reach
+  // domain/agent config without memorizing `/d/:slug?board=` URLs.
   const boardLinks = React.useMemo(
-    () => (isHomeShell ? [] : resolveWorkspaceBoardLinks(domainSlug)),
-    [domainSlug, isHomeShell],
+    () => resolveWorkspaceBoardLinks(domainSlug),
+    [domainSlug],
   )
 
   const handleBoardClick = (id: WorkspaceBoardId) => {
@@ -386,21 +386,19 @@ export function KeeperTopBar({
           })}
         </nav>
 
-        {!isHomeShell ? (
-          <button
-            type="button"
-            onClick={onBriefClick}
-            className={clsx(
-              "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
-              isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
-            )}
-            aria-label="Open domain brief"
-            aria-pressed={isBriefOpen}
-          >
-            <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
-            <span className="text-[13px]">Brief</span>
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={onBriefClick}
+          className={clsx(
+            "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
+            isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+          )}
+          aria-label="Open domain brief"
+          aria-pressed={isBriefOpen}
+        >
+          <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
+          <span className="text-[13px]">Brief</span>
+        </button>
       </div>
       ) : null}
     </div>

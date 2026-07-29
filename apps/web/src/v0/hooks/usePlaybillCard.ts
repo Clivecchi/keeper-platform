@@ -18,12 +18,15 @@ export interface UsePlaybillCardInput {
 
 export function usePlaybillCard({
   leadAgentSlug,
+  leadAgentName,
 }: UsePlaybillCardInput): PlaybillCardData {
   const slug = leadAgentSlug?.trim() ?? ""
   const slugUncast = !slug
+  const nameHint = leadAgentName?.trim() || null
   const cached = slugUncast ? null : peekPlaybillAgent(slug)
   const [agent, setAgent] = React.useState<ResolvedPlaybillAgent | null>(cached)
-  const [isLoading, setIsLoading] = React.useState(!slugUncast && !cached)
+  // Name from API enrichment is enough to paint — portrait may still resolve in background.
+  const [isLoading, setIsLoading] = React.useState(!slugUncast && !cached && !nameHint)
 
   React.useEffect(() => {
     let cancelled = false
@@ -41,7 +44,8 @@ export function usePlaybillCard({
       return
     }
 
-    setIsLoading(true)
+    // Keep showing leadAgentName while avatar/config loads — no "…" flash.
+    setIsLoading(!nameHint)
     void resolvePlaybillAgent(slug)
       .catch(() => null)
       .then((nextAgent) => {
@@ -53,7 +57,7 @@ export function usePlaybillCard({
     return () => {
       cancelled = true
     }
-  }, [slug, slugUncast])
+  }, [slug, slugUncast, nameHint])
 
   return {
     isUncast: slugUncast,

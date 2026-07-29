@@ -94,7 +94,7 @@ export function LocationStrip({
             className="font-serif text-[20px] font-bold leading-tight tracking-tight truncate"
             style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
           >
-            {isLoading && !isUncast ? "…" : starName}
+            {starName}
           </h1>
           <p
             className="mt-0.5 text-[9px] font-mono uppercase tracking-[0.14em] truncate"

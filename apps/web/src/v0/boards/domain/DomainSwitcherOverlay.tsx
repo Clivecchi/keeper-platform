@@ -15,6 +15,7 @@ import { DomainAddPanel } from "./DomainAddPanel"
 import {
   fetchDomainSwitcherEntries,
   getCachedDomainSwitcherEntries,
+  peekDomainSwitcherEntries,
   prefetchDomainSwitcherEntries,
   subscribeDomainSwitcherCache,
   type DomainSwitcherEntry,
@@ -139,14 +140,18 @@ export function DomainSwitcherOverlay({
   const { shellMode } = useV0Shell()
   const sceneChange = useSceneChangeOptional()
   const [switcherView, setSwitcherView] = React.useState<SwitcherView>("list")
-  const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>([])
-  const [fetchState, setFetchState] = React.useState<SwitcherFetchState>("idle")
+  const [domains, setDomains] = React.useState<DomainSwitcherEntry[]>(
+    () => peekDomainSwitcherEntries() ?? [],
+  )
+  const [fetchState, setFetchState] = React.useState<SwitcherFetchState>(() =>
+    peekDomainSwitcherEntries() !== null ? "ready" : "idle",
+  )
   const [fetchAttempt, setFetchAttempt] = React.useState(0)
 
   React.useEffect(() => {
     return subscribeDomainSwitcherCache(() => {
-      const cached = getCachedDomainSwitcherEntries()
-      if (cached) setDomains(cached)
+      const peeked = peekDomainSwitcherEntries()
+      if (peeked) setDomains(peeked)
     })
   }, [])
 
@@ -157,15 +162,16 @@ export function DomainSwitcherOverlay({
     }
 
     let cancelled = false
-    const cached = getCachedDomainSwitcherEntries()
-    const hasCachedList = cached !== null
-    // Only force network refresh on explicit retry — keep list + agent caches warm.
-    const forceRefresh = fetchAttempt > 0
+    const peeked = peekDomainSwitcherEntries()
+    const fresh = getCachedDomainSwitcherEntries()
+    const hasAnyList = peeked !== null
+    // Retry always hits network; stale cache also revalidates in background.
+    const forceRefresh = fetchAttempt > 0 || (hasAnyList && fresh === null)
 
-    if (hasCachedList) {
-      setDomains(cached)
+    if (hasAnyList) {
+      setDomains(peeked)
       setFetchState("ready")
-      void prefetchPlaybillAgentsForDomains(cached)
+      void prefetchPlaybillAgentsForDomains(peeked)
     } else {
       setFetchState("loading")
     }
@@ -180,7 +186,7 @@ export function DomainSwitcherOverlay({
       .catch((error) => {
         console.error("[DomainSwitcherOverlay] Failed to load domains:", error)
         if (cancelled) return
-        if (hasCachedList) {
+        if (hasAnyList) {
           setFetchState("ready")
           return
         }

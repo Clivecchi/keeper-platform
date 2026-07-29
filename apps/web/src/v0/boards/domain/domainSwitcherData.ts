@@ -113,6 +113,32 @@ export function patchDomainSwitcherCacheEntry(
   commitCache(entries)
 }
 
+/**
+ * Last known domain list even when TTL has expired (stale-while-revalidate).
+ * Prefer this for UI paint; use getCachedDomainSwitcherEntries for "fresh only".
+ */
+export function peekDomainSwitcherEntries(): DomainSwitcherEntry[] | null {
+  if (memoryCache) {
+    return memoryCache.entries
+  }
+
+  const fromSession = readSessionCache()
+  if (fromSession) {
+    memoryCache = fromSession
+    return fromSession.entries
+  }
+
+  return null
+}
+
+/** True when the in-memory/session snapshot is still within TTL. */
+export function isDomainSwitcherCacheFresh(): boolean {
+  const snapshot = memoryCache ?? readSessionCache()
+  if (!snapshot) return false
+  if (!memoryCache) memoryCache = snapshot
+  return isCacheFresh(snapshot)
+}
+
 /** Returns cached domain list when still within TTL (memory, then sessionStorage). */
 export function getCachedDomainSwitcherEntries(): DomainSwitcherEntry[] | null {
   const now = Date.now()
@@ -151,7 +177,10 @@ export interface FetchDomainSwitcherOptions {
 export function prefetchDomainSwitcherEntries(): void {
   if (getCachedDomainSwitcherEntries()) return
   if (inflightFetch) return
-  inflightFetch = fetchDomainSwitcherEntries().finally(() => {
+  const stale = peekDomainSwitcherEntries()
+  inflightFetch = fetchDomainSwitcherEntries({
+    forceRefresh: stale !== null,
+  }).finally(() => {
     inflightFetch = null
   })
 }
