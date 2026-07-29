@@ -1200,7 +1200,7 @@ export function UniversalConversation({
       try {
         const echoSessionName =
           kipMode === "agent" ? "Agent Board Echo" : "Domain Lead Collaboration"
-        const echoBoard = kipMode === "agent" ? "agent" : "domain"
+        const echoBoard = def.boardId
         const sessions = await resolveActiveDialogSessions(domainId, {
           board: echoBoard,
           frame: "conversation",
@@ -1224,7 +1224,7 @@ export function UniversalConversation({
     return () => {
       cancelled = true
     }
-  }, [agentEcho, kipMode, kipCollaborationAfterLead, echoAgentId, domainId])
+  }, [agentEcho, kipMode, kipCollaborationAfterLead, echoAgentId, domainId, def.boardId])
 
   const setMessagesRef = React.useRef<React.Dispatch<React.SetStateAction<AgentDialogueMessage[]>> | null>(null)
 
@@ -1485,11 +1485,10 @@ export function UniversalConversation({
           const echoSessionName = runDomainCollaboration
             ? "Domain Lead Collaboration"
             : "Agent Board Echo"
-          const echoBoard = runDomainCollaboration ? "domain" : "agent"
           const ensured = await resumeOrCreateBoardSession({
             domainId,
             agentId: echoAgentId,
-            board: echoBoard,
+            board: def.boardId,
             frame: "conversation",
             dialogScope: "keeper",
             subject: "domain",
@@ -1650,8 +1649,9 @@ export function UniversalConversation({
           ? def.conversation.greetingMessage
           : undefined,
     mode: kipMode,
-    dialogBoard: kipMode === "designer" ? "designer" : undefined,
-    dialogFrame: kipMode === "designer" ? (designerFocusKey ?? undefined) : undefined,
+    // Board id owns the Dialog key — Realm must not share Domain's Dialog (kipMode is "domain").
+    dialogBoard: def.boardId,
+    dialogFrame: kipMode === "designer" ? (designerFocusKey ?? undefined) : "conversation",
     dialogSubject: kipMode === "designer" ? "boardDef" : undefined,
     domainSlug,
     domainId,
@@ -1863,7 +1863,7 @@ export function UniversalConversation({
         const sessionId = await resumeBoardSession({
           domainId: resolvedDomainId,
           agentId,
-          board: "ide",
+          board: def.boardId,
           frame: "conversation",
           dialogScope: audience === "admin" ? "admin" : "keeper",
         })
@@ -1888,6 +1888,7 @@ export function UniversalConversation({
     frameCtx?.isResolving,
     handleSessionChange,
     fetchMessages,
+    def.boardId,
   ])
 
   // ── designer mode: sync liveDomainFrame from shell to context ────────────
@@ -1921,7 +1922,7 @@ export function UniversalConversation({
         const sessionId = await resumeBoardSession({
           domainId,
           agentId: aid,
-          board: "designer",
+          board: def.boardId,
           frame: focusKey,
           dialogScope: "admin",
         })
@@ -1955,6 +1956,7 @@ export function UniversalConversation({
     handleSessionChange,
     fetchMessages,
     setMessages,
+    def.boardId,
   ])
 
   // ── ide mode: session title save ──────────────────────────────────────────

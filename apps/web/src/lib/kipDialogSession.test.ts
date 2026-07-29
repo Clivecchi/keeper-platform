@@ -23,7 +23,7 @@ describe("pickBestDialogSessionId", () => {
     expect(id).toBe("rendr-session")
   })
 
-  it("returns null when no session matches agent", () => {
+  it("falls back to the Dialog's best session when agent has none", () => {
     const id = pickBestDialogSessionId(
       [
         {
@@ -35,6 +35,10 @@ describe("pickBestDialogSessionId", () => {
       ],
       "rendr-uuid",
     )
-    expect(id).toBeNull()
+    expect(id).toBe("kip-session")
+  })
+
+  it("returns null only when the Dialog has no sessions", () => {
+    expect(pickBestDialogSessionId([], "kip-uuid")).toBeNull()
   })
 })

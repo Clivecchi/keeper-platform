@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-28 — Board land resumes last session (per boardId)
+- `UniversalConversation` passes `dialogBoard: def.boardId` into `useAgentDialog` — Realm no longer shares Domain's Dialog key via `kipMode: "domain"`.
+- IDE / Designer / echo resume-create paths use `def.boardId` the same way.
+- Contract: mount resumes the board Dialog's last session (pick up where you left off); first send creates only when none exists. Nav need not open a Dialog.
+
 ### 2026-07-28 — Chronicle strip + Nav drawer (retire bottom tabs)
 - Adaptive Domain/Realm (≤767px): Dialog always primary; **Nav** = hamburger → `BoardMobileNavDrawer`; **Chronicle** = ambient strip above Composer → `BoardMobileChronicleOverlay`.
 - `BoardMobilePanelBar` no longer mounted. Playbill owns LIVE/identity; Dialog domain/breadcrumb banners suppressed on this path (`suppressMobileDomainBanner`).

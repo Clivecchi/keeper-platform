@@ -50,6 +50,10 @@ function sessionMessageCount(session: DialogSessionRow): number {
 /**
  * Prefer the most recent session with messages; otherwise reuse the newest empty session
  * so board mount does not spawn duplicate ghost sessions.
+ *
+ * When `agentId` is provided, prefer that agent's sessions first — but if none match,
+ * fall back to the Dialog's best session. A Dialog is the session container; board land
+ * should pick up where the conversation left off, not require Nav to open a Dialog.
  */
 export function pickBestDialogSessionId(
   sessions: DialogSessionRow[],
@@ -57,16 +61,22 @@ export function pickBestDialogSessionId(
 ): string | null {
   if (!sessions.length) return null
 
-  const scoped = agentId
-    ? sessions.filter((session) => session.agent_id === agentId)
-    : sessions
-  if (!scoped.length) return null
+  const pickFrom = (pool: DialogSessionRow[]): string | null => {
+    if (!pool.length) return null
+    const sorted = [...pool].sort(
+      (a, b) => sessionTimestamp(b) - sessionTimestamp(a),
+    )
+    const withMessages = sorted.filter((session) => sessionMessageCount(session) > 0)
+    return (withMessages[0] ?? sorted[0])?.id ?? null
+  }
 
-  const sorted = [...scoped].sort(
-    (a, b) => sessionTimestamp(b) - sessionTimestamp(a),
-  )
-  const withMessages = sorted.filter((session) => sessionMessageCount(session) > 0)
-  return (withMessages[0] ?? sorted[0])?.id ?? null
+  if (agentId) {
+    const scoped = sessions.filter((session) => session.agent_id === agentId)
+    const preferred = pickFrom(scoped)
+    if (preferred) return preferred
+  }
+
+  return pickFrom(sessions)
 }
 
 export type ResumeBoardSessionParams = {

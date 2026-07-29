@@ -35,6 +35,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-28 — board Dialog resume = last session
+- `kipDialogSession.pickBestDialogSessionId` — prefer the lead agent's session, then fall back to the Dialog's best session (with messages, else newest). Board land loads a session without requiring Nav to open a Dialog.
+- Resume/create keys remain board-scoped (`resolve/active`); create stays deferred to first send.
+
 ### 2026-07-25 — network fetch clarity + dialogId on runAgent
 - `apiFetch` — browser `Failed to fetch` / network errors map to an explicit "Could not reach the Keeper API…" message (`NETWORK_UNREACHABLE`).
 - `KipApi.runAgent` options accept `dialogId` and forward it on the run payload.
