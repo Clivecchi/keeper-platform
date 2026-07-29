@@ -36,6 +36,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 ## 📆 Update Log
 - 2026-07-28: **Playbill name flash** — cards/header use `starName` from `resolvePlaybillStarName` (no second `…` gate); name paints from `leadAgentName` while portrait loads.
 - 2026-07-28: **Restore Realm/Boards on `/home`** — `KeeperTopBar` again shows workspace board links (Realm · Domain · Agent, etc.) and Brief on the home shell; Jul 3 blanking had left an empty nav row and blocked domain/agent config jumps.
+- 2026-07-28: **Playbill Path A — name-only chip** — Mobile top bar is a compact domain-name chip (optional LIVE dot + chevron); full Playbill travel list stays the existing light overlay. Density-pass desktop card unchanged.
 - 2026-07-28: **One identity bar + Nav drawer** — Adaptive mobile: Playbill shows LIVE; Dialog identity banners suppressed; hamburger opens Nav drawer; top board-link row hidden. Density-pass Playbill card sizing kept.
 - 2026-07-27: **Playbill header mobile density** — `PlaybillHeaderCard` on ≤767px shows domain name + compact portrait (no presents/role stack); `minHeight` 44. `KeeperTopBar` uses `PLAYBILL_ANCHOR_MAX_WIDTH_MOBILE` and hides name/ADMIN meta (avatar-only). Desktop header card unchanged.
 - 2026-07-25: **Playbill mobile dropdown density** — overlay `PlaybillCard` rows on ≤767px use tighter padding (`py-1.5`), `text-[14px]` name, and `PlaybillAgentPortrait` size `compact` (36px). List gap/pad reduced via `index.css` media query. Desktop row sizing unchanged.

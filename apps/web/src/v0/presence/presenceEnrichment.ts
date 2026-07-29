@@ -552,7 +552,7 @@ async function enrichKeeper(
 
     if (mapped.length > 0) {
       relatedSections.push({
-        title: "Recent Sessions",
+        title: "Journeys",
         items: mapped.slice(0, 6).map(({ id, label, sub, navigateKind }) => ({
           id,
           label,
@@ -562,17 +562,17 @@ async function enrichKeeper(
       })
     }
   } catch {
-    /* sessions are ambient */
+    /* journeys are ambient */
   }
 
   if (typeof record.createdAt !== "string" && typeof record.created_at === "string") {
     record.createdAt = record.created_at
   }
 
-  const sessionCount = relatedSections[0]?.items.length ?? 0
+  const journeyCount = relatedSections[0]?.items.length ?? 0
   const metaParts = [
-    sessionCount > 0
-      ? `${sessionCount} session${sessionCount === 1 ? "" : "s"}`
+    journeyCount > 0
+      ? `${journeyCount} journey${journeyCount === 1 ? "" : "s"}`
       : null,
     typeof record.createdAt === "string"
       ? `Since ${formatWhenShort(record.createdAt)}`
@@ -678,28 +678,8 @@ async function enrichAgent(
     }
   }
 
-  const sessions = Array.isArray(record.recent_sessions)
-    ? (record.recent_sessions as Array<Record<string, unknown>>)
-    : []
-
-  const relatedSections: RelatedSection[] =
-    sessions.length > 0
-      ? [
-          {
-            title: "Recent Sessions",
-            items: sessions.slice(0, 6).map((s) => ({
-              id: String(s.id ?? ""),
-              label:
-                (typeof s.session_name === "string" && s.session_name.trim()) ||
-                String(s.id ?? "").slice(0, 8),
-              sub:
-                typeof s.created_at === "string"
-                  ? formatWhenShort(s.created_at)
-                  : undefined,
-            })),
-          },
-        ]
-      : []
+  // Chronicle contract: ambient lists are Moments / Journeys — never Session rows.
+  const relatedSections: RelatedSection[] = []
 
   if (Array.isArray(record.tools)) {
     record.tools = (record.tools as unknown[]).join(", ")
@@ -722,45 +702,10 @@ async function enrichAgent(
 
 async function enrichDialog(record: Record<string, unknown>): Promise<EnrichmentResult> {
   const mapped = mapDialogRecord(record)
-  const sessions = normalizeDialogSessions(record)
+  // Chronicle surfaces Dialog as Document (DomainRealmStory) — Session lists stay out of Chronicle.
   const relatedSections: RelatedSection[] = []
 
-  const sessionsWithMessages = sessions.filter(
-    (s) => (s.messageCount ?? s.kip_messages?.length ?? 0) > 0,
-  )
-  const arcItems = sessionsWithMessages.slice(0, 4).map((session) => ({
-    id: session.id,
-    label: dialogSessionLabel(session),
-    sub: dialogSessionSub(session),
-    preview: extractDialogExchangePreview(session),
-    navigateKind: "session" as const,
-  }))
-
-  if (arcItems.length > 0) {
-    relatedSections.push({
-      title: "Recent Exchanges",
-      items: arcItems,
-    })
-  }
-
-  const sessionItems = sessions.slice(0, 5).map((session) => ({
-    id: session.id,
-    label: dialogSessionLabel(session),
-    sub: dialogSessionSub(session),
-    navigateKind: "session" as const,
-  }))
-
-  if (sessionItems.length > 0) {
-    relatedSections.push({
-      title: "Sessions",
-      items: sessionItems,
-    })
-  }
-
   const metaParts = [
-    sessions.length > 0
-      ? `${sessions.length} session${sessions.length === 1 ? "" : "s"}`
-      : null,
     typeof mapped.updated_at === "string"
       ? formatWhenShort(mapped.updated_at as string)
       : null,

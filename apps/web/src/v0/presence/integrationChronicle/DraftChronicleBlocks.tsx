@@ -3,7 +3,6 @@
 import * as React from "react"
 import { buildDraftSummaryFromAcceptedPoints } from "@keeper/shared"
 import { DraftPointsSection } from "../DraftPointsSection"
-import { DraftSessionsBlock } from "./DraftSessionsBlock"
 import { DraftVersionStrip } from "./DraftVersionStrip"
 import type { DraftPathEmergence } from "./draftManuscriptUtils"
 
@@ -113,9 +112,10 @@ export function DraftChronicleBlocks({
   draftKind,
   selectedJourneyId,
   onDialogSelect,
-  onSessionSelect,
+  onSessionSelect: _onSessionSelect,
   manuscript = false,
 }: DraftChronicleBlocksProps) {
+  void _onSessionSelect
   const displaySummary = React.useMemo(() => {
     if (!manuscript) return summary?.trim() || null
     const arc = buildDraftSummaryFromAcceptedPoints(spec)
@@ -205,23 +205,8 @@ export function DraftChronicleBlocks({
           >
             Open linked dialog →
           </button>
-          <DraftSessionsBlock
-            domainId={domainId}
-            draftId={draftId}
-            dialogId={dialogId}
-            onSessionSelect={onSessionSelect}
-          />
         </BlockSection>
-      ) : (
-        <BlockSection title="Sessions" manuscript={manuscript}>
-          <DraftSessionsBlock
-            domainId={domainId}
-            draftId={draftId}
-            dialogId={dialogId}
-            onSessionSelect={onSessionSelect}
-          />
-        </BlockSection>
-      )}
+      ) : null}
     </>
   )
 }

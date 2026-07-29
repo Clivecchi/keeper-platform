@@ -33,3 +33,7 @@ Point read shell + Document container helpers for Chronicle Focus — shared con
 - **2026-07-16** — Rename: ChronicleDocument → Document/Point, ChronicleDocumentView → PointView.
 - **2026-07-15** — Gloss wired into Dialog via `requestDiscussDraftPoint`.
 - **2026-07-13** — Initial pilot: view, library adapter, roadmap synthetic panel.
+
+### 2026-07-28 � Chronicle Gloss long-press
+- `PointView`: 480ms touch long-press invokes `onGloss` (same timing as Dialog GlossSurface); button retained.
+

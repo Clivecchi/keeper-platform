@@ -211,7 +211,14 @@ function UniversalBoardShell({
   // Full theme replace is reserved for explicit ?theme= developer preview.
   const themeSlug = urlThemeSlug ?? DOMAIN_THEME_SLUG
   const themeApply = urlThemeSlug ? "full" : "treatment"
-  const { selection, actions, navCollapsed, onToggleNavCollapsed, chronicleEngagement } = useUniversalBoard()
+  const {
+    selection,
+    actions,
+    navCollapsed,
+    onToggleNavCollapsed,
+    chronicleEngagement,
+    draftDiscussAnchor,
+  } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
   const isRealmHome = def.boardId === "realm" && shellMode === "home"
@@ -227,6 +234,14 @@ function UniversalBoardShell({
     }
   }, [useMobilePanelLayout, chronicleEngagement])
 
+  // Gloss from Chronicle → focused Dialog; close the sheet so the conversation is visible.
+  React.useEffect(() => {
+    if (!useMobilePanelLayout) return
+    if (draftDiscussAnchor) {
+      setChronicleOverlayOpen(false)
+    }
+  }, [useMobilePanelLayout, draftDiscussAnchor])
+
   const focusMobileDialogPanel = React.useCallback(() => {
     setNavDrawerOpen(false)
     setChronicleOverlayOpen(false)
@@ -239,8 +254,31 @@ function UniversalBoardShell({
 
   const openChronicleOverlay = React.useCallback(() => {
     setNavDrawerOpen(false)
+    // Domain idle when nothing Document/Journey/Moment/Keeper scoped —
+    // prevents agent-only selection from painting Session lists in Chronicle.
+    const hasChronicleScope = !!(
+      selection.selectedDialogId
+      || selection.selectedDraftId
+      || selection.selectedMomentId
+      || selection.selectedLibraryItemId
+      || selection.selectedJourneyId
+      || selection.selectedKeeperId
+      || selection.selectedPathId
+    )
+    if (!hasChronicleScope) {
+      actions.clearSelection()
+    }
     setChronicleOverlayOpen(true)
-  }, [])
+  }, [
+    actions,
+    selection.selectedDialogId,
+    selection.selectedDraftId,
+    selection.selectedMomentId,
+    selection.selectedLibraryItemId,
+    selection.selectedJourneyId,
+    selection.selectedKeeperId,
+    selection.selectedPathId,
+  ])
 
   const closeNavDrawer = React.useCallback(() => setNavDrawerOpen(false), [])
   const closeChronicleOverlay = React.useCallback(() => setChronicleOverlayOpen(false), [])
@@ -261,6 +299,7 @@ function UniversalBoardShell({
   const [domainName, setDomainName] = React.useState<string>("")
 
   const chronicleStripCopy = React.useMemo(() => {
+    const domainLabel = domainName?.trim() || "Domain"
     const dialogId = selection.selectedDialogId
     if (dialogId && domainId) {
       const dialogs = getCachedBoardNavData<Array<{ id: string; title?: string | null }>>(
@@ -271,18 +310,22 @@ function UniversalBoardShell({
       const title = match?.title?.trim() || "Document"
       return {
         title,
-        subtitle: domainName?.trim() || undefined,
+        subtitle: domainLabel,
       }
     }
     if (selection.selectedDraftId) {
-      return { title: "Draft", subtitle: domainName?.trim() || undefined }
+      return { title: "Draft", subtitle: domainLabel }
     }
     if (selection.selectedMomentId) {
-      return { title: "Moment", subtitle: domainName?.trim() || undefined }
+      return { title: "Moment", subtitle: domainLabel }
     }
+    if (selection.selectedJourneyId) {
+      return { title: "Journey", subtitle: domainLabel }
+    }
+    // Idle tip — matches domain Chronicle contract (not Sessions).
     return {
-      title: "Presence",
-      subtitle: domainName?.trim() || "Tap to open Chronicle",
+      title: domainLabel,
+      subtitle: "Journeys · Moments",
     }
   }, [
     domainId,
@@ -290,6 +333,7 @@ function UniversalBoardShell({
     selection.selectedDialogId,
     selection.selectedDraftId,
     selection.selectedMomentId,
+    selection.selectedJourneyId,
   ])
 
   const onDraftListRefresh = React.useCallback(() => {

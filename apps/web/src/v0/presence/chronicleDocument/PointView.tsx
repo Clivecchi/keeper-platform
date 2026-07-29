@@ -92,9 +92,44 @@ export function PointView({
   const [castOpen, setCastOpen] = React.useState(false)
   const blurb = collapsedBlurb(card)
   const bodyText = card.body.text.trim()
+  const pressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [pressing, setPressing] = React.useState(false)
+
+  const clearPressTimer = React.useCallback(() => {
+    if (pressTimer.current != null) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }, [])
+
+  React.useEffect(() => () => clearPressTimer(), [clearPressTimer])
+
+  /** Same 480ms long-press affordance as Dialog GlossSurface — opens focused Dialog Gloss. */
+  const handleTouchStart = React.useCallback(() => {
+    if (!handleGloss) return
+    setPressing(true)
+    clearPressTimer()
+    pressTimer.current = setTimeout(() => {
+      handleGloss()
+      setPressing(false)
+    }, 480)
+  }, [handleGloss, clearPressTimer])
+
+  const handleTouchEnd = React.useCallback(() => {
+    clearPressTimer()
+    setPressing(false)
+  }, [clearPressTimer])
 
   return (
-    <article className="keeper-chronicle-document flex flex-col gap-3">
+    <article
+      className={[
+        "keeper-chronicle-document flex flex-col gap-3",
+        pressing ? "opacity-90" : "",
+      ].join(" ")}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <p

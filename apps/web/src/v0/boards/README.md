@@ -35,6 +35,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - IDE / Designer / echo resume-create paths use `def.boardId` the same way.
 - Contract: mount resumes the board Dialog's last session (pick up where you left off); first send creates only when none exists. Nav need not open a Dialog.
 
+### 2026-07-28 — Chronicle contract (no Sessions) + Playbill chip
+- Overlay still mounts `UniversalViewPanel` (Trail Bar + Panel Body). Session lists removed from Chronicle enrichment (agent/dialog) and Draft Sessions blocks; Keeper ambient relabeled Journeys.
+- Strip idle tip = domain name + “Journeys · Moments”; expand clears agent-only selection → domain idle. Gloss from Document points closes overlay (long-press + button → `requestDiscussDraftPoint`).
+- Playbill Path A: name-only chip; full picker remains top-bar overlay.
+
 ### 2026-07-28 — Chronicle strip + Nav drawer (retire bottom tabs)
 - Adaptive Domain/Realm (≤767px): Dialog always primary; **Nav** = hamburger → `BoardMobileNavDrawer`; **Chronicle** = ambient strip above Composer → `BoardMobileChronicleOverlay`.
 - `BoardMobilePanelBar` no longer mounted. Playbill owns LIVE/identity; Dialog domain/breadcrumb banners suppressed on this path (`suppressMobileDomainBanner`).

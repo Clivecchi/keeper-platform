@@ -92,94 +92,52 @@ export function PlaybillHeaderCard({
     ? "1.5px solid hsl(var(--theme-focus-ring) / 0.75)"
     : "1px solid hsl(var(--theme-border-soft) / 0.45)"
 
+  // Path A — name-only chip; full Playbill (portrait / travel list) stays the light overlay.
   if (isMobile) {
     return (
-      <div
+      <button
+        type="button"
+        onClick={onOpenPlaybill}
         className={[
-          "playbill-header-card playbill-header-card--mobile group relative min-w-0 w-full overflow-hidden rounded-lg text-left transition-opacity",
+          "playbill-header-card playbill-header-card--mobile-chip group relative min-w-0 max-w-full overflow-hidden rounded-full text-left transition-opacity hover:opacity-95",
           className,
         ].join(" ")}
         style={{
           border: borderStyle,
-          minHeight: 44,
+          minHeight: 36,
+          padding: "6px 10px 6px 12px",
+          background: "hsl(var(--theme-surface-panel) / 0.45)",
         }}
+        aria-label={`${billingName} — open domain travel`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
-        <PlaybillAmbientLayer imageUrl={ambientUrl} accent={accent} />
-
-        <div className="relative z-10 flex items-center gap-2 px-2.5 py-1.5">
-          <button
-            type="button"
-            onClick={onGoHome ?? (() => {})}
-            className="min-w-0 flex-1 text-left hover:opacity-95 transition-opacity"
-            aria-label={`${billingName} — return to Realm`}
-            title="Return to Realm"
-          >
-            <div className="flex min-w-0 items-center gap-2">
-              <h1
-                className="font-serif text-[15px] font-bold leading-tight tracking-tight truncate"
-                style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
-              >
-                {billingName}
-              </h1>
-              {showLive ? (
-                <span
-                  className="inline-flex shrink-0 items-center gap-1"
-                  aria-label="Live"
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{
-                      backgroundColor: liveColor ?? "hsl(var(--theme-border-strong))",
-                      boxShadow: liveColor
-                        ? `0 0 0 2px color-mix(in srgb, ${liveColor} 35%, transparent)`
-                        : "0 0 0 2px hsl(var(--theme-border-soft) / 0.6)",
-                    }}
-                    aria-hidden
-                  />
-                  <span
-                    className="text-[9px] font-semibold uppercase tracking-widest"
-                    style={{ color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))" }}
-                  >
-                    Live
-                  </span>
-                </span>
-              ) : null}
-            </div>
-            {starName && starName !== billingName ? (
-              <p
-                className="mt-0.5 text-[10px] truncate"
-                style={{ color: accent }}
-              >
-                {starName}
-              </p>
-            ) : null}
-          </button>
-
-          <div className="flex shrink-0 items-center gap-1.5">
-            <PlaybillAgentPortrait
-              portraitUrl={portraitUrl}
-              portraitEmoji={portraitEmoji}
-              fallback={portraitFallback}
-              accent={accent}
-              size="compact"
+        <span className="relative z-10 flex min-w-0 items-center gap-1.5">
+          {showLive ? (
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{
+                backgroundColor: liveColor ?? "hsl(var(--theme-border-strong))",
+                boxShadow: liveColor
+                  ? `0 0 0 2px color-mix(in srgb, ${liveColor} 35%, transparent)`
+                  : "0 0 0 2px hsl(var(--theme-border-soft) / 0.6)",
+              }}
+              aria-hidden
             />
-            <button
-              type="button"
-              onClick={onOpenPlaybill}
-              className="shrink-0 opacity-50 transition-opacity hover:opacity-80 p-0.5"
-              aria-label={`${billingName} — open domain travel`}
-              aria-haspopup="menu"
-              aria-expanded={isOpen}
-            >
-              <ChevronDown
-                className={isOpen ? "rotate-180" : ""}
-                style={{ width: 14, height: 14, color: "hsl(var(--theme-header-text-secondary))" }}
-                aria-hidden
-              />
-            </button>
-          </div>
-        </div>
-      </div>
+          ) : null}
+          <span
+            className="min-w-0 truncate font-serif text-[14px] font-bold leading-none tracking-tight"
+            style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
+          >
+            {billingName}
+          </span>
+          <ChevronDown
+            className={`shrink-0 opacity-55 ${isOpen ? "rotate-180" : ""}`}
+            style={{ width: 14, height: 14, color: "hsl(var(--theme-header-text-secondary))" }}
+            aria-hidden
+          />
+        </span>
+      </button>
     )
   }
 
