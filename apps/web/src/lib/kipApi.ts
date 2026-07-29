@@ -1025,6 +1025,53 @@ export class KipApi {
     throw new Error(pickErrorMessage(response, 'Failed to load draft'));
   }
 
+  /**
+   * Chronicle Document for one Dialog — Forward/Step/Paths + manuscript drafts with Points.
+   * Single round-trip (replaces dialog GET + domain drafts list + N manuscript detail GETs).
+   */
+  static async getDialogDocument(
+    domainId: string,
+    dialogId: string,
+  ): Promise<{
+    dialogId: string;
+    title?: string;
+    status?: string;
+    forward?: { title: string; description: string };
+    step?: { title: string; body: string };
+    paths: Array<{ id: string; title: string; prelude?: string }>;
+    manuscripts: KipDraft[];
+  }> {
+    const response = await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document`,
+    );
+    const document = (response as { document?: Record<string, unknown> })?.document;
+    if (!document || typeof document.dialogId !== 'string') {
+      throw new Error(pickErrorMessage(response, 'Failed to load dialog document'));
+    }
+    const manuscriptsRaw = Array.isArray(document.manuscripts) ? document.manuscripts : [];
+    return {
+      dialogId: document.dialogId,
+      ...(typeof document.title === 'string' ? { title: document.title } : {}),
+      ...(typeof document.status === 'string' ? { status: document.status } : {}),
+      ...(document.forward && typeof document.forward === 'object'
+        ? { forward: document.forward as { title: string; description: string } }
+        : {}),
+      ...(document.step && typeof document.step === 'object'
+        ? { step: document.step as { title: string; body: string } }
+        : {}),
+      paths: Array.isArray(document.paths)
+        ? (document.paths as Array<{ id: string; title: string; prelude?: string }>)
+        : [],
+      manuscripts: manuscriptsRaw.map((row) => {
+        const draft = row as KipDraft;
+        return {
+          ...draft,
+          spec: normalizeDraftSpecJson(draft.spec),
+        };
+      }),
+    };
+  }
+
   static async listDraftVersions(
     domainId: string,
     draftId: string,

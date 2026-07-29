@@ -89,6 +89,11 @@ interface KeeperTopBarProps {
   isBriefOpen?: boolean
   isPlaybillOpen?: boolean
   playbillDropdown?: React.ReactNode
+  /** Adaptive mobile — opens Nav drawer (replaces Nav bottom tab). */
+  onOpenNav?: () => void
+  /** Fold Dialog domain LIVE into Playbill (one identity bar). */
+  showLivePulse?: boolean
+  livePulseColor?: string
 }
 
 function getInitials(name: string | null, email: string | null): string {
@@ -181,6 +186,9 @@ export function KeeperTopBar({
   isBriefOpen,
   isPlaybillOpen = false,
   playbillDropdown,
+  onOpenNav,
+  showLivePulse = false,
+  livePulseColor,
 }: KeeperTopBarProps) {
   const {
     domainSlug,
@@ -252,6 +260,27 @@ export function KeeperTopBar({
           .filter(Boolean)
           .join(" ")}
       >
+        {isMobile && onOpenNav ? (
+          <button
+            type="button"
+            onClick={onOpenNav}
+            className="keeper-topbar-nav-trigger shrink-0 rounded-lg p-2"
+            aria-label="Open navigation"
+            style={{
+              color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
+              background: "hsl(var(--theme-surface-panel) / 0.35)",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+              <path
+                d="M3 4.5h12M3 9h12M3 13.5h12"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        ) : null}
         <div
           className="keeper-topbar-playbill-anchor"
           style={{
@@ -272,6 +301,13 @@ export function KeeperTopBar({
             onOpenPlaybill={onDomainClick}
             onGoHome={onGoHome}
             isOpen={isPlaybillOpen}
+            livePulse={
+              showLivePulse
+                ? livePulseColor
+                  ? { color: livePulseColor }
+                  : true
+                : undefined
+            }
           />
           {isPlaybillOpen ? playbillDropdown : null}
         </div>
@@ -318,6 +354,8 @@ export function KeeperTopBar({
         </div>
       </div>
 
+      {/* Adaptive mobile: Nav drawer + Playbill own chrome — hide board-link row. */}
+      {!(isMobile && onOpenNav) ? (
       <div className="keeper-topbar-nav-row">
         <nav className="flex items-center gap-0.5" aria-label="Board navigation">
           {boardLinks.map(({ id, label }, idx) => {
@@ -364,6 +402,7 @@ export function KeeperTopBar({
           </button>
         ) : null}
       </div>
+      ) : null}
     </div>
   )
 }

@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-07-28: **`aboveComposer` + suppress mobile identity banner** — Slot for Chronicle strip above Composer; `suppressMobileDomainBanner` hides Dialog header banners on adaptive mobile (Playbill is sole identity bar).
 - 2026-07-27: **Mobile Dialog chrome reclaim** — On ≤767px, domain banner defaults to wordmark + LIVE; tagline/stats + Invite/Get key/Manage expand via chevron. Cast header Invite trail hidden in compact mode (moved into expand). Mobile-staged `response` stage hides Cast header entirely so messages reclaim height. Desktop banner unchanged.
 - 2026-07-22: **Cross-domain cast Add** — `KeeperDialogFrame` passes `castCandidates` / `onEnableCastCandidate` / `enablingCast` / `castAddEnabled` into `DirectorCastHeader`.
 - 2026-07-22: **Header cast + composer invoke** — Every director board shows `DirectorCastHeader` (identity) under the banner; composer `BoardInstrumentsBar` is the invoke control. Realm access actions trail the header cast. Domain/Realm multi-select at composer; IDE/Designer single-swap unchanged.

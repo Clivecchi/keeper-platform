@@ -68,9 +68,10 @@ import {
 } from "./domain/domainShellCache"
 import { extractDomainThemeCover } from "@keeper/shared"
 import { DOMAIN_THEME_SLUG } from "../themes/constants"
-import { BoardMobilePanelBar } from "./components/BoardMobilePanelBar"
-import { useBoardMobilePanelFocus } from "./hooks/useBoardMobilePanelFocus"
-import type { BoardMobilePanelId } from "./types/boardMobilePanel"
+import { BoardMobileChronicleStrip } from "./components/BoardMobileChronicleStrip"
+import { BoardMobileChronicleOverlay } from "./components/BoardMobileChronicleOverlay"
+import { BoardMobileNavDrawer } from "./components/BoardMobileNavDrawer"
+import { getCachedBoardNavData } from "./boardNavDataCache"
 import { PwaInstallPrompt } from "../../mobile/pwa"
 import "./board-mobile.css"
 
@@ -122,6 +123,10 @@ export interface UniversalBoardCenterProps {
   onDraftListRefresh?: () => void
   /** Bump nav journey list after agent actions create journeys or moments. */
   onJourneyListRefresh?: () => void
+  /** Adaptive mobile — Chronicle tip strip above Composer. */
+  mobileAboveComposer?: React.ReactNode
+  /** Adaptive mobile — Playbill owns domain LIVE; suppress Dialog identity banner. */
+  suppressMobileDomainBanner?: boolean
 }
 
 // ─── Left Panel Render Prop ───────────────────────────────────────────────────
@@ -211,14 +216,34 @@ function UniversalBoardShell({
   const isMobile = useIsMobile()
   const isRealmHome = def.boardId === "realm" && shellMode === "home"
   const useMobilePanelLayout = usesAdaptiveMobileBoardLayout(def.boardId, isMobile)
-  const { activePanel: mobilePanelFocus, setActivePanel: setMobilePanelFocus } = useBoardMobilePanelFocus({
-    chronicleEngagementActive: chronicleEngagement != null,
-    initialPanel: "dialog",
-  })
+  const [navDrawerOpen, setNavDrawerOpen] = React.useState(false)
+  const [chronicleOverlayOpen, setChronicleOverlayOpen] = React.useState(false)
+
+  // Chronicle Acts / engagement — open overlay instead of a Chronicle tab.
+  React.useEffect(() => {
+    if (!useMobilePanelLayout) return
+    if (chronicleEngagement != null) {
+      setChronicleOverlayOpen(true)
+    }
+  }, [useMobilePanelLayout, chronicleEngagement])
 
   const focusMobileDialogPanel = React.useCallback(() => {
-    setMobilePanelFocus("dialog")
-  }, [setMobilePanelFocus])
+    setNavDrawerOpen(false)
+    setChronicleOverlayOpen(false)
+  }, [])
+
+  const openNavDrawer = React.useCallback(() => {
+    setChronicleOverlayOpen(false)
+    setNavDrawerOpen(true)
+  }, [])
+
+  const openChronicleOverlay = React.useCallback(() => {
+    setNavDrawerOpen(false)
+    setChronicleOverlayOpen(true)
+  }, [])
+
+  const closeNavDrawer = React.useCallback(() => setNavDrawerOpen(false), [])
+  const closeChronicleOverlay = React.useCallback(() => setChronicleOverlayOpen(false), [])
 
   const handleGoHome = React.useCallback(() => {
     actions.clearSelection()
@@ -234,6 +259,38 @@ function UniversalBoardShell({
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string>("")
+
+  const chronicleStripCopy = React.useMemo(() => {
+    const dialogId = selection.selectedDialogId
+    if (dialogId && domainId) {
+      const dialogs = getCachedBoardNavData<Array<{ id: string; title?: string | null }>>(
+        domainId,
+        "dialogs",
+      )
+      const match = dialogs?.find((d) => d.id === dialogId)
+      const title = match?.title?.trim() || "Document"
+      return {
+        title,
+        subtitle: domainName?.trim() || undefined,
+      }
+    }
+    if (selection.selectedDraftId) {
+      return { title: "Draft", subtitle: domainName?.trim() || undefined }
+    }
+    if (selection.selectedMomentId) {
+      return { title: "Moment", subtitle: domainName?.trim() || undefined }
+    }
+    return {
+      title: "Presence",
+      subtitle: domainName?.trim() || "Tap to open Chronicle",
+    }
+  }, [
+    domainId,
+    domainName,
+    selection.selectedDialogId,
+    selection.selectedDraftId,
+    selection.selectedMomentId,
+  ])
 
   const onDraftListRefresh = React.useCallback(() => {
     actions.bumpDraftNav()
@@ -431,6 +488,14 @@ function UniversalBoardShell({
     domainName,
   }
 
+  const mobileAboveComposer = useMobilePanelLayout ? (
+    <BoardMobileChronicleStrip
+      title={chronicleStripCopy.title}
+      subtitle={chronicleStripCopy.subtitle}
+      onExpand={openChronicleOverlay}
+    />
+  ) : null
+
   // ── Board context — delivered to center and right render props ───────────
   const centerProps: UniversalBoardCenterProps = {
     domainId,
@@ -454,6 +519,8 @@ function UniversalBoardShell({
     clearSelection: actions.clearSelection,
     onDraftListRefresh,
     onJourneyListRefresh,
+    mobileAboveComposer: mobileAboveComposer ?? undefined,
+    suppressMobileDomainBanner: useMobilePanelLayout,
   }
 
   // ── Right panel — render prop or Chronicle ─────────────────────────────────
@@ -494,16 +561,49 @@ function UniversalBoardShell({
               selectedKeyId={selection.selectedKeyId}
               selectedCapabilityId={selection.selectedCapabilityId}
               selectedLibraryItemId={selection.selectedLibraryItemId}
-              onDialogSelect={actions.onDialogSelect}
-              onJourneySelect={actions.onJourneySelect}
-              onKeeperSelect={actions.onKeeperSelect}
-              onDraftSelect={actions.onDraftSelect}
-              onAgentSelect={actions.onAgentSelect}
-              onServiceOpen={actions.onServiceOpen}
-              onKeySelect={actions.onKeySelect}
-              onCapabilitySelect={actions.onCapabilitySelect}
-              onLibraryItemSelect={actions.onLibraryItemSelect}
-              onMomentSelect={actions.onMomentSelect}
+              onDialogSelect={(id) => {
+                actions.onDialogSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onJourneySelect={(id) => {
+                actions.onJourneySelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onKeeperSelect={(id) => {
+                actions.onKeeperSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onDraftSelect={(id) => {
+                actions.onDraftSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onAgentSelect={(id) => {
+                actions.onAgentSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onServiceOpen={(serviceSlug) => {
+                actions.onServiceOpen(serviceSlug)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onKeySelect={(id) => {
+                actions.onKeySelect(id)
+                if (useMobilePanelLayout) {
+                  closeNavDrawer()
+                  openChronicleOverlay()
+                }
+              }}
+              onCapabilitySelect={(id) => {
+                actions.onCapabilitySelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onLibraryItemSelect={(id) => {
+                actions.onLibraryItemSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onMomentSelect={(id) => {
+                actions.onMomentSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
               collapsed={useMobilePanelLayout ? false : navCollapsed}
               onToggleCollapsed={onToggleNavCollapsed}
               dialogListVersion={effectiveDialogListVersion}
@@ -538,11 +638,11 @@ function UniversalBoardShell({
     </PanelErrorBoundary>
   )
 
-  const mobilePanelNodes: Record<BoardMobilePanelId, React.ReactNode> = {
-    nav: leftNode,
-    dialog: centerNode,
-    chronicle: rightNode,
-  }
+  const themePrimary = domainFrame?.theme?.colors?.primary
+  const livePulseColor =
+    typeof themePrimary === "string" && themePrimary.trim()
+      ? themePrimary.trim()
+      : undefined
 
   return (
     <StyleScope
@@ -562,6 +662,9 @@ function UniversalBoardShell({
           isBriefOpen={briefOpen}
           isPlaybillOpen={isSwitcherOpen}
           playbillDropdown={switcherOverlay}
+          onOpenNav={useMobilePanelLayout ? openNavDrawer : undefined}
+          showLivePulse={useMobilePanelLayout}
+          livePulseColor={livePulseColor}
         />
 
         {isMobile && isMemberMobileBoard(def.boardId) ? (
@@ -588,12 +691,17 @@ function UniversalBoardShell({
             {useMobilePanelLayout ? (
               <>
                 <div className="keeper-board-panel-focus">
-                  {mobilePanelNodes[mobilePanelFocus]}
+                  {centerNode}
                 </div>
-                <BoardMobilePanelBar
-                  activePanel={mobilePanelFocus}
-                  onPanelChange={setMobilePanelFocus}
-                />
+                <BoardMobileNavDrawer open={navDrawerOpen} onClose={closeNavDrawer}>
+                  {leftNode}
+                </BoardMobileNavDrawer>
+                <BoardMobileChronicleOverlay
+                  open={chronicleOverlayOpen}
+                  onClose={closeChronicleOverlay}
+                >
+                  {rightNode}
+                </BoardMobileChronicleOverlay>
                 <PwaInstallPrompt
                   title="Install Keeper"
                   description="Add Keeper to your home screen for quick access."

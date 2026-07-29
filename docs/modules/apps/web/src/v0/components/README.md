@@ -34,6 +34,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-07-28: **One identity bar + Nav drawer** — Adaptive mobile: Playbill shows LIVE; Dialog identity banners suppressed; hamburger opens Nav drawer; top board-link row hidden. Density-pass Playbill card sizing kept.
 - 2026-07-27: **Playbill header mobile density** — `PlaybillHeaderCard` on ≤767px shows domain name + compact portrait (no presents/role stack); `minHeight` 44. `KeeperTopBar` uses `PLAYBILL_ANCHOR_MAX_WIDTH_MOBILE` and hides name/ADMIN meta (avatar-only). Desktop header card unchanged.
 - 2026-07-25: **Playbill mobile dropdown density** — overlay `PlaybillCard` rows on ≤767px use tighter padding (`py-1.5`), `text-[14px]` name, and `PlaybillAgentPortrait` size `compact` (36px). List gap/pad reduced via `index.css` media query. Desktop row sizing unchanged.
 - 2026-07-24: **cast-select-must-not-change-atmosphere** — `KeeperTopBar` cover uses shell theme only when `domainData.slug` matches the current shell slug (soft-switch race guard).

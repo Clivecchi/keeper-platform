@@ -263,6 +263,8 @@ export function UniversalConversation({
   onServiceOpen,
   onDraftListRefresh,
   onJourneyListRefresh,
+  mobileAboveComposer,
+  suppressMobileDomainBanner,
 }: UniversalConversationProps) {
   const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame, shellMode, domainData } = useV0Shell()
   const boardDefinitionId = useBoardDefinitionFromUrl()
@@ -2426,6 +2428,8 @@ export function UniversalConversation({
         dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}
         mobileDialogStage={useMobileStagedComposer ? mobileDialogStage : undefined}
         onComposerFocusChange={useMobileStagedComposer ? handleComposerFocusChange : undefined}
+        aboveComposer={mobileAboveComposer}
+        suppressMobileDomainBanner={suppressMobileDomainBanner === true}
         showServiceBar={def.conversation.showServiceBar}
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
         onToolInvoke={isDirectorMode && kipMode === "ide" ? handleToolInvoke : undefined}

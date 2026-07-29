@@ -10,6 +10,7 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - `RealmFeedPanel.tsx` — Realm feed in Chronicle (via invitation; no empty stub)
 - `RealmHomeChronicle.tsx` — Chronicle: user feed at `/home`; domain story at `?board=realm`
 - `DomainRealmStory.tsx` — domain-scoped Document (Point) story frames via `PointView`
+- `dialogDocumentCache.ts` — short TTL + in-flight dedupe for Chronicle Document fetches
 - `RealmStagedNav.tsx` — Dialog-scoped nav (Dialog → Drafts / Kept / Presented)
 - `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — Document-shaped nav data; `byDialog` + `byStage`
 - `DialogCastBar.tsx` — `RealmCastAccessActions` (Invite / Get key / Manage trailing chrome); agent chips live on shared `BoardInstrumentsBar`
@@ -32,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-07-28 — Chronicle Document one-round-trip
+- `DomainRealmStory` uses `GET …/kip/dialogs/:id/document` via `KipApi.getDialogDocument` + `dialogDocumentCache` (no domain-wide drafts list, no sequential manuscript GETs).
+
 ### 2026-07-26 — Cast Notes on Document Points
 - `manuscriptPointsToRealmNavEntries` attaches `Point.cast.notes` from `DraftPoint.castNotes` + sibling Points with `referencesPointId` (those siblings are not Path cards). Gloss anchors wired for manuscript Points.
 - Chronicle `PointView` **Cast · N** opens the same voice-card chrome as Dialog.

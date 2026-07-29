@@ -233,6 +233,16 @@ export interface KeeperDialogFrameProps {
   onComposerFocusChange?: (focused: boolean) => void
   /** Renders between Dialog Space and Composer in mobile response stage (e.g. Text / Chronicle toggle). */
   mobileResponseToolbar?: React.ReactNode
+  /**
+   * Slot above the Composer (adaptive mobile Chronicle strip).
+   * Renders inside `.dialog-bottom-zone` before the input floor.
+   */
+  aboveComposer?: React.ReactNode
+  /**
+   * When true on mobile, suppress the domain livePulse identity banner —
+   * Playbill owns identity/location (one top bar).
+   */
+  suppressMobileDomainBanner?: boolean
   /** When true, composer shows mic for speech-to-text (confirm before send). */
   talkMode?: boolean
 
@@ -323,6 +333,8 @@ export function KeeperDialogFrame({
   mobileDialogStage,
   onComposerFocusChange,
   mobileResponseToolbar,
+  aboveComposer,
+  suppressMobileDomainBanner = false,
   talkMode = false,
   glossConfig,
 }: KeeperDialogFrameProps) {
@@ -339,8 +351,15 @@ export function KeeperDialogFrame({
   const isWorking = isSending || isFileUploading || isSubmittingMessage
   const showBroadcastStrip = mode !== "feed" && (isWorking || hasUploads)
   const showComposerFooter = mode !== "feed"
+  /**
+   * Adaptive mobile: Playbill is the sole top identity/location bar.
+   * Suppress Dialog header banners entirely (domain LIVE + breadcrumb).
+   * Dialog/Document context surfaces on the Chronicle strip instead.
+   */
+  const hideDomainIdentityBanner = isMobile && suppressMobileDomainBanner
   /** Mobile Domain banner: name + LIVE by default; tagline/stats behind expand. */
-  const domainBannerCompact = isMobile && !!bannerContext?.livePulse
+  const domainBannerCompact =
+    isMobile && !!bannerContext?.livePulse && !hideDomainIdentityBanner
   const showDomainBannerDetails = !domainBannerCompact || bannerExpanded
   /** Response stage reclaims chrome — cast strip returns when composing. */
   const hideCastHeaderOnMobileResponse =
@@ -473,6 +492,7 @@ export function KeeperDialogFrame({
   const hasSessionMeta = sessionId !== undefined
   // Banner renders in dialog mode when there is context to show
   const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!bannerContext?.prelude || !!onReturnToFeed || hasSessionMeta)
+  const showBannerEffective = showBanner && !hideDomainIdentityBanner
 
   const isMobileStaged = dialogLayout === "mobile-staged" && mode !== "feed"
   const mobileComposerSize =
@@ -493,7 +513,7 @@ export function KeeperDialogFrame({
     >
 
       {/* ── Header Bar — expandable breadcrumb; hidden in feed mode ─────────── */}
-      {showBanner && (
+      {showBannerEffective && (
         <div
           className={[
             "dialog-header-banner",
@@ -863,6 +883,7 @@ export function KeeperDialogFrame({
       {/* ── Composer — input floor; post-run Horizon summary sits directly above ── */}
       <div className="dialog-bottom-zone">
         <div className="dialog-column dialog-bottom-stack">
+          {mode !== "feed" && aboveComposer ? aboveComposer : null}
           {mode !== "feed" && postRunSummary && (
             <div className="dialog-composer-horizon" aria-live="polite">
               <p className="dialog-composer-horizon-summary">{postRunSummary}</p>

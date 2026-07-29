@@ -8,6 +8,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
 - `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
+- `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
+- `loadDialogDocumentForAgent.ts` — Agent-facing Document summary (prompt injection)
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
@@ -24,6 +26,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-07-28 — Chronicle Document loader
+- `loadDialogDocumentForChronicle.ts` — one DB path for Chronicle UI (no sessions; manuscripts include full `spec` Points).
 
 ### 2026-07-27 — compact prompt env + run timings
 - `buildCompactEnvironmentForPrompt.ts` — drops policy packs, registries, full dialog/roster dumps from the stringified KAM block (roster + Document stay in dedicated prompt builders).

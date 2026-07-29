@@ -17,9 +17,9 @@ import {
   manuscriptPointsToRealmNavEntries,
   type RealmNavEntry,
 } from "./realmNavGrowth"
+import { loadDialogDocumentCached } from "./dialogDocumentCache"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
-import { apiFetch } from "../../lib/apiFetch"
-import { KipApi, type KipDraft } from "../../lib/kipApi"
+import { KipApi } from "../../lib/kipApi"
 
 export interface DomainRealmStoryProps {
   domainId: string | null
@@ -53,29 +53,9 @@ function entryMatchesSelection(
   return false
 }
 
-function readDialogDocumentMeta(raw: unknown): DialogDocumentMeta {
-  if (!raw || typeof raw !== "object") return { paths: [] }
-  const dialog = raw as Record<string, unknown>
-  const forwardTitle =
-    typeof dialog.forward_title === "string" ? dialog.forward_title.trim() : ""
-  const forwardDescription =
-    typeof dialog.forward_description === "string"
-      ? dialog.forward_description.trim()
-      : ""
-  const stepTitle = typeof dialog.step_title === "string" ? dialog.step_title.trim() : ""
-  const stepBody = typeof dialog.step_body === "string" ? dialog.step_body.trim() : ""
-  return {
-    ...(forwardTitle && forwardDescription
-      ? { forward: { title: forwardTitle, description: forwardDescription } }
-      : {}),
-    ...(stepTitle && stepBody ? { step: { title: stepTitle, body: stepBody } } : {}),
-    paths: parseDocumentPathDeclarations(dialog.document_paths),
-  }
-}
-
 /**
  * Domain-scoped Realm Chronicle — thin adapter over DocumentShell.
- * Loads Dialog Forward/Step/Paths from the Dialog itself; expands manuscript
+ * Loads Dialog Document via one `/document` round-trip; expands manuscript
  * DraftPoints into Document cards. No hardcoded placeholder Forward/Step.
  */
 export function DomainRealmStory({
@@ -149,46 +129,25 @@ export function DomainRealmStory({
 
     void (async () => {
       try {
-        const [dialogRes, drafts] = await Promise.all([
-          apiFetch(
-            `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}`,
-          ),
-          KipApi.listDrafts(domainId, undefined, {
-            limit: 40,
-            excludeStatus: ["promoted", "archived"],
-          }).catch(() => [] as Awaited<ReturnType<typeof KipApi.listDrafts>>),
-        ])
-
+        const document = await loadDialogDocumentCached(domainId, dialogId, () =>
+          KipApi.getDialogDocument(domainId, dialogId),
+        )
         if (cancelled) return
 
-        const dialogPayload = (dialogRes as { dialog?: unknown })?.dialog
-        const meta = readDialogDocumentMeta(dialogPayload)
+        const meta: DialogDocumentMeta = {
+          ...(document.forward ? { forward: document.forward } : {}),
+          ...(document.step ? { step: document.step } : {}),
+          paths: parseDocumentPathDeclarations(document.paths),
+        }
         setDocumentMeta(meta)
 
         const pathTitles = new Map(
           meta.paths.map((path) => [path.id, path.title] as const),
         )
-
-        const manuscriptSummaries = drafts.filter((draft) => {
-          const row = draft as { dialogId?: string | null; dialog_id?: string | null; kind?: string }
-          const draftDialogId = row.dialogId ?? row.dialog_id
-          return (
-            draftDialogId === dialogId
-            && (row.kind === DOCUMENT_MANUSCRIPT_KIND
-              || (Array.isArray(draft.pointIds) && draft.pointIds.length > 0
-                && draft.title?.toLowerCase().includes("becoming together")))
-          )
-        })
-
-        const expanded: RealmNavEntry[] = []
-        for (const summary of manuscriptSummaries) {
-          const detail = await KipApi.getDraft(domainId, summary.id).catch(() => null)
-          if (!detail || cancelled) continue
-          expanded.push(
-            ...manuscriptPointsToRealmNavEntries(detail as KipDraft, dialogId, pathTitles),
-          )
-        }
-        if (!cancelled) setManuscriptEntries(expanded)
+        const expanded = document.manuscripts.flatMap((manuscript) =>
+          manuscriptPointsToRealmNavEntries(manuscript, dialogId, pathTitles),
+        )
+        setManuscriptEntries(expanded)
       } catch {
         if (!cancelled) {
           setDocumentMeta({ paths: [] })

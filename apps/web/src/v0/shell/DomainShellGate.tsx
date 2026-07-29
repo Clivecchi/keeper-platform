@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useLocation } from "react-router-dom"
 import { DomainLoadCurtain } from "../sceneChange/DomainLoadCurtain"
 import { consumeTravelCurtainSkip } from "../boards/domain/domainShellBootstrap"
 import {
@@ -12,6 +13,10 @@ import { isDomainShellReady } from "../boards/domain/domainShellBootstrap"
 import { getCachedDomainBySlug } from "../boards/domain/domainShellCache"
 import { isBoardNavWarm } from "../boards/boardNavDataCache"
 import { resolveRevealNavSections } from "../boards/domain/resolveRevealNavSections"
+import {
+  resolveWorkspaceBoardId,
+  type WorkspaceBoardId,
+} from "../boards/workspaceBoardNav"
 
 export interface DomainShellGateProps {
   domainSlug: string
@@ -22,12 +27,25 @@ export interface DomainShellGateProps {
 
 type GatePhase = "curtain" | "ready" | "error"
 
+function readActiveBoard(routerSearch: string): WorkspaceBoardId {
+  return (
+    resolveWorkspaceBoardId(
+      routerSearch,
+      typeof window !== "undefined" ? window.location.search : undefined,
+    ) ?? "domain"
+  )
+}
+
 /** Shell + Nav warm enough to reveal. Dialog session is optional (lazy on first send). */
-function isBoardRevealReady(slug: string, requireAudience: boolean): boolean {
+function isBoardRevealReady(
+  slug: string,
+  requireAudience: boolean,
+  board: WorkspaceBoardId,
+): boolean {
   if (!isDomainShellReady(slug, { requireAudience })) return false
   const domain = getCachedDomainBySlug(slug)
   if (!domain?.id) return false
-  return isBoardNavWarm(domain.id, resolveRevealNavSections(slug, "domain"))
+  return isBoardNavWarm(domain.id, resolveRevealNavSections(slug, board))
 }
 
 export function DomainShellGate({
@@ -36,6 +54,7 @@ export function DomainShellGate({
   children,
 }: DomainShellGateProps) {
   const slug = domainSlug.trim()
+  const location = useLocation()
 
   const [phase, setPhase] = React.useState<GatePhase>(() => (slug ? "curtain" : "ready"))
   const [retryToken, setRetryToken] = React.useState(0)
@@ -48,8 +67,13 @@ export function DomainShellGate({
       return
     }
 
+    // Warm the board in the URL (?board=ide|agent|domain|…) — not always "domain".
+    // Board switches later do not re-run this gate (no curtain flash); conversation
+    // resume stays board-scoped via useAgentDialog / resolve/active.
+    const board = readActiveBoard(location.search)
+
     // Travel already prepared this slug — reveal immediately if board-ready.
-    if (consumeTravelCurtainSkip(slug) && isBoardRevealReady(slug, requireAudience)) {
+    if (consumeTravelCurtainSkip(slug) && isBoardRevealReady(slug, requireAudience, board)) {
       setPhase("ready")
       setErrorMessage(null)
       return
@@ -63,7 +87,7 @@ export function DomainShellGate({
       const preparePromise = prepareDomainBoardReveal(slug, {
         requireAudience,
         forceRefresh: retryToken > 0,
-        board: "domain",
+        board,
       })
 
       const result = await Promise.race([
@@ -87,7 +111,7 @@ export function DomainShellGate({
       // Fail closed only when shell never became usable. Nav may soft-fail
       // after await — still reveal so one hung list cannot trap the curtain.
       // Missing dialog session is OK — first send creates it.
-      if (!result.ready && !isBoardRevealReady(slug, requireAudience)) {
+      if (!result.ready && !isBoardRevealReady(slug, requireAudience, board)) {
         setErrorMessage(
           "This domain could not be loaded. Check your connection and try again.",
         )
@@ -104,6 +128,8 @@ export function DomainShellGate({
     return () => {
       cancelled = true
     }
+    // location.search intentionally omitted — board switch must not re-curtain.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cold-load gate keyed by slug
   }, [slug, requireAudience, retryToken])
 
   if (!slug) {

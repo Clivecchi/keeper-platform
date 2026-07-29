@@ -7,6 +7,7 @@
  *   POST   /kip/dialogs             — create a new Dialog
  *   GET    /kip/dialogs             — list Dialogs for a domain (filtered by scope)
  *   GET    /kip/dialogs/:dialogId   — get a single Dialog with its sessions
+ *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Paths + manuscripts)
  *   PATCH  /kip/dialogs/:dialogId   — update title, archive, or document_status
  *   DELETE /kip/dialogs/:dialogId   — hard delete (sessions/drafts SetNull dialog_id)
  *
@@ -30,6 +31,7 @@ import {
   listDialogCastCandidates,
   listDialogCastMembers,
 } from '../../services/domains/dialogCastMembership.js';
+import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDocumentForChronicle.js';
 
 const router = Router();
 
@@ -334,6 +336,37 @@ router.get(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] get failed');
       return res.status(500).json({ error: 'FAILED_TO_GET_DIALOG' });
+    }
+  },
+);
+
+// ─── GET /api/domains/:domainId/kip/dialogs/:dialogId/document ───────────────
+// Chronicle Document hydration — cover fields + manuscript drafts with Points.
+// Intentionally omits sessions (session resume uses GET :dialogId).
+
+router.get(
+  '/:domainId/kip/dialogs/:dialogId/document',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const document = await loadDialogDocumentForChronicle(dialogId, domainId, {
+        userId: req.user.id,
+      });
+      if (!document) {
+        return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
+      }
+
+      return res.json({ document });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] document failed');
+      return res.status(500).json({ error: 'FAILED_TO_GET_DIALOG_DOCUMENT' });
     }
   },
 );

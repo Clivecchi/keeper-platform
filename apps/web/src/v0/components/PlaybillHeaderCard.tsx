@@ -28,6 +28,11 @@ export interface PlaybillHeaderCardProps {
   onGoHome?: () => void
   isOpen?: boolean
   className?: string
+  /**
+   * When set on mobile, shows a LIVE pulse on the identity card so Dialog’s
+   * domain banner can stay suppressed (one identity bar).
+   */
+  livePulse?: { color?: string } | boolean
 }
 
 /**
@@ -46,8 +51,14 @@ export function PlaybillHeaderCard({
   onGoHome,
   isOpen = false,
   className = "",
+  livePulse,
 }: PlaybillHeaderCardProps) {
   const isMobile = useIsMobile()
+  const showLive = Boolean(livePulse)
+  const liveColor =
+    typeof livePulse === "object" && livePulse?.color
+      ? livePulse.color
+      : undefined
   const leadContext = resolveDomainLeadContext(
     domainLead ?? {
       leadAgentSlug: leadAgentSlugProp,
@@ -103,12 +114,37 @@ export function PlaybillHeaderCard({
             aria-label={`${billingName} — return to Realm`}
             title="Return to Realm"
           >
-            <h1
-              className="font-serif text-[15px] font-bold leading-tight tracking-tight truncate"
-              style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
-            >
-              {billingName}
-            </h1>
+            <div className="flex min-w-0 items-center gap-2">
+              <h1
+                className="font-serif text-[15px] font-bold leading-tight tracking-tight truncate"
+                style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
+              >
+                {billingName}
+              </h1>
+              {showLive ? (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1"
+                  aria-label="Live"
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{
+                      backgroundColor: liveColor ?? "hsl(var(--theme-border-strong))",
+                      boxShadow: liveColor
+                        ? `0 0 0 2px color-mix(in srgb, ${liveColor} 35%, transparent)`
+                        : "0 0 0 2px hsl(var(--theme-border-soft) / 0.6)",
+                    }}
+                    aria-hidden
+                  />
+                  <span
+                    className="text-[9px] font-semibold uppercase tracking-widest"
+                    style={{ color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))" }}
+                  >
+                    Live
+                  </span>
+                </span>
+              ) : null}
+            </div>
             {starName && starName !== billingName ? (
               <p
                 className="mt-0.5 text-[10px] truncate"

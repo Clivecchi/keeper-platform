@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-28 — Chronicle strip + Nav drawer (retire bottom tabs)
+- Adaptive Domain/Realm (≤767px): Dialog always primary; **Nav** = hamburger → `BoardMobileNavDrawer`; **Chronicle** = ambient strip above Composer → `BoardMobileChronicleOverlay`.
+- `BoardMobilePanelBar` no longer mounted. Playbill owns LIVE/identity; Dialog domain/breadcrumb banners suppressed on this path (`suppressMobileDomainBanner`).
+- Top board-link row hidden when Nav drawer is active (one identity bar).
+
 ### 2026-07-27 — Mobile Dialog density (Playbill + banner + composer)
 - Top-bar Playbill + Dialog banner collapse on ≤767px (see `v0/components`); adaptive Domain/Realm already wires `mobile-staged` composer.
 - `UniversalConversation` — response stage hides composer toolbar agent chips so the compact input floor stays thin.

@@ -6,15 +6,22 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 ## 🧱 Key Files
 - `DirectorCastHeader.tsx` — Header cast identity (Lead + available instruments); not click-to-invoke.
 - `BoardInstrumentsBar.tsx` — Composer invoke bar: lead locked-on; instruments single-swap (IDE/Designer) or multi-select (Domain/Realm).
-- `BoardMobilePanelBar.tsx` — Bottom bar switching Nav · Dialog · Chronicle on narrow Realm Home (`/home`).
+- `BoardMobileChronicleStrip.tsx` — Ambient Chronicle tip above Composer (adaptive mobile).
+- `BoardMobileChronicleOverlay.tsx` — Full Chronicle as overlay (replaces Chronicle tab).
+- `BoardMobileNavDrawer.tsx` — Nav as left drawer (replaces Nav tab).
+- `BoardMobilePanelBar.tsx` — **Deprecated for adaptive Domain/Realm** — three-tab bar retained in repo but no longer mounted by `UniversalBoard`.
 
 ## 🔄 Data & Behavior
 - **Header** (`DirectorCastHeader`): who is Lead / available — manage chrome (Invite / Get key / Manage) may trail here. **Add** opens candidates from domains the user administers (`CastCandidate`); enable POSTs `homeDomainId` only — server resolves lead + Admin.
 - **Composer** (`BoardInstrumentsBar`): invoke/select only. Lead always engaged (`leadLocked`). Domain/Realm use `selectionMode: "multi"` + `activeBoardInstruments`; IDE/Designer keep single `activeBoardInstrument` swap. Enabled cast members merge into the same chip list.
 - IDE wraps the composer bar inside `IntegratedServicesBar` with Services after.
-- `BoardMobilePanelBar` is used by `UniversalBoard` when member board + viewport ≤767px — same three panels as desktop, one visible at a time.
+- **Adaptive mobile (≤767px Domain/Realm):** Dialog always primary; Nav = hamburger → drawer; Chronicle = strip above Composer → overlay. No bottom tab bar.
 
 ## 📆 Update Log
+
+### 2026-07-28 — Chronicle strip + Nav drawer (retire bottom tabs)
+- Added `BoardMobileChronicleStrip`, `BoardMobileChronicleOverlay`, `BoardMobileNavDrawer`.
+- `UniversalBoard` adaptive layout no longer mounts `BoardMobilePanelBar`.
 
 ### 2026-07-22 — Cross-domain cast Add
 - `DirectorCastHeader`: **Add** + candidate picker; `onEnableCandidate(homeDomainId)`.
