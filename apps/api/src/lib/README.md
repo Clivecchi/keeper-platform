@@ -9,6 +9,7 @@ Shared utilities and service clients used across Express routes and middleware.
 - `nango.ts` — lazy singleton for `@nangohq/node` (self-hosted Nango)
 - `nangoConfig.ts` — `DEFAULT_NANGO_HOST`, `resolveNangoIntegrationId()`, Nango error formatting
 - `integrationCustomConnect.ts` — Custom integration token verification (Railway + Vercel probes)
+- `railwayGraphql.ts` — Railway Public API host + token headers (`Bearer` vs `Project-Access-Token`)
 - `resolveServiceBinding.ts` — domain-scoped GitHub binding resolver for MCP tools, agent context, and Chronicle PATCH
 - `loadDomainTier.ts` — reads `domain.settings.tier` and key policy flags
 - `resolveDomainProviderApiKey.ts` — tier-gated provider key resolution for domain runtime
@@ -26,6 +27,10 @@ Shared utilities and service clients used across Express routes and middleware.
 - [ ] Webhook HMAC verification before public launch
 
 ## 📆 Update Log
+
+### 2026-07-28 — Railway GraphQL auth (logs)
+- `railwayGraphql.ts` — canonical host `backboard.railway.com`; project UUID tokens use `Project-Access-Token`.
+- `integrationCustomConnect` probe now verifies `deploymentLogs` (not only project reachability).
 
 ### 2026-07-07 — Custom domain CORS (livecchi.us login fix)
 - Added `keeperCors.ts` + tests — allows verified custom domain origins and `x-forwarded-host` same-site requests; returns 403 instead of 500 on reject

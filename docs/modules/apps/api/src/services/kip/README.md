@@ -27,7 +27,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
-### 2026-07-28 — Chronicle Document loader
+### 2026-07-28 — Lead MCP ownership + Chronicle Document loader
+- Lead prompts/skips: `mcp.call` is Cloud-owned; Lead must `delegate.consult` / cast-consult Cloud.
 - `loadDialogDocumentForChronicle.ts` — one DB path for Chronicle UI (no sessions; manuscripts include full `spec` Points).
 
 ### 2026-07-27 — compact prompt env + run timings

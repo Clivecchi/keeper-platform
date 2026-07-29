@@ -1,9 +1,9 @@
 /**
  * Custom integration connect — env token verification (no Nango OAuth).
- * Does not use RailwayService — lightweight probe only per Phase A scope.
+ * Railway probe uses the same GraphQL host + auth headers as RailwayService.
  */
 
-const RAILWAY_GRAPHQL_URL = 'https://backboard.railway.app/graphql/v2';
+import { RAILWAY_GRAPHQL_URL, railwayGraphql } from './railwayGraphql.js';
 
 const RAILWAY_CONNECT_PROBE_QUERY = `query IntegrationConnectProbe($projectId: String!) {
   project(id: $projectId) {
@@ -16,7 +16,8 @@ export type RailwayConnectVerifyResult =
   | { ok: false; error: string; hint?: string };
 
 /**
- * Verify platform Railway credentials: env vars present + GraphQL reachability.
+ * Verify platform Railway credentials: env vars + GraphQL reachability + log read.
+ * "Connected" means Cloud can pull deploymentLogs, not only list the project.
  */
 export async function verifyRailwayCustomConnect(): Promise<RailwayConnectVerifyResult> {
   const token = process.env.RAILWAY_TOKEN?.trim();
@@ -38,45 +39,12 @@ export async function verifyRailwayCustomConnect(): Promise<RailwayConnectVerify
   }
 
   try {
-    const res = await fetch(RAILWAY_GRAPHQL_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: RAILWAY_CONNECT_PROBE_QUERY,
-        variables: { projectId },
-      }),
-    });
+    const projectData = await railwayGraphql<{ project?: { id?: string } | null }>(
+      RAILWAY_CONNECT_PROBE_QUERY,
+      { projectId },
+    );
 
-    const text = await res.text();
-    let payload: {
-      data?: { project?: { id?: string } | null };
-      errors?: Array<{ message: string }>;
-    };
-    try {
-      payload = JSON.parse(text) as typeof payload;
-    } catch {
-      return {
-        ok: false,
-        error: 'Railway API returned invalid JSON',
-        hint: 'Check network access and Railway API status.',
-      };
-    }
-
-    if (!res.ok || payload.errors?.length) {
-      const msg =
-        payload.errors?.map((e) => e.message).join('; ') ||
-        `HTTP ${res.status}`;
-      return {
-        ok: false,
-        error: `Railway API unreachable or rejected the token: ${msg}`,
-        hint: 'Verify RAILWAY_TOKEN and RAILWAY_PROJECT_ID are valid for this project.',
-      };
-    }
-
-    if (!payload.data?.project?.id) {
+    if (!projectData.project?.id) {
       return {
         ok: false,
         error: 'Railway API did not return project data for RAILWAY_PROJECT_ID',
@@ -84,13 +52,52 @@ export async function verifyRailwayCustomConnect(): Promise<RailwayConnectVerify
       };
     }
 
+    // Prove log access — services/deployments alone were green while deploymentLogs failed.
+    const deploymentsData = await railwayGraphql<{
+      deployments?: {
+        edges?: Array<{ node?: { id?: string } | null } | null> | null;
+      } | null;
+    }>(
+      `query ConnectProbeDeployments($projectId: String!, $first: Int!) {
+        deployments(input: { projectId: $projectId }, first: $first) {
+          edges {
+            node {
+              id
+            }
+          }
+        }
+      }`,
+      { projectId, first: 1 },
+    );
+
+    const deploymentId = deploymentsData.deployments?.edges?.[0]?.node?.id;
+    if (!deploymentId) {
+      // Project reachable but no deployments yet — still treat connect as OK.
+      return { ok: true };
+    }
+
+    await railwayGraphql<{
+      deploymentLogs?: Array<{ message?: string } | null> | null;
+    }>(
+      `query ConnectProbeLogs($deploymentId: String!, $limit: Int) {
+        deploymentLogs(deploymentId: $deploymentId, limit: $limit) {
+          message
+        }
+      }`,
+      { deploymentId, limit: 1 },
+    );
+
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    const authHint =
+      /not authorized/i.test(message)
+        ? ' Token may need RAILWAY_TOKEN_KIND=project (Project-Access-Token) or an account/workspace token with log read access. Endpoint must be backboard.railway.com.'
+        : '';
     return {
       ok: false,
       error: `Failed to reach Railway API: ${message}`,
-      hint: 'Check network connectivity from the API host to backboard.railway.app.',
+      hint: `Check RAILWAY_TOKEN / RAILWAY_PROJECT_ID and network access to ${RAILWAY_GRAPHQL_URL}.${authHint}`,
     };
   }
 }

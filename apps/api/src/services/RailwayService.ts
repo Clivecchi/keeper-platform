@@ -1,13 +1,9 @@
 /**
  * RailwayService — GraphQL v2 client for Railway project operations.
- * API: https://backboard.railway.app/graphql/v2 (Railway Public API, GraphQL v2)
- *
- * // incomplete — Railway GraphQL schema may require adjustment based on live API response
+ * API: https://backboard.railway.com/graphql/v2 (Railway Public API)
  */
 
-import { fetchWithTimeout } from '../lib/fetchWithTimeout.js';
-
-const RAILWAY_GRAPHQL_URL = 'https://backboard.railway.app/graphql/v2';
+import { railwayGraphql } from '../lib/railwayGraphql.js';
 
 export type RailwayServiceSummary = {
   id: string;
@@ -26,49 +22,6 @@ export type RailwayLogLine = {
   message: string;
   timestamp?: string;
 };
-
-async function railwayGraphql<T>(
-  query: string,
-  variables: Record<string, unknown> = {},
-): Promise<T> {
-  const token = process.env.RAILWAY_TOKEN?.trim();
-  if (!token) {
-    throw new Error('RAILWAY_TOKEN is not configured');
-  }
-
-  const projectId = process.env.RAILWAY_PROJECT_ID?.trim();
-  if (!projectId) {
-    throw new Error('RAILWAY_PROJECT_ID is not configured');
-  }
-
-  const res = await fetchWithTimeout(RAILWAY_GRAPHQL_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-
-  const text = await res.text();
-  let payload: { data?: T; errors?: Array<{ message: string }> };
-  try {
-    payload = JSON.parse(text) as typeof payload;
-  } catch {
-    throw new Error(`Railway GraphQL invalid JSON (${res.status}): ${text.slice(0, 200)}`);
-  }
-
-  if (!res.ok || payload.errors?.length) {
-    const msg = payload.errors?.map((e) => e.message).join('; ') || text.slice(0, 300);
-    throw new Error(`Railway GraphQL error (${res.status}): ${msg}`);
-  }
-
-  if (!payload.data) {
-    throw new Error('Railway GraphQL returned no data');
-  }
-
-  return payload.data;
-}
 
 function getProjectId(): string {
   const projectId = process.env.RAILWAY_PROJECT_ID?.trim();
@@ -201,6 +154,10 @@ export class RailwayService {
     };
   }
 
+  /**
+   * Runtime deployment logs for the latest deployment of a service.
+   * Aligns with Railway Public API `deploymentLogs(deploymentId, limit)`.
+   */
   static async getLogs(serviceId: string, limit = 50): Promise<RailwayLogLine[]> {
     const deployments = await RailwayService.getDeployments(serviceId, 1);
     const latest = deployments[0];
@@ -209,7 +166,7 @@ export class RailwayService {
     const data = await railwayGraphql<{
       deploymentLogs: Array<{ message: string; timestamp?: string }>;
     }>(
-      `query DeploymentLogs($deploymentId: String!, $limit: Int!) {
+      `query DeploymentLogs($deploymentId: String!, $limit: Int) {
         deploymentLogs(deploymentId: $deploymentId, limit: $limit) {
           message
           timestamp

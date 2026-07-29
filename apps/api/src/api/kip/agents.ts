@@ -1402,7 +1402,10 @@ export async function executeAgentActions(
         }
 
         if (!ctx.allowlist.has(action.type)) {
-          const reason = `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
+          const reason =
+            action.type === 'mcp.call'
+              ? 'mcp.call is owned by Cloud (System), not Lead. Use delegate.consult with agentSlug "cloud", or cast-consult Cloud. Do not emit mcp.call from Kip/Lead.'
+              : `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
           logger.warn({
             requestId,
             actionType: action.type,
@@ -3310,7 +3313,10 @@ export async function executeAgentActions(
                 errorCode: 'UNHANDLED_ACTION',
               });
             } else {
-              const skipReason = `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
+              const skipReason =
+                action.type === 'mcp.call'
+                  ? 'mcp.call is owned by Cloud (System), not Lead. Use delegate.consult with agentSlug "cloud", or cast-consult Cloud. Do not emit mcp.call from Kip/Lead.'
+                  : `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
               logger.warn({
                 requestId,
                 actionType: action.type,
@@ -4358,6 +4364,7 @@ export class KipAgentService {
           'Each action must include a "type" and optional "payload".',
           'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
           'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
+          'INFRA / MCP OWNERSHIP: mcp.call is NOT in Lead Allowed actions. Never emit mcp.call. For Railway/Vercel/GitHub live data, use delegate.consult with agentSlug "cloud" (or cast-consult Cloud). Cloud owns mcp.call.',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
           'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
@@ -4801,6 +4808,9 @@ export class KipAgentService {
         }
 
         const allowList = Array.from(buildAllowedActions(environmentContext));
+        const suppressKipPromptForActions =
+          (config as Record<string, unknown>)?.suppress_kip_system_prompt === true
+          || agent.role === 'System';
 
         let mcpToolPrompt = '';
         try {
@@ -4808,7 +4818,8 @@ export class KipAgentService {
             agentId: agent.id,
             agentSlug: agent.slug,
           });
-          if (mcpTools.length) {
+          // mcp.call belongs on System/Cloud execution allowlists only — never advertise it to Lead.
+          if (mcpTools.length && suppressKipPromptForActions) {
             if (!allowList.includes('mcp.call')) {
               allowList.push('mcp.call');
             }
@@ -4821,9 +4832,6 @@ export class KipAgentService {
             error: error instanceof Error ? error.message : error,
           });
         }
-
-        const suppressKipPromptForActions =
-          (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
 
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
         const draftKinds = (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
@@ -4848,6 +4856,7 @@ export class KipAgentService {
                     : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed.',
                 ]
               : [
+            'INFRA / MCP OWNERSHIP: mcp.call is NOT in your Allowed actions. Never emit mcp.call. For Railway, Vercel, GitHub, or live infrastructure data, use delegate.consult with { "agentSlug": "cloud" } (Mechanism B), or rely on cast consultation of Cloud (Mechanism A). Cloud owns mcp.call and executes Railway/Vercel/GitHub tools.',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
