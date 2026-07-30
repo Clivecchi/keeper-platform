@@ -171,7 +171,7 @@ Do **not** describe these as one path. Both are real; both carry honesty rules w
 
 **Standing honesty (2026-07-24):** every Lead Dialog turn also receives `buildCastHonestySystemPrompt` inside live `callAIModel` — inventing another agent's words is forbidden even when neither A nor B ran. Agents may be declared `support_only` / `silent` via Agent Config `dialog_participation` (default `voice` for every agent, including Cloud).
 
-**Agent Echo** is a separate solo / Agent-board beat — not on the director cast-synthesis path.
+**Agent Echo** is a separate beat from Voice Cards / cast synthesis. It fires on Agent Board (`agentEcho`) and on lead-led Domain/Realm (Kip support after a non-Kip lead). Persisted as `metadata.echo` on the primary agent message (same beat shape as a `castVoices` row; separate field).
 
 ---
 
@@ -179,6 +179,7 @@ Do **not** describe these as one path. Both are real; both carry honesty rules w
 
 | Date | Change |
 |---|---|
+| 2026-07-30 | **Persist Agent Echo:** `metadata.echo` on the primary agent message (`content` / `attributedTo` / `status`); rehydrate on fetch; exclude Echo side-sessions from primary resume; sanitize Echo / platform-collaboration scaffold prompts. Voice Cards unchanged. |
 | 2026-07-26 | **Cast Notes on Points:** Chronicle Point `Cast` link opens voice cards. Notes = `DraftPoint.castNotes` (Mechanism A while Point is in Gloss focus) + proposed Points with `referencesPointId`. Not a new surface — same voice-card chrome. |
 | 2026-07-26 | **Persist castVoices:** Mechanism A writes `castVoices` (+ optional `delegation`) onto the Lead `kip_messages.metadata` so voice cards reload with the session. |
 | 2026-07-26 | **Document manuscript CRUD:** Lead may `draft.point.rewrite` accepted Points on `document_manuscript`. Cast agents may `draft.update.propose` with `referencesPointId` to capture contributions without overwriting anchors. |

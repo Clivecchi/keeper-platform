@@ -163,10 +163,26 @@ export function buildCastConsultationsSynthesisPrompt(params: {
 }
 
 const DIRECTOR_INTERNAL_PROMPT_PATTERN = /^\[Director (delegation|synthesis)/
+const AGENT_ECHO_INTERNAL_PROMPT_PATTERN = /^\[Agent Echo — supporting role\]/
+const PLATFORM_COLLABORATION_PROMPT_PATTERN = /^\[Platform collaboration —/
 
-/** True when persisted session text is orchestration input, not the user's words. */
+/** True when persisted session text is director orchestration input, not the user's words. */
 export function isDirectorInternalPrompt(content: string): boolean {
   return DIRECTOR_INTERNAL_PROMPT_PATTERN.test(content.trim())
+}
+
+/** True when persisted session text is Agent Echo / Kip-collaboration scaffold input. */
+export function isEchoInternalPrompt(content: string): boolean {
+  const trimmed = content.trim()
+  return (
+    AGENT_ECHO_INTERNAL_PROMPT_PATTERN.test(trimmed)
+    || PLATFORM_COLLABORATION_PROMPT_PATTERN.test(trimmed)
+  )
+}
+
+/** True when persisted session text is orchestration input, not the user's words. */
+export function isInternalOrchestrationPrompt(content: string): boolean {
+  return isDirectorInternalPrompt(content) || isEchoInternalPrompt(content)
 }
 
 /** Recover the user's words from a stored director prompt (quoted line in prompt body). */
@@ -181,8 +197,12 @@ export function userFacingContentFromDirectorPrompt(content: string): string | n
   return null
 }
 
-/** Map persisted user rows back to what the human actually typed. */
+/**
+ * Map persisted user rows back to what the human actually typed.
+ * Echo / platform-collaboration scaffolds have no human utterance — hide them.
+ */
 export function sanitizeUserMessageContent(content: string): string {
+  if (isEchoInternalPrompt(content)) return ""
   return userFacingContentFromDirectorPrompt(content) ?? content
 }
 

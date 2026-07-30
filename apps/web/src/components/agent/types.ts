@@ -8,11 +8,15 @@ import type { GlossThread } from "@keeper/shared"
 
 export type DirectorDelegationStatus = "ok" | "failed" | "empty"
 
-/** Agent echo — Dialog Response attached beneath another agent's message. */
+/**
+ * Agent echo — Dialog Response attached beneath another agent's message.
+ * Persisted on the primary kip_message as `metadata.echo` (same beat shape as
+ * castVoices / delegation rows; separate system from Voice Cards).
+ */
 export interface DialogResponseEcho {
   content: string
   attributedTo?: string
-  /** Director routing — ok = instrument replied; failed/empty = visible routing notice. */
+  /** ok = prose echo; empty = intentional silence; failed = inference error. */
   status?: DirectorDelegationStatus
 }
 

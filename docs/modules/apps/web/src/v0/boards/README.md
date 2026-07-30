@@ -30,6 +30,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-07-30 — Agent Echo persistence + resume/sanitize
+- After Echo / Kip-collaboration runs, primary agent message gets `metadata.echo` (`content`, `attributedTo`, `status`: ok|empty|failed) via `updateMessageMetadata` — same persistence pattern as Voice Card `castVoices`, separate field.
+- `useAgentDialog.normalizeMessage` rehydrates `echo` on fetch/reload (Agent Board + lead-led Domain/Realm).
+- Echo side-sessions never resume as the primary board session; Echo ensure uses exact session name.
+- `sanitizeUserMessageContent` strips `[Agent Echo — supporting role]` and `[Platform collaboration — …]` scaffolds.
+
 ### 2026-07-28 — Board land resumes last session (per boardId)
 - `UniversalConversation` passes `dialogBoard: def.boardId` into `useAgentDialog` — Realm no longer shares Domain's Dialog key via `kipMode: "domain"`.
 - IDE / Designer / echo resume-create paths use `def.boardId` the same way.

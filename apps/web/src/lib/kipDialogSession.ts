@@ -12,6 +12,17 @@ export async function deleteDialog(domainId: string, dialogId: string): Promise<
   )
 }
 
+/** Dedicated side sessions for Agent Echo / Kip collaboration — never resume as primary. */
+export const AGENT_BOARD_ECHO_SESSION_NAME = "Agent Board Echo"
+export const DOMAIN_LEAD_COLLABORATION_SESSION_NAME = "Domain Lead Collaboration"
+
+export const ECHO_SESSION_NAMES = [
+  AGENT_BOARD_ECHO_SESSION_NAME,
+  DOMAIN_LEAD_COLLABORATION_SESSION_NAME,
+] as const
+
+export type EchoSessionName = (typeof ECHO_SESSION_NAMES)[number]
+
 export type DialogSessionRow = {
   id: string
   agent_id?: string
@@ -23,6 +34,21 @@ export type DialogSessionRow = {
   createdAt?: string
   kip_messages?: unknown[]
   messageCount?: number
+}
+
+export function sessionDisplayName(session: DialogSessionRow): string {
+  return (
+    typeof session.session_name === "string"
+      ? session.session_name
+      : typeof session.sessionName === "string"
+        ? session.sessionName
+        : ""
+  ).trim()
+}
+
+export function isEchoSessionName(name: string | null | undefined): boolean {
+  const trimmed = typeof name === "string" ? name.trim() : ""
+  return (ECHO_SESSION_NAMES as readonly string[]).includes(trimmed)
 }
 
 function sessionTimestamp(session: DialogSessionRow): number {
@@ -54,12 +80,16 @@ function sessionMessageCount(session: DialogSessionRow): number {
  * When `agentId` is provided, prefer that agent's sessions first — but if none match,
  * fall back to the Dialog's best session. A Dialog is the session container; board land
  * should pick up where the conversation left off, not require Nav to open a Dialog.
+ *
+ * Echo side-sessions (`Agent Board Echo`, `Domain Lead Collaboration`) are excluded so
+ * primary resume never lands on the hidden Echo thread.
  */
 export function pickBestDialogSessionId(
   sessions: DialogSessionRow[],
   agentId?: string | null,
 ): string | null {
-  if (!sessions.length) return null
+  const eligible = sessions.filter((session) => !isEchoSessionName(sessionDisplayName(session)))
+  if (!eligible.length) return null
 
   const pickFrom = (pool: DialogSessionRow[]): string | null => {
     if (!pool.length) return null
@@ -71,12 +101,28 @@ export function pickBestDialogSessionId(
   }
 
   if (agentId) {
-    const scoped = sessions.filter((session) => session.agent_id === agentId)
+    const scoped = eligible.filter((session) => session.agent_id === agentId)
     const preferred = pickFrom(scoped)
     if (preferred) return preferred
   }
 
-  return pickFrom(sessions)
+  return pickFrom(eligible)
+}
+
+export function findSessionIdByName(
+  sessions: DialogSessionRow[],
+  sessionName: string,
+  agentId?: string | null,
+): string | null {
+  const target = sessionName.trim()
+  if (!target) return null
+  const matches = sessions.filter((session) => sessionDisplayName(session) === target)
+  if (!matches.length) return null
+  if (agentId) {
+    const scoped = matches.find((session) => session.agent_id === agentId)
+    if (scoped) return scoped.id
+  }
+  return matches[0]?.id ?? null
 }
 
 export type ResumeBoardSessionParams = {
@@ -120,6 +166,7 @@ export async function resolveActiveDialogSessions(
 /**
  * Resume-only: return the best existing board Dialog session, or null.
  * Board mount / curtain prefetch must use this — never create on visit alone.
+ * Never returns an Echo side-session.
  */
 export async function resumeBoardSession(
   params: Pick<ResumeBoardSessionParams, "domainId" | "agentId" | "board" | "frame" | "dialogScope">,
@@ -132,18 +179,9 @@ export async function resumeBoardSession(
   return pickBestDialogSessionId(sessions, params.agentId)
 }
 
-/**
- * Resume the best session for a board dialog context, or create one if none exist.
- * Call only from first real user send (or an explicit ensure path) — not from board mount.
- */
-export async function resumeOrCreateBoardSession(
+async function createNamedBoardSession(
   params: ResumeBoardSessionParams,
 ): Promise<ResumeBoardSessionResult> {
-  const existingId = await resumeBoardSession(params)
-  if (existingId) {
-    return { sessionId: existingId, created: false }
-  }
-
   const createOpts = {
     domainSlug: params.domainSlug ?? undefined,
     domainId: params.domainId,
@@ -182,4 +220,36 @@ export async function resumeOrCreateBoardSession(
     )
     return { sessionId: session.id, created: true }
   }
+}
+
+/**
+ * Resume the best session for a board dialog context, or create one if none exist.
+ * Call only from first real user send (or an explicit ensure path) — not from board mount.
+ *
+ * When `sessionName` is an Echo side-session name, match/create that exact name only —
+ * never reuse the primary Kip conversation session.
+ */
+export async function resumeOrCreateBoardSession(
+  params: ResumeBoardSessionParams,
+): Promise<ResumeBoardSessionResult> {
+  const sessions = await resolveActiveDialogSessions(params.domainId, {
+    board: params.board,
+    frame: params.frame,
+    dialogScope: params.dialogScope,
+  })
+
+  if (isEchoSessionName(params.sessionName)) {
+    const echoId = findSessionIdByName(sessions, params.sessionName, params.agentId)
+    if (echoId) {
+      return { sessionId: echoId, created: false }
+    }
+    return createNamedBoardSession(params)
+  }
+
+  const existingId = pickBestDialogSessionId(sessions, params.agentId)
+  if (existingId) {
+    return { sessionId: existingId, created: false }
+  }
+
+  return createNamedBoardSession(params)
 }

@@ -64,11 +64,14 @@ import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
 import { commitComposerAttachmentsToLibrary, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
 import {
-  pickBestDialogSessionId,
+  AGENT_BOARD_ECHO_SESSION_NAME,
+  DOMAIN_LEAD_COLLABORATION_SESSION_NAME,
   resumeBoardSession,
   resumeOrCreateBoardSession,
   resolveActiveDialogSessions,
+  sessionDisplayName,
 } from "../../lib/kipDialogSession"
+import type { DirectorDelegationStatus } from "../../components/agent/types"
 import { createDraftMoment, keepMoment } from "../api/v0Moments"
 import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
 import type { GlossThread } from "@keeper/shared"
@@ -1199,7 +1202,9 @@ export function UniversalConversation({
     void (async () => {
       try {
         const echoSessionName =
-          kipMode === "agent" ? "Agent Board Echo" : "Domain Lead Collaboration"
+          kipMode === "agent"
+            ? AGENT_BOARD_ECHO_SESSION_NAME
+            : DOMAIN_LEAD_COLLABORATION_SESSION_NAME
         const echoBoard = def.boardId
         const sessions = await resolveActiveDialogSessions(domainId, {
           board: echoBoard,
@@ -1207,15 +1212,9 @@ export function UniversalConversation({
           dialogScope: "keeper",
         })
         if (cancelled) return
-        const echoSession = sessions.find((s) => {
-          const name =
-            typeof s.session_name === "string"
-              ? s.session_name.trim()
-              : typeof s.sessionName === "string"
-                ? s.sessionName.trim()
-                : ""
-          return name === echoSessionName
-        })
+        const echoSession = sessions.find(
+          (s) => sessionDisplayName(s) === echoSessionName,
+        )
         if (!cancelled) setEchoSessionId(echoSession?.id ?? null)
       } catch {
         if (!cancelled) setEchoSessionId(null)
@@ -1478,13 +1477,53 @@ export function UniversalConversation({
             `Maximum three sentences. Usually one is enough. Empty is valid.`,
           ].join("\n")
 
+      const attributedTo = runDomainCollaboration
+        ? KIP_FALLBACK_DISPLAY_NAME
+        : defaultAgentName
+
+      const attachEcho = (
+        echo: {
+          content: string
+          attributedTo: string
+          status: DirectorDelegationStatus
+        },
+      ) => {
+        if (!setMessagesRef.current) return
+        setMessagesRef.current((prev) => {
+          let targetIdx = prev.findIndex((m) => m.id === exchange.id)
+          if (targetIdx < 0) {
+            targetIdx = prev.findLastIndex(
+              (m) =>
+                m.role === "agent"
+                && !isThinkingPlaceholder(m.content, dialogAgentDisplayName),
+            )
+          }
+          if (targetIdx < 0) return prev
+          const updated = [...prev]
+          updated[targetIdx] = {
+            ...updated[targetIdx],
+            senderName:
+              updated[targetIdx].senderName?.trim() || dialogAgentDisplayName,
+            echo,
+          }
+          return updated
+        })
+        // Persist on the primary agent message (same pattern as metadata.castVoices / delegation).
+        // Echo side-session still holds the raw prompt; primary metadata is what reloads.
+        if (exchange.id) {
+          void KipApi.updateMessageMetadata(exchange.id, { echo }).catch(() => {
+            /* non-fatal — live attach already applied */
+          })
+        }
+      }
+
       try {
-        // Create only at first real echo use, via resumeOrCreateBoardSession (correct dialogLink keys).
+        // Create only at first real echo use, via resumeOrCreateBoardSession (exact Echo name).
         let sessionIdForEcho = echoSessionId
         if (!sessionIdForEcho) {
           const echoSessionName = runDomainCollaboration
-            ? "Domain Lead Collaboration"
-            : "Agent Board Echo"
+            ? DOMAIN_LEAD_COLLABORATION_SESSION_NAME
+            : AGENT_BOARD_ECHO_SESSION_NAME
           const ensured = await resumeOrCreateBoardSession({
             domainId,
             agentId: echoAgentId,
@@ -1511,33 +1550,20 @@ export function UniversalConversation({
             agentContext,
           },
         )
-        const echoContent = extractAgentReplyFromRunResult(echoResult)?.trim()
-        if (!echoContent || !setMessagesRef.current) return
-
-        setMessagesRef.current((prev) => {
-          let targetIdx = prev.findIndex((m) => m.id === exchange.id)
-          if (targetIdx < 0) {
-            targetIdx = prev.findLastIndex(
-              (m) => m.role === "agent" && !isThinkingPlaceholder(m.content, dialogAgentDisplayName),
-            )
-          }
-          if (targetIdx < 0) return prev
-          const updated = [...prev]
-          updated[targetIdx] = {
-            ...updated[targetIdx],
-            senderName:
-              updated[targetIdx].senderName?.trim() || dialogAgentDisplayName,
-            echo: {
-              content: echoContent,
-              attributedTo: runDomainCollaboration
-                ? KIP_FALLBACK_DISPLAY_NAME
-                : defaultAgentName,
-            },
-          }
-          return updated
+        const echoContent = extractAgentReplyFromRunResult(echoResult)?.trim() ?? ""
+        const status: DirectorDelegationStatus = echoContent ? "ok" : "empty"
+        attachEcho({
+          content: echoContent,
+          attributedTo,
+          status,
         })
       } catch {
-        /* Silence is valid — failed agent echo inference renders nothing */
+        /* Silence is valid — failed agent echo inference renders nothing, but status persists. */
+        attachEcho({
+          content: "",
+          attributedTo,
+          status: "failed",
+        })
       }
     },
     [

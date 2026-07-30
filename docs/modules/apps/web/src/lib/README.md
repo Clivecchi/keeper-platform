@@ -35,6 +35,11 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-30 — Echo sessions excluded from primary resume
+- `pickBestDialogSessionId` never returns `"Agent Board Echo"` / `"Domain Lead Collaboration"` side-sessions.
+- `resumeOrCreateBoardSession` matches/creates Echo sessions by exact name only (does not reuse the primary Kip thread).
+- Exported `ECHO_SESSION_NAMES`, `isEchoSessionName`, `findSessionIdByName`, `sessionDisplayName`.
+
 ### 2026-07-28 — board Dialog resume = last session
 - `kipDialogSession.pickBestDialogSessionId` — prefer the lead agent's session, then fall back to the Dialog's best session (with messages, else newest). Board land loads a session without requiring Nav to open a Dialog.
 - Resume/create keys remain board-scoped (`resolve/active`); create stays deferred to first send.

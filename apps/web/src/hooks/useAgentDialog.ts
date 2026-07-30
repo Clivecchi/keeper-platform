@@ -113,6 +113,15 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
         ...(delegationBeat.status ? { status: delegationBeat.status } : {}),
       }
     : undefined
+  // Agent Echo — same beat shape as delegation / castVoices rows; separate from Voice Cards.
+  const echoBeat = normalizeCastVoiceBeat(meta?.echo)
+  const echo: DirectorDelegationBeat | undefined = echoBeat
+    ? {
+        content: echoBeat.content,
+        ...(echoBeat.attributedTo ? { attributedTo: echoBeat.attributedTo } : {}),
+        ...(echoBeat.status ? { status: echoBeat.status } : {}),
+      }
+    : undefined
   return {
     id: message.id,
     role,
@@ -125,6 +134,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(glossThreads.length ? { glossThreads } : {}),
     ...(castVoices?.length ? { castVoices } : {}),
     ...(delegation && !castVoices?.length ? { delegation } : {}),
+    ...(echo ? { echo } : {}),
   }
 }
 
