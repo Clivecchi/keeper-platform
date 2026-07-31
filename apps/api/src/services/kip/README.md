@@ -27,6 +27,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-07-30 — Chronicle Events
+- `chronicleEvents.ts` persists dialog-scoped History events, authorizes reads with Dialog audience rules, groups child consultations under their Lead turn, and safely closes auto-named sessions with authored metadata.
+
 ### 2026-07-28 — Lead MCP ownership + Chronicle Document loader
 - Lead prompts/skips: `mcp.call` is Cloud-owned; Lead must `delegate.consult` / cast-consult Cloud.
 - `loadDialogDocumentForChronicle.ts` — one DB path for Chronicle UI (no sessions; manuscripts include full `spec` Points).

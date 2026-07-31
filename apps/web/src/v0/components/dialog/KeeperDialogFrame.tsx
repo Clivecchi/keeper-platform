@@ -164,6 +164,17 @@ export interface KeeperDialogFrameProps {
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
   onOpenLibraryItem?: (libraryItemId: string) => void
+  onOpenChronicleChip?: (chip: {
+    dialogId: string
+    dialogTitle: string
+    actor: string
+    anchor?: {
+      dialogId?: string
+      manuscriptDraftId?: string
+      pointId?: string
+      breadcrumb?: string[]
+    }
+  }) => void
   onOpenSoleMemory?: (memoryCardId: string) => void
   onKeepAsMoment?: (payload: KeepAsMomentPayload) => void | Promise<void>
   onConfirmDraftUpdate?: (
@@ -295,6 +306,7 @@ export function KeeperDialogFrame({
   onOpenMoment,
   onOpenJourney,
   onOpenLibraryItem,
+  onOpenChronicleChip,
   onOpenSoleMemory,
   onKeepAsMoment,
   onConfirmDraftUpdate,
@@ -783,6 +795,7 @@ export function KeeperDialogFrame({
                         onOpenMoment={onOpenMoment}
                         onOpenJourney={onOpenJourney}
                         onOpenLibraryItem={onOpenLibraryItem}
+                        onOpenChronicleChip={onOpenChronicleChip}
                         onKeepAsMoment={onKeepAsMoment}
                         onOpenSoleMemory={onOpenSoleMemory}
                         onConfirmDraftUpdate={onConfirmDraftUpdate}
@@ -810,6 +823,7 @@ export function KeeperDialogFrame({
                     onOpenDraft={onOpenDraft}
                     onOpenMoment={onOpenMoment}
                     onOpenJourney={onOpenJourney}
+                    onOpenChronicleChip={onOpenChronicleChip}
                     onKeepAsMoment={onKeepAsMoment}
                     onOpenSoleMemory={onOpenSoleMemory}
                     onConfirmDraftUpdate={onConfirmDraftUpdate}

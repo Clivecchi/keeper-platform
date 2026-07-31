@@ -20,6 +20,7 @@ import {
 import { loadDialogDocumentCached } from "./dialogDocumentCache"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { KipApi } from "../../lib/kipApi"
+import { ChronicleHistoryPanel } from "../presence/chronicleDocument/ChronicleHistoryPanel"
 
 export interface DomainRealmStoryProps {
   domainId: string | null
@@ -71,6 +72,8 @@ export function DomainRealmStory({
   const selectedDraftId = boardCtx?.selection.selectedDraftId ?? null
   const selectedMomentId = boardCtx?.selection.selectedMomentId ?? null
   const selectedLibraryItemId = boardCtx?.selection.selectedLibraryItemId ?? null
+  const panelMode = boardCtx?.selection.chroniclePanelMode ?? "document"
+  const pointTarget = boardCtx?.selection.chroniclePointTarget
 
   const scope = React.useMemo((): DialogDocumentScope => {
     if (selectedDialogId) {
@@ -234,6 +237,18 @@ export function DomainRealmStory({
     <div className="domain-realm-story flex min-h-0 flex-1 flex-col overflow-y-auto">
       {userFeedContent}
     </div>
+  ) : panelMode === "history" && scope.status === "dialog" ? (
+    <ChronicleHistoryPanel
+      domainId={domainId}
+      dialogId={scope.dialogId}
+      onOpenDocument={(event) => {
+        boardCtx?.actions.openChronicleDocument({
+          dialogId: event.dialogId,
+          pointId: event.anchor?.pointId ?? null,
+          breadcrumb: event.anchor?.breadcrumb ?? null,
+        })
+      }}
+    />
   ) : (
     <DocumentShell
       className="domain-realm-story"
@@ -241,10 +256,38 @@ export function DomainRealmStory({
       step={scope.status === "dialog" ? documentMeta.step : undefined}
       paths={paths}
       points={points}
+      pointIds={storyEntries.map((entry) => entry.id)}
       onGlossPoint={handleGlossPoint}
+      scrollToPointId={pointTarget?.pointId}
+      breadcrumb={pointTarget?.breadcrumb}
       emptyState={emptyState}
     />
   )
 
-  return <ChronicleTreatmentShell treatment={treatment}>{body}</ChronicleTreatmentShell>
+  return (
+    <ChronicleTreatmentShell treatment={treatment}>
+      {scope.status === "dialog" ? (
+        <div className="flex shrink-0 gap-1 px-4 pt-3" role="tablist" aria-label="Chronicle view">
+          {(["document", "history"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              role="tab"
+              aria-selected={panelMode === mode}
+              onClick={() => boardCtx?.actions.setChroniclePanelMode(mode)}
+              className="rounded-full px-3 py-1.5 text-[12px] font-semibold capitalize"
+              style={{
+                color: panelMode === mode ? "hsl(var(--theme-ink-primary))" : "hsl(var(--theme-ink-tertiary))",
+                background: panelMode === mode ? "hsl(var(--theme-surface-elevated))" : "transparent",
+                border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
+              }}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {body}
+    </ChronicleTreatmentShell>
+  )
 }

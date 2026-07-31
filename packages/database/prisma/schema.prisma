@@ -735,11 +735,45 @@ model Dialog {
   drafts   kip_drafts[]
   /// Cross-domain cast members — lead agents from domains the enabler administers.
   castMembers DialogCastMember[]
+  /// Dialog-scoped Chronicle History events (not Realm arrival feed).
+  chronicleEvents ChronicleEvent[]
 
   @@index([domain_id])
   @@index([user_id])
   @@index([domain_id, is_archived])
   @@index([domain_id, document_status])
+}
+
+/**
+ * Chronicle Event — Dialog History timeline unit.
+ * Separate from RealmFeedEvent (person-scoped cross-domain projection).
+ */
+model ChronicleEvent {
+  id             String   @id @default(cuid())
+  dialogId       String
+  domainId       String
+  actor          String
+  actorSlug      String?
+  eventType      String // session | moment | structural
+  title          String
+  summary        String
+  /// Deep-link JSON: { dialogId, manuscriptDraftId, pointId, entityId, entityKind, breadcrumb }
+  anchor         Json?
+  parentEventId  String?
+  sessionId      String?  @db.Uuid
+  messageId      String?  @db.Uuid
+  createdAt      DateTime @default(now())
+
+  dialog Dialog          @relation(fields: [dialogId], references: [id], onDelete: Cascade)
+  domain Domain          @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  parent ChronicleEvent? @relation("ChronicleEventChildren", fields: [parentEventId], references: [id], onDelete: SetNull)
+  children ChronicleEvent[] @relation("ChronicleEventChildren")
+
+  @@index([dialogId, createdAt])
+  @@index([domainId, createdAt])
+  @@index([parentEventId])
+  @@index([sessionId])
+  @@map("chronicle_events")
 }
 
 /**
@@ -1189,6 +1223,7 @@ model Domain {
   moments                                                  Moment[]
   kip_drafts                                               kip_drafts[]
   dialogs                                                  Dialog[]
+  chronicleEvents                                          ChronicleEvent[]
   dialogCastMembersHome                                    DialogCastMember[]         @relation("DialogCastMemberHomeDomain")
   session_handoff_keys                                     SessionHandoffKey[]
   provider_keys                                            Key[]

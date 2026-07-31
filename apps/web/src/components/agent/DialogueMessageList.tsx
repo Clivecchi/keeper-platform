@@ -89,15 +89,19 @@ function AgentChatBubble({
   variant,
   grouped = false,
   card,
+  chronicleChip,
+  onOpenChronicleChip,
 }: {
   name: string
   content: string
   variant: AgentBubbleVariant
   grouped?: boolean
   card?: AgentDialogueMessage["keeperCard"]
+  chronicleChip?: AgentDialogueMessage["chronicleChip"]
+  onOpenChronicleChip?: (chip: NonNullable<AgentDialogueMessage["chronicleChip"]>) => void
 }) {
   const trimmed = content.trim()
-  if (!trimmed && !card) return null
+  if (!trimmed && !card && !chronicleChip) return null
 
   const senderVariant: MessageSenderVariant =
     variant === "collaborator"
@@ -115,7 +119,12 @@ function AgentChatBubble({
         <div className="dialog-voice-card__body">
           <MessageSenderLabel name={name} variant={senderVariant} />
           <div className="dialog-voice-card__content">
-            <AgentMessageContent content={trimmed} card={card} />
+            <AgentMessageContent
+              content={trimmed}
+              card={card}
+              chronicleChip={chronicleChip}
+              onOpenChronicleChip={onOpenChronicleChip}
+            />
           </div>
         </div>
       </div>
@@ -129,7 +138,12 @@ function AgentChatBubble({
         className="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
         style={agentBubbleSurface(variant)}
       >
-        <AgentMessageContent content={trimmed} card={card} />
+        <AgentMessageContent
+          content={trimmed}
+          card={card}
+          chronicleChip={chronicleChip}
+          onOpenChronicleChip={onOpenChronicleChip}
+        />
       </div>
     </div>
   )
@@ -242,6 +256,7 @@ function AgentMessageTurn({
   onApplyTreatmentProposal,
   applyingTreatmentProposal,
   onArrivalInvitation,
+  onOpenChronicleChip,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -255,6 +270,7 @@ function AgentMessageTurn({
   onApplyTreatmentProposal?: DialogueMessageListProps["onApplyTreatmentProposal"]
   applyingTreatmentProposal?: boolean
   onArrivalInvitation?: (id: RealmInvitationId) => void
+  onOpenChronicleChip?: (chip: NonNullable<AgentDialogueMessage["chronicleChip"]>) => void
 }) {
   const castVoices = (message.castVoices ?? []).filter((voice) => {
     const content = voice.content?.trim()
@@ -272,7 +288,12 @@ function AgentMessageTurn({
   const visibleContent = sanitizeAgentMessageContent(message.content)
 
   if (!isMultiAgentTurn) {
-    if (!visibleContent.trim() && !message.arrivalInvitations?.length) {
+    if (
+      !visibleContent.trim()
+      && !message.arrivalInvitations?.length
+      && !message.keeperCard
+      && !message.chronicleChip
+    ) {
       return (
         <MessageAttachments
           message={message}
@@ -305,7 +326,12 @@ function AgentMessageTurn({
             boxShadow: "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)",
           }}
         >
-          <AgentMessageContent content={visibleContent} card={message.keeperCard} />
+          <AgentMessageContent
+            content={visibleContent}
+            card={message.keeperCard}
+            chronicleChip={message.chronicleChip}
+            onOpenChronicleChip={onOpenChronicleChip}
+          />
           {message.arrivalInvitations?.length && onArrivalInvitation ? (
             <RealmInvitationButtons
               invitations={message.arrivalInvitations}
@@ -375,15 +401,19 @@ function AgentMessageTurn({
             name={resolvedAgentName}
             content={sanitizeAgentMessageContent(message.content)}
             card={message.keeperCard}
+            chronicleChip={message.chronicleChip}
+            onOpenChronicleChip={onOpenChronicleChip}
           />
         )}
-        {!message.content.trim() && message.keeperCard ? (
+        {!message.content.trim() && (message.keeperCard || message.chronicleChip) ? (
           <AgentChatBubble
             grouped
             variant="lead"
             name={resolvedAgentName}
             content=""
             card={message.keeperCard}
+            chronicleChip={message.chronicleChip}
+            onOpenChronicleChip={onOpenChronicleChip}
           />
         ) : null}
         {echo && (
@@ -582,6 +612,8 @@ export interface DialogueMessageListProps {
   onOpenSoleMemory?: (memoryCardId: string) => void
   /** Realm arrival — invitation buttons inside the welcome Dialog Response. */
   onArrivalInvitation?: (id: RealmInvitationId) => void
+  /** Open Chronicle Document from an in-stream chronicle_update / Known Issue chip. */
+  onOpenChronicleChip?: (chip: NonNullable<AgentDialogueMessage["chronicleChip"]>) => void
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -603,6 +635,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   agentBoardMessaging,
   horizonThinking = false,
   onArrivalInvitation,
+  onOpenChronicleChip,
 }) => (
   <div
     className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
@@ -672,6 +705,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               onApplyTreatmentProposal={onApplyTreatmentProposal}
               applyingTreatmentProposal={applyingTreatmentProposal}
               onArrivalInvitation={onArrivalInvitation}
+              onOpenChronicleChip={onOpenChronicleChip}
             />
           </div>
         )

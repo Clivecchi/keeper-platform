@@ -42,6 +42,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-07-30: **Chronicle History endpoint** — `GET /:domainId/kip/dialogs/:dialogId/chronicle-events` returns authorized, dialog-scoped nested events. Realm Feed behavior is unchanged.
 - 2026-07-28: **Chronicle Document endpoint** — `GET /:domainId/kip/dialogs/:dialogId/document` returns Forward/Step/Paths + manuscript drafts with Points (no sessions); powers fast Chronicle hydration.
 - 2026-07-23: **Becoming Together Document** — Dialog PATCH/list expose `forward_*`, `step_*`, `document_paths`; `POST /invitations/accept` redeems invite tokens; invite response includes copyable `acceptPath` + token.
 - 2026-07-22: **Cast membership** — `GET …/cast-candidates`, `GET|POST …/cast-members`, `DELETE …/cast-members/:agentId` on `kip-dialogs.ts` (server-side Admin on home domain; body is `homeDomainId` only).

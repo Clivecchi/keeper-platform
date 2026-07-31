@@ -13,13 +13,15 @@ import * as React from "react"
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface KipResponseCardProps {
-  /** "status" | "summary" | "error" | "info" */
+  /** "status" | "summary" | "error" | "info" | "known_issue" | "chronicle_update" */
   type: string
   title: string
   body?: string
   meta?: string
   /** Optional list of lines rendered without bullet markers */
   items?: string[]
+  /** Deep-link into Chronicle Document when provided (Known Issue / anchored cards). */
+  onOpen?: () => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,22 +50,30 @@ export function KipResponseCard({
   body,
   meta,
   items,
+  onOpen,
 }: KipResponseCardProps) {
   const { text: typeLabel, isError } = resolveTypeLabel(type)
+  const Tag = onOpen ? "button" : "div"
 
   return (
-    <div
+    <Tag
+      type={onOpen ? "button" : undefined}
+      onClick={onOpen}
       className="kip-response-card"
       style={{
         display: "flex",
         alignItems: "stretch",
         gap: 0,
+        width: "100%",
+        textAlign: "left",
         background: "hsl(var(--theme-surface-paper) / 0.90)",
         border: "1px solid hsl(var(--theme-border-soft) / 0.45)",
         borderRadius: "8px",
         marginTop: "8px",
         overflow: "hidden",
+        cursor: onOpen ? "pointer" : undefined,
       }}
+      aria-label={onOpen ? `Open in Chronicle — ${title}` : undefined}
     >
       <div
         aria-hidden
@@ -157,8 +167,20 @@ export function KipResponseCard({
           {meta}
         </p>
       )}
+      {onOpen ? (
+        <p
+          style={{
+            fontSize: "12px",
+            color: "hsl(var(--theme-accent-primary))",
+            margin: "8px 0 0",
+            lineHeight: 1.4,
+          }}
+        >
+          Open in Chronicle →
+        </p>
+      ) : null}
       </div>
-    </div>
+    </Tag>
   )
 }
 

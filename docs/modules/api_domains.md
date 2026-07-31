@@ -29,6 +29,9 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2026-07-30 — Chronicle History endpoint
+- `GET /:domainId/kip/dialogs/:dialogId/chronicle-events` returns authorized dialog-scoped nested History events; Realm Feed remains unchanged.
+
 ### 2025-12-17 - Domain policy API + enriched environment
 - Added `GET/PATCH /api/domains/:domainId/policy` with domain membership enforcement and default `policy-v1` fallback.
 - Kip environment route now includes `policy` and `draftsDirectory` (last 25 drafts) for the authenticated owner.

@@ -22,6 +22,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-07-30 — Chronicle Events
+- `chronicleEvents.ts` persists dialog-scoped History events, authorizes reads with Dialog audience rules, groups child consultations under their Lead turn, and safely closes auto-named sessions with authored metadata.
+
 ### 2026-06-24 — Lead agent self-heal
 - Added `ensureKnownLeadAgent.ts` — repairs canonical Lead slugs when DB records drift from `role=Lead` and `visibility=public`.
 

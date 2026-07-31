@@ -94,6 +94,9 @@ interface KeeperTopBarProps {
   /** Fold Dialog domain LIVE into Playbill (one identity bar). */
   showLivePulse?: boolean
   livePulseColor?: string
+  dialogTitle?: string | null
+  dialogUnread?: boolean
+  onOpenChronicle?: () => void
 }
 
 function getInitials(name: string | null, email: string | null): string {
@@ -189,6 +192,9 @@ export function KeeperTopBar({
   onOpenNav,
   showLivePulse = false,
   livePulseColor,
+  dialogTitle,
+  dialogUnread,
+  onOpenChronicle,
 }: KeeperTopBarProps) {
   const {
     domainSlug,
@@ -308,6 +314,9 @@ export function KeeperTopBar({
                   : true
                 : undefined
             }
+            dialogTitle={dialogTitle}
+            dialogUnread={dialogUnread}
+            onOpenChronicle={onOpenChronicle}
           />
           {isPlaybillOpen ? playbillDropdown : null}
         </div>

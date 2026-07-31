@@ -53,6 +53,23 @@ export interface AgentDialogueMessage {
     meta?: string
     items?: string[]
   }
+  /**
+   * Dialog Document deep-link for chronicle_update chips / Known Issue cards.
+   * Persisted on kip_messages.metadata.chronicleChip.
+   */
+  chronicleChip?: {
+    dialogId: string
+    dialogTitle: string
+    actor: string
+    anchor?: {
+      dialogId?: string
+      manuscriptDraftId?: string
+      pointId?: string
+      entityId?: string
+      entityKind?: string
+      breadcrumb?: string[]
+    }
+  }
   actionResults?: Array<{
     type: string
     ok?: boolean

@@ -4,6 +4,7 @@ import * as React from "react"
 import { ChevronDown } from "lucide-react"
 import type { DocumentForward, DocumentPathGroup, DocumentStep, Point } from "@keeper/shared"
 import { PointView } from "./PointView"
+import { scrollToChroniclePoint } from "./chronicleMobile"
 
 export interface DocumentShellProps {
   /** Optional cover slot above the Point sequence (board-supplied). */
@@ -24,7 +25,13 @@ export interface DocumentShellProps {
    */
   paths?: DocumentPathGroup[]
   points: Point[]
+  /** Durable IDs parallel to points (Point is intentionally presentation-only). */
+  pointIds?: Array<string | null | undefined>
   onGlossPoint?: (point: Point, index: number) => void
+  /** Durable DraftPoint id to reveal after a Chronicle deep-link. */
+  scrollToPointId?: string | null
+  /** Optional context shown while the document is focused through a deep-link. */
+  breadcrumb?: string[] | null
   emptyState?: React.ReactNode
   className?: string
 }
@@ -111,16 +118,20 @@ function PathHeader({
 
 function PointFrame({
   point,
+  pointId,
   onGloss,
   accent,
 }: {
   point: Point
+  pointId?: string
   onGloss?: () => void
   accent: PathAccent
 }) {
   return (
     <div
       className="document-shell-point"
+      id={pointId}
+      data-chronicle-anchor={pointId}
       style={{
         display: "flex",
         alignItems: "stretch",
@@ -374,7 +385,10 @@ export function DocumentShell({
   step,
   paths,
   points,
+  pointIds,
   onGlossPoint,
+  scrollToPointId,
+  breadcrumb,
   emptyState,
   className,
 }: DocumentShellProps) {
@@ -383,10 +397,20 @@ export function DocumentShell({
     () => resolveForward(forward, title, subtitle),
     [forward, title, subtitle],
   )
+  React.useEffect(() => {
+    if (!scrollToPointId) return
+    const timer = window.setTimeout(() => scrollToChroniclePoint(scrollToPointId), 0)
+    return () => window.clearTimeout(timer)
+  }, [scrollToPointId, points])
 
   return (
     <div className={`document-shell flex min-h-0 flex-1 flex-col overflow-y-auto ${className ?? ""}`}>
       {cover}
+      {scrollToPointId && breadcrumb?.length ? (
+        <div className="px-4 pt-3 text-[12px] uppercase tracking-wider" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          {breadcrumb.join(" · ")}
+        </div>
+      ) : null}
       {!cover && resolvedForward ? (
         <ForwardBlock forward={resolvedForward} step={step} />
       ) : null}
@@ -424,6 +448,7 @@ export function DocumentShell({
                   <PointFrame
                     key={`${group.key}-${index}`}
                     point={point}
+                    pointId={pointIds?.[index] ?? undefined}
                     accent={accent}
                     onGloss={
                       onGlossPoint && point.gloss?.anchor

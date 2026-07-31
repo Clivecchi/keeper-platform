@@ -31,6 +31,7 @@ import {
   listDialogCastCandidates,
   listDialogCastMembers,
 } from '../../services/domains/dialogCastMembership.js';
+import { listChronicleEventsForDialog } from '../../services/kip/chronicleEvents.js';
 import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDocumentForChronicle.js';
 
 const router = Router();
@@ -367,6 +368,38 @@ router.get(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] document failed');
       return res.status(500).json({ error: 'FAILED_TO_GET_DIALOG_DOCUMENT' });
+    }
+  },
+);
+
+// ─── GET /api/domains/:domainId/kip/dialogs/:dialogId/chronicle-events ───────
+// Dialog-scoped History timeline. This intentionally does not alter Realm Feed.
+
+router.get(
+  '/:domainId/kip/dialogs/:dialogId/chronicle-events',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const events = await listChronicleEventsForDialog({
+        domainId,
+        dialogId,
+        userId: req.user.id,
+      });
+      if (!events) {
+        return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
+      }
+
+      return res.json({ events, dialogId });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] chronicle-events failed');
+      return res.status(500).json({ error: 'FAILED_TO_LIST_CHRONICLE_EVENTS' });
     }
   },
 );

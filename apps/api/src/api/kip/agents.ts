@@ -68,6 +68,13 @@ import type { ImageGenerationBrief } from '../../services/ModelProviderService.j
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { persistImageToLibrary } from '../../services/imageArchiveService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
+import {
+  closeSessionWithAuthoredMeta,
+  deriveSessionCloseMeta,
+  recordConsultFanoutEvents,
+  recordMomentEvent,
+  recordStructuralEvent,
+} from '../../services/kip/chronicleEvents.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
 import { promoteDraftPointInTransaction } from '../../services/kip/promoteDraftPoint.js';
 import {
@@ -600,6 +607,120 @@ type ActionExecutionResult = {
     [key: string]: unknown;
   };
 };
+
+type ChronicleActionChip = {
+  dialogId: string;
+  dialogTitle: string;
+  actor: string;
+  anchor: {
+    dialogId: string;
+    manuscriptDraftId?: string;
+    pointId?: string;
+    entityId?: string;
+    entityKind?: 'moment' | 'path' | 'journey' | 'point' | 'dialog';
+    breadcrumb?: string[];
+  };
+};
+
+function buildChronicleActionChip(input: {
+  dialogId: string;
+  dialogTitle: string;
+  actor: string;
+  results: ActionExecutionResult[];
+}): ChronicleActionChip | null {
+  const mutation = input.results.find(
+    (result) =>
+      result.status === 'success'
+      && (
+        result.type === 'draft.update'
+        || result.type === 'draft.update.propose'
+        || result.type === 'draft.point.rewrite'
+        || result.type === 'draft.point.accept'
+        || result.type === 'draft.point.promote'
+      ),
+  );
+  if (!mutation) return null;
+
+  const draft = mutation.data?.draft as { id?: unknown; title?: unknown } | undefined;
+  const point = mutation.data?.point as { id?: unknown } | undefined;
+  const draftId = typeof draft?.id === 'string' ? draft.id : undefined;
+  const pointId = typeof point?.id === 'string' ? point.id : undefined;
+  const draftTitle = typeof draft?.title === 'string' ? draft.title : 'Document';
+  return {
+    dialogId: input.dialogId,
+    dialogTitle: input.dialogTitle,
+    actor: input.actor,
+    anchor: {
+      dialogId: input.dialogId,
+      ...(draftId ? { manuscriptDraftId: draftId } : {}),
+      ...(pointId ? { pointId, entityId: pointId, entityKind: 'point' as const } : {}),
+      breadcrumb: [input.dialogTitle, draftTitle],
+    },
+  };
+}
+
+async function recordChronicleActionEvents(input: {
+  domainId?: string | null;
+  dialogId?: string | null;
+  actor: string;
+  actorSlug: string;
+  sessionId?: string | null;
+  results: ActionExecutionResult[];
+}): Promise<void> {
+  if (!input.domainId || !input.dialogId) return;
+
+  const mutations = input.results.filter((result) => result.status === 'success');
+  await Promise.all(
+    mutations.flatMap((result) => {
+      const draft = result.data?.draft as { id?: unknown; title?: unknown } | undefined;
+      const point = result.data?.point as { id?: unknown } | undefined;
+      const draftId = typeof draft?.id === 'string' ? draft.id : undefined;
+      const pointId = typeof point?.id === 'string' ? point.id : undefined;
+      const draftTitle = typeof draft?.title === 'string' ? draft.title : 'Document';
+      const anchor = {
+        dialogId: input.dialogId,
+        ...(draftId ? { manuscriptDraftId: draftId } : {}),
+        ...(pointId ? { pointId, entityId: pointId, entityKind: 'point' as const } : {}),
+        breadcrumb: [draftTitle],
+      };
+
+      if (
+        result.type === 'draft.update'
+        || result.type === 'draft.update.propose'
+        || result.type === 'draft.point.rewrite'
+        || result.type === 'draft.point.accept'
+      ) {
+        return [
+          recordMomentEvent({
+            domainId: input.domainId,
+            dialogId: input.dialogId,
+            actor: input.actor,
+            actorSlug: input.actorSlug,
+            title: `${input.actor} updated ${draftTitle}`,
+            summary: result.message,
+            anchor,
+            sessionId: input.sessionId,
+          }),
+        ];
+      }
+      if (result.type === 'draft.point.promote') {
+        return [
+          recordStructuralEvent({
+            domainId: input.domainId,
+            dialogId: input.dialogId,
+            actor: input.actor,
+            actorSlug: input.actorSlug,
+            title: `${input.actor} kept a Moment`,
+            summary: result.message,
+            anchor: { ...anchor, entityKind: 'moment' as const },
+            sessionId: input.sessionId,
+          }),
+        ];
+      }
+      return [];
+    }),
+  );
+}
 
 const ACTION_DRAFT_LIMIT = 25;
 const ACTION_ENVELOPE_TYPE = 'agent_output';
@@ -3062,7 +3183,7 @@ export async function executeAgentActions(
                   type: action.type,
                   status: 'success',
                   message: `${instLabel} responded`,
-                  data: { agentSlug, label: instLabel, reply },
+                  data: { agentId: instAgent.id, agentSlug, label: instLabel, reply },
                 });
               } else {
                 results.push({
@@ -3070,7 +3191,7 @@ export async function executeAgentActions(
                   status: 'error',
                   message: `${instLabel} returned nothing`,
                   errorCode: 'EMPTY_REPLY',
-                  data: { agentSlug, label: instLabel, reply: null },
+                  data: { agentId: instAgent.id, agentSlug, label: instLabel, reply: null },
                 });
               }
             } catch (error) {
@@ -5882,6 +6003,150 @@ export class KipAgentService {
           }
         }
         
+        const dialogIdForChronicle =
+          options?.dialogId
+          ?? (options?.environment as AgentEnvironmentContext | null | undefined)
+            ?.dialogDocument?.dialogId
+          ?? null;
+        const dialogTitleForChronicle =
+          (options?.environment as AgentEnvironmentContext | null | undefined)
+            ?.dialogDocument?.title
+          ?? 'this Dialog';
+        let chronicleChip = dialogIdForChronicle
+          ? buildChronicleActionChip({
+              dialogId: dialogIdForChronicle,
+              dialogTitle: dialogTitleForChronicle,
+              actor: agent.name,
+              results: actionResults,
+            })
+          : null;
+
+        // Known Issue cards (and similar) get the same Document deep-link when no mutation chip exists.
+        const emittedCard = structured.card as
+          | { type?: string; title?: string; body?: string; meta?: string }
+          | undefined;
+        const isKnownIssueCard =
+          emittedCard?.type === 'known_issue'
+          || (typeof emittedCard?.title === 'string' && /known\s*issue/i.test(emittedCard.title));
+        if (!chronicleChip && dialogIdForChronicle && isKnownIssueCard) {
+          chronicleChip = {
+            dialogId: dialogIdForChronicle,
+            dialogTitle: dialogTitleForChronicle,
+            actor: agent.name,
+            anchor: {
+              dialogId: dialogIdForChronicle,
+              entityKind: 'dialog',
+              breadcrumb: [dialogTitleForChronicle, emittedCard?.title || 'Known Issue'],
+            },
+          };
+        }
+
+        if (chronicleChip && !structured.card) {
+          structured = {
+            ...structured,
+            card: {
+              type: 'chronicle_update',
+              title: `${agent.name} added to ${chronicleChip.dialogTitle}`,
+              body: actionResults.find((result) => result.status === 'success')?.message,
+              meta: chronicleChip.anchor.breadcrumb?.join(' › '),
+            },
+          };
+        }
+
+        try {
+          await recordChronicleActionEvents({
+            domainId: options?.domainId,
+            dialogId: dialogIdForChronicle,
+            actor: agent.name,
+            actorSlug: agent.slug,
+            sessionId: currentSessionId,
+            results: actionResults,
+          });
+
+          const consultedAgents: Array<{
+            actor: string;
+            actorSlug: string;
+            summary: string;
+            agentId?: string | null;
+            sessionId?: string | null;
+          }> = [
+            ...(castVoicesForPersist ?? []).map((voice) => ({
+              actor: voice.attributedTo,
+              actorSlug: voice.slug,
+              summary: voice.content,
+            })),
+            ...actionResults
+              .filter((result) => result.type === 'delegate.consult')
+              .map((result) => {
+                const data = result.data as {
+                  agentId?: unknown;
+                  agentSlug?: unknown;
+                  label?: unknown;
+                  reply?: unknown;
+                  sessionId?: unknown;
+                } | undefined;
+                const actorSlug = typeof data?.agentSlug === 'string' ? data.agentSlug : 'cast';
+                const actor = typeof data?.label === 'string' ? data.label : actorSlug;
+                const reply = typeof data?.reply === 'string' ? data.reply : result.message;
+                const agentId = typeof data?.agentId === 'string' ? data.agentId : null;
+                const sessionId = typeof data?.sessionId === 'string' ? data.sessionId : null;
+                return { actor, actorSlug, summary: reply, agentId, sessionId };
+              }),
+          ];
+          const distinctConsultedAgents = Array.from(
+            new Map(consultedAgents.map((entry) => [entry.actorSlug, entry])).values(),
+          );
+          if (dialogIdForChronicle && distinctConsultedAgents.length >= 2) {
+            await Promise.all(
+              distinctConsultedAgents
+                .filter((entry) => entry.sessionId && entry.agentId)
+                .map((entry) =>
+                  closeSessionWithAuthoredMeta({
+                    sessionId: entry.sessionId!,
+                    agentId: entry.agentId!,
+                    title: `${entry.actor} consultation`,
+                    summary: entry.summary,
+                  }),
+                ),
+            );
+            await recordConsultFanoutEvents({
+              domainId: options?.domainId ?? '',
+              dialogId: dialogIdForChronicle,
+              leadActor: agent.name,
+              leadActorSlug: agent.slug,
+              turnTitle: input,
+              turnSummary: finalResponseText,
+              sessionId: currentSessionId,
+              consultedAgents: distinctConsultedAgents,
+            });
+          }
+
+          if (currentSessionId && finalResponseText.trim().length >= 16) {
+            const session = await prisma.kip_sessions.findUnique({
+              where: { id: currentSessionId },
+              select: { session_name: true },
+            });
+            const closeMeta = deriveSessionCloseMeta({
+              agentName: agent.name,
+              replyText: finalResponseText,
+              existingName: session?.session_name,
+            });
+            if (closeMeta) {
+              await closeSessionWithAuthoredMeta({
+                sessionId: currentSessionId,
+                agentId: agent.id,
+                title: closeMeta.title,
+                summary: closeMeta.summary,
+              });
+            }
+          }
+        } catch (error) {
+          logger.warn(
+            { err: error, sessionId: currentSessionId, dialogId: dialogIdForChronicle },
+            '[kip/chronicle-events] persistence failed',
+          );
+        }
+
         // SOLE exists at domain level (anchor) and keeper level (specific). Option B.
         let soleStatus: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | undefined;
         if (options?.domainId) {
@@ -5937,6 +6202,7 @@ export class KipAgentService {
                 delegateConsultCount: consultActionCount,
               },
               ...(structured.card ? { card: structured.card } : {}),
+              ...(chronicleChip ? { chronicleChip } : {}),
               ...(castVoicesForPersist?.length ? { castVoices: castVoicesForPersist } : {}),
               // Only persist single-instrument delegation when not a multi-voice turn.
               ...(directorDelegationResult && !castVoicesForPersist?.length

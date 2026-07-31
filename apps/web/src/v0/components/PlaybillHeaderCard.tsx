@@ -33,6 +33,9 @@ export interface PlaybillHeaderCardProps {
    * domain banner can stay suppressed (one identity bar).
    */
   livePulse?: { color?: string } | boolean
+  dialogTitle?: string | null
+  dialogUnread?: boolean
+  onOpenChronicle?: () => void
 }
 
 /**
@@ -52,6 +55,9 @@ export function PlaybillHeaderCard({
   isOpen = false,
   className = "",
   livePulse,
+  dialogTitle,
+  dialogUnread = false,
+  onOpenChronicle,
 }: PlaybillHeaderCardProps) {
   const isMobile = useIsMobile()
   const showLive = Boolean(livePulse)
@@ -95,24 +101,20 @@ export function PlaybillHeaderCard({
   // Path A — name-only chip; full Playbill (portrait / travel list) stays the light overlay.
   if (isMobile) {
     return (
-      <button
-        type="button"
-        onClick={onOpenPlaybill}
-        className={[
-          "playbill-header-card playbill-header-card--mobile-chip group relative min-w-0 max-w-full overflow-hidden rounded-full text-left transition-opacity hover:opacity-95",
-          className,
-        ].join(" ")}
-        style={{
-          border: borderStyle,
-          minHeight: 36,
-          padding: "6px 10px 6px 12px",
-          background: "hsl(var(--theme-surface-panel) / 0.45)",
-        }}
-        aria-label={`${billingName} — open domain travel`}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-      >
-        <span className="relative z-10 flex min-w-0 items-center gap-1.5">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onOpenPlaybill}
+          className={[
+            "playbill-header-card playbill-header-card--mobile-chip group relative min-w-0 max-w-full overflow-hidden rounded-full text-left transition-opacity hover:opacity-95",
+            className,
+          ].join(" ")}
+          style={{ border: borderStyle, minHeight: 36, padding: "6px 10px 6px 12px", background: "hsl(var(--theme-surface-panel) / 0.45)" }}
+          aria-label={`${billingName} — open domain travel`}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+        >
+          <span className="relative z-10 flex min-w-0 items-center gap-1.5">
           {showLive ? (
             <span
               className="h-1.5 w-1.5 shrink-0 rounded-full"
@@ -136,8 +138,21 @@ export function PlaybillHeaderCard({
             style={{ width: 14, height: 14, color: "hsl(var(--theme-header-text-secondary))" }}
             aria-hidden
           />
-        </span>
-      </button>
+          </span>
+        </button>
+        {dialogTitle && onOpenChronicle ? (
+          <button
+            type="button"
+            onClick={onOpenChronicle}
+            className="flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-left"
+            style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
+            aria-label={`Open Chronicle for ${dialogTitle}`}
+          >
+            <span className="truncate font-serif text-[14px] font-semibold">→ {dialogTitle}</span>
+            {dialogUnread ? <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "hsl(var(--theme-accent-primary))" }} aria-label="Chronicle updated" /> : null}
+          </button>
+        ) : null}
+      </div>
     )
   }
 

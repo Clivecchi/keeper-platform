@@ -4,7 +4,7 @@
  */
 
 import { resolveDialogLeadSlug } from "../../lib/domainLeadAgent"
-import { resolvePlaybillAgent } from "../../lib/playbillData"
+import { preloadPlaybillPortrait, resolvePlaybillAgent } from "../../lib/playbillData"
 import { peekDomainFrame } from "../../data/loadDomainFrame"
 import {
   bootstrapDomainShell,
@@ -80,7 +80,11 @@ export async function prepareDomainBoardReveal(
         })
       : Promise.resolve(null),
     waitForDomainCoverDecode(normalized),
-    leadSlug ? resolvePlaybillAgent(leadSlug).catch(() => null) : Promise.resolve(null),
+    leadSlug
+      ? resolvePlaybillAgent(leadSlug)
+        .then((agent) => preloadPlaybillPortrait(agent?.avatarUrl))
+        .catch(() => undefined)
+      : Promise.resolve(),
     // Await Nav lists under the curtain so the board does not populate after reveal.
     domain?.id ? prepareBoardNavData(domain.id, navSections) : Promise.resolve(),
   ])

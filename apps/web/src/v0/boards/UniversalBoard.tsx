@@ -73,6 +73,7 @@ import { BoardMobileChronicleOverlay } from "./components/BoardMobileChronicleOv
 import { BoardMobileNavDrawer } from "./components/BoardMobileNavDrawer"
 import { getCachedBoardNavData } from "./boardNavDataCache"
 import { PwaInstallPrompt } from "../../mobile/pwa"
+import { hasUnreadChronicle, markChronicleViewed } from "../presence/chronicleDocument/chronicleMobile"
 import "./board-mobile.css"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
@@ -217,7 +218,6 @@ function UniversalBoardShell({
     navCollapsed,
     onToggleNavCollapsed,
     chronicleEngagement,
-    draftDiscussAnchor,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -234,13 +234,19 @@ function UniversalBoardShell({
     }
   }, [useMobilePanelLayout, chronicleEngagement])
 
+  React.useEffect(() => {
+    if (chronicleOverlayOpen && selection.selectedDialogId) {
+      markChronicleViewed(selection.selectedDialogId)
+    }
+  }, [chronicleOverlayOpen, selection.selectedDialogId])
+
   // Gloss from Chronicle → focused Dialog; close the sheet so the conversation is visible.
   React.useEffect(() => {
     if (!useMobilePanelLayout) return
-    if (draftDiscussAnchor) {
+    if (selection.draftDiscussAnchor) {
       setChronicleOverlayOpen(false)
     }
-  }, [useMobilePanelLayout, draftDiscussAnchor])
+  }, [useMobilePanelLayout, selection.draftDiscussAnchor])
 
   const focusMobileDialogPanel = React.useCallback(() => {
     setNavDrawerOpen(false)
@@ -269,6 +275,7 @@ function UniversalBoardShell({
       actions.clearSelection()
     }
     setChronicleOverlayOpen(true)
+    if (selection.selectedDialogId) markChronicleViewed(selection.selectedDialogId)
   }, [
     actions,
     selection.selectedDialogId,
@@ -279,6 +286,12 @@ function UniversalBoardShell({
     selection.selectedKeeperId,
     selection.selectedPathId,
   ])
+
+  // Deep-link chips / History → Document bump this request id to open the overlay.
+  React.useEffect(() => {
+    if (!selection.chronicleOpenRequestId) return
+    openChronicleOverlay()
+  }, [selection.chronicleOpenRequestId, openChronicleOverlay])
 
   const closeNavDrawer = React.useCallback(() => setNavDrawerOpen(false), [])
   const closeChronicleOverlay = React.useCallback(() => setChronicleOverlayOpen(false), [])
@@ -297,6 +310,11 @@ function UniversalBoardShell({
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string>("")
+  const activeDialog = React.useMemo(() => {
+    if (!domainId || !selection.selectedDialogId) return null
+    const dialogs = getCachedBoardNavData<Array<{ id: string; title?: string | null; updated_at?: string | null; updatedAt?: string | null }>>(domainId, "dialogs")
+    return dialogs?.find((dialog) => dialog.id === selection.selectedDialogId) ?? null
+  }, [domainId, selection.selectedDialogId])
 
   const chronicleStripCopy = React.useMemo(() => {
     const domainLabel = domainName?.trim() || "Domain"
@@ -534,8 +552,8 @@ function UniversalBoardShell({
 
   const mobileAboveComposer = useMobilePanelLayout ? (
     <BoardMobileChronicleStrip
-      title={chronicleStripCopy.title}
-      subtitle={chronicleStripCopy.subtitle}
+      title="Open Chronicle"
+      subtitle={selection.selectedDialogId ? undefined : chronicleStripCopy.subtitle}
       onExpand={openChronicleOverlay}
     />
   ) : null
@@ -709,6 +727,9 @@ function UniversalBoardShell({
           onOpenNav={useMobilePanelLayout ? openNavDrawer : undefined}
           showLivePulse={useMobilePanelLayout}
           livePulseColor={livePulseColor}
+          dialogTitle={activeDialog?.title?.trim() || null}
+          dialogUnread={activeDialog ? hasUnreadChronicle(selection.selectedDialogId ?? "", activeDialog.updated_at ?? activeDialog.updatedAt) : false}
+          onOpenChronicle={openChronicleOverlay}
         />
 
         {isMobile && isMemberMobileBoard(def.boardId) ? (

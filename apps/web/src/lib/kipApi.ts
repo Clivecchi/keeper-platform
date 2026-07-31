@@ -13,9 +13,11 @@ import {
   type DraftPointStatus,
   type DraftPointType,
   type DraftSpecJson,
+  type ChronicleEventListResponse,
 } from '@keeper/shared';
 
 export type {
+  ChronicleEventListResponse,
   DraftPoint,
   DraftPointStatus,
   DraftPointType,
@@ -1070,6 +1072,21 @@ export class KipApi {
         };
       }),
     };
+  }
+
+  /** Dialog-scoped Chronicle History timeline. Realm Feed remains separate. */
+  static async getDialogChronicleEvents(
+    domainId: string,
+    dialogId: string,
+  ): Promise<ChronicleEventListResponse> {
+    const response = await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/chronicle-events`,
+    );
+    const payload = response as Partial<ChronicleEventListResponse>;
+    if (!payload || payload.dialogId !== dialogId || !Array.isArray(payload.events)) {
+      throw new Error(pickErrorMessage(response, 'Failed to load dialog Chronicle events'));
+    }
+    return { dialogId: payload.dialogId, events: payload.events };
   }
 
   static async listDraftVersions(

@@ -104,10 +104,13 @@ export function PointView({
 
   React.useEffect(() => () => clearPressTimer(), [clearPressTimer])
 
-  /** Same 480ms long-press affordance as Dialog GlossSurface — opens focused Dialog Gloss. */
-  const handleTouchStart = React.useCallback(() => {
+  const touchStartY = React.useRef<number | null>(null)
+
+  /** Long-press opens Gloss; cancel if the finger scrolls (common mobile failure mode). */
+  const handleTouchStart = React.useCallback((event: React.TouchEvent) => {
     if (!handleGloss) return
     setPressing(true)
+    touchStartY.current = event.touches[0]?.clientY ?? null
     clearPressTimer()
     pressTimer.current = setTimeout(() => {
       handleGloss()
@@ -115,9 +118,21 @@ export function PointView({
     }, 480)
   }, [handleGloss, clearPressTimer])
 
+  const handleTouchMove = React.useCallback((event: React.TouchEvent) => {
+    if (touchStartY.current == null) return
+    const y = event.touches[0]?.clientY
+    if (y == null) return
+    if (Math.abs(y - touchStartY.current) > 10) {
+      clearPressTimer()
+      setPressing(false)
+      touchStartY.current = null
+    }
+  }, [clearPressTimer])
+
   const handleTouchEnd = React.useCallback(() => {
     clearPressTimer()
     setPressing(false)
+    touchStartY.current = null
   }, [clearPressTimer])
 
   return (
@@ -127,6 +142,7 @@ export function PointView({
         pressing ? "opacity-90" : "",
       ].join(" ")}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >

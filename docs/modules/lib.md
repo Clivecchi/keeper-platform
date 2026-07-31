@@ -30,6 +30,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-07-30 — Dialog Chronicle History
+- `KipApi.getDialogChronicleEvents(domainId, dialogId)` loads the Dialog-scoped History timeline without changing Realm Feed scope.
+
 ### 2026-07-04 — keeper.domains same-origin API + hostname slug
 - `platformHost.ts` — `usesSameOriginApi`, `resolveTenantSlugFromHostname`, `resolvePostAuthPath`.
 - `apiFetch.ts` / `fetch-shim.ts` — `*.keeper.domains` uses relative `/api` (Vercel rewrite), same as ke3p.com.

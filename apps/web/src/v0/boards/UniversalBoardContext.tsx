@@ -23,7 +23,7 @@ import * as React from "react"
 import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
-import type { GlossAnchor, GlossContentSnapshot, ChronicleView } from "@keeper/shared"
+import type { GlossAnchor, GlossContentSnapshot, ChroniclePanelMode, ChronicleView } from "@keeper/shared"
 import { glossAnchorToDraftDiscuss, resolveChronicleView } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
@@ -125,6 +125,10 @@ export interface UniversalBoardSelection {
    * Lead is always engaged separately — not represented in this list.
    */
   activeBoardInstruments: ReadonlyArray<BoardInstrumentSlug>
+  chroniclePanelMode: ChroniclePanelMode
+  chroniclePointTarget: { pointId: string | null; breadcrumb: string[] | null }
+  /** Bumped when a deep-link requests the mobile Chronicle overlay open. */
+  chronicleOpenRequestId: number
 }
 
 export interface UniversalBoardActions {
@@ -189,6 +193,8 @@ export interface UniversalBoardActions {
   onToggleBoardInstrument: (slug: BoardInstrumentSlug) => void
   /** Domain/Realm — replace the engaged set (e.g. clear all). */
   onSetActiveBoardInstruments: (slugs: ReadonlyArray<BoardInstrumentSlug>) => void
+  openChronicleDocument: (options: { dialogId: string; pointId?: string | null; breadcrumb?: string[] | null }) => void
+  setChroniclePanelMode: (mode: ChroniclePanelMode) => void
 }
 
 export interface UniversalBoardContextValue {
@@ -283,6 +289,12 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     React.useState<BoardInstrumentSlug | null>(null)
   const [activeBoardInstruments, setActiveBoardInstruments] =
     React.useState<BoardInstrumentSlug[]>([])
+  const [chroniclePanelMode, setChroniclePanelMode] = React.useState<ChroniclePanelMode>("document")
+  const [chroniclePointTarget, setChroniclePointTarget] = React.useState<{ pointId: string | null; breadcrumb: string[] | null }>({
+    pointId: null,
+    breadcrumb: null,
+  })
+  const [chronicleOpenRequestId, setChronicleOpenRequestId] = React.useState(0)
 
   const urlDraftId = shell?.draftId ?? searchParams.get("draftId")
 
@@ -350,7 +362,23 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setChroniclePanelMode("document")
+    setChroniclePointTarget({ pointId: null, breadcrumb: null })
   }, [clearDraftIdFromUrl])
+
+  const openChronicleDocument = React.useCallback((options: {
+    dialogId: string
+    pointId?: string | null
+    breadcrumb?: string[] | null
+  }) => {
+    onDialogSelect(options.dialogId)
+    setChroniclePanelMode("document")
+    setChroniclePointTarget({
+      pointId: options.pointId ?? null,
+      breadcrumb: options.breadcrumb ?? null,
+    })
+    setChronicleOpenRequestId((n) => n + 1)
+  }, [onDialogSelect])
 
   const onJourneySelect = React.useCallback((id: string) => {
     clearDraftIdFromUrl()
@@ -839,6 +867,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         activeTrainingFrame,
         activeBoardInstrument,
         activeBoardInstruments,
+        chroniclePanelMode,
+        chroniclePointTarget,
+        chronicleOpenRequestId,
       },
       actions: {
         onSessionSelect,
@@ -881,6 +912,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onSetActiveBoardInstrument,
         onToggleBoardInstrument,
         onSetActiveBoardInstruments,
+        openChronicleDocument,
+        setChroniclePanelMode,
       },
       navCollapsed,
       onToggleNavCollapsed,
@@ -927,6 +960,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       activeTrainingFrame,
       activeBoardInstrument,
       activeBoardInstruments,
+      chroniclePanelMode,
+      chroniclePointTarget,
+      chronicleOpenRequestId,
       onSessionSelect,
       onSetActiveJourney,
       onDialogSelect,
@@ -966,6 +1002,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onSetActiveBoardInstrument,
       onToggleBoardInstrument,
       onSetActiveBoardInstruments,
+      openChronicleDocument,
+      setChroniclePanelMode,
       navCollapsed,
       onToggleNavCollapsed,
       chronicleEngagement,

@@ -37,3 +37,6 @@ Point read shell + Document container helpers for Chronicle Focus â€” shared con
 ### 2026-07-28 — Chronicle Gloss long-press
 - `PointView`: 480ms touch long-press invokes `onGloss` (same timing as Dialog GlossSurface); button retained.
 
+### 2026-07-30 ? Mobile Chronicle Document + History
+- Added Dialog-scoped History, viewed localStorage state, and durable Point deep-links.
+

@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-07-30: **Chronicle in-stream chips** — `ChronicleUpdateChip` + `chronicleChip` on `AgentDialogueMessage`; `AgentMessageContent` / `KipResponseCard` deep-link Known Issue and `chronicle_update` cards into Dialog Document anchors.
 - 2026-07-30: **Agent Echo persistence** — `DialogResponseEcho` documents `metadata.echo` on the primary message (`content` / `attributedTo` / `status`). Rehydrated in `useAgentDialog.normalizeMessage`; empty/silent stays visually silent; Voice Cards (`castVoices`) unchanged.
 - 2026-07-28: **Universal Board composer unlock** — `AgentComposer` no longer requires `activeSessionId` to type or send. Matches lazy Dialog creation (`resume` on mount, `resumeOrCreate` on first send) so Domain, IDE, Designer, Agent, and Realm share one unlocked composer path. Still gated by `disabled` (unresolved agent → "Preparing conversation…").
 - 2026-07-27: **Mobile-compact composer height** — `composerSize="mobile-compact"` uses `rows={1}` and skips the auto-resize MIN_ROWS floor so staged response height (44–56px) is not forced back to 80px+.

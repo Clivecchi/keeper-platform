@@ -200,6 +200,8 @@ export async function prepareBoardNavData(
   sections?: BoardNavPrefetchSections,
 ): Promise<void> {
   if (!domainId) return
+  const markName = `keeper:board-nav:${domainId}`
+  if (typeof performance !== "undefined") performance.mark(`${markName}:start`)
   const keys = resolvePrefetchKeys(sections)
   await Promise.all(
     keys.map((key) => {
@@ -209,6 +211,14 @@ export async function prepareBoardNavData(
       })
     }),
   )
+  if (typeof performance !== "undefined") {
+    performance.mark(`${markName}:end`)
+    try {
+      performance.measure(markName, `${markName}:start`, `${markName}:end`)
+    } catch {
+      // A browser can evict marks before a background prefetch settles.
+    }
+  }
 }
 
 /** Warm shared nav slices when a board mounts — fire-and-forget, respects TTL. */

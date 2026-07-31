@@ -88,6 +88,10 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
       : meta?.keeperCard && typeof meta.keeperCard === "object" && !Array.isArray(meta.keeperCard)
         ? (meta.keeperCard as AgentDialogueMessage["keeperCard"])
         : undefined
+  const chronicleChip =
+    meta?.chronicleChip && typeof meta.chronicleChip === "object" && !Array.isArray(meta.chronicleChip)
+      ? (meta.chronicleChip as AgentDialogueMessage["chronicleChip"])
+      : undefined
   const senderName =
     typeof meta?.senderName === "string"
       ? meta.senderName
@@ -130,6 +134,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(senderName?.trim() ? { senderName: senderName.trim() } : {}),
     ...(linkedCard ? { linkedCard } : {}),
     ...(keeperCard ? { keeperCard } : {}),
+    ...(chronicleChip ? { chronicleChip } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),
     ...(castVoices?.length ? { castVoices } : {}),

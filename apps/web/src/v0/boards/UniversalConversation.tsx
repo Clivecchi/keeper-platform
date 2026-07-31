@@ -484,11 +484,26 @@ export function UniversalConversation({
       apiFetch(`${base}/cast-members`) as Promise<{ members?: CastCandidate[] }>,
       apiFetch(`${base}/cast-candidates`) as Promise<{ candidates?: CastCandidate[] }>,
     ])
-      .then(([membersRes, candidatesRes]) => {
+      .then(async ([membersRes, candidatesRes]) => {
         if (cancelled) return
-        setDialogCastMembers(Array.isArray(membersRes.members) ? membersRes.members : [])
-        setDialogCastCandidates(
-          Array.isArray(candidatesRes.candidates) ? candidatesRes.candidates : [],
+        const members = Array.isArray(membersRes.members) ? membersRes.members : []
+        const candidates = Array.isArray(candidatesRes.candidates) ? candidatesRes.candidates : []
+        setDialogCastMembers(members)
+        setDialogCastCandidates(candidates)
+        // Warm cast portraits so curtain / instrument chips never flash blank.
+        const { resolvePlaybillAgent, preloadPlaybillPortrait } = await import("../lib/playbillData")
+        const slugs = [
+          ...new Set(
+            [...members, ...candidates]
+              .map((row) => row.agentSlug?.trim())
+              .filter((slug): slug is string => !!slug),
+          ),
+        ]
+        await Promise.all(
+          slugs.map(async (slug) => {
+            const agent = await resolvePlaybillAgent(slug).catch(() => null)
+            await preloadPlaybillPortrait(agent?.avatarUrl)
+          }),
         )
       })
       .catch(() => {
@@ -2518,6 +2533,13 @@ export function UniversalConversation({
         onOpenMoment={onMomentSelect}
         onOpenJourney={(id) => onJourneySelect(id)}
         onOpenLibraryItem={(id) => actions.onLibraryItemSelect(id)}
+        onOpenChronicleChip={(chip) => {
+          actions.openChronicleDocument({
+            dialogId: chip.dialogId,
+            pointId: chip.anchor?.pointId ?? null,
+            breadcrumb: chip.anchor?.breadcrumb ?? null,
+          })
+        }}
         onKeepAsMoment={domainSlug ? handleKeepAsMoment : undefined}
         onOpenSoleMemory={(memoryCardId) => actions.onSoleMemorySelect(memoryCardId)}
         onConfirmDraftUpdate={domainId ? handleConfirmDraftUpdate : undefined}

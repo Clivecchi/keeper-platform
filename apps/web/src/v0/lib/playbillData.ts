@@ -34,6 +34,21 @@ const statsInflight = new Map<string, Promise<DomainPlaybillStats>>()
 const agentCache = new Map<string, ResolvedPlaybillAgent>()
 const agentInflight = new Map<string, Promise<ResolvedPlaybillAgent | null>>()
 
+/** Decode portrait bytes before a reveal so cast images never pop in after the curtain. */
+export async function preloadPlaybillPortrait(url: string | null | undefined): Promise<void> {
+  if (typeof Image === "undefined" || !url?.trim()) return
+  await new Promise<void>((resolve) => {
+    const image = new Image()
+    image.onload = () => {
+      if ("decode" in image) {
+        void image.decode().catch(() => undefined).finally(resolve)
+      } else resolve()
+    }
+    image.onerror = () => resolve()
+    image.src = url
+  })
+}
+
 export function clearPlaybillAgentCache(slug?: string): void {
   if (slug?.trim()) {
     agentCache.delete(slug.trim())
@@ -63,7 +78,10 @@ export async function prefetchPlaybillAgentsForDomains(
     ),
   ]
   if (!slugs.length) return
-  await Promise.all(slugs.map((slug) => resolvePlaybillAgent(slug).catch(() => null)))
+  await Promise.all(slugs.map(async (slug) => {
+    const agent = await resolvePlaybillAgent(slug).catch(() => null)
+    await preloadPlaybillPortrait(agent?.avatarUrl)
+  }))
 }
 
 function isAvatarImageSrc(value: string): boolean {
@@ -335,6 +353,7 @@ export async function resolvePlaybillAgent(
     }
 
     agentCache.set(slug, resolved)
+    void preloadPlaybillPortrait(resolved.avatarUrl)
     return resolved
   })().finally(() => {
     agentInflight.delete(slug)
