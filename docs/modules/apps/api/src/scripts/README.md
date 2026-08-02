@@ -10,6 +10,7 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `consolidate-ke3p-dialogs.ts` — ke3p Becoming Together Dialog + Library archive consolidation (dry-run default)
 - `archive-orphan-echo-sessions.ts` — archive dialog-less "Domain Lead Collaboration" / "Agent Board Echo" sessions (dry-run default)
 - `seed-becoming-together-document.ts` — write real Forward/Step/Paths + manuscript Points onto Dialog `cmrtyoraw0001ot0033p5wiwm` (dry-run default)
+- `deploy-object-glossary-read-access.ts` — catalog Object Glossary (+ EntityKind Recipe) as `source_type: github` Library Items and inject condensed Governance canon into Kip/Cloud `voice_prompt` (dry-run default)
 
 ## 🔄 Data & Behavior
 Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/database` prisma. Destructive or production-writing scripts must default to dry-run and require an explicit `--execute` flag.
@@ -19,8 +20,12 @@ Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/d
 - [ ] `archive-orphan-echo-sessions.ts --execute` requires migration `20260723200000_kip_sessions_is_archived` applied first
 - [ ] `seed-becoming-together-document.ts --execute` requires migration `20260723210000_dialog_document_forward_step` applied first
 - [ ] Confirm with Kip before generalizing ke3p consolidation to other domains
+- [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-08-02 — Object Glossary read access
+- Added `deploy-object-glossary-read-access.ts`: upserts github Library Items for `docs/keeper-object-glossary.md` + EntityKind Recipe; patches Kip/Cloud Training Mode Governance with condensed canon + `library.read` pointer. Dry-run by default; `--execute` gated.
 
 ### 2026-07-24 — verify Dialog Document agent context
 - Added `verify-dialog-document-context.ts` — read-only check that Becoming Together Dialog loads into `loadDialogDocumentForAgent` (Forward/Step/Points) + redaction helpers.

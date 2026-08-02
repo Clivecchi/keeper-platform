@@ -25,6 +25,7 @@ Before touching any code, read these canonical documents:
 | `docs/keeper-heart-mind.md` | Data model + narrative/runtime split | Highest — code-backed |
 | `docs/keeper-ui-experience.md` | Surfaces, frames, engagement pipeline | Highest — code-backed |
 | `docs/entitykind-implementation-recipe.md` | EntityKind pattern — cover, Chronicle, Config, Nav (Key reference) | Highest — code-backed |
+| `docs/keeper-object-glossary.md` | Platform object vocabulary (Document Section ≠ Journey Path, EntityKind status, schema-backed definitions) | Highest — code-backed |
 | `Keeper jsonframe spec.md` | JSON UI Frame build sequence (Steps 1–6) | High — March 2026 — verify exact filename in repo root |
 | `docs/build-handoffs/schema.md` | Cloud → Cursor handoff contract (territory routing, JSON shape) | High — Phase 0 file handoffs; Phase 1 MCP |
 | `docs/universal-board-dialog-orchestration.md` | Dialog orchestration modes on Universal Board (solo, director, roundtable, hot_seat, chorus) | High — director near-term |
