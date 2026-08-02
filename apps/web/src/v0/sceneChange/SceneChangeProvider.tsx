@@ -9,6 +9,7 @@ import {
 } from "../boards/domain/domainShellCache"
 import { markTravelCurtainShown } from "../boards/domain/domainShellBootstrap"
 import {
+  BOARD_REVEAL_HARD_TIMEOUT_MS,
   holdCurtainMinimum,
   prepareDomainBoardReveal,
 } from "../boards/domain/prepareDomainBoardReveal"
@@ -50,10 +51,26 @@ export function SceneChangeProvider({ children }: { children: React.ReactNode })
 
       const startedAt = Date.now()
       await prefetchDomainShellForTravel(normalized, { requireAudience: true })
-      const prepared = await prepareDomainBoardReveal(normalized, {
+      // Race a hard ceiling — a hung portrait/network must not trap domain travel forever.
+      const preparePromise = prepareDomainBoardReveal(normalized, {
         requireAudience: true,
         board: "domain",
       })
+      const prepared = await Promise.race([
+        preparePromise,
+        new Promise<Awaited<typeof preparePromise>>((resolve) => {
+          window.setTimeout(
+            () =>
+              resolve({
+                ready: false,
+                sessionId: null,
+                elapsedMs: BOARD_REVEAL_HARD_TIMEOUT_MS,
+                navWarm: false,
+              }),
+            BOARD_REVEAL_HARD_TIMEOUT_MS,
+          )
+        }),
+      ])
       await holdCurtainMinimum(Date.now() - startedAt)
 
       markTravelCurtainShown(normalized)

@@ -21,6 +21,10 @@ Scene-change load mechanics for domain travel ? splash curtain with warm-skip an
 - [ ] Mobile Playbill prefetch parity
 
 ## ?? Update Log
+### 2026-08-02 — Travel curtain hard timeout + non-blocking portraits
+- `SceneChangeProvider` races `prepareDomainBoardReveal` with `BOARD_REVEAL_HARD_TIMEOUT_MS` (same as boot gate) so a hung avatar decode cannot trap domain travel.
+- Portrait preload is fire-and-forget under reveal; decode itself times out at 2s in `playbillData`.
+
 ### 2026-07-24 ? cast-select-must-not-change-atmosphere
 - Curtain full-page ambient uses domain cover only ? lead agent portrait no longer fills the viewport when cover is missing (portrait stays on the identity card).
 

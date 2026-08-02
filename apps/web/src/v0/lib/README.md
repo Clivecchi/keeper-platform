@@ -23,6 +23,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
+- 2026-08-02: `preloadPlaybillPortrait` settles after 2s max so hung image URLs cannot block curtain/Nav forever.
 - 2026-07-12: `resolvePlaybillAgent` uses `KipApi.getAgentBySlug`, Chronicle `/api/agents/:id` enrichment, and `clearPlaybillAgentCache` on dropdown open.
 - 2026-07-12: **Hotfix** — `UniversalConversation` undefined `frameLeadAgentSlug` crash; Playbill uses API `leadAgentName` when agent fetch fails; `isUncast` only when slug missing.
 - 2026-07-10: Realm identity — synthetic `{slug}-lead` slugs treated as uncast in `readFrameLeadAgentSlug` / Playbill; star name via `@keeper/shared` `resolvePlaybillStarName` (`{Domain} presents Agent` when uncast).

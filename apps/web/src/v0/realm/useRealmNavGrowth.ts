@@ -4,6 +4,10 @@ import * as React from "react"
 import { KipApi, type KipDraft, type KipDraftSummary } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/apiFetch"
 import { getKeptMoments, type KeptMomentSummary } from "../api/v0Moments"
+import {
+  countDraftNavTitles,
+  draftNavLabel,
+} from "../presence/integrationChronicle/draftNavUtils"
 import { fetchDomainLibraryNavRows } from "../presence/integrationChronicle/libraryNavUtils"
 import {
   DOCUMENT_MANUSCRIPT_KIND,
@@ -30,6 +34,8 @@ export interface RealmNavGrowthState {
 type DialogListRow = {
   id?: string
   title?: string | null
+  forward_title?: string | null
+  forwardTitle?: string | null
 }
 
 type MomentLineageFields = KeptMomentSummary & {
@@ -39,6 +45,7 @@ type MomentLineageFields = KeptMomentSummary & {
 
 type RealmNavGrowthPayload = {
   grouped: RealmNavGrouped
+  dialogsFailed?: boolean
 }
 
 /** In-flight dedupe — Nav + Chronicle both call this hook; one load per domain. */
@@ -75,25 +82,30 @@ function readMomentSourceDraftId(moment: KeptMomentSummary): string | null {
   return typeof id === "string" && id.trim() ? id.trim() : null
 }
 
-async function loadDialogTitleById(domainId: string): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
+async function loadDialogTitleById(domainId: string): Promise<{
+  titles: Map<string, string>
+  failed: boolean
+}> {
+  const titles = new Map<string, string>()
   try {
     const res = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}/kip/dialogs`)
     const list = (res as { dialogs?: DialogListRow[] })?.dialogs
-    if (!Array.isArray(list)) return map
+    if (!Array.isArray(list)) return { titles, failed: true }
     for (const dialog of list) {
-      if (typeof dialog?.id === "string" && dialog.id.trim()) {
-        const title =
-          typeof dialog.title === "string" && dialog.title.trim()
-            ? dialog.title.trim()
-            : "Untitled dialog"
-        map.set(dialog.id.trim(), title)
-      }
+      if (typeof dialog?.id !== "string" || !dialog.id.trim()) continue
+      const title =
+        (typeof dialog.title === "string" && dialog.title.trim())
+        || (typeof dialog.forward_title === "string" && dialog.forward_title.trim())
+        || (typeof dialog.forwardTitle === "string" && dialog.forwardTitle.trim())
+        || ""
+      // Skip blank titles — do not invent "Untitled dialog" rows for empty shells.
+      if (!title) continue
+      titles.set(dialog.id.trim(), title)
     }
+    return { titles, failed: false }
   } catch {
-    // Titles fall back to "Untitled dialog" in groupRealmNavEntries
+    return { titles, failed: true }
   }
-  return map
 }
 
 /**
@@ -142,7 +154,7 @@ async function loadRealmNavGrowthPayload(
   if (existing) return existing
 
   const promise = (async (): Promise<RealmNavGrowthPayload> => {
-    const [drafts, libraryRows, keptMoments, dialogTitleById] = await Promise.all([
+    const [drafts, libraryRows, keptMoments, dialogTitles] = await Promise.all([
       KipApi.listDrafts(domainId, undefined, {
         limit: 40,
         excludeStatus: ["promoted", "archived"],
@@ -153,6 +165,7 @@ async function loadRealmNavGrowthPayload(
         : Promise.resolve([] as KeptMomentSummary[]),
       loadDialogTitleById(domainId),
     ])
+    const dialogTitleById = dialogTitles.titles
 
     const { draftDialogById, pointDialogById } = resolveDialogLineageFromList(drafts)
 
@@ -185,10 +198,15 @@ async function loadRealmNavGrowthPayload(
     // document_manuscript is Dialog Document storage (Points) — Chronicle expands it.
     // Do not list it as a peer Draft row (that duplicated "Becoming Together" in Nav).
     const navDrafts = drafts.filter((draft) => draft.kind !== DOCUMENT_MANUSCRIPT_KIND)
+    const draftTitleCounts = countDraftNavTitles(navDrafts)
 
     const entries: RealmNavEntry[] = [
       ...navDrafts.map((draft) =>
-        draftToRealmNavEntry(draft, draftDialogById.get(draft.id) ?? null),
+        draftToRealmNavEntry(
+          draft,
+          draftDialogById.get(draft.id) ?? null,
+          draftNavLabel(draft, draftTitleCounts),
+        ),
       ),
       ...libraryRows.map((row) => libraryRowToKeptNavEntry(row, null)),
       ...keptMoments.map((moment) =>
@@ -201,7 +219,20 @@ async function loadRealmNavGrowthPayload(
       ...libraryRows.slice(0, 8).map((row) => libraryRowToPresentedNavEntry(row, null)),
     ]
 
-    return { grouped: groupRealmNavEntries(entries, dialogTitleById) }
+    // If every source failed/empty and dialogs failed, surface that — silent empty Nav looks broken.
+    if (
+      dialogTitles.failed
+      && navDrafts.length === 0
+      && libraryRows.length === 0
+      && keptMoments.length === 0
+    ) {
+      throw new Error("Could not load Nav — Dialogs request failed")
+    }
+
+    return {
+      grouped: groupRealmNavEntries(entries, dialogTitleById),
+      dialogsFailed: dialogTitles.failed,
+    }
   })().finally(() => {
     growthInflight.delete(cacheKey)
   })

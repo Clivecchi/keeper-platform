@@ -484,27 +484,28 @@ export function UniversalConversation({
       apiFetch(`${base}/cast-members`) as Promise<{ members?: CastCandidate[] }>,
       apiFetch(`${base}/cast-candidates`) as Promise<{ candidates?: CastCandidate[] }>,
     ])
-      .then(async ([membersRes, candidatesRes]) => {
+      .then(([membersRes, candidatesRes]) => {
         if (cancelled) return
         const members = Array.isArray(membersRes.members) ? membersRes.members : []
         const candidates = Array.isArray(candidatesRes.candidates) ? candidatesRes.candidates : []
         setDialogCastMembers(members)
         setDialogCastCandidates(candidates)
-        // Warm cast portraits so curtain / instrument chips never flash blank.
-        const { resolvePlaybillAgent, preloadPlaybillPortrait } = await import("../lib/playbillData")
-        const slugs = [
-          ...new Set(
-            [...members, ...candidates]
-              .map((row) => row.agentSlug?.trim())
-              .filter((slug): slug is string => !!slug),
-          ),
-        ]
-        await Promise.all(
-          slugs.map(async (slug) => {
-            const agent = await resolvePlaybillAgent(slug).catch(() => null)
-            await preloadPlaybillPortrait(agent?.avatarUrl)
-          }),
-        )
+        // Warm cast portraits in the background — never block cast/Nav paint on image decode.
+        void import("../lib/playbillData").then(({ resolvePlaybillAgent, preloadPlaybillPortrait }) => {
+          const slugs = [
+            ...new Set(
+              [...members, ...candidates]
+                .map((row) => row.agentSlug?.trim())
+                .filter((slug): slug is string => !!slug),
+            ),
+          ]
+          void Promise.all(
+            slugs.map(async (slug) => {
+              const agent = await resolvePlaybillAgent(slug).catch(() => null)
+              await preloadPlaybillPortrait(agent?.avatarUrl)
+            }),
+          )
+        })
       })
       .catch(() => {
         if (cancelled) return

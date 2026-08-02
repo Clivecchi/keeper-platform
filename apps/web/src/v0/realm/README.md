@@ -33,6 +33,11 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-02 — Nav: stop Untitled flood + surface Dialog load failure
+- Realm Nav no longer seeds blank-titled Dialogs as "Untitled dialog"; uses `forward_title` when `title` is empty.
+- Draft rows use `draftNavLabel` (kind · status) for generic/repeated titles — same as Universal Nav.
+- If Dialogs request fails and every content source is empty, Nav shows an error instead of a silent empty panel.
+
 ### 2026-08-01 — Document/History tabs no longer shadowed by Realm feed
 - On `/home` with a Dialog selected, `userFeedContent` previously short-circuited both Chronicle tabs into the same flat Realm feed. Dialog scope now mounts `DocumentShell` / `ChronicleHistoryPanel` via `resolveChroniclePanelBody`; arrival feed stays idle-only.
 

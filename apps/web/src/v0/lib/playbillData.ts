@@ -34,17 +34,35 @@ const statsInflight = new Map<string, Promise<DomainPlaybillStats>>()
 const agentCache = new Map<string, ResolvedPlaybillAgent>()
 const agentInflight = new Map<string, Promise<ResolvedPlaybillAgent | null>>()
 
+const PORTRAIT_PRELOAD_TIMEOUT_MS = 2_000
+
 /** Decode portrait bytes before a reveal so cast images never pop in after the curtain. */
 export async function preloadPlaybillPortrait(url: string | null | undefined): Promise<void> {
   if (typeof Image === "undefined" || !url?.trim()) return
   await new Promise<void>((resolve) => {
+    let settled = false
+    const done = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    const timer = window.setTimeout(done, PORTRAIT_PRELOAD_TIMEOUT_MS)
     const image = new Image()
     image.onload = () => {
       if ("decode" in image) {
-        void image.decode().catch(() => undefined).finally(resolve)
-      } else resolve()
+        void image.decode().catch(() => undefined).finally(() => {
+          window.clearTimeout(timer)
+          done()
+        })
+      } else {
+        window.clearTimeout(timer)
+        done()
+      }
     }
-    image.onerror = () => resolve()
+    image.onerror = () => {
+      window.clearTimeout(timer)
+      done()
+    }
     image.src = url
   })
 }

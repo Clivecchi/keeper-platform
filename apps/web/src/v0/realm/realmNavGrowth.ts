@@ -82,8 +82,10 @@ export function emptyRealmNavGrouped(): RealmNavGrouped {
 export function draftToRealmNavEntry(
   draft: KipDraftSummary,
   dialogId?: string | null,
+  /** When provided, generic/repeated titles become kind · status (same as Universal Nav). */
+  navLabel?: string,
 ): RealmNavEntry {
-  const title = draft.title?.trim() || "Untitled draft"
+  const title = navLabel?.trim() || draft.title?.trim() || "Untitled draft"
   const bodyText =
     draft.summary?.trim() || "In progress — open in Chronicle to continue shaping."
   return {
@@ -370,10 +372,11 @@ export function groupRealmNavEntries(
   const byStage = stageBuckets(entries)
 
   const groups = new Map<string, RealmNavEntry[]>()
-  // Seed every real, active Dialog (dialogTitleById only ever holds non-archived
-  // dialogs) so it appears in Nav even with zero content -- a Dialog is a real
-  // "start here" entry point, not something that only exists once it has drafts.
-  for (const dialogId of dialogTitleById.keys()) {
+  // Seed Dialogs that have a real title so empty named Dialogs stay reachable.
+  // Blank-titled Dialogs are omitted unless content entries link them (below) —
+  // seeding every blank row as "Untitled dialog" floods Nav with noise.
+  for (const [dialogId, title] of dialogTitleById.entries()) {
+    if (!title.trim()) continue
     if (!groups.has(dialogId)) groups.set(dialogId, [])
   }
   for (const entry of entries) {

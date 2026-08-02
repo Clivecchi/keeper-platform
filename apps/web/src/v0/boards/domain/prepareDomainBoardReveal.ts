@@ -80,11 +80,16 @@ export async function prepareDomainBoardReveal(
         })
       : Promise.resolve(null),
     waitForDomainCoverDecode(normalized),
+    // Resolve lead metadata with Nav; portrait decode is best-effort and must not
+    // stall curtain/Nav if an avatar URL hangs.
     leadSlug
       ? resolvePlaybillAgent(leadSlug)
-        .then((agent) => preloadPlaybillPortrait(agent?.avatarUrl))
-        .catch(() => undefined)
-      : Promise.resolve(),
+        .then((agent) => {
+          void preloadPlaybillPortrait(agent?.avatarUrl)
+          return agent
+        })
+        .catch(() => null)
+      : Promise.resolve(null),
     // Await Nav lists under the curtain so the board does not populate after reveal.
     domain?.id ? prepareBoardNavData(domain.id, navSections) : Promise.resolve(),
   ])

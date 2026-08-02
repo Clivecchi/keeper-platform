@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-02 — Nav Untitled noise + reveal not blocked by portraits
+- Domain Nav Dialog labels prefer `forward_title` / `step_title`; empty untitled shells (no title, no sessions) are hidden.
+- `prepareDomainBoardReveal` no longer awaits portrait decode before Nav warm / curtain reveal.
+- Cast portrait warm in `UniversalConversation` stays background-only.
+
 ### 2026-07-30 — Agent Echo persistence + resume/sanitize
 - After Echo / Kip-collaboration runs, primary agent message gets `metadata.echo` (`content`, `attributedTo`, `status`: ok|empty|failed) via `updateMessageMetadata` — same persistence pattern as Voice Card `castVoices`, separate field.
 - `useAgentDialog.normalizeMessage` rehydrates `echo` on fetch/reload (Agent Board + lead-led Domain/Realm).

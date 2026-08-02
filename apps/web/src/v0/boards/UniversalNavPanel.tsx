@@ -164,6 +164,26 @@ type DialogItem = {
   session_count: number
   context: { board?: string; frame?: string; subject?: string }
   available_to: string[]
+  forward_title?: string | null
+  forwardTitle?: string | null
+  step_title?: string | null
+}
+
+/** Prefer authored titles; blank shells are not labeled "Untitled" until they have activity. */
+function resolveDialogNavTitle(dialog: DialogItem): string {
+  return (
+    dialog.title?.trim()
+    || dialog.forward_title?.trim()
+    || dialog.forwardTitle?.trim()
+    || dialog.step_title?.trim()
+    || ""
+  )
+}
+
+function isNavVisibleDialog(dialog: DialogItem): boolean {
+  if (resolveDialogNavTitle(dialog)) return true
+  // Keep untitled Dialogs that already have sessions; drop empty untitled shells.
+  return (dialog.session_count ?? 0) > 0
 }
 
 type JourneyItem = {
@@ -1026,7 +1046,7 @@ export function UniversalNavPanel({
 
   const toDialogNavItem = React.useCallback(
     (d: DialogItem): SidebarCardItem => {
-      const title = d.title?.trim() || "Untitled dialog"
+      const title = resolveDialogNavTitle(d) || "Untitled dialog"
       return {
         id: d.id,
         label: d.updated_at ? `${title} · ${formatDate(d.updated_at)}` : title,
@@ -1047,8 +1067,10 @@ export function UniversalNavPanel({
     ],
   )
 
-  // Dialogs: embed date suffix for recency signal
-  const allDialogItems: SidebarCardItem[] = (dialogs ?? []).map(toDialogNavItem)
+  // Dialogs: embed date suffix for recency signal; hide empty untitled shells.
+  const allDialogItems: SidebarCardItem[] = (dialogs ?? [])
+    .filter(isNavVisibleDialog)
+    .map(toDialogNavItem)
 
   const journeyIdSet = React.useMemo(
     () => new Set((journeys ?? []).map((j) => j.id)),
@@ -1060,9 +1082,9 @@ export function UniversalNavPanel({
   )
   const chatterDialogs = React.useMemo(
     () =>
-      (dialogs ?? []).filter((dialog) =>
-        isUnassignedDialog(dialog, journeyIdSet, keeperIdSet),
-      ),
+      (dialogs ?? [])
+        .filter(isNavVisibleDialog)
+        .filter((dialog) => isUnassignedDialog(dialog, journeyIdSet, keeperIdSet)),
     [dialogs, journeyIdSet, keeperIdSet],
   )
   const allChatterItems: SidebarCardItem[] = chatterDialogs.map(toDialogNavItem)

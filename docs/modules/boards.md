@@ -30,6 +30,72 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-02 — Nav Untitled noise + reveal not blocked by portraits
+- Domain Nav Dialog labels prefer `forward_title` / `step_title`; empty untitled shells (no title, no sessions) are hidden.
+- `prepareDomainBoardReveal` no longer awaits portrait decode before Nav warm / curtain reveal.
+- Cast portrait warm in `UniversalConversation` stays background-only.
+
+### 2026-07-30 — Agent Echo persistence + resume/sanitize
+- After Echo / Kip-collaboration runs, primary agent message gets `metadata.echo` (`content`, `attributedTo`, `status`: ok|empty|failed) via `updateMessageMetadata` — same persistence pattern as Voice Card `castVoices`, separate field.
+- `useAgentDialog.normalizeMessage` rehydrates `echo` on fetch/reload (Agent Board + lead-led Domain/Realm).
+- Echo side-sessions never resume as the primary board session; Echo ensure uses exact session name.
+- `sanitizeUserMessageContent` strips `[Agent Echo — supporting role]` and `[Platform collaboration — …]` scaffolds.
+
+### 2026-07-28 — Board land resumes last session (per boardId)
+- `UniversalConversation` passes `dialogBoard: def.boardId` into `useAgentDialog` — Realm no longer shares Domain's Dialog key via `kipMode: "domain"`.
+- IDE / Designer / echo resume-create paths use `def.boardId` the same way.
+- Contract: mount resumes the board Dialog's last session (pick up where you left off); first send creates only when none exists. Nav need not open a Dialog.
+
+### 2026-07-28 — Chronicle contract (no Sessions) + Playbill chip
+- Overlay still mounts `UniversalViewPanel` (Trail Bar + Panel Body). Session lists removed from Chronicle enrichment (agent/dialog) and Draft Sessions blocks; Keeper ambient relabeled Journeys.
+- Strip idle tip = domain name + “Journeys · Moments”; expand clears agent-only selection → domain idle. Gloss from Document points closes overlay (long-press + button → `requestDiscussDraftPoint`).
+- Playbill Path A: name-only chip; full picker remains top-bar overlay.
+
+### 2026-07-28 — Chronicle strip + Nav drawer (retire bottom tabs)
+- Adaptive Domain/Realm (≤767px): Dialog always primary; **Nav** = hamburger → `BoardMobileNavDrawer`; **Chronicle** = ambient strip above Composer → `BoardMobileChronicleOverlay`.
+- `BoardMobilePanelBar` no longer mounted. Playbill owns LIVE/identity; Dialog domain/breadcrumb banners suppressed on this path (`suppressMobileDomainBanner`).
+- Top board-link row hidden when Nav drawer is active (one identity bar).
+
+### 2026-07-27 — Mobile Dialog density (Playbill + banner + composer)
+- Top-bar Playbill + Dialog banner collapse on ≤767px (see `v0/components`); adaptive Domain/Realm already wires `mobile-staged` composer.
+- `UniversalConversation` — response stage hides composer toolbar agent chips so the compact input floor stays thin.
+- `board-mobile.css` — compact banner padding + larger tap targets for expanded access actions; thinner response-stage composer chrome.
+
+### 2026-07-26 — Roll Call consults full cast by default
+- Empty multi-select no longer means “consult nobody.” Domain/Realm consults all non-Lead, non-silent cast members so voice cards appear without clicking every chip. Explicit chip selection still narrows the set.
+
+### 2026-07-25 — Domain mobile composer reclaim (compact-after-send)
+- `UniversalConversation` — on adaptive mobile Domain/Realm (`usesAdaptiveMobileBoardLayout`, ≤767px), wires existing `dialogLayout="mobile-staged"` + `useMobileKipDialogStage` so the composer shrinks to `mobile-compact` after send/idle and re-expands on focus. Reuses KeeperDialogFrame → AgentComposer size mapping; no second sizing path. Desktop and non-adaptive boards unchanged. Does not mount UniversalMobileShell.
+- `board-mobile.css` — ≤767px overrides so staged compact (44/56) and expanded (38vh/50vh) beat `.keeper-board-scope` composer 108/220 floors.
+- Focus expand: deferred blur handler so class/rows updates don’t collapse mid-tap; clear focus only when a send finishes.
+
+### 2026-07-25 — post-deploy cast honesty + consult reporting
+- `directorDialog` — Document-item quoting rules on instrument + cast synthesis prompts; participation helper for support_only/silent.
+- `UniversalConversation` — passes `dialogId` + `instrumentParticipation` into `useAgentDialog` / director config.
+- Client director logs: `addressedInstrument` (single-pin only) vs `consultedSlugs` + accurate consult counts.
+
+### 2026-07-24 — cast-select-must-not-change-atmosphere
+- Board page cover is locked to the current domain slug (shell state only when slug matches; else per-slug cache). Cast/instrument toggles never supply cover.
+- `useBoardThemeRegistration` depends only on Moment/Path/Journey/Keeper ids — engaging Ceox (or any instrument) no longer re-registers global `domain-resolved` theme.
+- Shell cache exposes a version subscription so late cover prefetch paints without unrelated selection churn.
+
+### 2026-07-24 — standing honesty + Dialog participation
+- Cast Header chips show Support / Silent from `config.dialog_participation` (default voice; Agent Config override).
+- Client `[AgentTurn]` logs mechanism A vs plain Lead / director instrument before `runAgent`.
+- Docs: Mechanisms A (multi-select) and B (`delegate.consult`) kept distinct; standing honesty lives in live `callAIModel`.
+
+### 2026-07-23 — becoming-together-complete
+- Domain/Realm multi-select now consults engaged cast members for real minimal replies (or honest empty) before Lead synthesis — not stamp-only.
+- Cast Header Invite opens `InviteCollaboratorDialog` → `POST /connections/invite` with copyable accept link; `/invite/accept` redeems tokens.
+- Anti-fabrication on consult paths: director fallback + cast synthesis never invent another agent's words; `delegate.consult` action + follow-up for Lead-initiated consults.
+
+### 2026-07-23 — stop-orphan-echo-sessions
+- Echo/collaboration effect in `UniversalConversation` is resume-only (no create on effect). Create deferred to first real echo via `resumeOrCreateBoardSession` with correct `dialogBoard`/`dialogFrame` keys — stops dialog_id=null orphan multiplication.
+
+### 2026-07-22 — stop-eager-dialog-creation
+- `UniversalConversation` IDE/Designer mount effects use `resumeBoardSession` only; first send creates via `useAgentDialog.sendMessage`.
+- Prefetch / curtain paths no longer create empty Dialogs on visit.
+
 ### 2026-07-22 — Cross-domain cast membership
 - `UniversalConversation` loads Dialog cast members/candidates from kip-dialogs APIs; merges enabled leads into `domainDirectorBoardInstruments` / labels.
 - Cast Header **Add** (via `DirectorCastHeader`) enables a lead by `homeDomainId` only — Admin + lead resolution stay server-side.
