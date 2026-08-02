@@ -15,6 +15,9 @@ Each timestamped folder contains SQL migrations that align the database with `sc
 
 ## 📆 Update Log
 
+### 2026-08-02 — Restore Dialog.document_paths
+- Added `20260803010000_restore_dialog_document_paths`: renames drifted `document_sections` back to canonical `document_paths` (or adds the column if missing). Fixes production Dialog list/resolve/createSession 500s after an orphaned rename migration left the DB out of sync with Prisma.
+
 ### 2026-07-20 — LibraryItem category + draft source_type
 - Added `20260720120000_library_item_category_draft_source`: `LibraryItem.category String[]` and enum value `LibraryItemSourceType.draft` for connective-index pointers from internal drafts (ke3p Becoming Together consolidation).
 
