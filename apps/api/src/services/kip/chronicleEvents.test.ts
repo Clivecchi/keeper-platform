@@ -6,10 +6,37 @@ vi.mock('@keeper/database', () => ({
 }));
 
 import {
+  buildSessionTurnMeta,
   deriveSessionCloseMeta,
   groupChronicleEvents,
   mapChronicleEventRow,
 } from './chronicleEvents.js';
+
+describe('buildSessionTurnMeta', () => {
+  it('prefers close-out meta when present', () => {
+    expect(
+      buildSessionTurnMeta({
+        actor: 'Kip',
+        userMessage: 'hello',
+        replyText: 'unused reply text for this path.',
+        closeMeta: { title: 'Named the Dialog turn', summary: 'Kip named the Dialog turn.' },
+      }),
+    ).toEqual({
+      title: 'Named the Dialog turn',
+      summary: 'Kip named the Dialog turn.',
+    });
+  });
+
+  it('falls back to the reply first sentence for History rows', () => {
+    const meta = buildSessionTurnMeta({
+      actor: 'Kip',
+      userMessage: 'What next?',
+      replyText: 'Outlined the History write path for solo Dialog turns. More detail follows.',
+    });
+    expect(meta?.title).toContain('Outlined the History write path');
+    expect(meta?.summary).toBeTruthy();
+  });
+});
 
 describe('deriveSessionCloseMeta', () => {
   it('replaces an auto-generated Session with name', () => {

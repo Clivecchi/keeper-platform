@@ -73,6 +73,7 @@ import {
   deriveSessionCloseMeta,
   recordConsultFanoutEvents,
   recordMomentEvent,
+  recordSessionTurnEvent,
   recordStructuralEvent,
 } from '../../services/kip/chronicleEvents.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
@@ -6054,6 +6055,7 @@ export class KipAgentService {
         }
 
         try {
+          const mutationResultsBefore = actionResults.filter((result) => result.status === 'success');
           await recordChronicleActionEvents({
             domainId: options?.domainId,
             dialogId: dialogIdForChronicle,
@@ -6062,6 +6064,13 @@ export class KipAgentService {
             sessionId: currentSessionId,
             results: actionResults,
           });
+          const wroteMutationEvents = mutationResultsBefore.some((result) =>
+            result.type === 'draft.update'
+            || result.type === 'draft.update.propose'
+            || result.type === 'draft.point.rewrite'
+            || result.type === 'draft.point.accept'
+            || result.type === 'draft.point.promote',
+          );
 
           const consultedAgents: Array<{
             actor: string;
@@ -6096,7 +6105,12 @@ export class KipAgentService {
           const distinctConsultedAgents = Array.from(
             new Map(consultedAgents.map((entry) => [entry.actorSlug, entry])).values(),
           );
-          if (dialogIdForChronicle && distinctConsultedAgents.length >= 2) {
+          let wroteConsultEvents = false;
+          if (
+            dialogIdForChronicle
+            && options?.domainId
+            && distinctConsultedAgents.length >= 2
+          ) {
             await Promise.all(
               distinctConsultedAgents
                 .filter((entry) => entry.sessionId && entry.agentId)
@@ -6109,24 +6123,27 @@ export class KipAgentService {
                   }),
                 ),
             );
-            await recordConsultFanoutEvents({
-              domainId: options?.domainId ?? '',
-              dialogId: dialogIdForChronicle,
-              leadActor: agent.name,
-              leadActorSlug: agent.slug,
-              turnTitle: input,
-              turnSummary: finalResponseText,
-              sessionId: currentSessionId,
-              consultedAgents: distinctConsultedAgents,
-            });
+            wroteConsultEvents = Boolean(
+              await recordConsultFanoutEvents({
+                domainId: options.domainId,
+                dialogId: dialogIdForChronicle,
+                leadActor: agent.name,
+                leadActorSlug: agent.slug,
+                turnTitle: input,
+                turnSummary: finalResponseText,
+                sessionId: currentSessionId,
+                consultedAgents: distinctConsultedAgents,
+              }),
+            );
           }
 
+          let closeMeta: { title: string; summary: string } | null = null;
           if (currentSessionId && finalResponseText.trim().length >= 16) {
             const session = await prisma.kip_sessions.findUnique({
               where: { id: currentSessionId },
               select: { session_name: true },
             });
-            const closeMeta = deriveSessionCloseMeta({
+            closeMeta = deriveSessionCloseMeta({
               agentName: agent.name,
               replyText: finalResponseText,
               existingName: session?.session_name,
@@ -6139,6 +6156,27 @@ export class KipAgentService {
                 summary: closeMeta.summary,
               });
             }
+          }
+
+          // Solo Dialog turns previously wrote zero ChronicleEvents — History looked dead.
+          // Skip when this turn already wrote mutation/consult rows (those are the History).
+          if (
+            dialogIdForChronicle
+            && options?.domainId
+            && !wroteConsultEvents
+            && !wroteMutationEvents
+            && finalResponseText.trim().length >= 16
+          ) {
+            await recordSessionTurnEvent({
+              domainId: options.domainId,
+              dialogId: dialogIdForChronicle,
+              actor: agent.name,
+              actorSlug: agent.slug,
+              userMessage: input,
+              replyText: finalResponseText,
+              sessionId: currentSessionId,
+              closeMeta,
+            });
           }
         } catch (error) {
           logger.warn(

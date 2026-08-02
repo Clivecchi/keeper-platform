@@ -98,20 +98,26 @@ function EventCard({
 export function ChronicleHistoryPanel({ domainId, dialogId, onOpenDocument }: ChronicleHistoryPanelProps) {
   const [events, setEvents] = React.useState<ChronicleEvent[]>([])
   const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!domainId || !dialogId) {
       setEvents([])
+      setError(null)
       return
     }
     let cancelled = false
     setLoading(true)
+    setError(null)
     void KipApi.getDialogChronicleEvents(domainId, dialogId)
       .then((response) => {
         if (!cancelled) setEvents(response.events)
       })
-      .catch(() => {
-        if (!cancelled) setEvents([])
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setEvents([])
+          setError(err instanceof Error ? err.message : "Could not load Chronicle history")
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -120,13 +126,26 @@ export function ChronicleHistoryPanel({ domainId, dialogId, onOpenDocument }: Ch
   }, [domainId, dialogId])
 
   const groups = React.useMemo(() => groupChronicleEvents(events), [events])
-  if (!dialogId) return null
+  if (!dialogId) {
+    return (
+      <div className="px-4 py-6">
+        <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+          Select a Dialog to see its History.
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-6 pt-3">
       {loading ? <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading history…</p> : null}
-      {!loading && groups.length === 0 ? (
+      {error ? (
+        <p className="text-[13px]" style={{ color: "hsl(var(--destructive))" }}>
+          {error}
+        </p>
+      ) : null}
+      {!loading && !error && groups.length === 0 ? (
         <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          No Chronicle history yet for this Dialog.
+          No Chronicle history yet for this Dialog. New Dialog turns will appear here.
         </p>
       ) : null}
       {groups.map((event) => (

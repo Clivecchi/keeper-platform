@@ -242,3 +242,70 @@ export async function closeSessionWithAuthoredMeta(input: {
   });
   return updated.count > 0;
 }
+
+/** Title/summary for a Dialog session History row (pure — used by writers + tests). */
+export function buildSessionTurnMeta(input: {
+  actor: string;
+  userMessage: string;
+  replyText: string;
+  closeMeta?: { title: string; summary: string } | null;
+}): { title: string; summary: string } | null {
+  if (input.closeMeta?.title.trim() && input.closeMeta.summary.trim()) {
+    return {
+      title: trimTo(input.closeMeta.title, 72),
+      summary: trimTo(input.closeMeta.summary, 140),
+    };
+  }
+  const fromReply = deriveSessionCloseMeta({
+    agentName: input.actor,
+    replyText: input.replyText,
+    // null = treat as unnamed session so we reuse the first-sentence authoring helper.
+    existingName: null,
+  });
+  if (fromReply) return fromReply;
+  const title = trimTo(input.userMessage, 72) || `${input.actor} turn`;
+  const summary = trimTo(input.replyText, 140) || title;
+  if (!title.trim() || !summary.trim()) return null;
+  return { title, summary };
+}
+
+/**
+ * Persist a Dialog-scoped session History row for a completed turn.
+ * Without this, solo Dialog turns leave Chronicle History permanently empty
+ * (mutations + multi-cast consults are the only other writers).
+ */
+export async function recordSessionTurnEvent(input: {
+  domainId: string;
+  dialogId: string;
+  actor: string;
+  actorSlug?: string;
+  userMessage: string;
+  replyText: string;
+  sessionId?: string | null;
+  /** Prefer close-out meta when the session name was just authored. */
+  closeMeta?: { title: string; summary: string } | null;
+}): Promise<ChronicleEvent | null> {
+  const meta = buildSessionTurnMeta({
+    actor: input.actor,
+    userMessage: input.userMessage,
+    replyText: input.replyText,
+    closeMeta: input.closeMeta,
+  });
+  if (!meta) return null;
+
+  return createChronicleEvent({
+    domainId: input.domainId,
+    dialogId: input.dialogId,
+    actor: input.actor,
+    actorSlug: input.actorSlug,
+    eventType: 'session',
+    title: meta.title,
+    summary: meta.summary,
+    anchor: {
+      dialogId: input.dialogId,
+      entityId: input.sessionId ?? undefined,
+      entityKind: 'session',
+    },
+    sessionId: input.sessionId,
+  });
+}
