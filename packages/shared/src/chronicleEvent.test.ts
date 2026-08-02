@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   isChronicleEventType,
+  resolveChroniclePanelBody,
   type ChronicleEvent,
   type ChronicleDocumentChip,
 } from './chronicleEvent.js'
@@ -41,6 +42,30 @@ describe('chronicleEvent', () => {
       ],
     }
     expect(parent.children?.[0]?.parentEventId).toBe(parent.id)
+  })
+
+  it('keeps Document and History distinct when a Dialog is active even if a Realm feed exists', () => {
+    expect(
+      resolveChroniclePanelBody({
+        dialogActive: true,
+        panelMode: 'document',
+        hasUserFeedContent: true,
+      }),
+    ).toBe('document')
+    expect(
+      resolveChroniclePanelBody({
+        dialogActive: true,
+        panelMode: 'history',
+        hasUserFeedContent: true,
+      }),
+    ).toBe('history')
+    expect(
+      resolveChroniclePanelBody({
+        dialogActive: false,
+        panelMode: 'document',
+        hasUserFeedContent: true,
+      }),
+    ).toBe('userFeed')
   })
 
   it('shapes an in-stream document chip with anchor breadcrumb', () => {

@@ -6,7 +6,7 @@ import type {
   DocumentPathDeclaration,
   DocumentStep,
 } from "@keeper/shared"
-import { parseDocumentPathDeclarations } from "@keeper/shared"
+import { parseDocumentPathDeclarations, resolveChroniclePanelBody } from "@keeper/shared"
 import { DocumentShell } from "../presence/chronicleDocument/DocumentShell"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
@@ -233,36 +233,45 @@ export function DomainRealmStory({
     </div>
   )
 
-  const body = userFeedContent ? (
-    <div className="domain-realm-story flex min-h-0 flex-1 flex-col overflow-y-auto">
-      {userFeedContent}
-    </div>
-  ) : panelMode === "history" && scope.status === "dialog" ? (
-    <ChronicleHistoryPanel
-      domainId={domainId}
-      dialogId={scope.dialogId}
-      onOpenDocument={(event) => {
-        boardCtx?.actions.openChronicleDocument({
-          dialogId: event.dialogId,
-          pointId: event.anchor?.pointId ?? null,
-          breadcrumb: event.anchor?.breadcrumb ?? null,
-        })
-      }}
-    />
-  ) : (
-    <DocumentShell
-      className="domain-realm-story"
-      forward={scope.status === "dialog" ? documentMeta.forward : undefined}
-      step={scope.status === "dialog" ? documentMeta.step : undefined}
-      paths={paths}
-      points={points}
-      pointIds={storyEntries.map((entry) => entry.id)}
-      onGlossPoint={handleGlossPoint}
-      scrollToPointId={pointTarget?.pointId}
-      breadcrumb={pointTarget?.breadcrumb}
-      emptyState={emptyState}
-    />
-  )
+  // When a Dialog is active, Document/History own the body — never the Realm
+  // arrival feed. Passing userFeedContent on /home used to short-circuit both tabs
+  // into the same flat list (the bug that made Document === History).
+  const bodyKind = resolveChroniclePanelBody({
+    dialogActive: scope.status === "dialog",
+    panelMode,
+    hasUserFeedContent: Boolean(userFeedContent),
+  })
+  const body =
+    bodyKind === "history" && scope.status === "dialog" ? (
+      <ChronicleHistoryPanel
+        domainId={domainId}
+        dialogId={scope.dialogId}
+        onOpenDocument={(event) => {
+          boardCtx?.actions.openChronicleDocument({
+            dialogId: event.dialogId,
+            pointId: event.anchor?.pointId ?? null,
+            breadcrumb: event.anchor?.breadcrumb ?? null,
+          })
+        }}
+      />
+    ) : bodyKind === "userFeed" ? (
+      <div className="domain-realm-story flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {userFeedContent}
+      </div>
+    ) : (
+      <DocumentShell
+        className="domain-realm-story"
+        forward={scope.status === "dialog" ? documentMeta.forward : undefined}
+        step={scope.status === "dialog" ? documentMeta.step : undefined}
+        paths={paths}
+        points={points}
+        pointIds={storyEntries.map((entry) => entry.id)}
+        onGlossPoint={handleGlossPoint}
+        scrollToPointId={pointTarget?.pointId}
+        breadcrumb={pointTarget?.breadcrumb}
+        emptyState={emptyState}
+      />
+    )
 
   return (
     <ChronicleTreatmentShell treatment={treatment}>

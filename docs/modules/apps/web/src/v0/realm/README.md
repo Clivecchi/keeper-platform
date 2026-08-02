@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-01 — Document/History tabs no longer shadowed by Realm feed
+- On `/home` with a Dialog selected, `userFeedContent` previously short-circuited both Chronicle tabs into the same flat Realm feed. Dialog scope now mounts `DocumentShell` / `ChronicleHistoryPanel` via `resolveChroniclePanelBody`; arrival feed stays idle-only.
+
 ### 2026-07-28 — Chronicle Document one-round-trip
 - `DomainRealmStory` uses `GET …/kip/dialogs/:id/document` via `KipApi.getDialogDocument` + `dialogDocumentCache` (no domain-wide drafts list, no sequential manuscript GETs).
 

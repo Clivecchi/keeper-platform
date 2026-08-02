@@ -82,15 +82,14 @@ export function RealmHomeChronicle({
       />
     ) : null
 
-  // Dialog (or Document-scoped draft/moment/library) selected → real Document renderer
-  // on both `/home` and `/d/:slug?board=realm`.
+  // Dialog (or Document-scoped draft/moment/library) selected → Document/History.
+  // Do not pass the Realm arrival feed here — it previously shadowed both tabs.
   if (hasDocumentSelection && treatment && domainSlug) {
     return (
       <DomainRealmStory
         domainId={domainId}
         domainSlug={domainSlug}
         treatment={treatment}
-        userFeedContent={userFeedContent}
       />
     )
   }

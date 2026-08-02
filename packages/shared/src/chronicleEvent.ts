@@ -50,6 +50,20 @@ export interface ChronicleEventListResponse {
 
 export type ChroniclePanelMode = 'document' | 'history'
 
+/** Which Chronicle body to mount — Dialog tabs must beat the Realm arrival feed. */
+export type ChroniclePanelBodyKind = 'document' | 'history' | 'userFeed'
+
+export function resolveChroniclePanelBody(input: {
+  dialogActive: boolean
+  panelMode: ChroniclePanelMode
+  hasUserFeedContent: boolean
+}): ChroniclePanelBodyKind {
+  if (input.dialogActive && input.panelMode === 'history') return 'history'
+  if (input.dialogActive) return 'document'
+  if (input.hasUserFeedContent) return 'userFeed'
+  return 'document'
+}
+
 /** In-stream chip / keeper-card deep-link payload. */
 export interface ChronicleDocumentChip {
   type: 'chronicle_update'
