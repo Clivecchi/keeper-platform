@@ -326,9 +326,11 @@ console.log('[boot] ✅ mounted /api/webhooks router (raw body)');
 
 // Basic middleware with defensive JSON parsing for MCP compatibility
 // Increased limit to 50mb to support base64-encoded files (25MB file → ~33MB base64)
+// Order matters: urlencoded MUST run before text(*/*). Otherwise HTML form POSTs
+// (e.g. /oauth/authorize consent) become a raw string and consent_ticket is lost → "Expired consent".
 app.use(express.json({ limit: '50mb', type: ['application/json', 'text/json', '*/json'] as any }));
-app.use(express.text({ type: '*/*', limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.text({ type: '*/*', limit: '50mb' }));
 app.use(cookieParser()); // Parse cookies for session management
 
 // Defensive JSON parser: accept JSON even if Content-Type is odd/missing

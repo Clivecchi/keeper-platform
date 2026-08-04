@@ -211,18 +211,39 @@ router.get('/authorize', async (req: Request, res: Response) => {
   }
 });
 
+/** Normalize form / JSON bodies (defensive if text middleware ever wins the race). */
+function asOauthFormBody(raw: unknown): Record<string, unknown> {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  if (typeof raw === 'string' && raw.includes('=')) {
+    const params = new URLSearchParams(raw);
+    const out: Record<string, unknown> = {};
+    for (const key of new Set(params.keys())) {
+      const all = params.getAll(key);
+      out[key] = all.length <= 1 ? (all[0] ?? '') : all;
+    }
+    return out;
+  }
+  return {};
+}
+
 /**
  * POST /oauth/login — same-origin KAM sign-in for OAuth popups
  */
 router.post('/login', csrfGuard, async (req: Request, res: Response) => {
   try {
-    const body = req.body as Record<string, unknown>;
+    const body = asOauthFormBody(req.body);
     const ticket = typeof body.consent_ticket === 'string' ? body.consent_ticket : '';
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     const password = typeof body.password === 'string' ? body.password : '';
 
     const payload = verifyConsentTicket(ticket);
     if (!payload) {
+      console.warn('[mcp-oauth:login] consent ticket missing or invalid', {
+        ticketPresent: Boolean(ticket),
+        bodyType: typeof req.body,
+      });
       return sendHtml(
         res,
         400,
@@ -290,7 +311,7 @@ router.post('/login', csrfGuard, async (req: Request, res: Response) => {
 router.post('/authorize', csrfGuard, async (req: Request, res: Response) => {
   try {
     const user = currentUser(req);
-    const body = req.body as Record<string, unknown>;
+    const body = asOauthFormBody(req.body);
     const ticket = typeof body.consent_ticket === 'string' ? body.consent_ticket : '';
     const decision = typeof body.decision === 'string' ? body.decision : 'deny';
     const domainId = typeof body.domain_id === 'string' ? body.domain_id.trim() : '';
@@ -305,6 +326,10 @@ router.post('/authorize', csrfGuard, async (req: Request, res: Response) => {
 
     const payload = verifyConsentTicket(ticket);
     if (!payload) {
+      console.warn('[mcp-oauth:authorize:post] consent ticket missing or invalid', {
+        ticketPresent: Boolean(ticket),
+        bodyType: typeof req.body,
+      });
       return sendHtml(res, 400, renderOauthErrorPage('Expired consent', 'Please restart the connection from Claude.'));
     }
 
