@@ -1,6 +1,7 @@
 /**
  * Dialog-scoped Chronicle History persistence and mapping.
- * This is intentionally separate from the Realm-wide feed projection.
+ * History is a quick review: named session chapters + Document keeps — not a turn log.
+ * Intentionally separate from the Realm-wide feed projection.
  */
 
 import { prisma } from '@keeper/database';
@@ -11,6 +12,11 @@ import {
   type ChronicleEventAnchor,
   type ChronicleEventType,
 } from '@keeper/shared';
+
+/** History card title — topic-shaped, scannable. */
+export const CHRONICLE_TITLE_MAX = 56;
+/** History card body — one takeaway line. */
+export const CHRONICLE_SUMMARY_MAX = 120;
 
 type ChronicleEventRow = {
   id: string;
@@ -47,8 +53,32 @@ export type ConsultedChronicleAgent = {
   sessionId?: string | null;
 };
 
+/** Draft mutations that merit a History "Kept" / Document row. */
+export const CHRONICLE_KEPT_ACTION_TYPES = [
+  'draft.update',
+  'draft.point.accept',
+  'draft.point.promote',
+] as const;
+
+export type ChronicleKeptActionType = (typeof CHRONICLE_KEPT_ACTION_TYPES)[number];
+
+export function isChronicleKeptActionType(value: string): value is ChronicleKeptActionType {
+  return (CHRONICLE_KEPT_ACTION_TYPES as readonly string[]).includes(value);
+}
+
 function trimTo(value: string, maxLength: number): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, maxLength).trim();
+}
+
+/** First sentence / clause, capped for History scan. */
+export function firstTakeaway(text: string, maxLength: number = CHRONICLE_SUMMARY_MAX): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+  const sentence = normalized
+    .split(/(?<=[.!?])\s+/)[0]
+    ?.replace(/^["'`]+|["'`]+$/g, '')
+    .trim() ?? normalized;
+  return trimTo(sentence.replace(/[.!?]+$/, ''), maxLength);
 }
 
 function asAnchor(value: unknown): ChronicleEventAnchor | undefined {
@@ -97,8 +127,8 @@ export async function createChronicleEvent(input: CreateChronicleEventInput): Pr
     domainId: input.domainId,
     actor: trimTo(input.actor, 120),
     eventType: input.eventType,
-    title: trimTo(input.title, 300),
-    summary: trimTo(input.summary, 1000),
+    title: trimTo(input.title, CHRONICLE_TITLE_MAX),
+    summary: trimTo(input.summary, CHRONICLE_SUMMARY_MAX),
     ...(input.actorSlug ? { actorSlug: trimTo(input.actorSlug, 120) } : {}),
     ...(input.anchor ? { anchor: input.anchor as Prisma.InputJsonValue } : {}),
     ...(input.parentEventId ? { parentEventId: input.parentEventId } : {}),
@@ -140,6 +170,20 @@ export async function listChronicleEventsForDialog(input: {
   return rows.map(mapChronicleEventRow);
 }
 
+/** Short consult chapter title + one-line summary (not full reply dumps). */
+export function buildConsultChapterMeta(input: {
+  userMessage: string;
+  consultedActors: string[];
+}): { title: string; summary: string } {
+  const topic = firstTakeaway(input.userMessage, CHRONICLE_TITLE_MAX) || 'Cast consult';
+  const names = input.consultedActors.filter(Boolean);
+  const summary =
+    names.length > 0
+      ? trimTo(`Consulted ${names.join(', ')}.`, CHRONICLE_SUMMARY_MAX)
+      : 'Consulted the cast.';
+  return { title: topic, summary };
+}
+
 export async function recordConsultFanoutEvents(input: {
   domainId: string;
   dialogId: string;
@@ -171,8 +215,8 @@ export async function recordConsultFanoutEvents(input: {
         actor: agent.actor,
         actorSlug: agent.actorSlug,
         eventType: 'session',
-        title: `${agent.actor} consulted`,
-        summary: agent.summary,
+        title: trimTo(`${agent.actor} consulted`, CHRONICLE_TITLE_MAX),
+        summary: firstTakeaway(agent.summary) || `${agent.actor} contributed.`,
         parentEventId: parent.id,
         anchor: { dialogId: input.dialogId, entityId: agent.sessionId ?? undefined, entityKind: 'session' },
         sessionId: agent.sessionId,
@@ -180,6 +224,40 @@ export async function recordConsultFanoutEvents(input: {
     ),
   );
   return parent;
+}
+
+/** Title/summary for Document keep / promote History rows. */
+export function buildKeptChronicleMeta(input: {
+  actionType: string;
+  actor: string;
+  draftTitle: string;
+  message?: string | null;
+}): { title: string; summary: string; eventType: 'moment' | 'structural' } | null {
+  if (!isChronicleKeptActionType(input.actionType)) return null;
+
+  const draftLabel = trimTo(input.draftTitle, 40) || 'Document';
+  const takeaway = firstTakeaway(input.message ?? '');
+
+  if (input.actionType === 'draft.point.promote') {
+    return {
+      eventType: 'structural',
+      title: 'Promoted to Moment',
+      summary: takeaway || trimTo(`${input.actor} kept a Moment from ${draftLabel}.`, CHRONICLE_SUMMARY_MAX),
+    };
+  }
+  if (input.actionType === 'draft.point.accept') {
+    return {
+      eventType: 'moment',
+      title: 'Kept in Document',
+      summary: takeaway || trimTo(`${input.actor} accepted a Point in ${draftLabel}.`, CHRONICLE_SUMMARY_MAX),
+    };
+  }
+  // draft.update
+  return {
+    eventType: 'moment',
+    title: 'Document updated',
+    summary: takeaway || trimTo(`${input.actor} updated ${draftLabel}.`, CHRONICLE_SUMMARY_MAX),
+  };
 }
 
 export async function recordMomentEvent(input: Omit<CreateChronicleEventInput, 'eventType'>): Promise<ChronicleEvent> {
@@ -190,28 +268,38 @@ export async function recordStructuralEvent(input: Omit<CreateChronicleEventInpu
   return createChronicleEvent({ ...input, eventType: 'structural' });
 }
 
+/**
+ * Topic-shaped meta when an auto-named session gets its real name.
+ * Returns null when the session already has an authored name.
+ */
 export function deriveSessionCloseMeta(input: {
   agentName: string;
   replyText: string;
   existingName?: string | null;
+  userMessage?: string | null;
 }): { title: string; summary: string } | null {
   const existingName = input.existingName?.trim() ?? '';
   if (existingName && !/^session with\s+/i.test(existingName)) return null;
 
-  const sentence = input.replyText
-    .replace(/\s+/g, ' ')
-    .split(/(?<=[.!?])\s+/)[0]
-    ?.replace(/^["'`]+|["'`]+$/g, '')
-    .trim();
-  if (!sentence || sentence.length < 8) return null;
+  // Prefer the user's topic cue when it is substantive; else first reply takeaway.
+  const fromUser = firstTakeaway(input.userMessage ?? '', CHRONICLE_TITLE_MAX);
+  const fromReply = firstTakeaway(input.replyText, CHRONICLE_TITLE_MAX);
+  const title = (fromUser.length >= 8 ? fromUser : fromReply) || `${input.agentName} session`;
+  if (title.length < 8 && !fromReply) return null;
 
-  const title = trimTo(sentence.replace(/[.!?]+$/, ''), 72);
-  const pastTense = /\b(ed|was|were|did|made|built|saved|updated|created|kept|reviewed)\b/i.test(sentence)
-    ? sentence
-    : `${input.agentName} addressed ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`;
+  const summarySource = fromReply || fromUser;
+  const summary = summarySource
+    ? trimTo(
+        /\b(ed|was|were|did|made|built|saved|updated|created|kept|reviewed)\b/i.test(summarySource)
+          ? `${summarySource}.`
+          : `${input.agentName} worked ${summarySource.charAt(0).toLowerCase()}${summarySource.slice(1)}.`,
+        CHRONICLE_SUMMARY_MAX,
+      )
+    : trimTo(`${input.agentName} session.`, CHRONICLE_SUMMARY_MAX);
+
   return {
-    title: title || `${input.agentName} session`,
-    summary: trimTo(pastTense.replace(/[.!?]+$/, '.'), 140),
+    title: trimTo(title, CHRONICLE_TITLE_MAX),
+    summary,
   };
 }
 
@@ -235,44 +323,75 @@ export async function closeSessionWithAuthoredMeta(input: {
       ],
     },
     data: {
-      session_name: trimTo(input.title, 72),
-      summary: trimTo(input.summary, 140),
+      session_name: trimTo(input.title, CHRONICLE_TITLE_MAX),
+      summary: trimTo(input.summary, CHRONICLE_SUMMARY_MAX),
       updated_at: new Date(),
     },
   });
   return updated.count > 0;
 }
 
-/** Title/summary for a Dialog session History row (pure — used by writers + tests). */
-export function buildSessionTurnMeta(input: {
+/** Title/summary for a session chapter History row (when a session is first named). */
+export function buildSessionChapterMeta(input: {
   actor: string;
-  userMessage: string;
-  replyText: string;
+  userMessage?: string | null;
+  replyText?: string | null;
   closeMeta?: { title: string; summary: string } | null;
 }): { title: string; summary: string } | null {
   if (input.closeMeta?.title.trim() && input.closeMeta.summary.trim()) {
     return {
-      title: trimTo(input.closeMeta.title, 72),
-      summary: trimTo(input.closeMeta.summary, 140),
+      title: trimTo(input.closeMeta.title, CHRONICLE_TITLE_MAX),
+      summary: trimTo(input.closeMeta.summary, CHRONICLE_SUMMARY_MAX),
     };
   }
-  const fromReply = deriveSessionCloseMeta({
+  return deriveSessionCloseMeta({
     agentName: input.actor,
-    replyText: input.replyText,
-    // null = treat as unnamed session so we reuse the first-sentence authoring helper.
+    replyText: input.replyText ?? '',
+    userMessage: input.userMessage,
     existingName: null,
   });
-  if (fromReply) return fromReply;
-  const title = trimTo(input.userMessage, 72) || `${input.actor} turn`;
-  const summary = trimTo(input.replyText, 140) || title;
-  if (!title.trim() || !summary.trim()) return null;
-  return { title, summary };
 }
 
 /**
- * Persist a Dialog-scoped session History row for a completed turn.
- * Without this, solo Dialog turns leave Chronicle History permanently empty
- * (mutations + multi-cast consults are the only other writers).
+ * @deprecated Use buildSessionChapterMeta — turn-level History rows are retired.
+ */
+export const buildSessionTurnMeta = buildSessionChapterMeta;
+
+/**
+ * Persist one History row when a Dialog session is first named (chapter), not per turn.
+ */
+export async function recordSessionChapterEvent(input: {
+  domainId: string;
+  dialogId: string;
+  actor: string;
+  actorSlug?: string;
+  title: string;
+  summary: string;
+  sessionId?: string | null;
+}): Promise<ChronicleEvent | null> {
+  const title = trimTo(input.title, CHRONICLE_TITLE_MAX);
+  const summary = trimTo(input.summary, CHRONICLE_SUMMARY_MAX);
+  if (!title || !summary) return null;
+
+  return createChronicleEvent({
+    domainId: input.domainId,
+    dialogId: input.dialogId,
+    actor: input.actor,
+    actorSlug: input.actorSlug,
+    eventType: 'session',
+    title,
+    summary,
+    anchor: {
+      dialogId: input.dialogId,
+      entityId: input.sessionId ?? undefined,
+      entityKind: 'session',
+    },
+    sessionId: input.sessionId,
+  });
+}
+
+/**
+ * @deprecated Use recordSessionChapterEvent — per-turn session History is retired.
  */
 export async function recordSessionTurnEvent(input: {
   domainId: string;
@@ -282,30 +401,22 @@ export async function recordSessionTurnEvent(input: {
   userMessage: string;
   replyText: string;
   sessionId?: string | null;
-  /** Prefer close-out meta when the session name was just authored. */
   closeMeta?: { title: string; summary: string } | null;
 }): Promise<ChronicleEvent | null> {
-  const meta = buildSessionTurnMeta({
+  const meta = buildSessionChapterMeta({
     actor: input.actor,
     userMessage: input.userMessage,
     replyText: input.replyText,
     closeMeta: input.closeMeta,
   });
   if (!meta) return null;
-
-  return createChronicleEvent({
+  return recordSessionChapterEvent({
     domainId: input.domainId,
     dialogId: input.dialogId,
     actor: input.actor,
     actorSlug: input.actorSlug,
-    eventType: 'session',
     title: meta.title,
     summary: meta.summary,
-    anchor: {
-      dialogId: input.dialogId,
-      entityId: input.sessionId ?? undefined,
-      entityKind: 'session',
-    },
     sessionId: input.sessionId,
   });
 }

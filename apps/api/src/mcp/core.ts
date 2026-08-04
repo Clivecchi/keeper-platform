@@ -1,11 +1,11 @@
 // src/mcp/core.ts
 // Core MCP logic extracted for reuse by both REST and JSON-RPC dispatchers
 
-import { getSchema, callTool } from './tools.js';
+import { callTool, filterToolsByScopes, getSchema } from './tools.js';
 
 /**
  * Core MCP Handlers
- * 
+ *
  * These functions encapsulate the business logic for MCP operations.
  * Used by both REST endpoints and JSON-RPC dispatcher.
  */
@@ -17,27 +17,34 @@ export interface McpContext {
 
 /**
  * List Available Actions
- * 
+ *
  * Returns the list of available tools/actions with their schemas.
  * Used by GET /actions, POST /actions/list, and JSON-RPC list_actions.
+ *
+ * When `scopes` is provided (OAuth / domain key), only tools whose
+ * `requiredCapability` is allowed by those scopes are returned.
+ * Pass `['*']` for platform auth (full catalog).
+ * Omit `scopes` to return the full catalog (legacy / unscoped callers).
  */
-export function mcpListActions() {
-  const schema = getSchema();
+export function mcpListActions(scopes?: readonly string[]) {
+  const listed =
+    scopes === undefined ? getSchema().tools : filterToolsByScopes(scopes);
+
   return {
-    actions: schema.tools.map(t => ({
+    actions: listed.map((t) => ({
       name: t.name,
       description: t.description,
-      parameters: t.parameters
-    }))
+      parameters: t.parameters,
+    })),
   };
 }
 
 /**
  * Call an Action/Tool
- * 
+ *
  * Invokes a registered tool by name with the given arguments.
  * Used by POST /call and JSON-RPC call_action.
- * 
+ *
  * @param name - Tool name
  * @param args - Tool arguments
  * @param ctx - Execution context with domainId
@@ -47,7 +54,7 @@ export function mcpListActions() {
 export async function mcpCallAction(
   name: string,
   args: any,
-  ctx: McpContext
+  ctx: McpContext,
 ): Promise<any> {
   if (!name) {
     throw new Error('Missing tool name');
@@ -59,7 +66,7 @@ export async function mcpCallAction(
 
 /**
  * Get Server Capabilities
- * 
+ *
  * Returns information about the MCP server's capabilities.
  * Used by GET /capabilities and JSON-RPC capabilities method.
  */
@@ -73,9 +80,8 @@ export function mcpGetCapabilities() {
       tools: true,
       actions: true,
       toolExecution: true,
-      domainScoping: true
+      domainScoping: true,
     },
-    toolCount: schema.tools.length
+    toolCount: schema.tools.length,
   };
 }
-

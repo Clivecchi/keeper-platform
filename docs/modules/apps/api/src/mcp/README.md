@@ -1001,6 +1001,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 **2026-08-03**: **OAuth consent false expiry** — `express.text(*/*)` parsed HTML form POSTs before `urlencoded`, so `consent_ticket` never reached `/oauth/authorize` ("Expired consent"). Middleware order fixed in `index.ts`; OAuth routes also parse raw form strings defensively.
 
+**2026-08-03**: Claude OAuth “Couldn't send tool approval” on `integrations_list` — root cause: `tools/list` advertised the full infra catalog while OAuth grants only have `library.*` / `gloss.rw`, so capability checks failed mid-approval. Fix: filter `tools/list` by grant scopes; treat `*` as allow-all; return MCP `isError` tool results (not JSON-RPC faults) on `tools/call` failures.
+
 **2026-08-03**: Renamed GitHub MCP tool names from dotted (`github.repo.read`) to underscore (`github_repo_read`) for Claude.ai `^[a-zA-Z0-9_-]{1,64}$` validation; dotted aliases still resolve in `callTool`. Capability IDs unchanged.
 
 **2026-08-03**: OAuth unauthenticated authorize serves same-origin HTML login (`POST /oauth/login`) instead of 302 to www SPA — fixes blank "Loading…" in Claude connector popups.

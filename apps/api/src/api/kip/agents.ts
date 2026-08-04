@@ -69,11 +69,13 @@ import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { persistImageToLibrary } from '../../services/imageArchiveService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import {
+  buildConsultChapterMeta,
+  buildKeptChronicleMeta,
   closeSessionWithAuthoredMeta,
   deriveSessionCloseMeta,
   recordConsultFanoutEvents,
   recordMomentEvent,
-  recordSessionTurnEvent,
+  recordSessionChapterEvent,
   recordStructuralEvent,
 } from '../../services/kip/chronicleEvents.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
@@ -676,9 +678,21 @@ async function recordChronicleActionEvents(input: {
 }): Promise<void> {
   if (!input.domainId || !input.dialogId) return;
 
+  // History keeps only durable Document changes — not propose/rewrite working noise.
   const mutations = input.results.filter((result) => result.status === 'success');
   await Promise.all(
     mutations.flatMap((result) => {
+      const kept = buildKeptChronicleMeta({
+        actionType: result.type,
+        actor: input.actor,
+        draftTitle:
+          typeof (result.data?.draft as { title?: unknown } | undefined)?.title === 'string'
+            ? ((result.data?.draft as { title: string }).title)
+            : 'Document',
+        message: result.message,
+      });
+      if (!kept) return [];
+
       const draft = result.data?.draft as { id?: unknown; title?: unknown } | undefined;
       const point = result.data?.point as { id?: unknown } | undefined;
       const draftId = typeof draft?.id === 'string' ? draft.id : undefined;
@@ -689,42 +703,22 @@ async function recordChronicleActionEvents(input: {
         ...(draftId ? { manuscriptDraftId: draftId } : {}),
         ...(pointId ? { pointId, entityId: pointId, entityKind: 'point' as const } : {}),
         breadcrumb: [draftTitle],
+        ...(kept.eventType === 'structural' ? { entityKind: 'moment' as const } : {}),
       };
 
-      if (
-        result.type === 'draft.update'
-        || result.type === 'draft.update.propose'
-        || result.type === 'draft.point.rewrite'
-        || result.type === 'draft.point.accept'
-      ) {
-        return [
-          recordMomentEvent({
-            domainId: input.domainId,
-            dialogId: input.dialogId,
-            actor: input.actor,
-            actorSlug: input.actorSlug,
-            title: `${input.actor} updated ${draftTitle}`,
-            summary: result.message,
-            anchor,
-            sessionId: input.sessionId,
-          }),
-        ];
-      }
-      if (result.type === 'draft.point.promote') {
-        return [
-          recordStructuralEvent({
-            domainId: input.domainId,
-            dialogId: input.dialogId,
-            actor: input.actor,
-            actorSlug: input.actorSlug,
-            title: `${input.actor} kept a Moment`,
-            summary: result.message,
-            anchor: { ...anchor, entityKind: 'moment' as const },
-            sessionId: input.sessionId,
-          }),
-        ];
-      }
-      return [];
+      const writer = kept.eventType === 'structural' ? recordStructuralEvent : recordMomentEvent;
+      return [
+        writer({
+          domainId: input.domainId,
+          dialogId: input.dialogId,
+          actor: input.actor,
+          actorSlug: input.actorSlug,
+          title: kept.title,
+          summary: kept.summary,
+          anchor,
+          sessionId: input.sessionId,
+        }),
+      ];
     }),
   );
 }
@@ -6133,7 +6127,6 @@ export class KipAgentService {
         }
 
         try {
-          const mutationResultsBefore = actionResults.filter((result) => result.status === 'success');
           await recordChronicleActionEvents({
             domainId: options?.domainId,
             dialogId: dialogIdForChronicle,
@@ -6142,13 +6135,6 @@ export class KipAgentService {
             sessionId: currentSessionId,
             results: actionResults,
           });
-          const wroteMutationEvents = mutationResultsBefore.some((result) =>
-            result.type === 'draft.update'
-            || result.type === 'draft.update.propose'
-            || result.type === 'draft.point.rewrite'
-            || result.type === 'draft.point.accept'
-            || result.type === 'draft.point.promote',
-          );
 
           const consultedAgents: Array<{
             actor: string;
@@ -6183,7 +6169,6 @@ export class KipAgentService {
           const distinctConsultedAgents = Array.from(
             new Map(consultedAgents.map((entry) => [entry.actorSlug, entry])).values(),
           );
-          let wroteConsultEvents = false;
           if (
             dialogIdForChronicle
             && options?.domainId
@@ -6201,60 +6186,59 @@ export class KipAgentService {
                   }),
                 ),
             );
-            wroteConsultEvents = Boolean(
-              await recordConsultFanoutEvents({
-                domainId: options.domainId,
-                dialogId: dialogIdForChronicle,
-                leadActor: agent.name,
-                leadActorSlug: agent.slug,
-                turnTitle: input,
-                turnSummary: finalResponseText,
-                sessionId: currentSessionId,
-                consultedAgents: distinctConsultedAgents,
-              }),
-            );
+            const consultMeta = buildConsultChapterMeta({
+              userMessage: input,
+              consultedActors: distinctConsultedAgents.map((entry) => entry.actor),
+            });
+            await recordConsultFanoutEvents({
+              domainId: options.domainId,
+              dialogId: dialogIdForChronicle,
+              leadActor: agent.name,
+              leadActorSlug: agent.slug,
+              turnTitle: consultMeta.title,
+              turnSummary: consultMeta.summary,
+              sessionId: currentSessionId,
+              consultedAgents: distinctConsultedAgents,
+            });
           }
 
-          let closeMeta: { title: string; summary: string } | null = null;
-          if (currentSessionId && finalResponseText.trim().length >= 16) {
+          // Session chapter: one History row when an auto-named session gets its topic name.
+          // Ordinary turns do not write History — Dialog owns the transcript.
+          if (
+            currentSessionId
+            && dialogIdForChronicle
+            && options?.domainId
+            && finalResponseText.trim().length >= 16
+          ) {
             const session = await prisma.kip_sessions.findUnique({
               where: { id: currentSessionId },
               select: { session_name: true },
             });
-            closeMeta = deriveSessionCloseMeta({
+            const closeMeta = deriveSessionCloseMeta({
               agentName: agent.name,
               replyText: finalResponseText,
               existingName: session?.session_name,
+              userMessage: input,
             });
             if (closeMeta) {
-              await closeSessionWithAuthoredMeta({
+              const named = await closeSessionWithAuthoredMeta({
                 sessionId: currentSessionId,
                 agentId: agent.id,
                 title: closeMeta.title,
                 summary: closeMeta.summary,
               });
+              if (named) {
+                await recordSessionChapterEvent({
+                  domainId: options.domainId,
+                  dialogId: dialogIdForChronicle,
+                  actor: agent.name,
+                  actorSlug: agent.slug,
+                  title: closeMeta.title,
+                  summary: closeMeta.summary,
+                  sessionId: currentSessionId,
+                });
+              }
             }
-          }
-
-          // Solo Dialog turns previously wrote zero ChronicleEvents — History looked dead.
-          // Skip when this turn already wrote mutation/consult rows (those are the History).
-          if (
-            dialogIdForChronicle
-            && options?.domainId
-            && !wroteConsultEvents
-            && !wroteMutationEvents
-            && finalResponseText.trim().length >= 16
-          ) {
-            await recordSessionTurnEvent({
-              domainId: options.domainId,
-              dialogId: dialogIdForChronicle,
-              actor: agent.name,
-              actorSlug: agent.slug,
-              userMessage: input,
-              replyText: finalResponseText,
-              sessionId: currentSessionId,
-              closeMeta,
-            });
           }
         } catch (error) {
           logger.warn(

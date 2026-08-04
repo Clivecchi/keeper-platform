@@ -1,5 +1,6 @@
 /**
  * Chronicle Event — Dialog-scoped History feed contract.
+ * Quick review of named session chapters + Document keeps — not a turn transcript.
  * Distinct from RealmFeedEvent (person-scoped cross-domain arrival feed).
  */
 

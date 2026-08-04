@@ -8,6 +8,14 @@ import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js
 import { logMcp } from './log.js';
 import { rid } from './id.js';
 
+/** Prefer MCP tool-result errors over JSON-RPC faults for Claude.ai tool approval UX. */
+function toolCallErrorResult(message: string) {
+  return {
+    content: [{ type: 'text' as const, text: message }],
+    isError: true as const,
+  };
+}
+
 /**
  * JSON-RPC 2.0 Request
  * Standard JSON-RPC format expected by OpenAI Agent Builder
@@ -188,11 +196,14 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     const agentId = (req.headers['x-agent-id'] as string) ?? undefined;
     const boardId = (req.headers['x-board-id'] as string) ?? undefined;
     const resolvedCaps = await resolveAgentCapabilities({ agentSlug, agentId, boardId });
+    const authScopes = mcpAuth?.scopes ?? [];
+    // Platform key → ['*']; OAuth/domain → granted scopes only. Used for tools/list filtering.
+    const listScopes = authScopes.length > 0 ? authScopes : undefined;
     const ctx = {
       domainId,
       agentCapabilities: [
         ...(resolvedCaps?.capabilities ?? []),
-        ...(mcpAuth?.scopes ?? []),
+        ...authScopes,
       ],
     };
 
@@ -261,7 +272,7 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     switch (method) {
       case 'list_actions':
       case 'actions.list':
-        result = addCanary(mcpListActions());
+        result = addCanary(mcpListActions(listScopes));
         console.log(`[MCP JSONRPC] rid=${requestId} method=list_actions hasAuth=${hasAuth}`);
         break;
 
@@ -306,10 +317,12 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
       case 'tools/list':
       case 'list_tools':
         {
-          const { actions } = mcpListActions();
+          const { actions } = mcpListActions(listScopes);
           const tools = actionsToTools(actions);
           result = addCanary({ tools });
-          console.log(`[MCP JSONRPC] rid=${requestId} method=${method} hasAuth=${hasAuth} tools=${tools.length}`);
+          console.log(
+            `[MCP JSONRPC] rid=${requestId} method=${method} hasAuth=${hasAuth} tools=${tools.length} scopes=${authScopes.join(',') || 'none'}`,
+          );
         }
         break;
 
@@ -335,14 +348,26 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
             return;
           }
 
-          const rawResult = await mcpCallAction(toolName, toolArgs, ctx);
-          
-          // Return both textual content and structured content for richer clients
-          const toolResult = {
-            content: [{ type: 'text', text: JSON.stringify(rawResult) }],
-            structuredContent: rawResult,
-            ...addCanary({}) // Add canary to top level
-          };
+          let toolResult: Record<string, unknown>;
+          try {
+            const rawResult = await mcpCallAction(toolName, toolArgs, ctx);
+            toolResult = {
+              content: [{ type: 'text', text: JSON.stringify(rawResult) }],
+              structuredContent: rawResult,
+              ...addCanary({}),
+            };
+          } catch (toolErr: any) {
+            // Claude.ai "Couldn't send tool approval" often follows a JSON-RPC fault on tools/call.
+            // Return an MCP tool error result instead so approval can complete and Claude can narrate.
+            const message = String(toolErr?.message || 'Tool error').replace(
+              /\b(sk_|token_|key_)[a-zA-Z0-9_]+/gi,
+              '***REDACTED***',
+            );
+            console.warn(
+              `[MCP JSONRPC] rid=${requestId} method=${method} name=${toolName} toolError=${message}`,
+            );
+            toolResult = { ...toolCallErrorResult(message), ...addCanary({}) };
+          }
           
           rpcMethod = `tools/call:${toolName}`;
           console.log(`[MCP JSONRPC] rid=${requestId} method=${method} name=${toolName} hasAuth=${hasAuth}`);

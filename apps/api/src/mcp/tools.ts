@@ -44,6 +44,37 @@ export function resolveToolName(name: string): string {
   return TOOL_NAME_ALIASES[name] ?? name;
 }
 
+/**
+ * OAuth / DomainAccessKey scopes use the same strings as several tool
+ * `requiredCapability` values (`library.ro`, `library.rw`, `gloss.rw`).
+ * `library.rw` implies `library.ro`. Platform auth uses `*`.
+ */
+export function scopesAllowCapability(
+  scopes: readonly string[] | undefined,
+  requiredCapability: string | undefined,
+): boolean {
+  if (!requiredCapability) return true;
+  if (!scopes?.length) return false;
+  if (scopes.includes('*')) return true;
+  if (scopes.includes(requiredCapability)) return true;
+  if (requiredCapability === 'library.ro' && scopes.includes('library.rw')) return true;
+  return false;
+}
+
+/** Tools visible to a caller with the given scopes (empty / missing → none for scoped clients). */
+export function filterToolsByScopes(
+  scopes: readonly string[] | undefined,
+  toolList: Tool[] = tools,
+): Tool[] {
+  if (scopes?.includes('*')) return toolList;
+  if (!scopes?.length) return [];
+  return toolList.filter((tool) => {
+    // Scoped OAuth / domain keys only expose tools that declare a matching scope capability.
+    if (!tool.requiredCapability) return false;
+    return scopesAllowCapability(scopes, tool.requiredCapability);
+  });
+}
+
 function warnMissingCapability(tool: Tool, ctx: ToolContext): void {
   if (!tool.requiredCapability) return;
   const caps = ctx.agentCapabilities;
@@ -53,7 +84,7 @@ function warnMissingCapability(tool: Tool, ctx: ToolContext): void {
     );
     return;
   }
-  if (!caps.includes(tool.requiredCapability)) {
+  if (!scopesAllowCapability(caps, tool.requiredCapability)) {
     throw new Error(
       `Missing capability ${tool.requiredCapability} for MCP tool "${tool.name}"`,
     );

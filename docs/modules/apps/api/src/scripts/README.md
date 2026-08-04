@@ -9,6 +9,7 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `seed-agent-personalities.ts` / `seed-cloud-agent.ts` / `seed-default-domain-frames.ts` — seed helpers
 - `consolidate-ke3p-dialogs.ts` — ke3p Becoming Together Dialog + Library archive consolidation (dry-run default)
 - `archive-orphan-echo-sessions.ts` — archive dialog-less "Domain Lead Collaboration" / "Agent Board Echo" sessions (dry-run default)
+- `prune-chronicle-history-noise.ts` — delete old per-turn Chronicle History rows (dry-run default; Document/Dialog untouched)
 - `seed-becoming-together-document.ts` — write real Forward/Step/Paths + manuscript Points onto Dialog `cmrtyoraw0001ot0033p5wiwm` (dry-run default)
 - `deploy-object-glossary-read-access.ts` — catalog Object Glossary (+ EntityKind Recipe) as `source_type: github` Library Items and inject condensed Governance canon into Kip/Cloud `voice_prompt` (dry-run default)
 
@@ -23,6 +24,9 @@ Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/d
 - [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-08-03 — Prune Chronicle History noise
+- Added `prune-chronicle-history-noise.ts`: deletes `chronicle_events` under the old per-turn History model so the feed can refill as session chapters + Document keeps. Default scope = Becoming Together Dialog; supports `--domain-slug=` / `--all`. Dry-run by default; `--execute` gated. Does not touch Document, Dialog, sessions, or messages.
 
 ### 2026-08-02 — Object Glossary read access
 - Added `deploy-object-glossary-read-access.ts`: upserts github Library Items for `docs/keeper-object-glossary.md` + EntityKind Recipe; patches Kip/Cloud Training Mode Governance with condensed canon + `library.read` pointer. Dry-run by default; `--execute` gated.

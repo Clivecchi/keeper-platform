@@ -919,7 +919,7 @@ Unique `[draft_id, version]`; FK to kip_drafts.
 ## ChronicleEvent
 
 ### What it is
-Dialog-scoped history timeline event: actor, eventType (`session | moment | structural` per comment), title/summary, optional anchor Json, parent/child self-relation, optional sessionId/messageId.
+Dialog-scoped History quick-review event (named session chapters + Document keeps — not a turn transcript): actor, eventType (`session | moment | structural`), short title/summary, optional anchor Json, parent/child self-relation, optional sessionId/messageId.
 
 ### Schema
 Mapped table `chronicle_events`; FKs to Dialog, Domain, self parent.

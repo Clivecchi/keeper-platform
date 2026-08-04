@@ -14,6 +14,16 @@ export interface ChronicleHistoryPanelProps {
   onOpenDocument: (event: ChronicleEvent) => void
 }
 
+function formatHistoryDate(timestamp: string): string {
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+}
+
 function EventCard({
   event,
   onOpenDocument,
@@ -26,49 +36,53 @@ function EventCard({
   const [expanded, setExpanded] = React.useState(false)
   const isMoment = event.eventType === "moment"
   const isStructural = event.eventType === "structural"
+  const opensDocument = isMoment || isStructural
   const hasChildren = event.children.length > 0
   const Icon = isMoment ? FileText : isStructural ? GitBranch : Bot
 
   return (
     <article
-      className="rounded-xl px-3.5 py-3"
+      className="rounded-lg px-3 py-2.5"
       style={{
         background: "hsl(var(--theme-surface-paper) / 0.76)",
         border: isStructural
           ? "1px solid hsl(var(--theme-accent-primary) / 0.55)"
           : "1px solid hsl(var(--theme-border-soft) / 0.45)",
-        marginTop: nested ? 8 : 0,
+        marginTop: nested ? 6 : 0,
       }}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <span
-          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
           style={{
             color: "hsl(var(--theme-accent-primary))",
             background: "hsl(var(--theme-accent-primary) / 0.12)",
           }}
         >
-          <Icon size={15} aria-hidden />
+          <Icon size={13} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <button
             type="button"
-            onClick={() => isMoment && onOpenDocument(event)}
-            disabled={!isMoment}
+            onClick={() => opensDocument && onOpenDocument(event)}
+            disabled={!opensDocument}
             className="block min-w-0 text-left disabled:cursor-default"
           >
             <p
-              className="font-serif text-[18px] font-semibold leading-snug"
+              className="text-[14px] font-semibold leading-snug"
               style={{ color: "hsl(var(--theme-ink-primary))" }}
             >
               {event.title}
             </p>
-            <p className="mt-1 text-[13px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            <p
+              className="mt-0.5 line-clamp-2 text-[12px] leading-snug"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
               {event.summary}
             </p>
           </button>
-          <p className="mt-2 text-[11px] uppercase tracking-wider" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            {event.actor} · {new Date(event.timestamp).toLocaleString()}
+          <p className="mt-1.5 text-[10px] uppercase tracking-wider" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            {event.actor} · {formatHistoryDate(event.timestamp)}
           </p>
         </div>
         {hasChildren ? (
@@ -85,7 +99,7 @@ function EventCard({
         ) : null}
       </div>
       {expanded ? (
-        <div className="ml-4 mt-3 border-l pl-3" style={{ borderColor: "hsl(var(--theme-border-soft) / 0.65)" }}>
+        <div className="ml-4 mt-2 border-l pl-3" style={{ borderColor: "hsl(var(--theme-border-soft) / 0.65)" }}>
           {event.children.map((child) => (
             <EventCard key={child.id} event={{ ...child, children: child.children ?? [] }} nested onOpenDocument={onOpenDocument} />
           ))}
@@ -136,7 +150,7 @@ export function ChronicleHistoryPanel({ domainId, dialogId, onOpenDocument }: Ch
     )
   }
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-6 pt-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 pt-3">
       {loading ? <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading history…</p> : null}
       {error ? (
         <p className="text-[13px]" style={{ color: "hsl(var(--destructive))" }}>
@@ -145,7 +159,7 @@ export function ChronicleHistoryPanel({ domainId, dialogId, onOpenDocument }: Ch
       ) : null}
       {!loading && !error && groups.length === 0 ? (
         <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          No Chronicle history yet for this Dialog. New Dialog turns will appear here.
+          No History yet. Named sessions and Document keeps will appear here.
         </p>
       ) : null}
       {groups.map((event) => (

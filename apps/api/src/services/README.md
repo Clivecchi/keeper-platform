@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-03 — Chronicle History chapters + keeps
+- `kip/chronicleEvents.ts` — History is session chapters + Document keeps (not per-turn activity). See `kip/README.md` for writer rules.
+
 ### 2026-08-03 — Dialog Cueing vocabulary rename (Cast / Cueing)
 - `directorDialog.ts` — renamed instrument-oriented helpers to Cast vocabulary: `BoardInstrumentSlug` → `CastMemberSlug`, `resolveInstrumentLabel` → `resolveCastMemberLabel`, `instrumentLabelSync` → `castMemberLabelSync`, `buildInstrumentDelegationPrompt` → `buildCastMemberDelegationPrompt` (param `instrumentLabel` → `castMemberLabel`). `DirectorDelegationRequest`'s wire-shaped fields (`instrumentSlug` / `instrumentReply` / `instrumentRanClientSide`) kept as-is — internal contract, see `agents.ts` note below. Runtime behavior unchanged.
 - `ensureBoardInstrumentAgent.ts` renamed to **`ensureCastMemberAgent.ts`** — export renamed `ensureBoardInstrumentAgent` → `ensureCastMemberAgent`; old name kept as a deprecated alias export during rollout. All API imports updated (`kip/agents.ts`, `kip/ensureKnownLeadAgent.ts`).

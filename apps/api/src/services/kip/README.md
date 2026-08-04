@@ -27,8 +27,13 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-03 — History = session chapters + Document keeps
+- Stopped per-turn session History rows. `recordSessionChapterEvent` writes once when an auto-named session gets its topic name.
+- Document History rows only for durable keeps (`draft.update`, `draft.point.accept`, `draft.point.promote`) via `buildKeptChronicleMeta`; propose/rewrite no longer flood the feed.
+- Consult chapters use short actor lists (`buildConsultChapterMeta`); title/summary capped for scan (56 / 120).
+
 ### 2026-08-02 — Solo Dialog turns write History
-- `recordSessionTurnEvent` / `buildSessionTurnMeta` write a session ChronicleEvent for Dialog-scoped turns that are not already covered by draft mutations or multi-cast consult fan-out. Fixes permanently empty History on ordinary Kip Dialogs.
+- ~~`recordSessionTurnEvent` / `buildSessionTurnMeta` write a session ChronicleEvent for Dialog-scoped turns…~~ Superseded 2026-08-03 (per-turn History retired).
 
 ### 2026-07-30 — Chronicle Events
 - `chronicleEvents.ts` persists dialog-scoped History events, authorizes reads with Dialog audience rules, groups child consultations under their Lead turn, and safely closes auto-named sessions with authored metadata.

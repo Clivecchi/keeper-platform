@@ -159,9 +159,11 @@ router.get('/tools', (req: Request, res: Response) => {
   const id = rid();
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', id);
-  const schema = getSchema();
+  const mcpAuth = (req as any).mcpAuth as { scopes?: string[] } | undefined;
+  const scopes = mcpAuth?.scopes?.length ? mcpAuth.scopes : undefined;
+  const { actions } = mcpListActions(scopes);
   res.json({ 
-    tools: schema.tools.map(t => ({
+    tools: actions.map(t => ({
       name: t.name,
       description: t.description,
       parameters: t.parameters
@@ -181,7 +183,9 @@ router.get('/actions', (req: Request, res: Response) => {
   const id = rid();
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', id);
-  const result = mcpListActions();
+  const mcpAuth = (req as any).mcpAuth as { scopes?: string[] } | undefined;
+  const scopes = mcpAuth?.scopes?.length ? mcpAuth.scopes : undefined;
+  const result = mcpListActions(scopes);
   res.json({ 
     ...result,
     timestamp: new Date().toISOString()
@@ -199,7 +203,9 @@ router.post('/actions/list', (req: Request, res: Response) => {
   const id = rid();
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', id);
-  const result = mcpListActions();
+  const mcpAuth = (req as any).mcpAuth as { scopes?: string[] } | undefined;
+  const scopes = mcpAuth?.scopes?.length ? mcpAuth.scopes : undefined;
+  const result = mcpListActions(scopes);
   res.json({ 
     ...result,
     timestamp: new Date().toISOString()
