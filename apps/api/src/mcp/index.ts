@@ -14,6 +14,7 @@ import { mcpListActions, mcpCallAction, mcpGetCapabilities } from './core.js';
 import { jsonRpcDispatcher } from './jsonRpc.js';
 import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
 import { resolveMcpAuth } from './scopedAuth.js';
+import { buildMcpOauthWwwAuthenticate } from './oauthDiscovery.js';
 
 const router = Router();
 
@@ -67,6 +68,8 @@ router.use((req: Request, res: Response, next: NextFunction) => {
         const id = rid();
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.setHeader('x-request-id', id);
+        // OAuth 2.1 / RFC 9728 discovery challenge (Phase A) — static Bearer keys still work when present
+        res.setHeader('WWW-Authenticate', buildMcpOauthWwwAuthenticate());
         res.status(401).json({
           ok: false,
           error: 'unauthorized',

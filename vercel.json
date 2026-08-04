@@ -10,6 +10,22 @@
     { "source": "/mcp/(.*)", "destination": "https://keeper-platform-production.up.railway.app/mcp/$1" },
 
     {
+      "source": "/.well-known/oauth-protected-resource",
+      "destination": "https://keeper-platform-production.up.railway.app/.well-known/oauth-protected-resource"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/(.*)",
+      "destination": "https://keeper-platform-production.up.railway.app/.well-known/oauth-protected-resource/$1"
+    },
+    {
+      "source": "/.well-known/oauth-authorization-server",
+      "destination": "https://keeper-platform-production.up.railway.app/.well-known/oauth-authorization-server"
+    },
+
+    { "source": "/oauth", "destination": "https://keeper-platform-production.up.railway.app/oauth" },
+    { "source": "/oauth/(.*)", "destination": "https://keeper-platform-production.up.railway.app/oauth/$1" },
+
+    {
       "source": "/:path((?!api/)(?!.*\\..+$).*)",
       "destination": "/index.html"
     }

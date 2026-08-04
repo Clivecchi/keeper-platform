@@ -41,6 +41,8 @@ export function mcpCors(req: Request, res: Response, next: NextFunction): void {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,HEAD');
   res.setHeader('Access-Control-Allow-Headers', ALLOWED_HEADERS);
+  // Let browser clients read the OAuth discovery challenge on 401
+  res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate, x-request-id');
   res.setHeader('Access-Control-Max-Age', '600');
   
   // Handle preflight OPTIONS requests

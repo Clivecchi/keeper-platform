@@ -111,6 +111,7 @@ import { getPlatformRolesForUser } from './kam/auth.js';
 import { setSessionCookie as setSessionCookieShared, clearSessionCookie } from './kam/session.js';
 // MCP routes (OpenAI Agent integration)
 import mcpRouter from './mcp/index.js';
+import oauthDiscoveryRouter from './mcp/oauthDiscoveryRoutes.js';
 import {
   createKeeperCorsMiddleware,
   isKeeperWebOriginAllowed,
@@ -1102,6 +1103,9 @@ app.options('/api/mcp/*', (_req, res) => {
   res.setHeader('Access-Control-Max-Age', '600');
   res.sendStatus(200);
 });
+
+// MCP OAuth discovery (Phase A) — unauthenticated RFC 9728 / RFC 8414 well-knowns
+app.use(oauthDiscoveryRouter);
 
 // Mount MCP routes (OpenAI Agent integration)
 // Mount at BOTH /mcp and /api/mcp for compatibility with different clients
