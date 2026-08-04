@@ -8,14 +8,20 @@
 
 import type { Request } from 'express';
 import { authenticateDomainAccessKey } from '../services/DomainAccessKeyService.js';
+import {
+  authenticateOauthAccessToken,
+  isOauthAccessToken,
+} from '../services/McpOauthGrantService.js';
 
-export type McpAuthMode = 'platform' | 'scoped' | 'domain';
+export type McpAuthMode = 'platform' | 'scoped' | 'domain' | 'oauth';
 
 export type McpAuthContext = {
   mode: McpAuthMode;
   domainId: string | null;
   scopes: string[];
   keyId?: string;
+  grantId?: string;
+  userId?: string;
 };
 
 type ScopedLibraryKey = {
@@ -87,6 +93,21 @@ export async function resolveMcpAuth(req: Request): Promise<McpAuthContext | nul
       mode: 'platform',
       domainId: headerDomain,
       scopes: ['*'],
+    };
+  }
+
+  // OAuth access tokens (Phase B) — before DomainAccessKey prefix check
+  if (isOauthAccessToken(apiKey)) {
+    const oauthMatch = await authenticateOauthAccessToken(apiKey);
+    if (!oauthMatch) return null;
+    const effectiveDomain = headerDomain ?? oauthMatch.domainId;
+    if (effectiveDomain !== oauthMatch.domainId) return null;
+    return {
+      mode: 'oauth',
+      domainId: oauthMatch.domainId,
+      scopes: oauthMatch.scopes,
+      grantId: oauthMatch.grantId,
+      userId: oauthMatch.userId,
     };
   }
 

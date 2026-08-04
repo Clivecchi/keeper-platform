@@ -30,6 +30,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-03 — MCP OAuth grant type
+- Added `mcpOauthGrant.ts` — `McpOAuthGrantRecord` for External Access OAuth grant list/revoke.
+
 ### 2026-06-19 — GlossThread helpers
 - Added `glossThread.ts` — thread keys, parse/upsert helpers, `ensureGlossThreadCarrier` for MCP/dialog gloss anchor seeding.
 

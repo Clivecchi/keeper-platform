@@ -17,7 +17,7 @@ The server loads environment variables, configures CORS, JSON parsing, domain ro
 - [ ] Consolidate startup console logging via a helper.
 
 ## 📆 Update Log
-- 2026-08-03: Mounted MCP OAuth Phase A discovery router (`mcp/oauthDiscoveryRoutes`) at app root for `/.well-known/oauth-*`.
+- 2026-08-03: Mounted MCP OAuth Phase A discovery + Phase B `/oauth` AS routes (`oauthDiscoveryRoutes`, `oauthRoutes`).
 - 2025-07-17: Unified debug routing via `api/debug` and added folder README. (by Cursor)
 - 2026-01-17: Expanded CORS allowed headers in the API bootstrap to support moment draft headers.
 - 2026-01-31: Mounted domain-integrated keepers and paths routes for commons data wiring.

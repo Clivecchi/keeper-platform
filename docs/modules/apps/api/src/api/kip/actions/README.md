@@ -1,0 +1,21 @@
+# kip actions
+
+## 📌 Purpose
+Normalize and validate structured Kip agent actions before `executeAgentActions` runs them.
+
+## 🧱 Key Files
+- `normalizeDraftPropose.ts` — coerce common model mistakes for `draft.update.propose` / point id aliases
+- `normalizeDraftPropose.test.ts`
+- `schema.ts` — action envelope schemas and `parseActionsOrThrow`
+
+## 🔄 Data & Behavior
+- Models often send point body as `text`/`body`/`narrative` or nest `{ content: { text, author } }`.
+- `normalizeDraftUpdateProposePayload` maps those shapes to flat `content` + optional `author`/`proposedBy`.
+- Point id actions accept `draftId`/`id` and `pointId`/`point_id` aliases.
+
+## ⚠️ Notes & ToDo
+- [ ] Wire Zod `actionPayloadSchemas` into `parseActionsOrThrow` (currently documented but unused)
+- [ ] Confirm with Chuck: cast agents proposing on journey drafts should stay `proposed` (human Accept)
+
+## 📆 Update Log
+- 2026-08-03: Added `normalizeDraftPropose.ts` for content/author coercion used by draft propose execution.

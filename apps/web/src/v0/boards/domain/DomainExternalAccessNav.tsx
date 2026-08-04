@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { apiFetch } from "../../../lib/api"
-import type { DomainAccessKeyRecord } from "@keeper/shared"
+import type { DomainAccessKeyRecord, McpOAuthGrantRecord } from "@keeper/shared"
 import {
   domainAccessKeyChronicleId,
   EXTERNAL_ACCESS_OVERVIEW_ID,
@@ -10,6 +10,7 @@ import {
 } from "./externalAccessKeyIds"
 
 type AccessKeysResponse = { keys: DomainAccessKeyRecord[] }
+type OauthGrantsResponse = { grants: McpOAuthGrantRecord[] }
 
 type CreateKeyResponse = {
   key: DomainAccessKeyRecord & { secret: string }
@@ -20,6 +21,13 @@ async function fetchDomainAccessKeys(domainId: string): Promise<DomainAccessKeyR
     `/api/domains/${encodeURIComponent(domainId)}/access-keys`,
   )) as AccessKeysResponse
   return data.keys ?? []
+}
+
+async function fetchOauthGrants(domainId: string): Promise<McpOAuthGrantRecord[]> {
+  const data = (await apiFetch(
+    `/api/domains/${encodeURIComponent(domainId)}/oauth-grants`,
+  )) as OauthGrantsResponse
+  return data.grants ?? []
 }
 
 function formatScopeList(scopes: string[]): string {
@@ -46,9 +54,11 @@ export function DomainExternalAccessNav({
   onManageKey,
 }: DomainExternalAccessNavProps) {
   const [keys, setKeys] = React.useState<DomainAccessKeyRecord[] | null>(null)
+  const [grants, setGrants] = React.useState<McpOAuthGrantRecord[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [label, setLabel] = React.useState("")
   const [creating, setCreating] = React.useState(false)
+  const [revokingGrantId, setRevokingGrantId] = React.useState<string | null>(null)
   const [revealedSecret, setRevealedSecret] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
   const [copiedDomainId, setCopiedDomainId] = React.useState(false)
@@ -57,11 +67,16 @@ export function DomainExternalAccessNav({
     if (!domainId) return
     setError(null)
     try {
-      const rows = await fetchDomainAccessKeys(domainId)
+      const [rows, oauthRows] = await Promise.all([
+        fetchDomainAccessKeys(domainId),
+        fetchOauthGrants(domainId),
+      ])
       setKeys(rows)
+      setGrants(oauthRows)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Load failed")
       setKeys([])
+      setGrants([])
     }
   }, [domainId])
 
@@ -115,8 +130,26 @@ export function DomainExternalAccessNav({
     }
   }
 
+  const handleRevokeGrant = async (grantId: string) => {
+    if (!domainId) return
+    setRevokingGrantId(grantId)
+    setError(null)
+    try {
+      await apiFetch(
+        `/api/domains/${encodeURIComponent(domainId)}/oauth-grants/${encodeURIComponent(grantId)}/revoke`,
+        { method: "POST", body: JSON.stringify({}) },
+      )
+      await reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Revoke failed")
+    } finally {
+      setRevokingGrantId(null)
+    }
+  }
+
   const activeCount = keys?.filter((k) => k.status === "active").length ?? 0
   const activeKeys = keys?.filter((k) => k.status === "active") ?? []
+  const activeGrants = grants?.filter((g) => g.status === "active") ?? []
 
   return (
     <div
@@ -140,9 +173,9 @@ export function DomainExternalAccessNav({
         >
           {!domainId
             ? "Loading…"
-            : activeCount === 0
-              ? "Create a key here for Cursor or Claude MCP"
-              : `${activeCount} active key${activeCount === 1 ? "" : "s"} · Library read`}
+            : activeCount === 0 && activeGrants.length === 0
+              ? "Create a key for Cursor, or connect Claude via OAuth"
+              : `${activeCount} key${activeCount === 1 ? "" : "s"} · ${activeGrants.length} OAuth grant${activeGrants.length === 1 ? "" : "s"}`}
         </p>
         {domainId ? (
           <p
@@ -190,6 +223,43 @@ export function DomainExternalAccessNav({
             )
           })}
         </ul>
+      ) : null}
+
+      {activeGrants.length > 0 ? (
+        <div className="px-2 pt-2">
+          <p
+            className="text-[11px] px-1 pb-1 uppercase tracking-wide opacity-70"
+            style={{ color: "var(--theme-ink-secondary-color, hsl(40 8% 72%))" }}
+          >
+            OAuth grants
+          </p>
+          <ul className="flex flex-col gap-1">
+            {activeGrants.map((grant) => (
+              <li
+                key={grant.id}
+                className="flex items-start justify-between gap-2 px-2 py-1.5 rounded-sm"
+                style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 84%))" }}
+              >
+                <div className="min-w-0">
+                  <span className="text-[14px] leading-snug block truncate">
+                    {grant.client_name?.trim() || "OAuth client"}
+                  </span>
+                  <span className="text-[12px] leading-snug block opacity-80 truncate">
+                    {formatScopeList(grant.scopes)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  disabled={revokingGrantId === grant.id}
+                  onClick={() => void handleRevokeGrant(grant.id)}
+                  className="text-[12px] underline underline-offset-2 shrink-0 disabled:opacity-50"
+                >
+                  {revokingGrantId === grant.id ? "…" : "Revoke"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       <div className="px-3 pt-2 flex flex-col gap-2">
@@ -242,7 +312,7 @@ export function DomainExternalAccessNav({
           </button>
           <p className="text-[11px] leading-relaxed opacity-90" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             In Cursor MCP: Authorization Bearer = this key. Header x-domain-id = domain id above.
-            MCP URL: https://api.ke3p.com/api/mcp
+            MCP URL: https://api.ke3p.com/mcp
           </p>
         </div>
       ) : null}

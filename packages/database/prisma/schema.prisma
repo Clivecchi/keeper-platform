@@ -1243,6 +1243,7 @@ model Domain {
   presenceSchemas                                          PresenceSchema[]
   library_items                                            LibraryItem[]
   domain_access_keys                                       DomainAccessKey[]
+  mcp_oauth_grants                                         McpOAuthGrant[]
 
   @@index([slug])
   @@index([customDomain])
@@ -2116,6 +2117,79 @@ model DomainAccessKey {
   @@index([domain_id])
   @@index([status])
   @@map("domain_access_keys")
+}
+
+/// OAuth clients — DCR registrations + cached CIMD metadata.
+model McpOAuthClient {
+  id                           String   @id @default(cuid())
+  client_id                    String   @unique @map("client_id")
+  client_secret_hash           String?  @map("client_secret_hash")
+  client_name                  String?  @map("client_name")
+  redirect_uris                String[] @default([]) @map("redirect_uris")
+  token_endpoint_auth_method   String   @default("none") @map("token_endpoint_auth_method")
+  source                       String   @default("dcr") // dcr | cimd
+  created_at                   DateTime @default(now()) @map("created_at")
+  updated_at                   DateTime @updatedAt @map("updated_at")
+
+  @@map("mcp_oauth_clients")
+}
+
+/// Short-lived authorization codes (PKCE) for MCP OAuth.
+model McpOAuthAuthorizationCode {
+  id                    String    @id @default(cuid())
+  code_hash             String    @unique @map("code_hash")
+  client_id             String    @map("client_id")
+  user_id               String    @map("user_id")
+  domain_id             String    @map("domain_id")
+  scopes                String[]  @default([])
+  redirect_uri          String    @map("redirect_uri")
+  code_challenge        String    @map("code_challenge")
+  code_challenge_method String    @default("S256") @map("code_challenge_method")
+  resource              String?
+  expires_at            DateTime  @map("expires_at")
+  consumed_at           DateTime? @map("consumed_at")
+  created_at            DateTime  @default(now()) @map("created_at")
+
+  @@index([user_id])
+  @@index([domain_id])
+  @@map("mcp_oauth_authorization_codes")
+}
+
+/// Domain-scoped OAuth grant (Option B) — same capability shape as DomainAccessKey.
+model McpOAuthGrant {
+  id                  String    @id @default(cuid())
+  domain_id           String    @map("domain_id")
+  user_id             String    @map("user_id")
+  client_id           String    @map("client_id")
+  client_name         String?   @map("client_name")
+  scopes              String[]  @default([])
+  status              String    @default("active") // active | revoked
+  refresh_token_hash  String?   @unique @map("refresh_token_hash")
+  refresh_expires_at  DateTime? @map("refresh_expires_at")
+  last_used_at        DateTime? @map("last_used_at")
+  created_at          DateTime  @default(now()) @map("created_at")
+  updated_at          DateTime  @updatedAt @map("updated_at")
+
+  domain        Domain                 @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+  access_tokens McpOAuthAccessToken[]
+
+  @@index([domain_id, status])
+  @@index([user_id])
+  @@map("mcp_oauth_grants")
+}
+
+/// Short-lived opaque access tokens bound to an OAuth grant.
+model McpOAuthAccessToken {
+  id         String   @id @default(cuid())
+  token_hash String   @unique @map("token_hash")
+  grant_id   String   @map("grant_id")
+  expires_at DateTime @map("expires_at")
+  created_at DateTime @default(now()) @map("created_at")
+
+  grant McpOAuthGrant @relation(fields: [grant_id], references: [id], onDelete: Cascade)
+
+  @@index([grant_id])
+  @@map("mcp_oauth_access_tokens")
 }
 
 /// Platform capability registry — EntityKind presence.

@@ -55,6 +55,7 @@ import {
   type DomainAudienceRole,
 } from '@keeper/shared';
 import domainAccessKeyRoutes from './domain-access-key-routes.js';
+import domainOauthGrantRoutes from './domain-oauth-grant-routes.js';
 
 const router: Router = Router();
 // Lazy initialization - services will be created only when needed during request processing
@@ -497,6 +498,7 @@ router.use(kipDesignerRoutes);
 router.use(kipDialogRoutes);
 router.use(presenceSchemaRoutes);
 router.use(domainAccessKeyRoutes);
+router.use(domainOauthGrantRoutes);
 
 // GET /api/domains/:domainId/kip/sole-memory-cards - Domain anchor SOLE (Option B)
 router.get('/:domainId/kip/sole-memory-cards', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {

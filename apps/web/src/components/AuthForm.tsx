@@ -81,6 +81,15 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
           (typeof window !== 'undefined'
             ? await resolveLandingPathAfterAuth(window.location.hostname, returnTo)
             : '/home');
+        // Absolute return URLs (e.g. api.ke3p.com/oauth/authorize) must full-navigate —
+        // React Router navigate() cannot leave the SPA / hit Vercel /oauth rewrites.
+        if (
+          typeof landing === 'string' &&
+          (landing.startsWith('https://') || landing.startsWith('http://'))
+        ) {
+          window.location.assign(landing);
+          return;
+        }
         navigate(landing);
       } else {
         setError(result.error?.message || result.error || 'An unknown error occurred.');

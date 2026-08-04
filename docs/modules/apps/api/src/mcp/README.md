@@ -15,6 +15,9 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 - `oauthDiscovery.ts` - OAuth Phase A constants + PRM/AS metadata builders + WWW-Authenticate
 - `oauthDiscoveryRoutes.ts` - Unauthenticated `/.well-known/oauth-*` routes (mounted at app root)
 - `oauthDiscovery.test.ts` - Phase A discovery unit tests
+- `oauthRoutes.ts` - Phase B authorize / token / register / revoke
+- `oauthConsentHtml.ts` - Plain consent + error HTML pages
+- `../services/McpOauthGrantService.ts` - CIMD/DCR, PKCE codes, grants, tokens
 - `log.ts` - Structured logging for production diagnostics
 - `id.ts` - Request ID generator for correlation
 - `auth.ts` - Authentication helper
@@ -29,10 +32,11 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 - Accepts key from either:
   - `Authorization: Bearer <key>`
   - `x-api-key: <key>`
-- **OAuth discovery (Phase A):** Unauthenticated 401s include
+- **OAuth (Phase A+B):** Unauthenticated 401s include
   `WWW-Authenticate: Bearer resource_metadata="https://api.ke3p.com/.well-known/oauth-protected-resource", scope="library.ro library.rw gloss.rw"`.
   Canonical connector URL / PRM `resource`: `https://api.ke3p.com/mcp`.
-  Authorize/token/register are **not** implemented yet (Phase B).
+  AS: `/oauth/authorize` (CIMD + KAM consent), `/oauth/token` (PKCE + refresh), `/oauth/register` (DCR), `/oauth/revoke`.
+  Tokens resolve via `McpOAuthGrant` → same `{ domainId, scopes }` as DomainAccessKey (`mode: 'oauth'` in `resolveMcpAuth`).
 
 See `docs/library-shared-context-roadmap.md` for rationale.
 
@@ -55,7 +59,11 @@ MCP routes are mounted at BOTH `/mcp` and `/api/mcp` for compatibility.
 - `GET /mcp/health` - Health check / reachability test
 - `GET /mcp/_diag` - Diagnostic endpoint (safe, no secrets)
 - `GET /.well-known/oauth-protected-resource` (+ `/mcp` suffix) — RFC 9728 PRM
-- `GET /.well-known/oauth-authorization-server` — RFC 8414 AS metadata (stub endpoints)
+- `GET /.well-known/oauth-authorization-server` — RFC 8414 AS metadata
+- `GET|POST /oauth/authorize` — CIMD client + KAM consent + auth code
+- `POST /oauth/token` — code/refresh exchange (form-urlencoded)
+- `POST /oauth/register` — Dynamic Client Registration
+- `POST /oauth/revoke` — token/grant revocation
 
 **Auth Required** (Bearer token):
 
@@ -990,7 +998,9 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 ## 📆 Update Log
 
-**2026-08-03**: OAuth Phase A — discovery only. 401s on `/mcp` and `/api/mcp` emit `WWW-Authenticate` with `resource_metadata` pointing at `https://api.ke3p.com/.well-known/oauth-protected-resource`; PRM `resource` is canonical `https://api.ke3p.com/mcp`; RFC 8414 AS metadata stub at `/.well-known/oauth-authorization-server`; Vercel rewrites for well-known + `/oauth/*`. Static DomainAccessKey / platform key auth unchanged. Phase B (authorize/token/consent) not started.
+**2026-08-03**: OAuth Phase B — `/oauth/authorize` (CIMD + KAM consent HTML), `/oauth/token` (PKCE S256 + refresh), DCR `/oauth/register`, revoke; `McpOAuthGrant` tables; `resolveMcpAuth` mode `oauth`; External Access lists/revokes grants; AuthForm full-page return for absolute `next` URLs.
+
+**2026-08-03**: OAuth Phase A — discovery only. 401s on `/mcp` and `/api/mcp` emit `WWW-Authenticate` with `resource_metadata` pointing at `https://api.ke3p.com/.well-known/oauth-protected-resource`; PRM `resource` is canonical `https://api.ke3p.com/mcp`; RFC 8414 AS metadata stub at `/.well-known/oauth-authorization-server`; Vercel rewrites for well-known + `/oauth/*`. Static DomainAccessKey / platform key auth unchanged.
 
 **2026-07-15**: Added `gloss_write_turn` MCP tool (`gloss.rw` capability) — appends gloss thread turns on message metadata only; never mutates anchored entities.
 

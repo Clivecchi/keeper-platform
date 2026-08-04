@@ -84,10 +84,15 @@ const draftUpdateProposePayloadSchema = z.object({
   id: z.string().uuid().optional(),
   draftId: z.string().uuid().optional(),
   content: z.string().min(1, 'content is required'),
+  /** Attribution label when the user names an author (e.g. "Claude"). Maps to point.proposedBy. */
+  author: z.string().min(1).optional(),
+  proposedBy: z.string().min(1).optional(),
+  attributedTo: z.string().min(1).optional(),
   type: z.enum(['moment', 'decision', 'context', 'general']).optional(),
   prelude: z.string().optional(),
   closer: z.string().optional(),
   moments: z.array(draftPointMomentSchema).optional(),
+  referencesPointId: z.string().uuid().optional(),
 }).refine(
   (data) => Boolean(data.id || data.draftId),
   { message: 'Must provide id or draftId' },

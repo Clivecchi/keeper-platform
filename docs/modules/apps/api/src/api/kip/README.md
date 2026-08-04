@@ -5,6 +5,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 
 ## 🧱 Key Files
 - `agents.ts`
+- `actions/normalizeDraftPropose.ts` — coerce nested/synonym payloads for `draft.update.propose` (+ author attribution)
+- `actions/schema.ts` — action envelope / payload schemas
 - `companion.ts` — POST /api/kip/companion (public guest chat — no auth, rate-limited)
 - `models.ts` — GET /api/kip/models (model catalog for frontend)
 - `lenses.ts`
@@ -28,6 +30,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-03: **draft.update.propose reliability** — coerce nested/synonym `content` + `author`/`proposedBy`; document_manuscript points land as accepted; same-turn `draft.point.accept` reuses proposed ids; Dialog Document lookup no longer requires `owner_id` match.
+- 2026-07-30: **Chronicle event wiring** — Lead responses persist dialog-scoped action/consult events, attach Chronicle deep-link metadata to event cards, and replace only default session names with authored close-out metadata.
 - 2026-07-28: **Lead MCP honesty** — Kip/Lead must never emit `mcp.call` (prompt + skip message); Cloud owns infra tools via `delegate.consult` / cast consult. `mcp.call` is only advertised on System allowlists.
 - 2026-07-27: **Agent latency Phase 1** — `callAIModel` injects compact KAM env (not full `JSON.stringify` of env-v1). `action=run` records phase timings (`envResolveMs`, model calls, `actionsMs`, prompt char savings) on lead/system `data.timings` and `[AgentTurnTiming]` logs.
 - 2026-07-22: **kip-roster-dialog-cast-sync** — `resolveAgentEnvironment` merges DialogCastMember agents into Kip's `domainAgents` roster when `sessionId`/`dialogId` is known; all four agents.ts call sites thread session where available.

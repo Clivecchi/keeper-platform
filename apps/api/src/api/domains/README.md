@@ -12,6 +12,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
 - `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, `GET …/document` (Chronicle Document), update/archive/document_status, delete, resolve-active; cast membership (`cast-candidates`, `cast-members`).
 - `domain-access-key-routes.ts` – Domain external access keys (MCP): list, create (secret once), revoke, PATCH label.
+- `domain-oauth-grant-routes.ts` – MCP OAuth grants: list + revoke (External Access).
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
 - `frameOperationalKeys.ts` – Frozen operational keys (`session_notes`, `platform_gaps`) stripped on boot GET, omitted from PATCH/publish writes.
 - `DOMAIN_HOME_BOARD_CHECKLIST.md` – Manual verification checklist for domain-home board ensure.
@@ -91,6 +92,9 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - Handler validates `kind === "domain_json"`, confirms `spec_json` is a non-null object, verifies the requesting user is the domain owner, then writes `spec_json` → `Domain.frame_json` (full replace) and marks the draft `status = "promoted"` — both in a single Prisma transaction.
 - Idempotent: a second call on an already-promoted draft returns `200 { idempotent: true }` without re-writing.
 - Added `"domain_json"` to `VALID_KINDS` in `agents.ts` (Kip payload normalizer) and to `autoDraft.kinds` in `policyPack.ts` (Kip agent prompt context).
+### 2026-08-03 - MCP OAuth grants
+- Added `domain-oauth-grant-routes.ts`: `GET /:domainId/oauth-grants`, `POST /:domainId/oauth-grants/:id/revoke` for External Access UI.
+
 ### 2026-03-05 - Domain frame JSON endpoint
 - Added `GET /api/domains/:slug/frame` (public, no auth required) that returns `domain.frame_json` from the database.
 - Placed in the public routes section, before the domain resolution middleware.

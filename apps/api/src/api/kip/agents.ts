@@ -136,6 +136,10 @@ import {
   type CoreActionType,
   type ImageGenerateAction,
 } from './actions/schema.js';
+import {
+  normalizeDraftPointIdPayload,
+  normalizeDraftUpdateProposePayload,
+} from './actions/normalizeDraftPropose.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -223,15 +227,17 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content, optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical on journey drafts.';
+    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content (string body — required), optional payload.author or payload.proposedBy (attribution label when the user names an author, e.g. "Claude"), optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), and optional payload.type (moment | decision | context | general — default general). Put the full point text in payload.content as a string — never nest content as an object. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
   const rewritePoints =
     '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), payload.content, and optional payload.prelude, payload.closer, payload.moments. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place (the Document is a living work tool; the human still publishes/keeps). Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
     '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
+  const acceptPoints =
+    '- Do not emit draft.point.accept yourself unless you have exact draftId + pointId from a prior success receipt. Journey Accept is a human UI action. document_manuscript adds are already accepted by draft.update.propose.';
   if (isOperationalDraftAgent(agent)) {
-    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
+    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
   }
-  return `${proposePoints}\n${rewritePoints}\n${preservePoints}`;
+  return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}`;
 }
 
 class AgentExecutionError extends Error {
@@ -1301,6 +1307,33 @@ function getRequestId(ctx: { requestId?: string }): string {
   return ctx.requestId || randomUUID();
 }
 
+/**
+ * Resolve a draft for point mutations.
+ * Prefer owner-scoped rows; fall back to domain document_manuscript
+ * (Dialog Documents may be seeded/created under a different owner_id).
+ */
+async function findDraftForPointMutation(
+  tx: Prisma.TransactionClient,
+  draftId: string,
+  ctx: { domainId?: string | null; userId?: string; dialogId?: string | null },
+) {
+  if (!ctx.domainId || !ctx.userId) return null;
+
+  const owned = await tx.kip_drafts.findFirst({
+    where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
+  });
+  if (owned) return owned;
+
+  // Dialog Documents are living domain work — do not require owner_id match.
+  return tx.kip_drafts.findFirst({
+    where: {
+      id: draftId,
+      domain_id: ctx.domainId,
+      kind: 'document_manuscript',
+    },
+  });
+}
+
 export async function executeAgentActions(
   actions: StructuredAgentAction[],
   ctx: {
@@ -1352,23 +1385,30 @@ export async function executeAgentActions(
       && typeof action.payload === 'object'
     ) {
       const p = action.payload as Record<string, unknown>;
-      const out: Record<string, unknown> = { ...p };
-      if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
-      if (!out.pointId && typeof p.point_id === 'string') out.pointId = p.point_id;
+      const out = normalizeDraftPointIdPayload(p);
       if (!out.content && typeof p.text === 'string') out.content = p.text;
+      if (!out.content && typeof p.body === 'string') out.content = p.body;
       return { type: action.type, payload: out };
+    }
+    if (
+      (action.type === 'draft.point.accept' || action.type === 'draft.point.promote')
+      && action.payload
+      && typeof action.payload === 'object'
+    ) {
+      return {
+        type: action.type,
+        payload: normalizeDraftPointIdPayload(action.payload as Record<string, unknown>),
+      };
     }
     if (
       action.type === 'draft.update.propose'
       && action.payload
       && typeof action.payload === 'object'
     ) {
-      const p = action.payload as Record<string, unknown>;
-      const out: Record<string, unknown> = { ...p };
-      if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
-      if (!out.content && typeof p.summary === 'string') out.content = p.summary;
-      if (!out.content && typeof p.text === 'string') out.content = p.text;
-      return { type: action.type, payload: out };
+      return {
+        type: action.type,
+        payload: normalizeDraftUpdateProposePayload(action.payload as Record<string, unknown>),
+      };
     }
     if (
       action.type === 'draft.update'
@@ -1485,6 +1525,9 @@ export async function executeAgentActions(
       }
     }
   }
+
+  /** Filled by successful draft.update.propose so same-turn accept can reuse ids. */
+  let lastProposedPoint: { draftId: string; pointId: string } | null = null;
 
   await prisma.$transaction(async (tx) => {
     for (const action of validatedActions) {
@@ -1730,16 +1773,23 @@ export async function executeAgentActions(
               results.push({ type: action.type, status: 'error', message: 'Point content is required', errorCode: 'VALIDATION_ERROR' });
               break;
             }
-            const draft = await tx.kip_drafts.findFirst({
-              where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
-            });
+            const draft = await findDraftForPointMutation(tx, draftId, ctx);
             if (!draft) {
               results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
               break;
             }
 
-            let proposedBy = 'agent';
-            if (ctx.agentId) {
+            const authorOverride =
+              typeof payload.author === 'string' && payload.author.trim()
+                ? payload.author.trim()
+                : typeof payload.proposedBy === 'string' && payload.proposedBy.trim()
+                  ? payload.proposedBy.trim()
+                  : typeof payload.attributedTo === 'string' && payload.attributedTo.trim()
+                    ? payload.attributedTo.trim()
+                    : '';
+
+            let proposedBy = authorOverride || 'agent';
+            if (!authorOverride && ctx.agentId) {
               const agent = await tx.kip_agents.findUnique({
                 where: { id: ctx.agentId },
                 select: { slug: true },
@@ -1759,11 +1809,15 @@ export async function executeAgentActions(
                   ? payload.references_point_id.trim()
                   : undefined;
 
+            // Dialog Documents are living work — adding a point lands it as accepted.
+            const isDocumentManuscript = draft.kind === 'document_manuscript';
+            const pointStatus = isDocumentManuscript ? 'accepted' : 'proposed';
+
             const point = createDraftPoint({
               content,
               type: pointType,
               proposedBy,
-              status: 'proposed',
+              status: pointStatus,
               ...(typeof payload.prelude === 'string' && payload.prelude.trim()
                 ? { prelude: payload.prelude.trim() }
                 : {}),
@@ -1777,6 +1831,10 @@ export async function executeAgentActions(
             });
 
             const nextSpec = appendDraftPointToSpec(draft.spec_json, point);
+            const summaryFromPoints = isDocumentManuscript
+              ? buildDraftSummaryFromAcceptedPoints(nextSpec)
+              : null;
+            const nextSummary = summaryFromPoints || draft.summary || undefined;
 
             await tx.kip_draft_versions.create({
               data: {
@@ -1794,6 +1852,7 @@ export async function executeAgentActions(
               where: { id: draft.id },
               data: {
                 spec_json: nextSpec as object,
+                ...(nextSummary !== undefined ? { summary: nextSummary } : {}),
                 updated_at: new Date(),
               },
             });
@@ -1803,11 +1862,15 @@ export async function executeAgentActions(
               sessionId: ctx.sessionId,
             });
 
+            lastProposedPoint = { draftId: draft.id, pointId: point.id };
+
             const typeLabel = point.type === 'general' ? 'point' : point.type;
             results.push({
               type: action.type,
               status: 'success',
-              message: `Proposed ${typeLabel} — tap Accept to keep it`,
+              message: isDocumentManuscript
+                ? `Added ${typeLabel} to the document`
+                : `Proposed ${typeLabel} — tap Accept to keep it`,
               data: {
                 draftId: draft.id,
                 draftTitle: draft.title,
@@ -1873,8 +1936,16 @@ export async function executeAgentActions(
           }
           case 'draft.point.accept': {
             const payload = action.payload ?? {};
-            const draftId = payload.draftId || payload.id;
-            const pointId = typeof payload.pointId === 'string' ? payload.pointId : '';
+            let draftId =
+              (typeof payload.draftId === 'string' && payload.draftId)
+              || (typeof payload.id === 'string' && payload.id)
+              || '';
+            let pointId = typeof payload.pointId === 'string' ? payload.pointId : '';
+            // Same-turn propose → accept: fill ids from the point we just created.
+            if ((!draftId || !pointId) && lastProposedPoint) {
+              if (!draftId) draftId = lastProposedPoint.draftId;
+              if (!pointId) pointId = lastProposedPoint.pointId;
+            }
             if (!draftId || !pointId) {
               results.push({
                 type: action.type,
@@ -1884,9 +1955,7 @@ export async function executeAgentActions(
               });
               break;
             }
-            const draft = await tx.kip_drafts.findFirst({
-              where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
-            });
+            const draft = await findDraftForPointMutation(tx, draftId, ctx);
             if (!draft) {
               results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
               break;
@@ -2063,9 +2132,7 @@ export async function executeAgentActions(
               break;
             }
 
-            const draft = await tx.kip_drafts.findFirst({
-              where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
-            });
+            const draft = await findDraftForPointMutation(tx, draftId, ctx);
             if (!draft) {
               results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
               break;

@@ -32,6 +32,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## ?? Update Log
 
+### 2026-08-03 — External Access OAuth grants
+- `DomainExternalAccessNav` lists active MCP OAuth grants with revoke; MCP URL copy uses canonical `https://api.ke3p.com/mcp`.
+
 ### 2026-07-28 — Domain picker SWR cache
 - `peekDomainSwitcherEntries` returns last-known list after TTL; overlay seeds from cache and never shows "Loading domains" when any list exists (background revalidate).
 - `prefetchDomainSwitcherEntries` refreshes stale cache instead of treating expired TTL as empty.

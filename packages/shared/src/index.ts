@@ -31,3 +31,4 @@ export * from './dialogParticipation.js';
 export * from './redactForLog.js';
 export * from './libraryPointer.js';
 export * from './domainAccessKey.js';
+export * from './mcpOauthGrant.js';
