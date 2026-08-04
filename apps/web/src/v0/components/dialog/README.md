@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-03: **dialogCueing rename (Pass 1)** — `KeeperDialogFrame` Cast props renamed: `boardInstruments`→`boardCast`, `boardInstrumentsEyebrow`→`castEyebrow`, `instrumentSelectionMode`→`castCueSelectionMode`, `boardInstrumentsLeadLocked`→`castLeadLocked`, `boardInstrumentsCollaborationMode`→`castCollaborationMode`, `activeBoardInstrumentSlug`→`activeCastMemberSlug`, `activeBoardInstrumentSlugs`→`cuedCastMemberSlugs`, `onBoardInstrumentInvoke`→`onCastCueToggle`. Composer footer now renders `CastCueBar` (was `BoardInstrumentsBar`). See `docs/dialog-cueing-plan.md`.
 - 2026-07-28: **`aboveComposer` + suppress mobile identity banner** — Slot for Chronicle strip above Composer; `suppressMobileDomainBanner` hides Dialog header banners on adaptive mobile (Playbill is sole identity bar).
 - 2026-07-27: **Mobile Dialog chrome reclaim** — On ≤767px, domain banner defaults to wordmark + LIVE; tagline/stats + Invite/Get key/Manage expand via chevron. Cast header Invite trail hidden in compact mode (moved into expand). Mobile-staged `response` stage hides Cast header entirely so messages reclaim height. Desktop banner unchanged.
 - 2026-07-22: **Cross-domain cast Add** — `KeeperDialogFrame` passes `castCandidates` / `onEnableCastCandidate` / `enablingCast` / `castAddEnabled` into `DirectorCastHeader`.

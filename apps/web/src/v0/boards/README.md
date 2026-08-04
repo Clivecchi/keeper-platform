@@ -30,6 +30,14 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-03 — dialogCueing rename (Pass 1: board defs + context)
+- `UniversalBoardDefinition.ts`: `DialogOrchestrationMode` → `DialogCueingMode` (`solo→monologue`, `director→directed`, `roundtable→ensemble`, `hot_seat→featured`, `chorus→aside`); `dialogOrchestration` → `dialogCueing`; `boardInstruments` → `boardCast`; `BoardInstrumentSlug` → `CastMemberSlug`; `instrumentMultiSelect` → `castMultiSelect`. All five `*_BOARD_DEF` entries updated.
+- `directorDialog.ts`: `BoardInstrumentSlug` → `CastMemberSlug`; `DirectorDialogConfig` fields `activeInstrument`/`consultInstruments`/`instrumentLabels`/`instrumentParticipation` → `activeCastMember`/`cuedCastSlugs`/`castLabels`/`castParticipation`; `resolveInstrumentParticipation` → `resolveCastParticipation`; `resolveDirectorInstrument` → `resolveDirectorCastMember`; `buildInstrumentDelegationPrompt` → `buildCastDelegationPrompt` (prompt text "instrument" → "Cast member"); `BOARD_INSTRUMENT_LABELS` → `CAST_MEMBER_LABELS`; `DirectorSendPhase` value `"instrument"` → `"cast"`.
+- `UniversalBoardContext.tsx`: selection/actions renamed — `activeBoardInstrument`→`activeCastMember`, `activeBoardInstruments`→`cuedCastMembers`, `onSetActiveBoardInstrument`→`onSetActiveCastMember`, `onToggleBoardInstrument`→`onToggleCastCue`, `onSetActiveBoardInstruments`→`onSetCuedCastMembers`.
+- `UniversalBoard.tsx` / `domain/resolveRevealNavSections.ts`: `dialogOrchestration === "director"` → `dialogCueing === "directed"`.
+- `components/BoardInstrumentsBar.tsx` → renamed to `components/CastCueBar.tsx` (`CastCueBar` / `CastMemberChip` / `CastCueSelectionMode`); old path kept as a thin deprecated re-export shim.
+- Not yet migrated (next pass): `UniversalConversation.tsx` and `hooks/useAgentDialog.ts` still reference the old orchestration/instrument names — see `docs/dialog-cueing-plan.md`.
+
 ### 2026-08-02 — Nav Untitled noise + reveal not blocked by portraits
 - Domain Nav Dialog labels prefer `forward_title` / `step_title`; empty untitled shells (no title, no sessions) are hidden.
 - `prepareDomainBoardReveal` no longer awaits portrait decode before Nav warm / curtain reveal.

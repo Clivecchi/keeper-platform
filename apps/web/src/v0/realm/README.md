@@ -13,7 +13,7 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - `dialogDocumentCache.ts` — short TTL + in-flight dedupe for Chronicle Document fetches
 - `RealmStagedNav.tsx` — Dialog-scoped nav (Dialog → Drafts / Kept / Presented)
 - `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — Document-shaped nav data; `byDialog` + `byStage`
-- `DialogCastBar.tsx` — `RealmCastAccessActions` (Invite / Get key / Manage trailing chrome); agent chips live on shared `BoardInstrumentsBar`
+- `DialogCastBar.tsx` — `RealmCastAccessActions` (Invite / Get key / Manage trailing chrome); agent chips live on shared `CastCueBar`
 - `PresenceField.tsx` — named Treatment pattern for presence imagery
 - `useRealmFeed.ts` — client feed loader
 - `realmInvitationActions.ts` — invitation + feed click handlers
@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-03 — dialogCueing rename (Pass 1, comments only)
+- `DialogCastBar.tsx`: comment references to `BoardInstrumentsBar` updated to `CastCueBar` (see `docs/dialog-cueing-plan.md`). No behavior change.
+
 ### 2026-08-02 — Nav: stop Untitled flood + surface Dialog load failure
 - Realm Nav no longer seeds blank-titled Dialogs as "Untitled dialog"; uses `forward_title` when `title` is empty.
 - Draft rows use `draftNavLabel` (kind · status) for generic/repeated titles — same as Universal Nav.

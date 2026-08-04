@@ -1,9 +1,9 @@
 "use client"
 
 /**
- * Realm cast access actions — trailing chrome for BoardInstrumentsBar.
+ * Realm cast access actions — trailing chrome for CastCueBar.
  *
- * Agent roster + invocation live on BoardInstrumentsBar (shared director
+ * Agent roster + invocation live on CastCueBar (shared director
  * pattern). This module only owns Realm-specific access-key / invite links
  * that sit to the right of the Agents chips.
  */
@@ -89,5 +89,5 @@ export function RealmCastAccessActions({
   )
 }
 
-/** @deprecated Use RealmCastAccessActions — agent chips moved to BoardInstrumentsBar. */
+/** @deprecated Use RealmCastAccessActions — agent chips moved to CastCueBar. */
 export const DialogCastBar = RealmCastAccessActions

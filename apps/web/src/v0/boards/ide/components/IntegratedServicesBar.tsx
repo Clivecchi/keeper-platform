@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import {
-  BoardInstrumentsBar,
-  type BoardInstrumentChip,
-} from "../../components/BoardInstrumentsBar"
+  CastCueBar,
+  type CastMemberChip,
+} from "../../components/CastCueBar"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,8 +14,8 @@ type ServiceStatus = "connected" | "warning" | "disconnected"
 export interface IntegratedServicesBarProps {
   /** Opens the integrations panel in Chronicle (Railway, Vercel, GitHub). */
   onOpen: (service?: ServiceSlug) => void
-  /** Director-mode agent chips — same BoardInstrumentsBar as Domain / Realm / Designer. */
-  instruments?: ReadonlyArray<BoardInstrumentChip>
+  /** Director-mode agent chips — same CastCueBar as Domain / Realm / Designer. */
+  instruments?: ReadonlyArray<CastMemberChip>
   /** Pins an instrument for director delegation (does not swap composer agent). */
   onInstrumentInvoke?: (slug: string) => void
   /** Currently pinned instrument — highlights the active agent chip. */
@@ -46,7 +46,7 @@ const SERVICES: Array<{ slug: ServiceSlug; label: string }> = [
   { slug: "github", label: "GitHub" },
 ]
 
-const FALLBACK_TOOL_INSTRUMENTS: BoardInstrumentChip[] = [
+const FALLBACK_TOOL_INSTRUMENTS: CastMemberChip[] = [
   { slug: "cloud", label: "Cloud" },
   { slug: "rendr", label: "Rendr" },
 ]
@@ -126,7 +126,7 @@ export function IntegratedServicesBar({
 
   if (resolvedInstruments.length > 0 && resolvedInvoke) {
     return (
-      <BoardInstrumentsBar
+      <CastCueBar
         eyebrow={agentsEyebrow}
         instruments={resolvedInstruments}
         activeSlug={resolvedActive}

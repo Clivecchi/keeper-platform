@@ -22,7 +22,7 @@ describe('mcpAgentBridge', () => {
       'resend.status.read',
     ]);
     const names = tools.map((tool) => tool.name);
-    expect(names).toContain('github.repo.read');
+    expect(names).toContain('github_repo_read');
     expect(names).toContain('integrations_list');
     expect(names).toContain('nango_get_status');
     expect(names).toContain('resend_get_status');

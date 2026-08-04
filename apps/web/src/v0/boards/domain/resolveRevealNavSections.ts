@@ -27,7 +27,7 @@ function sectionsFromDef(def: UniversalBoardDef): BoardNavPrefetchSections {
     agents:
       !!def.nav.sections.agents ||
       (def.conversation.kipMode === "domain" &&
-        def.conversation.dialogOrchestration === "director"),
+        def.conversation.dialogCueing === "directed"),
     library: !!def.nav.sections.library,
   }
 }

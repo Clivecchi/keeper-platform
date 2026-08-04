@@ -90,13 +90,13 @@ import {
   buildCastConsultationsSynthesisPrompt,
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
-  buildInstrumentDelegationPrompt,
+  buildCastMemberDelegationPrompt,
   extractReplyFromAgentRunResult,
-  resolveInstrumentLabel,
+  resolveCastMemberLabel,
   type DirectorDelegationResult,
   type DirectorDelegationRequest,
 } from '../../services/directorDialog.js';
-import { ensureBoardInstrumentAgent } from '../../services/ensureBoardInstrumentAgent.js';
+import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
 import {
   buildMcpFollowUpInput,
   buildMcpToolSystemPrompt,
@@ -185,7 +185,7 @@ type AgentAttachmentInput = { url: string; name: string; type: 'image' | 'file' 
 type RunAgentOptions = {
   domainId?: string | null;
   domainSlug?: string | null;
-  /** Active Dialog id — loads Document into context (esp. instrument sub-runs without session). */
+  /** Active Dialog id — loads Document into context (esp. Cast member sub-runs without session). */
   dialogId?: string | null;
   mode?: AgentModeKey;
   debugBundle?: DebugBundleInput | null;
@@ -200,7 +200,7 @@ type RunAgentOptions = {
   attachments?: AgentAttachmentInput[];
   /** Gloss / draft-discuss context from the frontend (domain frame JSON). */
   agentContext?: Record<string, unknown>;
-  /** IDE / Domain director mode — run board instrument before Lead synthesis. */
+  /** IDE / Domain director mode — run Cast member before Lead synthesis. */
   directorDelegation?: DirectorDelegationRequest;
   /** Domain/Realm multi-cast consultation — client already ran sub-turns. */
   castConsultations?: {
@@ -998,11 +998,11 @@ function buildCastHonestySystemPrompt(environment: unknown): string | null {
     roster,
     '',
     // Heading deliberately avoids looking like a Document Point title (prior incident:
-    // instruments named "Cast Honesty" when asked to pick a Cast & Orchestration item).
+    // Cast members named "Cast Honesty" when asked to pick a Cast & Orchestration item).
     'RULE — never invent another agent\'s words (every Dialog turn):',
     'Never invent, paraphrase-as-quote, or fabricate what another agent said.',
     'Only attribute words to another agent when a real consultation result for that agent is present in this turn:',
-    '  - Mechanism A: multi-select cast consultation results (client ran each engaged instrument, then Lead synthesizes), or',
+    '  - Mechanism A: multi-select cast consultation results (client ran each engaged Cast member, then Lead synthesizes), or',
     '  - Mechanism B: delegate.consult action results (Lead-initiated consult during the turn).',
     'These are two distinct mechanisms — do not conflate them. If neither produced a reply for an agent, say plainly you got nothing back — do not invent their voice.',
     'To hear from a cast member mid-turn without multi-select, use delegate.consult with { agentSlug, question? } — only for agents in this list with dialog participation Voice (not Silent).',
@@ -1169,9 +1169,9 @@ function buildActionPackFromEnvironment(environment?: AgentEnvironmentContext | 
   return buildActionPackFromAllowlist(allow);
 }
 
-async function buildInstrumentRunEnvironment(params: {
-  instAgentId: string;
-  instrumentSlug: string;
+async function buildCastMemberRunEnvironment(params: {
+  castMemberAgentId: string;
+  castMemberSlug: string;
   userId?: string;
   domainId?: string | null;
   sessionId?: string;
@@ -1181,7 +1181,7 @@ async function buildInstrumentRunEnvironment(params: {
   let env: AgentEnvironmentContext | null = null;
   try {
     env = await resolveAgentEnvironment({
-      agentId: params.instAgentId,
+      agentId: params.castMemberAgentId,
       userId: params.userId,
       domainId: params.domainId ?? undefined,
       sessionId: params.sessionId,
@@ -1189,8 +1189,8 @@ async function buildInstrumentRunEnvironment(params: {
       intent: 'interactive',
     });
   } catch (error) {
-    console.warn('[director] instrument environment resolution failed', {
-      instrument: params.instrumentSlug,
+    console.warn('[director] Cast member environment resolution failed', {
+      castMember: params.castMemberSlug,
       error: error instanceof Error ? error.message : error,
     });
     return params.fallback ?? null;
@@ -1198,8 +1198,8 @@ async function buildInstrumentRunEnvironment(params: {
 
   try {
     const caps = await resolveAgentCapabilities({
-      agentId: params.instAgentId,
-      agentSlug: params.instrumentSlug,
+      agentId: params.castMemberAgentId,
+      agentSlug: params.castMemberSlug,
       boardId: 'ide',
     });
     if (caps?.capabilities.length) {
@@ -1218,8 +1218,8 @@ async function buildInstrumentRunEnvironment(params: {
       }
     }
   } catch (error) {
-    console.warn('[director] instrument capability merge failed', {
-      instrument: params.instrumentSlug,
+    console.warn('[director] Cast member capability merge failed', {
+      castMember: params.castMemberSlug,
       error: error instanceof Error ? error.message : error,
     });
   }
@@ -3189,8 +3189,8 @@ export async function executeAgentActions(
             }
 
             try {
-              const instAgent = await ensureBoardInstrumentAgent(agentSlug);
-              if (!instAgent) {
+              const castMemberAgent = await ensureCastMemberAgent(agentSlug);
+              if (!castMemberAgent) {
                 results.push({
                   type: action.type,
                   status: 'error',
@@ -3200,43 +3200,43 @@ export async function executeAgentActions(
                 });
                 break;
               }
-              const participation = resolveDialogParticipation(instAgent.config, {
-                slug: instAgent.slug,
+              const participation = resolveDialogParticipation(castMemberAgent.config, {
+                slug: castMemberAgent.slug,
               });
               if (participation === 'silent') {
                 results.push({
                   type: action.type,
                   status: 'error',
-                  message: `${instAgent.name} is marked silent — not a Dialog consult target`,
+                  message: `${castMemberAgent.name} is marked silent — not a Dialog consult target`,
                   errorCode: 'SILENT_AGENT',
                   data: { agentSlug, reply: null, dialogParticipation: participation },
                 });
                 break;
               }
-              const instLabel = await resolveInstrumentLabel(agentSlug);
-              const instPrompt = buildInstrumentDelegationPrompt({
+              const castMemberLabel = await resolveCastMemberLabel(agentSlug);
+              const castMemberPrompt = buildCastMemberDelegationPrompt({
                 userMessage:
                   question || 'Please share a brief, minimal perspective on the current thread.',
-                instrumentLabel: instLabel,
+                castMemberLabel,
                 directorName: 'Lead',
               });
-              const instEnvironment = await buildInstrumentRunEnvironment({
-                instAgentId: instAgent.id,
-                instrumentSlug: agentSlug,
+              const castMemberEnvironment = await buildCastMemberRunEnvironment({
+                castMemberAgentId: castMemberAgent.id,
+                castMemberSlug: agentSlug,
                 userId: ctx.userId ?? undefined,
                 domainId: ctx.domainId,
                 sessionId: ctx.sessionId ?? undefined,
                 dialogId: ctx.dialogId ?? undefined,
               });
-              const instRun = await KipAgentService.runAgent(
-                instAgent.id,
-                instPrompt,
+              const castMemberRun = await KipAgentService.runAgent(
+                castMemberAgent.id,
+                castMemberPrompt,
                 ctx.userId ?? undefined,
                 undefined,
                 {
                   domainId: ctx.domainId,
                   domainSlug: ctx.domainSlug,
-                  environment: instEnvironment ?? undefined,
+                  environment: castMemberEnvironment ?? undefined,
                   skipActionTypes: new Set([
                     'delegate.consult',
                     'mcp.call',
@@ -3245,21 +3245,21 @@ export async function executeAgentActions(
                   ]),
                 },
               );
-              const reply = extractReplyFromAgentRunResult(instRun);
+              const reply = extractReplyFromAgentRunResult(castMemberRun);
               if (reply) {
                 results.push({
                   type: action.type,
                   status: 'success',
-                  message: `${instLabel} responded`,
-                  data: { agentId: instAgent.id, agentSlug, label: instLabel, reply },
+                  message: `${castMemberLabel} responded`,
+                  data: { agentId: castMemberAgent.id, agentSlug, label: castMemberLabel, reply },
                 });
               } else {
                 results.push({
                   type: action.type,
                   status: 'error',
-                  message: `${instLabel} returned nothing`,
+                  message: `${castMemberLabel} returned nothing`,
                   errorCode: 'EMPTY_REPLY',
-                  data: { agentId: instAgent.id, agentSlug, label: instLabel, reply: null },
+                  data: { agentId: castMemberAgent.id, agentSlug, label: castMemberLabel, reply: null },
                 });
               }
             } catch (error) {
@@ -3854,7 +3854,7 @@ const AgentRunSchema = z.object({
   sessionId: z.string().optional(),
   domainId: z.string().optional(),
   domainSlug: z.string().optional(),
-  /** Active Dialog — loads Document into agent context even when sessionId is omitted (instrument sub-runs). */
+  /** Active Dialog — loads Document into agent context even when sessionId is omitted (Cast member sub-runs). */
   dialogId: z.string().optional(),
   mode: z.enum(['domain', 'debug']).optional(),
   debugBundle: DebugBundleSchema,
@@ -3865,12 +3865,23 @@ const AgentRunSchema = z.object({
   agentContext: z.record(z.unknown()).optional(),
   directorDelegation: z
     .object({
-      instrumentSlug: z.string().min(1),
+      /** Legacy key — still accepted. Prefer `castMemberSlug`. */
+      instrumentSlug: z.string().min(1).optional(),
+      /** Preferred key (Dialog Cueing vocabulary) — takes precedence over `instrumentSlug` when both are sent. */
+      castMemberSlug: z.string().min(1).optional(),
       userMessage: z.string().min(1),
       taskMessage: z.string().min(1).optional(),
       directorDisplayName: z.string().min(1),
+      /** Legacy key — still accepted. Prefer `castMemberRanClientSide`. */
       instrumentRanClientSide: z.boolean().optional(),
+      castMemberRanClientSide: z.boolean().optional(),
+      /** Legacy key — still accepted. Prefer `castMemberReply`. */
       instrumentReply: z.string().nullable().optional(),
+      castMemberReply: z.string().nullable().optional(),
+    })
+    .refine((data) => Boolean(data.castMemberSlug ?? data.instrumentSlug), {
+      message: 'directorDelegation requires castMemberSlug (or legacy instrumentSlug)',
+      path: ['castMemberSlug'],
     })
     .optional(),
   castConsultations: z
@@ -5463,7 +5474,7 @@ export class KipAgentService {
           const cc = options.castConsultations;
           const labeled = await Promise.all(
             cc.consultations.map(async (row) => {
-              const label = await resolveInstrumentLabel(row.instrumentSlug);
+              const label = await resolveCastMemberLabel(row.instrumentSlug);
               const reply =
                 typeof row.instrumentReply === 'string' ? row.instrumentReply.trim() : '';
               return {
@@ -5514,7 +5525,7 @@ export class KipAgentService {
         } else if (options?.directorDelegation) {
           orchestrationMechanism = 'director_instrument';
           const dd = options.directorDelegation;
-          const instLabel = await resolveInstrumentLabel(dd.instrumentSlug);
+          const castMemberLabel = await resolveCastMemberLabel(dd.instrumentSlug);
           const priorContinuityMessages: DirectorContinuityMessage[] = previousMessages.map((msg) => {
             const role =
               msg.sender === 'user' || msg.role === 'user' ? ('user' as const) : ('agent' as const);
@@ -5536,34 +5547,34 @@ export class KipAgentService {
                   continuityCue: resolved.resolvedFromPrior ? resolved.displayMessage : null,
                 };
               })();
-          let instrumentReply: string | null = null;
+          let castMemberReply: string | null = null;
           if (dd.instrumentRanClientSide) {
-            // Client already ran the instrument in its own HTTP request (avoids proxy timeout).
+            // Client already ran the Cast member in its own HTTP request (avoids proxy timeout).
             const precomputed =
               typeof dd.instrumentReply === 'string' ? dd.instrumentReply.trim() : '';
-            instrumentReply = precomputed || null;
-            if (!instrumentReply) {
+            castMemberReply = precomputed || null;
+            if (!castMemberReply) {
               directorDelegationResult = {
-                attributedTo: instLabel,
-                content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+                attributedTo: castMemberLabel,
+                content: `${castMemberLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
                 status: 'failed',
               };
             }
           } else {
             try {
-              const instAgent = await ensureBoardInstrumentAgent(dd.instrumentSlug);
-              if (!instAgent) {
-                throw new Error(`Board instrument agent "${dd.instrumentSlug}" is not available`);
+              const castMemberAgent = await ensureCastMemberAgent(dd.instrumentSlug);
+              if (!castMemberAgent) {
+                throw new Error(`Cast member agent "${dd.instrumentSlug}" is not available`);
               }
-              const instPrompt = buildInstrumentDelegationPrompt({
+              const castMemberPrompt = buildCastMemberDelegationPrompt({
                 userMessage: resolvedTask.taskMessage,
-                instrumentLabel: instLabel,
+                castMemberLabel,
                 directorName: dd.directorDisplayName,
                 continuityCue: resolvedTask.continuityCue,
               });
-              const instEnvironment = await buildInstrumentRunEnvironment({
-                instAgentId: instAgent.id,
-                instrumentSlug: dd.instrumentSlug,
+              const castMemberEnvironment = await buildCastMemberRunEnvironment({
+                castMemberAgentId: castMemberAgent.id,
+                castMemberSlug: dd.instrumentSlug,
                 userId,
                 domainId: options.domainId,
                 sessionId: currentSessionId,
@@ -5574,47 +5585,47 @@ export class KipAgentService {
                   ?? undefined,
                 fallback: options.environment,
               });
-              const instRun = await this.runAgent(instAgent.id, instPrompt, userId, undefined, {
+              const castMemberRun = await this.runAgent(castMemberAgent.id, castMemberPrompt, userId, undefined, {
                 domainId: options.domainId,
                 domainSlug: options.domainSlug,
                 mode: options.mode,
-                environment: instEnvironment ?? options.environment,
+                environment: castMemberEnvironment ?? options.environment,
                 activeJourneyId: options.activeJourneyId,
                 activeKeeperId: options.activeKeeperId,
                 attachments: options?.attachments,
               });
-              if (!('success' in instRun) || !instRun.success) {
-                const errData = 'data' in instRun ? (instRun.data as Record<string, unknown> | undefined) : undefined;
+              if (!('success' in castMemberRun) || !castMemberRun.success) {
+                const errData = 'data' in castMemberRun ? (castMemberRun.data as Record<string, unknown> | undefined) : undefined;
                 const errMsg =
                   typeof errData?.error === 'string' && errData.error.trim()
                     ? errData.error
-                    : 'Instrument run failed';
+                    : 'Cast member run failed';
                 throw new Error(errMsg);
               }
-              instrumentReply = extractReplyFromAgentRunResult(instRun);
-              if (!instrumentReply) {
-                console.warn('[director] instrument returned empty reply', {
-                  instrument: dd.instrumentSlug,
+              castMemberReply = extractReplyFromAgentRunResult(castMemberRun);
+              if (!castMemberReply) {
+                console.warn('[director] Cast member returned empty reply', {
+                  castMember: dd.instrumentSlug,
                 });
               }
             } catch (error) {
-              console.warn('[director] instrument delegation failed', {
-                instrument: dd.instrumentSlug,
+              console.warn('[director] Cast member delegation failed', {
+                castMember: dd.instrumentSlug,
                 error: error instanceof Error ? error.message : error,
               });
               directorDelegationResult = {
-                attributedTo: instLabel,
-                content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+                attributedTo: castMemberLabel,
+                content: `${castMemberLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
                 status: 'failed',
                 error: error instanceof Error ? error.message : String(error),
               };
             }
           }
 
-          if (instrumentReply) {
+          if (castMemberReply) {
             directorDelegationResult = {
-              attributedTo: instLabel,
-              content: instrumentReply,
+              attributedTo: castMemberLabel,
+              content: castMemberReply,
               status: 'ok',
             };
             leadModelInput = buildDirectorSynthesisPrompt({
@@ -5623,16 +5634,16 @@ export class KipAgentService {
                 resolvedTask.taskMessage !== dd.userMessage.trim()
                   ? resolvedTask.taskMessage
                   : undefined,
-              instrumentLabel: instLabel,
-              instrumentReply,
+              castMemberLabel,
+              castMemberReply,
               directorName: dd.directorDisplayName,
             });
           } else {
             orchestrationMechanism = 'director_instrument_fallback';
             if (!directorDelegationResult) {
               directorDelegationResult = {
-                attributedTo: instLabel,
-                content: `${instLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
+                attributedTo: castMemberLabel,
+                content: `${castMemberLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
                 status: 'empty',
               };
             }
@@ -5642,7 +5653,7 @@ export class KipAgentService {
                 resolvedTask.taskMessage !== dd.userMessage.trim()
                   ? resolvedTask.taskMessage
                   : undefined,
-              instrumentLabel: instLabel,
+              castMemberLabel,
               directorName: dd.directorDisplayName,
             });
           }
@@ -5687,7 +5698,7 @@ export class KipAgentService {
             slug: row.slug,
             status: row.status,
           })),
-          /** Per-instrument replies for post-hoc diagnosis (excerpt + length). */
+          /** Per-Cast-member replies for post-hoc diagnosis (excerpt + length). */
           castConsultRecords,
           consultOkCount: castConsultRecords.filter((row) => row.status === 'ok').length,
           consultFailedCount: castConsultRecords.filter(
@@ -6309,7 +6320,7 @@ export class KipAgentService {
               ...(structured.card ? { card: structured.card } : {}),
               ...(chronicleChip ? { chronicleChip } : {}),
               ...(castVoicesForPersist?.length ? { castVoices: castVoicesForPersist } : {}),
-              // Only persist single-instrument delegation when not a multi-voice turn.
+              // Only persist single-Cast-member delegation when not a multi-voice turn.
               ...(directorDelegationResult && !castVoicesForPersist?.length
                 ? { delegation: directorDelegationResult }
                 : {}),
@@ -7416,14 +7427,18 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             };
           } else if (validation.data.directorDelegation) {
             const dd = validation.data.directorDelegation;
-            runAgentOptions.directorDelegation = {
-              instrumentSlug: dd.instrumentSlug,
-              userMessage: dd.userMessage,
-              taskMessage: dd.taskMessage,
-              directorDisplayName: dd.directorDisplayName,
-              instrumentRanClientSide: dd.instrumentRanClientSide,
-              instrumentReply: dd.instrumentReply,
-            } satisfies DirectorDelegationRequest;
+            // Dialog Cueing vocabulary: castMember* keys are preferred; instrument* kept for older clients.
+            const castMemberSlug = dd.castMemberSlug ?? dd.instrumentSlug;
+            if (castMemberSlug) {
+              runAgentOptions.directorDelegation = {
+                instrumentSlug: castMemberSlug,
+                userMessage: dd.userMessage,
+                taskMessage: dd.taskMessage,
+                directorDisplayName: dd.directorDisplayName,
+                instrumentRanClientSide: dd.castMemberRanClientSide ?? dd.instrumentRanClientSide,
+                instrumentReply: dd.castMemberReply ?? dd.instrumentReply,
+              } satisfies DirectorDelegationRequest;
+            }
           }
 
           const result = await KipAgentService.runAgent(

@@ -1,25 +1,25 @@
 /**
- * Director dialog — server-side orchestration for IDE board Lead + instrument turns.
+ * Director dialog — server-side Cueing for IDE board Lead + Cast member turns.
  */
 
 import { prisma } from '@keeper/database';
 
-/** Agent slug delegated by Lead on director-mode boards (IDE tools or domain lead agents). */
-export type BoardInstrumentSlug = string;
+/** Agent slug cued by Lead on director-mode boards (IDE tools or domain lead agents). */
+export type CastMemberSlug = string;
 
 export type DirectorDelegationRequest = {
-  instrumentSlug: BoardInstrumentSlug;
+  instrumentSlug: CastMemberSlug;
   /** What the user typed this turn (display + session). */
   userMessage: string;
-  /** When set, the task the instrument runs (continuity / try-again resolution). */
+  /** When set, the task the Cast member runs (continuity / try-again resolution). */
   taskMessage?: string;
   directorDisplayName: string;
   /**
-   * When true, the client already ran the instrument in a separate HTTP call.
-   * Skip the nested server-side instrument run (avoids Vercel 502 on long director turns).
+   * When true, the client already ran the Cast member in a separate HTTP call.
+   * Skip the nested server-side Cast member run (avoids Vercel 502 on long director turns).
    */
   instrumentRanClientSide?: boolean;
-  /** Instrument reply from the client-side sub-run (may be empty on failure). */
+  /** Cast member reply from the client-side sub-run (may be empty on failure). */
   instrumentReply?: string | null;
 };
 
@@ -30,17 +30,17 @@ export type DirectorDelegationResult = {
   error?: string;
 };
 
-const PLATFORM_INSTRUMENT_LABELS: Record<string, string> = {
+const PLATFORM_CAST_LABELS: Record<string, string> = {
   cloud: 'Cloud',
   rendr: 'Rendr',
 };
 
-export function instrumentLabelSync(slug: BoardInstrumentSlug): string {
-  return PLATFORM_INSTRUMENT_LABELS[slug] ?? slug;
+export function castMemberLabelSync(slug: CastMemberSlug): string {
+  return PLATFORM_CAST_LABELS[slug] ?? slug;
 }
 
-export async function resolveInstrumentLabel(slug: BoardInstrumentSlug): Promise<string> {
-  const platform = PLATFORM_INSTRUMENT_LABELS[slug];
+export async function resolveCastMemberLabel(slug: CastMemberSlug): Promise<string> {
+  const platform = PLATFORM_CAST_LABELS[slug];
   if (platform) return platform;
   try {
     const agent = await prisma.kip_agents.findUnique({
@@ -54,14 +54,14 @@ export async function resolveInstrumentLabel(slug: BoardInstrumentSlug): Promise
   return slug;
 }
 
-export function buildInstrumentDelegationPrompt(params: {
+export function buildCastMemberDelegationPrompt(params: {
   userMessage: string;
-  instrumentLabel: string;
+  castMemberLabel: string;
   directorName: string;
   continuityCue?: string | null;
 }): string {
   const task = params.userMessage.trim();
-  const lines = [`[Director delegation — ${params.instrumentLabel} on the IDE board]`];
+  const lines = [`[Director delegation — ${params.castMemberLabel} on the IDE board]`];
 
   if (params.continuityCue?.trim()) {
     lines.push(
@@ -71,7 +71,7 @@ export function buildInstrumentDelegationPrompt(params: {
     );
   } else {
     lines.push(
-      `The user addressed ${params.instrumentLabel} (instrument pinned on the IDE board).`,
+      `The user addressed ${params.castMemberLabel} (Cast member pinned on the IDE board).`,
       `${params.directorName} (Lead) relayed:`,
       `"${task}"`,
     );
@@ -79,7 +79,7 @@ export function buildInstrumentDelegationPrompt(params: {
 
   lines.push(
     '',
-    `Answer in first person as ${params.instrumentLabel}. One focused paragraph unless they asked for a list.`,
+    `Answer in first person as ${params.castMemberLabel}. One focused paragraph unless they asked for a list.`,
     `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
     `If they ask you to name an item from the Dialog Document / a Path, quote ONLY a title or preview from the DIALOG DOCUMENT Points block in your system prompt. Never invent a title. Never treat a system-rule heading as a Document item. If you cannot find a matching Point, say you cannot name one.`,
   );
@@ -90,8 +90,8 @@ export function buildInstrumentDelegationPrompt(params: {
 export function buildDirectorSynthesisPrompt(params: {
   userMessage: string;
   taskMessage?: string;
-  instrumentLabel: string;
-  instrumentReply: string;
+  castMemberLabel: string;
+  castMemberReply: string;
   directorName: string;
 }): string {
   const display = params.userMessage.trim();
@@ -101,26 +101,26 @@ export function buildDirectorSynthesisPrompt(params: {
   return [
     `[Director synthesis — ${params.directorName}]`,
     isContinuation
-      ? `The user said "${display}" — continuing their prior request to ${params.instrumentLabel}:`
-      : `The user asked (they may have addressed ${params.instrumentLabel} directly — that is expected when pinned):`,
+      ? `The user said "${display}" — continuing their prior request to ${params.castMemberLabel}:`
+      : `The user asked (they may have addressed ${params.castMemberLabel} directly — that is expected when pinned):`,
     `"${task}"`,
     '',
-    `${params.instrumentLabel} (board instrument) responded:`,
-    `"${params.instrumentReply}"`,
+    `${params.castMemberLabel} (Cast member) responded:`,
+    `"${params.castMemberReply}"`,
     '',
     `Reply to the user as Lead (${params.directorName}).`,
-    `- Integrate ${params.instrumentLabel}'s input; do not repeat it verbatim.`,
+    `- Integrate ${params.castMemberLabel}'s input; do not repeat it verbatim.`,
     `- Do NOT correct the user about who they addressed.`,
-    `- Do NOT tell the user to "try ${params.instrumentLabel} again" or to flag routing issues.`,
+    `- Do NOT tell the user to "try ${params.castMemberLabel} again" or to flag routing issues.`,
     `- Do NOT claim this session starts cold or that earlier thread turns are unavailable — they are in context.`,
-    `- Stay brief when ${params.instrumentLabel} already answered.`,
+    `- Stay brief when ${params.castMemberLabel} already answered.`,
   ].join('\n');
 }
 
 export function buildDirectorFallbackSynthesisPrompt(params: {
   userMessage: string;
   taskMessage?: string;
-  instrumentLabel: string;
+  castMemberLabel: string;
   directorName: string;
 }): string {
   const display = params.userMessage.trim();
@@ -130,16 +130,16 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
   return [
     `[Director synthesis — ${params.directorName}]`,
     isContinuation
-      ? `The user said "${display}" — continuing their prior request to ${params.instrumentLabel}:`
-      : `The user addressed ${params.instrumentLabel} on the IDE board.`,
+      ? `The user said "${display}" — continuing their prior request to ${params.castMemberLabel}:`
+      : `The user addressed ${params.castMemberLabel} on the IDE board.`,
     `"${task}"`,
     '',
-    `${params.instrumentLabel} did not return a reply this turn.`,
+    `${params.castMemberLabel} did not return a reply this turn.`,
     '',
     `Reply as Lead (${params.directorName}). Be honest about the empty consultation.`,
-    `- Say plainly that you reached out to ${params.instrumentLabel} and got nothing back.`,
-    `- Do NOT invent, paraphrase, or role-play ${params.instrumentLabel}'s voice or opinion.`,
-    `- Do NOT claim ${params.instrumentLabel} said, decided, or agreed to anything.`,
+    `- Say plainly that you reached out to ${params.castMemberLabel} and got nothing back.`,
+    `- Do NOT invent, paraphrase, or role-play ${params.castMemberLabel}'s voice or opinion.`,
+    `- Do NOT claim ${params.castMemberLabel} said, decided, or agreed to anything.`,
     `- Answer the user's question from your own knowledge only, and mark that clearly if you do.`,
     `- Do NOT claim this session starts cold or that earlier thread turns are unavailable.`,
     `- Stay brief and useful.`,

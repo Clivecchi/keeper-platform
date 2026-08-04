@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import type { BoardInstrumentChip } from "./BoardInstrumentsBar"
+import type { CastMemberChip } from "./CastCueBar"
 
 /**
  * Header cast strip — identity for every director board + Add for cross-domain
- * lead agents (Phase 1 membership). Invoke stays on BoardInstrumentsBar.
+ * lead agents (Phase 1 membership). Invoke stays on CastCueBar.
  */
 
 export type CastCandidate = {
@@ -18,9 +18,11 @@ export type CastCandidate = {
 }
 
 export interface DirectorCastHeaderProps {
-  instruments: ReadonlyArray<BoardInstrumentChip>
+  instruments: ReadonlyArray<CastMemberChip>
   /** Eyebrow — "Cast" on Realm, "Agents" elsewhere when preferred. */
   eyebrow?: string
+  /** Cueing mode label shown next to the eyebrow (e.g. "Cueing: Directed"). */
+  cueingLabel?: string
   /** Right-aligned manage chrome (Realm Invite / Get key / Manage). */
   trailing?: React.ReactNode
   /**
@@ -38,6 +40,7 @@ export interface DirectorCastHeaderProps {
 export function DirectorCastHeader({
   instruments,
   eyebrow = "Cast",
+  cueingLabel,
   trailing = null,
   castCandidates = [],
   onEnableCandidate,
@@ -81,6 +84,19 @@ export function DirectorCastHeader({
         >
           {eyebrow}
         </span>
+        {cueingLabel ? (
+          <span
+            style={{
+              fontSize: "10px",
+              color: "hsl(var(--theme-ink-secondary))",
+              letterSpacing: "0.03em",
+              flexShrink: 0,
+              marginRight: "12px",
+            }}
+          >
+            {cueingLabel}
+          </span>
+        ) : null}
         <span
           style={{
             display: "inline-block",
@@ -227,7 +243,7 @@ export function DirectorCastHeader({
   )
 }
 
-function CastIdentityChip({ chip }: { chip: BoardInstrumentChip }) {
+function CastIdentityChip({ chip }: { chip: CastMemberChip }) {
   const isLead = Boolean(chip.isDirector)
   const participation = chip.dialogParticipation ?? "voice"
   const participationLabel =

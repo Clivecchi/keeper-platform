@@ -29,7 +29,7 @@ import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
 import type { LibraryNavRowPatch } from "../presence/integrationChronicle/libraryNavUtils"
-import type { BoardInstrumentSlug } from "./UniversalBoardDefinition"
+import type { CastMemberSlug } from "./UniversalBoardDefinition"
 import type { VoicePromptSectionKey } from "../presence/cover/voicePromptSections"
 import type { BoardEngagementIntent } from "./engagement/useBoardEngagement"
 import type { EngagementContext } from "../../components/engagement/EngagementForm"
@@ -118,13 +118,13 @@ export interface UniversalBoardSelection {
   trainingMode: boolean
   /** Agent Board training storyboard — which voice-prompt frame is in focus. */
   activeTrainingFrame: VoicePromptSectionKey
-  /** Director mode (IDE/Designer): single pinned instrument for dialog delegation. */
-  activeBoardInstrument: BoardInstrumentSlug | null
+  /** Directed cueing (IDE/Designer): single pinned Cast member for dialog delegation. */
+  activeCastMember: CastMemberSlug | null
   /**
-   * Domain/Realm multi-select: engaged non-lead instruments (Cloud + Rendr, etc.).
+   * Domain/Realm multi-select: cued non-lead Cast members (Cloud + Rendr, etc.).
    * Lead is always engaged separately — not represented in this list.
    */
-  activeBoardInstruments: ReadonlyArray<BoardInstrumentSlug>
+  cuedCastMembers: ReadonlyArray<CastMemberSlug>
   chroniclePanelMode: ChroniclePanelMode
   chroniclePointTarget: { pointId: string | null; breadcrumb: string[] | null }
   /** Bumped when a deep-link requests the mobile Chronicle overlay open. */
@@ -188,11 +188,11 @@ export interface UniversalBoardActions {
   onExitTrainingMode: () => void
   onTrainingFrameSelect: (frame: VoicePromptSectionKey) => void
   /** IDE/Designer single-swap — replaces the active pin. */
-  onSetActiveBoardInstrument: (slug: BoardInstrumentSlug | null) => void
-  /** Domain/Realm multi-select — toggle one non-lead instrument in/out of the engaged set. */
-  onToggleBoardInstrument: (slug: BoardInstrumentSlug) => void
-  /** Domain/Realm — replace the engaged set (e.g. clear all). */
-  onSetActiveBoardInstruments: (slugs: ReadonlyArray<BoardInstrumentSlug>) => void
+  onSetActiveCastMember: (slug: CastMemberSlug | null) => void
+  /** Domain/Realm multi-select — toggle one non-lead Cast member in/out of the cued set. */
+  onToggleCastCue: (slug: CastMemberSlug) => void
+  /** Domain/Realm — replace the cued set (e.g. clear all). */
+  onSetCuedCastMembers: (slugs: ReadonlyArray<CastMemberSlug>) => void
   openChronicleDocument: (options: { dialogId: string; pointId?: string | null; breadcrumb?: string[] | null }) => void
   setChroniclePanelMode: (mode: ChroniclePanelMode) => void
 }
@@ -285,10 +285,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [trainingMode, setTrainingMode] = React.useState(false)
   const [activeTrainingFrame, setActiveTrainingFrame] =
     React.useState<VoicePromptSectionKey>("currently")
-  const [activeBoardInstrument, setActiveBoardInstrument] =
-    React.useState<BoardInstrumentSlug | null>(null)
-  const [activeBoardInstruments, setActiveBoardInstruments] =
-    React.useState<BoardInstrumentSlug[]>([])
+  const [activeCastMember, setActiveCastMember] =
+    React.useState<CastMemberSlug | null>(null)
+  const [cuedCastMembers, setCuedCastMembers] =
+    React.useState<CastMemberSlug[]>([])
   const [chroniclePanelMode, setChroniclePanelMode] = React.useState<ChroniclePanelMode>("document")
   const [chroniclePointTarget, setChroniclePointTarget] = React.useState<{ pointId: string | null; breadcrumb: string[] | null }>({
     pointId: null,
@@ -559,21 +559,21 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setActiveTrainingFrame(frame)
   }, [])
 
-  const onSetActiveBoardInstrument = React.useCallback((slug: BoardInstrumentSlug | null) => {
-    setActiveBoardInstrument(slug)
+  const onSetActiveCastMember = React.useCallback((slug: CastMemberSlug | null) => {
+    setActiveCastMember(slug)
   }, [])
 
-  const onToggleBoardInstrument = React.useCallback((slug: BoardInstrumentSlug) => {
+  const onToggleCastCue = React.useCallback((slug: CastMemberSlug) => {
     const key = slug.trim()
     if (!key) return
-    setActiveBoardInstruments((prev) =>
+    setCuedCastMembers((prev) =>
       prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key],
     )
   }, [])
 
-  const onSetActiveBoardInstruments = React.useCallback(
-    (slugs: ReadonlyArray<BoardInstrumentSlug>) => {
-      setActiveBoardInstruments(
+  const onSetCuedCastMembers = React.useCallback(
+    (slugs: ReadonlyArray<CastMemberSlug>) => {
+      setCuedCastMembers(
         slugs.map((s) => s.trim()).filter(Boolean),
       )
     },
@@ -582,8 +582,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const clearSelection = React.useCallback(() => {
     setTrainingMode(false)
-    setActiveBoardInstrument(null)
-    setActiveBoardInstruments([])
+    setActiveCastMember(null)
+    setCuedCastMembers([])
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
@@ -750,7 +750,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setDraftDiscussIntent(null)
     setDraftComposeHint(null)
     setTrainingMode(false)
-    setActiveBoardInstrument(null)
+    setActiveCastMember(null)
     shell?.clearBoardDefinition()
   }, [shell?.domainSlug, shell, clearSelection, closeChronicleEngagement])
 
@@ -865,8 +865,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         draftComposeHint,
         trainingMode,
         activeTrainingFrame,
-        activeBoardInstrument,
-        activeBoardInstruments,
+        activeCastMember,
+        cuedCastMembers,
         chroniclePanelMode,
         chroniclePointTarget,
         chronicleOpenRequestId,
@@ -909,9 +909,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onEnterTrainingMode,
         onExitTrainingMode,
         onTrainingFrameSelect,
-        onSetActiveBoardInstrument,
-        onToggleBoardInstrument,
-        onSetActiveBoardInstruments,
+        onSetActiveCastMember,
+        onToggleCastCue,
+        onSetCuedCastMembers,
         openChronicleDocument,
         setChroniclePanelMode,
       },
@@ -958,8 +958,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       draftComposeHint,
       trainingMode,
       activeTrainingFrame,
-      activeBoardInstrument,
-      activeBoardInstruments,
+      activeCastMember,
+      cuedCastMembers,
       chroniclePanelMode,
       chroniclePointTarget,
       chronicleOpenRequestId,
@@ -999,9 +999,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onEnterTrainingMode,
       onExitTrainingMode,
       onTrainingFrameSelect,
-      onSetActiveBoardInstrument,
-      onToggleBoardInstrument,
-      onSetActiveBoardInstruments,
+      onSetActiveCastMember,
+      onToggleCastCue,
+      onSetCuedCastMembers,
       openChronicleDocument,
       setChroniclePanelMode,
       navCollapsed,

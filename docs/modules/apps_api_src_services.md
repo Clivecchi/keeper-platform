@@ -19,6 +19,7 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-08-03: **Dialog Cueing vocabulary rename** — `directorDialog.ts` instrument-oriented helpers renamed to Cast vocabulary (`resolveInstrumentLabel` → `resolveCastMemberLabel`, `buildInstrumentDelegationPrompt` → `buildCastMemberDelegationPrompt`, `BoardInstrumentSlug` → `CastMemberSlug`). `ensureBoardInstrumentAgent.ts` renamed to `ensureCastMemberAgent.ts` (`ensureBoardInstrumentAgent` kept as a deprecated alias). See `apps/api/src/services/README.md` and `docs/dialog-cueing-plan.md`.
 - 2026-06-23: `ModelProviderService` now classifies provider overloads (including Anthropic 529), timeouts, quota, missing keys, and invalid models with sanitized messages plus retryability/status metadata for Kip UI error handling.
 - 2026-01-31: Expanded Engagement template permission handling to cover journey/path/moment contexts.
 - 2025-12-08: Refactored `ModelProviderService` model catalogs/default settings into shared constants so Railway builds can safely clone and reuse retry scaffolding without TS parse errors.

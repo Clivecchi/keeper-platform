@@ -65,8 +65,8 @@ export async function resolveKipAgentBySlugForLoad(slug: string): Promise<kip_ag
   }
 
   if (trimmed === 'rendr') {
-    const { ensureBoardInstrumentAgent } = await import('../ensureBoardInstrumentAgent.js');
-    return ensureBoardInstrumentAgent('rendr');
+    const { ensureCastMemberAgent } = await import('../ensureCastMemberAgent.js');
+    return ensureCastMemberAgent('rendr');
   }
 
   // Last resort: synthetic provision slug — do not substitute platform Kip.

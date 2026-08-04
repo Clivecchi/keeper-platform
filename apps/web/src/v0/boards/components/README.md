@@ -4,20 +4,24 @@
 Shared UI pieces for Universal Board orchestration — composer instrument bars and related controls.
 
 ## 🧱 Key Files
-- `DirectorCastHeader.tsx` — Header cast identity (Lead + available instruments); not click-to-invoke.
-- `BoardInstrumentsBar.tsx` — Composer invoke bar: lead locked-on; instruments single-swap (IDE/Designer) or multi-select (Domain/Realm).
+- `DirectorCastHeader.tsx` — Header cast identity (Lead + available Cast); not click-to-invoke. Optional `cueingLabel` shows the Dialog cueing mode next to the eyebrow (e.g. "Cueing: Directed").
+- `CastCueBar.tsx` — Composer invoke bar: lead locked-on; Cast members single-swap (IDE/Designer) or multi-select (Domain/Realm). `BoardInstrumentsBar.tsx` is now a deprecated thin re-export shim for untouched call sites.
 - `BoardMobileChronicleStrip.tsx` — Ambient Chronicle tip above Composer (adaptive mobile).
 - `BoardMobileChronicleOverlay.tsx` — Full Chronicle as overlay (replaces Chronicle tab).
 - `BoardMobileNavDrawer.tsx` — Nav as left drawer (replaces Nav tab).
 - `BoardMobilePanelBar.tsx` — **Deprecated for adaptive Domain/Realm** — three-tab bar retained in repo but no longer mounted by `UniversalBoard`.
 
 ## 🔄 Data & Behavior
-- **Header** (`DirectorCastHeader`): who is Lead / available — manage chrome (Invite / Get key / Manage) may trail here. **Add** opens candidates from domains the user administers (`CastCandidate`); enable POSTs `homeDomainId` only — server resolves lead + Admin.
-- **Composer** (`BoardInstrumentsBar`): invoke/select only. Lead always engaged (`leadLocked`). Domain/Realm use `selectionMode: "multi"` + `activeBoardInstruments`; IDE/Designer keep single `activeBoardInstrument` swap. Enabled cast members merge into the same chip list.
+- **Header** (`DirectorCastHeader`): who is Lead / available — manage chrome (Invite / Get key / Manage) may trail here; optional `cueingLabel` shows Dialog cueing mode. **Add** opens candidates from domains the user administers (`CastCandidate`); enable POSTs `homeDomainId` only — server resolves lead + Admin.
+- **Composer** (`CastCueBar`): invoke/select only. Lead always engaged (`leadLocked`). Domain/Realm use `selectionMode: "multi"` + cued Cast slugs; IDE/Designer keep single active-Cast-member swap. Enabled cast members merge into the same chip list.
 - IDE wraps the composer bar inside `IntegratedServicesBar` with Services after.
 - **Adaptive mobile (≤767px Domain/Realm):** Dialog always primary; Nav = hamburger → drawer; Chronicle = strip above Composer → overlay. No bottom tab bar.
 
 ## 📆 Update Log
+
+### 2026-08-03 — dialogCueing rename (Pass 1)
+- `BoardInstrumentsBar.tsx` renamed to `CastCueBar.tsx`: `BoardInstrumentChip`→`CastMemberChip`, `InstrumentSelectionMode`→`CastCueSelectionMode`. Old path kept as a deprecated thin re-export shim (`export { CastCueBar as BoardInstrumentsBar, ... }`) so `UniversalConversation.tsx` keeps compiling until its own migration pass.
+- `DirectorCastHeader.tsx`: imports `CastMemberChip` from `CastCueBar`; added optional `cueingLabel?: string` prop rendered next to the eyebrow.
 
 ### 2026-07-28 — Chronicle strip + Nav drawer (retire bottom tabs)
 - Added `BoardMobileChronicleStrip`, `BoardMobileChronicleOverlay`, `BoardMobileNavDrawer`.

@@ -28,10 +28,10 @@ import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptC
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import {
-  BoardInstrumentsBar,
-  type BoardInstrumentChip,
-  type InstrumentSelectionMode,
-} from "../../boards/components/BoardInstrumentsBar"
+  CastCueBar,
+  type CastMemberChip,
+  type CastCueSelectionMode,
+} from "../../boards/components/CastCueBar"
 import {
   DirectorCastHeader,
   type CastCandidate,
@@ -119,22 +119,22 @@ export interface KeeperDialogFrameProps {
   activeToolSlug?: ToolSlug | null
   /**
    * Director-mode cast — header shows identity (DirectorCastHeader); composer
-   * BoardInstrumentsBar is the invoke control. Same roster array for both.
+   * CastCueBar is the invoke control. Same roster array for both.
    */
-  boardInstruments?: ReadonlyArray<BoardInstrumentChip>
-  onBoardInstrumentInvoke?: (slug: string) => void
+  boardCast?: ReadonlyArray<CastMemberChip>
+  onCastCueToggle?: (slug: string) => void
   /** IDE/Designer single-swap pin. */
-  activeBoardInstrumentSlug?: string | null
-  /** Domain/Realm multi-select engaged instruments. */
-  activeBoardInstrumentSlugs?: ReadonlyArray<string>
-  boardInstrumentsEyebrow?: string
+  activeCastMemberSlug?: string | null
+  /** Domain/Realm multi-select cued Cast members. */
+  cuedCastMemberSlugs?: ReadonlyArray<string>
+  castEyebrow?: string
   /** Header cast eyebrow — defaults to "Cast". */
   castHeaderEyebrow?: string
-  instrumentSelectionMode?: InstrumentSelectionMode
+  castCueSelectionMode?: CastCueSelectionMode
   /** Lead chip always engaged at composer (default true). */
-  boardInstrumentsLeadLocked?: boolean
+  castLeadLocked?: boolean
   /** Lead-led domain: footer toggles support-agent inclusion, not dialog lead. */
-  boardInstrumentsCollaborationMode?: boolean
+  castCollaborationMode?: boolean
   /**
    * Realm trailing access chrome (Invite / Get key / Manage) on the header cast strip.
    */
@@ -279,15 +279,15 @@ export function KeeperDialogFrame({
   onServiceOpen,
   onToolInvoke,
   activeToolSlug = null,
-  boardInstruments,
-  onBoardInstrumentInvoke,
-  activeBoardInstrumentSlug = null,
-  activeBoardInstrumentSlugs = [],
-  boardInstrumentsEyebrow = "Agents",
+  boardCast,
+  onCastCueToggle,
+  activeCastMemberSlug = null,
+  cuedCastMemberSlugs = [],
+  castEyebrow = "Agents",
   castHeaderEyebrow = "Cast",
-  instrumentSelectionMode = "single",
-  boardInstrumentsLeadLocked = true,
-  boardInstrumentsCollaborationMode = false,
+  castCueSelectionMode = "single",
+  castLeadLocked = true,
+  castCollaborationMode = false,
   castAccessActions,
   castCandidates,
   onEnableCastCandidate,
@@ -740,10 +740,10 @@ export function KeeperDialogFrame({
       )}
 
       {/* ── Header cast — identity roster (invoke lives at composer) ─────────── */}
-      {mode !== "feed" && boardInstruments?.length && !hideCastHeaderOnMobileResponse ? (
+      {mode !== "feed" && boardCast?.length && !hideCastHeaderOnMobileResponse ? (
         <DirectorCastHeader
           eyebrow={castHeaderEyebrow}
-          instruments={boardInstruments}
+          instruments={boardCast}
           castCandidates={castCandidates}
           onEnableCandidate={onEnableCastCandidate}
           enablingCast={enablingCast}
@@ -938,26 +938,26 @@ export function KeeperDialogFrame({
               {showServiceBar ? (
                 <IntegratedServicesBar
                   onOpen={onServiceOpen ?? (() => {})}
-                  instruments={boardInstruments}
-                  onInstrumentInvoke={onBoardInstrumentInvoke}
-                  activeInstrumentSlug={activeBoardInstrumentSlug}
-                  agentsEyebrow={boardInstrumentsEyebrow}
+                  instruments={boardCast}
+                  onInstrumentInvoke={onCastCueToggle}
+                  activeInstrumentSlug={activeCastMemberSlug}
+                  agentsEyebrow={castEyebrow}
                   onToolInvoke={onToolInvoke}
                   activeToolSlug={activeToolSlug}
                   railwayStatus={railwayStatus}
                   vercelStatus={vercelStatus}
                   githubStatus={githubStatus}
                 />
-              ) : boardInstruments?.length ? (
-                <BoardInstrumentsBar
-                  eyebrow={boardInstrumentsEyebrow}
-                  instruments={boardInstruments}
-                  activeSlug={activeBoardInstrumentSlug}
-                  activeSlugs={activeBoardInstrumentSlugs}
-                  selectionMode={instrumentSelectionMode}
-                  leadLocked={boardInstrumentsLeadLocked}
-                  onInvoke={onBoardInstrumentInvoke}
-                  collaborationMode={boardInstrumentsCollaborationMode}
+              ) : boardCast?.length ? (
+                <CastCueBar
+                  eyebrow={castEyebrow}
+                  instruments={boardCast}
+                  activeSlug={activeCastMemberSlug}
+                  activeSlugs={cuedCastMemberSlugs}
+                  selectionMode={castCueSelectionMode}
+                  leadLocked={castLeadLocked}
+                  onInvoke={onCastCueToggle}
+                  collaborationMode={castCollaborationMode}
                 />
               ) : (
                 <div className="dialog-composer-footer-spacer" aria-hidden />

@@ -26,6 +26,24 @@ export type Tool = {
   handler: (args: Record<string, unknown>, ctx: ToolContext) => Promise<unknown>;
 };
 
+/**
+ * Claude.ai / Anthropic FrontendRemoteMcpToolDefinition rejects tool names outside
+ * `^[a-zA-Z0-9_-]{1,64}$` (dots are invalid). Map legacy dotted names → underscore names.
+ */
+const TOOL_NAME_ALIASES: Record<string, string> = {
+  'github.repo.read': 'github_repo_read',
+  'github.commits.list': 'github_commits_list',
+  'github.branch.create': 'github_branch_create',
+  'github.file.write': 'github_file_write',
+  'github.pr.create': 'github_pr_create',
+  'github.pr.read': 'github_pr_read',
+  'github.actions.status': 'github_actions_status',
+};
+
+export function resolveToolName(name: string): string {
+  return TOOL_NAME_ALIASES[name] ?? name;
+}
+
 function warnMissingCapability(tool: Tool, ctx: ToolContext): void {
   if (!tool.requiredCapability) return;
   const caps = ctx.agentCapabilities;
@@ -254,7 +272,8 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'github.repo.read',
+    // Underscore names for Claude.ai (`^[a-zA-Z0-9_-]{1,64}$`); dotted aliases still resolve in callTool.
+    name: 'github_repo_read',
     description:
       'Read repository contents, file tree, or a specific file by path. Required capability: github.repo.read.',
     requiredCapability: 'github.repo.read',
@@ -271,12 +290,12 @@ const tools: Tool[] = [
       },
     },
     async handler(args, ctx) {
-      warnMissingCapability(tools.find((t) => t.name === 'github.repo.read')!, ctx);
+      warnMissingCapability(tools.find((t) => t.name === 'github_repo_read')!, ctx);
       return GitHubService.readRepository(args, ctx.domainId);
     },
   },
   {
-    name: 'github.commits.list',
+    name: 'github_commits_list',
     description: 'List recent commits on a branch. Required capability: github.commits.list.',
     requiredCapability: 'github.commits.list',
     parameters: {
@@ -290,12 +309,12 @@ const tools: Tool[] = [
       },
     },
     async handler(args, ctx) {
-      warnMissingCapability(tools.find((t) => t.name === 'github.commits.list')!, ctx);
+      warnMissingCapability(tools.find((t) => t.name === 'github_commits_list')!, ctx);
       return GitHubService.listCommits(args, ctx.domainId);
     },
   },
   {
-    name: 'github.branch.create',
+    name: 'github_branch_create',
     description:
       'Create a new branch from a base branch. ALWAYS confirm with the user before calling. Required capability: github.branch.create.',
     requiredCapability: 'github.branch.create',
@@ -311,12 +330,12 @@ const tools: Tool[] = [
       },
     },
     async handler(args, ctx) {
-      warnMissingCapability(tools.find((t) => t.name === 'github.branch.create')!, ctx);
+      warnMissingCapability(tools.find((t) => t.name === 'github_branch_create')!, ctx);
       return GitHubService.createBranch(args, ctx.domainId);
     },
   },
   {
-    name: 'github.file.write',
+    name: 'github_file_write',
     description:
       'Commit a file create or update to a branch. ALWAYS confirm with the user before calling. Required capability: github.file.write.',
     requiredCapability: 'github.file.write',
@@ -334,12 +353,12 @@ const tools: Tool[] = [
       },
     },
     async handler(args, ctx) {
-      warnMissingCapability(tools.find((t) => t.name === 'github.file.write')!, ctx);
+      warnMissingCapability(tools.find((t) => t.name === 'github_file_write')!, ctx);
       return GitHubService.writeFile(args, ctx.domainId);
     },
   },
   {
-    name: 'github.pr.create',
+    name: 'github_pr_create',
     description:
       'Open a pull request from head branch to base. ALWAYS confirm with the user before calling. Required capability: github.pr.create.',
     requiredCapability: 'github.pr.create',
@@ -357,12 +376,12 @@ const tools: Tool[] = [
       },
     },
     async handler(args, ctx) {
-      warnMissingCapability(tools.find((t) => t.name === 'github.pr.create')!, ctx);
+      warnMissingCapability(tools.find((t) => t.name === 'github_pr_create')!, ctx);
       return GitHubService.createPullRequest(args, ctx.domainId);
     },
   },
   {
-    name: 'github.pr.read',
+    name: 'github_pr_read',
     description: 'Read pull request status, reviews, and check state. Required capability: github.pr.read.',
     requiredCapability: 'github.pr.read',
     parameters: {
@@ -376,12 +395,12 @@ const tools: Tool[] = [
       },
     },
     async handler(args, ctx) {
-      warnMissingCapability(tools.find((t) => t.name === 'github.pr.read')!, ctx);
+      warnMissingCapability(tools.find((t) => t.name === 'github_pr_read')!, ctx);
       return GitHubService.readPullRequest(args, ctx.domainId);
     },
   },
   {
-    name: 'github.actions.status',
+    name: 'github_actions_status',
     description:
       'Read the most recent GitHub Actions workflow run. Required capability: github.actions.status.',
     requiredCapability: 'github.actions.status',
@@ -395,7 +414,7 @@ const tools: Tool[] = [
       },
     },
     async handler(args, ctx) {
-      warnMissingCapability(tools.find((t) => t.name === 'github.actions.status')!, ctx);
+      warnMissingCapability(tools.find((t) => t.name === 'github_actions_status')!, ctx);
       return GitHubService.getActionsStatus(args, ctx.domainId);
     },
   },
@@ -604,7 +623,8 @@ export async function callTool(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<unknown> {
-  const tool = tools.find((t) => t.name === name);
+  const resolved = resolveToolName(name);
+  const tool = tools.find((t) => t.name === resolved);
   if (!tool) {
     throw new Error(`Unknown tool: ${name}`);
   }
@@ -616,4 +636,14 @@ export async function callTool(
 
 export function getToolNames(): string[] {
   return tools.map((t) => t.name);
+}
+
+/** Claude.ai-compatible tool name pattern. */
+const CLAUDE_SAFE_TOOL_NAME = /^[a-zA-Z0-9_-]{1,64}$/;
+
+export function assertClaudeSafeToolNames(names: string[] = getToolNames()): void {
+  const bad = names.filter((n) => !CLAUDE_SAFE_TOOL_NAME.test(n));
+  if (bad.length > 0) {
+    throw new Error(`MCP tool names unsafe for Claude.ai: ${bad.join(', ')}`);
+  }
 }

@@ -32,6 +32,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## ?? Update Log
 
+### 2026-08-03 — dialogCueing rename (Pass 1)
+- `resolveRevealNavSections.ts`: `def.conversation.dialogOrchestration === "director"` ? `def.conversation.dialogCueing === "directed"` (board def field rename, no behavior change).
+
 ### 2026-08-03 — External Access OAuth grants
 - `DomainExternalAccessNav` lists active MCP OAuth grants with revoke; MCP URL copy uses canonical `https://api.ke3p.com/mcp`.
 

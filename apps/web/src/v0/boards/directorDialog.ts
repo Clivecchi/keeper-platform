@@ -1,6 +1,6 @@
 /**
- * Director dialog — orchestration helpers for Universal Board IDE preset.
- * Lead (Kip) owns the composer; board instruments run as delegated sub-turns.
+ * Director dialog — cueing helpers for Universal Board IDE preset.
+ * Lead (Kip) owns the composer; Cast members run as delegated sub-turns.
  */
 
 export {
@@ -11,46 +11,46 @@ export {
 
 import type { DirectorDelegationBeat } from "../../components/agent/types"
 
-/** Agent slug delegated by Lead on director-mode boards (IDE tools or domain lead agents). */
-export type BoardInstrumentSlug = string
+/** Agent slug delegated by Lead on directed-cueing boards (IDE tools or domain lead agents). */
+export type CastMemberSlug = string
 
 export type DialogParticipationMode = "voice" | "support_only" | "silent"
 
 export type DirectorDialogConfig = {
-  activeInstrument: BoardInstrumentSlug | null
-  /** Domain/Realm multi-select — consult each engaged cast member for real minimal input. */
-  consultInstruments?: BoardInstrumentSlug[]
-  instrumentLabels: Record<string, string>
+  activeCastMember: CastMemberSlug | null
+  /** Domain/Realm multi-select — cue each engaged cast member for real minimal input. */
+  cuedCastSlugs?: CastMemberSlug[]
+  castLabels: Record<string, string>
   /** Declared participation per slug — support_only / silent skip Dialog-voice fetches. */
-  instrumentParticipation?: Record<string, DialogParticipationMode>
+  castParticipation?: Record<string, DialogParticipationMode>
   directorDisplayName: string
 }
 
-export function resolveInstrumentParticipation(
+export function resolveCastParticipation(
   config: DirectorDialogConfig | undefined,
   slug: string,
 ): DialogParticipationMode {
   const key = slug.trim().toLowerCase()
-  const fromConfig = config?.instrumentParticipation?.[key]
+  const fromConfig = config?.castParticipation?.[key]
   if (fromConfig === "voice" || fromConfig === "support_only" || fromConfig === "silent") {
     return fromConfig
   }
   return "voice"
 }
 
-export const BOARD_INSTRUMENT_LABELS: Record<string, string> = {
+export const CAST_MEMBER_LABELS: Record<string, string> = {
   cloud: "Cloud",
   rendr: "Rendr",
 }
 
-export type DirectorSendPhase = "instrument" | "director"
+export type DirectorSendPhase = "cast" | "director"
 
 /** Pinned chip wins; otherwise honor "Cloud — …" / "Ceox — …" style addressing. */
-export function resolveDirectorInstrument(params: {
-  pinned: BoardInstrumentSlug | null
+export function resolveDirectorCastMember(params: {
+  pinned: CastMemberSlug | null
   userMessage: string
   knownSlugs: string[]
-}): BoardInstrumentSlug | null {
+}): CastMemberSlug | null {
   if (params.pinned) return params.pinned
   if (!params.knownSlugs.length) return null
   const escaped = params.knownSlugs
@@ -62,14 +62,14 @@ export function resolveDirectorInstrument(params: {
   return match[1].toLowerCase()
 }
 
-export function buildInstrumentDelegationPrompt(params: {
+export function buildCastDelegationPrompt(params: {
   userMessage: string
   instrumentLabel: string
   directorName: string
 }): string {
   return [
     `[Director delegation — ${params.instrumentLabel} on the IDE board]`,
-    `The user addressed ${params.instrumentLabel} (instrument pinned on the IDE board).`,
+    `The user addressed ${params.instrumentLabel} (Cast member pinned on the IDE board).`,
     `${params.directorName} (Lead) relayed:`,
     `"${params.userMessage}"`,
     "",

@@ -1,19 +1,19 @@
 /**
- * Ensures board instrument agents (Cloud, Rendr) exist before IDE director delegation.
+ * Ensures Cast member agents (Cloud, Rendr) exist before IDE director Cueing.
  */
 
 import { prisma, type Prisma } from '@keeper/database';
 import { CLOUD_AGENT_CAPABILITIES } from '../capabilities/infraCapabilities.js';
-import type { BoardInstrumentSlug } from './directorDialog.js';
+import type { CastMemberSlug } from './directorDialog.js';
 import {
   RENDR_AGENT_PURPOSE,
   RENDR_VOICE_PROMPT,
 } from './rendr/rendrAgentConfig.js';
-type InstrumentAgent = NonNullable<
+type CastMemberAgent = NonNullable<
   Awaited<ReturnType<typeof prisma.kip_agents.findUnique>>
 >;
 
-async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
+async function ensureCloudAgent(): Promise<CastMemberAgent | null> {
   const existing = await prisma.kip_agents.findUnique({ where: { slug: 'cloud' } });
   if (existing) {
     const current = existing.capabilities ?? [];
@@ -84,7 +84,7 @@ async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
   }
 }
 
-async function ensureRendrAgent(): Promise<InstrumentAgent | null> {
+async function ensureRendrAgent(): Promise<CastMemberAgent | null> {
   const existing = await prisma.kip_agents.findUnique({ where: { slug: 'rendr' } });
   if (existing) {
     const config = (existing.config ?? {}) as Record<string, unknown>;
@@ -142,10 +142,13 @@ async function ensureRendrAgent(): Promise<InstrumentAgent | null> {
   }
 }
 
-export async function ensureBoardInstrumentAgent(
-  slug: BoardInstrumentSlug,
-): Promise<InstrumentAgent | null> {
+export async function ensureCastMemberAgent(
+  slug: CastMemberSlug,
+): Promise<CastMemberAgent | null> {
   if (slug === 'cloud') return ensureCloudAgent();
   if (slug === 'rendr') return ensureRendrAgent();
   return prisma.kip_agents.findUnique({ where: { slug } });
 }
+
+/** @deprecated Use `ensureCastMemberAgent` — kept as an alias during the Cast/Cueing rename rollout. */
+export const ensureBoardInstrumentAgent = ensureCastMemberAgent;

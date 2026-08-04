@@ -4,7 +4,7 @@
 IDE Board-specific UI pieces mounted inside the Universal Board shell — notably the Composer Service Bar.
 
 ## 🧱 Key Files
-- `IntegratedServicesBar.tsx` — Composer footer (left): composes shared `BoardInstrumentsBar` for **Agents** (Kip director + Cloud / Rendr) and appends **Services** (Railway, Vercel, GitHub). Pairs with `ComposerDebugToolbar` on the right via `.dialog-composer-footer` in `KeeperDialogFrame`.
+- `IntegratedServicesBar.tsx` — Composer footer (left): composes shared `CastCueBar` for **Agents** (Kip director + Cloud / Rendr) and appends **Services** (Railway, Vercel, GitHub). Pairs with `ComposerDebugToolbar` on the right via `.dialog-composer-footer` in `KeeperDialogFrame`.
 
 ## 🔄 Data & Behavior
 - Rendered inside `.dialog-composer-footer` when `def.conversation.showServiceBar` is true (IDE Board only). Debug icon (`ComposerDebugToolbar`) sits on the right of the same footer at all times in dialog mode.
@@ -15,6 +15,9 @@ IDE Board-specific UI pieces mounted inside the Universal Board shell — notabl
 - [ ] Wire live connection status for Railway, Vercel, GitHub chips.
 
 ## 📆 Update Log
+
+### 2026-08-03 — dialogCueing rename (Pass 1)
+- Import switched from `BoardInstrumentsBar`/`BoardInstrumentChip` to `CastCueBar`/`CastMemberChip`. Own prop names (`instruments`, `onInstrumentInvoke`, `activeInstrumentSlug`) unchanged — callers now pass renamed `boardCast` / `onCastCueToggle` / `activeCastMemberSlug` from `KeeperDialogFrame`.
 
 ### 2026-07-20 — Director-mode unification
 - Agents section delegates to shared `BoardInstrumentsBar` (Kip as `isDirector` + declared `boardInstruments`).

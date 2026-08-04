@@ -11,15 +11,15 @@
 
 export type BoardId = "ide" | "agent" | "domain" | "designer" | "realm" | (string & {})
 
-/** How Dialog coordinates agents on this board — see docs/universal-board-dialog-orchestration.md */
-export type DialogOrchestrationMode =
-  | "solo"
-  | "director"
-  | "roundtable"
-  | "hot_seat"
-  | "chorus"
+/** How Dialog coordinates agents on this board — see docs/universal-board-dialog-cueing.md */
+export type DialogCueingMode =
+  | "monologue"
+  | "directed"
+  | "ensemble"
+  | "featured"
+  | "aside"
 
-export type BoardInstrumentSlug = string
+export type CastMemberSlug = string
 
 // Left panel — Navigation
 // What sections appear. What board nav integrations are present.
@@ -132,14 +132,14 @@ export interface ConversationPanelDef {
   /** Which KipSession mode the conversation uses. Drives context injection and session behavior. */
   kipMode: "ide" | "agent" | "domain" | "designer"
   /**
-   * Dialog orchestration — who owns the composer and how board instruments participate.
-   * @default "solo" when omitted (legacy boards)
+   * Dialog cueing — who owns the composer and how Cast participates.
+   * @default "monologue" when omitted (legacy boards)
    */
-  dialogOrchestration?: DialogOrchestrationMode
-  /** Lead agent slug when dialogOrchestration is "director". Defaults to agentSlug / "kip". */
+  dialogCueing?: DialogCueingMode
+  /** Lead agent slug when dialogCueing is "directed". Defaults to agentSlug / "kip". */
   directorAgentSlug?: string
-  /** Invokable board instruments for director mode (agent slugs). */
-  boardInstruments?: BoardInstrumentSlug[]
+  /** Invokable Cast for directed cueing (agent slugs). */
+  boardCast?: CastMemberSlug[]
   /**
    * When true, the echo agent may attach an agent echo after a non-default agent's reply.
    * Echo agent — resolved from def.conversation.agentSlug for now; echo registry is a future layer.
@@ -147,14 +147,14 @@ export interface ConversationPanelDef {
   agentEcho?: boolean
   /**
    * Realm board: show trailing access actions (Invite / Get key / Manage) on the
-   * header cast strip. Agent roster always uses boardInstruments / domain roster.
+   * header cast strip. Agent roster always uses boardCast / domain roster.
    */
   castBar?: boolean
   /**
-   * Domain/Realm: multiple non-lead instruments may be engaged at once.
-   * IDE/Designer omit this (single-active-instrument swap unchanged).
+   * Domain/Realm: multiple non-lead Cast members may be cued at once.
+   * IDE/Designer omit this (single-active-Cast-member swap unchanged).
    */
-  instrumentMultiSelect?: boolean
+  castMultiSelect?: boolean
   /**
    * Capability ceiling for this board — agent capabilities are intersected with this set at runtime.
    * Declared as data; editable through Chronicle / Design Board in future steps.
@@ -356,9 +356,9 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: true,
     kipMode: "ide",
-    dialogOrchestration: "director",
+    dialogCueing: "directed",
     directorAgentSlug: "kip",
-    boardInstruments: ["cloud", "rendr"],
+    boardCast: ["cloud", "rendr"],
     allowedCapabilities: IDE_BOARD_ALLOWED_CAPABILITIES,
   },
   contextSurface: {
@@ -397,7 +397,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "agent",
     showServiceBar: false,
     kipMode: "agent",
-    dialogOrchestration: "solo",
+    dialogCueing: "monologue",
     agentEcho: true,
   },
   contextSurface: {
@@ -438,9 +438,9 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: false,
     kipMode: "domain",
-    dialogOrchestration: "director",
+    dialogCueing: "directed",
     directorAgentSlug: "kip",
-    instrumentMultiSelect: true,
+    castMultiSelect: true,
   },
   contextSurface: {
     viewStates: mergeViewStates({
@@ -482,11 +482,11 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: false,
     kipMode: "domain",
-    dialogOrchestration: "director",
+    dialogCueing: "directed",
     directorAgentSlug: "kip",
-    boardInstruments: ["cloud", "rendr"],
+    boardCast: ["cloud", "rendr"],
     castBar: true,
-    instrumentMultiSelect: true,
+    castMultiSelect: true,
   },
   contextSurface: {
     viewStates: mergeViewStates({
@@ -523,9 +523,9 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: false,
     kipMode: "designer",
-    dialogOrchestration: "director",
+    dialogCueing: "directed",
     directorAgentSlug: "rendr",
-    boardInstruments: ["kip"],
+    boardCast: ["kip"],
   },
   contextSurface: {
     viewStates: mergeViewStates({

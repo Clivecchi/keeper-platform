@@ -28,6 +28,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-03: **Dialog Cueing vocabulary rename** — `directorDelegation` payload also accepts `castMemberSlug` / `castMemberReply` / `castMemberRanClientSide` (preferred); legacy `instrumentSlug` / `instrumentReply` / `instrumentRanClientSide` still accepted. See `apps/api/src/api/kip/README.md` and `docs/dialog-cueing-plan.md`.
 - 2026-07-30: **Chronicle event wiring** — Lead responses persist dialog-scoped action/consult events, attach Chronicle deep-link metadata to event cards, and replace only default session names with authored close-out metadata.
 - 2026-07-11: **Director delegation attachments** — instrument sub-runs (`ceox`, Cloud, Rendr, etc.) now receive `attachments` so vision-capable lead agents can analyze screenshots delegated from Kip.
 - 2026-07-07: **`callAIModel` Rendr prompt** — define `rendrDesignPrompt` in the environment-context branch (fixes Railway `tsc` build).

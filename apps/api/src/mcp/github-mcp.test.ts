@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { callTool, getSchema, getToolNames } from './tools.js';
+import {
+  assertClaudeSafeToolNames,
+  callTool,
+  getSchema,
+  getToolNames,
+  resolveToolName,
+} from './tools.js';
 import { GITHUB_MCP_TOOL_CAPABILITIES } from '../capabilities/infraCapabilities.js';
 
 const githubMock = vi.hoisted(() => ({
@@ -33,14 +39,15 @@ describe('GitHub MCP tools', () => {
     });
   });
 
-  it('registers all seven GitHub MCP tools in schema', () => {
+  it('registers all seven GitHub MCP tools in schema (Claude-safe underscore names)', () => {
     const names = getSchema().tools.map((t) => t.name);
     for (const capability of GITHUB_MCP_TOOL_CAPABILITIES) {
-      expect(names).toContain(capability);
+      expect(names).toContain(resolveToolName(capability));
     }
+    expect(() => assertClaudeSafeToolNames(names)).not.toThrow();
   });
 
-  it('github.repo.read returns file contents', async () => {
+  it('github_repo_read returns file contents (dotted alias still works)', async () => {
     const result = await callTool(
       'github.repo.read',
       { repository: 'Clivecchi/keeper-platform', path: 'README.md' },
@@ -50,9 +57,9 @@ describe('GitHub MCP tools', () => {
     expect(result).toMatchObject({ content: '# Keeper', mode: 'file' });
   });
 
-  it('github.branch.create creates a branch', async () => {
+  it('github_branch_create creates a branch', async () => {
     const result = await callTool(
-      'github.branch.create',
+      'github_branch_create',
       {
         repository: 'Clivecchi/keeper-platform',
         branch: 'cloud/test-branch',
@@ -62,6 +69,7 @@ describe('GitHub MCP tools', () => {
     );
     expect(githubMock.createBranch).toHaveBeenCalledWith(
       expect.objectContaining({ branch: 'cloud/test-branch', base: 'main' }),
+      null,
     );
     expect(result).toMatchObject({ branch: 'cloud/test-branch', created: true });
   });
@@ -76,6 +84,7 @@ describe('GitHub MCP tools', () => {
     const names = getToolNames();
     expect(names).toContain('railway_get_services');
     expect(names).toContain('vercel_get_deployments');
-    expect(names).toContain('github.repo.read');
+    expect(names).toContain('github_repo_read');
+    expect(names).not.toContain('github.repo.read');
   });
 });
