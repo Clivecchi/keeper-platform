@@ -10,12 +10,12 @@ import { extractLinkedCard } from "../components/agent/helpers"
 import { parseGlossThreads } from "@keeper/shared"
 import { apiFetch } from "../lib/api"
 import {
-  buildInstrumentDelegationPrompt,
+  buildCastDelegationPrompt,
   buildInstrumentUnavailableDelegationBeat,
   extractAgentReplyFromRunResult,
   isDirectorDelegationFailureContent,
-  resolveDirectorInstrument,
-  resolveInstrumentParticipation,
+  resolveDirectorCastMember,
+  resolveCastParticipation,
   sanitizeUserMessageContent,
   sanitizeAgentMessageContent,
   type DirectorDialogConfig,
@@ -273,17 +273,17 @@ export interface UseAgentDialogOptions {
    * without it when mode === "designer".
    */
   frameKey?: string
-  /** IDE director mode: run pinned instrument before Lead synthesis turn. */
+  /** Directed cueing: run pinned/cued Cast member(s) before Lead synthesis turn. */
   directorConfig?: DirectorDialogConfig
-  /** IDE director mode: Horizon label phases while sending (instrument → Lead). */
+  /** Directed cueing: Horizon label phases while sending (cast → director). */
   onDirectorPhaseChange?: (phase: DirectorSendPhase | null) => void
-  /** Auth user id — forwarded to runAgent for instrument delegation. */
+  /** Auth user id — forwarded to runAgent for Cast delegation. */
   userId?: string | null
   /** Display name for the current user — stamped on outgoing user messages. */
   userDisplayName?: string
   /** When true, missing agent slug throws instead of silently substituting Kip. */
   strictAgentResolution?: boolean
-  /** Active Dialog — forwarded so instrument sub-runs load Document context without a session. */
+  /** Active Dialog — forwarded so Cast sub-runs load Document context without a session. */
   dialogId?: string | null
 }
 
@@ -764,26 +764,28 @@ export function useAgentDialog({
       const liveDirectorConfig = directorConfigRef.current
       const consultSlugs = Array.from(
         new Set(
-          (liveDirectorConfig?.consultInstruments ?? [])
+          (liveDirectorConfig?.cuedCastSlugs ?? [])
             .map((slug) => slug.trim().toLowerCase())
             .filter(Boolean),
         ),
       )
-      const instrument = liveDirectorConfig
-        ? resolveDirectorInstrument({
-            pinned: liveDirectorConfig.activeInstrument,
+      const castMember = liveDirectorConfig
+        ? resolveDirectorCastMember({
+            pinned: liveDirectorConfig.activeCastMember,
             userMessage: content,
-            knownSlugs: Object.keys(liveDirectorConfig.instrumentLabels),
+            knownSlugs: Object.keys(liveDirectorConfig.castLabels),
           })
         : null
 
-      const instrumentLabel =
-        liveDirectorConfig && instrument
-          ? liveDirectorConfig.instrumentLabels[instrument] ?? instrument
+      const castMemberLabel =
+        liveDirectorConfig && castMember
+          ? liveDirectorConfig.castLabels[castMember] ?? castMember
           : null
 
       let directorTaskMessage: string | undefined
-      let clientInstrumentReply: string | null = null
+      let clientCastMemberReply: string | null = null
+      // Wire shape stays `instrumentSlug`/`instrumentReply` — apps/api agents.ts
+      // castConsultations schema only accepts those keys (see agents.ts zod schema).
       let castConsultations:
         | {
             userMessage: string
@@ -798,10 +800,10 @@ export function useAgentDialog({
       let skipLeadRunForParticipation = false
 
       if (liveDirectorConfig && consultSlugs.length > 0 && content.trim()) {
-        onDirectorPhaseChange?.("instrument")
+        onDirectorPhaseChange?.("cast")
         console.info("[AgentTurn]", {
           mechanism: "cast_consultation_a",
-          phase: "instrument",
+          phase: "cast",
           consultSlugs,
           sessionId,
           dialogId: activeDialogId ?? null,
@@ -813,8 +815,8 @@ export function useAgentDialog({
           status: "ok" | "empty" | "failed" | "error"
         }> = []
         for (const slug of consultSlugs) {
-          const label = liveDirectorConfig.instrumentLabels[slug] ?? slug
-          const participation = resolveInstrumentParticipation(liveDirectorConfig, slug)
+          const label = liveDirectorConfig.castLabels[slug] ?? slug
+          const participation = resolveCastParticipation(liveDirectorConfig, slug)
           if (participation === "silent") {
             appendThinkingStep(`${label} is silent — skipped.`)
             consultations.push({
@@ -835,33 +837,33 @@ export function useAgentDialog({
           }
           appendThinkingStep(`Consulting ${label}…`)
           try {
-            const instAgent = await KipApi.getAgentBySlug(slug)
-            const instPrompt = buildInstrumentDelegationPrompt({
+            const castAgent = await KipApi.getAgentBySlug(slug)
+            const castPrompt = buildCastDelegationPrompt({
               userMessage: content,
               instrumentLabel: label,
               directorName: liveDirectorConfig.directorDisplayName,
             })
-            const instResult = await KipApi.runAgent(
-              instAgent.id,
-              instPrompt,
+            const castResult = await KipApi.runAgent(
+              castAgent.id,
+              castPrompt,
               userId ?? undefined,
               undefined,
               runOpts,
             )
-            const reply = extractAgentReplyFromRunResult(instResult)
+            const reply = extractAgentReplyFromRunResult(castResult)
             if (reply) {
               consultations.push({ instrumentSlug: slug, instrumentReply: reply, status: "ok" })
             } else {
               appendThinkingStep(`${label} returned nothing.`)
               consultations.push({ instrumentSlug: slug, instrumentReply: null, status: "empty" })
             }
-          } catch (instErr: unknown) {
-            const instMsg = instErr instanceof Error ? instErr.message : "instrument failed"
+          } catch (castErr: unknown) {
+            const castMsg = castErr instanceof Error ? castErr.message : "cast member failed"
             const isNetworkFail =
               /failed to fetch|could not reach the keeper api|network_unreachable|network request failed/i.test(
-                instMsg,
+                castMsg,
               )
-            console.warn("[director] cast consult failed", { slug, instMsg })
+            console.warn("[director] cast consult failed", { slug, castMsg })
             appendThinkingStep(
               isNetworkFail
                 ? `${label} — couldn't reach (network).`
@@ -875,17 +877,17 @@ export function useAgentDialog({
           directorDisplayName: liveDirectorConfig.directorDisplayName,
           consultations,
         }
-      } else if (liveDirectorConfig && instrument && content.trim()) {
-        const participation = resolveInstrumentParticipation(liveDirectorConfig, instrument)
+      } else if (liveDirectorConfig && castMember && content.trim()) {
+        const participation = resolveCastParticipation(liveDirectorConfig, castMember)
         if (participation === "support_only" || participation === "silent") {
           const statusLabel = participation === "silent" ? "silent" : "support-only"
           appendThinkingStep(
-            `${instrumentLabel} is ${statusLabel} — not a Dialog voice.`,
+            `${castMemberLabel} is ${statusLabel} — not a Dialog voice.`,
           )
           const honest =
             participation === "silent"
-              ? `${instrumentLabel} is marked silent — they are not consulted and do not hold a Dialog voice.`
-              : `${instrumentLabel} is support-only — not a Dialog voice. They don't take first-person Dialog turns. Ask ${liveDirectorConfig.directorDisplayName} (Lead), or use ${instrumentLabel} for platform/support work — not as a cast Dialog speaker.`
+              ? `${castMemberLabel} is marked silent — they are not consulted and do not hold a Dialog voice.`
+              : `${castMemberLabel} is support-only — not a Dialog voice. They don't take first-person Dialog turns. Ask ${liveDirectorConfig.directorDisplayName} (Lead), or use ${castMemberLabel} for platform/support work — not as a cast Dialog speaker.`
           setMessages((prev) => [
             ...prev,
             stampSenderName({
@@ -899,7 +901,7 @@ export function useAgentDialog({
           console.info("[AgentTurn]", {
             mechanism: "participation_decline",
             phase: "director",
-            addressedInstrument: instrument,
+            addressedCastMember: castMember,
             participation,
             sessionId,
             dialogId: activeDialogId ?? null,
@@ -916,32 +918,32 @@ export function useAgentDialog({
             directorTaskMessage = resolved.delegationMessage
           }
 
-          // Run the instrument in its own HTTP request first. Nested Rendr+Kip in one
+          // Run the Cast member in its own HTTP request first. Nested Rendr+Kip in one
           // proxy hop often exceeds Vercel's origin timeout and surfaces as HTTP 502.
-          onDirectorPhaseChange?.("instrument")
-          appendThinkingStep(`Consulting ${instrumentLabel}…`)
+          onDirectorPhaseChange?.("cast")
+          appendThinkingStep(`Consulting ${castMemberLabel}…`)
           try {
-            const instAgent = await KipApi.getAgentBySlug(instrument)
-            const instPrompt = buildInstrumentDelegationPrompt({
+            const castAgent = await KipApi.getAgentBySlug(castMember)
+            const castPrompt = buildCastDelegationPrompt({
               userMessage: directorTaskMessage ?? content,
-              instrumentLabel: instrumentLabel ?? instrument,
+              instrumentLabel: castMemberLabel ?? castMember,
               directorName: liveDirectorConfig.directorDisplayName,
             })
-            const instResult = await KipApi.runAgent(
-              instAgent.id,
-              instPrompt,
+            const castResult = await KipApi.runAgent(
+              castAgent.id,
+              castPrompt,
               userId ?? undefined,
               undefined,
               runOpts,
             )
-            clientInstrumentReply = extractAgentReplyFromRunResult(instResult)
-            if (!clientInstrumentReply) {
-              appendThinkingStep(`${instrumentLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
+            clientCastMemberReply = extractAgentReplyFromRunResult(castResult)
+            if (!clientCastMemberReply) {
+              appendThinkingStep(`${castMemberLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
             }
-          } catch (instErr: unknown) {
-            const instMsg = instErr instanceof Error ? instErr.message : "instrument failed"
-            console.warn("[director] client instrument run failed", { instrument, instMsg })
-            appendThinkingStep(`${instrumentLabel} couldn't respond — ${agentDisplayName} will answer directly…`)
+          } catch (castErr: unknown) {
+            const castMsg = castErr instanceof Error ? castErr.message : "cast member failed"
+            console.warn("[director] client cast member run failed", { castMember, castMsg })
+            appendThinkingStep(`${castMemberLabel} couldn't respond — ${agentDisplayName} will answer directly…`)
           }
         }
       }
@@ -961,15 +963,18 @@ export function useAgentDialog({
         ...runOpts,
         ...(castConsultations
           ? { castConsultations }
-          : liveDirectorConfig && instrument && content.trim()
+          : liveDirectorConfig && castMember && content.trim()
             ? {
+                // Wire shape stays `instrumentSlug`/`instrumentReply` — kipApi.ts
+                // runAgent options type only declares the legacy keys; API accepts
+                // them as back-compat for `castMemberSlug`/`castMemberReply`.
                 directorDelegation: {
-                  instrumentSlug: instrument,
+                  instrumentSlug: castMember,
                   userMessage: content,
                   taskMessage: directorTaskMessage,
                   directorDisplayName: liveDirectorConfig.directorDisplayName,
                   instrumentRanClientSide: true,
-                  instrumentReply: clientInstrumentReply,
+                  instrumentReply: clientCastMemberReply,
                 },
               }
             : {}),
@@ -977,8 +982,8 @@ export function useAgentDialog({
 
       const clientMechanism = castConsultations
         ? "cast_consultation_a"
-        : liveDirectorConfig && instrument && content.trim()
-          ? "director_instrument"
+        : liveDirectorConfig && castMember && content.trim()
+          ? "director_cast"
           : "plain_lead"
       const consultRows = castConsultations?.consultations ?? []
       const consultOkCount = consultRows.filter((row) => row.status === "ok").length
@@ -996,8 +1001,8 @@ export function useAgentDialog({
         consultFailedCount,
         consultEmptyCount,
         // Single-pin address only (IDE). Omit for multi-select Mechanism A.
-        addressedInstrument:
-          clientMechanism === "director_instrument" ? (instrument ?? null) : null,
+        addressedCastMember:
+          clientMechanism === "director_cast" ? (castMember ?? null) : null,
         consultedSlugs:
           clientMechanism === "cast_consultation_a"
             ? consultRows.map((row) => row.instrumentSlug)
@@ -1080,17 +1085,17 @@ export function useAgentDialog({
         let directorDelegation = extractedDelegation
         if (
           liveDirectorConfig &&
-          instrument &&
+          castMember &&
           content.trim() &&
           !directorDelegation
         ) {
           directorDelegation = buildInstrumentUnavailableDelegationBeat({
             instrumentLabel:
-              liveDirectorConfig.instrumentLabels[instrument] ?? instrument,
+              liveDirectorConfig.castLabels[castMember] ?? castMember,
           })
         }
 
-        if (liveDirectorConfig && instrument && content.trim()) {
+        if (liveDirectorConfig && castMember && content.trim()) {
           onDirectorPhaseChange?.("director")
         }
 
@@ -1101,7 +1106,7 @@ export function useAgentDialog({
           castConsultations?.consultations.length
             ? castConsultations.consultations.map((row) => {
                 const label =
-                  liveDirectorConfig?.instrumentLabels[row.instrumentSlug]
+                  liveDirectorConfig?.castLabels[row.instrumentSlug]
                   ?? row.instrumentSlug
                 const reply = row.instrumentReply?.trim() ?? ""
                 if (row.status === "ok" && reply) {
@@ -1137,7 +1142,7 @@ export function useAgentDialog({
           if (lastAgentIdx < 0) return withUser
           updated[lastAgentIdx] = {
             ...updated[lastAgentIdx],
-            // Multi-voice turns own the instrument beats; skip single-delegation duplicate.
+            // Multi-voice turns own the Cast beats; skip single-delegation duplicate.
             ...(castVoices?.length
               ? { castVoices }
               : directorDelegation

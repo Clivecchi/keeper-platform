@@ -76,7 +76,7 @@ import { createDraftMoment, keepMoment } from "../api/v0Moments"
 import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
 import type { GlossThread } from "@keeper/shared"
 import {
-  BOARD_INSTRUMENT_LABELS,
+  CAST_MEMBER_LABELS,
   type DirectorSendPhase,
 } from "./directorDialog"
 import {
@@ -93,7 +93,7 @@ import { resolveDomainLeadContext, resolveDialogLeadSlug, type DomainLeadRecord 
 import { PLACEHOLDER_LEAD_AGENT_SLUGS, KIP_FALLBACK_SLUG, KIP_FALLBACK_DISPLAY_NAME, KIP_SUPPORT_DISENGAGED, clearMissingLeadSlug, isDomainLeadAgentSlug, formatDomainLeadDisplayName, canonicalAgentSlug } from "../lib/frameLeadAgentIdentity"
 import { getPlaybillGreet, clearPlaybillGreet } from "../lib/playbillGreetContinuity"
 import { useFrameLeadAgentIdentity } from "../hooks/useFrameLeadAgentIdentity"
-import type { BoardInstrumentChip } from "./components/BoardInstrumentsBar"
+import type { CastMemberChip } from "./components/CastCueBar"
 import type { CastCandidate } from "./components/DirectorCastHeader"
 import type { ComposerAgentChip, AgentAttachment } from "../../components/agent/AgentComposer"
 
@@ -134,13 +134,13 @@ function isThinkingPlaceholder(content: string, agentDisplayName: string): boole
   return trimmed === `${agentDisplayName} is thinking…` || trimmed.endsWith(" is thinking…")
 }
 
-function resolvedBoardInstrumentLabel(
+function resolvedCastMemberLabel(
   slug: string,
   agents: ReadonlyArray<DomainScopedAgent>,
 ): string {
   const fromRoster = agents.find((a) => a.slug === slug)?.name?.trim()
   if (fromRoster) return fromRoster
-  return BOARD_INSTRUMENT_LABELS[slug] ?? slug
+  return CAST_MEMBER_LABELS[slug] ?? slug
 }
 
 function lastExchangeFromRaw(
@@ -383,9 +383,9 @@ export function UniversalConversation({
     selectedAgentRecord.slug !== defaultAgentSlug
 
   const directorAgentSlug = def.conversation.directorAgentSlug ?? defaultAgentSlug
-  const activeBoardInstrument = selection.activeBoardInstrument
-  const activeBoardInstruments = selection.activeBoardInstruments
-  const instrumentMultiSelect = def.conversation.instrumentMultiSelect === true
+  const activeCastMember = selection.activeCastMember
+  const cuedCastMembers = selection.cuedCastMembers
+  const castMultiSelect = def.conversation.castMultiSelect === true
 
   const [domainScopedAgents, setDomainScopedAgents] = React.useState<DomainScopedAgent[]>([])
 
@@ -452,14 +452,32 @@ export function UniversalConversation({
   /** Personal / owner domains with a non-Kip lead — lead owns Dialog; Kip collaborates. */
   const isLeadLedDomain = hasDomainLeadAgent
 
-  const isDirectorMode =
+  const isDirectedCueing =
     !guidedArrivalActive
-    && def.conversation.dialogOrchestration === "director"
+    && def.conversation.dialogCueing === "directed"
     && (kipMode === "ide" || kipMode === "designer" || (kipMode === "domain" && !hasDomainLeadAgent))
+
+  /** Cueing label shown next to the header cast eyebrow (e.g. "Cueing: Directed"). */
+  const cueingLabel = React.useMemo(() => {
+    switch (def.conversation.dialogCueing) {
+      case "directed":
+        return "Cueing: Directed"
+      case "monologue":
+        return "Cueing: Monologue"
+      case "ensemble":
+        return "Cueing: Ensemble"
+      case "featured":
+        return "Cueing: Featured"
+      case "aside":
+        return "Cueing: Aside"
+      default:
+        return undefined
+    }
+  }, [def.conversation.dialogCueing])
 
   /** Kip included in support collaboration (footer toggle). Default: invoked. */
   const kipSupportInvoked =
-    isLeadLedDomain && activeBoardInstrument !== KIP_SUPPORT_DISENGAGED
+    isLeadLedDomain && activeCastMember !== KIP_SUPPORT_DISENGAGED
 
   /** Persisted cross-domain cast members for the active Dialog (server-validated). */
   const [dialogCastMembers, setDialogCastMembers] = React.useState<CastCandidate[]>([])
@@ -468,9 +486,9 @@ export function UniversalConversation({
   const [castMembersRevision, setCastMembersRevision] = React.useState(0)
 
   const supportsDialogCastAdd =
-    (def.conversation.castBar === true || instrumentMultiSelect)
+    (def.conversation.castBar === true || castMultiSelect)
     && kipMode === "domain"
-    && isDirectorMode
+    && isDirectedCueing
 
   React.useEffect(() => {
     if (!supportsDialogCastAdd || !domainId || !selectedDialogId) {
@@ -537,8 +555,8 @@ export function UniversalConversation({
     [domainId, selectedDialogId],
   )
 
-  const directorInstrumentLabels = React.useMemo((): Record<string, string> => {
-    if (kipMode === "ide") return { ...BOARD_INSTRUMENT_LABELS }
+  const directorCastLabels = React.useMemo((): Record<string, string> => {
+    if (kipMode === "ide") return { ...CAST_MEMBER_LABELS }
     if (kipMode === "designer") {
       const labels: Record<string, string> = {
         [KIP_FALLBACK_SLUG]: KIP_FALLBACK_DISPLAY_NAME,
@@ -551,7 +569,7 @@ export function UniversalConversation({
     if (kipMode === "domain") {
       const labels: Record<string, string> = {
         [KIP_FALLBACK_SLUG]: KIP_FALLBACK_DISPLAY_NAME,
-        ...BOARD_INSTRUMENT_LABELS,
+        ...CAST_MEMBER_LABELS,
       }
       const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
       if (normalizedDomainLeadSlug && domainLeadDisplayName) {
@@ -580,7 +598,7 @@ export function UniversalConversation({
   const defaultLeadPinnedRef = React.useRef(false)
 
   React.useEffect(() => {
-    if (kipMode !== "domain" || !isDirectorMode) {
+    if (kipMode !== "domain" || !isDirectedCueing) {
       setComposerLeadSlug(null)
       defaultLeadPinnedRef.current = false
       return
@@ -589,40 +607,37 @@ export function UniversalConversation({
       clearMissingLeadSlug(normalizedDomainLeadSlug)
       setComposerLeadSlug(normalizedDomainLeadSlug)
     }
-  }, [kipMode, isDirectorMode, normalizedDomainLeadSlug])
+  }, [kipMode, isDirectedCueing, normalizedDomainLeadSlug])
 
   React.useEffect(() => {
-    if (kipMode !== "domain" || !isDirectorMode) return
-    if (defaultLeadPinnedRef.current || activeBoardInstrument !== null) return
+    if (kipMode !== "domain" || !isDirectedCueing) return
+    if (defaultLeadPinnedRef.current || activeCastMember !== null) return
     if (normalizedDomainLeadSlug) {
-      actions.onSetActiveBoardInstrument(normalizedDomainLeadSlug)
+      actions.onSetActiveCastMember(normalizedDomainLeadSlug)
       defaultLeadPinnedRef.current = true
     }
   }, [
     kipMode,
-    isDirectorMode,
+    isDirectedCueing,
     normalizedDomainLeadSlug,
-    activeBoardInstrument,
+    activeCastMember,
     actions,
   ])
 
-  /** Seed multi-select once so Cast chips match who will be consulted (full voice cast). */
-  const castMultiSelectSeededRef = React.useRef(false)
-
-  const domainDirectorBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
-    if (kipMode !== "domain" || !isDirectorMode) return []
+  const domainDirectorCast = React.useMemo((): CastMemberChip[] => {
+    if (kipMode !== "domain" || !isDirectedCueing) return []
     const platformComposerSlugs = new Set(["kip", "cloud", "rendr"])
     const seenSlugs = new Set<string>()
-    const instruments: BoardInstrumentChip[] = []
+    const castMembers: CastMemberChip[] = []
 
-    const addInstrument = (chip: BoardInstrumentChip) => {
+    const addCastMember = (chip: CastMemberChip) => {
       const key = canonicalAgentSlug(chip.slug)
       if (!key || seenSlugs.has(key)) return
       seenSlugs.add(key)
-      instruments.push(chip)
+      castMembers.push(chip)
     }
 
-    addInstrument({
+    addCastMember({
       slug: directorAgentSlug,
       label: defaultAgentName,
       isDirector: true,
@@ -633,7 +648,7 @@ export function UniversalConversation({
       const rosterLead = domainScopedAgents.find(
         (agent) => canonicalAgentSlug(agent.slug) === normalizedDomainLeadSlug,
       )
-      addInstrument({
+      addCastMember({
         slug: rosterLead?.slug ?? normalizedDomainLeadSlug,
         label: domainLeadDisplayName,
         dialogParticipation: rosterLead
@@ -641,21 +656,21 @@ export function UniversalConversation({
           : "voice",
       })
     } else if (directorAgentSlug !== KIP_FALLBACK_SLUG) {
-      addInstrument({
+      addCastMember({
         slug: KIP_FALLBACK_SLUG,
         label: KIP_FALLBACK_DISPLAY_NAME,
         dialogParticipation: "voice",
       })
     }
 
-    for (const slug of def.conversation.boardInstruments ?? []) {
+    for (const slug of def.conversation.boardCast ?? []) {
       if (canonicalAgentSlug(slug) === canonicalAgentSlug(directorAgentSlug)) continue
       const rosterMatch = domainScopedAgents.find(
         (agent) => canonicalAgentSlug(agent.slug) === canonicalAgentSlug(slug),
       )
-      addInstrument({
+      addCastMember({
         slug,
-        label: BOARD_INSTRUMENT_LABELS[slug] ?? slug,
+        label: CAST_MEMBER_LABELS[slug] ?? slug,
         dialogParticipation: rosterMatch
           ? resolveAgentDialogParticipation(rosterMatch)
           : "voice",
@@ -674,7 +689,7 @@ export function UniversalConversation({
       ) {
         continue
       }
-      addInstrument({
+      addCastMember({
         slug: agent.slug,
         label: agent.name,
         dialogParticipation: resolveAgentDialogParticipation(agent),
@@ -683,50 +698,28 @@ export function UniversalConversation({
 
     // Cross-domain enabled leads (DialogCastMember) — same chip machinery.
     for (const member of dialogCastMembers) {
-      addInstrument({
+      addCastMember({
         slug: member.agentSlug,
         label: member.agentName,
         dialogParticipation: "voice",
       })
     }
 
-    return instruments
+    return castMembers
   }, [
     kipMode,
-    isDirectorMode,
+    isDirectedCueing,
     directorAgentSlug,
     defaultAgentName,
     normalizedDomainLeadSlug,
     domainLeadDisplayName,
     domainScopedAgents,
-    def.conversation.boardInstruments,
+    def.conversation.boardCast,
     dialogCastMembers,
   ])
 
-  React.useEffect(() => {
-    if (!instrumentMultiSelect || !isDirectorMode) return
-    if (castMultiSelectSeededRef.current) return
-    if (activeBoardInstruments.length > 0) {
-      castMultiSelectSeededRef.current = true
-      return
-    }
-    const defaults = domainDirectorBoardInstruments
-      .filter((chip) => !chip.isDirector)
-      .filter((chip) => (chip.dialogParticipation ?? "voice") !== "silent")
-      .map((chip) => chip.slug)
-    if (defaults.length === 0) return
-    castMultiSelectSeededRef.current = true
-    actions.onSetActiveBoardInstruments(defaults)
-  }, [
-    instrumentMultiSelect,
-    isDirectorMode,
-    activeBoardInstruments.length,
-    domainDirectorBoardInstruments,
-    actions,
-  ])
-
   /** Lead-led domain — footer Agents bar: support agents only (Kip). Lead lives in composer toolbar. */
-  const domainCollaborationInstruments = React.useMemo((): BoardInstrumentChip[] => {
+  const domainCollaborationCast = React.useMemo((): CastMemberChip[] => {
     if (!isLeadLedDomain) return []
     return [
       {
@@ -736,10 +729,10 @@ export function UniversalConversation({
     ]
   }, [isLeadLedDomain])
 
-  /** Design Board — Rendr is director; declared boardInstruments (Kip) + domain lead pin-able. */
-  const designerBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
-    if (kipMode !== "designer" || !isDirectorMode) return []
-    const instruments: BoardInstrumentChip[] = [
+  /** Design Board — Rendr is director; declared boardCast (Kip) + domain lead pin-able. */
+  const designerCast = React.useMemo((): CastMemberChip[] => {
+    if (kipMode !== "designer" || !isDirectedCueing) return []
+    const castMembers: CastMemberChip[] = [
       {
         slug: directorAgentSlug,
         label: defaultAgentName,
@@ -751,55 +744,55 @@ export function UniversalConversation({
       && domainLeadDisplayName
       && canonicalAgentSlug(normalizedDomainLeadSlug) !== canonicalAgentSlug(directorAgentSlug)
     ) {
-      instruments.push({
+      castMembers.push({
         slug: normalizedDomainLeadSlug,
         label: domainLeadDisplayName,
       })
     }
-    for (const slug of def.conversation.boardInstruments ?? []) {
+    for (const slug of def.conversation.boardCast ?? []) {
       const key = canonicalAgentSlug(slug)
       if (!key || key === canonicalAgentSlug(directorAgentSlug)) continue
       if (key === normalizedDomainLeadSlug) continue
-      instruments.push({
+      castMembers.push({
         slug,
-        label: BOARD_INSTRUMENT_LABELS[slug] ?? (slug === KIP_FALLBACK_SLUG ? KIP_FALLBACK_DISPLAY_NAME : slug),
+        label: CAST_MEMBER_LABELS[slug] ?? (slug === KIP_FALLBACK_SLUG ? KIP_FALLBACK_DISPLAY_NAME : slug),
       })
     }
-    return instruments
+    return castMembers
   }, [
     kipMode,
-    isDirectorMode,
+    isDirectedCueing,
     directorAgentSlug,
     defaultAgentName,
     normalizedDomainLeadSlug,
     domainLeadDisplayName,
-    def.conversation.boardInstruments,
+    def.conversation.boardCast,
   ])
 
-  /** IDE Board — Kip is director; Cloud / Rendr from boardInstruments. */
-  const ideBoardInstruments = React.useMemo((): BoardInstrumentChip[] => {
-    if (kipMode !== "ide" || !isDirectorMode) return []
-    const instruments: BoardInstrumentChip[] = [
+  /** IDE Board — Kip is director; Cloud / Rendr from boardCast. */
+  const ideCast = React.useMemo((): CastMemberChip[] => {
+    if (kipMode !== "ide" || !isDirectedCueing) return []
+    const castMembers: CastMemberChip[] = [
       {
         slug: directorAgentSlug,
         label: defaultAgentName,
         isDirector: true,
       },
     ]
-    for (const slug of def.conversation.boardInstruments ?? []) {
+    for (const slug of def.conversation.boardCast ?? []) {
       if (canonicalAgentSlug(slug) === canonicalAgentSlug(directorAgentSlug)) continue
-      instruments.push({
+      castMembers.push({
         slug,
-        label: BOARD_INSTRUMENT_LABELS[slug] ?? slug,
+        label: CAST_MEMBER_LABELS[slug] ?? slug,
       })
     }
-    return instruments
+    return castMembers
   }, [
     kipMode,
-    isDirectorMode,
+    isDirectedCueing,
     directorAgentSlug,
     defaultAgentName,
-    def.conversation.boardInstruments,
+    def.conversation.boardCast,
   ])
 
   const composerAgentChips = React.useMemo((): ComposerAgentChip[] => {
@@ -813,7 +806,7 @@ export function UniversalConversation({
     }
     if (
       kipMode !== "domain" ||
-      !isDirectorMode ||
+      !isDirectedCueing ||
       !normalizedDomainLeadSlug ||
       !composerLeadSlug ||
       composerLeadSlug !== normalizedDomainLeadSlug
@@ -829,7 +822,7 @@ export function UniversalConversation({
   }, [
     kipMode,
     isLeadLedDomain,
-    isDirectorMode,
+    isDirectedCueing,
     composerLeadSlug,
     domainLeadDisplayName,
     normalizedDomainLeadSlug,
@@ -838,14 +831,14 @@ export function UniversalConversation({
   /** Domain: toolbar shows lead identity; Kip lives in footer Agents bar. */
   const showComposerToolbarAgentIdentity =
     kipMode !== "domain"
-    || (!isDirectorMode && !isLeadLedDomain)
+    || (!isDirectedCueing && !isLeadLedDomain)
     || composerAgentChips.length > 0
 
   const dialogAgentSlug = isLeadLedDomain
     ? (normalizedDomainLeadSlug ?? baseAgentSlug)
     : guidedArrivalActive && guidedArrival
       ? guidedArrival.leadAgentSlug
-      : isDirectorMode
+      : isDirectedCueing
         ? directorAgentSlug
         : usingSelectedNonDefaultAgent && selectedAgentRecord
           ? selectedAgentRecord.slug
@@ -862,7 +855,7 @@ export function UniversalConversation({
         ? composerAgentChips[0].label
         : usesDomainLeadAgent
           ? (domainLeadDisplayName ?? frameLeadIdentity.displayName)
-          : isDirectorMode
+          : isDirectedCueing
             ? defaultAgentName
             : usingSelectedNonDefaultAgent && selectedAgentRecord
               ? selectedAgentRecord.name
@@ -874,82 +867,77 @@ export function UniversalConversation({
     user?.name?.trim() || user?.email?.trim() || "You"
 
   /**
-   * IDE/Designer: single-instrument delegation via activeBoardInstrument.
-   * Domain/Realm multi-select: consult each engaged cast member for real minimal
-   * input (or honest empty) before Lead synthesizes.
+   * IDE/Designer: single-cast-member delegation via activeCastMember.
+   * Domain/Realm multi-select: consult each cued cast member for real minimal
+   * input (or honest empty) before director synthesizes.
    */
-  const instrumentParticipation = React.useMemo(() => {
+  const castParticipationMap = React.useMemo(() => {
     const map: Record<string, "voice" | "support_only" | "silent"> = {}
-    for (const chip of domainDirectorBoardInstruments) {
+    for (const chip of domainDirectorCast) {
       if (chip.dialogParticipation) {
         map[chip.slug.trim().toLowerCase()] = chip.dialogParticipation
       }
     }
     return map
-  }, [domainDirectorBoardInstruments])
+  }, [domainDirectorCast])
 
   /**
-   * Multi-select cast consult targets.
-   * Empty chip selection used to mean "consult nobody" — Kip then invented roll calls.
-   * Empty now means "consult the full non-Lead cast" so Roll Call / everyone-speak works
-   * without requiring the user to click every chip first. Explicit chip selection narrows.
+   * Multi-select cast cue targets.
+   * Empty cue selection means "Lead only" — no cast member is consulted and the
+   * director answers solo. Explicit chip cues narrow to just those cast members.
    */
-  const resolvedConsultInstruments = React.useMemo(() => {
-    if (!instrumentMultiSelect || !isDirectorMode) return [] as string[]
-    if (activeBoardInstruments.length > 0) return [...activeBoardInstruments]
-    return domainDirectorBoardInstruments
-      .filter((chip) => !chip.isDirector)
-      .filter((chip) => (chip.dialogParticipation ?? "voice") !== "silent")
-      .map((chip) => chip.slug)
+  const resolvedCuedCastSlugs = React.useMemo(() => {
+    if (!castMultiSelect || !isDirectedCueing) return [] as string[]
+    if (cuedCastMembers.length > 0) return [...cuedCastMembers]
+    return []
   }, [
-    instrumentMultiSelect,
-    isDirectorMode,
-    activeBoardInstruments,
-    domainDirectorBoardInstruments,
+    castMultiSelect,
+    isDirectedCueing,
+    cuedCastMembers,
   ])
 
   const directorConfig = React.useMemo(
     () => {
-      if (!isDirectorMode) return undefined
-      if (instrumentMultiSelect) {
+      if (!isDirectedCueing) return undefined
+      if (castMultiSelect) {
         return {
-          activeInstrument: null as string | null,
-          consultInstruments: resolvedConsultInstruments,
-          instrumentLabels: directorInstrumentLabels,
-          instrumentParticipation,
+          activeCastMember: null as string | null,
+          cuedCastSlugs: resolvedCuedCastSlugs,
+          castLabels: directorCastLabels,
+          castParticipation: castParticipationMap,
           directorDisplayName: defaultAgentName,
         }
       }
       return {
-        activeInstrument: activeBoardInstrument,
-        instrumentLabels: directorInstrumentLabels,
-        instrumentParticipation,
+        activeCastMember,
+        castLabels: directorCastLabels,
+        castParticipation: castParticipationMap,
         directorDisplayName: defaultAgentName,
       }
     },
     [
-      isDirectorMode,
-      instrumentMultiSelect,
-      activeBoardInstrument,
-      resolvedConsultInstruments,
+      isDirectedCueing,
+      castMultiSelect,
+      activeCastMember,
+      resolvedCuedCastSlugs,
       defaultAgentName,
-      directorInstrumentLabels,
-      instrumentParticipation,
+      directorCastLabels,
+      castParticipationMap,
     ],
   )
 
   const engagedCollaboratorStamp = React.useMemo(() => {
-    if (!instrumentMultiSelect || !resolvedConsultInstruments.length) return []
-    return resolvedConsultInstruments.map((slug) => ({
+    if (!castMultiSelect || !resolvedCuedCastSlugs.length) return []
+    return resolvedCuedCastSlugs.map((slug) => ({
       slug,
       label:
-        directorInstrumentLabels[slug]
-        ?? resolvedBoardInstrumentLabel(slug, domainScopedAgents),
+        directorCastLabels[slug]
+        ?? resolvedCastMemberLabel(slug, domainScopedAgents),
     }))
   }, [
-    instrumentMultiSelect,
-    resolvedConsultInstruments,
-    directorInstrumentLabels,
+    castMultiSelect,
+    resolvedCuedCastSlugs,
+    directorCastLabels,
     domainScopedAgents,
   ])
 
@@ -1442,7 +1430,7 @@ export function UniversalConversation({
 
       // Domain/Realm multi-select — stamp who was engaged on the lead reply.
       const stamp = engagedCollaboratorStampRef.current
-      if (instrumentMultiSelect && stamp.length > 0 && setMessagesRef.current) {
+      if (castMultiSelect && stamp.length > 0 && setMessagesRef.current) {
         setMessagesRef.current((prev) => {
           const targetIdx = prev.findLastIndex(
             (m) => m.role === "agent" && !isThinkingPlaceholder(m.content, dialogAgentDisplayName),
@@ -1597,7 +1585,7 @@ export function UniversalConversation({
       agentContext,
       dialogAgentDisplayName,
       defaultAgentName,
-      instrumentMultiSelect,
+      castMultiSelect,
     ],
   )
 
@@ -1715,7 +1703,7 @@ export function UniversalConversation({
     manageSessionExternally:
       kipMode === "ide" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
     directorConfig,
-    onDirectorPhaseChange: isDirectorMode ? setDirectorSendPhase : undefined,
+    onDirectorPhaseChange: isDirectedCueing ? setDirectorSendPhase : undefined,
     userId: user?.id ?? null,
     userDisplayName: dialogUserDisplayName,
     strictAgentResolution: kipMode === "designer",
@@ -1730,15 +1718,15 @@ export function UniversalConversation({
   }, [selection.draftComposeHint, setInput, actions])
 
   const horizonThinkingLabel = React.useMemo(() => {
-    if (!isDirectorMode || !isSending) return undefined
-    if (directorSendPhase === "instrument" && activeBoardInstrument) {
-      return `${directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument} is thinking…`
+    if (!isDirectedCueing || !isSending) return undefined
+    if (directorSendPhase === "cast" && activeCastMember) {
+      return `${directorCastLabels[activeCastMember] ?? activeCastMember} is thinking…`
     }
     if (directorSendPhase === "director") {
       return `${defaultAgentName} is thinking…`
     }
     return undefined
-  }, [isDirectorMode, isSending, directorSendPhase, activeBoardInstrument, defaultAgentName, directorInstrumentLabels])
+  }, [isDirectedCueing, isSending, directorSendPhase, activeCastMember, defaultAgentName, directorCastLabels])
 
   setMessagesRef.current = setMessages
 
@@ -1822,45 +1810,45 @@ export function UniversalConversation({
     idleMessages,
   })
 
-  // ── Director mode: composer invoke — multi (Domain/Realm) vs single-swap (IDE/Designer)
-  const handleBoardInstrumentInvoke = React.useCallback(
+  // ── Directed cueing: composer invoke — multi (Domain/Realm) vs single-swap (IDE/Designer)
+  const handleCastCueToggle = React.useCallback(
     (slug: string) => {
       if (isLeadLedDomain && kipMode === "domain") {
         const slugKey = canonicalAgentSlug(slug)
         if (slugKey === KIP_FALLBACK_SLUG) {
-          actions.onSetActiveBoardInstrument(
+          actions.onSetActiveCastMember(
             kipSupportInvoked ? KIP_SUPPORT_DISENGAGED : null,
           )
         }
         return
       }
-      if (!isDirectorMode) return
+      if (!isDirectedCueing) return
       // Lead is always engaged — composer chip is locked; ignore clicks.
       if (slug === directorAgentSlug) return
 
-      if (instrumentMultiSelect) {
-        actions.onToggleBoardInstrument(slug)
+      if (castMultiSelect) {
+        actions.onToggleCastCue(slug)
         return
       }
 
-      // IDE / Designer — single-active-instrument swap (unchanged).
+      // IDE / Designer — single-active-cast-member swap (unchanged).
       if (normalizedDomainLeadSlug && slug === normalizedDomainLeadSlug) {
         setComposerLeadSlug(slug)
-        actions.onSetActiveBoardInstrument(slug)
+        actions.onSetActiveCastMember(slug)
         return
       }
-      const next = activeBoardInstrument === slug ? null : slug
-      actions.onSetActiveBoardInstrument(next)
+      const next = activeCastMember === slug ? null : slug
+      actions.onSetActiveCastMember(next)
     },
     [
       isLeadLedDomain,
       kipMode,
       kipSupportInvoked,
-      isDirectorMode,
+      isDirectedCueing,
       directorAgentSlug,
-      instrumentMultiSelect,
+      castMultiSelect,
       normalizedDomainLeadSlug,
-      activeBoardInstrument,
+      activeCastMember,
       actions,
     ],
   )
@@ -1870,24 +1858,24 @@ export function UniversalConversation({
       if (slug !== composerLeadSlug) return
       setComposerLeadSlug(null)
       if (normalizedDomainLeadSlug && slug === normalizedDomainLeadSlug) {
-        actions.onSetActiveBoardInstrument(normalizedDomainLeadSlug)
+        actions.onSetActiveCastMember(normalizedDomainLeadSlug)
         return
       }
-      if (activeBoardInstrument === slug) {
-        actions.onSetActiveBoardInstrument(null)
+      if (activeCastMember === slug) {
+        actions.onSetActiveCastMember(null)
       }
     },
-    [composerLeadSlug, normalizedDomainLeadSlug, activeBoardInstrument, actions],
+    [composerLeadSlug, normalizedDomainLeadSlug, activeCastMember, actions],
   )
 
   const handleToolInvoke = React.useCallback(
     (tool: ToolSlug) => {
-      handleBoardInstrumentInvoke(tool)
+      handleCastCueToggle(tool)
     },
-    [handleBoardInstrumentInvoke],
+    [handleCastCueToggle],
   )
 
-  // IDE Board owns Kip session lifecycle (instruments do not swap the dialog agent).
+  // IDE Board owns Kip session lifecycle (cast cues do not swap the dialog agent).
   // Resume-only on mount — Dialog/session create waits for first real send.
   React.useEffect(() => {
     if (kipMode !== "ide" || !agentId) return
@@ -2058,8 +2046,8 @@ export function UniversalConversation({
       case "ide":
         return {
           primary: defaultAgentName,
-          secondary: activeBoardInstrument
-            ? (directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument)
+          secondary: activeCastMember
+            ? (directorCastLabels[activeCastMember] ?? activeCastMember)
             : (journeyName ?? keeperName ?? domainName ?? undefined),
           sessionLabel: "Session" as const,
         }
@@ -2114,14 +2102,14 @@ export function UniversalConversation({
         return {
           primary: wordmark,
           ...(tagline ? { tagline } : {}),
-          ...(instrumentMultiSelect && engagedCollaboratorStamp.length
+          ...(castMultiSelect && engagedCollaboratorStamp.length
             ? {
                 secondary: engagedCollaboratorStamp.map((c) => c.label).join(" · "),
               }
-            : activeBoardInstrument
+            : activeCastMember
               ? {
                   secondary:
-                    directorInstrumentLabels[activeBoardInstrument] ?? activeBoardInstrument,
+                    directorCastLabels[activeCastMember] ?? activeCastMember,
                 }
               : {}),
           livePulse: { color: primaryAccent },
@@ -2153,11 +2141,11 @@ export function UniversalConversation({
     dialogAgentDisplayName,
     selectedBoardDefId,
     hasDraftSpec,
-    activeBoardInstrument,
-    instrumentMultiSelect,
+    activeCastMember,
+    castMultiSelect,
     engagedCollaboratorStamp,
     defaultAgentName,
-    directorInstrumentLabels,
+    directorCastLabels,
     journeyCount,
     momentCount,
     selection.trainingMode,
@@ -2422,7 +2410,7 @@ export function UniversalConversation({
 
   const [inviteOpen, setInviteOpen] = React.useState(false)
 
-  /** Realm trailing access chrome only — agent roster uses BoardInstrumentsBar. */
+  /** Realm trailing access chrome only — agent roster uses CastCueBar. */
   const castAccessActions = React.useMemo(() => {
     if (!def.conversation.castBar) return undefined
     return {
@@ -2432,21 +2420,21 @@ export function UniversalConversation({
     }
   }, [def.conversation.castBar, domainId, actions])
 
-  const resolvedBoardInstruments = React.useMemo((): BoardInstrumentChip[] | undefined => {
-    if (isLeadLedDomain && kipMode === "domain") return domainCollaborationInstruments
-    if (!isDirectorMode) return undefined
-    if (kipMode === "ide") return ideBoardInstruments
-    if (kipMode === "designer") return designerBoardInstruments
-    if (kipMode === "domain") return domainDirectorBoardInstruments
+  const resolvedBoardCast = React.useMemo((): CastMemberChip[] | undefined => {
+    if (isLeadLedDomain && kipMode === "domain") return domainCollaborationCast
+    if (!isDirectedCueing) return undefined
+    if (kipMode === "ide") return ideCast
+    if (kipMode === "designer") return designerCast
+    if (kipMode === "domain") return domainDirectorCast
     return undefined
   }, [
     isLeadLedDomain,
     kipMode,
-    isDirectorMode,
-    ideBoardInstruments,
-    designerBoardInstruments,
-    domainDirectorBoardInstruments,
-    domainCollaborationInstruments,
+    isDirectedCueing,
+    ideCast,
+    designerCast,
+    domainDirectorCast,
+    domainCollaborationCast,
   ])
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -2476,33 +2464,34 @@ export function UniversalConversation({
         suppressMobileDomainBanner={suppressMobileDomainBanner === true}
         showServiceBar={def.conversation.showServiceBar}
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
-        onToolInvoke={isDirectorMode && kipMode === "ide" ? handleToolInvoke : undefined}
+        onToolInvoke={isDirectedCueing && kipMode === "ide" ? handleToolInvoke : undefined}
         activeToolSlug={
-          isDirectorMode && kipMode === "ide"
-            ? (activeBoardInstrument === "cloud" || activeBoardInstrument === "rendr"
-                ? activeBoardInstrument
+          isDirectedCueing && kipMode === "ide"
+            ? (activeCastMember === "cloud" || activeCastMember === "rendr"
+                ? activeCastMember
                 : null)
             : null
         }
-        boardInstruments={resolvedBoardInstruments}
-        onBoardInstrumentInvoke={
-          resolvedBoardInstruments?.length ? handleBoardInstrumentInvoke : undefined
+        boardCast={resolvedBoardCast}
+        onCastCueToggle={
+          resolvedBoardCast?.length ? handleCastCueToggle : undefined
         }
-        activeBoardInstrumentSlug={
+        activeCastMemberSlug={
           isLeadLedDomain && kipMode === "domain"
             ? (kipSupportInvoked ? KIP_FALLBACK_SLUG : KIP_SUPPORT_DISENGAGED)
-            : isDirectorMode && !instrumentMultiSelect
+            : isDirectedCueing && !castMultiSelect
               && (kipMode === "designer" || kipMode === "ide")
-              ? activeBoardInstrument
+              ? activeCastMember
               : null
         }
-        activeBoardInstrumentSlugs={
-          instrumentMultiSelect && isDirectorMode ? activeBoardInstruments : []
+        cuedCastMemberSlugs={
+          castMultiSelect && isDirectedCueing ? cuedCastMembers : []
         }
-        instrumentSelectionMode={instrumentMultiSelect ? "multi" : "single"}
-        boardInstrumentsLeadLocked
+        castCueSelectionMode={castMultiSelect ? "multi" : "single"}
+        castLeadLocked
         castHeaderEyebrow={def.conversation.castBar ? "Cast" : "Agents"}
-        boardInstrumentsCollaborationMode={
+        cueingLabel={cueingLabel}
+        castCollaborationMode={
           isLeadLedDomain && kipMode === "domain" ? true : undefined
         }
         castAccessActions={castAccessActions}

@@ -130,6 +130,8 @@ export interface KeeperDialogFrameProps {
   castEyebrow?: string
   /** Header cast eyebrow — defaults to "Cast". */
   castHeaderEyebrow?: string
+  /** Cueing mode label shown next to the header cast eyebrow (e.g. "Cueing: Directed"). */
+  cueingLabel?: string
   castCueSelectionMode?: CastCueSelectionMode
   /** Lead chip always engaged at composer (default true). */
   castLeadLocked?: boolean
@@ -285,6 +287,7 @@ export function KeeperDialogFrame({
   cuedCastMemberSlugs = [],
   castEyebrow = "Agents",
   castHeaderEyebrow = "Cast",
+  cueingLabel,
   castCueSelectionMode = "single",
   castLeadLocked = true,
   castCollaborationMode = false,
@@ -743,6 +746,7 @@ export function KeeperDialogFrame({
       {mode !== "feed" && boardCast?.length && !hideCastHeaderOnMobileResponse ? (
         <DirectorCastHeader
           eyebrow={castHeaderEyebrow}
+          cueingLabel={cueingLabel}
           instruments={boardCast}
           castCandidates={castCandidates}
           onEnableCandidate={onEnableCastCandidate}
