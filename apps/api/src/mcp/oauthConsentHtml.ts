@@ -24,6 +24,7 @@ export function renderOauthConsentPage(params: {
   const scopeLabels: Record<string, string> = {
     'library.ro': 'Library read',
     'library.rw': 'Library read/write',
+    'dialog.ro': 'Dialog Document read',
     'gloss.rw': 'Gloss write',
   };
 

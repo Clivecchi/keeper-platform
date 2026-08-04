@@ -63,6 +63,16 @@ async function assertAnchorEntityReadableInDomain(
       }
       return;
     }
+    case 'dialog': {
+      const dialog = await prisma.dialog.findFirst({
+        where: { id: anchor.entityId, domain_id: domainId },
+        select: { id: true },
+      });
+      if (!dialog) {
+        throw new Error(`Dialog not found in domain: ${anchor.entityId}`);
+      }
+      return;
+    }
     default:
       return;
   }

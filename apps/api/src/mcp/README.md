@@ -27,13 +27,14 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 
 ### Authentication
 - **Platform key:** `OPAI_AGENT_MCP_KEY` — full scope (`*`), optional `x-domain-id`
-- **Scoped keys:** `KAM_LIBRARY_MCP_KEYS` JSON array — `{ key, domainId, scopes: ["library.ro"] }` or `["gloss.rw"]`; header `x-domain-id` must match entry
+- **Scoped keys:** `KAM_LIBRARY_MCP_KEYS` JSON array — `{ key, domainId, scopes: ["library.ro"] }` or `["dialog.ro","gloss.rw"]`; header `x-domain-id` must match entry
 - **DomainAccessKey:** `keeper_dak_*` hashed keys from Domain Nav → External Access
+- **Scopes:** `library.ro` | `library.rw` | `dialog.ro` | `gloss.rw` (see `@keeper/shared` `DOMAIN_ACCESS_KEY_SCOPES`)
 - Accepts key from either:
   - `Authorization: Bearer <key>`
   - `x-api-key: <key>`
 - **OAuth (Phase A+B):** Unauthenticated 401s include
-  `WWW-Authenticate: Bearer resource_metadata="https://api.ke3p.com/.well-known/oauth-protected-resource", scope="library.ro library.rw gloss.rw"`.
+  `WWW-Authenticate: Bearer resource_metadata="https://api.ke3p.com/.well-known/oauth-protected-resource", scope="library.ro library.rw dialog.ro gloss.rw"`.
   Canonical connector URL / PRM `resource`: `https://api.ke3p.com/mcp`.
   AS: `/oauth/authorize` (CIMD + KAM consent), `/oauth/token` (PKCE + refresh), `/oauth/register` (DCR), `/oauth/revoke`.
   Tokens resolve via `McpOAuthGrant` → same `{ domainId, scopes }` as DomainAccessKey (`mode: 'oauth'` in `resolveMcpAuth`).
@@ -41,13 +42,18 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 See `docs/library-shared-context-roadmap.md` for rationale.
 
 ### Available Tools
-Library (read-only, `library.ro`):
+Library (read-only, `library.ro`) — responses include `domainId`, `domainName`, `domainSlug`:
 1. **`library_list`** — recent Library items for domain
 2. **`library_get`** — single LibraryItem by id
 3. **`library_search`** — semantic search over perspectives
 
+Dialog Documents (read-only, `dialog.ro`) — not LibraryItems; use for titles like “Becoming Together”:
+4. **`dialog_list`** — Dialog Document index
+5. **`dialog_search`** — title / forward / step text search
+6. **`dialog_read`** — Document state + `messageId` + `suggestedAnchor` for Gloss
+
 Gloss (thread write only, `gloss.rw` — never mutates anchored entities):
-4. **`gloss_write_turn`** — append one turn to `kip_messages.metadata.glossThreads`
+7. **`gloss_write_turn`** — append one turn to `kip_messages.metadata.glossThreads` (use `messageId` from `dialog_read`)
 
 Legacy / infra tools (capability-gated): Railway, Vercel, GitHub, integrations, etc.
 
@@ -1000,6 +1006,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 ## 📆 Update Log
 
 **2026-08-03**: **OAuth consent false expiry** — `express.text(*/*)` parsed HTML form POSTs before `urlencoded`, so `consent_ticket` never reached `/oauth/authorize` ("Expired consent"). Middleware order fixed in `index.ts`; OAuth routes also parse raw form strings defensively.
+
+**2026-08-03**: Added `dialog.ro` scope + `dialog_list` / `dialog_search` / `dialog_read` MCP tools. `dialog_read` returns Document state, `messageId` (gloss carrier), and `suggestedAnchor` for `gloss_write_turn`. Library tools now include `domainName` / `domainSlug`. External Access can PATCH OAuth grant scopes (Add Dialog+Gloss).
 
 **2026-08-03**: Claude OAuth “Couldn't send tool approval” on `integrations_list` — root cause: `tools/list` advertised the full infra catalog while OAuth grants only have `library.*` / `gloss.rw`, so capability checks failed mid-approval. Fix: filter `tools/list` by grant scopes; treat `*` as allow-all; return MCP `isError` tool results (not JSON-RPC faults) on `tools/call` failures.
 

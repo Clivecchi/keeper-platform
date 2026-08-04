@@ -189,7 +189,11 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     if (body.action && body.arguments) params.arguments = body.arguments;
 
     // Extract domain context from headers + scoped MCP auth
-    const mcpAuth = (req as any).mcpAuth as { domainId?: string | null; scopes?: string[] } | undefined;
+    const mcpAuth = (req as any).mcpAuth as {
+      domainId?: string | null;
+      scopes?: string[];
+      userId?: string;
+    } | undefined;
     const domainId =
       mcpAuth?.domainId ?? ((req.headers['x-domain-id'] as string) ?? null);
     const agentSlug = (req.headers['x-agent-slug'] as string) ?? undefined;
@@ -201,6 +205,7 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     const listScopes = authScopes.length > 0 ? authScopes : undefined;
     const ctx = {
       domainId,
+      userId: mcpAuth?.userId ?? null,
       agentCapabilities: [
         ...(resolvedCaps?.capabilities ?? []),
         ...authScopes,

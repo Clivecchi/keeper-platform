@@ -18,9 +18,26 @@ describe('MCP OAuth scope gating', () => {
     expect(names).toContain('library_list');
     expect(names).toContain('library_search');
     expect(names).toContain('gloss_write_turn');
+    expect(names).not.toContain('dialog_list');
     expect(names).not.toContain('integrations_list');
     expect(names).not.toContain('github_repo_read');
     expect(names).not.toContain('railway_get_services');
+  });
+
+  it('exposes dialog tools when dialog.ro is granted', () => {
+    const names = filterToolsByScopes(['library.ro', 'dialog.ro', 'gloss.rw']).map(
+      (t) => t.name,
+    );
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'library_list',
+        'dialog_list',
+        'dialog_search',
+        'dialog_read',
+        'gloss_write_turn',
+      ]),
+    );
+    expect(names).not.toContain('integrations_list');
   });
 
   it('mcpListActions with library.ro hides infra tools Claude was approving', () => {

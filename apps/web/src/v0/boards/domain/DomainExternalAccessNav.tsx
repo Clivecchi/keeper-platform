@@ -36,10 +36,20 @@ function formatScopeList(scopes: string[]): string {
     .map((scope) => {
       if (scope === "library.ro") return "Library read"
       if (scope === "library.rw") return "Library read/write"
+      if (scope === "dialog.ro") return "Dialog read"
       if (scope === "gloss.rw") return "Gloss write"
       return scope
     })
     .join(", ")
+}
+
+/** Library + Dialog Document read + Gloss write — Claude Document → Gloss chain. */
+function withDialogAndGlossScopes(scopes: string[]): string[] {
+  const next = new Set(scopes)
+  if (!next.has("library.rw")) next.add("library.ro")
+  next.add("dialog.ro")
+  next.add("gloss.rw")
+  return [...next]
 }
 
 export interface DomainExternalAccessNavProps {
@@ -59,6 +69,7 @@ export function DomainExternalAccessNav({
   const [label, setLabel] = React.useState("")
   const [creating, setCreating] = React.useState(false)
   const [revokingGrantId, setRevokingGrantId] = React.useState<string | null>(null)
+  const [updatingGrantId, setUpdatingGrantId] = React.useState<string | null>(null)
   const [revealedSecret, setRevealedSecret] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
   const [copiedDomainId, setCopiedDomainId] = React.useState(false)
@@ -144,6 +155,26 @@ export function DomainExternalAccessNav({
       setError(err instanceof Error ? err.message : "Revoke failed")
     } finally {
       setRevokingGrantId(null)
+    }
+  }
+
+  const handleEnableDialogGloss = async (grant: McpOAuthGrantRecord) => {
+    if (!domainId) return
+    setUpdatingGrantId(grant.id)
+    setError(null)
+    try {
+      await apiFetch(
+        `/api/domains/${encodeURIComponent(domainId)}/oauth-grants/${encodeURIComponent(grant.id)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ scopes: withDialogAndGlossScopes(grant.scopes) }),
+        },
+      )
+      await reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Scope update failed")
+    } finally {
+      setUpdatingGrantId(null)
     }
   }
 
@@ -234,30 +265,46 @@ export function DomainExternalAccessNav({
             OAuth grants
           </p>
           <ul className="flex flex-col gap-1">
-            {activeGrants.map((grant) => (
-              <li
-                key={grant.id}
-                className="flex items-start justify-between gap-2 px-2 py-1.5 rounded-sm"
-                style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 84%))" }}
-              >
-                <div className="min-w-0">
-                  <span className="text-[14px] leading-snug block truncate">
-                    {grant.client_name?.trim() || "OAuth client"}
-                  </span>
-                  <span className="text-[12px] leading-snug block opacity-80 truncate">
-                    {formatScopeList(grant.scopes)}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  disabled={revokingGrantId === grant.id}
-                  onClick={() => void handleRevokeGrant(grant.id)}
-                  className="text-[12px] underline underline-offset-2 shrink-0 disabled:opacity-50"
+            {activeGrants.map((grant) => {
+              const needsDialogGloss =
+                !grant.scopes.includes("dialog.ro") || !grant.scopes.includes("gloss.rw")
+              return (
+                <li
+                  key={grant.id}
+                  className="flex items-start justify-between gap-2 px-2 py-1.5 rounded-sm"
+                  style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 84%))" }}
                 >
-                  {revokingGrantId === grant.id ? "…" : "Revoke"}
-                </button>
-              </li>
-            ))}
+                  <div className="min-w-0">
+                    <span className="text-[14px] leading-snug block truncate">
+                      {grant.client_name?.trim() || "OAuth client"}
+                    </span>
+                    <span className="text-[12px] leading-snug block opacity-80 truncate">
+                      {formatScopeList(grant.scopes)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    {needsDialogGloss ? (
+                      <button
+                        type="button"
+                        disabled={updatingGrantId === grant.id}
+                        onClick={() => void handleEnableDialogGloss(grant)}
+                        className="text-[12px] underline underline-offset-2 disabled:opacity-50"
+                      >
+                        {updatingGrantId === grant.id ? "…" : "Add Dialog+Gloss"}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={revokingGrantId === grant.id}
+                      onClick={() => void handleRevokeGrant(grant.id)}
+                      className="text-[12px] underline underline-offset-2 disabled:opacity-50"
+                    >
+                      {revokingGrantId === grant.id ? "…" : "Revoke"}
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         </div>
       ) : null}

@@ -1,5 +1,10 @@
 /** Domain external access key scopes — MCP capability gates. */
-export const DOMAIN_ACCESS_KEY_SCOPES = ['library.ro', 'library.rw', 'gloss.rw'] as const;
+export const DOMAIN_ACCESS_KEY_SCOPES = [
+  'library.ro',
+  'library.rw',
+  'dialog.ro',
+  'gloss.rw',
+] as const;
 
 export type DomainAccessKeyScope = (typeof DOMAIN_ACCESS_KEY_SCOPES)[number];
 

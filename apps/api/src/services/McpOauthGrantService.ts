@@ -522,6 +522,30 @@ export async function listOauthGrants(domainId: string): Promise<McpOAuthGrantRe
   return rows.map(toGrantRecord);
 }
 
+/** Admin: expand/replace scopes on an active grant (e.g. add dialog.ro). */
+export async function updateOauthGrantScopes(params: {
+  domainId: string;
+  id: string;
+  scopes: string[];
+}): Promise<McpOAuthGrantRecord> {
+  const scopes = filterRequestedScopes(params.scopes);
+  if (scopes.length === 0) {
+    throw new Error(`At least one scope is required (${DOMAIN_ACCESS_KEY_SCOPES.join(', ')})`);
+  }
+  const existing = await prisma.mcpOAuthGrant.findFirst({
+    where: { id: params.id, domain_id: params.domainId, status: 'active' },
+  });
+  if (!existing) throw new Error('Active grant not found');
+
+  const updated = await prisma.mcpOAuthGrant.update({
+    where: { id: existing.id },
+    data: { scopes, updated_at: new Date() },
+  });
+  // Drop short-lived access tokens so the next call refreshes with new scopes.
+  await prisma.mcpOAuthAccessToken.deleteMany({ where: { grant_id: existing.id } });
+  return toGrantRecord(updated);
+}
+
 export async function revokeOauthGrant(params: {
   domainId: string;
   id: string;

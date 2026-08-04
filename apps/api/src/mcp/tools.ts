@@ -10,11 +10,15 @@ import { ResendService } from '../services/ResendService.js';
 import { prisma } from '@keeper/database';
 import { searchLibraryItems } from '../services/LibraryItemSearchService.js';
 import { appendGlossTurn } from '../services/GlossWriteService.js';
+import { DialogMcpService } from '../services/DialogMcpService.js';
+import { resolveMcpDomainLabel } from './domainContext.js';
 import { isGlossAnchor } from '@keeper/shared';
 
 export type ToolContext = {
   domainId: string | null;
   agentCapabilities?: string[];
+  /** OAuth grant user (used to create gloss carrier sessions when needed). */
+  userId?: string | null;
 };
 
 export type Tool = {
@@ -505,6 +509,7 @@ const tools: Tool[] = [
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'library_list')!, ctx);
       if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const domain = await resolveMcpDomainLabel(ctx.domainId);
       const limit = Math.min(Math.max(Number(args?.limit ?? 20), 1), 50);
       const rows = await prisma.libraryItem.findMany({
         where: { domain_id: ctx.domainId },
@@ -519,7 +524,7 @@ const tools: Tool[] = [
           updated_at: true,
         },
       });
-      return { domainId: ctx.domainId, items: rows };
+      return { ...domain, items: rows };
     },
   },
   {
@@ -537,13 +542,14 @@ const tools: Tool[] = [
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'library_get')!, ctx);
       if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const domain = await resolveMcpDomainLabel(ctx.domainId);
       const id = String(args.id ?? '').trim();
       if (!id) throw new Error('id is required');
       const item = await prisma.libraryItem.findFirst({
         where: { id, domain_id: ctx.domainId },
       });
       if (!item) throw new Error(`Library item not found: ${id}`);
-      return { item };
+      return { ...domain, item };
     },
   },
   {
@@ -562,17 +568,89 @@ const tools: Tool[] = [
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'library_search')!, ctx);
       if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const domain = await resolveMcpDomainLabel(ctx.domainId);
       const query = String(args.query ?? '').trim();
       if (!query) throw new Error('query is required');
       const limit = Math.min(Math.max(Number(args?.limit ?? 10), 1), 20);
       const results = await searchLibraryItems({ domainId: ctx.domainId, query, limit });
-      return { query, results };
+      return { ...domain, query, results };
+    },
+  },
+  {
+    name: 'dialog_list',
+    description:
+      'List Dialog Documents in the current domain (title, status, forward/step). Required capability: dialog.ro.',
+    requiredCapability: 'dialog.ro',
+    parameters: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', minimum: 1, maximum: 50, default: 20 },
+        status: {
+          type: 'string',
+          description: 'Optional document_status filter: drafts | kept | presented',
+        },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'dialog_list')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const status = typeof args.status === 'string' ? args.status : undefined;
+      return DialogMcpService.listDialogs({
+        domainId: ctx.domainId,
+        limit: Number(args.limit ?? 20),
+        status,
+      });
+    },
+  },
+  {
+    name: 'dialog_search',
+    description:
+      'Find Dialog Documents by title / forward / step text (e.g. "Becoming Together"). Required capability: dialog.ro.',
+    requiredCapability: 'dialog.ro',
+    parameters: {
+      type: 'object',
+      required: ['query'],
+      properties: {
+        query: { type: 'string', description: 'Title or forward/step search text' },
+        limit: { type: 'number', minimum: 1, maximum: 20, default: 10 },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'dialog_search')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      return DialogMcpService.searchDialogs({
+        domainId: ctx.domainId,
+        query: String(args.query ?? ''),
+        limit: Number(args.limit ?? 10),
+      });
+    },
+  },
+  {
+    name: 'dialog_read',
+    description:
+      'Read a Dialog Document (forward, step, paths, point previews) and return a kip_message id (messageId) usable with gloss_write_turn. Required capability: dialog.ro.',
+    requiredCapability: 'dialog.ro',
+    parameters: {
+      type: 'object',
+      required: ['dialogId'],
+      properties: {
+        dialogId: { type: 'string', description: 'Dialog id (Document durable identity)' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'dialog_read')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      return DialogMcpService.readDialog({
+        domainId: ctx.domainId,
+        dialogId: String(args.dialogId ?? ''),
+        userId: ctx.userId,
+      });
     },
   },
   {
     name: 'gloss_write_turn',
     description:
-      'Append one Gloss turn to a message-anchored thread. Required capability: gloss.rw. Writes only kip_messages.metadata.glossThreads — never mutates the anchored LibraryItem, Draft, Moment, or other entity.',
+      'Append one Gloss turn to a message-anchored thread. Required capability: gloss.rw. Use messageId from dialog_read (or a Dialog discuss message). Writes only kip_messages.metadata.glossThreads — never mutates the anchored entity.',
     requiredCapability: 'gloss.rw',
     parameters: {
       type: 'object',
@@ -580,11 +658,13 @@ const tools: Tool[] = [
       properties: {
         messageId: {
           type: 'string',
-          description: 'Parent kip_message id that owns glossThreads metadata',
+          description:
+            'Parent kip_message id that owns glossThreads metadata (from dialog_read.messageId)',
         },
         anchor: {
           type: 'object',
-          description: 'GlossAnchor — entityKind, entityId, optional nodeId/messageId/receiptIndex',
+          description:
+            'GlossAnchor — prefer suggestedAnchor from dialog_read (entityKind draft|dialog, entityId, optional nodeId)',
         },
         content: {
           type: 'string',

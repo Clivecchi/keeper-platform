@@ -301,7 +301,7 @@ router.post('/call', async (req: Request, res: Response) => {
     const agentId = (req.headers['x-agent-id'] as string) ?? undefined;
     const boardId = (req.headers['x-board-id'] as string) ?? undefined;
     const resolvedCaps = await resolveAgentCapabilities({ agentSlug, agentId, boardId });
-    const mcpAuth = (req as any).mcpAuth as { scopes?: string[] } | undefined;
+    const mcpAuth = (req as any).mcpAuth as { scopes?: string[]; userId?: string } | undefined;
     const mergedCapabilities = [
       ...(resolvedCaps?.capabilities ?? []),
       ...(mcpAuth?.scopes ?? []),
@@ -312,6 +312,7 @@ router.post('/call', async (req: Request, res: Response) => {
       args ?? {}, 
       {
         domainId: (req as any).domainId ?? null,
+        userId: mcpAuth?.userId ?? null,
         agentCapabilities: mergedCapabilities,
       }
     );
