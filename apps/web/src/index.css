@@ -2397,6 +2397,19 @@ button.dialog-prelude:hover {
   font-weight: 600 !important;
 }
 
+/* Treatment accent tier — Nav + Dialog titles; body chrome stays Theme UI font */
+.keeper-treatment-accent .keeper-treatment-title {
+  font-family: var(--treatment-font-family, Georgia, serif);
+}
+
+/* Dialog accent wash — frame edge picks up domain accent without replacing Theme glass */
+.keeper-treatment-accent.keeper-dialog-treatment .keeper-dialog-frame {
+  border-color: hsl(var(--treatment-color) / 0.28);
+  box-shadow:
+    0 8px 32px hsl(var(--theme-ink-primary, 20 14% 14%) / 0.04),
+    inset 0 0 0 1px var(--treatment-color-alpha-08);
+}
+
 .keeper-nav-panel .keeper-sidebar-card button.inline-flex.rounded-full {
   color: hsl(var(--theme-accent-primary)) !important;
   border-color: hsl(var(--theme-accent-primary) / 0.35) !important;

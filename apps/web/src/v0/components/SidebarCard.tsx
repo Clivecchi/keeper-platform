@@ -161,10 +161,10 @@ export function SidebarCard({
                   aria-hidden
                 />
               ) : null}
-              <span className="truncate">{title}</span>
+              <span className="keeper-treatment-title truncate">{title}</span>
             </button>
           ) : (
-            <h3 className="text-xl font-semibold" style={{ color: SURFACE.inkPrimary }}>
+            <h3 className="keeper-treatment-title text-xl font-semibold" style={{ color: SURFACE.inkPrimary }}>
               {title}
             </h3>
           )}

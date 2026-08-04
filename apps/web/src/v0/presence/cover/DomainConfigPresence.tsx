@@ -58,7 +58,7 @@ const PRESENCE_FIELD_ORDER = [
   "visibility",
 ] as const
 
-/** Chronicle Treatment — stored in frame_json.treatment; affects right panel only. */
+/** Domain Treatment — stored in frame_json.treatment; full on Chronicle/Presents, accent on Nav/Dialog. */
 const TREATMENT_FIELD_ORDER = [
   "treatmentName",
   "treatmentBackground",
@@ -272,8 +272,8 @@ export function DomainConfigPresence({
             Treatment
           </p>
           <p className="text-[11px] mb-3" style={sectionLabelStyle}>
-            How Chronicle feels on this domain — background, accent, and type. Does not change the
-            center dialog or navigation.
+            How this domain feels — full look on Chronicle and Presents; accent and title type on
+            Nav and center Dialog. Trail bar stays neutral utility chrome.
           </p>
           <ConfigFieldGroup
             keys={treatmentKeys}

@@ -546,7 +546,7 @@ export function KeeperDialogFrame({
                     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                       <p
                         className={[
-                          "font-serif font-semibold leading-tight truncate",
+                          "keeper-treatment-title font-serif font-semibold leading-tight truncate",
                           domainBannerCompact ? "text-[15px]" : "text-lg",
                         ].join(" ")}
                         style={{ color: "hsl(var(--theme-ink-primary))" }}
@@ -655,7 +655,9 @@ export function KeeperDialogFrame({
                     )}
                     {hasBreadcrumb && (
                       <div className="dialog-breadcrumb">
-                        {bannerContext?.primary && <span>{bannerContext.primary}</span>}
+                        {bannerContext?.primary && (
+                          <span className="keeper-treatment-title">{bannerContext.primary}</span>
+                        )}
                         {bannerContext?.secondary && (
                           <>
                             <span className="breadcrumb-sep" aria-hidden>·</span>

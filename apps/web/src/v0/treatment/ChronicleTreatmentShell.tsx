@@ -9,7 +9,7 @@ export interface ChronicleTreatmentShellProps {
   children: React.ReactNode
 }
 
-/** Applies domain Treatment to Chronicle only — not the full board shell. */
+/** Full Domain Treatment — Chronicle + Presents (background, accent, font). */
 export function ChronicleTreatmentShell({
   treatment,
   children,
@@ -18,6 +18,7 @@ export function ChronicleTreatmentShell({
     <div
       className="flex flex-col h-full min-h-0 keeper-chronicle-treatment"
       data-treatment-name={treatment.name}
+      data-treatment-tier="full"
       style={treatmentShellStyle(treatment)}
     >
       {children}

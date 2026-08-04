@@ -80,6 +80,7 @@ import { applyAgentNavRowPatch } from "../presence/integrationChronicle/agentNav
 import { addLibraryUploadFromFile, createLibraryItem } from "../presence/integrationChronicle/libraryNavCreate"
 import { RealmStagedNav } from "../realm/RealmStagedNav"
 import { resolveDomainTreatment } from "../treatment/resolveDomainTreatment"
+import { TreatmentAccentShell } from "../treatment/TreatmentAccentShell"
 import {
   countDraftNavTitles,
   draftNavLabel,
@@ -1697,16 +1698,69 @@ export function UniversalNavPanel({
 
   if (navStages?.length) {
     return (
+      <TreatmentAccentShell treatment={realmTreatment} className="keeper-nav-panel overflow-hidden">
+        <div
+          className="flex flex-col h-full min-h-0 overflow-hidden"
+          style={{ color: "hsl(var(--theme-ink-primary))" }}
+        >
+          <div
+            className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
+            style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)" }}
+          >
+            <p
+              className="keeper-treatment-title text-[13px] font-medium truncate flex-1 min-w-0"
+              style={{ color: "hsl(var(--theme-ink-secondary))", letterSpacing: "0.01em" }}
+              title={domainName}
+            >
+              {domainName}
+            </p>
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="shrink-0 ml-1 p-1 rounded-md transition-opacity hover:opacity-60"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              aria-label="Collapse navigation panel"
+            >
+              <ChevronLeftIcon />
+            </button>
+          </div>
+          <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
+            <RealmStagedNav
+              domainId={domainId}
+              domainSlug={domainSlug}
+              treatment={realmTreatment}
+              stages={navStages}
+              selectedDialogId={selectedDialogId}
+              selectedDraftId={selectedDraftId}
+              selectedLibraryItemId={selectedLibraryItemId}
+              selectedMomentId={selectedMomentId}
+              onDialogSelect={onDialogSelect}
+              onDraftSelect={onDraftSelect}
+              onLibraryItemSelect={onLibraryItemSelect}
+              onMomentSelect={onMomentSelect}
+              onDraftCreate={user && domainId ? handleDraftCreate : undefined}
+            />
+          </div>
+        </div>
+      </TreatmentAccentShell>
+    )
+  }
+
+  return (
+    <TreatmentAccentShell treatment={realmTreatment} className="keeper-nav-panel overflow-hidden">
       <div
-        className="keeper-nav-panel flex flex-col h-full overflow-hidden"
-        style={{ color: "hsl(var(--theme-ink-primary))" }}
+        className="flex flex-col h-full min-h-0 overflow-hidden"
+        style={{
+          color: "hsl(var(--theme-ink-primary))",
+        }}
       >
+        {/* Domain name header — quiet anchor, not interactive */}
         <div
           className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
           style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)" }}
         >
           <p
-            className="text-[13px] font-medium truncate flex-1 min-w-0"
+            className="keeper-treatment-title text-[13px] font-medium truncate flex-1 min-w-0"
             style={{ color: "hsl(var(--theme-ink-secondary))", letterSpacing: "0.01em" }}
             title={domainName}
           >
@@ -1722,63 +1776,14 @@ export function UniversalNavPanel({
             <ChevronLeftIcon />
           </button>
         </div>
-        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
-          <RealmStagedNav
-            domainId={domainId}
-            domainSlug={domainSlug}
-            treatment={realmTreatment}
-            stages={navStages}
-            selectedDialogId={selectedDialogId}
-            selectedDraftId={selectedDraftId}
-            selectedLibraryItemId={selectedLibraryItemId}
-            selectedMomentId={selectedMomentId}
-            onDialogSelect={onDialogSelect}
-            onDraftSelect={onDraftSelect}
-            onLibraryItemSelect={onLibraryItemSelect}
-            onMomentSelect={onMomentSelect}
-            onDraftCreate={user && domainId ? handleDraftCreate : undefined}
-          />
+
+        {/* Scrollable SidebarCards — order from def.nav.primarySection when set */}
+        <div className="keeper-panel-scroll flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
+          {navBlockOrder.map((block) => (
+            <React.Fragment key={block}>{renderNavBlock(block)}</React.Fragment>
+          ))}
         </div>
       </div>
-    )
-  }
-
-  return (
-    <div
-      className="keeper-nav-panel flex flex-col h-full overflow-hidden"
-      style={{
-        color: "hsl(var(--theme-ink-primary))",
-      }}
-    >
-      {/* Domain name header — quiet anchor, not interactive */}
-      <div
-        className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
-        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)" }}
-      >
-        <p
-          className="text-[13px] font-medium truncate flex-1 min-w-0"
-          style={{ color: "hsl(var(--theme-ink-secondary))", letterSpacing: "0.01em" }}
-          title={domainName}
-        >
-          {domainName}
-        </p>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="shrink-0 ml-1 p-1 rounded-md transition-opacity hover:opacity-60"
-          style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          aria-label="Collapse navigation panel"
-        >
-          <ChevronLeftIcon />
-        </button>
-      </div>
-
-      {/* Scrollable SidebarCards — order from def.nav.primarySection when set */}
-      <div className="keeper-panel-scroll flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
-        {navBlockOrder.map((block) => (
-          <React.Fragment key={block}>{renderNavBlock(block)}</React.Fragment>
-        ))}
-      </div>
-    </div>
+    </TreatmentAccentShell>
   )
 }

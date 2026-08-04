@@ -34,6 +34,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-08-03: **Treatment title mark** — `SidebarCard` section titles use `.keeper-treatment-title` so Nav accent shell can apply Treatment font to headers only.
 - 2026-07-28: **Playbill name flash** — cards/header use `starName` from `resolvePlaybillStarName` (no second `…` gate); name paints from `leadAgentName` while portrait loads.
 - 2026-07-28: **Restore Realm/Boards on `/home`** — `KeeperTopBar` again shows workspace board links (Realm · Domain · Agent, etc.) and Brief on the home shell; Jul 3 blanking had left an empty nav row and blocked domain/agent config jumps.
 - 2026-07-28: **Playbill Path A — name-only chip** — Mobile top bar is a compact domain-name chip (optional LIVE dot + chevron); full Playbill travel list stays the existing light overlay. Density-pass desktop card unchanged.

@@ -14,9 +14,15 @@ import {
   getCachedPublicJourneyDetail,
   mapPublicJourneyToNarrative,
 } from "../../data/publicJourneyCache"
+import { resolveDomainTreatment } from "../../treatment/resolveDomainTreatment"
+import { ChronicleTreatmentShell } from "../../treatment/ChronicleTreatmentShell"
 
 export function PresentFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { domainSlug } = useV0Shell()
+  const { domainSlug, domainFrame } = useV0Shell()
+  const treatment = React.useMemo(
+    () => resolveDomainTreatment(domainFrame),
+    [domainFrame],
+  )
   const [searchParams] = useSearchParams()
   const journeyId = searchParams.get("journeyId")
 
@@ -87,28 +93,30 @@ export function PresentFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         hideAdminControl
         suppressAtmosphere
       >
-        <div className="presentation-mode presentation-warm flex flex-1 min-h-[60dvh] w-full -mx-4 sm:-mx-6">
-          <div className="relative w-full max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-10 flex flex-col flex-1 min-h-0">
-            {showLoadingOverlay && (
-              <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }} role="status">
-                Opening journey…
-              </p>
-            )}
-            {journeyError && !journeyPayload && !journeyLoading && (
-              <p className="text-sm text-red-700" role="alert">
-                {journeyError}
-              </p>
-            )}
-            {journeyPayload && (
-              <div
-                className="transition-opacity duration-300"
-                style={{ opacity: journeyLoading ? 0.92 : 1 }}
-              >
-                <NarrativeFrameRenderer frame={journeyPayload.frame} domain={journeyPayload.domain} />
-              </div>
-            )}
+        <ChronicleTreatmentShell treatment={treatment}>
+          <div className="presentation-mode flex flex-1 min-h-[60dvh] w-full -mx-4 sm:-mx-6">
+            <div className="relative w-full max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-10 flex flex-col flex-1 min-h-0">
+              {showLoadingOverlay && (
+                <p className="text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }} role="status">
+                  Opening journey…
+                </p>
+              )}
+              {journeyError && !journeyPayload && !journeyLoading && (
+                <p className="text-sm text-red-700" role="alert">
+                  {journeyError}
+                </p>
+              )}
+              {journeyPayload && (
+                <div
+                  className="transition-opacity duration-300"
+                  style={{ opacity: journeyLoading ? 0.92 : 1 }}
+                >
+                  <NarrativeFrameRenderer frame={journeyPayload.frame} domain={journeyPayload.domain} />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </ChronicleTreatmentShell>
       </DesignFrame>
     )
   }
@@ -121,10 +129,13 @@ export function PresentFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       subtitle="A story-first presentation surface for this domain."
       themeSwitcherSlot={<ThemeSwitcher />}
       hideAdminControl
+      suppressAtmosphere
     >
-      <div className="presentation-mode presentation-warm rounded-2xl border border-black/10 bg-white/80 p-4 shadow-sm min-h-[50dvh]">
-        <PresentationBoardRenderer domainSlug={domainSlug} />
-      </div>
+      <ChronicleTreatmentShell treatment={treatment}>
+        <div className="presentation-mode rounded-2xl border border-black/10 p-4 shadow-sm min-h-[50dvh]">
+          <PresentationBoardRenderer domainSlug={domainSlug} />
+        </div>
+      </ChronicleTreatmentShell>
     </DesignFrame>
   )
 }

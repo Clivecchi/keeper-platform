@@ -57,13 +57,28 @@ function relativeLuminance(hex: string): number {
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
 }
 
+function applyTreatmentColorVars(
+  style: CSSProperties,
+  accentHex: string,
+): void {
+  const accentComponents = hexToHslComponents(accentHex)
+  if (!accentComponents) return
+  ;(style as Record<string, string>)["--treatment-color"] = accentComponents
+  ;(style as Record<string, string>)["--treatment-color-alpha-08"] =
+    `hsl(${accentComponents} / 0.08)`
+  ;(style as Record<string, string>)["--treatment-color-alpha-12"] =
+    `hsl(${accentComponents} / 0.12)`
+  ;(style as Record<string, string>)["--treatment-color-alpha-20"] =
+    `hsl(${accentComponents} / 0.20)`
+}
+
+/** Full Treatment — Chronicle + Presents (background, accent, font). */
 export function treatmentShellStyle(
   treatment: ResolvedDomainTreatment,
 ): CSSProperties {
   const background = HEX_COLOR.test(treatment.palette.background)
     ? treatment.palette.background
     : "#f5f0e8"
-  const accentComponents = hexToHslComponents(treatment.palette.accent)
   const darkBackground = relativeLuminance(background) < 0.35
 
   const style: CSSProperties = {
@@ -76,15 +91,36 @@ export function treatmentShellStyle(
     style.color = "hsl(40 18% 92%)"
   }
 
-  if (accentComponents) {
-    ;(style as Record<string, string>)["--treatment-color"] = accentComponents
-    ;(style as Record<string, string>)["--treatment-color-alpha-08"] =
-      `hsl(${accentComponents} / 0.08)`
-    ;(style as Record<string, string>)["--treatment-color-alpha-12"] =
-      `hsl(${accentComponents} / 0.12)`
-    ;(style as Record<string, string>)["--treatment-color-alpha-20"] =
-      `hsl(${accentComponents} / 0.20)`
+  applyTreatmentColorVars(style, treatment.palette.accent)
+  ;(style as Record<string, string>)["--treatment-font-family"] =
+    treatment.font.family
+
+  return style
+}
+
+/**
+ * Accent-only Treatment — Nav + center Dialog.
+ * Keeps Theme layout/surfaces; exposes accent border/wash, color vars, and title font var.
+ */
+export function treatmentAccentStyle(
+  treatment: ResolvedDomainTreatment,
+): CSSProperties {
+  const accent = HEX_COLOR.test(treatment.palette.accent)
+    ? treatment.palette.accent
+    : "#2d6a7f"
+  const accentComponents = hexToHslComponents(accent)
+
+  const style: CSSProperties = {
+    borderLeft: `3px solid ${accent}`,
   }
+
+  if (accentComponents) {
+    style.backgroundColor = `hsl(${accentComponents} / 0.04)`
+  }
+
+  applyTreatmentColorVars(style, accent)
+  ;(style as Record<string, string>)["--treatment-font-family"] =
+    treatment.font.family.trim() || "Georgia, serif"
 
   return style
 }

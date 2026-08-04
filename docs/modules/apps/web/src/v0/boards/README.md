@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-03 — Treatment accent tier on Nav + Dialog
+- `UniversalNavPanel` wraps both Realm-staged and standard Nav in `TreatmentAccentShell` (accent border/wash, selected-state treatment color, title font via `.keeper-treatment-title`).
+- `UniversalConversation` wraps `KeeperDialogFrame` in the same accent shell; message body + composer chrome stay Theme structure.
+- Trail bar unchanged (Theme-only). Chronicle/Presents full Treatment is separate.
+
 ### 2026-08-03 — dialogCueing rename (Pass 2: UniversalConversation + useAgentDialog) + empty cues = Lead only
 - `UniversalConversation.tsx`: finished the rename — `isDirectorMode` → `isDirectedCueing` (`dialogCueing === "directed"`), `instrumentMultiSelect` → `castMultiSelect`, `activeBoardInstrument`/`activeBoardInstruments` → `activeCastMember`/`cuedCastMembers`, `domainDirectorBoardInstruments`/`designerBoardInstruments`/`ideBoardInstruments`/`domainCollaborationInstruments` → `domainDirectorCast`/`designerCast`/`ideCast`/`domainCollaborationCast`, `handleBoardInstrumentInvoke` → `handleCastCueToggle`, `resolvedBoardInstrumentLabel` → `resolvedCastMemberLabel`. `KeeperDialogFrame` render props updated to `boardCast` / `onCastCueToggle` / `activeCastMemberSlug` / `cuedCastMemberSlugs` / `castCueSelectionMode` / `castLeadLocked` / `castCollaborationMode`.
 - **Behavior fix (Realm cast-cue):** removed the auto-seed effect that force-cued every non-director chip into `cuedCastMembers` on mount. `resolvedCuedCastSlugs` now resolves to `[]` (Lead-only, director answers solo) when no chips are explicitly cued — it no longer falls back to "cue the whole cast." Explicit chip clicks are the only way to cue a cast member in multi-select mode.

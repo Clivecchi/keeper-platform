@@ -33,6 +33,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-03 — Realm Nav uses shared accent Treatment (not full shell)
+- `RealmStagedNav` no longer wraps with `ChronicleTreatmentShell`; accent presence comes from `UniversalNavPanel`'s `TreatmentAccentShell`.
+- Dialog-group selected state uses `--treatment-color` wash/border; stage/Dialog titles use `.keeper-treatment-title`.
+
 ### 2026-08-03 — dialogCueing rename (Pass 1, comments only)
 - `DialogCastBar.tsx`: comment references to `BoardInstrumentsBar` updated to `CastCueBar` (see `docs/dialog-cueing-plan.md`). No behavior change.
 

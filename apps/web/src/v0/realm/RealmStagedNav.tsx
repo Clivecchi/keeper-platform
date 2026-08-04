@@ -3,7 +3,6 @@
 import * as React from "react"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
-import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import {
   REALM_NAV_UNASSIGNED_LABEL,
@@ -103,7 +102,10 @@ export function RealmStagedNav({
   )
 
   const body = (
-    <div className="flex flex-col gap-5 px-1 py-2 min-h-0">
+    <div
+      className="flex flex-col gap-5 px-1 py-2 min-h-0"
+      data-treatment-name={treatment.name}
+    >
       {loading && byDialog.length === 0 ? (
         <p className="text-xs px-1" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           Loading…
@@ -149,12 +151,16 @@ export function RealmStagedNav({
                   className="w-full text-left rounded-md px-1 py-0.5 -mx-1 transition-opacity hover:opacity-80"
                   style={{
                     backgroundColor: isDialogSelected
-                      ? "hsl(var(--theme-surface-elevated) / 0.55)"
+                      ? "var(--treatment-color-alpha-08)"
                       : "transparent",
+                    borderLeft: isDialogSelected
+                      ? "2px solid hsl(var(--treatment-color))"
+                      : "2px solid transparent",
+                    paddingLeft: isDialogSelected ? 6 : 8,
                   }}
                 >
                   <h3
-                    className="text-sm font-semibold tracking-wide"
+                    className="keeper-treatment-title text-sm font-semibold tracking-wide"
                     style={{ color: "hsl(var(--theme-ink-primary))" }}
                   >
                     {group.title}
@@ -168,7 +174,7 @@ export function RealmStagedNav({
               ) : (
                 <>
                   <h3
-                    className="text-sm font-semibold tracking-wide"
+                    className="keeper-treatment-title text-sm font-semibold tracking-wide"
                     style={{ color: "hsl(var(--theme-ink-primary))" }}
                   >
                     {group.title}
@@ -242,7 +248,6 @@ export function RealmStagedNav({
     </div>
   )
 
-  return (
-    <ChronicleTreatmentShell treatment={treatment}>{body}</ChronicleTreatmentShell>
-  )
+  // Accent shell is applied by UniversalNavPanel (shared Nav treatment tier).
+  return body
 }

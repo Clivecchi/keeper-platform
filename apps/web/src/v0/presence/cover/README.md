@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-08-03 — Domain Treatment scope copy
+- `DomainConfigPresence` Treatment help text: full look on Chronicle/Presents; accent on Nav/Dialog; Trail stays Theme.
+
 ### 2026-07-16 — Document/Point rename
 - `LibraryItemFocusPresence` uses `PointView` + `libraryItemToDocument` (was `ChronicleDocumentView` / `libraryItemToChronicleDocument`).
 

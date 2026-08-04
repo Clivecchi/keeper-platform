@@ -59,6 +59,7 @@ import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../shell/frameRegistryMa
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson, DomainFrameTreatment } from "../data/domain-frame.types"
 import { resolveDomainTreatment } from "../treatment/resolveDomainTreatment"
+import { TreatmentAccentShell } from "../treatment/TreatmentAccentShell"
 import { patchDomainTreatment } from "../presence/chronicleConfig/chroniclePatch"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
@@ -2437,6 +2438,11 @@ export function UniversalConversation({
     domainCollaborationCast,
   ])
 
+  const dialogTreatment = React.useMemo(
+    () => resolveDomainTreatment(domainFrame),
+    [domainFrame],
+  )
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -2451,6 +2457,7 @@ export function UniversalConversation({
         />
       )}
 
+      <TreatmentAccentShell treatment={dialogTreatment} className="keeper-dialog-treatment min-h-0 flex-1">
       <KeeperDialogFrame
         bannerContext={bannerContext}
         sessionId={dialogSessionId}
@@ -2565,6 +2572,7 @@ export function UniversalConversation({
           onUpdateMessageThreads: handleGlossThreadUpdate,
         }}
       />
+      </TreatmentAccentShell>
 
       {domainId ? (
         <InviteCollaboratorDialog
