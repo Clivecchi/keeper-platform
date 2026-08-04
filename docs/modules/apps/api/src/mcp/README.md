@@ -61,6 +61,7 @@ MCP routes are mounted at BOTH `/mcp` and `/api/mcp` for compatibility.
 - `GET /.well-known/oauth-protected-resource` (+ `/mcp` suffix) — RFC 9728 PRM
 - `GET /.well-known/oauth-authorization-server` — RFC 8414 AS metadata
 - `GET|POST /oauth/authorize` — CIMD client + KAM consent + auth code
+- `POST /oauth/login` — same-origin HTML sign-in (OAuth popups; sets `keeper_session`)
 - `POST /oauth/token` — code/refresh exchange (form-urlencoded)
 - `POST /oauth/register` — Dynamic Client Registration
 - `POST /oauth/revoke` — token/grant revocation
@@ -997,6 +998,8 @@ Run comprehensive verification:
 See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
 
 ## 📆 Update Log
+
+**2026-08-03**: OAuth unauthenticated authorize serves same-origin HTML login (`POST /oauth/login`) instead of 302 to www SPA — fixes blank "Loading…" in Claude connector popups.
 
 **2026-08-03**: OAuth Phase B — `/oauth/authorize` (CIMD + KAM consent HTML), `/oauth/token` (PKCE S256 + refresh), DCR `/oauth/register`, revoke; `McpOAuthGrant` tables; `resolveMcpAuth` mode `oauth`; External Access lists/revokes grants; AuthForm full-page return for absolute `next` URLs.
 

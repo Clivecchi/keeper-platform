@@ -4,7 +4,10 @@
  */
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { csrfGuard } from '../kam/session.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { prisma } from '@keeper/database';
+import { csrfGuard, setSessionCookie } from '../kam/session.js';
 import {
   createAuthorizationCode,
   exchangeAuthorizationCode,
@@ -20,16 +23,16 @@ import {
   userCanGrantDomain,
   validateResourceParam,
   verifyConsentTicket,
+  type ConsentTicketPayload,
 } from '../services/McpOauthGrantService.js';
-import { MCP_OAUTH_RESOURCE } from './oauthDiscovery.js';
-import { renderOauthConsentPage, renderOauthErrorPage } from './oauthConsentHtml.js';
+import { MCP_OAUTH_ISSUER, MCP_OAUTH_RESOURCE } from './oauthDiscovery.js';
+import {
+  renderOauthConsentPage,
+  renderOauthErrorPage,
+  renderOauthLoginPage,
+} from './oauthConsentHtml.js';
 
 const router = Router();
-
-function webLoginBase(): string {
-  const raw = process.env.PUBLIC_WEB_ORIGIN?.trim() || 'https://www.ke3p.com';
-  return raw.replace(/\/$/, '');
-}
 
 function currentUser(req: Request): { id: string; email?: string } | null {
   const u = (req as Request & { user?: { id?: string; email?: string } }).user;
@@ -39,6 +42,52 @@ function currentUser(req: Request): { id: string; email?: string } | null {
 
 function sendHtml(res: Response, status: number, html: string): void {
   res.status(status).type('html').send(html);
+}
+
+function clientDisplayName(client: { client_name: string | null; client_id: string }): string {
+  if (client.client_name) return client.client_name;
+  if (client.client_id.startsWith('https://')) {
+    try {
+      return new URL(client.client_id).hostname;
+    } catch {
+      /* fall through */
+    }
+  }
+  return client.client_id;
+}
+
+function authorizeUrlFromTicket(payload: ConsentTicketPayload): string {
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: payload.client_id,
+    redirect_uri: payload.redirect_uri,
+    code_challenge: payload.code_challenge,
+    code_challenge_method: payload.code_challenge_method,
+    scope: payload.scope,
+    resource: payload.resource || MCP_OAUTH_RESOURCE,
+  });
+  if (payload.state) params.set('state', payload.state);
+  return `${MCP_OAUTH_ISSUER}/oauth/authorize?${params.toString()}`;
+}
+
+function renderLoginForTicket(
+  res: Response,
+  params: {
+    clientName: string;
+    ticketPayload: Omit<ConsentTicketPayload, 'exp'>;
+    error?: string;
+  },
+): void {
+  const consentTicket = signConsentTicket(params.ticketPayload);
+  sendHtml(
+    res,
+    200,
+    renderOauthLoginPage({
+      clientName: params.clientName,
+      consentTicket,
+      error: params.error,
+    }),
+  );
 }
 
 function oauthErrorRedirect(
@@ -119,25 +168,12 @@ router.get('/authorize', async (req: Request, res: Response) => {
       );
     }
 
-    const user = currentUser(req);
-    if (!user) {
-      const authorizeUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-      // Prefer PUBLIC_WEB_ORIGIN; fall back reconstructing from forwarded host
-      const returnTarget =
-        process.env.NODE_ENV === 'production' || req.get('host')?.includes('ke3p.com')
-          ? `https://api.ke3p.com${req.originalUrl}`
-          : authorizeUrl;
-      const loginUrl = `${webLoginBase()}/login?next=${encodeURIComponent(returnTarget)}`;
-      return res.redirect(302, loginUrl);
-    }
-
     const requestedScopes = parseScopeParam(scopeRaw);
     if (requestedScopes.length === 0) {
       return oauthErrorRedirect(res, redirectUri, 'invalid_scope', state, 'No supported scopes requested');
     }
 
-    const domains = await listGrantableDomains(user.id);
-    const consentTicket = signConsentTicket({
+    const ticketPayload = {
       client_id: clientId,
       redirect_uri: redirectUri,
       code_challenge: codeChallenge,
@@ -145,16 +181,17 @@ router.get('/authorize', async (req: Request, res: Response) => {
       scope: requestedScopes.join(' '),
       state,
       resource,
-    });
+    };
 
-    let displayName = client.client_name || 'External client';
-    if (!client.client_name && client.client_id.startsWith('https://')) {
-      try {
-        displayName = new URL(client.client_id).hostname;
-      } catch {
-        displayName = client.client_id;
-      }
+    const displayName = clientDisplayName(client);
+    const user = currentUser(req);
+    if (!user) {
+      // Same-origin HTML login — do not 302 to www SPA (blank "Loading…" in OAuth popups)
+      return renderLoginForTicket(res, { clientName: displayName, ticketPayload });
     }
+
+    const domains = await listGrantableDomains(user.id);
+    const consentTicket = signConsentTicket(ticketPayload);
 
     return sendHtml(
       res,
@@ -171,6 +208,79 @@ router.get('/authorize', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[mcp-oauth:authorize:get]', err);
     return sendHtml(res, 500, renderOauthErrorPage('Server error', 'Authorization failed unexpectedly.'));
+  }
+});
+
+/**
+ * POST /oauth/login — same-origin KAM sign-in for OAuth popups
+ */
+router.post('/login', csrfGuard, async (req: Request, res: Response) => {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const ticket = typeof body.consent_ticket === 'string' ? body.consent_ticket : '';
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+
+    const payload = verifyConsentTicket(ticket);
+    if (!payload) {
+      return sendHtml(
+        res,
+        400,
+        renderOauthErrorPage('Expired sign-in', 'Please restart the connection from Claude.'),
+      );
+    }
+
+    const client = await resolveOauthClient(payload.client_id);
+    const clientName = client ? clientDisplayName(client) : 'External client';
+    const ticketPayload: Omit<ConsentTicketPayload, 'exp'> = {
+      client_id: payload.client_id,
+      redirect_uri: payload.redirect_uri,
+      code_challenge: payload.code_challenge,
+      code_challenge_method: payload.code_challenge_method,
+      scope: payload.scope,
+      state: payload.state,
+      resource: payload.resource,
+    };
+
+    if (!email || !password) {
+      return renderLoginForTicket(res, {
+        clientName,
+        ticketPayload,
+        error: 'Email and password are required.',
+      });
+    }
+
+    const user = await prisma.users.findUnique({ where: { email } });
+    if (!user?.hashedPassword) {
+      return renderLoginForTicket(res, {
+        clientName,
+        ticketPayload,
+        error: 'Invalid email or password.',
+      });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
+    if (!passwordMatch) {
+      return renderLoginForTicket(res, {
+        clientName,
+        ticketPayload,
+        error: 'Invalid email or password.',
+      });
+    }
+
+    const jwtSecret = process.env.JWT_SECRET?.trim();
+    if (!jwtSecret) {
+      return sendHtml(res, 500, renderOauthErrorPage('Server error', 'JWT_SECRET is not configured.'));
+    }
+
+    const token = jwt.sign({ userId: user.id, email: user.email }, jwtSecret, { expiresIn: '7d' });
+    setSessionCookie(req, res, token);
+    console.log('[mcp-oauth:login] session set', { email: user.email });
+
+    return res.redirect(302, authorizeUrlFromTicket(payload));
+  } catch (err) {
+    console.error('[mcp-oauth:login]', err);
+    return sendHtml(res, 500, renderOauthErrorPage('Server error', 'Sign-in failed unexpectedly.'));
   }
 });
 
@@ -199,19 +309,20 @@ router.post('/authorize', csrfGuard, async (req: Request, res: Response) => {
     }
 
     if (!user) {
-      const loginUrl = `${webLoginBase()}/login?next=${encodeURIComponent(
-        `https://api.ke3p.com/oauth/authorize?${new URLSearchParams({
-          response_type: 'code',
+      const client = await resolveOauthClient(payload.client_id);
+      return renderLoginForTicket(res, {
+        clientName: client ? clientDisplayName(client) : 'External client',
+        ticketPayload: {
           client_id: payload.client_id,
           redirect_uri: payload.redirect_uri,
           code_challenge: payload.code_challenge,
           code_challenge_method: payload.code_challenge_method,
-          state: payload.state,
           scope: payload.scope,
+          state: payload.state,
           resource: payload.resource,
-        }).toString()}`,
-      )}`;
-      return res.redirect(302, loginUrl);
+        },
+        error: 'Please sign in to continue.',
+      });
     }
 
     if (decision !== 'approve') {

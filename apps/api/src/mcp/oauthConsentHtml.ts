@@ -105,3 +105,59 @@ export function renderOauthErrorPage(title: string, message: string): string {
 <style>body{font-family:Georgia,serif;margin:3rem;background:#f4f1ea;color:#1c1917}main{max-width:28rem}</style>
 </head><body><main><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p></main></body></html>`;
 }
+
+/**
+ * Same-origin sign-in HTML for Claude / OAuth popups.
+ * Avoids cross-subdomain 302 → SPA "Loading…" blank screen.
+ */
+export function renderOauthLoginPage(params: {
+  clientName: string;
+  consentTicket: string;
+  error?: string;
+}): string {
+  const errorBlock = params.error
+    ? `<p style="color:#b91c1c;margin:0 0 1rem">${escapeHtml(params.error)}</p>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in — Keeper</title>
+  <style>
+    body { font-family: Georgia, "Times New Roman", serif; margin: 0; background: #f4f1ea; color: #1c1917; }
+    main { max-width: 28rem; margin: 3rem auto; padding: 1.5rem 1.75rem; background: #fffef9; border: 1px solid #d6d3d1; }
+    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    p { line-height: 1.45; }
+    label { font-family: system-ui, sans-serif; font-size: 0.9rem; display: block; margin: 0.75rem 0 0.25rem; }
+    input[type="email"], input[type="password"] {
+      width: 100%; box-sizing: border-box; padding: 0.55rem 0.65rem; font-size: 1rem;
+      border: 1px solid #a8a29e; background: #fff;
+    }
+    button.primary {
+      font-family: system-ui, sans-serif; font-size: 0.95rem; margin-top: 1.25rem;
+      padding: 0.6rem 1rem; width: 100%; cursor: pointer;
+      background: #1c1917; color: #fafaf9; border: none;
+    }
+    .meta { font-size: 0.85rem; opacity: 0.75; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sign in to Keeper</h1>
+    <p><strong>${escapeHtml(params.clientName)}</strong> wants to connect to your Keeper MCP.</p>
+    <p class="meta">Sign in here to continue — you will choose a domain and scopes next.</p>
+    ${errorBlock}
+    <form method="POST" action="/oauth/login" autocomplete="on">
+      <input type="hidden" name="consent_ticket" value="${escapeHtml(params.consentTicket)}" />
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required autocomplete="email" autofocus />
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required autocomplete="current-password" />
+      <button type="submit" class="primary">Continue</button>
+    </form>
+  </main>
+</body>
+</html>`;
+}
