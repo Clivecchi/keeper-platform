@@ -28,7 +28,7 @@ Before touching any code, read these canonical documents:
 | `docs/keeper-object-glossary.md` | Platform object vocabulary (Document Section ≠ Journey Path, EntityKind status, schema-backed definitions) | Highest — code-backed |
 | `Keeper jsonframe spec.md` | JSON UI Frame build sequence (Steps 1–6) | High — March 2026 — verify exact filename in repo root |
 | `docs/build-handoffs/schema.md` | Cloud → Cursor handoff contract (territory routing, JSON shape) | High — Phase 0 file handoffs; Phase 1 MCP |
-| `docs/universal-board-dialog-orchestration.md` | Dialog orchestration modes on Universal Board (solo, director, roundtable, hot_seat, chorus) | High — director near-term |
+| `docs/universal-board-dialog-cueing.md` | Dialog Cueing on Universal Board (Director · Cast · Cue; monologue / directed / …) | High — directed cueing live |
 | `docs/library-shared-context-roadmap.md` | Library connective index, MCP auth, read/search sequence | High — July 2026 |
 | `docs/chronicle-document-architecture.md` | Chronicle Layer 1–2 + ChronicleDocument read shell | High — July 2026 |
 | `.cursor/rules/root-rules.mdc` | Monorepo rules, ops contract, CI/CD | High — technical rules valid; §12 Kip framing outdated |

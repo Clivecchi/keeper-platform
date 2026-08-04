@@ -9,7 +9,9 @@ Primary documentation hub for Keeper architecture, deployment notes, and operati
 - `entitykind-implementation-recipe.md`
 - `keeper-object-glossary.md` — governing platform object vocabulary (working v1)
 - `build-handoffs/schema.md` — Cloud → Cursor handoff contract
-- `universal-board-dialog-orchestration.md` — Dialog orchestration modes (solo, director, roundtable, hot_seat, chorus)
+- `universal-board-dialog-cueing.md` — Dialog Cueing (Director · Cast · Cue); modes monologue / directed / …
+- `universal-board-dialog-orchestration.md` — legacy stub → see dialog-cueing doc
+- `dialog-cueing-plan.md` — Rename + behavior plan (2026-08-03)
 - `DOMAIN_DEVELOPMENT_PLAN.md`
 - `AUTHENTICATION_HARDENING.md`
 
