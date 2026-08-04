@@ -70,6 +70,10 @@ export default defineConfig({
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [
           /^\/api\//,
+          // MCP OAuth AS + resource — must hit Railway Express, never SPA shell
+          /^\/oauth(?:\/|$)/,
+          /^\/mcp(?:\/|$)/,
+          /^\/\.well-known\//,
           /^\/favicon/,
           /^\/pwa-/,
           /^\/icons\//,
