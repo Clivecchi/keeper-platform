@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import clsx from "clsx"
-import { FileText } from "lucide-react"
+import { BookOpen, FileText } from "lucide-react"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
@@ -255,6 +255,8 @@ export function KeeperTopBar({
   }
 
   const leadAgentSlug = domainData?.leadAgentSlug?.trim() || null
+  // Adaptive mobile: Nav hamburger · Wordmark · Chronicle icon (avatar lives in Nav drawer).
+  const showMobileChronicle = Boolean(isMobile && onOpenNav && onOpenChronicle)
 
   return (
     <div className="keeper-platform-top-bar relative z-50 shrink-0">
@@ -321,46 +323,68 @@ export function KeeperTopBar({
           {isPlaybillOpen ? playbillDropdown : null}
         </div>
 
-        <div className="keeper-topbar-user">
-          {!isGuest && !isMobile ? (
+        {showMobileChronicle ? (
+          <button
+            type="button"
+            onClick={onOpenChronicle}
+            className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
+            aria-label={dialogUnread ? "Open Chronicle — updates available" : "Open Chronicle"}
+            style={{
+              color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
+              background: "hsl(var(--theme-surface-panel) / 0.35)",
+            }}
+          >
+            <BookOpen width={18} height={18} strokeWidth={1.75} aria-hidden />
+            {dialogUnread ? (
+              <span
+                className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+                style={{ background: "hsl(var(--theme-accent-primary))" }}
+                aria-hidden
+              />
+            ) : null}
+          </button>
+        ) : (
+          <div className="keeper-topbar-user">
+            {!isGuest && !isMobile ? (
+              <button
+                type="button"
+                onClick={handleUserClick}
+                className="keeper-topbar-user-meta text-right transition-opacity cursor-pointer hover:opacity-90"
+                aria-label="Open profile menu"
+              >
+                <p className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate">
+                  {displayName}
+                </p>
+                <span className="keeper-topbar-status-badge">{roleLabel}</span>
+              </button>
+            ) : null}
             <button
+              ref={avatarButtonRef}
               type="button"
               onClick={handleUserClick}
-              className="keeper-topbar-user-meta text-right transition-opacity cursor-pointer hover:opacity-90"
-              aria-label="Open profile menu"
+              aria-expanded={profileOpen}
+              aria-haspopup={!isGuest ? "menu" : undefined}
+              aria-label={!isGuest ? "Open profile menu" : displayName}
+              className="keeper-topbar-avatar-button"
             >
-              <p className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate">
-                {displayName}
-              </p>
-              <span className="keeper-topbar-status-badge">{roleLabel}</span>
+              <UserAvatar
+                avatarUrl={avatarUrl}
+                initials={initials}
+                isOpen={profileOpen}
+                isGuest={isGuest}
+              />
             </button>
-          ) : null}
-          <button
-            ref={avatarButtonRef}
-            type="button"
-            onClick={handleUserClick}
-            aria-expanded={profileOpen}
-            aria-haspopup={!isGuest ? "menu" : undefined}
-            aria-label={!isGuest ? "Open profile menu" : displayName}
-            className="keeper-topbar-avatar-button"
-          >
-            <UserAvatar
-              avatarUrl={avatarUrl}
-              initials={initials}
-              isOpen={profileOpen}
-              isGuest={isGuest}
-            />
-          </button>
-          {profileOpen && !isGuest && (
-            <ProfilePopover
-              displayName={displayName}
-              roleLabel={roleLabel}
-              onSignOut={handleSignOut}
-              onClose={() => setProfileOpen(false)}
-              anchorRef={avatarButtonRef}
-            />
-          )}
-        </div>
+            {profileOpen && !isGuest && (
+              <ProfilePopover
+                displayName={displayName}
+                roleLabel={roleLabel}
+                onSignOut={handleSignOut}
+                onClose={() => setProfileOpen(false)}
+                anchorRef={avatarButtonRef}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Adaptive mobile: Nav drawer + Playbill own chrome — hide board-link row. */}

@@ -519,6 +519,7 @@ button.dialog-prelude:hover {
   position: relative;
   z-index: 2;
   height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   /* Native scrollbar hidden — DialogScrollRail provides a fixed overlay thumb */
   scrollbar-width: none;
@@ -1708,6 +1709,13 @@ button.dialog-prelude:hover {
 
 .keeper-board-scope .dialog-message-surface {
   background: transparent;
+}
+
+/* Dialog message list — frosted panel (matches shell tokens); opaque fill removed */
+.dialogue-message-list {
+  background: hsl(var(--theme-surface-panel) / 0.38);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .keeper-board-scope .dialog-bottom-zone {

@@ -67,7 +67,7 @@ export function AgentMessageContent({
   }, [chronicleChip, onOpenChronicleChip])
 
   return (
-    <div className="kip-message-content space-y-2">
+    <div className="kip-message-content min-w-0 space-y-2 break-words">
       {segments.map((segment, index) => {
         if (segment.kind === "prose") {
           return (
@@ -104,7 +104,7 @@ export function AgentMessageContent({
         return (
           <pre
             key={`raw-${index}`}
-            className="overflow-x-auto rounded-lg bg-black/5 px-3 py-2 text-xs"
+            className="max-w-full overflow-x-auto rounded-lg bg-black/5 px-3 py-2 text-xs"
           >
             {segment.raw}
           </pre>

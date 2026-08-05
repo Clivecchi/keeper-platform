@@ -30,6 +30,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-04 — Mobile Dialog overflow + frost (Prompts 2–3)
+- Message rows: `w-full min-w-0` + bubble `min-w-0`; `.dialog-message-surface` / list clip `overflow-x`.
+- List opaque fill → panel frost; mobile drops list `px-4` (column pad only). See `components/agent/README.md`.
+
+### 2026-08-04 — Top Bar Chronicle icon (retire Composer strip)
+- Adaptive mobile: Top Bar is Nav hamburger · Wordmark · Chronicle icon (opens `BoardMobileChronicleOverlay` via existing `onOpenChronicle` / `openChronicleOverlay`).
+- User avatar moved into `BoardMobileNavDrawer` footer (`BoardMobileNavAccount`); profile / sign-out unchanged.
+- Removed `BoardMobileChronicleStrip`, `chronicleStripCopy`, and `mobileAboveComposer` / `aboveComposer` props. In-stream “Open in Chronicle →” chips unchanged.
+
 ### 2026-08-03 — Treatment accent tier on Nav + Dialog
 - `UniversalNavPanel` wraps both Realm-staged and standard Nav in `TreatmentAccentShell` (accent border/wash, selected-state treatment color, title font via `.keeper-treatment-title`).
 - `UniversalConversation` wraps `KeeperDialogFrame` in the same accent shell; message body + composer chrome stay Theme structure.

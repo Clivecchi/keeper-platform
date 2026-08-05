@@ -1,79 +1,81 @@
 /**
  * Dialog Document read helpers for MCP (dialog.ro).
- * Reuses agent document load + ensures a gloss carrier kip_message when needed.
+ * Strictly read-only — never creates sessions, messages, or agent replies.
  */
 import { prisma } from '@keeper/database';
-import type { Prisma } from '@keeper/database';
 import type { GlossAnchor } from '@keeper/shared';
 import { loadDialogDocumentForAgent } from './kip/loadDialogDocumentForAgent.js';
-import { resolveDomainLeadAgentFromDomain } from './domains/resolveDomainLeadAgent.js';
 import { resolveMcpDomainLabel } from '../mcp/domainContext.js';
-
-const DIALOG_LIST_SELECT = {
-  id: true,
-  title: true,
-  document_status: true,
-  forward_title: true,
-  step_title: true,
-  updated_at: true,
-  created_at: true,
-} as const;
 
 export type DialogMcpListItem = {
   id: string;
   title: string;
-  documentStatus: string;
-  forwardTitle: string | null;
-  stepTitle: string | null;
+  entityKind: 'dialog' | 'draft';
   updatedAt: string;
+};
+
+export type DialogMcpMessagePreview = {
+  id: string;
+  role: string;
+  content: string;
   createdAt: string;
 };
 
-function toListItem(row: {
-  id: string;
-  title: string;
-  document_status: string;
-  forward_title: string | null;
-  step_title: string | null;
-  updated_at: Date;
-  created_at: Date;
-}): DialogMcpListItem {
-  return {
-    id: row.id,
-    title: row.title,
-    documentStatus: row.document_status,
-    forwardTitle: row.forward_title,
-    stepTitle: row.step_title,
-    updatedAt: row.updated_at.toISOString(),
-    createdAt: row.created_at.toISOString(),
-  };
-}
-
 export class DialogMcpService {
+  /**
+   * List Dialogs and document_manuscript drafts in the domain.
+   * Shape mirrors library_list: compact id/title/updatedAt + entityKind.
+   */
   static async listDialogs(params: {
     domainId: string;
     limit?: number;
-    status?: string;
   }): Promise<{
     domainId: string;
     domainName: string;
     domainSlug: string;
-    dialogs: DialogMcpListItem[];
+    items: DialogMcpListItem[];
   }> {
     const domain = await resolveMcpDomainLabel(params.domainId);
     const limit = Math.min(Math.max(Number(params.limit ?? 20), 1), 50);
-    const status = params.status?.trim();
-    const rows = await prisma.dialog.findMany({
-      where: {
-        domain_id: params.domainId,
-        is_archived: false,
-        ...(status ? { document_status: status } : {}),
-      },
-      select: DIALOG_LIST_SELECT,
-      orderBy: { updated_at: 'desc' },
-      take: limit,
-    });
-    return { ...domain, dialogs: rows.map(toListItem) };
+
+    const [dialogs, drafts] = await Promise.all([
+      prisma.dialog.findMany({
+        where: { domain_id: params.domainId, is_archived: false },
+        select: { id: true, title: true, updated_at: true },
+        orderBy: { updated_at: 'desc' },
+        take: limit,
+      }),
+      prisma.kip_drafts.findMany({
+        where: {
+          domain_id: params.domainId,
+          kind: 'document_manuscript',
+          status: { notIn: ['promoted', 'archived'] },
+          dialog_id: { not: null },
+        },
+        select: { id: true, title: true, updated_at: true },
+        orderBy: { updated_at: 'desc' },
+        take: limit,
+      }),
+    ]);
+
+    const items: DialogMcpListItem[] = [
+      ...dialogs.map((row) => ({
+        id: row.id,
+        title: row.title,
+        entityKind: 'dialog' as const,
+        updatedAt: row.updated_at.toISOString(),
+      })),
+      ...drafts.map((row) => ({
+        id: row.id,
+        title: row.title?.trim() || 'Untitled manuscript',
+        entityKind: 'draft' as const,
+        updatedAt: row.updated_at.toISOString(),
+      })),
+    ]
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, limit);
+
+    return { ...domain, items };
   }
 
   static async searchDialogs(params: {
@@ -85,14 +87,14 @@ export class DialogMcpService {
     domainName: string;
     domainSlug: string;
     query: string;
-    dialogs: DialogMcpListItem[];
+    items: DialogMcpListItem[];
   }> {
     const domain = await resolveMcpDomainLabel(params.domainId);
     const query = params.query.trim();
     if (!query) throw new Error('query is required');
     const limit = Math.min(Math.max(Number(params.limit ?? 10), 1), 20);
 
-    const rows = await prisma.dialog.findMany({
+    const dialogs = await prisma.dialog.findMany({
       where: {
         domain_id: params.domainId,
         is_archived: false,
@@ -102,208 +104,188 @@ export class DialogMcpService {
           { step_title: { contains: query, mode: 'insensitive' } },
         ],
       },
-      select: DIALOG_LIST_SELECT,
+      select: { id: true, title: true, updated_at: true },
       orderBy: { updated_at: 'desc' },
       take: limit,
     });
 
-    return { ...domain, query, dialogs: rows.map(toListItem) };
+    return {
+      ...domain,
+      query,
+      items: dialogs.map((row) => ({
+        id: row.id,
+        title: row.title,
+        entityKind: 'dialog' as const,
+        updatedAt: row.updated_at.toISOString(),
+      })),
+    };
   }
 
   /**
-   * Read Dialog Document state for MCP + ensure a gloss carrier messageId.
-   * Carrier creation is the minimal write needed so gloss.rw works without a prior Discuss turn.
+   * Read a Dialog or document_manuscript draft and resolve an existing gloss carrier message.
+   * Read-only: if no kip_message exists on a Dialog session, returns a clear error
+   * (does not create sessions or carrier messages).
    */
   static async readDialog(params: {
     domainId: string;
-    dialogId: string;
-    userId?: string | null;
+    entityId: string;
+    messageLimit?: number;
   }): Promise<{
     domainId: string;
     domainName: string;
     domainSlug: string;
+    entityKind: 'dialog' | 'draft';
+    entityId: string;
+    dialogId: string;
+    title?: string;
     document: NonNullable<Awaited<ReturnType<typeof loadDialogDocumentForAgent>>>;
     messageId: string;
-    glossCarrier: {
-      messageId: string;
-      created: boolean;
-      sessionId: string;
-    };
     suggestedAnchor: GlossAnchor;
+    messages: DialogMcpMessagePreview[];
   }> {
     const domain = await resolveMcpDomainLabel(params.domainId);
-    const dialogId = params.dialogId.trim();
-    if (!dialogId) throw new Error('dialogId is required');
+    const entityId = params.entityId.trim();
+    if (!entityId) throw new Error('entityId is required');
 
-    const document = await loadDialogDocumentForAgent(dialogId, params.domainId);
+    const resolved = await this.resolveEntityInDomain(params.domainId, entityId);
+    const document = await loadDialogDocumentForAgent(resolved.dialogId, params.domainId);
     if (!document) {
-      throw new Error(`Dialog document not found in domain: ${dialogId}`);
+      throw new Error(`Dialog document not found in domain: ${resolved.dialogId}`);
     }
 
-    const glossCarrier = await this.ensureGlossCarrierMessage({
-      domainId: params.domainId,
-      dialogId,
-      userId: params.userId,
-    });
-
-    const suggestedAnchor: GlossAnchor = document.manuscriptDraftId
-      ? {
-          entityKind: 'draft',
-          entityId: document.manuscriptDraftId,
-          ...(document.points[0]?.id ? { nodeId: document.points[0].id } : {}),
-          messageId: glossCarrier.messageId,
-        }
-      : {
-          entityKind: 'dialog',
-          entityId: dialogId,
-          messageId: glossCarrier.messageId,
-        };
-
-    return {
-      ...domain,
-      document,
-      messageId: glossCarrier.messageId,
-      glossCarrier,
-      suggestedAnchor,
-    };
-  }
-
-  /**
-   * Find or create a kip_message that can own glossThreads for this Dialog.
-   */
-  static async ensureGlossCarrierMessage(params: {
-    domainId: string;
-    dialogId: string;
-    userId?: string | null;
-  }): Promise<{ messageId: string; created: boolean; sessionId: string }> {
-    const dialog = await prisma.dialog.findFirst({
-      where: { id: params.dialogId, domain_id: params.domainId },
-      select: { id: true, user_id: true, title: true },
-    });
-    if (!dialog) {
-      throw new Error(`Dialog not found in domain: ${params.dialogId}`);
-    }
-
-    const tagged = await prisma.kip_messages.findFirst({
-      where: {
-        kip_sessions: {
-          dialog_id: dialog.id,
-          is_archived: false,
-        },
-        metadata: {
-          path: ['mcpGlossCarrier'],
-          equals: true,
-        },
-      },
-      select: { id: true, session_id: true },
-      orderBy: { created_at: 'desc' },
-    });
-    if (tagged) {
-      return {
-        messageId: tagged.id,
-        created: false,
-        sessionId: tagged.session_id,
-      };
-    }
-
-    // Prefer an existing user message on a Dialog session (Discuss path).
-    const existingUser = await prisma.kip_messages.findFirst({
-      where: {
-        role: 'user',
-        kip_sessions: {
-          dialog_id: dialog.id,
-          is_archived: false,
-        },
-      },
-      select: { id: true, session_id: true },
-      orderBy: { created_at: 'desc' },
-    });
-    if (existingUser) {
-      return {
-        messageId: existingUser.id,
-        created: false,
-        sessionId: existingUser.session_id,
-      };
-    }
-
-    const session = await this.ensureDialogSession({
-      domainId: params.domainId,
-      dialogId: dialog.id,
-      userId: params.userId ?? dialog.user_id,
-    });
-
-    const metadata: Prisma.InputJsonValue = {
-      mcpGlossCarrier: true,
-      purpose: 'mcp_gloss_carrier',
-      dialogId: dialog.id,
-    };
-
-    const message = await prisma.kip_messages.create({
-      data: {
-        session_id: session.id,
-        sender: 'mcp',
-        role: 'user',
-        content: `[MCP gloss carrier for Dialog "${dialog.title}"]`,
-        metadata,
-      },
-      select: { id: true, session_id: true },
-    });
-
-    return {
-      messageId: message.id,
-      created: true,
-      sessionId: message.session_id,
-    };
-  }
-
-  private static async ensureDialogSession(params: {
-    domainId: string;
-    dialogId: string;
-    userId?: string | null;
-  }): Promise<{ id: string }> {
-    const existing = await prisma.kip_sessions.findFirst({
-      where: {
-        dialog_id: params.dialogId,
-        is_archived: false,
-      },
-      select: { id: true },
-      orderBy: { updated_at: 'desc' },
-    });
-    if (existing) return existing;
-
-    const domain = await prisma.domain.findUnique({
-      where: { id: params.domainId },
-      select: {
-        id: true,
-        slug: true,
-        frame_json: true,
-        settings: true,
-        ownerId: true,
-      },
-    });
-    if (!domain) throw new Error(`Domain not found: ${params.domainId}`);
-
-    const lead = await resolveDomainLeadAgentFromDomain(prisma, domain);
-    if (!lead) {
+    const messageLimit = Math.min(Math.max(Number(params.messageLimit ?? 8), 1), 20);
+    const messages = await this.listRecentDialogMessages(resolved.dialogId, messageLimit);
+    if (messages.length === 0) {
       throw new Error(
-        `No lead agent for domain ${domain.slug}; cannot create gloss carrier session`,
+        `No kip_messages found for Dialog ${resolved.dialogId}. ` +
+          'dialog_read is read-only and will not create a session or carrier message. ' +
+          'Open the Dialog in Keeper and send at least one message, then retry.',
       );
     }
 
-    const userId = (params.userId?.trim() || domain.ownerId).trim();
-    if (!userId) {
-      throw new Error('userId is required to create a gloss carrier session');
+    const carrier = messages[0]!;
+    const suggestedAnchor = this.buildSuggestedAnchor({
+      entityKind: resolved.entityKind,
+      entityId: resolved.entityId,
+      dialogId: resolved.dialogId,
+      document,
+      messageId: carrier.id,
+    });
+
+    return {
+      ...domain,
+      entityKind: resolved.entityKind,
+      entityId: resolved.entityId,
+      dialogId: resolved.dialogId,
+      ...(resolved.title ? { title: resolved.title } : {}),
+      document,
+      messageId: carrier.id,
+      suggestedAnchor,
+      messages,
+    };
+  }
+
+  private static async resolveEntityInDomain(
+    domainId: string,
+    entityId: string,
+  ): Promise<{
+    entityKind: 'dialog' | 'draft';
+    entityId: string;
+    dialogId: string;
+    title?: string;
+  }> {
+    const dialog = await prisma.dialog.findFirst({
+      where: { id: entityId, domain_id: domainId, is_archived: false },
+      select: { id: true, title: true },
+    });
+    if (dialog) {
+      return {
+        entityKind: 'dialog',
+        entityId: dialog.id,
+        dialogId: dialog.id,
+        title: dialog.title,
+      };
     }
 
-    return prisma.kip_sessions.create({
-      data: {
-        agent_id: lead.id,
-        user_id: userId,
-        dialog_id: params.dialogId,
-        session_name: `MCP gloss · ${params.dialogId}`,
-        topic: 'mcp_gloss_carrier',
+    const draft = await prisma.kip_drafts.findFirst({
+      where: {
+        id: entityId,
+        domain_id: domainId,
+        kind: 'document_manuscript',
+        status: { notIn: ['promoted', 'archived'] },
       },
-      select: { id: true },
+      select: { id: true, title: true, dialog_id: true },
     });
+    if (draft?.dialog_id) {
+      return {
+        entityKind: 'draft',
+        entityId: draft.id,
+        dialogId: draft.dialog_id,
+        ...(draft.title?.trim() ? { title: draft.title.trim() } : {}),
+      };
+    }
+
+    throw new Error(`Dialog or draft not found in domain: ${entityId}`);
+  }
+
+  private static async listRecentDialogMessages(
+    dialogId: string,
+    limit: number,
+  ): Promise<DialogMcpMessagePreview[]> {
+    const rows = await prisma.kip_messages.findMany({
+      where: {
+        kip_sessions: {
+          dialog_id: dialogId,
+          is_archived: false,
+        },
+      },
+      select: {
+        id: true,
+        role: true,
+        content: true,
+        created_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+      take: limit,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      role: row.role,
+      content: row.content.length > 400 ? `${row.content.slice(0, 400)}…` : row.content,
+      createdAt: row.created_at.toISOString(),
+    }));
+  }
+
+  private static buildSuggestedAnchor(params: {
+    entityKind: 'dialog' | 'draft';
+    entityId: string;
+    dialogId: string;
+    document: NonNullable<Awaited<ReturnType<typeof loadDialogDocumentForAgent>>>;
+    messageId: string;
+  }): GlossAnchor {
+    if (params.entityKind === 'draft') {
+      return {
+        entityKind: 'draft',
+        entityId: params.entityId,
+        ...(params.document.points[0]?.id ? { nodeId: params.document.points[0].id } : {}),
+        messageId: params.messageId,
+      };
+    }
+
+    if (params.document.manuscriptDraftId) {
+      return {
+        entityKind: 'draft',
+        entityId: params.document.manuscriptDraftId,
+        ...(params.document.points[0]?.id ? { nodeId: params.document.points[0].id } : {}),
+        messageId: params.messageId,
+      };
+    }
+
+    return {
+      entityKind: 'dialog',
+      entityId: params.dialogId,
+      messageId: params.messageId,
+    };
   }
 }

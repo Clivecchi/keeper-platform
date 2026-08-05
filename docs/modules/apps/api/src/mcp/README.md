@@ -1010,6 +1010,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 **2026-08-03**: **OAuth consent false expiry** — `express.text(*/*)` parsed HTML form POSTs before `urlencoded`, so `consent_ticket` never reached `/oauth/authorize` ("Expired consent"). Middleware order fixed in `index.ts`; OAuth routes also parse raw form strings defensively.
 
+**2026-08-04**: `dialog_list` / `dialog_read` tightened to strict read-only (no session/carrier creation). List returns `{ id, title, entityKind, updatedAt }`; read takes `entityId` (Dialog or manuscript draft) and returns `messageId`, `suggestedAnchor`, and recent message previews for `gloss_write_turn`.
+
 **2026-08-04**: Added always-visible `capabilities_list` MCP tool (+ richer `GET /mcp/whoami`) so external clients can self-check granted vs denied scopes (`dialog.ro: not granted`) without trial-and-error. Confirms scoped clients only see tools for their grants — missing `dialog_read` usually means grant lacks `dialog.ro`, not that the tool is undeployed.
 
 **2026-08-03**: Added `dialog.ro` scope + `dialog_list` / `dialog_search` / `dialog_read` MCP tools. `dialog_read` returns Document state, `messageId` (gloss carrier), and `suggestedAnchor` for `gloss_write_turn`. Library tools now include `domainName` / `domainSlug`. External Access can PATCH OAuth grant scopes (Add Dialog+Gloss).

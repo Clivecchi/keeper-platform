@@ -3,22 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const prismaMock = vi.hoisted(() => ({
   domain: { findUnique: vi.fn() },
   dialog: { findMany: vi.fn(), findFirst: vi.fn() },
-  kip_messages: { findFirst: vi.fn(), create: vi.fn() },
+  kip_messages: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   kip_sessions: { findFirst: vi.fn(), create: vi.fn() },
-  kip_drafts: { findMany: vi.fn() },
+  kip_drafts: { findMany: vi.fn(), findFirst: vi.fn() },
 }));
 
 vi.mock('@keeper/database', () => ({
   prisma: prismaMock,
-}));
-
-vi.mock('./domains/resolveDomainLeadAgent.js', () => ({
-  resolveDomainLeadAgentFromDomain: vi.fn(async () => ({
-    id: 'agent-1',
-    slug: 'kip',
-    name: 'Kip',
-    source: 'settings',
-  })),
 }));
 
 vi.mock('./kip/loadDialogDocumentForAgent.js', () => ({
@@ -36,77 +27,98 @@ vi.mock('./kip/loadDialogDocumentForAgent.js', () => ({
 
 import { DialogMcpService } from './DialogMcpService.js';
 
-describe('DialogMcpService', () => {
+describe('DialogMcpService (read-only)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prismaMock.domain.findUnique.mockResolvedValue({
       id: 'domain-1',
       name: 'Keeper',
       slug: 'default',
-      frame_json: {},
-      settings: {},
-      ownerId: 'user-owner',
     });
   });
 
-  it('searchDialogs finds by title', async () => {
+  it('listDialogs returns dialog and draft items', async () => {
     prismaMock.dialog.findMany.mockResolvedValue([
       {
         id: 'dialog-1',
         title: 'Becoming Together',
-        document_status: 'drafts',
-        forward_title: 'Becoming Together',
-        step_title: 'Now',
-        updated_at: new Date('2026-08-01T00:00:00.000Z'),
-        created_at: new Date('2026-07-01T00:00:00.000Z'),
+        updated_at: new Date('2026-08-02T00:00:00.000Z'),
+      },
+    ]);
+    prismaMock.kip_drafts.findMany.mockResolvedValue([
+      {
+        id: 'draft-1',
+        title: 'Becoming Together manuscript',
+        updated_at: new Date('2026-08-03T00:00:00.000Z'),
       },
     ]);
 
-    const result = await DialogMcpService.searchDialogs({
-      domainId: 'domain-1',
-      query: 'Becoming Together',
-    });
-
+    const result = await DialogMcpService.listDialogs({ domainId: 'domain-1' });
     expect(result.domainName).toBe('Keeper');
-    expect(result.dialogs).toHaveLength(1);
-    expect(result.dialogs[0]?.title).toBe('Becoming Together');
-    expect(prismaMock.dialog.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          domain_id: 'domain-1',
-          OR: expect.any(Array),
-        }),
-      }),
-    );
+    expect(result.items).toEqual([
+      {
+        id: 'draft-1',
+        title: 'Becoming Together manuscript',
+        entityKind: 'draft',
+        updatedAt: '2026-08-03T00:00:00.000Z',
+      },
+      {
+        id: 'dialog-1',
+        title: 'Becoming Together',
+        entityKind: 'dialog',
+        updatedAt: '2026-08-02T00:00:00.000Z',
+      },
+    ]);
+    expect(prismaMock.kip_sessions.create).not.toHaveBeenCalled();
+    expect(prismaMock.kip_messages.create).not.toHaveBeenCalled();
   });
 
-  it('readDialog returns messageId and suggestedAnchor', async () => {
+  it('readDialog returns messageId + suggestedAnchor from existing messages only', async () => {
     prismaMock.dialog.findFirst.mockResolvedValue({
       id: 'dialog-1',
-      user_id: 'user-1',
       title: 'Becoming Together',
     });
-    prismaMock.kip_messages.findFirst
-      .mockResolvedValueOnce(null) // no tagged carrier
-      .mockResolvedValueOnce({
-        id: 'msg-existing',
-        session_id: 'session-1',
-      });
+    prismaMock.kip_messages.findMany.mockResolvedValue([
+      {
+        id: 'msg-latest',
+        role: 'user',
+        content: 'Discuss this Point',
+        created_at: new Date('2026-08-04T12:00:00.000Z'),
+      },
+      {
+        id: 'msg-older',
+        role: 'assistant',
+        content: 'Earlier reply',
+        created_at: new Date('2026-08-04T11:00:00.000Z'),
+      },
+    ]);
 
     const result = await DialogMcpService.readDialog({
       domainId: 'domain-1',
-      dialogId: 'dialog-1',
-      userId: 'user-1',
+      entityId: 'dialog-1',
     });
 
-    expect(result.messageId).toBe('msg-existing');
-    expect(result.domainName).toBe('Keeper');
+    expect(result.messageId).toBe('msg-latest');
     expect(result.suggestedAnchor).toMatchObject({
       entityKind: 'draft',
       entityId: 'draft-1',
       nodeId: 'point-1',
-      messageId: 'msg-existing',
+      messageId: 'msg-latest',
     });
-    expect(result.document.title).toBe('Becoming Together');
+    expect(result.messages).toHaveLength(2);
+    expect(prismaMock.kip_messages.create).not.toHaveBeenCalled();
+    expect(prismaMock.kip_sessions.create).not.toHaveBeenCalled();
+  });
+
+  it('readDialog fails clearly when Dialog has no messages', async () => {
+    prismaMock.dialog.findFirst.mockResolvedValue({
+      id: 'dialog-1',
+      title: 'Becoming Together',
+    });
+    prismaMock.kip_messages.findMany.mockResolvedValue([]);
+
+    await expect(
+      DialogMcpService.readDialog({ domainId: 'domain-1', entityId: 'dialog-1' }),
+    ).rejects.toThrow(/read-only and will not create/);
   });
 });

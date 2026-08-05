@@ -68,7 +68,6 @@ import {
 } from "./domain/domainShellCache"
 import { extractDomainThemeCover } from "@keeper/shared"
 import { DOMAIN_THEME_SLUG } from "../themes/constants"
-import { BoardMobileChronicleStrip } from "./components/BoardMobileChronicleStrip"
 import { BoardMobileChronicleOverlay } from "./components/BoardMobileChronicleOverlay"
 import { BoardMobileNavDrawer } from "./components/BoardMobileNavDrawer"
 import { getCachedBoardNavData } from "./boardNavDataCache"
@@ -124,8 +123,6 @@ export interface UniversalBoardCenterProps {
   onDraftListRefresh?: () => void
   /** Bump nav journey list after agent actions create journeys or moments. */
   onJourneyListRefresh?: () => void
-  /** Adaptive mobile — Chronicle tip strip above Composer. */
-  mobileAboveComposer?: React.ReactNode
   /** Adaptive mobile — Playbill owns domain LIVE; suppress Dialog identity banner. */
   suppressMobileDomainBanner?: boolean
 }
@@ -315,44 +312,6 @@ function UniversalBoardShell({
     const dialogs = getCachedBoardNavData<Array<{ id: string; title?: string | null; updated_at?: string | null; updatedAt?: string | null }>>(domainId, "dialogs")
     return dialogs?.find((dialog) => dialog.id === selection.selectedDialogId) ?? null
   }, [domainId, selection.selectedDialogId])
-
-  const chronicleStripCopy = React.useMemo(() => {
-    const domainLabel = domainName?.trim() || "Domain"
-    const dialogId = selection.selectedDialogId
-    if (dialogId && domainId) {
-      const dialogs = getCachedBoardNavData<Array<{ id: string; title?: string | null }>>(
-        domainId,
-        "dialogs",
-      )
-      const match = dialogs?.find((d) => d.id === dialogId)
-      const title = match?.title?.trim() || "Document"
-      return {
-        title,
-        subtitle: domainLabel,
-      }
-    }
-    if (selection.selectedDraftId) {
-      return { title: "Draft", subtitle: domainLabel }
-    }
-    if (selection.selectedMomentId) {
-      return { title: "Moment", subtitle: domainLabel }
-    }
-    if (selection.selectedJourneyId) {
-      return { title: "Journey", subtitle: domainLabel }
-    }
-    // Idle tip — matches domain Chronicle contract (not Sessions).
-    return {
-      title: domainLabel,
-      subtitle: "Journeys · Moments",
-    }
-  }, [
-    domainId,
-    domainName,
-    selection.selectedDialogId,
-    selection.selectedDraftId,
-    selection.selectedMomentId,
-    selection.selectedJourneyId,
-  ])
 
   const onDraftListRefresh = React.useCallback(() => {
     actions.bumpDraftNav()
@@ -550,14 +509,6 @@ function UniversalBoardShell({
     domainName,
   }
 
-  const mobileAboveComposer = useMobilePanelLayout ? (
-    <BoardMobileChronicleStrip
-      title="Open Chronicle"
-      subtitle={selection.selectedDialogId ? undefined : chronicleStripCopy.subtitle}
-      onExpand={openChronicleOverlay}
-    />
-  ) : null
-
   // ── Board context — delivered to center and right render props ───────────
   const centerProps: UniversalBoardCenterProps = {
     domainId,
@@ -581,7 +532,6 @@ function UniversalBoardShell({
     clearSelection: actions.clearSelection,
     onDraftListRefresh,
     onJourneyListRefresh,
-    mobileAboveComposer: mobileAboveComposer ?? undefined,
     suppressMobileDomainBanner: useMobilePanelLayout,
   }
 

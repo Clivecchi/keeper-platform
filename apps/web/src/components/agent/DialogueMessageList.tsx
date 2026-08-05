@@ -310,7 +310,7 @@ function AgentMessageTurn({
     }
 
     return (
-      <div className="max-w-xl">
+      <div className="max-w-xl min-w-0">
         <GlossSurface
           messageId={message.id}
           anchor={buildMessageGlossAnchor(message.id, "body")}
@@ -318,7 +318,7 @@ function AgentMessageTurn({
           snapshot={{ label: "message", text: visibleContent.trim().slice(0, 280) }}
           highlightMode="border"
           affordancePlacement="border"
-          className="rounded-2xl px-4 py-3 text-sm shadow-sm"
+          className="rounded-2xl px-4 py-3 text-sm shadow-sm break-words"
           style={{
             backgroundColor: "hsl(var(--theme-surface-paper))",
             color: "var(--theme-ink-primary-color)",
@@ -364,7 +364,7 @@ function AgentMessageTurn({
   const leadName = echoAgentName ?? agentName
 
   return (
-    <div className="max-w-xl space-y-2.5">
+    <div className="max-w-xl min-w-0 space-y-2.5">
       <MultiAgentTurnGroup>
         {castVoices.map((voice, index) => (
           <AgentChatBubble
@@ -637,10 +637,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onArrivalInvitation,
   onOpenChronicleChip,
 }) => (
-  <div
-    className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
-    style={{ backgroundColor: 'hsl(var(--theme-dialogue-area-bg, 35 33% 97%))' }}
-  >
+  <div className="dialogue-message-list min-h-[24rem] space-y-4 overflow-x-hidden overflow-y-auto rounded-2xl px-4 py-4">
     {isLoading ? (
       <>
         <SkeletonBubble alignment="left" />
@@ -662,8 +659,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
         if (message.role === "user") {
           const resolvedUserName = message.senderName?.trim() || userName
           return (
-            <div key={message.id} className="flex justify-end">
-              <div className="max-w-xl">
+            <div key={message.id} className="flex w-full min-w-0 justify-end">
+              <div className="max-w-xl min-w-0">
                 <GlossSurface
                   messageId={message.id}
                   anchor={buildMessageGlossAnchor(message.id, "body")}
@@ -671,13 +668,13 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                   snapshot={{ label: "your message", text: message.content.trim().slice(0, 280) }}
                   highlightMode="border"
                   affordancePlacement="border"
-                  className="rounded-2xl px-4 py-3 text-sm text-white shadow-sm"
+                  className="rounded-2xl px-4 py-3 text-sm text-white shadow-sm break-words"
                   style={{
                     backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
                     border: "1px solid hsl(var(--theme-dialogue-user-bg, 14 60% 56%) / 0.85)",
                   }}
                 >
-                  <p className="whitespace-pre-line">{message.content}</p>
+                  <p className="whitespace-pre-line break-words">{message.content}</p>
                 </GlossSurface>
                 <MessageSenderFooter
                   name={resolvedUserName}
@@ -692,8 +689,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
 
         if (message.role === "system") {
           return (
-            <div key={message.id} className="flex justify-start" role="alert">
-              <div className="w-full max-w-xl">
+            <div key={message.id} className="flex w-full min-w-0 justify-start" role="alert">
+              <div className="w-full max-w-xl min-w-0">
                 <AgentErrorAlert error={message.content} />
               </div>
             </div>
@@ -701,7 +698,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
         }
 
         return (
-          <div key={message.id} className="flex justify-start">
+          <div key={message.id} className="flex w-full min-w-0 justify-start">
             <AgentMessageTurn
               message={message}
               agentName={agentName}

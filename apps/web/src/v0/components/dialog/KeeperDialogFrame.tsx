@@ -247,11 +247,6 @@ export interface KeeperDialogFrameProps {
   /** Renders between Dialog Space and Composer in mobile response stage (e.g. Text / Chronicle toggle). */
   mobileResponseToolbar?: React.ReactNode
   /**
-   * Slot above the Composer (adaptive mobile Chronicle strip).
-   * Renders inside `.dialog-bottom-zone` before the input floor.
-   */
-  aboveComposer?: React.ReactNode
-  /**
    * When true on mobile, suppress the domain livePulse identity banner —
    * Playbill owns identity/location (one top bar).
    */
@@ -348,7 +343,6 @@ export function KeeperDialogFrame({
   mobileDialogStage,
   onComposerFocusChange,
   mobileResponseToolbar,
-  aboveComposer,
   suppressMobileDomainBanner = false,
   talkMode = false,
   glossConfig,
@@ -903,7 +897,6 @@ export function KeeperDialogFrame({
       {/* ── Composer — input floor; post-run Horizon summary sits directly above ── */}
       <div className="dialog-bottom-zone">
         <div className="dialog-column dialog-bottom-stack">
-          {mode !== "feed" && aboveComposer ? aboveComposer : null}
           {mode !== "feed" && postRunSummary && (
             <div className="dialog-composer-horizon" aria-live="polite">
               <p className="dialog-composer-horizon-summary">{postRunSummary}</p>

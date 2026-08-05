@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { BoardMobileNavAccount } from "./BoardMobileNavAccount"
 
 export interface BoardMobileNavDrawerProps {
   open: boolean
@@ -10,6 +11,7 @@ export interface BoardMobileNavDrawerProps {
 
 /**
  * Left Nav as a drawer — replaces the former Nav bottom-tab destination.
+ * Account (avatar / profile / sign out) lives at the bottom — Top Bar right slot is Chronicle.
  */
 export function BoardMobileNavDrawer({
   open,
@@ -58,6 +60,7 @@ export function BoardMobileNavDrawer({
           </button>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <BoardMobileNavAccount />
       </div>
     </div>
   )

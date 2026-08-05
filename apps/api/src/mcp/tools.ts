@@ -662,26 +662,20 @@ const tools: Tool[] = [
   {
     name: 'dialog_list',
     description:
-      'List Dialog Documents in the current domain (title, status, forward/step). Required capability: dialog.ro.',
+      'List Dialogs and document manuscripts in the current domain as { id, title, entityKind, updatedAt }. Required capability: dialog.ro. Requires x-domain-id.',
     requiredCapability: 'dialog.ro',
     parameters: {
       type: 'object',
       properties: {
         limit: { type: 'number', minimum: 1, maximum: 50, default: 20 },
-        status: {
-          type: 'string',
-          description: 'Optional document_status filter: drafts | kept | presented',
-        },
       },
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'dialog_list')!, ctx);
       if (!ctx.domainId) throw new Error('x-domain-id header is required');
-      const status = typeof args.status === 'string' ? args.status : undefined;
       return DialogMcpService.listDialogs({
         domainId: ctx.domainId,
         limit: Number(args.limit ?? 20),
-        status,
       });
     },
   },
@@ -711,22 +705,37 @@ const tools: Tool[] = [
   {
     name: 'dialog_read',
     description:
-      'Read a Dialog Document (forward, step, paths, point previews) and return a kip_message id (messageId) usable with gloss_write_turn. Required capability: dialog.ro.',
+      'Read a Dialog or document manuscript by entityId and return messageId + suggestedAnchor for gloss_write_turn, plus recent message previews. Read-only — does not create sessions or messages. Required capability: dialog.ro.',
     requiredCapability: 'dialog.ro',
     parameters: {
       type: 'object',
-      required: ['dialogId'],
+      required: ['entityId'],
       properties: {
-        dialogId: { type: 'string', description: 'Dialog id (Document durable identity)' },
+        entityId: {
+          type: 'string',
+          description: 'Dialog id or document_manuscript draft id from dialog_list',
+        },
+        dialogId: {
+          type: 'string',
+          description: 'Alias for entityId (Dialog id)',
+        },
+        messageLimit: {
+          type: 'number',
+          minimum: 1,
+          maximum: 20,
+          default: 8,
+          description: 'How many recent messages to include for context',
+        },
       },
     },
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'dialog_read')!, ctx);
       if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const entityId = String(args.entityId ?? args.dialogId ?? '').trim();
       return DialogMcpService.readDialog({
         domainId: ctx.domainId,
-        dialogId: String(args.dialogId ?? ''),
-        userId: ctx.userId,
+        entityId,
+        messageLimit: Number(args.messageLimit ?? 8),
       });
     },
   },

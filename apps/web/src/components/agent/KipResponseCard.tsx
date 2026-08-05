@@ -65,6 +65,8 @@ export function KipResponseCard({
         alignItems: "stretch",
         gap: 0,
         width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
         textAlign: "left",
         background: "hsl(var(--theme-surface-paper) / 0.90)",
         border: "1px solid hsl(var(--theme-border-soft) / 0.45)",
