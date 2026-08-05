@@ -25,7 +25,11 @@ export type DirectorDelegationBeat = DialogResponseEcho
 
 export interface AgentDialogueMessage {
   id: string
-  role: "user" | "agent"
+  /**
+   * `user` / `agent` — conversation turns.
+   * `system` — platform/runtime errors (timeouts, provider failures). Never styled as agent speech.
+   */
+  role: "user" | "agent" | "system"
   content: string
   createdAt: string
   /** Resolved display name for the sender — supports multi-user / multi-agent history. */

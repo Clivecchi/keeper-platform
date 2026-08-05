@@ -406,6 +406,7 @@ export function useAgentDialog({
 
   const stampSenderName = React.useCallback(
     (message: AgentDialogueMessage): AgentDialogueMessage => {
+      if (message.role === "system") return message
       if (message.senderName?.trim()) return message
       if (message.role === "user") {
         const name = userDisplayName?.trim()
@@ -1229,20 +1230,20 @@ export function useAgentDialog({
         appendThinkingStep(`Run failed — ${reply}`)
         restoreSavedDraft()
 
+        // System/runtime failures must not look like the agent speaking.
         if (mode === "ide") {
           setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
-          setError(reply)
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            stampSenderName({
-              id: `agent-error-${ts}`,
-              role: "agent" as const,
-              content: reply,
-              createdAt: new Date().toISOString(),
-            }),
-          ])
         }
+        setError(null)
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `system-error-${ts}`,
+            role: "system" as const,
+            content: reply,
+            createdAt: new Date().toISOString(),
+          },
+        ])
       } finally {
         onDirectorPhaseChange?.(null)
         setIsSending(false)

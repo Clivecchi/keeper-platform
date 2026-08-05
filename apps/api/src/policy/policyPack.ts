@@ -28,6 +28,7 @@ export const DEFAULT_POLICY_PACK_V1 = {
       'journey.read',
       'moment.read',
       'keeper.read',
+      'web.search',
     ],
   },
 } as const;

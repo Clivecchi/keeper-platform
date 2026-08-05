@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-05 — system errors are not agent speech
+- `useAgentDialog` posts run failures as `role: "system"` dialogue messages (no agent sender stamp). Domain/IDE/Agent boards share the same path; IDE still removes the optimistic user row on failure.
+
 ### 2026-07-30 — Agent Echo rehydrate on fetch
 - `useAgentDialog.normalizeMessage` reads `metadata.echo` (same beat shape as `castVoices` / `delegation`) so Agent Echo / Kip-collaboration beats survive reload. Voice Cards unchanged.
 

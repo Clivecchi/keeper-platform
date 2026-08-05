@@ -28,9 +28,9 @@ export function getAgentErrorPresentation(error: string): AgentErrorPresentation
 
   if (lower.includes("timed out") || lower.includes("timeout")) {
     return {
-      title: "Kip timed out",
+      title: "System timeout",
       detail,
-      tone: "warning",
+      tone: "danger",
     }
   }
 

@@ -27,6 +27,12 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-05 — follow-up budget guard
+- `actionFollowUp.ts` — `READ_FOLLOW_UP_MAX_ELAPSED_MS` + `formatReadActionResultsForUserFallback()` so a slow first model call does not start a second synthesis pass that hits the Vercel/proxy timeout; `agents.ts` skips AI follow-up past the budget and returns the retrieved results instead.
+
+### 2026-08-04 — web.search follow-up
+- `actionFollowUp.ts` treats `web.search` as read-only; formats title/URL/snippet results and instructs citation in the second model turn.
+
 ### 2026-08-03 — History = session chapters + Document keeps
 - Stopped per-turn session History rows. `recordSessionChapterEvent` writes once when an auto-named session gets its topic name.
 - Document History rows only for durable keeps (`draft.update`, `draft.point.accept`, `draft.point.promote`) via `buildKeptChronicleMeta`; propose/rewrite no longer flood the feed.

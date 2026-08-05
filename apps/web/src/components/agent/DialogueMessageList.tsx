@@ -690,6 +690,16 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           )
         }
 
+        if (message.role === "system") {
+          return (
+            <div key={message.id} className="flex justify-start" role="alert">
+              <div className="w-full max-w-xl">
+                <AgentErrorAlert error={message.content} />
+              </div>
+            </div>
+          )
+        }
+
         return (
           <div key={message.id} className="flex justify-start">
             <AgentMessageTurn
@@ -724,17 +734,19 @@ const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
 
   return (
     <div
-      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+      className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3 text-sm shadow-sm ${
         isWarning
-          ? "border-amber-300 bg-amber-50 text-amber-800"
-          : "border-red-200 bg-red-50 text-red-700"
+          ? "border-amber-400 bg-amber-50 text-amber-950"
+          : "border-red-400 bg-red-50 text-red-900"
       }`}
+      data-dialog-message="system-error"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        className="mt-0.5 h-5 w-5 flex-shrink-0"
+        className={`mt-0.5 h-5 w-5 flex-shrink-0 ${isWarning ? "text-amber-600" : "text-red-600"}`}
         viewBox="0 0 20 20"
         fill="currentColor"
+        aria-hidden
       >
         {isWarning ? (
           <path
@@ -750,9 +762,12 @@ const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
           />
         )}
       </svg>
-      <div className="flex flex-col gap-1">
-        <span className="font-medium">{presentation.title}</span>
-        <span className="text-xs opacity-80">{presentation.detail}</span>
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">
+          System
+        </span>
+        <span className="font-semibold leading-snug">{presentation.title}</span>
+        <span className="text-xs leading-relaxed opacity-90">{presentation.detail}</span>
       </div>
     </div>
   )

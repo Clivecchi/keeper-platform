@@ -20,6 +20,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'keeper.read',
   'sole.read',
   'library.read',
+  'web.search',
   'delegate.consult',
 ]);
 
@@ -81,13 +82,28 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           lines.push(`Drafts listed: ${data.drafts.length}`);
         }
         if (Array.isArray(data.results)) {
-          lines.push(`Library items: ${data.results.length}`);
-          for (const row of data.results.slice(0, 12)) {
-            if (row && typeof row === 'object') {
-              const item = row as { id?: string; display_label?: string; description?: string };
-              lines.push(
-                `- ${item.display_label ?? item.id ?? '?'} (${item.id ?? '?'})${item.description ? `: ${String(item.description).slice(0, 120)}` : ''}`,
-              );
+          if (result.type === 'web.search') {
+            lines.push(`Web results: ${data.results.length}`);
+            if (typeof data.query === 'string') {
+              lines.push(`Query: ${data.query}`);
+            }
+            for (const row of data.results.slice(0, 10)) {
+              if (row && typeof row === 'object') {
+                const item = row as { title?: string; url?: string; snippet?: string };
+                lines.push(
+                  `- ${item.title ?? '?'} — ${item.url ?? '?'}${item.snippet ? `: ${String(item.snippet).slice(0, 200)}` : ''}`,
+                );
+              }
+            }
+          } else {
+            lines.push(`Library items: ${data.results.length}`);
+            for (const row of data.results.slice(0, 12)) {
+              if (row && typeof row === 'object') {
+                const item = row as { id?: string; display_label?: string; description?: string };
+                lines.push(
+                  `- ${item.display_label ?? item.id ?? '?'} (${item.id ?? '?'})${item.description ? `: ${String(item.description).slice(0, 120)}` : ''}`,
+                );
+              }
             }
           }
         }
@@ -99,6 +115,68 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
     })
     .join('\n\n');
 }
+
+/**
+ * When a second model call would risk the Vercel/proxy first-byte budget,
+ * surface read results directly instead of timing out the whole turn.
+ */
+export function formatReadActionResultsForUserFallback(results: ActionResultLike[]): string {
+  const lines: string[] = [
+    'I retrieved the information, but skipped a second synthesis pass so this turn would not time out. Here is what came back:',
+  ];
+
+  for (const result of results) {
+    if (result.status !== 'success' || !isReadOnlyActionType(result.type)) continue;
+    const data = result.data ?? {};
+
+    if (result.type === 'web.search' && Array.isArray(data.results)) {
+      const query = typeof data.query === 'string' ? data.query : 'your search';
+      lines.push(`Web search (${query}):`);
+      for (const row of data.results.slice(0, 5)) {
+        if (!row || typeof row !== 'object') continue;
+        const item = row as { title?: string; url?: string; snippet?: string };
+        lines.push(
+          `- ${item.title ?? 'Result'}${item.url ? ` — ${item.url}` : ''}${item.snippet ? `: ${String(item.snippet).slice(0, 160)}` : ''}`,
+        );
+      }
+      continue;
+    }
+
+    if (result.type === 'library.read' && Array.isArray(data.results)) {
+      lines.push('Library:');
+      for (const row of data.results.slice(0, 6)) {
+        if (!row || typeof row !== 'object') continue;
+        const item = row as { display_label?: string; id?: string; description?: string };
+        lines.push(
+          `- ${item.display_label ?? item.id ?? 'Item'}${item.description ? `: ${String(item.description).slice(0, 120)}` : ''}`,
+        );
+      }
+      continue;
+    }
+
+    if (typeof data.draft === 'object' && data.draft) {
+      const draft = data.draft as { title?: string; kind?: string };
+      lines.push(`Draft: ${draft.title ?? 'untitled'}${draft.kind ? ` (${draft.kind})` : ''}`);
+      if (data.summary !== undefined) {
+        lines.push(String(data.summary ?? '').slice(0, 500));
+      }
+      continue;
+    }
+
+    if (result.message?.trim()) {
+      lines.push(`${result.type}: ${result.message.trim()}`);
+    }
+  }
+
+  if (lines.length === 1) {
+    lines.push('(No readable result payload — ask me to try again.)');
+  }
+  lines.push('Ask me to continue if you want a fuller synthesis.');
+  return lines.join('\n');
+}
+
+/** Skip a second model call when the turn is already near the proxy first-byte limit (~120s). */
+export const READ_FOLLOW_UP_MAX_ELAPSED_MS = 75_000;
 
 export function buildReadActionFollowUpInput(params: {
   originalInput: string;
@@ -152,6 +230,10 @@ export function buildReadActionFollowUpInput(params: {
     '- Choose one item and explain why in your response',
     '- Include envelope "card": {"type":"summary","title":"<item title>","body":"<rationale>","meta":"<item id>"} (nested ```keeper-card still accepted)',
     '- Also include a library.read action with { id } for your chosen item so a tappable Library receipt renders',
+    'If web.search returned results:',
+    '- Cite the most relevant sources by title and URL',
+    '- Summarize what they say; do not invent links that were not returned',
+    '- Do NOT call web.search again in this follow-up unless the user asked for a different query',
     'If they asked to rebuild or restore draft points, use draft.update.propose or draft.update actions now with the content you recover from the session.',
     'Do not stop at "I read the draft" — complete the engagement.',
   ].join('\n');

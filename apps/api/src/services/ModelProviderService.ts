@@ -115,6 +115,41 @@ const IMAGE_GEN_MAX_PROMPT_CHARS = 2000;
 const IMAGE_GEN_TIMEOUT_MS = 120_000;
 const IMAGE_GEN_MAX_RETRIES = 3;
 
+/**
+ * Per-provider chat completion budgets.
+ * Vercel external rewrites wait ~120s for first byte — keep single-call caps under that,
+ * and leave room for env resolve + actions + optional read follow-up in the same request.
+ * Override with MODEL_TIMEOUT_OPENAI_MS / MODEL_TIMEOUT_ANTHROPIC_MS / MODEL_TIMEOUT_TOGETHER_MS.
+ */
+function readTimeoutMs(envName: string, fallbackMs: number): number {
+  const raw = process.env[envName];
+  if (typeof raw !== 'string' || !raw.trim()) return fallbackMs;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 5_000) return fallbackMs;
+  return Math.min(parsed, 180_000);
+}
+
+const OPENAI_MODEL_TIMEOUT_MS = readTimeoutMs('MODEL_TIMEOUT_OPENAI_MS', 90_000);
+const ANTHROPIC_MODEL_TIMEOUT_MS = readTimeoutMs('MODEL_TIMEOUT_ANTHROPIC_MS', 110_000);
+const TOGETHER_MODEL_TIMEOUT_MS = readTimeoutMs('MODEL_TIMEOUT_TOGETHER_MS', 90_000);
+
+function isAbortTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const err = error as { name?: string; message?: string; code?: string };
+  const name = typeof err.name === 'string' ? err.name : '';
+  const code = typeof err.code === 'string' ? err.code : '';
+  if (name === 'AbortError' || name === 'APIUserAbortError' || code === 'ABORT_ERR') {
+    return true;
+  }
+  // SDKs sometimes wrap abort without AbortError as the top-level name.
+  const message = typeof err.message === 'string' ? err.message.toLowerCase() : '';
+  return (
+    message.includes('request was aborted')
+    || message.includes('aborted by the caller')
+    || message.includes('the operation was aborted')
+  );
+}
+
 export function resolveImageModel(requested?: string | null): string {
   const candidate = typeof requested === 'string' ? requested.trim() : '';
   if (candidate && !UNSUPPORTED_IMAGE_MODELS.has(candidate)) {
@@ -168,10 +203,8 @@ class OpenAIProvider {
       // Dynamic import to avoid bundling issues if not installed
       const { OpenAI } = await import('openai');
       
-      // 30-second timeout to prevent indefinite hangs
-      const MODEL_TIMEOUT_MS = 30_000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+      const timeoutId = setTimeout(() => controller.abort(), OPENAI_MODEL_TIMEOUT_MS);
 
       const openai = new OpenAI({ apiKey: finalApiKey });
 
@@ -217,10 +250,13 @@ class OpenAIProvider {
         model: response.model
       };
     } catch (error) {
-      // Detect AbortController timeout
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error('OpenAI API timeout after 30s');
-        throw new ModelProviderException('TIMEOUT', 'AI model request timed out after 30 seconds', { retryable: false });
+      if (isAbortTimeoutError(error)) {
+        console.error(`OpenAI API timeout after ${OPENAI_MODEL_TIMEOUT_MS}ms`);
+        throw new ModelProviderException(
+          'TIMEOUT',
+          `AI model request timed out after ${Math.round(OPENAI_MODEL_TIMEOUT_MS / 1000)} seconds`,
+          { retryable: false },
+        );
       }
       console.error('OpenAI API error:', error);
       throw normalizeProviderError('openai', error);
@@ -269,9 +305,8 @@ class AnthropicProvider {
 
       const { anthropicMessages, systemPrompt } = convertToAnthropicFormat(messages);
 
-      const MODEL_TIMEOUT_MS = 60_000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+      const timeoutId = setTimeout(() => controller.abort(), ANTHROPIC_MODEL_TIMEOUT_MS);
 
       const client = new Anthropic({ apiKey: finalApiKey });
 
@@ -286,10 +321,14 @@ class AnthropicProvider {
       // JSON output is enforced via system prompt instructions in the agent layer.
       // Do NOT add output_config here — it causes a 400 invalid_request_error.
 
-      const response = await client.messages.create(createParams as any, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      let response;
+      try {
+        response = await client.messages.create(createParams as any, {
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const contentBlocks = (response as any).content ?? [];
       const textContent = contentBlocks
@@ -312,9 +351,13 @@ class AnthropicProvider {
         model: (response as any).model ?? settings.model,
       };
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error('Anthropic API timeout');
-        throw new ModelProviderException('TIMEOUT', 'Anthropic model request timed out', { retryable: false });
+      if (isAbortTimeoutError(error)) {
+        console.error(`Anthropic API timeout after ${ANTHROPIC_MODEL_TIMEOUT_MS}ms`);
+        throw new ModelProviderException(
+          'TIMEOUT',
+          `Anthropic model request timed out after ${Math.round(ANTHROPIC_MODEL_TIMEOUT_MS / 1000)} seconds`,
+          { retryable: false },
+        );
       }
       console.error('Anthropic API error:', error);
       throw normalizeProviderError('anthropic', error);
@@ -436,9 +479,8 @@ class TogetherProvider {
     try {
       const { OpenAI } = await import('openai');
 
-      const MODEL_TIMEOUT_MS = 60_000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+      const timeoutId = setTimeout(() => controller.abort(), TOGETHER_MODEL_TIMEOUT_MS);
 
       const together = new OpenAI({
         apiKey: finalApiKey,
@@ -488,9 +530,13 @@ class TogetherProvider {
         model: response.model
       };
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error('Together AI API timeout');
-        throw new ModelProviderException('TIMEOUT', 'Together AI model request timed out', { retryable: false });
+      if (isAbortTimeoutError(error)) {
+        console.error(`Together AI API timeout after ${TOGETHER_MODEL_TIMEOUT_MS}ms`);
+        throw new ModelProviderException(
+          'TIMEOUT',
+          `Together AI model request timed out after ${Math.round(TOGETHER_MODEL_TIMEOUT_MS / 1000)} seconds`,
+          { retryable: false },
+        );
       }
       console.error('Together AI API error:', error);
       throw normalizeProviderError('together-ai', error);

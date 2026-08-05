@@ -18,4 +18,5 @@ Normalize and validate structured Kip agent actions before `executeAgentActions`
 - [ ] Confirm with Chuck: cast agents proposing on journey drafts should stay `proposed` (human Accept)
 
 ## 📆 Update Log
+- 2026-08-04: Added `web.search` payload schema (`webSearchPayloadSchema`) — `{ query, count? }` for Brave-backed live search.
 - 2026-08-03: Added `normalizeDraftPropose.ts` for content/author coercion used by draft propose execution.

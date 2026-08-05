@@ -543,8 +543,8 @@ function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | und
   const requestId = raw.requestId;
 
   return {
-    provider: provider === 'openai' || provider === 'anthropic' || provider === 'together' || provider === 'elevenlabs'
-      ? provider
+    provider: provider === 'openai' || provider === 'anthropic' || provider === 'together-ai' || provider === 'together' || provider === 'elevenlabs'
+      ? (provider === 'together' ? 'together-ai' : provider)
       : undefined,
     model: typeof model === 'string' ? model : undefined,
     retries: typeof retries === 'number' ? retries : undefined,
@@ -597,13 +597,14 @@ function sanitizeKipErrorMessage(message: unknown): string | null {
   return trimmed;
 }
 
-function getProviderLabel(provider?: ModelProvider): string {
+function getProviderLabel(provider?: ModelProvider | 'together'): string {
   switch (provider) {
     case 'openai':
       return 'OpenAI';
     case 'anthropic':
       return 'Anthropic';
     case 'together':
+    case 'together-ai':
       return 'Together AI';
     case 'elevenlabs':
       return 'ElevenLabs';

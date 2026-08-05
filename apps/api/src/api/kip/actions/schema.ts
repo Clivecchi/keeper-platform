@@ -228,6 +228,16 @@ const treatmentProposePayloadSchema = z.object({
 
 export type TreatmentProposeAction = z.infer<typeof treatmentProposePayloadSchema> & { type: 'treatment.propose' };
 
+/**
+ * Web search action payload schema
+ */
+export const webSearchPayloadSchema = z.object({
+  query: z.string().min(1, 'query is required'),
+  count: z.number().int().min(1).max(10).optional().default(5),
+});
+
+export type WebSearchAction = z.infer<typeof webSearchPayloadSchema> & { type: 'web.search' };
+
 const mcpCallPayloadSchema = z.object({
   name: z.string().min(1, 'name is required'),
   args: z.record(z.unknown()).optional().default({}),
@@ -268,6 +278,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'keeper.read': keeperReadPayloadSchema,
   'image.generate': imageGeneratePayloadSchema,
   'treatment.propose': treatmentProposePayloadSchema,
+  'web.search': webSearchPayloadSchema,
   'mcp.call': mcpCallPayloadSchema,
   'delegate.consult': delegateConsultPayloadSchema,
 };

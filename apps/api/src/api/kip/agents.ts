@@ -50,6 +50,7 @@ import {
 import { resolveAgentCapabilities } from '../../capabilities/resolveCapabilities.js';
 import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import { searchLibraryItems } from '../../services/LibraryItemSearchService.js';
+import { WebSearchService } from '../../services/WebSearchService.js';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -85,6 +86,8 @@ import {
   buildDraftMutationFailureNotice,
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
+  formatReadActionResultsForUserFallback,
+  READ_FOLLOW_UP_MAX_ELAPSED_MS,
   shouldRunMutationDeferralFollowUp,
   shouldRunReadActionFollowUp,
 } from '../../services/kip/actionFollowUp.js';
@@ -1146,6 +1149,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('journey.read');
   allow.add('moment.read');
   allow.add('keeper.read');
+  allow.add('web.search');
   // Lead may consult cast members listed in environment.domainAgents.
   const domainAgents = (environment as { domainAgents?: unknown[] } | null | undefined)?.domainAgents;
   if (Array.isArray(domainAgents) && domainAgents.length > 0) {
@@ -1506,6 +1510,7 @@ export async function executeAgentActions(
     'journey.read',
     'moment.read',
     'keeper.read',
+    'web.search',
     'mcp.call',
     'delegate.consult',
   ]);
@@ -3041,6 +3046,59 @@ export async function executeAgentActions(
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : 'Failed to read keeper';
               logger.error({ requestId, actionType: action.type, error: errorMessage }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'web.search': {
+            const payload = action.payload ?? {};
+            const query = typeof payload.query === 'string' ? payload.query.trim() : '';
+            const count =
+              typeof payload.count === 'number' && payload.count >= 1 && payload.count <= 10
+                ? Math.floor(payload.count)
+                : 5;
+
+            if (!query) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'query is required for web.search',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            try {
+              const outcome = await WebSearchService.search({ query, count });
+              if (outcome.ok === false) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: outcome.message,
+                  errorCode: outcome.errorCode,
+                  data: { query: outcome.query },
+                });
+              } else {
+                results.push({
+                  type: action.type,
+                  status: 'success',
+                  message: `Found ${outcome.results.length} web result${outcome.results.length !== 1 ? 's' : ''} for query`,
+                  data: {
+                    query: outcome.query,
+                    provider: outcome.provider,
+                    results: outcome.results,
+                  },
+                });
+              }
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : 'Failed to run web search';
               results.push({
                 type: action.type,
                 status: 'error',
@@ -4588,6 +4646,12 @@ export class KipAgentService {
           '- Generate images purposefully, not reflexively. A well-timed image is memorable. An image on every response is noise.',
           '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
           '',
+          'WEB SEARCH — web.search action:',
+          '- Use web.search for current public information on the open web. Payload: { query (required), count? (1–10, default 5) }.',
+          '- Prefer library.read for domain Library material; use web.search for the internet.',
+          '- Cite returned titles and URLs; never invent links.',
+          '- Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
+          '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
           'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
@@ -4665,6 +4729,8 @@ export class KipAgentService {
         'item (renders a tappable Library receipt) and include envelope "card": {"type":"summary","title":"<item title>","body":"<rationale>","meta":"<item id>"}.',
         'Nested ```keeper-card fences remain accepted for backward compatibility.',
         '',
+        'For web.search: cite titles and URLs from the returned results. Do not invent links.',
+        '',
         'The Completed receipt confirms the action ran.',
         'Your response must confirm what it found.',
         '',
@@ -4685,6 +4751,11 @@ export class KipAgentService {
         'library.read — list recent library items ({ limit? }), semantic search ({ query, limit? }),',
         'or fetch one item ({ id }). When the user asks to browse or pick from the library, call library.read',
         'with { limit: 20 } first, then { id } for full detail on your choice.',
+        '',
+        'web.search — live internet search (Brave). Use when the user needs current public information',
+        'outside the domain Library. Payload: { query (required), count? (1–10, default 5) }.',
+        'Prefer library.read for domain material; prefer web.search for the open web.',
+        'Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrites one point in place. Payload: { id, pointId, content, type? }. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead. Cast agents should draft.update.propose with optional referencesPointId instead of overwriting.',
@@ -5077,6 +5148,12 @@ export class KipAgentService {
             '- Do not specify model or domain_context — these are handled server-side from domain configuration.',
             '- Generate images purposefully, not reflexively. A well-timed image is memorable. An image on every response is noise.',
             '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
+            '',
+            'WEB SEARCH — web.search action:',
+            '- Use web.search for current public information on the open web. Payload: { query (required), count? (1–10, default 5) }.',
+            '- Prefer library.read for domain Library material; use web.search for the internet.',
+            '- Cite returned titles and URLs; never invent links.',
+            '- Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
@@ -5925,73 +6002,84 @@ export class KipAgentService {
             }
 
             if (shouldRunReadActionFollowUp(structured.actions, actionResults)) {
-              const followUpInput = buildReadActionFollowUpInput({
-                originalInput: input,
-                agentName: agent.name,
-                actionResults,
-                priorResponseText: finalResponseText,
-              });
-              const followUpResult = await this.callAIModel(
-                agent,
-                followUpInput,
-                previousMessages,
-                userId,
-                {
-                  mode: activeMode,
-                  modeConfig: activeModeConfig,
-                  lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
-                  debugSummary,
-                  maxChars,
-                  outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
-                  includeFixPlan: activeModeConfig.includeFixPlan,
-                  autoBrief: activeModeConfig.autoBrief,
-                  environment: options?.environment ?? null,
-                  activeJourneyId: options?.activeJourneyId ?? null,
-                  activeKeeperId: options?.activeKeeperId ?? null,
-                  domainId: options?.domainId ?? null,
-                  attachments: options?.attachments ?? undefined,
-                  timings: options?.timings,
-                  timingLabel: 'read_follow_up',
-                },
-              );
-              const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
-                requestId: randomUUID(),
-                userId,
-                allowedActions: Array.from(allowActions),
-              });
-              finalResponseText =
-                followUpStructured.responseText?.trim()
-                || followUpResult.content.trim()
-                || finalResponseText;
-              if (followUpStructured.card) {
-                structured = { ...structured, card: followUpStructured.card };
-              }
-
-              if (followUpStructured.actions.length) {
-                const followUpActionsStartedAt = Date.now();
-                const followUpExecution = await executeAgentActions(followUpStructured.actions, {
-                  domainId: options?.domainId ?? null,
-                  domainSlug: options?.domainSlug ?? null,
-                  userId,
-                  agentId: agent.id,
-                  allowlist: allowActions,
+              const elapsedBeforeFollowUp = Date.now() - startTime;
+              if (elapsedBeforeFollowUp >= READ_FOLLOW_UP_MAX_ELAPSED_MS) {
+                console.warn('[AgentTurn] skipping read follow-up — turn budget', {
+                  elapsedBeforeFollowUp,
+                  budgetMs: READ_FOLLOW_UP_MAX_ELAPSED_MS,
+                  agentSlug: agent.slug,
                   sessionId: currentSessionId,
-                  dialogId:
-                    options?.dialogId
-                    ?? (options?.environment as AgentEnvironmentContext | null | undefined)
-                      ?.dialogDocument?.dialogId
-                    ?? null,
-                  keeperId: options?.activeKeeperId ?? null,
-                  requestId,
-                  skipActionTypes: options?.skipActionTypes,
                 });
-                if (options?.timings) {
-                  options.timings.actionsMs =
-                    (options.timings.actionsMs ?? 0) + (Date.now() - followUpActionsStartedAt);
+                finalResponseText = formatReadActionResultsForUserFallback(actionResults);
+              } else {
+                const followUpInput = buildReadActionFollowUpInput({
+                  originalInput: input,
+                  agentName: agent.name,
+                  actionResults,
+                  priorResponseText: finalResponseText,
+                });
+                const followUpResult = await this.callAIModel(
+                  agent,
+                  followUpInput,
+                  previousMessages,
+                  userId,
+                  {
+                    mode: activeMode,
+                    modeConfig: activeModeConfig,
+                    lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+                    debugSummary,
+                    maxChars,
+                    outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+                    includeFixPlan: activeModeConfig.includeFixPlan,
+                    autoBrief: activeModeConfig.autoBrief,
+                    environment: options?.environment ?? null,
+                    activeJourneyId: options?.activeJourneyId ?? null,
+                    activeKeeperId: options?.activeKeeperId ?? null,
+                    domainId: options?.domainId ?? null,
+                    attachments: options?.attachments ?? undefined,
+                    timings: options?.timings,
+                    timingLabel: 'read_follow_up',
+                  },
+                );
+                const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
+                  requestId: randomUUID(),
+                  userId,
+                  allowedActions: Array.from(allowActions),
+                });
+                finalResponseText =
+                  followUpStructured.responseText?.trim()
+                  || followUpResult.content.trim()
+                  || finalResponseText;
+                if (followUpStructured.card) {
+                  structured = { ...structured, card: followUpStructured.card };
                 }
-                actionResults = [...actionResults, ...followUpExecution.results];
-                if (followUpExecution.failedMessage) {
-                  finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
+
+                if (followUpStructured.actions.length) {
+                  const followUpActionsStartedAt = Date.now();
+                  const followUpExecution = await executeAgentActions(followUpStructured.actions, {
+                    domainId: options?.domainId ?? null,
+                    domainSlug: options?.domainSlug ?? null,
+                    userId,
+                    agentId: agent.id,
+                    allowlist: allowActions,
+                    sessionId: currentSessionId,
+                    dialogId:
+                      options?.dialogId
+                      ?? (options?.environment as AgentEnvironmentContext | null | undefined)
+                        ?.dialogDocument?.dialogId
+                      ?? null,
+                    keeperId: options?.activeKeeperId ?? null,
+                    requestId,
+                    skipActionTypes: options?.skipActionTypes,
+                  });
+                  if (options?.timings) {
+                    options.timings.actionsMs =
+                      (options.timings.actionsMs ?? 0) + (Date.now() - followUpActionsStartedAt);
+                  }
+                  actionResults = [...actionResults, ...followUpExecution.results];
+                  if (followUpExecution.failedMessage) {
+                    finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
+                  }
                 }
               }
             }

@@ -4,6 +4,7 @@ import {
   buildDraftMutationFailureNotice,
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
+  formatReadActionResultsForUserFallback,
   shouldRunMutationDeferralFollowUp,
   shouldRunReadActionFollowUp,
 } from '../services/kip/actionFollowUp.js';
@@ -52,6 +53,66 @@ describe('actionFollowUp', () => {
     expect(input).toContain('The Future We Are Building');
     expect(input).toContain('spec.points: []');
     expect(input).toContain('complete the engagement');
+  });
+
+  it('formats a user-facing fallback when follow-up is skipped for budget', () => {
+    const text = formatReadActionResultsForUserFallback([
+      {
+        type: 'web.search',
+        status: 'success',
+        message: 'Found 1 web result for query',
+        data: {
+          query: 'Brave Search pricing',
+          results: [
+            {
+              title: 'Brave Search API',
+              url: 'https://brave.com/search/api/',
+              snippet: 'Plans and pricing',
+            },
+          ],
+        },
+      },
+    ]);
+
+    expect(text).toContain('skipped a second synthesis pass');
+    expect(text).toContain('Brave Search API');
+    expect(text).toContain('https://brave.com/search/api/');
+  });
+
+  it('runs follow-up for web.search and formats titles/urls', () => {
+    expect(
+      shouldRunReadActionFollowUp(
+        [{ type: 'web.search' }],
+        [{ type: 'web.search', status: 'success', message: 'Found 1 web result for query' }],
+      ),
+    ).toBe(true);
+
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'What is Brave Search pricing?',
+      agentName: 'Kip',
+      priorResponseText: 'Searching now.',
+      actionResults: [
+        {
+          type: 'web.search',
+          status: 'success',
+          message: 'Found 1 web result for query',
+          data: {
+            query: 'Brave Search pricing',
+            results: [
+              {
+                title: 'Brave Search API',
+                url: 'https://brave.com/search/api/',
+                snippet: 'Plans and pricing',
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(input).toContain('Brave Search API');
+    expect(input).toContain('https://brave.com/search/api/');
+    expect(input).toContain('Cite the most relevant sources');
   });
 
   it('runs mutation deferral follow-up when user asked for draft work and model deferred', () => {
