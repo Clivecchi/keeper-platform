@@ -13,6 +13,7 @@ import { callTool, filterToolsByScopes, getSchema } from './tools.js';
 export interface McpContext {
   domainId: string | null;
   agentCapabilities?: string[];
+  scopes?: string[];
   userId?: string | null;
 }
 

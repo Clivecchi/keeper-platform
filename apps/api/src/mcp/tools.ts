@@ -12,11 +12,13 @@ import { searchLibraryItems } from '../services/LibraryItemSearchService.js';
 import { appendGlossTurn } from '../services/GlossWriteService.js';
 import { DialogMcpService } from '../services/DialogMcpService.js';
 import { resolveMcpDomainLabel } from './domainContext.js';
-import { isGlossAnchor } from '@keeper/shared';
+import { DOMAIN_ACCESS_KEY_SCOPES, isGlossAnchor } from '@keeper/shared';
 
 export type ToolContext = {
   domainId: string | null;
   agentCapabilities?: string[];
+  /** Raw MCP auth scopes for this token (`*` = platform). */
+  scopes?: string[];
   /** OAuth grant user (used to create gloss carrier sessions when needed). */
   userId?: string | null;
 };
@@ -27,6 +29,11 @@ export type Tool = {
   parameters: Record<string, unknown>;
   /** Declared for future MCP capability gate enforcement. */
   requiredCapability?: string;
+  /**
+   * Always include in tools/list for authenticated scoped clients.
+   * Used for capability self-check (no grant required).
+   */
+  alwaysVisible?: boolean;
   handler: (args: Record<string, unknown>, ctx: ToolContext) => Promise<unknown>;
 };
 
@@ -71,12 +78,72 @@ export function filterToolsByScopes(
   toolList: Tool[] = tools,
 ): Tool[] {
   if (scopes?.includes('*')) return toolList;
-  if (!scopes?.length) return [];
+  if (!scopes?.length) {
+    return toolList.filter((tool) => tool.alwaysVisible === true);
+  }
   return toolList.filter((tool) => {
+    if (tool.alwaysVisible) return true;
     // Scoped OAuth / domain keys only expose tools that declare a matching scope capability.
     if (!tool.requiredCapability) return false;
     return scopesAllowCapability(scopes, tool.requiredCapability);
   });
+}
+
+export type CapabilityManifest = {
+  domainId: string | null;
+  domainName?: string;
+  domainSlug?: string;
+  /** Scopes on this token (includes `*` for platform key). */
+  granted: string[];
+  /** Known domain scopes not present on this token. */
+  denied: string[];
+  /** Human-debug lines: `"library.ro"` or `"dialog.ro: not granted"`. */
+  capabilities: string[];
+  /** Tool names currently visible to this token. */
+  tools: string[];
+  note: string;
+};
+
+/** Read-only descriptor of the caller's own MCP scopes — no platform inventory. */
+export async function buildCapabilitiesManifest(params: {
+  scopes: readonly string[] | undefined;
+  domainId: string | null;
+}): Promise<CapabilityManifest> {
+  const scopes = [...(params.scopes ?? [])];
+  const isPlatform = scopes.includes('*');
+  const denied = DOMAIN_ACCESS_KEY_SCOPES.filter(
+    (cap) => !scopesAllowCapability(scopes, cap),
+  );
+  const capabilities = DOMAIN_ACCESS_KEY_SCOPES.map((cap) =>
+    scopesAllowCapability(scopes, cap) ? cap : `${cap}: not granted`,
+  );
+  const listScopes = scopes.length > 0 ? scopes : undefined;
+  const visible = filterToolsByScopes(listScopes).map((t) => t.name);
+
+  let domainName: string | undefined;
+  let domainSlug: string | undefined;
+  if (params.domainId) {
+    try {
+      const label = await resolveMcpDomainLabel(params.domainId);
+      domainName = label.domainName;
+      domainSlug = label.domainSlug;
+    } catch {
+      // Domain label is optional for the manifest.
+    }
+  }
+
+  return {
+    domainId: params.domainId,
+    ...(domainName ? { domainName } : {}),
+    ...(domainSlug ? { domainSlug } : {}),
+    granted: isPlatform ? ['*', ...DOMAIN_ACCESS_KEY_SCOPES] : scopes,
+    denied: [...denied],
+    capabilities,
+    tools: visible,
+    note: isPlatform
+      ? 'Platform key — full MCP catalog.'
+      : 'Scoped token — tools/list only includes granted capabilities (plus capabilities_list).',
+  };
 }
 
 function warnMissingCapability(tool: Tool, ctx: ToolContext): void {
@@ -493,6 +560,22 @@ const tools: Tool[] = [
     async handler(_args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'resend_get_status')!, ctx);
       return ResendService.getStatus();
+    },
+  },
+  {
+    name: 'capabilities_list',
+    description:
+      'List the capabilities granted to this MCP token for the current domain (and which known scopes are not granted). Use this to self-check authorization before calling other tools. Does not return platform integration inventory.',
+    alwaysVisible: true,
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    async handler(_args, ctx) {
+      return buildCapabilitiesManifest({
+        scopes: ctx.scopes ?? ctx.agentCapabilities,
+        domainId: ctx.domainId,
+      });
     },
   },
   {

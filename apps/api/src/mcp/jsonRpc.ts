@@ -206,6 +206,7 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     const ctx = {
       domainId,
       userId: mcpAuth?.userId ?? null,
+      scopes: authScopes,
       agentCapabilities: [
         ...(resolvedCaps?.capabilities ?? []),
         ...authScopes,

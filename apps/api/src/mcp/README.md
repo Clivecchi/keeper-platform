@@ -42,6 +42,9 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 See `docs/library-shared-context-roadmap.md` for rationale.
 
 ### Available Tools
+Session self-check (always visible to authenticated scoped clients — no grant required):
+0. **`capabilities_list`** — granted / denied scopes for this token + visible tool names (not an integrations inventory)
+
 Library (read-only, `library.ro`) — responses include `domainId`, `domainName`, `domainSlug`:
 1. **`library_list`** — recent Library items for domain
 2. **`library_get`** — single LibraryItem by id
@@ -55,7 +58,7 @@ Dialog Documents (read-only, `dialog.ro`) — not LibraryItems; use for titles l
 Gloss (thread write only, `gloss.rw` — never mutates anchored entities):
 7. **`gloss_write_turn`** — append one turn to `kip_messages.metadata.glossThreads` (use `messageId` from `dialog_read`)
 
-Legacy / infra tools (capability-gated): Railway, Vercel, GitHub, integrations, etc.
+Legacy / infra tools (capability-gated; **not** exposed on scoped OAuth grants): Railway, Vercel, GitHub, integrations, etc.
 
 ### Endpoints
 
@@ -1006,6 +1009,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 ## 📆 Update Log
 
 **2026-08-03**: **OAuth consent false expiry** — `express.text(*/*)` parsed HTML form POSTs before `urlencoded`, so `consent_ticket` never reached `/oauth/authorize` ("Expired consent"). Middleware order fixed in `index.ts`; OAuth routes also parse raw form strings defensively.
+
+**2026-08-04**: Added always-visible `capabilities_list` MCP tool (+ richer `GET /mcp/whoami`) so external clients can self-check granted vs denied scopes (`dialog.ro: not granted`) without trial-and-error. Confirms scoped clients only see tools for their grants — missing `dialog_read` usually means grant lacks `dialog.ro`, not that the tool is undeployed.
 
 **2026-08-03**: Added `dialog.ro` scope + `dialog_list` / `dialog_search` / `dialog_read` MCP tools. `dialog_read` returns Document state, `messageId` (gloss carrier), and `suggestedAnchor` for `gloss_write_turn`. Library tools now include `domainName` / `domainSlug`. External Access can PATCH OAuth grant scopes (Add Dialog+Gloss).
 

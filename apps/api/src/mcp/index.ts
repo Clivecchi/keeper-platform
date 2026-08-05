@@ -7,7 +7,7 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { mcpCors } from './cors.js';
-import { getSchema, callTool } from './tools.js';
+import { getSchema, callTool, buildCapabilitiesManifest } from './tools.js';
 import { logMcp } from './log.js';
 import { rid } from './id.js';
 import { mcpListActions, mcpCallAction, mcpGetCapabilities } from './core.js';
@@ -119,18 +119,34 @@ router.get('/', (req: Request, res: Response) => {
  * Auth check endpoint - verifies bearer token is valid
  */
 router.get('/whoami', (req: Request, res: Response) => {
-  const t0 = Date.now();
-  const id = rid();
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('x-request-id', id);
-  res.json({ 
-    ok: true,
-    authenticated: true,
-    service: 'keeper-mcp',
-    domainId: (req as any).domainId || null,
-    timestamp: new Date().toISOString()
+  void (async () => {
+    const t0 = Date.now();
+    const id = rid();
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('x-request-id', id);
+    const mcpAuth = (req as any).mcpAuth as {
+      mode?: string;
+      scopes?: string[];
+      domainId?: string | null;
+    } | undefined;
+    const domainId = (req as any).domainId ?? mcpAuth?.domainId ?? null;
+    const manifest = await buildCapabilitiesManifest({
+      scopes: mcpAuth?.scopes,
+      domainId,
+    });
+    res.json({
+      ok: true,
+      authenticated: true,
+      service: 'keeper-mcp',
+      mode: mcpAuth?.mode ?? null,
+      ...manifest,
+      timestamp: new Date().toISOString(),
+    });
+    logMcp(req, 200, t0, id);
+  })().catch((err) => {
+    console.error('[MCP whoami]', err);
+    res.status(500).json({ ok: false, error: 'whoami_failed' });
   });
-  logMcp(req, 200, t0, id);
 });
 
 /**
@@ -302,9 +318,10 @@ router.post('/call', async (req: Request, res: Response) => {
     const boardId = (req.headers['x-board-id'] as string) ?? undefined;
     const resolvedCaps = await resolveAgentCapabilities({ agentSlug, agentId, boardId });
     const mcpAuth = (req as any).mcpAuth as { scopes?: string[]; userId?: string } | undefined;
+    const authScopes = mcpAuth?.scopes ?? [];
     const mergedCapabilities = [
       ...(resolvedCaps?.capabilities ?? []),
-      ...(mcpAuth?.scopes ?? []),
+      ...authScopes,
     ];
 
     const result = await mcpCallAction(
@@ -313,6 +330,7 @@ router.post('/call', async (req: Request, res: Response) => {
       {
         domainId: (req as any).domainId ?? null,
         userId: mcpAuth?.userId ?? null,
+        scopes: authScopes,
         agentCapabilities: mergedCapabilities,
       }
     );
