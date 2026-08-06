@@ -12,9 +12,11 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `prune-chronicle-history-noise.ts` — delete old per-turn Chronicle History rows (dry-run default; Document/Dialog untouched)
 - `seed-becoming-together-document.ts` — write real Forward/Step/Paths + manuscript Points onto Dialog `cmrtyoraw0001ot0033p5wiwm` (dry-run default)
 - `deploy-object-glossary-read-access.ts` — catalog Object Glossary (+ EntityKind Recipe) as `source_type: github` Library Items and inject condensed Governance canon into Kip/Cloud `voice_prompt` (dry-run default)
+- `gloss-cursor-to-dialog.ts` — durable Cursor → Gloss writer (default ke3p · Becoming Together); `--file` / `--content` / stdin; does not create Points
 
 ## 🔄 Data & Behavior
 Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/database` prisma. Destructive or production-writing scripts must default to dry-run and require an explicit `--execute` flag.
+Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_turn` (same as scoped MCP). See `.cursor/rules/cursor-gloss-becoming-together.mdc`.
 
 ## ⚠️ Notes & ToDo
 - [ ] `consolidate-ke3p-dialogs.ts --execute` is a deliberate production step — never unattended
@@ -24,6 +26,9 @@ Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/d
 - [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-08-05 — Cursor Gloss runner
+- Added `gloss-cursor-to-dialog.ts`: one durable path for Cursor agent Gloss onto Dialog Documents (default Becoming Together). Replaces one-off board-lens script. Rule: `.cursor/rules/cursor-gloss-becoming-together.mdc`.
 
 ### 2026-08-03 — Prune Chronicle History noise
 - Added `prune-chronicle-history-noise.ts`: deletes `chronicle_events` under the old per-turn History model so the feed can refill as session chapters + Document keeps. Default scope = Becoming Together Dialog; supports `--domain-slug=` / `--all`. Dry-run by default; `--execute` gated. Does not touch Document, Dialog, sessions, or messages.

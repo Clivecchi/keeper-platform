@@ -1,0 +1,31 @@
+---
+description: Cursor writes platform proposals to Becoming Together via Gloss (durable runner)
+alwaysApply: true
+---
+
+# Cursor Gloss → Becoming Together
+
+## Opinion (locked for agents)
+
+- **When:** After Cursor produces a platform proposal, forward-design option set, decision candidate, or session-end strategic finding that belongs with the cast — write Gloss in that same turn. Do not wait for Chuck to say “gloss this.”
+- **Not when:** Routine code fixes, tests, renames, or anything that is not Document-worthy. Do not Gloss on a schedule or git event.
+- **Where:** Default **ke3p · Becoming Together**. Override `--domain` / `--dialog` only when the work is clearly another Dialog’s Document.
+- **What Gloss is:** Message-anchored Cursor voice. It does **not** create Points or mutate the Document. Promotion to Points is a cast/Document decision on Keeper.
+
+## How (durable — do not invent scripts)
+
+From `apps/api` (uses `apps/api/.env` + in-process MCP tools):
+
+```bash
+pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path-to-gloss.md>
+```
+
+Or `--content "…"`, or `CURSOR_GLOSS_CONTENT`, or stdin.
+
+Prefix content with `Cursor · <short title> (<YYYY-MM-DD>)`. Mark proposals as Gloss-only / not a build lock unless Chuck already locked them on the Document.
+
+## Anti-patterns
+
+- Writing a new one-off Gloss script
+- Dumping strategy only in chat when it belongs on Becoming Together
+- Asking Chuck which trigger to use — the trigger is “Cursor has something Document-worthy”
