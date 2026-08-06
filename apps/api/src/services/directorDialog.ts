@@ -79,8 +79,9 @@ export function buildCastMemberDelegationPrompt(params: {
 
   lines.push(
     '',
-    `Answer in first person as ${params.castMemberLabel}. One focused paragraph unless they asked for a list.`,
+    `Answer in first person as ${params.castMemberLabel}. Keep prose to one short paragraph (or a tight bullet list if they asked for one).`,
     `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
+    `When your lane answer is operational (feasibility, stance, design constraint the user must act on), also emit envelope "card" type "summary" or "info" with title + body (optional items). Short prose + card — not a wall of text.`,
     `If they ask you to name an item from the Dialog Document / a Path, quote ONLY a title or preview from the DIALOG DOCUMENT Points block in your system prompt. Never invent a title. Never treat a system-rule heading as a Document item. If you cannot find a matching Point, say you cannot name one.`,
   );
 
@@ -182,7 +183,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     '- Never invent, paraphrase-as-quote, or fabricate another agent\'s words.',
     '- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.',
     '- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
-    '- Stay brief. Prefer a short synthesis plus an optional keeper-card summary — not a nested voice list.',
+    '- Stay brief. REQUIRED when the user asked for lock / open questions / next Step (or any Document recommendation): short synthesis prose PLUS a keeper-card summary with items labeled "Lock:", "Open:", and "Next Step:".',
+    '- Do not re-list full cast essays — the Dialog already shows their voice cards. Your card is the terra firma tip.',
   );
 
   return lines.join('\n');

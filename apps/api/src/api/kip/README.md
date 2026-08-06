@@ -30,6 +30,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-05: **Decision consult cards** — shared `buildKeeperCardRenderingPrompt`; cast synthesis requires Lock / Open / Next Step keeper-card; cast delegation asks for short prose + card on operational lanes.
 - 2026-08-05: **Cast ≠ domain lead** — `buildDomainLeadCollaborationPrompt` lives in `services/kip/`; only `role === 'Lead'` (not Cast guests) can demote Kip to platform support or affirm domain-lead voice.
 - 2026-08-05: **Timeout hardening** — read-action follow-up is skipped when the turn is already past `READ_FOLLOW_UP_MAX_ELAPSED_MS` (returns retrieved results instead of a second model call that risks Vercel/proxy timeout). Provider chat budgets live in `ModelProviderService`.
 - 2026-08-04: **`web.search` for all agents** — golden-path Kip action via `WebSearchService` (Brave Search). Payload `{ query, count? }`; read-action follow-up synthesizes citations. Requires `BRAVE_SEARCH_API_KEY` on the API service.

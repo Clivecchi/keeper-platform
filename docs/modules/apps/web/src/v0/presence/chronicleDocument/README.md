@@ -23,7 +23,11 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Confirm synthetic panel placement with Kip (below domain ChronicleRecordView)
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
-## ?? Update Log
+## 📆 Update Log
+### 2026-08-05 — Document density + parity
+- Path groups collapse by default (Progress expands); click header to expand. Softened path panel paper. Removed disabled Back/Forward lineage chrome until Layer 3.
+- `PointView` tighter type scale (title ~20 / body ~15); Gloss demoted to quiet text link (long-press still works on mobile).
+
 ### 2026-08-03 — History as quick review
 - `ChronicleHistoryPanel` tightened for scan: shorter type, 2-line summary clamp, date (not timestamp-to-the-second).
 - Empty copy: named sessions and Document keeps — not every Dialog turn.

@@ -146,10 +146,10 @@ export function PointView({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      <header className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p
-            className="text-[14px] font-semibold uppercase tracking-[0.08em]"
+            className="text-[11px] font-semibold uppercase tracking-[0.08em]"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
             {card.identity.label}
@@ -157,7 +157,7 @@ export function PointView({
           </p>
           {card.status ? (
             <span
-              className="rounded px-2 py-0.5 text-[13px] font-semibold uppercase tracking-wide"
+              className="rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
               style={{
                 color:
                   card.status.tone === "error"
@@ -178,7 +178,7 @@ export function PointView({
           ) : null}
         </div>
         <h2
-          className="text-[24px] font-semibold leading-snug"
+          className="text-[20px] font-semibold leading-snug"
           style={{
             color: "hsl(var(--theme-ink-primary))",
             fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -191,7 +191,7 @@ export function PointView({
       {!expanded ? (
         blurb ? (
           <p
-            className="text-[18px] leading-relaxed"
+            className="text-[15px] leading-relaxed"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {blurb}
@@ -201,7 +201,7 @@ export function PointView({
         <>
           {card.lede?.trim() && card.lede.trim() !== bodyText ? (
             <p
-              className="text-[18px] leading-relaxed"
+              className="text-[15px] leading-relaxed"
               style={{ color: "hsl(var(--theme-ink-secondary))" }}
             >
               {card.lede.trim()}
@@ -209,7 +209,7 @@ export function PointView({
           ) : null}
           {bodyText ? (
             <div
-              className="text-[18px] leading-relaxed whitespace-pre-wrap"
+              className="text-[15px] leading-relaxed whitespace-pre-wrap"
               style={{ color: "hsl(var(--theme-ink-secondary))" }}
             >
               {bodyText}
@@ -223,7 +223,7 @@ export function PointView({
       <div className="flex flex-wrap items-center gap-3 pt-0.5">
         <button
           type="button"
-          className="text-[16px] font-semibold underline-offset-2 hover:underline"
+          className="text-[14px] font-semibold underline-offset-2 hover:underline"
           style={{ color: "hsl(var(--theme-accent-primary))" }}
           onClick={() => setExpanded((open) => !open)}
           aria-expanded={expanded}
@@ -233,7 +233,7 @@ export function PointView({
         {castNotes.length > 0 ? (
           <button
             type="button"
-            className="text-[16px] font-semibold underline-offset-2 hover:underline"
+            className="text-[14px] font-semibold underline-offset-2 hover:underline"
             style={{ color: "hsl(var(--theme-accent-primary))" }}
             onClick={() => setCastOpen((open) => !open)}
             aria-expanded={castOpen}
@@ -249,13 +249,11 @@ export function PointView({
         {handleGloss ? (
           <button
             type="button"
-            className="text-[16px] font-semibold rounded-md px-3 py-1.5"
-            style={{
-              background: "hsl(var(--theme-accent-primary) / 0.12)",
-              color: "hsl(var(--theme-accent-primary))",
-            }}
+            className="text-[13px] font-medium underline-offset-2 hover:underline"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             onClick={handleGloss}
             aria-label="Gloss"
+            title="Gloss (long-press Point on mobile)"
           >
             Gloss
           </button>

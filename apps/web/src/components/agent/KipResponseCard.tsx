@@ -37,6 +37,10 @@ function resolveTypeLabel(type: string): { text: string | null; isError: boolean
       return { text: "Error", isError: true }
     case "info":
       return { text: "Info", isError: false }
+    case "known_issue":
+      return { text: "Known issue", isError: false }
+    case "chronicle_update":
+      return { text: "Chronicle", isError: false }
     default:
       return { text: type, isError: false }
   }

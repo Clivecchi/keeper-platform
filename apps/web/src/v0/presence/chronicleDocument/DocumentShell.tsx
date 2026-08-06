@@ -68,26 +68,48 @@ function PathHeader({
   prelude,
   count,
   accent,
+  expanded,
+  onToggle,
 }: {
   title?: string
   prelude?: string
   count: number
   accent: PathAccent
+  expanded: boolean
+  onToggle: () => void
 }) {
   if (!title && !prelude) return null
   const accentColor = pathAccentColor(accent)
   return (
-    <header className="document-shell-path__header px-1 pb-3 pt-1">
-      <div className="flex items-baseline justify-between gap-3">
+    <header className="document-shell-path__header px-1 pb-2 pt-1">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-baseline justify-between gap-3 text-left"
+        aria-expanded={expanded}
+        aria-label={
+          title
+            ? `${expanded ? "Collapse" : "Expand"} ${title} (${count} points)`
+            : expanded
+              ? "Collapse path"
+              : "Expand path"
+        }
+      >
         <div className="flex min-w-0 items-center gap-2.5">
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "" : "-rotate-90"}`}
+            strokeWidth={2}
+            style={{ color: accentColor }}
+            aria-hidden
+          />
           <span
-            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+            className="inline-block h-2 w-2 shrink-0 rounded-full"
             style={{ background: accentColor }}
             aria-hidden
           />
           {title ? (
             <h3
-              className="truncate text-[16px] font-semibold uppercase tracking-[0.1em]"
+              className="truncate text-[13px] font-semibold uppercase tracking-[0.1em]"
               style={{ color: accentColor }}
             >
               {title}
@@ -96,17 +118,17 @@ function PathHeader({
         </div>
         {count > 0 ? (
           <span
-            className="shrink-0 text-[15px] font-medium tabular-nums"
+            className="shrink-0 text-[13px] font-medium tabular-nums"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             aria-label={`${count} points`}
           >
             {count}
           </span>
         ) : null}
-      </div>
-      {prelude ? (
+      </button>
+      {expanded && prelude ? (
         <p
-          className="mt-2 pl-5 text-[17px] leading-relaxed"
+          className="mt-1.5 pl-7 text-[14px] leading-relaxed"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {prelude}
@@ -151,7 +173,7 @@ function PointFrame({
           opacity: 0.85,
         }}
       />
-      <div className="min-w-0 flex-1 px-4 py-3.5">
+      <div className="min-w-0 flex-1 px-3.5 py-3">
         <PointView point={point} onGloss={onGloss} />
       </div>
     </div>
@@ -199,11 +221,6 @@ function buildGroups(points: Point[], paths?: DocumentPathGroup[]): ShellGroup[]
 
   return groups
 }
-
-const BACK_TOOLTIP =
-  "No prior step exists yet — Back walks the evolution lineage once more than one Step is known."
-const FORWARD_TOOLTIP =
-  "This is the current tip. Forward advances once a next step exists — that self-organizing tip is not built yet."
 
 function resolveForward(
   forward: DocumentForward | undefined,
@@ -332,42 +349,7 @@ function ForwardBlock({
             ) : null}
           </div>
         ) : null}
-
-        <nav
-          className="mt-4 flex items-center justify-between gap-3"
-          aria-label="Step lineage"
-        >
-          <button
-            type="button"
-            disabled
-            title={BACK_TOOLTIP}
-            aria-label={`Back — ${BACK_TOOLTIP}`}
-            className="rounded-md px-3.5 py-2 text-[15px] font-medium opacity-45"
-            style={{
-              color: "hsl(var(--theme-ink-secondary))",
-              border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
-              background: "hsl(var(--theme-surface-panel) / 0.5)",
-              cursor: "not-allowed",
-            }}
-          >
-            ← Back
-          </button>
-          <button
-            type="button"
-            disabled
-            title={FORWARD_TOOLTIP}
-            aria-label={`Forward — ${FORWARD_TOOLTIP}`}
-            className="rounded-md px-3.5 py-2 text-[15px] font-medium opacity-45"
-            style={{
-              color: "hsl(var(--theme-ink-secondary))",
-              border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
-              background: "hsl(var(--theme-surface-panel) / 0.5)",
-              cursor: "not-allowed",
-            }}
-          >
-            Forward →
-          </button>
-        </nav>
+        {/* Step lineage Back/Forward hidden until real lineage exists (Layer 3). */}
       </div>
     </header>
   )
@@ -397,6 +379,34 @@ export function DocumentShell({
     () => resolveForward(forward, title, subtitle),
     [forward, title, subtitle],
   )
+  /** Named Paths start collapsed for density; Progress expands by default. */
+  const [expandedPaths, setExpandedPaths] = React.useState<Record<string, boolean>>({})
+
+  React.useEffect(() => {
+    setExpandedPaths((prev) => {
+      const next = { ...prev }
+      for (const group of groups) {
+        if (!group.path) continue
+        if (next[group.key] !== undefined) continue
+        const accent = resolvePathAccent(group.path.title)
+        next[group.key] = accent === "progress"
+      }
+      return next
+    })
+  }, [groups])
+
+  React.useEffect(() => {
+    if (!scrollToPointId || !pointIds?.length) return
+    const pointIndex = pointIds.findIndex((id) => id === scrollToPointId)
+    if (pointIndex < 0) return
+    for (const group of groups) {
+      if (group.items.some(({ index }) => index === pointIndex)) {
+        setExpandedPaths((prev) => ({ ...prev, [group.key]: true }))
+        break
+      }
+    }
+  }, [scrollToPointId, pointIds, groups])
+
   React.useEffect(() => {
     if (!scrollToPointId) return
     const timer = window.setTimeout(() => scrollToChroniclePoint(scrollToPointId), 0)
@@ -417,21 +427,23 @@ export function DocumentShell({
 
       {points.length === 0 ? emptyState : null}
 
-      <div className="document-shell-paths flex flex-col gap-5 px-4 pb-6 pt-1">
+      <div className="document-shell-paths flex flex-col gap-3 px-4 pb-6 pt-1">
         {groups.map((group) => {
           const accent = resolvePathAccent(group.path?.title)
+          const isNamedPath = Boolean(group.path)
+          const expanded = !isNamedPath || expandedPaths[group.key] === true
           return (
             <section
               key={group.key}
               className="document-shell-path"
               style={{
-                borderRadius: 12,
-                padding: group.path ? "12px 12px 10px" : "0",
+                borderRadius: 10,
+                padding: group.path ? "8px 10px 8px" : "0",
                 background: group.path
-                  ? "hsl(var(--theme-surface-panel) / 0.28)"
+                  ? "hsl(var(--theme-surface-paper) / 0.55)"
                   : "transparent",
                 border: group.path
-                  ? "1px solid hsl(var(--theme-border-soft) / 0.35)"
+                  ? "1px solid hsl(var(--theme-border-soft) / 0.28)"
                   : "none",
               }}
             >
@@ -441,23 +453,32 @@ export function DocumentShell({
                   prelude={group.path.prelude}
                   count={group.items.length}
                   accent={accent}
+                  expanded={expanded}
+                  onToggle={() =>
+                    setExpandedPaths((prev) => ({
+                      ...prev,
+                      [group.key]: !expanded,
+                    }))
+                  }
                 />
               ) : null}
-              <div className="flex flex-col gap-2.5">
-                {group.items.map(({ point, index }) => (
-                  <PointFrame
-                    key={`${group.key}-${index}`}
-                    point={point}
-                    pointId={pointIds?.[index] ?? undefined}
-                    accent={accent}
-                    onGloss={
-                      onGlossPoint && point.gloss?.anchor
-                        ? () => onGlossPoint(point, index)
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
+              {expanded ? (
+                <div className="flex flex-col gap-2">
+                  {group.items.map(({ point, index }) => (
+                    <PointFrame
+                      key={`${group.key}-${index}`}
+                      point={point}
+                      pointId={pointIds?.[index] ?? undefined}
+                      accent={accent}
+                      onGloss={
+                        onGlossPoint && point.gloss?.anchor
+                          ? () => onGlossPoint(point, index)
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              ) : null}
             </section>
           )
         })}

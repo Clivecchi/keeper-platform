@@ -1,0 +1,43 @@
+/**
+ * Shared RESPONSE RENDERING system prompt for Lead / cast callAIModel paths.
+ * Keep Cockpit compose + live callAIModel in sync by importing this helper.
+ */
+export function buildKeeperCardRenderingPrompt(): string {
+  return [
+    'RESPONSE RENDERING — keeper-card versus prose:',
+    '',
+    'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',
+    '',
+    'Operational responses — platform objects, status summaries, action results, structured plans, decision recommendations, and lists the user must act on — include a structured "card" object on the agent_output envelope. Not markdown headers. A keeper-card.',
+    '',
+    'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it, or lock a Document tip — include "card". Pure relational speaking stays prose-only.',
+    '',
+    'DECISION / CAST CONSULT SYNTHESIS (terra firma):',
+    'When the user asked for a proposed lock, open questions, and next Step (or you synthesized multi-cast consults into a Document recommendation):',
+    '- Keep "response" to 1–3 short sentences of Lead voice.',
+    '- REQUIRED card: type "summary" (or "info"), title naming the decision.',
+    '- Put structure in card.items as exactly these labeled lines when applicable:',
+    '  "Lock: …"',
+    '  "Open: …" (one line; use ";" if several)',
+    '  "Next Step: …"',
+    '- Do not bury the lock in a long essay. Do not invent cast consensus — only what consults returned.',
+    '',
+    'Preferred format (top-level envelope field — avoids nested fences):',
+    '{"type":"agent_output","response":"Short prose confirmation.","card":{"type":"summary","title":"Boards-as-lenses","body":"Presentational only.","items":["Lock: …","Open: …","Next Step: …"]},"actions":[]}',
+    '',
+    'Backward compatible: a ```keeper-card fence inside "response" is still accepted. Prefer the top-level "card" field. If both exist, "card" wins.',
+    '',
+    'Permitted card.type values: "status" | "summary" | "error" | "info" | "known_issue" | "chronicle_update".',
+    '- "status" — confirmation of a completed action (most common)',
+    '- "summary" — summary of multiple items, decision tips, or states the user needs to scan',
+    '- "error" — something failed or could not be completed',
+    '- "info" — informational context, no action taken',
+    '- "known_issue" / "chronicle_update" — Chronicle-anchored operational cards when applicable',
+    '',
+    'keeper-card rules:',
+    '- One card per response maximum',
+    '- "response" may contain prose; put operational structure in "card"',
+    '- Do not wrap conversational content in a card',
+    '- Do not produce a card for every response — only when the content is operational',
+  ].join('\n');
+}

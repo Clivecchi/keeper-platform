@@ -38,6 +38,7 @@ import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
 import { buildDomainLeadCollaborationPrompt } from '../../services/kip/buildDomainLeadCollaborationPrompt.js';
+import { buildKeeperCardRenderingPrompt } from '../../services/kip/buildKeeperCardRenderingPrompt.js';
 import {
   buildCompactEnvironmentForPrompt,
   measureEnvironmentPromptSize,
@@ -4618,36 +4619,8 @@ export class KipAgentService {
     }
 
     // ── Response rendering governance — keeper-card versus prose ──────────────
-    // Unconditional: applies regardless of lens resolution or environment state.
-    // Prefers top-level envelope "card"; nested ```keeper-card fences remain valid.
-    systemParts.push(
-      [
-        'RESPONSE RENDERING — keeper-card versus prose:',
-        '',
-        'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',
-        '',
-        'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — include a structured "card" object on the agent_output envelope. Not markdown headers. A keeper-card.',
-        '',
-        'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — include "card". If Kip is speaking, use prose only.',
-        '',
-        'Preferred format (top-level envelope field — avoids nested fences):',
-        '{"type":"agent_output","response":"Short prose confirmation.","card":{"type":"status","title":"Brief title","body":"One sentence","meta":"Optional detail"},"actions":[]}',
-        '',
-        'Backward compatible: a ```keeper-card fence inside "response" is still accepted. Prefer the top-level "card" field. If both exist, "card" wins.',
-        '',
-        'Permitted card.type values: "status" | "summary" | "error" | "info".',
-        '- "status" — confirmation of a completed action (most common)',
-        '- "summary" — summary of multiple items or states the user needs to scan',
-        '- "error" — something failed or could not be completed',
-        '- "info" — informational context, no action taken',
-        '',
-        'keeper-card rules:',
-        '- One card per response maximum',
-        '- "response" may contain prose; put operational structure in "card"',
-        '- Do not wrap conversational content in a card',
-        '- Do not produce a card for every response — only when the content is operational',
-      ].join('\n'),
-    );
+    // Shared helper keeps Cockpit compose + live callAIModel in sync.
+    systemParts.push(buildKeeperCardRenderingPrompt());
 
     // ── Domain content tools — on-demand retrieval ────────────────────────────
     // Unconditional: Kip always knows these tools exist regardless of environment.
@@ -5122,37 +5095,10 @@ export class KipAgentService {
         });
 
         // ── Response rendering governance — keeper-card versus prose ──────────────
-        // Unconditional within domain context. Must stay in sync with
-        // buildComposedSystemPrompt (Cockpit preview). Source of truth is here.
-        // Prefers top-level envelope "card"; nested ```keeper-card fences remain valid.
+        // Shared helper — same text as Cockpit compose (buildComposedSystemPrompt).
         messages.push({
           role: 'system',
-          content: [
-            'RESPONSE RENDERING — keeper-card versus prose:',
-            '',
-            'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',
-            '',
-            'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — include a structured "card" object on the agent_output envelope. Not markdown headers. A keeper-card.',
-            '',
-            'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — include "card". If Kip is speaking, use prose only.',
-            '',
-            'Preferred format (top-level envelope field — avoids nested fences):',
-            '{"type":"agent_output","response":"Short prose confirmation.","card":{"type":"status","title":"Brief title","body":"One sentence","meta":"Optional detail"},"actions":[]}',
-            '',
-            'Backward compatible: a ```keeper-card fence inside "response" is still accepted. Prefer the top-level "card" field. If both exist, "card" wins.',
-            '',
-            'Permitted card.type values: "status" | "summary" | "error" | "info".',
-            '- "status" — confirmation of a completed action (most common)',
-            '- "summary" — summary of multiple items or states the user needs to scan',
-            '- "error" — something failed or could not be completed',
-            '- "info" — informational context, no action taken',
-            '',
-            'keeper-card rules:',
-            '- One card per response maximum',
-            '- "response" may contain prose; put operational structure in "card"',
-            '- Do not wrap conversational content in a card',
-            '- Do not produce a card for every response — only when the content is operational',
-          ].join('\n'),
+          content: buildKeeperCardRenderingPrompt(),
         });
       }
       

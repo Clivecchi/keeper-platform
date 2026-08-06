@@ -13,6 +13,7 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `seed-becoming-together-document.ts` — write real Forward/Step/Paths + manuscript Points onto Dialog `cmrtyoraw0001ot0033p5wiwm` (dry-run default)
 - `deploy-object-glossary-read-access.ts` — catalog Object Glossary (+ EntityKind Recipe) as `source_type: github` Library Items and inject condensed Governance canon into Kip/Cloud `voice_prompt` (dry-run default)
 - `gloss-cursor-to-dialog.ts` — durable Cursor → Gloss writer (default ke3p · Becoming Together); `--file` / `--content` / stdin; does not create Points
+- `append-boards-as-lenses-lock.ts` — accepted Presentational-lenses decision Point + Dialog Step tip (dry-run; `--execute`)
 
 ## 🔄 Data & Behavior
 Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/database` prisma. Destructive or production-writing scripts must default to dry-run and require an explicit `--execute` flag.
@@ -26,6 +27,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 - [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-08-05 — Boards-as-lenses Document lock
+- `append-boards-as-lenses-lock.ts` — appends accepted decision Point under Progress + updates Becoming Together Step tip. Dry-run default.
 
 ### 2026-08-05 — Cursor Gloss runner
 - Added `gloss-cursor-to-dialog.ts`: one durable path for Cursor agent Gloss onto Dialog Documents (default Becoming Together). Replaces one-off board-lens script. Rule: `.cursor/rules/cursor-gloss-becoming-together.mdc`.

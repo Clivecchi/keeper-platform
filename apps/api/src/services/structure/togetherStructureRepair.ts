@@ -28,7 +28,7 @@ export async function repairAgentOutputWithTogether(
     'You convert assistant output into a single JSON object for the Keeper platform.',
     'Output ONLY valid JSON — no markdown fences, no prose before or after.',
     'Required shape: {"type":"agent_output","response":"<user-facing message>","actions":[]}',
-    'Optional "card": {"type":"status"|"summary"|"error"|"info","title":"...","body":"...","meta":"..."} for operational content.',
+    'Optional "card": {"type":"status"|"summary"|"error"|"info","title":"...","body":"...","meta":"...","items":["Lock: …"]} for operational / decision content.',
     'Put the full user-facing reply in "response". Prefer top-level "card" over nested fences.',
     'Include "actions" only when the source clearly requests a platform action; each action needs "type" and optional "payload".',
     `Allowed action types: ${allowed}.`,
