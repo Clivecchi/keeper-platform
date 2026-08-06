@@ -37,6 +37,7 @@ import {
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
+import { buildDomainLeadCollaborationPrompt } from '../../services/kip/buildDomainLeadCollaborationPrompt.js';
 import {
   buildCompactEnvironmentForPrompt,
   measureEnvironmentPromptSize,
@@ -955,8 +956,6 @@ function buildRendrIdentityPrompt(agent: { slug?: string | null }): string | nul
   return RENDR_IDENTITY_LOCK;
 }
 
-const PLATFORM_DIALOG_AGENT_SLUGS = new Set(['kip', 'cloud', 'rendr']);
-
 type DomainAgentRosterEntry = {
   slug: string;
   name: string;
@@ -1078,56 +1077,7 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
   return lines.join('\n');
 }
 
-function buildDomainLeadCollaborationPrompt(
-  agent: { slug?: string | null; name?: string | null },
-  environment: unknown,
-): string | null {
-  const domainAgents = (
-    environment as {
-      domainAgents?: Array<{
-        slug: string;
-        name: string;
-        role?: string | null;
-        dialogParticipation?: DialogParticipation;
-      }>;
-    }
-  )?.domainAgents;
-  if (!Array.isArray(domainAgents) || domainAgents.length === 0) return null;
-
-  const domainLead = domainAgents.find((entry) => {
-    const slug = entry.slug?.trim().toLowerCase();
-    return slug && !PLATFORM_DIALOG_AGENT_SLUGS.has(slug);
-  });
-  if (!domainLead?.slug) return null;
-
-  const agentSlug = agent.slug?.trim().toLowerCase() ?? '';
-  const agentName = agent.name?.trim() || 'Agent';
-  const leadName = domainLead.name?.trim() || domainLead.slug;
-  const leadSlug = domainLead.slug.trim().toLowerCase();
-
-  if (agentSlug === 'kip') {
-    return [
-      'DOMAIN DIALOG ROLE — PLATFORM SUPPORT (not lead):',
-      `You are ${agentName}, Keeper platform support on this domain.`,
-      `The domain lead agent is ${leadName} [slug: ${leadSlug}] — they own the dialog voice here.`,
-      `Do NOT identify yourself as "the Lead Agent" or "the Keeper Platform's Lead Agent" in this domain.`,
-      `Do NOT take the lead or answer as if you were ${leadName}.`,
-      `When the user asks who is speaking, name yourself as ${agentName} (platform support) and name ${leadName} as the domain lead.`,
-      `Support Keeper infrastructure; defer domain relationship and strategy to ${leadName}.`,
-    ].join('\n');
-  }
-
-  if (agentSlug === leadSlug) {
-    return [
-      'DOMAIN DIALOG ROLE — LEAD AGENT:',
-      `You are ${leadName}, the domain lead agent. You speak first and own this dialog.`,
-      `Kip [slug: kip] is Keeper platform support — may add brief platform context after you, not replace your voice.`,
-      `Speak as ${leadName} only. Never introduce yourself as Kip or as the generic Keeper Platform Lead Agent.`,
-    ].join('\n');
-  }
-
-  return null;
-}
+// Domain lead collaboration — role-aware (Lead only; never Cast). See services/kip/buildDomainLeadCollaborationPrompt.ts
 
 function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
   const pack = buildPolicyPackFromEnvironment(environment);

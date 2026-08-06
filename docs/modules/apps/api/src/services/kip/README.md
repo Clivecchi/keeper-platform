@@ -6,6 +6,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ## 🧱 Key Files
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
+- `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
@@ -26,6 +27,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-05 — Cast ≠ domain lead (collaboration prompt)
+- `buildDomainLeadCollaborationPrompt.ts` — domain lead resolution requires `role === 'Lead'` among non-platform agents. Dialog Cast guests (`role: 'Cast'`) no longer trigger Kip “platform support / defer to X” overrides. Locked: Cast membership ≠ domain lead.
 
 ### 2026-08-05 — follow-up budget guard
 - `actionFollowUp.ts` — `READ_FOLLOW_UP_MAX_ELAPSED_MS` + `formatReadActionResultsForUserFallback()` so a slow first model call does not start a second synthesis pass that hits the Vercel/proxy timeout; `agents.ts` skips AI follow-up past the budget and returns the retrieved results instead.
