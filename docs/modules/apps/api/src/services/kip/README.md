@@ -8,6 +8,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Shared keeper-card vs prose system prompt (decision consult Lock/Open/Next Step)
+- `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
@@ -28,6 +29,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-06 — Document Gloss carrier
+- `ensureDialogGlossCarrier.ts` + `POST /kip/dialogs/:id/gloss-carrier` — Chronicle Document Point Gloss can persist threads without requiring a prior Dialog turn.
 
 ### 2026-08-05 — Decision consult keeper-cards
 - `buildKeeperCardRenderingPrompt.ts` — Lead/cast decision synthesis must emit summary card with Lock / Open / Next Step items; Cockpit compose + live `callAIModel` share one helper.

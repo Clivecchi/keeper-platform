@@ -88,6 +88,9 @@ export function PointView({
 
   const handleGloss = onGloss ?? onDiscuss
   const [expanded, setExpanded] = React.useState(defaultExpanded)
+  React.useEffect(() => {
+    if (defaultExpanded) setExpanded(true)
+  }, [defaultExpanded])
   const castNotes = card.cast?.notes ?? []
   const [castOpen, setCastOpen] = React.useState(false)
   const blurb = collapsedBlurb(card)

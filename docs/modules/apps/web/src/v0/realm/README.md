@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-06 — Document Point Gloss snapshot
+- `manuscriptPointsToRealmNavEntries` attaches `gloss.snapshot` (title + body) so Chronicle Document Gloss can send Point content to Kip without Dialog sprawl.
+
 ### 2026-08-03 — Realm Nav uses shared accent Treatment (not full shell)
 - `RealmStagedNav` no longer wraps with `ChronicleTreatmentShell`; accent presence comes from `UniversalNavPanel`'s `TreatmentAccentShell`.
 - Dialog-group selected state uses `--treatment-color` wash/border; stage/Dialog titles use `.keeper-treatment-title`.

@@ -219,6 +219,10 @@ export function manuscriptPointsToRealmNavEntries(
             entityId: draftId,
             nodeId: point.id,
           },
+          snapshot: {
+            label: title,
+            text: bodyText,
+          },
         },
         ...(castNotes.length > 0 ? { cast: { notes: castNotes } } : {}),
       },

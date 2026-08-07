@@ -1075,6 +1075,42 @@ export class KipApi {
     };
   }
 
+  /**
+   * Ensure a kip_message exists to host Document Point glossThreads.
+   * Creates a Document Gloss session/message when the Dialog has none yet.
+   */
+  static async ensureDialogGlossCarrier(
+    domainId: string,
+    dialogId: string,
+    options?: { agentId?: string | null },
+  ): Promise<{
+    messageId: string;
+    sessionId: string;
+    glossThreads: unknown[];
+    created: boolean;
+  }> {
+    const response = await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/gloss-carrier`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(options?.agentId ? { agentId: options.agentId } : {}),
+        }),
+      },
+    );
+    const carrier = (response as { carrier?: Record<string, unknown> })?.carrier;
+    if (!carrier || typeof carrier.messageId !== 'string' || typeof carrier.sessionId !== 'string') {
+      throw new Error(pickErrorMessage(response, 'Failed to ensure Document Gloss carrier'));
+    }
+    return {
+      messageId: carrier.messageId,
+      sessionId: carrier.sessionId,
+      glossThreads: Array.isArray(carrier.glossThreads) ? carrier.glossThreads : [],
+      created: carrier.created === true,
+    };
+  }
+
   /** Dialog-scoped Chronicle History timeline. Realm Feed remains separate. */
   static async getDialogChronicleEvents(
     domainId: string,

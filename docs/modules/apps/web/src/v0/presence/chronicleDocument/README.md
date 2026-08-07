@@ -6,6 +6,7 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 ## ?? Key Files
 - `PointView.tsx` ? clamped body, status, optional Gloss action (atomic Point)
 - `DocumentShell.tsx` ? cover + Points sequence (universal container; Realm adapter consumes this)
+- `DocumentPointGloss.tsx` — inline polish panel on a Document Point (Dialog carrier + Kip chat)
 - `ChronicleHistoryPanel.tsx` — Dialog-scoped History quick review (session chapters + Document keeps) with parent/child disclosure
 - `chronicleMobile.ts` ? viewed-state, deep-link scroll, and History grouping helpers
 - `libraryItemDocumentAdapter.ts` ? LibraryItem ? Point
@@ -17,13 +18,16 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - `Document` (shared) is the Dialog-scoped container shape; Realm mounts `DocumentShell`
 - `DocumentShell` accepts optional Path groups (`pointIds` as indexes into `points`)
 - Optional `forward` + `step` replace the plain title/subtitle header; Back/Forward lineage nav stays disabled until Layer 3
-- Gloss: library items use `buildLibraryGlossAnchor`; synthetic uses ephemeral message anchor when wired
+- Gloss: library items use `buildLibraryGlossAnchor`; manuscript Points use draft+nodeId anchors + body snapshot. With `glossContext` (Dialog scope), Gloss opens `DocumentPointGloss` inline on the Point — not Dialog sprawl.
 
 ## ?? Notes & ToDo
 - [ ] Confirm synthetic panel placement with Kip (below domain ChronicleRecordView)
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-06 — Document Point Gloss (inline)
+- `DocumentPointGloss.tsx` + `POST …/gloss-carrier`: Gloss on a Document Point opens a polish panel on the Point (threads on Dialog carrier message). `glossContext` on `DocumentShell` from `DomainRealmStory`.
+
 ### 2026-08-05 — Document density + parity
 - Path groups collapse by default (Progress expands); click header to expand. Softened path panel paper. Removed disabled Back/Forward lineage chrome until Layer 3.
 - `PointView` tighter type scale (title ~20 / body ~15); Gloss demoted to quiet text link (long-press still works on mobile).

@@ -203,14 +203,16 @@ export function DomainRealmStory({
 
   const handleGlossPoint = React.useCallback(
     (_point: RealmNavEntry["point"], index: number) => {
+      // Fallback when inline Document Gloss is unavailable (no dialog scope).
       const entry = storyEntries[index]
       const anchor = entry?.point.gloss?.anchor
       if (!anchor || !entry) return
       boardCtx?.actions.requestDiscussDraftPoint(anchor, {
         glossContent: entry.point.gloss?.snapshot,
+        dialogId: entry.dialogId ?? selectedDialogId,
       })
     },
-    [boardCtx, storyEntries],
+    [boardCtx, storyEntries, selectedDialogId],
   )
 
   const emptyState = (
@@ -267,6 +269,15 @@ export function DomainRealmStory({
         points={points}
         pointIds={storyEntries.map((entry) => entry.id)}
         onGlossPoint={handleGlossPoint}
+        glossContext={
+          domainId && scope.status === "dialog" && scope.dialogId
+            ? {
+                domainId,
+                domainSlug,
+                dialogId: scope.dialogId,
+              }
+            : null
+        }
         scrollToPointId={pointTarget?.pointId}
         breadcrumb={pointTarget?.breadcrumb}
         emptyState={emptyState}

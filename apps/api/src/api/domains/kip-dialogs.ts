@@ -33,6 +33,7 @@ import {
 } from '../../services/domains/dialogCastMembership.js';
 import { listChronicleEventsForDialog } from '../../services/kip/chronicleEvents.js';
 import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDocumentForChronicle.js';
+import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
 
 const router = Router();
 
@@ -368,6 +369,52 @@ router.get(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] document failed');
       return res.status(500).json({ error: 'FAILED_TO_GET_DIALOG_DOCUMENT' });
+    }
+  },
+);
+
+// ─── POST /api/domains/:domainId/kip/dialogs/:dialogId/gloss-carrier ─────────
+// Ensure a kip_message exists to host Document Point glossThreads (Chronicle Gloss).
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/gloss-carrier',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    const agentId =
+      typeof req.body?.agentId === 'string' && req.body.agentId.trim()
+        ? req.body.agentId.trim()
+        : null;
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const carrier = await ensureDialogGlossCarrier({
+        domainId,
+        dialogId,
+        userId: req.user.id,
+        agentId,
+      });
+      return res.json({ carrier });
+    } catch (error) {
+      const code =
+        error && typeof error === 'object' && 'code' in error
+          ? String((error as { code?: string }).code)
+          : undefined;
+      if (code === 'DIALOG_NOT_FOUND') {
+        return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
+      }
+      if (code === 'AGENT_REQUIRED_FOR_GLOSS_CARRIER') {
+        return res.status(400).json({
+          error: 'AGENT_REQUIRED_FOR_GLOSS_CARRIER',
+          message: 'Pass agentId when the Dialog has no sessions yet.',
+        });
+      }
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] gloss-carrier failed');
+      return res.status(500).json({ error: 'FAILED_TO_ENSURE_GLOSS_CARRIER' });
     }
   },
 );

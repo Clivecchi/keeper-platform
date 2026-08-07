@@ -4,7 +4,14 @@ import * as React from "react"
 import { ChevronDown } from "lucide-react"
 import type { DocumentForward, DocumentPathGroup, DocumentStep, Point } from "@keeper/shared"
 import { PointView } from "./PointView"
+import { DocumentPointGloss } from "./DocumentPointGloss"
 import { scrollToChroniclePoint } from "./chronicleMobile"
+
+export type DocumentGlossContext = {
+  domainId: string
+  domainSlug: string
+  dialogId: string
+}
 
 export interface DocumentShellProps {
   /** Optional cover slot above the Point sequence (board-supplied). */
@@ -28,6 +35,11 @@ export interface DocumentShellProps {
   /** Durable IDs parallel to points (Point is intentionally presentation-only). */
   pointIds?: Array<string | null | undefined>
   onGlossPoint?: (point: Point, index: number) => void
+  /**
+   * When set, Point Gloss opens an inline polish panel on the Point (Document Gloss).
+   * Prefer this over Dialog-only discuss for Chronicle polish.
+   */
+  glossContext?: DocumentGlossContext | null
   /** Durable DraftPoint id to reveal after a Chronicle deep-link. */
   scrollToPointId?: string | null
   /** Optional context shown while the document is focused through a deep-link. */
@@ -142,13 +154,26 @@ function PointFrame({
   point,
   pointId,
   onGloss,
+  glossContext,
   accent,
 }: {
   point: Point
   pointId?: string
   onGloss?: () => void
+  glossContext?: DocumentGlossContext | null
   accent: PathAccent
 }) {
+  const [glossOpen, setGlossOpen] = React.useState(false)
+  const canInlineGloss = Boolean(glossContext && point.gloss?.anchor)
+
+  const handleGloss = React.useCallback(() => {
+    if (canInlineGloss) {
+      setGlossOpen(true)
+      return
+    }
+    onGloss?.()
+  }, [canInlineGloss, onGloss])
+
   return (
     <div
       className="document-shell-point"
@@ -174,7 +199,22 @@ function PointFrame({
         }}
       />
       <div className="min-w-0 flex-1 px-3.5 py-3">
-        <PointView point={point} onGloss={onGloss} />
+        <PointView
+          point={point}
+          onGloss={canInlineGloss || onGloss ? handleGloss : undefined}
+          defaultExpanded={glossOpen}
+        />
+        {glossOpen && glossContext && point.gloss?.anchor ? (
+          <DocumentPointGloss
+            domainId={glossContext.domainId}
+            domainSlug={glossContext.domainSlug}
+            dialogId={glossContext.dialogId}
+            anchor={point.gloss.anchor}
+            snapshot={point.gloss.snapshot}
+            pointTitle={point.title}
+            onClose={() => setGlossOpen(false)}
+          />
+        ) : null}
       </div>
     </div>
   )
@@ -369,6 +409,7 @@ export function DocumentShell({
   points,
   pointIds,
   onGlossPoint,
+  glossContext,
   scrollToPointId,
   breadcrumb,
   emptyState,
@@ -470,6 +511,7 @@ export function DocumentShell({
                       point={point}
                       pointId={pointIds?.[index] ?? undefined}
                       accent={accent}
+                      glossContext={glossContext}
                       onGloss={
                         onGlossPoint && point.gloss?.anchor
                           ? () => onGlossPoint(point, index)
