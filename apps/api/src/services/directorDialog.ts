@@ -59,8 +59,11 @@ export function buildCastMemberDelegationPrompt(params: {
   castMemberLabel: string;
   directorName: string;
   continuityCue?: string | null;
+  /** Dialog Style Vibe — short presence beats, not essays. */
+  dialogStyle?: 'vibe' | string | null;
 }): string {
   const task = params.userMessage.trim();
+  const vibe = params.dialogStyle === 'vibe';
   const lines = [`[Director delegation — ${params.castMemberLabel} on the IDE board]`];
 
   if (params.continuityCue?.trim()) {
@@ -77,11 +80,24 @@ export function buildCastMemberDelegationPrompt(params: {
     );
   }
 
+  if (vibe) {
+    lines.push(
+      '',
+      `DIALOG STYLE: Vibe — you are in the room for rhythm and presence, not a report.`,
+      `Answer in first person as ${params.castMemberLabel}. Default: one short beat (a few words up to two sentences) — "Cool.", "Heard.", "Makes sense — …".`,
+      `Only go longer when you have a Document-worthy Point to surface; then keep it to one tight sentence plus the Point title.`,
+      `${params.directorName} (Lead) carries the song — do not speak as ${params.directorName}.`,
+    );
+  } else {
+    lines.push(
+      '',
+      `Answer in first person as ${params.castMemberLabel}. Keep prose to one short paragraph (or a tight bullet list if they asked for one).`,
+      `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
+      `When your lane answer is operational (feasibility, stance, design constraint the user must act on), also emit envelope "card" type "summary" or "info" with title + body (optional items). Short prose + card — not a wall of text.`,
+    );
+  }
+
   lines.push(
-    '',
-    `Answer in first person as ${params.castMemberLabel}. Keep prose to one short paragraph (or a tight bullet list if they asked for one).`,
-    `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
-    `When your lane answer is operational (feasibility, stance, design constraint the user must act on), also emit envelope "card" type "summary" or "info" with title + body (optional items). Short prose + card — not a wall of text.`,
     `If they ask you to name an item from the Dialog Document / a Path, quote ONLY a title or preview from the DIALOG DOCUMENT Points block in your system prompt. Never invent a title. Never treat a system-rule heading as a Document item. If you cannot find a matching Point, say you cannot name one.`,
   );
 

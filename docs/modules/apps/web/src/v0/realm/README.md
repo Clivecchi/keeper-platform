@@ -33,6 +33,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-06 — Document UX ship wiring
+- `manuscriptPointsToRealmNavEntries` attaches `gloss.snapshot` + `revisedAt`.
+- `DomainRealmStory` prefetches gloss-carrier threads for **Glossed** badges; reloads Document after Point rewrite; Search / Style:Vibe / capture live in sibling board+shell modules.
+
 ### 2026-08-06 — Document Point Gloss snapshot
 - `manuscriptPointsToRealmNavEntries` attaches `gloss.snapshot` (title + body) so Chronicle Document Gloss can send Point content to Kip without Dialog sprawl.
 

@@ -905,7 +905,10 @@ function buildGlossDiscussPrompt(
   if (anchorRaw.entityKind === 'draft' && anchorRaw.nodeId) {
     parts.push(
       `- Draft point: draft ${anchorRaw.entityId}, pointId ${anchorRaw.nodeId}.`,
-      '- To revise this point, use draft.point.rewrite with the exact pointId.',
+      '- To revise this Point, call draft.point.rewrite in THIS turn with payload { id, pointId, content } using the exact pointId above.',
+      '- Never promise a later revise ("I\'ll update…") without emitting draft.point.rewrite in the same turn.',
+      '- If you cannot rewrite (permission, missing id, or unclear new text), say so in one plain sentence — do not claim the Document changed.',
+      '- After a successful rewrite, confirm in one short sentence what changed; do not paste the whole Point back.',
     );
   } else if (anchorRaw.entityKind === 'moment') {
     parts.push(`- Moment id: ${anchorRaw.entityId}. Use moment.read if you need full details.`);
@@ -5538,6 +5541,10 @@ export class KipAgentService {
                 castMemberLabel,
                 directorName: dd.directorDisplayName,
                 continuityCue: resolvedTask.continuityCue,
+                dialogStyle:
+                  typeof options?.agentContext?.dialogStyle === 'string'
+                    ? options.agentContext.dialogStyle
+                    : null,
               });
               const castMemberEnvironment = await buildCastMemberRunEnvironment({
                 castMemberAgentId: castMemberAgent.id,

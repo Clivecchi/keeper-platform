@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-06 — Dialog Style (Vibe) beside Cueing
+- `DialogStyle` + `conversation.dialogStyle` on board defs (Domain/Realm default `"vibe"`). Cueing stays Directed; Style is room rhythm.
+- Header: `Style: Vibe · Cueing: Directed`. Vibe auto-cues Cast roster; cast delegation prompts use short-beat rules when `agentContext.dialogStyle === "vibe"`.
+- Composer: screen capture control next to attach (divider before Send).
+
 ### 2026-08-04 — Mobile Dialog overflow + frost (Prompts 2–3)
 - Message rows: `w-full min-w-0` + bubble `min-w-0`; `.dialog-message-surface` / list clip `overflow-x`.
 - List opaque fill → panel frost; mobile drops list `px-4` (column pad only). See `components/agent/README.md`.

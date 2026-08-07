@@ -10,12 +10,40 @@ export interface PointViewProps {
    * @deprecated Use `point`. Accepted so early call sites keep compiling during the split.
    */
   document?: Point
-  /** Opens a Gloss exchange in Dialog for this point's anchor. */
+  /** Opens Gloss for this Point's anchor. */
   onGloss?: () => void
   /** @deprecated Use onGloss */
   onDiscuss?: () => void
-  /** Start expanded. Default false — older-eye readability: title + short blurb only. */
+  /** Start expanded. Default false — title + short blurb only. */
   defaultExpanded?: boolean
+  /** When true, Point stays collapsed (Document Gloss is the work surface). */
+  forceCollapsed?: boolean
+  /** Visual cue that Gloss is open on this Point. */
+  glossActive?: boolean
+  /** True when a Gloss thread already exists for this Point. */
+  hasGlossThread?: boolean
+  /** Message count on the existing Gloss thread (optional badge). */
+  glossMessageCount?: number
+}
+
+function formatRevisedCue(iso: string | undefined): string | null {
+  if (!iso?.trim()) return null
+  const at = Date.parse(iso)
+  if (!Number.isFinite(at)) return null
+  const deltaMs = Date.now() - at
+  if (deltaMs < 0) return "Updated just now"
+  const minutes = Math.floor(deltaMs / 60_000)
+  if (minutes < 1) return "Updated just now"
+  if (minutes < 60) return `Updated ${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 36) return `Updated ${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 14) return `Updated ${days}d ago`
+  try {
+    return `Updated ${new Date(at).toLocaleDateString()}`
+  } catch {
+    return null
+  }
 }
 
 /** ~two sentences for collapsed preview — not a wall of body text. */
@@ -40,10 +68,10 @@ function CastNotesPanel({ notes }: { notes: readonly PointCastNote[] }) {
       aria-label="Cast notes"
     >
       <p
-        className="text-[13px] font-semibold uppercase tracking-[0.1em]"
+        className="text-[12px] font-semibold uppercase tracking-[0.1em]"
         style={{ color: "hsl(var(--theme-ink-tertiary))" }}
       >
-        Cast Notes
+        Voices on this Point
       </p>
       {notes.map((note, index) => {
         const failed = note.status === "failed" || note.status === "empty"
@@ -56,7 +84,7 @@ function CastNotesPanel({ notes }: { notes: readonly PointCastNote[] }) {
             <div className="dialog-voice-card__rail" aria-hidden />
             <div className="dialog-voice-card__body">
               <p
-                className="text-[13px] font-semibold uppercase tracking-[0.06em]"
+                className="text-[12px] font-semibold uppercase tracking-[0.06em]"
                 style={{
                   color: failed
                     ? "hsl(38 70% 48%)"
@@ -82,6 +110,10 @@ export function PointView({
   onGloss,
   onDiscuss,
   defaultExpanded = false,
+  forceCollapsed = false,
+  glossActive = false,
+  hasGlossThread = false,
+  glossMessageCount,
 }: PointViewProps) {
   const card = point ?? document
   if (!card) return null
@@ -89,12 +121,24 @@ export function PointView({
   const handleGloss = onGloss ?? onDiscuss
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   React.useEffect(() => {
+    if (forceCollapsed) {
+      setExpanded(false)
+      return
+    }
     if (defaultExpanded) setExpanded(true)
-  }, [defaultExpanded])
+  }, [defaultExpanded, forceCollapsed])
   const castNotes = card.cast?.notes ?? []
   const [castOpen, setCastOpen] = React.useState(false)
   const blurb = collapsedBlurb(card)
   const bodyText = card.body.text.trim()
+  const ledeText = card.lede?.trim() ?? ""
+  const showLede =
+    Boolean(ledeText) &&
+    ledeText !== bodyText &&
+    !bodyText.startsWith(ledeText)
+  const revisedCue = formatRevisedCue(card.revisedAt)
+  const author = card.identity.voice?.trim() || card.identity.label.trim()
+  const kindLabel = card.identity.subtitle?.trim()
   const pressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [pressing, setPressing] = React.useState(false)
 
@@ -109,7 +153,6 @@ export function PointView({
 
   const touchStartY = React.useRef<number | null>(null)
 
-  /** Long-press opens Gloss; cancel if the finger scrolls (common mobile failure mode). */
   const handleTouchStart = React.useCallback((event: React.TouchEvent) => {
     if (!handleGloss) return
     setPressing(true)
@@ -138,16 +181,20 @@ export function PointView({
     touchStartY.current = null
   }, [clearPressTimer])
 
+  const showBody = expanded && !forceCollapsed
+
   return (
     <article
       className={[
-        "keeper-chronicle-document flex flex-col gap-3",
+        "keeper-chronicle-document document-point flex flex-col gap-2.5",
         pressing ? "opacity-90" : "",
       ].join(" ")}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
+      data-gloss-threaded={hasGlossThread ? "true" : undefined}
+      data-gloss-active={glossActive ? "true" : undefined}
     >
       <header className="flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -155,12 +202,12 @@ export function PointView({
             className="text-[11px] font-semibold uppercase tracking-[0.08em]"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            {card.identity.label}
-            {card.identity.subtitle ? ` · ${card.identity.subtitle}` : ""}
+            {author}
+            {kindLabel ? ` · ${kindLabel}` : ""}
           </p>
           {card.status ? (
             <span
-              className="rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+              className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
               style={{
                 color:
                   card.status.tone === "error"
@@ -179,41 +226,91 @@ export function PointView({
               {card.status.label}
             </span>
           ) : null}
+          {revisedCue ? (
+            <span
+              className="text-[11px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              title={card.revisedAt}
+            >
+              {revisedCue}
+            </span>
+          ) : null}
+          {hasGlossThread ? (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]"
+              style={{
+                color: "hsl(var(--theme-accent-primary, 42 55% 48%))",
+                background: "hsl(var(--theme-accent-primary, 42 55% 48%) / 0.14)",
+                border: "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.35)",
+              }}
+              title="This Point has a Gloss thread"
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: "hsl(var(--theme-accent-primary, 42 55% 48%))" }}
+                aria-hidden
+              />
+              Glossed
+              {typeof glossMessageCount === "number" && glossMessageCount > 0
+                ? ` · ${glossMessageCount}`
+                : ""}
+            </span>
+          ) : null}
         </div>
-        <h2
-          className="text-[20px] font-semibold leading-snug"
-          style={{
-            color: "hsl(var(--theme-ink-primary))",
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
+        <button
+          type="button"
+          className="document-point-title-btn text-left"
+          onClick={() => {
+            if (forceCollapsed) return
+            setExpanded((open) => !open)
           }}
+          aria-expanded={showBody}
+          disabled={forceCollapsed}
         >
-          {card.title}
-        </h2>
+          <h2
+            className="text-[20px] font-semibold leading-snug"
+            style={{
+              color: "hsl(var(--theme-ink-primary))",
+              fontFamily: "var(--theme-font-display, 'Cormorant Garamond', Georgia, serif)",
+            }}
+          >
+            {card.title}
+          </h2>
+        </button>
       </header>
 
-      {!expanded ? (
+      {!showBody ? (
         blurb ? (
           <p
-            className="text-[15px] leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            className="document-point-body text-[15px] leading-[1.65]"
+            style={{
+              color: "hsl(var(--theme-ink-secondary))",
+              fontFamily: "var(--theme-font-ui, inherit)",
+            }}
           >
             {blurb}
           </p>
         ) : null
       ) : (
         <>
-          {card.lede?.trim() && card.lede.trim() !== bodyText ? (
+          {showLede ? (
             <p
-              className="text-[15px] leading-relaxed"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              className="document-point-body text-[15px] leading-[1.65]"
+              style={{
+                color: "hsl(var(--theme-ink-secondary))",
+                fontFamily: "var(--theme-font-ui, inherit)",
+              }}
             >
-              {card.lede.trim()}
+              {ledeText}
             </p>
           ) : null}
           {bodyText ? (
             <div
-              className="text-[15px] leading-relaxed whitespace-pre-wrap"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              className="document-point-body text-[15px] leading-[1.65] whitespace-pre-wrap"
+              style={{
+                color: "hsl(var(--theme-ink-secondary))",
+                fontFamily: "var(--theme-font-ui, inherit)",
+              }}
             >
               {bodyText}
             </div>
@@ -223,42 +320,65 @@ export function PointView({
 
       {castOpen && castNotes.length > 0 ? <CastNotesPanel notes={castNotes} /> : null}
 
-      <div className="flex flex-wrap items-center gap-3 pt-0.5">
-        <button
-          type="button"
-          className="text-[14px] font-semibold underline-offset-2 hover:underline"
-          style={{ color: "hsl(var(--theme-accent-primary))" }}
-          onClick={() => setExpanded((open) => !open)}
-          aria-expanded={expanded}
-        >
-          {expanded ? "Close" : "Open"}
-        </button>
-        {castNotes.length > 0 ? (
+      {/* Single action rail — no competing Open + Gloss text pair */}
+      <div className="document-point-actions flex flex-wrap items-center gap-2 pt-0.5">
+        {!forceCollapsed ? (
           <button
             type="button"
-            className="text-[14px] font-semibold underline-offset-2 hover:underline"
-            style={{ color: "hsl(var(--theme-accent-primary))" }}
+            className="rounded-md px-2 py-1 text-[12px] font-medium"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            onClick={() => setExpanded((open) => !open)}
+            aria-expanded={showBody}
+          >
+            {showBody ? "Less" : "More"}
+          </button>
+        ) : null}
+        {castNotes.length > 0 && !forceCollapsed ? (
+          <button
+            type="button"
+            className="rounded-md px-2 py-1 text-[12px] font-semibold"
+            style={{
+              color: castOpen
+                ? "hsl(var(--theme-accent-primary))"
+                : "hsl(var(--theme-ink-secondary))",
+            }}
             onClick={() => setCastOpen((open) => !open)}
             aria-expanded={castOpen}
             aria-label={
               castOpen
-                ? "Hide cast notes"
-                : `Cast notes (${castNotes.length})`
+                ? "Hide voices"
+                : `Voices on this Point (${castNotes.length})`
             }
           >
-            {castOpen ? "Cast · Hide" : `Cast · ${castNotes.length}`}
+            {castOpen ? "Voices · Hide" : `Voices · ${castNotes.length}`}
           </button>
         ) : null}
         {handleGloss ? (
           <button
             type="button"
-            className="text-[13px] font-medium underline-offset-2 hover:underline"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold"
+            style={{
+              color: glossActive
+                ? "hsl(var(--theme-surface-paper))"
+                : "hsl(var(--theme-accent-primary, 42 55% 48%))",
+              background: glossActive
+                ? "hsl(var(--theme-accent-primary, 42 55% 48%))"
+                : "hsl(var(--theme-accent-primary, 42 55% 48%) / 0.12)",
+              border: "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.4)",
+            }}
             onClick={handleGloss}
-            aria-label="Gloss"
-            title="Gloss (long-press Point on mobile)"
+            aria-label={glossActive ? "Gloss open" : "Open Gloss"}
+            aria-pressed={glossActive}
+            title="Gloss this Point (long-press on mobile)"
           >
-            Gloss
+            {glossActive ? "Glossing" : "Gloss"}
+            {hasGlossThread && !glossActive ? (
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: "currentColor" }}
+                aria-hidden
+              />
+            ) : null}
           </button>
         ) : null}
       </div>

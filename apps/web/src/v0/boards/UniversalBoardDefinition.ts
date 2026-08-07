@@ -19,6 +19,12 @@ export type DialogCueingMode =
   | "featured"
   | "aside"
 
+/**
+ * Dialog Style — how the room feels (separate from Cueing = who is on stage).
+ * See Becoming Together vocabulary lock (Cast / Cueing / Dialog Style).
+ */
+export type DialogStyle = "directed" | "monologue" | "vibe"
+
 export type CastMemberSlug = string
 
 // Left panel — Navigation
@@ -136,6 +142,11 @@ export interface ConversationPanelDef {
    * @default "monologue" when omitted (legacy boards)
    */
   dialogCueing?: DialogCueingMode
+  /**
+   * Dialog Style — room rhythm (Vibe vs Directed feel). Distinct from cueing chips.
+   * When `"vibe"`, Cast is auto-cued and prompted for short beats; Lead still carries.
+   */
+  dialogStyle?: DialogStyle
   /** Lead agent slug when dialogCueing is "directed". Defaults to agentSlug / "kip". */
   directorAgentSlug?: string
   /** Invokable Cast for directed cueing (agent slugs). */
@@ -439,6 +450,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     showServiceBar: false,
     kipMode: "domain",
     dialogCueing: "directed",
+    dialogStyle: "vibe",
     directorAgentSlug: "kip",
     castMultiSelect: true,
   },
@@ -483,6 +495,7 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     showServiceBar: false,
     kipMode: "domain",
     dialogCueing: "directed",
+    dialogStyle: "vibe",
     directorAgentSlug: "kip",
     boardCast: ["cloud", "rendr"],
     castBar: true,

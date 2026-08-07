@@ -32,6 +32,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ### 2026-08-06 — Document Gloss carrier
 - `ensureDialogGlossCarrier.ts` + `POST /kip/dialogs/:id/gloss-carrier` — Chronicle Document Point Gloss can persist threads without requiring a prior Dialog turn.
+- Gloss prompt (agents.ts): draft Points must `draft.point.rewrite` in the same turn or admit no change — no “I’ll revise later” promises.
 
 ### 2026-08-05 — Decision consult keeper-cards
 - `buildKeeperCardRenderingPrompt.ts` — Lead/cast decision synthesis must emit summary card with Lock / Open / Next Step items; Cockpit compose + live `callAIModel` share one helper.

@@ -24,7 +24,7 @@
  */
 
 import * as React from "react"
-import type { KipDraftStatus } from "../../lib/kipApi"
+import type { KipDraftStatus, KipMessage } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
 import { fetchDomainKeptMoments } from "../data/domainMomentsCache"
@@ -78,6 +78,7 @@ import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard
 import type { GlossThread } from "@keeper/shared"
 import {
   CAST_MEMBER_LABELS,
+  extractAgentReplyFromRunResult,
   type DirectorSendPhase,
 } from "./directorDialog"
 import {
@@ -457,23 +458,38 @@ export function UniversalConversation({
     && def.conversation.dialogCueing === "directed"
     && (kipMode === "ide" || kipMode === "designer" || (kipMode === "domain" && !hasDomainLeadAgent))
 
-  /** Cueing label shown next to the header cast eyebrow (e.g. "Cueing: Directed"). */
+  const dialogStyle = def.conversation.dialogStyle
+  const isVibeStyle = dialogStyle === "vibe"
+
+  /** Style + Cueing labels — Style is room feel; Cueing is who is on stage. */
   const cueingLabel = React.useMemo(() => {
-    switch (def.conversation.dialogCueing) {
-      case "directed":
-        return "Cueing: Directed"
-      case "monologue":
-        return "Cueing: Monologue"
-      case "ensemble":
-        return "Cueing: Ensemble"
-      case "featured":
-        return "Cueing: Featured"
-      case "aside":
-        return "Cueing: Aside"
-      default:
-        return undefined
-    }
-  }, [def.conversation.dialogCueing])
+    const stylePart =
+      dialogStyle === "vibe"
+        ? "Style: Vibe"
+        : dialogStyle === "monologue"
+          ? "Style: Monologue"
+          : dialogStyle === "directed"
+            ? "Style: Directed"
+            : null
+    const cuePart = (() => {
+      switch (def.conversation.dialogCueing) {
+        case "directed":
+          return "Cueing: Directed"
+        case "monologue":
+          return "Cueing: Monologue"
+        case "ensemble":
+          return "Cueing: Ensemble"
+        case "featured":
+          return "Cueing: Featured"
+        case "aside":
+          return "Cueing: Aside"
+        default:
+          return undefined
+      }
+    })()
+    if (stylePart && cuePart) return `${stylePart} · ${cuePart}`
+    return stylePart ?? cuePart
+  }, [def.conversation.dialogCueing, dialogStyle])
 
   /** Kip included in support collaboration (footer toggle). Default: invoked. */
   const kipSupportInvoked =
@@ -1005,6 +1021,13 @@ export function UniversalConversation({
       }
     }
 
+    if (dialogStyle) {
+      merged = {
+        ...(merged ?? {}),
+        dialogStyle,
+      }
+    }
+
     return merged as AgentContext | undefined
   }, [
     domainFrame,
@@ -1018,6 +1041,7 @@ export function UniversalConversation({
     selection.draftDiscussIntent,
     selectedAgentRecord,
     boardSelectedAgentId,
+    dialogStyle,
   ])
 
   const agentBoardMessaging = React.useMemo((): AgentBoardMessaging | undefined => {
@@ -1140,13 +1164,14 @@ export function UniversalConversation({
       const frameBlock = draft.spec_json
       if (!frameBlock || typeof frameBlock !== "object") return
 
-      const jsonKey = FRAME_TO_JSON_KEY[fKey] ?? null
+      const jsonKey =
+        (FRAME_TO_JSON_KEY as Record<string, string | null | undefined>)[fKey] ?? null
       const base = designerDraftCtx.liveDomainFrame
-        ? { ...(designerDraftCtx.liveDomainFrame as Record<string, unknown>) }
+        ? { ...(designerDraftCtx.liveDomainFrame as unknown as Record<string, unknown>) }
         : {}
       const fullSpec = jsonKey ? { ...base, [jsonKey]: frameBlock } : base
 
-      designerDraftCtx.setDraftSpecJson(fullSpec as DomainFrameJson)
+      designerDraftCtx.setDraftSpecJson(fullSpec as unknown as DomainFrameJson)
       designerDraftCtx.setPublishSuccess(false)
 
       try {
@@ -2189,7 +2214,10 @@ export function UniversalConversation({
       if (!domainSlug) return
       setApplyingTreatmentProposal(true)
       try {
-        await patchDomainTreatment(domainSlug, proposal)
+        await patchDomainTreatment(
+          domainSlug,
+          proposal as unknown as Record<string, unknown>,
+        )
         await reloadDomainFrame()
         actions.bumpDraftPresence()
       } finally {
@@ -2435,6 +2463,26 @@ export function UniversalConversation({
     designerCast,
     domainDirectorCast,
     domainCollaborationCast,
+  ])
+
+  /** Vibe Style: all Cast hear — auto-cue roster. Cueing mechanics stay Directed. */
+  React.useEffect(() => {
+    if (!isVibeStyle || !castMultiSelect) return
+    const roster = (resolvedBoardCast ?? [])
+      .map((m) => m.slug?.trim())
+      .filter((slug): slug is string => Boolean(slug))
+    if (roster.length === 0) return
+    const same =
+      roster.length === cuedCastMembers.length
+      && roster.every((slug) => cuedCastMembers.includes(slug))
+    if (same) return
+    actions.onSetCuedCastMembers(roster)
+  }, [
+    isVibeStyle,
+    castMultiSelect,
+    resolvedBoardCast,
+    cuedCastMembers,
+    actions,
   ])
 
   const dialogTreatment = React.useMemo(

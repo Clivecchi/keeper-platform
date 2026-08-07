@@ -224,6 +224,9 @@ export function manuscriptPointsToRealmNavEntries(
             text: bodyText,
           },
         },
+        ...(typeof point.updatedAt === "string" && point.updatedAt.trim()
+          ? { revisedAt: point.updatedAt.trim() }
+          : {}),
         ...(castNotes.length > 0 ? { cast: { notes: castNotes } } : {}),
       },
     }
@@ -271,6 +274,7 @@ export function buildDocumentPaths(
       id: declaration.id,
       title: declaration.title,
       ...(declaration.prelude ? { prelude: declaration.prelude } : {}),
+      ...(declaration.imageUrl ? { imageUrl: declaration.imageUrl } : {}),
       pointIds: indexes.map((index) => String(index)),
     }
   })

@@ -12,7 +12,13 @@
  */
 
 import * as React from "react"
-import { PaperAirplaneIcon, PaperClipIcon, MicrophoneIcon, XMarkIcon } from "@heroicons/react/24/outline"
+import {
+  PaperAirplaneIcon,
+  PaperClipIcon,
+  MicrophoneIcon,
+  XMarkIcon,
+  ComputerDesktopIcon,
+} from "@heroicons/react/24/outline"
 import type { TalkModeState } from "../../hooks/useTalkMode"
 import { useAuth } from "../../context/AuthContext"
 import {
@@ -212,65 +218,110 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   const stageFileUpload = onComposerFileUpload ?? onLibraryFileUpload
 
+  const stageUploadFile = React.useCallback(
+    async (file: File) => {
+      if (!stageFileUpload) return
+      if (!user?.id) {
+        alert("Please sign in to attach files.")
+        return
+      }
+      if (!domainId) {
+        alert("Open a domain board to attach files.")
+        return
+      }
+      const maxSize = 25 * 1024 * 1024
+      if (file.size > maxSize) {
+        alert("File too large. Maximum size is 25MB.")
+        return
+      }
+      if (!isLibraryFile(file)) {
+        alert("Unsupported file type. Use images, PDF, Markdown, text, JSON, or CSV.")
+        return
+      }
+
+      setIsUploading(true)
+      onUploadingChange?.(true)
+      try {
+        const result = await stageFileUpload(file)
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            name: result.name || file.name,
+            url: result.url,
+            type: inferAttachmentType(file),
+            source: "upload",
+          },
+        ])
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to add file to library.")
+      } finally {
+        setIsUploading(false)
+        onUploadingChange?.(false)
+      }
+    },
+    [stageFileUpload, user?.id, domainId, onUploadingChange, setAttachments],
+  )
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) {
-      e.target.value = ""
-      return
-    }
-
-    if (!stageFileUpload) {
-      e.target.value = ""
-      return
-    }
-
-    if (!user?.id) {
-      alert("Please sign in to attach files.")
-      e.target.value = ""
-      return
-    }
-
-    if (!domainId) {
-      alert("Open a domain board to attach files.")
-      e.target.value = ""
-      return
-    }
-
-    const maxSize = 25 * 1024 * 1024
-    if (file.size > maxSize) {
-      alert("File too large. Maximum size is 25MB.")
-      e.target.value = ""
-      return
-    }
-
-    if (!isLibraryFile(file)) {
-      alert("Unsupported file type. Use images, PDF, Markdown, text, JSON, or CSV.")
-      e.target.value = ""
-      return
-    }
-
-    setIsUploading(true)
-    onUploadingChange?.(true)
-    try {
-      const result = await stageFileUpload(file)
-      setAttachments((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          name: result.name || file.name,
-          url: result.url,
-          type: inferAttachmentType(file),
-          source: "upload",
-        },
-      ])
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add file to library.")
-    } finally {
-      setIsUploading(false)
-      onUploadingChange?.(false)
-      e.target.value = ""
-    }
+    e.target.value = ""
+    if (!file) return
+    await stageUploadFile(file)
   }
+
+  /** Screen capture → same attachment path as Paperclip (new tool group before attach). */
+  const handleScreenCapture = React.useCallback(async () => {
+    if (!stageFileUpload || isSending || disabled || isUploading) return
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+      alert("Screen capture is not supported in this browser.")
+      return
+    }
+    let stream: MediaStream | null = null
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: "browser" } as MediaTrackConstraints,
+        audio: false,
+      })
+      const track = stream.getVideoTracks()[0]
+      if (!track) throw new Error("No video track from screen capture.")
+      const video = document.createElement("video")
+      video.playsInline = true
+      video.muted = true
+      video.srcObject = stream
+      await video.play()
+      await new Promise<void>((resolve) => {
+        if (video.readyState >= 2) {
+          resolve()
+          return
+        }
+        video.onloadeddata = () => resolve()
+      })
+      const canvas = document.createElement("canvas")
+      canvas.width = video.videoWidth || 1280
+      canvas.height = video.videoHeight || 720
+      const ctx = canvas.getContext("2d")
+      if (!ctx) throw new Error("Could not capture frame.")
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      track.stop()
+      stream.getTracks().forEach((t) => t.stop())
+      stream = null
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Capture failed"))),
+          "image/png",
+        )
+      })
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
+      const file = new File([blob], `screen-capture-${stamp}.png`, { type: "image/png" })
+      await stageUploadFile(file)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "NotAllowedError") return
+      alert(err instanceof Error ? err.message : "Screen capture failed.")
+    } finally {
+      stream?.getTracks().forEach((t) => t.stop())
+    }
+  }, [stageFileUpload, isSending, disabled, isUploading, stageUploadFile])
 
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id))
@@ -472,8 +523,20 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 <MicrophoneIcon className="h-4 w-4" aria-hidden />
               </span>
             ) : null}
-            {stageFileUpload && (
+            {stageFileUpload ? (
               <>
+                {/* Media tools cluster — capture ‖ attach — visual break from send */}
+                <button
+                  type="button"
+                  onClick={() => void handleScreenCapture()}
+                  disabled={isSending || disabled || isUploading}
+                  className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
+                  style={{ color: SURFACE.inkTertiary }}
+                  title="Capture screen"
+                  aria-label="Capture screen"
+                >
+                  <ComputerDesktopIcon className="h-4 w-4" />
+                </button>
                 <input
                   type="file"
                   id={fileInputId}
@@ -496,8 +559,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                     <PaperClipIcon className="h-4 w-4" />
                   )}
                 </button>
+                <span
+                  aria-hidden
+                  className="mx-0.5 h-4 w-px shrink-0"
+                  style={{ background: "hsl(var(--theme-border-soft) / 0.65)" }}
+                />
               </>
-            )}
+            ) : null}
             <button
               type="submit"
               disabled={!canSend}

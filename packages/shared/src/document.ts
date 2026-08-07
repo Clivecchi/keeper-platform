@@ -38,6 +38,8 @@ export interface Point {
   gloss?: { anchor: GlossAnchor; snapshot?: GlossContentSnapshot };
   /** Cast Notes — voice cards associated with this Point (Cast link opens them). */
   cast?: { notes: PointCastNote[] };
+  /** ISO time Point body last changed (from DraftPoint.updatedAt) — for “Updated” cues. */
+  revisedAt?: string;
 }
 
 /**
@@ -55,6 +57,8 @@ export interface DocumentPathGroup {
   title?: string;
   prelude?: string;
   pointIds: string[];
+  /** Optional section header imagery. */
+  imageUrl?: string;
 }
 
 /**
@@ -65,6 +69,7 @@ export interface DocumentPathDeclaration {
   id: string;
   title: string;
   prelude?: string;
+  imageUrl?: string;
 }
 
 export function isDocumentPathDeclaration(value: unknown): value is DocumentPathDeclaration {
@@ -84,6 +89,10 @@ export function parseDocumentPathDeclarations(value: unknown): DocumentPathDecla
       ...(typeof row.prelude === 'string' && row.prelude.trim()
         ? { prelude: row.prelude.trim() }
         : {}),
+      ...(typeof (row as { imageUrl?: unknown }).imageUrl === 'string'
+        && (row as { imageUrl: string }).imageUrl.trim()
+        ? { imageUrl: (row as { imageUrl: string }).imageUrl.trim() }
+        : {}),
     }));
 }
 
@@ -94,6 +103,8 @@ export function parseDocumentPathDeclarations(value: unknown): DocumentPathDecla
 export interface DocumentForward {
   title: string;
   description: string;
+  /** Optional cover imagery for picture-book Document headers. */
+  imageUrl?: string;
 }
 
 /**

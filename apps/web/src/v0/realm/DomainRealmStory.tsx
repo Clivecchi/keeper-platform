@@ -6,8 +6,16 @@ import type {
   DocumentPathDeclaration,
   DocumentStep,
 } from "@keeper/shared"
-import { parseDocumentPathDeclarations, resolveChroniclePanelBody } from "@keeper/shared"
-import { DocumentShell } from "../presence/chronicleDocument/DocumentShell"
+import {
+  buildGlossThreadKey,
+  parseDocumentPathDeclarations,
+  parseGlossThreads,
+  resolveChroniclePanelBody,
+} from "@keeper/shared"
+import {
+  DocumentShell,
+  type DocumentGlossThreadInfo,
+} from "../presence/chronicleDocument/DocumentShell"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { useRealmNavGrowth } from "./useRealmNavGrowth"
@@ -17,7 +25,10 @@ import {
   manuscriptPointsToRealmNavEntries,
   type RealmNavEntry,
 } from "./realmNavGrowth"
-import { loadDialogDocumentCached } from "./dialogDocumentCache"
+import {
+  invalidateDialogDocument,
+  loadDialogDocumentCached,
+} from "./dialogDocumentCache"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { KipApi } from "../../lib/kipApi"
 import { ChronicleHistoryPanel } from "../presence/chronicleDocument/ChronicleHistoryPanel"
@@ -117,6 +128,54 @@ export function DomainRealmStory({
   const [documentMeta, setDocumentMeta] = React.useState<DialogDocumentMeta>({ paths: [] })
   const [manuscriptEntries, setManuscriptEntries] = React.useState<RealmNavEntry[]>([])
   const [documentLoading, setDocumentLoading] = React.useState(false)
+  /** Bumps when Document Gloss rewrites a Point so Chronicle reloads past cache. */
+  const [documentEpoch, setDocumentEpoch] = React.useState(0)
+  const [glossThreadsByKey, setGlossThreadsByKey] = React.useState<
+    ReadonlyMap<string, DocumentGlossThreadInfo>
+  >(() => new Map())
+
+  const refreshDocumentAfterMutation = React.useCallback(() => {
+    if (!domainId || scope.status !== "dialog" || !scope.dialogId) return
+    invalidateDialogDocument(domainId, scope.dialogId)
+    setDocumentEpoch((n) => n + 1)
+  }, [domainId, scope])
+
+  const [glossEpoch, setGlossEpoch] = React.useState(0)
+  const refreshGlossActivity = React.useCallback(() => {
+    setGlossEpoch((n) => n + 1)
+  }, [])
+
+  /** Prefetch Dialog Gloss carrier so Points can show Glossed badges without opening Gloss. */
+  React.useEffect(() => {
+    if (scope.status !== "dialog" || !scope.dialogId || !domainId) {
+      setGlossThreadsByKey(new Map())
+      return
+    }
+    let cancelled = false
+    const dialogId = scope.dialogId
+    void (async () => {
+      try {
+        const kip = await KipApi.getAgentBySlug("kip")
+        const carrier = await KipApi.ensureDialogGlossCarrier(domainId, dialogId, {
+          agentId: kip.id,
+        })
+        if (cancelled) return
+        const threads = parseGlossThreads(carrier.glossThreads)
+        const map = new Map<string, DocumentGlossThreadInfo>()
+        for (const thread of threads) {
+          const count = thread.messages?.length ?? 0
+          if (count <= 0) continue
+          map.set(buildGlossThreadKey(thread.anchor), { messageCount: count })
+        }
+        setGlossThreadsByKey(map)
+      } catch {
+        if (!cancelled) setGlossThreadsByKey(new Map())
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [domainId, scope, documentEpoch, glossEpoch])
 
   React.useEffect(() => {
     if (scope.status !== "dialog" || !scope.dialogId || !domainId) {
@@ -164,7 +223,7 @@ export function DomainRealmStory({
     return () => {
       cancelled = true
     }
-  }, [domainId, scope])
+  }, [domainId, scope, documentEpoch])
 
   const legacyEntries = React.useMemo(() => {
     if (scope.status !== "dialog") return [] as RealmNavEntry[]
@@ -275,6 +334,9 @@ export function DomainRealmStory({
                 domainId,
                 domainSlug,
                 dialogId: scope.dialogId,
+                onPointMutated: refreshDocumentAfterMutation,
+                onGlossActivity: refreshGlossActivity,
+                glossThreadsByKey,
               }
             : null
         }

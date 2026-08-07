@@ -1842,23 +1842,37 @@ button.dialog-prelude:hover {
  * Applied to agent messages in DialogueMessageList via .kip-message-content.
  * User messages render plain text — these classes do not apply there.
  */
+/* Shared reading fonts — Dialog + Document Chronicle (storybook readability). */
+:root,
+.keeper-theme-scope {
+  --theme-font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --theme-font-ui: inherit;
+}
+
 .kip-message-content {
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.65;
   color: hsl(var(--theme-ink-primary));
+  font-family: var(--theme-font-ui, inherit);
 }
 .kip-message-content .kip-md-h1 {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: var(--theme-font-display, "Cormorant Garamond", Georgia, serif);
   font-size: 18px;
   font-weight: 600;
   margin: 14px 0 6px;
   line-height: 1.2;
 }
 .kip-message-content .kip-md-h2 {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: var(--theme-font-display, "Cormorant Garamond", Georgia, serif);
   font-size: 15px;
   font-weight: 600;
   margin: 12px 0 4px;
+}
+
+.document-shell .document-point-body,
+.document-shell .kip-message-content {
+  font-size: 15px;
+  line-height: 1.65;
 }
 .kip-message-content .kip-md-h3 {
   font-size: 12px;

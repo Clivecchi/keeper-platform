@@ -25,8 +25,10 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
-### 2026-08-06 — Document Point Gloss (inline)
-- `DocumentPointGloss.tsx` + `POST …/gloss-carrier`: Gloss on a Document Point opens a polish panel on the Point (threads on Dialog carrier message). `glossContext` on `DocumentShell` from `DomainRealmStory`.
+### 2026-08-06 — Document UX ship (Gloss + Point cards + search + media slots)
+- `DocumentPointGloss.tsx` + gloss-carrier; roomy Chronicle Gloss; rewrite honesty; Document reload; `Updated · …` / **Glossed** badges; prefetch carrier for thread presence.
+- Point card: author/voice meta, title expands, More/Less + Voices + Gloss pill (no Open+Gloss text pair).
+- Document search field; cinematic Forward; Forward/Path `imageUrl` slots; shared `--theme-font-display` / body scale with Dialog.
 
 ### 2026-08-05 — Document density + parity
 - Path groups collapse by default (Progress expands); click header to expand. Softened path panel paper. Removed disabled Back/Forward lineage chrome until Layer 3.

@@ -19,7 +19,9 @@ import {
   upsertGlossThreadMessage,
 } from "@keeper/shared"
 import { KipApi } from "../../../lib/kipApi"
+import { normalizeActionReceipt } from "../../../components/agent/types"
 import { GlossThreadPanel } from "../../../components/gloss/GlossThreadPanel"
+import { extractRunAgentPayload } from "../../../hooks/useAgentDialog"
 import { extractAgentReplyFromRunResult } from "../../boards/directorDialog"
 
 export type DocumentPointGlossProps = {
@@ -30,6 +32,22 @@ export type DocumentPointGlossProps = {
   snapshot?: GlossContentSnapshot
   pointTitle: string
   onClose: () => void
+  onPointMutated?: () => void
+  onGlossActivity?: () => void
+}
+
+function looksLikePointUpdateAsk(text: string): boolean {
+  return /\b(update|revise|rewrite|change|edit|fix|correct)\b/i.test(text)
+}
+
+function findSuccessfulPointRewrite(actions: unknown[] | undefined): boolean {
+  if (!actions?.length) return false
+  return actions.some((raw) => {
+    const receipt = normalizeActionReceipt(
+      raw as Parameters<typeof normalizeActionReceipt>[0],
+    )
+    return receipt.status === "success" && receipt.type === "draft.point.rewrite"
+  })
 }
 
 export function DocumentPointGloss({
@@ -40,6 +58,8 @@ export function DocumentPointGloss({
   snapshot,
   pointTitle,
   onClose,
+  onPointMutated,
+  onGlossActivity,
 }: DocumentPointGlossProps) {
   const [messageId, setMessageId] = React.useState<string | null>(null)
   const [sessionId, setSessionId] = React.useState<string | null>(null)
@@ -48,6 +68,7 @@ export function DocumentPointGloss({
   const [isSending, setIsSending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [statusNote, setStatusNote] = React.useState<string | null>(null)
 
   const resolvedSnapshot = React.useMemo<GlossContentSnapshot>(
     () => ({
@@ -97,6 +118,7 @@ export function DocumentPointGloss({
       if (!messageId || !agentId || !text.trim()) return
       setIsSending(true)
       setError(null)
+      setStatusNote(null)
 
       const userMessage: GlossThreadMessage = {
         id: crypto.randomUUID(),
@@ -145,6 +167,17 @@ export function DocumentPointGloss({
           return
         }
 
+        const { actions } = extractRunAgentPayload(result)
+        const rewritten = findSuccessfulPointRewrite(actions)
+        if (rewritten) {
+          setStatusNote("Point updated in the Document.")
+          onPointMutated?.()
+        } else if (looksLikePointUpdateAsk(text) && draftDiscuss) {
+          setStatusNote(
+            "No Point rewrite ran this turn — Document text is unchanged. Ask again, or say “rewrite the Point now.”",
+          )
+        }
+
         const agentMessage: GlossThreadMessage = {
           id: crypto.randomUUID(),
           role: "agent",
@@ -154,6 +187,7 @@ export function DocumentPointGloss({
         const withAgent = upsertGlossThreadMessage(withUser, anchor, agentMessage)
         setThreads(withAgent)
         await KipApi.updateMessageMetadata(messageId, { glossThreads: withAgent })
+        onGlossActivity?.()
       } catch (err) {
         setError(err instanceof Error ? err.message : "Gloss send failed")
       } finally {
@@ -170,6 +204,8 @@ export function DocumentPointGloss({
       domainSlug,
       dialogId,
       resolvedSnapshot,
+      onPointMutated,
+      onGlossActivity,
     ],
   )
 
@@ -216,6 +252,8 @@ export function DocumentPointGloss({
         isSending={isSending}
         onClose={onClose}
         onSend={(text) => void handleSend(text)}
+        surface="chronicle"
+        statusNote={statusNote}
       />
     </div>
   )
