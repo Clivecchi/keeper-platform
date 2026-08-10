@@ -790,6 +790,10 @@ export class KipApi {
       activeKeeperId?: string | null
       activeDraftId?: string | null
       attachments?: Array<{ url: string; name: string; type: "image" | "file" }>
+      /** Shorter transcript label when supporting context was inlined into `input`. */
+      displayContent?: string
+      /** Pasted supporting doc tiles for the sent user bubble. */
+      supportingDocs?: Array<{ name: string; preview?: string }>
       /** agentContext — from domain frame JSON, injected into Kip's environment */
       agentContext?: Record<string, unknown>
       /** IDE director mode — Lead synthesis; instrument may already have run client-side. */
@@ -830,6 +834,8 @@ export class KipApi {
         activeKeeperId: options?.activeKeeperId ?? undefined,
         activeDraftId: options?.activeDraftId ?? undefined,
         attachments: options?.attachments ?? undefined,
+        displayContent: options?.displayContent ?? undefined,
+        supportingDocs: options?.supportingDocs ?? undefined,
         agentContext: options?.agentContext ?? undefined,
         directorDelegation: options?.directorDelegation ?? undefined,
         castConsultations: options?.castConsultations ?? undefined,

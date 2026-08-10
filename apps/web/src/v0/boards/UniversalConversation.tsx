@@ -1807,7 +1807,12 @@ export function UniversalConversation({
   const handleDialogSubmit = React.useCallback(
     async (
       event: React.FormEvent,
-      payload: { content: string; displayContent?: string; attachments?: AgentAttachment[] },
+      payload: {
+        content: string
+        displayContent?: string
+        attachments?: AgentAttachment[]
+        supportingDocs?: ReadonlyArray<{ name: string; preview?: string }>
+      },
     ) => {
       await sendMessage(event, payload)
       if (guidedArrivalActive && guidedArrival) {

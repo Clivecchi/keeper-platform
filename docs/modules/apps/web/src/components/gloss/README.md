@@ -22,6 +22,7 @@ Universal gesture for focused Dialog exchange on discrete chat content — hover
 - [ ] Journey / Path receipt cards
 
 ## 📆 Update Log
+- **2026-08-09** — Affordance animation is opacity-only (no transform fight with border-rail `translateY(-50%)`). Default highlight is border/outline, not shadow frame. Multi-agent Cast/Lead/Echo bubbles are Glossable.
 - **2026-08-06** — `GlossThreadPanel` `surface="chronicle"`: no body snapshot replay (Point already visible), roomy thread (~half Chronicle), large composer. Dialog surface stays compact.
 - **2026-07-08** — Chat bubbles use `highlightMode="border"` + `affordancePlacement="border"`: hover recolors the existing 1px bubble border; Gloss pill rides on the top border rail (no text overlap, no layout jump).
 - **2026-07-07** — Message/caption gloss uses overlay affordance only (no in-flow row above content) — hover shows green outline + corner button without layout jump.

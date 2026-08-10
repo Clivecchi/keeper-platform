@@ -341,6 +341,8 @@ function ImageReceiptCard({
       messageId={glossMessageId ?? "unknown"}
       enabled={Boolean(glossMessageId)}
       depth={0}
+      highlightMode="border"
+      affordancePlacement="border"
       anchor={
         libraryItemId
           ? {
@@ -360,6 +362,8 @@ function ImageReceiptCard({
         text: imagePrompt ?? subject,
         imageUrl,
       }}
+      className="rounded-xl"
+      style={{ border: "1px solid transparent" }}
     >
       <div
         className="overflow-hidden rounded-xl border"
@@ -383,6 +387,10 @@ function ImageReceiptCard({
           messageId={glossMessageId ?? "unknown"}
           enabled={Boolean(glossMessageId)}
           depth={1}
+          highlightMode="border"
+          affordancePlacement="border"
+          className="block"
+          style={{ border: "1px solid transparent" }}
           anchor={
             libraryItemId
               ? {
@@ -406,6 +414,9 @@ function ImageReceiptCard({
             messageId={glossMessageId ?? "unknown"}
             enabled={Boolean(glossMessageId)}
             depth={1}
+            highlightMode="border"
+            affordancePlacement="border"
+            style={{ border: "1px solid transparent" }}
             anchor={buildMessageGlossAnchor(glossMessageId ?? "unknown", "caption", {
               receiptIndex: glossReceiptIndex,
             })}
@@ -468,6 +479,10 @@ function MomentReceiptCard({
     <GlossSurface
       messageId={glossMessageId ?? "unknown"}
       enabled={Boolean(glossMessageId)}
+      highlightMode="border"
+      affordancePlacement="border"
+      className="rounded-xl"
+      style={{ border: "1px solid transparent" }}
       anchor={{
         entityKind: "moment",
         entityId: moment.id,

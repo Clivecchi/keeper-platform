@@ -30,6 +30,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-09 — User message attachment metadata
+- Agent runs persist `displayContent`, `attachments`, and `supportingDocs` on the saved user `kip_messages.metadata` so Dialog can rehydrate sent thumbs / Pasted tiles after reload.
+
 ### 2026-08-06 — Document Gloss carrier
 - `ensureDialogGlossCarrier.ts` + `POST /kip/dialogs/:id/gloss-carrier` — Chronicle Document Point Gloss can persist threads without requiring a prior Dialog turn.
 - Gloss prompt (agents.ts): draft Points must `draft.point.rewrite` in the same turn or admit no change — no “I’ll revise later” promises.

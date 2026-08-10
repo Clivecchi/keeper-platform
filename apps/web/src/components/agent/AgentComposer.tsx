@@ -25,6 +25,7 @@ import {
   buildComposerSubmitContent,
   isPastedSupportingDoc,
   pastedDocumentTitle,
+  pastedPreview,
   shouldCapturePaste,
 } from "./composerSupporting"
 import { SupportingDocumentTile } from "./SupportingDocumentTile"
@@ -64,6 +65,12 @@ export type PendingAttachment = {
   libraryItemId?: string
 }
 
+/** Pasted supporting doc summary for the Dialog transcript (not sent as multimodal). */
+export type ComposerSupportingDoc = {
+  name: string
+  preview?: string
+}
+
 /** Payload passed to onSubmit from AgentComposer. */
 export type ComposerSubmitPayload = {
   /** Full message for the agent API (includes supporting context). */
@@ -71,6 +78,8 @@ export type ComposerSubmitPayload = {
   /** Shorter label for the Dialog transcript when supporting docs are attached. */
   displayContent?: string
   attachments?: AgentAttachment[]
+  /** Pasted tiles to keep visible on the sent user message. */
+  supportingDocs?: ComposerSupportingDoc[]
 }
 
 /** Attachment sent to the agent API (for vision and context) */
@@ -350,6 +359,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     const agentAttachments: AgentAttachment[] = uploadAttachments
       .filter((a) => a.type !== "text")
       .map((a) => ({ url: a.url, name: a.name, type: a.type as "image" | "file" }))
+    const supportingDocs: ComposerSupportingDoc[] = pastedSupporting.map((doc) => ({
+      name: doc.name,
+      preview: doc.pastedContent ? pastedPreview(doc.pastedContent, 120) : undefined,
+    }))
     const { content, displayContent } = buildComposerSubmitContent(inputValue, attachments)
     const hasContent = content.length > 0 || agentAttachments.length > 0
     // Session may be null on Universal Boards (create deferred to first send in useAgentDialog).
@@ -358,7 +371,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     if (!onAttachmentsChange) {
       setAttachments([])
     }
-    onSubmit(e, { content, displayContent, attachments: agentAttachments })
+    onSubmit(e, {
+      content,
+      displayContent,
+      attachments: agentAttachments,
+      supportingDocs: supportingDocs.length ? supportingDocs : undefined,
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

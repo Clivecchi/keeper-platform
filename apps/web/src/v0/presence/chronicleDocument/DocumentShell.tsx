@@ -203,10 +203,13 @@ function PointFrame({
   const handleGloss = React.useCallback(() => {
     if (canInlineGloss) {
       setGlossOpen(true)
+      if (pointId) {
+        window.setTimeout(() => scrollToChroniclePoint(pointId), 0)
+      }
       return
     }
     onGloss?.()
-  }, [canInlineGloss, onGloss])
+  }, [canInlineGloss, onGloss, pointId])
 
   return (
     <div
@@ -217,7 +220,8 @@ function PointFrame({
         display: "flex",
         alignItems: "stretch",
         borderRadius: 12,
-        overflow: "hidden",
+        // Keep radius when closed; open Gloss must not clip the roomy panel.
+        overflow: glossOpen ? "visible" : "hidden",
         background: glossOpen
           ? "hsl(var(--theme-surface-elevated) / 0.88)"
           : "hsl(var(--theme-surface-paper) / 0.78)",

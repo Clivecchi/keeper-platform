@@ -99,6 +99,17 @@ export interface AgentDialogueMessage {
   arrivalInvitations?: Array<{ id: string; label: string }>
   /** Inline gloss sub-conversations anchored to nodes within this message */
   glossThreads?: GlossThread[]
+  /** File/image attachments shown on the sent user bubble (and rehydrated from metadata). */
+  attachments?: ReadonlyArray<{
+    url: string
+    name: string
+    type: "image" | "file"
+  }>
+  /** Pasted supporting docs — short tiles on the sent user bubble (not Library). */
+  supportingDocs?: ReadonlyArray<{
+    name: string
+    preview?: string
+  }>
 }
 
 export interface DialogueMetaItem {

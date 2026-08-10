@@ -47,7 +47,7 @@ export function GlossSurface({
   depth = 0,
   hoverHint,
   affordancePlacement: affordancePlacementProp,
-  highlightMode = "shadow",
+  highlightMode = "border",
   enabled = true,
   className,
   style,

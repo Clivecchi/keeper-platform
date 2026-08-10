@@ -75,6 +75,41 @@ function normalizeCastVoiceBeat(
   }
 }
 
+function normalizeMessageAttachments(
+  meta: Record<string, unknown> | null | undefined,
+): AgentDialogueMessage["attachments"] {
+  if (!Array.isArray(meta?.attachments)) return undefined
+  const rows = meta.attachments
+    .map((raw) => {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+      const row = raw as Record<string, unknown>
+      const url = typeof row.url === "string" ? row.url.trim() : ""
+      const name = typeof row.name === "string" ? row.name.trim() : ""
+      const type = row.type === "image" || row.type === "file" ? row.type : null
+      if (!url || !name || !type) return null
+      return { url, name, type }
+    })
+    .filter((row): row is { url: string; name: string; type: "image" | "file" } => Boolean(row))
+  return rows.length ? rows : undefined
+}
+
+function normalizeMessageSupportingDocs(
+  meta: Record<string, unknown> | null | undefined,
+): AgentDialogueMessage["supportingDocs"] {
+  if (!Array.isArray(meta?.supportingDocs)) return undefined
+  const rows = meta.supportingDocs
+    .map((raw) => {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+      const row = raw as Record<string, unknown>
+      const name = typeof row.name === "string" ? row.name.trim() : ""
+      if (!name) return null
+      const preview = typeof row.preview === "string" ? row.preview.trim() : undefined
+      return { name, ...(preview ? { preview } : {}) }
+    })
+    .filter((row): row is { name: string; preview?: string } => Boolean(row))
+  return rows.length ? rows : undefined
+}
+
 function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const role = (message.sender || message.role) === "user" ? "user" : "agent"
   const meta = message.metadata as Record<string, unknown> | null | undefined
@@ -82,6 +117,12 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const linkedCard = extractLinkedCard(meta)
   const glossThreads = parseGlossThreads(meta?.glossThreads)
   const rawContent = typeof message.content === "string" ? message.content : ""
+  const displayContent =
+    typeof meta?.displayContent === "string" && meta.displayContent.trim()
+      ? meta.displayContent.trim()
+      : null
+  const attachments = normalizeMessageAttachments(meta)
+  const supportingDocs = normalizeMessageSupportingDocs(meta)
   const keeperCard =
     meta?.card && typeof meta.card === "object" && !Array.isArray(meta.card)
       ? (meta.card as AgentDialogueMessage["keeperCard"])
@@ -126,10 +167,14 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
         ...(echoBeat.status ? { status: echoBeat.status } : {}),
       }
     : undefined
+  const userFacing =
+    role === "user"
+      ? sanitizeUserMessageContent(displayContent ?? rawContent)
+      : sanitizeAgentMessageContent(rawContent)
   return {
     id: message.id,
     role,
-    content: role === "user" ? sanitizeUserMessageContent(rawContent) : sanitizeAgentMessageContent(rawContent),
+    content: userFacing,
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
     ...(senderName?.trim() ? { senderName: senderName.trim() } : {}),
     ...(linkedCard ? { linkedCard } : {}),
@@ -140,18 +185,19 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(castVoices?.length ? { castVoices } : {}),
     ...(delegation && !castVoices?.length ? { delegation } : {}),
     ...(echo ? { echo } : {}),
+    ...(attachments?.length ? { attachments } : {}),
+    ...(supportingDocs?.length ? { supportingDocs } : {}),
   }
 }
 
-function patchLastUserContent(
+function patchLastUserMessage(
   list: AgentDialogueMessage[],
-  userContent: string,
+  patch: Partial<Pick<AgentDialogueMessage, "content" | "attachments" | "supportingDocs">>,
 ): AgentDialogueMessage[] {
-  if (!userContent.trim()) return list
   const updated = [...list]
   const lastUserIdx = updated.findLastIndex((m) => m.role === "user")
   if (lastUserIdx < 0) return list
-  updated[lastUserIdx] = { ...updated[lastUserIdx], content: userContent }
+  updated[lastUserIdx] = { ...updated[lastUserIdx], ...patch }
   return updated
 }
 
@@ -305,7 +351,12 @@ export interface UseAgentDialogResult {
   fetchMessages: (sessionId: string) => Promise<KipMessage[] | undefined>
   sendMessage: (
     e: FormEvent,
-    payload: { content: string; displayContent?: string; attachments?: AgentAttachment[] },
+    payload: {
+      content: string
+      displayContent?: string
+      attachments?: AgentAttachment[]
+      supportingDocs?: ReadonlyArray<{ name: string; preview?: string }>
+    },
   ) => Promise<void>
 }
 
@@ -631,10 +682,11 @@ export function useAgentDialog({
   const sendMessage = React.useCallback(
     async (
       _e: FormEvent,
-      { content, displayContent, attachments }: {
+      { content, displayContent, attachments, supportingDocs }: {
         content: string
         displayContent?: string
         attachments?: AgentAttachment[]
+        supportingDocs?: ReadonlyArray<{ name: string; preview?: string }>
       },
     ) => {
       if (mode === "designer" && !frameKey) return
@@ -701,26 +753,16 @@ export function useAgentDialog({
       const ts = Date.now()
 
       const transcriptContent = displayContent?.trim() || content || "[attachment]"
+      const optimisticUser = stampSenderName({
+        id: `user-${ts}`,
+        role: "user" as const,
+        content: transcriptContent,
+        createdAt: new Date(mode === "ide" ? Date.now() : ts).toISOString(),
+        ...(attachments?.length ? { attachments } : {}),
+        ...(supportingDocs?.length ? { supportingDocs: [...supportingDocs] } : {}),
+      })
 
-      if (mode !== "ide") {
-        setMessages((prev) => [
-          ...prev,
-          stampSenderName({
-            id: `user-${ts}`,
-            role: "user",
-            content: transcriptContent,
-            createdAt: new Date(ts).toISOString(),
-          }),
-        ])
-      } else {
-        const optimistic = stampSenderName({
-          id: `user-${ts}`,
-          role: "user",
-          content: transcriptContent,
-          createdAt: new Date().toISOString(),
-        })
-        setMessages((prev) => [...prev, optimistic])
-      }
+      setMessages((prev) => [...prev, optimisticUser])
 
       setInput("")
       // Clear sessionStorage immediately so a mid-send session-key change cannot
@@ -760,6 +802,8 @@ export function useAgentDialog({
           ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
           : agentContext,
         attachments: attachments?.length ? attachments : undefined,
+        displayContent: displayContent?.trim() || undefined,
+        supportingDocs: supportingDocs?.length ? [...supportingDocs] : undefined,
       }
 
       const liveDirectorConfig = directorConfigRef.current
@@ -1136,7 +1180,11 @@ export function useAgentDialog({
             : undefined
 
         const mergeOntoLastAgent = (list: AgentDialogueMessage[]): AgentDialogueMessage[] => {
-          const withUser = patchLastUserContent(list, transcriptContent)
+          const withUser = patchLastUserMessage(list, {
+            content: transcriptContent,
+            ...(attachments?.length ? { attachments } : {}),
+            ...(supportingDocs?.length ? { supportingDocs: [...supportingDocs] } : {}),
+          })
           if (!directorDelegation && !actionsArr?.length && !castVoices?.length) return withUser
           const updated = [...withUser]
           const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
@@ -1176,6 +1224,10 @@ export function useAgentDialog({
                       role: "user" as const,
                       content: transcriptContent,
                       createdAt: new Date(ts).toISOString(),
+                      ...(attachments?.length ? { attachments } : {}),
+                      ...(supportingDocs?.length
+                        ? { supportingDocs: [...supportingDocs] }
+                        : {}),
                     }),
                   ]
               return mergeOntoLastAgent([

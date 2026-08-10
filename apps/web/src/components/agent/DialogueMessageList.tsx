@@ -91,6 +91,10 @@ function AgentChatBubble({
   card,
   chronicleChip,
   onOpenChronicleChip,
+  glossMessageId,
+  glossNodeId,
+  glossThreads,
+  glossSnapshotText,
 }: {
   name: string
   content: string
@@ -99,6 +103,11 @@ function AgentChatBubble({
   card?: AgentDialogueMessage["keeperCard"]
   chronicleChip?: AgentDialogueMessage["chronicleChip"]
   onOpenChronicleChip?: (chip: NonNullable<AgentDialogueMessage["chronicleChip"]>) => void
+  /** When set, wrap the bubble so Cast / Lead / Echo beats are Glossable. */
+  glossMessageId?: string
+  glossNodeId?: string
+  glossThreads?: AgentDialogueMessage["glossThreads"]
+  glossSnapshotText?: string
 }) {
   const trimmed = content.trim()
   if (!trimmed && !card && !chronicleChip) return null
@@ -112,6 +121,40 @@ function AgentChatBubble({
           ? "delegation-failed"
           : "agent"
 
+  const body = (
+    <AgentMessageContent
+      content={trimmed}
+      card={card}
+      chronicleChip={chronicleChip}
+      onOpenChronicleChip={onOpenChronicleChip}
+    />
+  )
+
+  const glossWrap = (node: React.ReactNode) => {
+    if (!glossMessageId || !glossNodeId) return node
+    return (
+      <GlossSurface
+        messageId={glossMessageId}
+        anchor={buildMessageGlossAnchor(glossMessageId, glossNodeId)}
+        glossThreads={glossThreads}
+        snapshot={{
+          label: name,
+          text: (glossSnapshotText ?? trimmed).slice(0, 280),
+        }}
+        highlightMode="border"
+        affordancePlacement="border"
+        className="rounded-2xl"
+        style={
+          grouped
+            ? { border: "1px solid transparent" }
+            : agentBubbleSurface(variant)
+        }
+      >
+        {node}
+      </GlossSurface>
+    )
+  }
+
   if (grouped) {
     return (
       <div className="dialog-voice-card" data-agent-variant={variant}>
@@ -119,12 +162,7 @@ function AgentChatBubble({
         <div className="dialog-voice-card__body">
           <MessageSenderLabel name={name} variant={senderVariant} />
           <div className="dialog-voice-card__content">
-            <AgentMessageContent
-              content={trimmed}
-              card={card}
-              chronicleChip={chronicleChip}
-              onOpenChronicleChip={onOpenChronicleChip}
-            />
+            {glossWrap(body)}
           </div>
         </div>
       </div>
@@ -134,17 +172,73 @@ function AgentChatBubble({
   return (
     <div className="flex flex-col gap-1.5">
       <MessageSenderLabel name={name} variant={senderVariant} />
-      <div
-        className="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
-        style={agentBubbleSurface(variant)}
-      >
-        <AgentMessageContent
-          content={trimmed}
-          card={card}
-          chronicleChip={chronicleChip}
-          onOpenChronicleChip={onOpenChronicleChip}
-        />
-      </div>
+      {glossWrap(
+        glossMessageId && glossNodeId ? (
+          <div className="px-4 py-3 text-sm leading-relaxed">{body}</div>
+        ) : (
+          <div
+            className="rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm"
+            style={agentBubbleSurface(variant)}
+          >
+            {body}
+          </div>
+        ),
+      )}
+    </div>
+  )
+}
+
+function UserMessageAttachments({
+  attachments,
+  supportingDocs,
+}: {
+  attachments?: AgentDialogueMessage["attachments"]
+  supportingDocs?: AgentDialogueMessage["supportingDocs"]
+}) {
+  if (!attachments?.length && !supportingDocs?.length) return null
+  return (
+    <div className="mt-2 flex flex-col gap-1.5">
+      {attachments?.map((file) =>
+        file.type === "image" ? (
+          <a
+            key={`${file.url}-${file.name}`}
+            href={file.url}
+            target="_blank"
+            rel="noreferrer"
+            className="block overflow-hidden rounded-lg border"
+            style={{ borderColor: "rgba(255,255,255,0.28)" }}
+          >
+            <img
+              src={file.url}
+              alt={file.name}
+              className="max-h-40 w-full object-cover"
+              loading="lazy"
+            />
+          </a>
+        ) : (
+          <a
+            key={`${file.url}-${file.name}`}
+            href={file.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] text-white/90"
+            style={{ borderColor: "rgba(255,255,255,0.28)", background: "rgba(0,0,0,0.12)" }}
+          >
+            <span className="truncate">{file.name}</span>
+          </a>
+        ),
+      )}
+      {supportingDocs?.map((doc) => (
+        <div
+          key={`support-${doc.name}`}
+          className="rounded-md border px-2.5 py-1.5 text-[11px] leading-snug text-white/90"
+          style={{ borderColor: "rgba(255,255,255,0.28)", background: "rgba(0,0,0,0.12)" }}
+          title={doc.preview ?? doc.name}
+        >
+          <span className="font-semibold uppercase tracking-wide text-white/70">Pasted</span>
+          <span className="mt-0.5 block truncate">{doc.preview ?? doc.name}</span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -380,6 +474,10 @@ function AgentMessageTurn({
               voice.content?.trim()
               || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`
             }
+            glossMessageId={message.id}
+            glossNodeId={`cast-${voice.slug ?? index}`}
+            glossThreads={message.glossThreads}
+            glossSnapshotText={voice.content}
           />
         ))}
         {delegation && (
@@ -392,6 +490,10 @@ function AgentMessageTurn({
             }
             name={delegation.attributedTo ?? "Agent"}
             content={delegation.content}
+            glossMessageId={message.id}
+            glossNodeId="delegation"
+            glossThreads={message.glossThreads}
+            glossSnapshotText={delegation.content}
           />
         )}
         {message.content.trim() && (
@@ -403,6 +505,10 @@ function AgentMessageTurn({
             card={message.keeperCard}
             chronicleChip={message.chronicleChip}
             onOpenChronicleChip={onOpenChronicleChip}
+            glossMessageId={message.id}
+            glossNodeId="body"
+            glossThreads={message.glossThreads}
+            glossSnapshotText={sanitizeAgentMessageContent(message.content)}
           />
         )}
         {!message.content.trim() && (message.keeperCard || message.chronicleChip) ? (
@@ -414,6 +520,9 @@ function AgentMessageTurn({
             card={message.keeperCard}
             chronicleChip={message.chronicleChip}
             onOpenChronicleChip={onOpenChronicleChip}
+            glossMessageId={message.id}
+            glossNodeId="card"
+            glossThreads={message.glossThreads}
           />
         ) : null}
         {echo && (
@@ -422,6 +531,10 @@ function AgentMessageTurn({
             variant="echo"
             name={echo.attributedTo ?? leadName}
             content={echo.content}
+            glossMessageId={message.id}
+            glossNodeId="echo"
+            glossThreads={message.glossThreads}
+            glossSnapshotText={echo.content}
           />
         )}
       </MultiAgentTurnGroup>
@@ -674,7 +787,13 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                     border: "1px solid hsl(var(--theme-dialogue-user-bg, 14 60% 56%) / 0.85)",
                   }}
                 >
-                  <p className="whitespace-pre-line break-words">{message.content}</p>
+                  {message.content.trim() ? (
+                    <p className="whitespace-pre-line break-words">{message.content}</p>
+                  ) : null}
+                  <UserMessageAttachments
+                    attachments={message.attachments}
+                    supportingDocs={message.supportingDocs}
+                  />
                 </GlossSurface>
                 <MessageSenderFooter
                   name={resolvedUserName}

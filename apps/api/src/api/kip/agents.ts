@@ -205,6 +205,10 @@ type RunAgentOptions = {
   activeJourneyId?: string | null;
   activeKeeperId?: string | null;
   attachments?: AgentAttachmentInput[];
+  /** Shorter Dialog transcript label when `input` includes supporting context. */
+  displayContent?: string;
+  /** Pasted supporting doc tiles persisted on the user message for UI. */
+  supportingDocs?: Array<{ name: string; preview?: string }>;
   /** Gloss / draft-discuss context from the frontend (domain frame JSON). */
   agentContext?: Record<string, unknown>;
   /** IDE / Domain director mode — run Cast member before Lead synthesis. */
@@ -3853,6 +3857,11 @@ const AgentAttachmentSchema = z.object({
   type: z.enum(['image', 'file']),
 });
 
+const SupportingDocSchema = z.object({
+  name: z.string().min(1),
+  preview: z.string().optional(),
+});
+
 const AgentRunSchema = z.object({
   agentId: z.string().min(1, 'Agent ID is required'),
   input: z.string().optional(),
@@ -3865,6 +3874,8 @@ const AgentRunSchema = z.object({
   mode: z.enum(['domain', 'debug']).optional(),
   debugBundle: DebugBundleSchema,
   attachments: z.array(AgentAttachmentSchema).optional(),
+  displayContent: z.string().optional(),
+  supportingDocs: z.array(SupportingDocSchema).optional(),
   activeJourneyId: z.string().nullable().optional(),
   activeKeeperId: z.string().nullable().optional(),
   activeDraftId: z.string().uuid().nullable().optional(),
@@ -5412,9 +5423,18 @@ export class KipAgentService {
               const textToSave =
                 input?.trim()
                 || (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
+              const displayContent =
+                typeof options?.displayContent === 'string' && options.displayContent.trim()
+                  ? options.displayContent.trim()
+                  : undefined;
               await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
-                agent_id: agentId
+                agent_id: agentId,
+                ...(displayContent ? { displayContent } : {}),
+                ...(options?.attachments?.length ? { attachments: options.attachments } : {}),
+                ...(options?.supportingDocs?.length
+                  ? { supportingDocs: options.supportingDocs }
+                  : {}),
               });
             } catch (error) {
               console.warn('Failed to save user message:', error);
@@ -6452,9 +6472,18 @@ export class KipAgentService {
               input?.trim() ||
               (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
             if (textToSave && !isGlossMode(options?.agentContext)) {
+              const displayContent =
+                typeof options?.displayContent === 'string' && options.displayContent.trim()
+                  ? options.displayContent.trim()
+                  : undefined;
               await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId,
+                ...(displayContent ? { displayContent } : {}),
+                ...(options?.attachments?.length ? { attachments: options.attachments } : {}),
+                ...(options?.supportingDocs?.length
+                  ? { supportingDocs: options.supportingDocs }
+                  : {}),
               });
             }
           } catch (error) {
@@ -7386,6 +7415,13 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               name: a.name,
               type: a.type,
             })) ?? undefined,
+            displayContent: validation.data.displayContent?.trim() || undefined,
+            supportingDocs: validation.data.supportingDocs?.length
+              ? validation.data.supportingDocs.map((doc) => ({
+                  name: doc.name,
+                  ...(doc.preview?.trim() ? { preview: doc.preview.trim() } : {}),
+                }))
+              : undefined,
             agentContext: validation.data.agentContext,
             timings: runTimings,
           };

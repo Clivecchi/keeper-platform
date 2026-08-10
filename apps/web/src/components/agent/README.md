@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-08-09: **Attachment-follows-message + agent Gloss** — sent user bubbles keep image thumbs / file chips / Pasted tiles (`attachments` + `supportingDocs` on the message + API metadata). Multi-agent Cast/Lead/Echo voice cards wrap `GlossSurface` so agent replies are Glossable under Style: Vibe.
 - 2026-08-04: **Mobile Dialog overflow + frost** — `DialogueMessageList` rows use `w-full min-w-0`; bubble shells `min-w-0`; list + `.dialog-message-surface` clip `overflow-x`. Opaque list fill replaced with panel frost (`/ 0.38`, blur 16px). Mobile (≤767px) drops list `px-4` so `.dialog-column` clamp is the sole horizontal inset. `KipResponseCard` gains `maxWidth: 100%`. Unused `.dialog-message-lane--*` / `agentBubbleFullWidth` left unwired (lanes would be a cleaner max-width model later).
 - 2026-08-05: **System error role** — `AgentDialogueMessage.role` accepts `"system"`; `DialogueMessageList` renders those via `AgentErrorAlert` (System label, stronger error border — not agent bubble styling). Timeout presentation uses danger tone.
 - 2026-07-30: **Chronicle in-stream chips** — `ChronicleUpdateChip` + `chronicleChip` on `AgentDialogueMessage`; `AgentMessageContent` / `KipResponseCard` deep-link Known Issue and `chronicle_update` cards into Dialog Document anchors.

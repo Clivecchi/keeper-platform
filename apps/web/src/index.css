@@ -375,7 +375,8 @@ button.dialog-prelude:hover {
   align-items: stretch;
   gap: 0;
   border-radius: 0.65rem;
-  overflow: hidden;
+  /* visible so inline Gloss thread is not clipped under Style: Vibe multi-agent turns */
+  overflow: visible;
   background: hsl(var(--theme-surface-paper) / 0.92);
   border: 1px solid hsl(var(--theme-border-soft) / 0.55);
   box-shadow: 0 1px 2px hsl(var(--theme-ink-primary) / 0.05);

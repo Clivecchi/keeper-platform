@@ -81,14 +81,13 @@
     0 1px 4px hsl(var(--theme-focus-ring, 152 45% 42%) / 0.22);
 }
 
+/* Opacity only — never animate transform (border rail uses translateY(-50%)). */
 @keyframes gloss-affordance-in {
   from {
     opacity: 0;
-    transform: translateY(-2px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
