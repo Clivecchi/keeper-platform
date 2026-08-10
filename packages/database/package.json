@@ -18,6 +18,7 @@
     "build": "node scripts/run-with-direct-url.js --allow-placeholder prisma generate && tsc",
     "migrate:deploy": "node scripts/run-with-direct-url.js prisma migrate deploy",
     "migrate:deploy:railway": "node scripts/migrate-deploy-with-retry.js",
+    "seed:railway": "node scripts/seed-with-retry.js",
     "wait-for-database": "node scripts/wait-for-database.js",
     "migrate:resolve": "node scripts/resolve-failed-migration.js",
     "check:boards": "node scripts/check-board-data.js",

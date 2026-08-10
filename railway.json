@@ -5,7 +5,7 @@
     "buildCommand": null
   },
   "deploy": {
-    "startCommand": "sh -c 'export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\" && node packages/database/scripts/wait-for-database.js && node packages/database/scripts/resolve-failed-migration.js && pnpm --filter @keeper/database run migrate:deploy:railway && echo \"=== Migration complete, running seeds ===\" && pnpm --filter @keeper/database run seed && echo \"=== Seeds complete, starting server ===\" && node apps/api/dist/index.js'",
+    "startCommand": "sh -c 'export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\" && node packages/database/scripts/wait-for-database.js && node packages/database/scripts/resolve-failed-migration.js && pnpm --filter @keeper/database run migrate:deploy:railway && echo \"=== Migration complete, running seeds ===\" && (pnpm --filter @keeper/database run seed:railway || echo \"⚠️ Seed failed after retries (non-fatal on Railway — DB already seeded); starting API\") && echo \"=== Starting server ===\" && node apps/api/dist/index.js'",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300
   },

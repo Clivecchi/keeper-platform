@@ -328,6 +328,7 @@ This package was created during the monorepo migration to centralize all databas
 - **2026-07-04**: Domain resolution aligned to `keeper.domains` tenant hostnames (`DomainResolutionService`, `DomainVerificationService`); shared helpers in `@keeper/shared/domains/keeperDomainsHost`.
 - **2026-07-17**: Prisma singleton now uses a connection-retry `$extends` (`src/prismaRetry.ts`) so idle Railway disconnects (P1017 / "Server has closed the connection") are retried instead of failing Kip `domain.findUnique` and other queries.
 - **2026-08-09**: Railway migrate harden — `resolve-failed-migration.js` clears **all** unfinished `_prisma_migrations` rows (not only `20260215_sole_memory_links`); `migrate-deploy-with-retry.js` retries `migrate deploy` for transient P1001; dropped `migrate resolve --rolled-back` that caused P3011 after delete.
+- **2026-08-09**: Railway seed harden — `seed:railway` (`seed-with-retry.js`) retries seed on P1001; Railway start treats seed failure as non-fatal so API can boot when proxy flaps mid-seed.
 
 ---
 

@@ -16,7 +16,8 @@ Your logs also showed:
 1. `wait-for-database.js` — retry connect
 2. `resolve-failed-migration.js` — **delete all unfinished** migration rows (`finished_at IS NULL`)
 3. `migrate:deploy:railway` → `migrate-deploy-with-retry.js` — `prisma migrate deploy` with retries for P1001
-4. seed → start API
+4. `seed:railway` → `seed-with-retry.js` (retries; **non-fatal** if still failing — production DB is already seeded)
+5. start API
 
 Redeploy after this lands. No manual SQL required in the common case.
 
