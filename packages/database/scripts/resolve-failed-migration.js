@@ -1,38 +1,45 @@
-// Run this once to resolve failed migrations
-// Usage: DATABASE_URL=... node packages/database/scripts/resolve-failed-migration.js [migration_name]
-// Example: node scripts/resolve-failed-migration.js 20260215_sole_memory_links
+/**
+ * Clear failed / unfinished Prisma migration rows so `migrate deploy` can proceed.
+ *
+ * Usage:
+ *   DATABASE_URL=... node scripts/resolve-failed-migration.js
+ *     → deletes ALL rows where finished_at IS NULL
+ *   DATABASE_URL=... node scripts/resolve-failed-migration.js 20260215_sole_memory_links
+ *     → deletes only that migration name
+ *
+ * Safe when schema is already applied (common on Railway after flaky deploys left
+ * zombie failed rows). Does not mark migrations as applied — only removes blockers.
+ */
 
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const MIGRATIONS_TO_RESOLVE = [
-  '20250110_add_board_domain_fkey',
-  '20250110_add_board_domain_fkey_fixed',
-  '20260215_sole_memory_links',
-];
-
 async function resolveMigration() {
-  const migrationName = process.argv[2];
-  const toDelete = migrationName
-    ? [migrationName]
-    : MIGRATIONS_TO_RESOLVE;
+  const migrationName = process.argv[2]?.trim();
 
   try {
-    console.log('🔧 Resolving failed migration(s)...', toDelete);
+    let deleted;
+    if (migrationName) {
+      console.log('🔧 Resolving failed migration(s)...', [migrationName]);
+      const safe = migrationName.replace(/'/g, "''");
+      deleted = await prisma.$executeRawUnsafe(
+        `DELETE FROM "_prisma_migrations" WHERE migration_name = '${safe}' AND finished_at IS NULL`,
+      );
+    } else {
+      console.log('🔧 Clearing all unfinished Prisma migration records (finished_at IS NULL)…');
+      deleted = await prisma.$executeRawUnsafe(
+        `DELETE FROM "_prisma_migrations" WHERE finished_at IS NULL`,
+      );
+    }
 
-    const inList = toDelete.map((n) => `'${n.replace(/'/g, "''")}'`).join(', ');
-    const result = await prisma.$executeRawUnsafe(
-      `DELETE FROM "_prisma_migrations" WHERE migration_name IN (${inList})`
-    );
-
-    console.log('✅ Deleted failed migration record(s)');
-    console.log(`Rows affected: ${result}`);
+    console.log('✅ Deleted unfinished migration record(s)');
+    console.log(`Rows affected: ${deleted}`);
 
     const remaining = await prisma.$queryRawUnsafe(
-      `SELECT migration_name, started_at, finished_at FROM "_prisma_migrations" WHERE finished_at IS NULL`
+      `SELECT migration_name, started_at, finished_at FROM "_prisma_migrations" WHERE finished_at IS NULL ORDER BY started_at`,
     );
-    console.log('Remaining failed migrations:', remaining);
+    console.log('Remaining unfinished migrations:', remaining);
   } catch (error) {
     console.error('❌ Error:', error);
     process.exit(1);
@@ -42,4 +49,3 @@ async function resolveMigration() {
 }
 
 resolveMigration();
-
