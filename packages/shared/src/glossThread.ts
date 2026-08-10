@@ -16,12 +16,24 @@ export interface GlossThread {
   updatedAt: string
 }
 
-export function buildGlossThreadKey(anchor: GlossAnchor): string {
+/** Stable surface identity — ignores phrase-level selectionText. */
+export function buildGlossSurfaceKey(anchor: GlossAnchor): string {
   return [
     anchor.entityKind,
     anchor.entityId,
     anchor.nodeId ?? 'root',
     anchor.receiptIndex != null ? String(anchor.receiptIndex) : '',
+    anchor.messageId ?? '',
+  ]
+    .filter((part) => part.length > 0)
+    .join(':')
+}
+
+export function buildGlossThreadKey(anchor: GlossAnchor): string {
+  const selection = anchor.selectionText?.trim().replace(/\s+/g, ' ').slice(0, 120)
+  return [
+    buildGlossSurfaceKey(anchor),
+    selection ? `sel:${encodeURIComponent(selection)}` : '',
   ]
     .filter((part) => part.length > 0)
     .join(':')

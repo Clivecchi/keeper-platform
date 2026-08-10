@@ -223,6 +223,11 @@ type RunAgentOptions = {
       status: 'ok' | 'empty' | 'failed' | 'error';
     }>;
   };
+  /**
+   * When true and sessionId is absent, do not create or persist a kip_session.
+   * Cast consults use this so Realm feed is not flooded with orphan delegation sessions.
+   */
+  ephemeral?: boolean;
   /** Mutable per-turn timing bag (filled by handler + runAgent + callAIModel). */
   timings?: AgentRunPhaseTimings;
 };
@@ -887,11 +892,23 @@ function buildGlossDiscussPrompt(
     '- Do not repeat the entire parent message unless needed for clarity.',
   ];
 
+  const selectionText =
+    typeof anchorRaw.selectionText === 'string' ? anchorRaw.selectionText.trim() : '';
+  if (selectionText) {
+    parts.push(`- Selected phrase (primary focus):\n${selectionText}`);
+    parts.push(
+      '- The user highlighted this phrase — discuss it specifically; surrounding message text is secondary context only.',
+    );
+  }
+
   const glossContent = agentContext.glossContent as
     | { label?: string; text?: string; imageUrl?: string }
     | undefined;
   if (glossContent?.label) parts.push(`- Label: ${glossContent.label}`);
-  if (glossContent?.text?.trim()) parts.push(`- Content:\n${glossContent.text.trim()}`);
+  if (glossContent?.text?.trim()) {
+    const contentLabel = selectionText ? 'Selected content' : 'Content';
+    parts.push(`- ${contentLabel}:\n${glossContent.text.trim()}`);
+  }
   if (glossContent?.imageUrl) parts.push(`- Image: ${glossContent.imageUrl}`);
 
   const history = agentContext.glossThreadHistory as
@@ -1104,6 +1121,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('sole.save');
   allow.add('sole.read');
   allow.add('library.read');
+  allow.add('dialog.read');
   allow.add('journey.read');
   allow.add('moment.read');
   allow.add('keeper.read');
@@ -1465,6 +1483,7 @@ export async function executeAgentActions(
     'sole.save',
     'sole.read',
     'library.read',
+    'dialog.read',
     'journey.read',
     'moment.read',
     'keeper.read',
@@ -3180,6 +3199,132 @@ export async function executeAgentActions(
             break;
           }
 
+          case 'dialog.read': {
+            const payload = action.payload ?? {};
+            const dialogId = typeof payload.id === 'string' ? payload.id.trim() : '';
+            const query = typeof payload.query === 'string' ? payload.query.trim() : '';
+            const limit =
+              typeof payload.limit === 'number' && payload.limit >= 1 && payload.limit <= 50
+                ? payload.limit
+                : 20;
+
+            if (!ctx.domainId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'No domain context for dialog.read',
+                errorCode: 'MISSING_CONTEXT',
+              });
+              break;
+            }
+
+            try {
+              if (dialogId) {
+                const dialog = await tx.dialog.findFirst({
+                  where: { id: dialogId, domain_id: ctx.domainId, is_archived: false },
+                  select: {
+                    id: true,
+                    title: true,
+                    title_source: true,
+                    document_status: true,
+                    forward_title: true,
+                    step_title: true,
+                    updated_at: true,
+                  },
+                });
+                if (!dialog) {
+                  results.push({
+                    type: action.type,
+                    status: 'error',
+                    message: `Dialog ${dialogId} not found in this domain`,
+                    errorCode: 'NOT_FOUND',
+                  });
+                  break;
+                }
+                results.push({
+                  type: action.type,
+                  status: 'success',
+                  message: `Dialog "${dialog.title}" retrieved`,
+                  data: {
+                    entityIds: [dialog.id],
+                    dialogId: dialog.id,
+                    dialog: {
+                      id: dialog.id,
+                      title: dialog.title,
+                      titleSource: dialog.title_source,
+                      documentStatus: dialog.document_status,
+                      forwardTitle: dialog.forward_title,
+                      stepTitle: dialog.step_title,
+                      updatedAt: dialog.updated_at.toISOString(),
+                    },
+                  },
+                });
+                break;
+              }
+
+              const where = {
+                domain_id: ctx.domainId,
+                is_archived: false,
+                ...(query
+                  ? {
+                      OR: [
+                        { title: { contains: query, mode: 'insensitive' as const } },
+                        { forward_title: { contains: query, mode: 'insensitive' as const } },
+                        { step_title: { contains: query, mode: 'insensitive' as const } },
+                      ],
+                    }
+                  : {}),
+              };
+
+              const rows = await tx.dialog.findMany({
+                where,
+                orderBy: { updated_at: 'desc' },
+                take: limit,
+                select: {
+                  id: true,
+                  title: true,
+                  title_source: true,
+                  document_status: true,
+                  forward_title: true,
+                  step_title: true,
+                  updated_at: true,
+                },
+              });
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: query
+                  ? `Found ${rows.length} dialog${rows.length !== 1 ? 's' : ''} for query`
+                  : `Listed ${rows.length} recent dialog${rows.length !== 1 ? 's' : ''}`,
+                data: {
+                  ...(query ? { query } : {}),
+                  results: rows.map((row) => ({
+                    id: row.id,
+                    title: row.title,
+                    titleSource: row.title_source,
+                    documentStatus: row.document_status,
+                    forwardTitle: row.forward_title,
+                    stepTitle: row.step_title,
+                    updatedAt: row.updated_at.toISOString(),
+                    tier:
+                      row.title_source === 'auto_generated' ? 'chatter' : 'dialog',
+                  })),
+                },
+              });
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : 'Failed to read dialogs';
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
           case 'delegate.consult': {
             const payload = action.payload ?? {};
             const agentSlug =
@@ -3914,6 +4059,8 @@ const AgentRunSchema = z.object({
       ).min(1),
     })
     .optional(),
+  /** Skip session create/persist when sessionId is absent (cast consults). */
+  ephemeral: z.boolean().optional(),
 }).refine(
   (data) => (typeof data.input === 'string' && data.input.trim().length > 0) || (Array.isArray(data.attachments) && data.attachments.length > 0),
   { message: 'Either input text or at least one attachment is required', path: ['input'] }
@@ -4689,6 +4836,10 @@ export class KipAgentService {
         'or fetch one item ({ id }). When the user asks to browse or pick from the library, call library.read',
         'with { limit: 20 } first, then { id } for full detail on your choice.',
         '',
+        'dialog.read — list recent Dialogs ({ limit? }), search by title ({ query, limit? }),',
+        'or fetch one Dialog ({ id }). Use when the user names a Dialog from Nav that is not the active one.',
+        'titleSource auto_generated = Chatter; user_set / system_promoted = Dialog. Prefer domainIndex.dialogs first.',
+        '',
         'web.search — live internet search (Brave). Use when the user needs current public information',
         'outside the domain Library. Payload: { query (required), count? (1–10, default 5) }.',
         'Prefer library.read for domain material; prefer web.search for the open web.',
@@ -4706,15 +4857,25 @@ export class KipAgentService {
     if (environment) {
       systemParts.push(SoleMemoryService.getSoleMemoryLoopInstruction());
       systemParts.push(SoleMemoryService.getSoleArchitecturePrompt());
-      const envWithIndex = environment as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>; library?: Array<{ id: string; label: string; sourceType: string }> } } | undefined;
+      const envWithIndex = environment as {
+        domainIndex?: {
+          keepers: Array<{ id: string; title: string; purpose?: string | null }>;
+          journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
+          library?: Array<{ id: string; label: string; sourceType: string }>;
+          dialogs?: Array<{ id: string; title: string; titleSource: string }>;
+        };
+      } | undefined;
       if (envWithIndex?.domainIndex) {
-        const { keepers, journeys, library } = envWithIndex.domainIndex;
+        const { keepers, journeys, library, dialogs } = envWithIndex.domainIndex;
         const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
         const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
         const libraryList =
           library?.map((item) => `${item.label} (${item.id})`).join('; ') ?? 'none indexed — use library.read to list';
+        const dialogList =
+          dialogs?.map((d) => `${d.title} (${d.id}, ${d.titleSource})`).join('; ')
+          ?? 'none indexed — use dialog.read to list';
         systemParts.push(
-          `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Use library.read to list or search when you need more.`,
+          `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Dialogs: ${dialogList}. Use library.read / dialog.read to list or search when you need more.`,
         );
       }
       if (options.keeperId) {
@@ -5166,16 +5327,26 @@ export class KipAgentService {
             content: SoleMemoryService.getSoleArchitecturePrompt(),
           });
 
-          const envWithIndex = environmentContext as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>; library?: Array<{ id: string; label: string; sourceType: string }> } } | undefined;
+          const envWithIndex = environmentContext as {
+            domainIndex?: {
+              keepers: Array<{ id: string; title: string; purpose?: string | null }>;
+              journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
+              library?: Array<{ id: string; label: string; sourceType: string }>;
+              dialogs?: Array<{ id: string; title: string; titleSource: string }>;
+            };
+          } | undefined;
           if (envWithIndex?.domainIndex) {
-            const { keepers, journeys, library } = envWithIndex.domainIndex;
+            const { keepers, journeys, library, dialogs } = envWithIndex.domainIndex;
             const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
             const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
             const libraryList =
               library?.map((item) => `${item.label} (${item.id})`).join('; ') ?? 'none indexed — use library.read to list';
+            const dialogList =
+              dialogs?.map((d) => `${d.title} (${d.id}, ${d.titleSource})`).join('; ')
+              ?? 'none indexed — use dialog.read to list';
             messages.push({
               role: 'system',
-              content: `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Use library.read to list or search when you need more.`,
+              content: `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Dialogs: ${dialogList}. Use library.read / dialog.read to list or search when you need more.`,
             });
           }
 
@@ -5403,6 +5574,9 @@ export class KipAgentService {
                 console.warn('Failed to update session context:', error);
               }
             }
+          } else if (options?.ephemeral === true) {
+            // Cast consult / ephemeral sub-run — reply in-memory only; no kip_session.
+            currentSessionId = undefined;
           } else {
             // Create new session for memory-enabled agents
             try {
@@ -7423,6 +7597,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
                 }))
               : undefined,
             agentContext: validation.data.agentContext,
+            ephemeral: validation.data.ephemeral === true,
             timings: runTimings,
           };
           if (validation.data.castConsultations) {

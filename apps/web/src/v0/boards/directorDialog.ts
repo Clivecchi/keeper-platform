@@ -17,6 +17,8 @@ export type CastMemberSlug = string
 export type DialogParticipationMode = "voice" | "support_only" | "silent"
 
 export type DirectorDialogConfig = {
+  /** Lead/director slug — never consulted as cast (avoids self-duplicate turns). */
+  directorAgentSlug?: string
   activeCastMember: CastMemberSlug | null
   /** Domain/Realm multi-select — cue each engaged cast member for real minimal input. */
   cuedCastSlugs?: CastMemberSlug[]

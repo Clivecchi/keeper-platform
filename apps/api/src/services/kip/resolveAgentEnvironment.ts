@@ -88,6 +88,13 @@ export type AgentEnvironmentContext = {
     keepers: Array<{ id: string; title: string; purpose?: string | null }>;
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
     library: Array<{ id: string; label: string; sourceType: string }>;
+    dialogs: Array<{
+      id: string;
+      title: string;
+      titleSource: string;
+      documentStatus: string;
+      updatedAt: string;
+    }>;
   };
   /**
    * Dialog Document (Forward / Step / Paths / manuscript Points) for the active Dialog.
@@ -420,7 +427,7 @@ export async function resolveAgentEnvironment(args: {
 
       if (hasReadAccess) {
         try {
-          const [keepers, journeys, libraryItems] = await Promise.all([
+          const [keepers, journeys, libraryItems, dialogs] = await Promise.all([
             prisma.keeper.findMany({
               where: { domainId: primaryDomainId },
               take: 20,
@@ -437,6 +444,18 @@ export async function resolveAgentEnvironment(args: {
               take: 20,
               select: { id: true, display_label: true, source_type: true },
             }),
+            prisma.dialog.findMany({
+              where: { domain_id: primaryDomainId, is_archived: false },
+              orderBy: { updated_at: 'desc' },
+              take: 30,
+              select: {
+                id: true,
+                title: true,
+                title_source: true,
+                document_status: true,
+                updated_at: true,
+              },
+            }),
           ]);
           environment.domainIndex = {
             keepers: keepers.map((k) => ({ id: k.id, title: k.title, purpose: k.purpose ?? null })),
@@ -445,6 +464,13 @@ export async function resolveAgentEnvironment(args: {
               id: item.id,
               label: item.display_label?.trim() || item.id,
               sourceType: item.source_type,
+            })),
+            dialogs: dialogs.map((d) => ({
+              id: d.id,
+              title: d.title?.trim() || 'Untitled dialog',
+              titleSource: d.title_source,
+              documentStatus: d.document_status,
+              updatedAt: d.updated_at.toISOString(),
             })),
           };
           try {

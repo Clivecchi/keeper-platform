@@ -30,6 +30,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-09 — Phrase-level Gloss focus
+`buildGlossDiscussPrompt` (in `api/kip/agents.ts`) prefers `glossAnchor.selectionText` when present so Kip discusses the highlighted phrase, not only the parent node snapshot.
+
 ### 2026-08-09 — User message attachment metadata
 - Agent runs persist `displayContent`, `attachments`, and `supportingDocs` on the saved user `kip_messages.metadata` so Dialog can rehydrate sent thumbs / Pasted tiles after reload.
 
@@ -102,6 +105,13 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ### 2026-06-22 — Read-action follow-up synthesis (Lead agents)
 - Added `actionFollowUp.ts` — when a turn is read-only (`draft.read`, `journey.read`, etc.), the server runs a second model call with action results so Kip completes the engagement instead of stopping at "Reading the draft now."
+
+### 2026-08-10 — Dialogs in domain index + dialog.read + nav index
+- `domainIndex.dialogs` added in `buildKipEnvironmentContext` / `resolveAgentEnvironment`.
+- Agent action `dialog.read` (list / search / get by id) — same pattern as `library.read`.
+- `buildDomainNavIndex.ts` powers member cross-nav search.
+- Draft attach promotes Chatter Dialogs (`title_source` auto_generated → system_promoted) in `linkDraftToSessionDialog`.
+- Cast-consult runs accept `ephemeral` to skip session create.
 
 ### 2026-07-14 — Library in domain index
 - `domainIndex` now includes up to 20 recent Library items (id, label, sourceType) alongside keepers and journeys in both `resolveAgentEnvironment` and `buildKipEnvironmentContext`.

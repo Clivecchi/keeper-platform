@@ -917,6 +917,7 @@ export function UniversalConversation({
       if (!isDirectedCueing) return undefined
       if (castMultiSelect) {
         return {
+          directorAgentSlug,
           activeCastMember: null as string | null,
           cuedCastSlugs: resolvedCuedCastSlugs,
           castLabels: directorCastLabels,
@@ -925,6 +926,7 @@ export function UniversalConversation({
         }
       }
       return {
+        directorAgentSlug,
         activeCastMember,
         castLabels: directorCastLabels,
         castParticipation: castParticipationMap,
@@ -934,6 +936,7 @@ export function UniversalConversation({
     [
       isDirectedCueing,
       castMultiSelect,
+      directorAgentSlug,
       activeCastMember,
       resolvedCuedCastSlugs,
       defaultAgentName,
@@ -2473,10 +2476,17 @@ export function UniversalConversation({
   /** Vibe Style: all Cast hear — auto-cue roster. Cueing mechanics stay Directed. */
   React.useEffect(() => {
     if (!isVibeStyle || !castMultiSelect) return
+    const directorSlug = directorAgentSlug?.trim().toLowerCase() || null
+    // Never auto-cue the director — they synthesize as Lead. Cueing them as cast
+    // caused Kip-sole Domain turns to consult Kip then run Kip again (duplicate bubbles).
     const roster = (resolvedBoardCast ?? [])
       .map((m) => m.slug?.trim())
       .filter((slug): slug is string => Boolean(slug))
-    if (roster.length === 0) return
+      .filter((slug) => !directorSlug || slug.toLowerCase() !== directorSlug)
+    if (roster.length === 0) {
+      if (cuedCastMembers.length > 0) actions.onSetCuedCastMembers([])
+      return
+    }
     const same =
       roster.length === cuedCastMembers.length
       && roster.every((slug) => cuedCastMembers.includes(slug))
@@ -2486,6 +2496,7 @@ export function UniversalConversation({
     isVibeStyle,
     castMultiSelect,
     resolvedBoardCast,
+    directorAgentSlug,
     cuedCastMembers,
     actions,
   ])

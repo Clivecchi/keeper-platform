@@ -5,6 +5,7 @@
 import * as React from "react"
 import type { GlossAnchor, GlossContentSnapshot, GlossThread, GlossThreadMessage } from "@keeper/shared"
 import {
+  buildGlossSurfaceKey,
   buildGlossThreadKey,
   findGlossThread,
   upsertGlossThreadMessage,
@@ -22,10 +23,18 @@ export interface GlossRunConfig {
   agentName?: string
 }
 
+export type GlossActiveOpen = {
+  messageId: string
+  anchor: GlossAnchor
+  snapshot?: GlossContentSnapshot
+}
+
 export interface GlossContextValue {
-  /** Thread key of the deepest currently hovered gloss surface */
+  /** Surface key of the deepest currently hovered gloss surface (ignores selectionText) */
   hoveredKey: string | null
   activeKey: string | null
+  /** Full open payload — includes phrase-level selectionText when present */
+  activeOpen: GlossActiveOpen | null
   sendingKey: string | null
   registerHover: (key: string, depth: number) => void
   unregisterHover: (key: string) => void
@@ -39,6 +48,8 @@ export interface GlossContextValue {
     existingThreads: readonly GlossThread[]
   }) => Promise<void>
   getThread: (message: AgentDialogueMessage, anchor: GlossAnchor) => GlossThread | undefined
+  /** Whether an open gloss belongs to this surface (selectionText may differ). */
+  isOpenOnSurface: (messageId: string, surfaceAnchor: GlossAnchor) => boolean
 }
 
 const GlossContext = React.createContext<GlossContextValue | null>(null)
@@ -59,6 +70,7 @@ export function GlossProvider({
   children,
 }: GlossProviderProps) {
   const [activeKey, setActiveKey] = React.useState<string | null>(null)
+  const [activeOpen, setActiveOpen] = React.useState<GlossActiveOpen | null>(null)
   const [sendingKey, setSendingKey] = React.useState<string | null>(null)
   const [hoveredKey, setHoveredKey] = React.useState<string | null>(null)
   const hoverStackRef = React.useRef<Array<{ key: string; depth: number }>>([])
@@ -98,13 +110,26 @@ export function GlossProvider({
 
   const closeGloss = React.useCallback(() => {
     setActiveKey(null)
+    setActiveOpen(null)
   }, [])
 
   const openGloss = React.useCallback(
-    (_messageId: string, anchor: GlossAnchor) => {
+    (messageId: string, anchor: GlossAnchor, snapshot?: GlossContentSnapshot) => {
       setActiveKey(buildGlossThreadKey(anchor))
+      setActiveOpen({ messageId, anchor, snapshot })
     },
     [],
+  )
+
+  const isOpenOnSurface = React.useCallback(
+    (messageId: string, surfaceAnchor: GlossAnchor) => {
+      if (!activeOpen) return false
+      return (
+        activeOpen.messageId === messageId
+        && buildGlossSurfaceKey(activeOpen.anchor) === buildGlossSurfaceKey(surfaceAnchor)
+      )
+    },
+    [activeOpen],
   )
 
   const persistThreads = React.useCallback(
@@ -200,6 +225,7 @@ export function GlossProvider({
     () => ({
       hoveredKey,
       activeKey,
+      activeOpen,
       sendingKey,
       registerHover,
       unregisterHover,
@@ -207,10 +233,12 @@ export function GlossProvider({
       closeGloss,
       sendGloss,
       getThread,
+      isOpenOnSurface,
     }),
     [
       hoveredKey,
       activeKey,
+      activeOpen,
       sendingKey,
       registerHover,
       unregisterHover,
@@ -218,6 +246,7 @@ export function GlossProvider({
       closeGloss,
       sendGloss,
       getThread,
+      isOpenOnSurface,
     ],
   )
 

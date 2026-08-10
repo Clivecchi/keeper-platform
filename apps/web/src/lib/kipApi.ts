@@ -815,6 +815,12 @@ export class KipApi {
           status: 'ok' | 'empty' | 'failed' | 'error'
         }>
       }
+      /**
+       * Skip creating/persisting a session when sessionId is absent.
+       * Used for cast consults so Realm feed is not flooded with
+       * "[Director delegation — …]" orphan sessions.
+       */
+      ephemeral?: boolean
     },
   ): Promise<AgentResponse> {
     const response = await apiFetch('/api/kip/agents', {
@@ -839,6 +845,7 @@ export class KipApi {
         agentContext: options?.agentContext ?? undefined,
         directorDelegation: options?.directorDelegation ?? undefined,
         castConsultations: options?.castConsultations ?? undefined,
+        ephemeral: options?.ephemeral === true ? true : undefined,
       })
     });
 

@@ -173,6 +173,13 @@ const libraryReadPayloadSchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(10),
 });
 
+/** List / search / fetch Dialogs in the current domain (same shape as library.read). */
+const dialogReadPayloadSchema = z.object({
+  id: z.string().optional(),
+  query: z.string().optional(),
+  limit: z.number().int().min(1).max(50).optional().default(20),
+});
+
 /**
  * Journey read action payload schema
  */
@@ -273,6 +280,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'sole.save': soleSavePayloadSchema,
   'sole.read': soleReadPayloadSchema,
   'library.read': libraryReadPayloadSchema,
+  'dialog.read': dialogReadPayloadSchema,
   'journey.read': journeyReadPayloadSchema,
   'moment.read': momentReadPayloadSchema,
   'keeper.read': keeperReadPayloadSchema,

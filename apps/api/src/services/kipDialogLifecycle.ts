@@ -10,6 +10,9 @@ import type { PrismaClient } from '@keeper/database';
 
 export type KipDialogScope = 'admin' | 'keeper';
 
+/** Matches packages/shared dialogTitleSource — kept local to avoid circular package boot in scripts. */
+const AUTO_TITLE_SOURCE = 'auto_generated' as const;
+
 const frameTitleFallback = (frameKey: string): string => {
   const map: Record<string, string> = {
     cover: 'Board Cover',
@@ -80,6 +83,7 @@ export async function findOrCreateKipDialog(
   const dialog = await prisma.dialog.create({
     data: {
       title,
+      title_source: AUTO_TITLE_SOURCE,
       domain_id: domainId,
       user_id: dialogUserId,
       available_to: availableTo,

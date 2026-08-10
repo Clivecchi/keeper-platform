@@ -807,11 +807,14 @@ export function useAgentDialog({
       }
 
       const liveDirectorConfig = directorConfigRef.current
+      const directorSlugNorm = liveDirectorConfig?.directorAgentSlug?.trim().toLowerCase() || ""
+      // Exclude director from cast consults — Lead run is the director's turn.
       const consultSlugs = Array.from(
         new Set(
           (liveDirectorConfig?.cuedCastSlugs ?? [])
             .map((slug) => slug.trim().toLowerCase())
-            .filter(Boolean),
+            .filter(Boolean)
+            .filter((slug) => !directorSlugNorm || slug !== directorSlugNorm),
         ),
       )
       const castMember = liveDirectorConfig
@@ -893,7 +896,11 @@ export function useAgentDialog({
               castPrompt,
               userId ?? undefined,
               undefined,
-              runOpts,
+              {
+                ...runOpts,
+                // Cast consults must not mint orphan sessions that pollute Realm feed.
+                ephemeral: true,
+              },
             )
             const reply = extractAgentReplyFromRunResult(castResult)
             if (reply) {
@@ -979,7 +986,10 @@ export function useAgentDialog({
               castPrompt,
               userId ?? undefined,
               undefined,
-              runOpts,
+              {
+                ...runOpts,
+                ephemeral: true,
+              },
             )
             clientCastMemberReply = extractAgentReplyFromRunResult(castResult)
             if (!clientCastMemberReply) {

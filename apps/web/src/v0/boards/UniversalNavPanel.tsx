@@ -98,6 +98,7 @@ import {
   loadKeepers,
   removeCachedBoardNavRow,
 } from "./boardNavDataCache"
+import { CrossNavIndex, type CrossNavIndexItem } from "./CrossNavIndex"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -161,6 +162,7 @@ export interface UniversalNavPanelProps {
 type DialogItem = {
   id: string
   title: string
+  title_source?: string | null
   updated_at: string
   session_count: number
   context: { board?: string; frame?: string; subject?: string }
@@ -168,6 +170,19 @@ type DialogItem = {
   forward_title?: string | null
   forwardTitle?: string | null
   step_title?: string | null
+  drafts?: Array<{ id: string; title?: string | null }>
+}
+
+function isChatterDialog(dialog: DialogItem): boolean {
+  // Prefer schema title_source; fall back to auto-title heuristic for pre-migration rows.
+  if (dialog.title_source === "auto_generated") return true
+  if (dialog.title_source === "user_set" || dialog.title_source === "system_promoted") {
+    return false
+  }
+  const title = dialog.title?.trim() ?? ""
+  return /^[A-Za-z][\w\s]* · .+ · (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}$/.test(
+    title,
+  )
 }
 
 /** Prefer authored titles; blank shells are not labeled "Untitled" until they have activity. */
@@ -273,16 +288,6 @@ const PREVIEW_LIMIT: Record<SectionKey, number> = {
   drafts: 5,
   agents: 5,
   chatter: 3,
-}
-
-function isUnassignedDialog(
-  dialog: DialogItem,
-  journeyIds: Set<string>,
-  keeperIds: Set<string>,
-): boolean {
-  const subject = dialog.context?.subject?.trim()
-  if (!subject) return true
-  return !journeyIds.has(subject) && !keeperIds.has(subject)
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -607,6 +612,28 @@ export function UniversalNavPanel({
 
   // ── Section expand state ─────────────────────────────────────────────────
   const [expanded, setExpanded] = React.useState<Set<SectionKey>>(new Set())
+  const [crossNavOpen, setCrossNavOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setCrossNavOpen(true)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  const handleCrossNavSelect = React.useCallback(
+    (item: CrossNavIndexItem) => {
+      if (item.kind === "dialog") onDialogSelect?.(item.id)
+      else if (item.kind === "draft") onDraftSelect?.(item.id)
+      else if (item.kind === "keeper") onKeeperSelect?.(item.id)
+      else if (item.kind === "library") onLibraryItemSelect?.(item.id)
+    },
+    [onDialogSelect, onDraftSelect, onKeeperSelect, onLibraryItemSelect],
+  )
 
   const toggleExpanded = React.useCallback((section: SectionKey) => {
     setExpanded((prev) => {
@@ -711,9 +738,11 @@ export function UniversalNavPanel({
 
   const showDrafts = def.nav.sections.drafts
 
-  // ── Fetch: Drafts — capped list; promoted/archived excluded via API ─────────
+  // ── Fetch: Drafts — for top-level Drafts nav and nesting under Dialogs ──────
+  const loadDraftsForNav =
+    Boolean(def.nav.sections.drafts) || Boolean(def.nav.sections.dialogs)
   React.useEffect(() => {
-    if (!domainId || !showDrafts) return
+    if (!domainId || !loadDraftsForNav) return
     let cancelled = false
     const cached = getCachedBoardNavData<KipDraftSummary[]>(domainId, "drafts")
     if (cached) setDrafts(cached)
@@ -737,7 +766,7 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, showDrafts, draftListVersion])
+  }, [domainId, loadDraftsForNav, draftListVersion])
 
   const patchedDrafts = React.useMemo(() => {
     if (!drafts || !draftNavRowPatch) return drafts
@@ -756,14 +785,20 @@ export function UniversalNavPanel({
     [patchedDrafts],
   )
 
+  // Top-level Drafts bucket only lists orphans — drafts with dialog_id nest under Dialogs.
+  const orphanDraftsForNav = React.useMemo(
+    () => visibleDrafts.filter((d) => !d.dialog_id?.trim()),
+    [visibleDrafts],
+  )
+
   const draftNavGroups = React.useMemo(
-    () => groupDraftsByKind(visibleDrafts, selectedDraftId),
-    [visibleDrafts, selectedDraftId],
+    () => groupDraftsByKind(orphanDraftsForNav, selectedDraftId),
+    [orphanDraftsForNav, selectedDraftId],
   )
 
   const draftNavTitleCounts = React.useMemo(
-    () => countDraftNavTitles(visibleDrafts),
-    [visibleDrafts],
+    () => countDraftNavTitles(orphanDraftsForNav),
+    [orphanDraftsForNav],
   )
 
   const buildDraftNavItems = React.useCallback(
@@ -1068,25 +1103,52 @@ export function UniversalNavPanel({
     ],
   )
 
-  // Dialogs: embed date suffix for recency signal; hide empty untitled shells.
-  const allDialogItems: SidebarCardItem[] = (dialogs ?? [])
-    .filter(isNavVisibleDialog)
-    .map(toDialogNavItem)
+  // Named / promoted Dialogs only — Chatter (auto_generated) is a separate bucket.
+  const namedDialogs = React.useMemo(
+    () => (dialogs ?? []).filter(isNavVisibleDialog).filter((d) => !isChatterDialog(d)),
+    [dialogs],
+  )
 
-  const journeyIdSet = React.useMemo(
-    () => new Set((journeys ?? []).map((j) => j.id)),
-    [journeys],
-  )
-  const keeperIdSet = React.useMemo(
-    () => new Set((keepers ?? []).map((k) => k.id)),
-    [keepers],
-  )
+  const draftsByDialogId = React.useMemo(() => {
+    const map = new Map<string, KipDraftSummary[]>()
+    for (const draft of visibleDrafts) {
+      const dialogId = draft.dialog_id?.trim()
+      if (!dialogId) continue
+      const list = map.get(dialogId) ?? []
+      list.push(draft)
+      map.set(dialogId, list)
+    }
+    return map
+  }, [visibleDrafts])
+
+  // Dialog rows with nested Draft children (flat list; indent via label prefix).
+  const allDialogItems: SidebarCardItem[] = React.useMemo(() => {
+    const items: SidebarCardItem[] = []
+    for (const dialog of namedDialogs) {
+      items.push(toDialogNavItem(dialog))
+      const nested = draftsByDialogId.get(dialog.id) ?? []
+      for (const draft of nested) {
+        items.push({
+          id: `draft-under-${draft.id}`,
+          label: `↳ ${draft.title?.trim() || "Untitled draft"}`,
+          description: "draft",
+          isSelected: draft.id === selectedDraftId,
+          onClick: () => onDraftSelect?.(draft.id),
+        })
+      }
+    }
+    return items
+  }, [
+    namedDialogs,
+    draftsByDialogId,
+    toDialogNavItem,
+    selectedDraftId,
+    onDraftSelect,
+  ])
+
   const chatterDialogs = React.useMemo(
-    () =>
-      (dialogs ?? [])
-        .filter(isNavVisibleDialog)
-        .filter((dialog) => isUnassignedDialog(dialog, journeyIdSet, keeperIdSet)),
-    [dialogs, journeyIdSet, keeperIdSet],
+    () => (dialogs ?? []).filter(isNavVisibleDialog).filter(isChatterDialog),
+    [dialogs],
   )
   const allChatterItems: SidebarCardItem[] = chatterDialogs.map(toDialogNavItem)
 
@@ -1242,10 +1304,10 @@ export function UniversalNavPanel({
 
   const navContentCounts = React.useMemo(
     () => ({
-      dialogs: dialogs?.length ?? null,
+      dialogs: dialogs === null ? null : namedDialogs.length,
       journeys: journeys?.length ?? null,
       keepers: keepers?.length ?? null,
-      drafts: patchedDrafts === null ? null : visibleDrafts.length,
+      drafts: patchedDrafts === null ? null : orphanDraftsForNav.length,
       agents: agents?.length ?? null,
       library: allLibraryRows === null ? null : libraryRowCount,
       chatter: dialogs === null ? null : chatterDialogs.length,
@@ -1253,10 +1315,11 @@ export function UniversalNavPanel({
     }),
     [
       dialogs,
+      namedDialogs.length,
       journeys,
       keepers,
       patchedDrafts,
-      visibleDrafts.length,
+      orphanDraftsForNav.length,
       agents,
       allLibraryRows,
       libraryRowCount,
@@ -1304,7 +1367,9 @@ export function UniversalNavPanel({
             <SidebarCard
               title="Dialogs"
               className="keeper-sidebar-card"
-              description={!domainId ? "Loading…" : countLabel(dialogs?.length ?? null, "dialog")}
+              description={
+                !domainId ? "Loading…" : countLabel(namedDialogs.length, "dialog")
+              }
               items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
               onTitleClick={() => toggleExpanded("dialogs")}
               onAdd={user && domainId ? handleDialogCreate : undefined}
@@ -1385,7 +1450,7 @@ export function UniversalNavPanel({
           />
         )
       case "chatter":
-        if (def.boardId !== "realm") return null
+        if (def.boardId !== "domain" && def.boardId !== "realm") return null
         return (
           <>
             <SidebarCard
@@ -1394,10 +1459,11 @@ export function UniversalNavPanel({
               description={
                 !domainId
                   ? "Loading…"
-                  : countLabel(chatterDialogs.length, "unassigned dialog")
+                  : countLabel(chatterDialogs.length, "session")
               }
+              // Collapsed by default — only show items when expanded.
               items={
-                slice("chatter", allChatterItems).length
+                expanded.has("chatter") && allChatterItems.length
                   ? slice("chatter", allChatterItems)
                   : undefined
               }
@@ -1466,7 +1532,7 @@ export function UniversalNavPanel({
                   className="keeper-sidebar-card"
                   title="Drafts"
                   description={
-                    !domainId ? "Loading…" : countLabel(visibleDrafts.length, "draft")
+                    !domainId ? "Loading…" : countLabel(orphanDraftsForNav.length, "loose draft")
                   }
                   items={
                     groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
@@ -1500,7 +1566,7 @@ export function UniversalNavPanel({
                   className="keeper-sidebar-card"
                   title="Drafts"
                   description={
-                    !domainId ? "Loading…" : countLabel(visibleDrafts.length, "draft")
+                    !domainId ? "Loading…" : countLabel(orphanDraftsForNav.length, "loose draft")
                   }
                   onAdd={handleDraftCreate}
                 />
@@ -1766,15 +1832,29 @@ export function UniversalNavPanel({
           >
             {domainName}
           </p>
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className="shrink-0 ml-1 p-1 rounded-md transition-opacity hover:opacity-60"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-            aria-label="Collapse navigation panel"
-          >
-            <ChevronLeftIcon />
-          </button>
+          <div className="shrink-0 flex items-center gap-0.5 ml-1">
+            {domainId ? (
+              <button
+                type="button"
+                onClick={() => setCrossNavOpen(true)}
+                className="p-1 rounded-md transition-opacity hover:opacity-60 text-[11px] font-medium"
+                style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                aria-label="Search across Dialogs, Keepers, Library, Drafts"
+                title="Search (⌘K)"
+              >
+                ⌕
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="p-1 rounded-md transition-opacity hover:opacity-60"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              aria-label="Collapse navigation panel"
+            >
+              <ChevronLeftIcon />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable SidebarCards — order from def.nav.primarySection when set */}
@@ -1784,6 +1864,14 @@ export function UniversalNavPanel({
           ))}
         </div>
       </div>
+      {domainId ? (
+        <CrossNavIndex
+          domainId={domainId}
+          open={crossNavOpen}
+          onClose={() => setCrossNavOpen(false)}
+          onSelect={handleCrossNavSelect}
+        />
+      ) : null}
     </TreatmentAccentShell>
   )
 }

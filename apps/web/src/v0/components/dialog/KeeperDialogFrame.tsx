@@ -931,6 +931,8 @@ export function KeeperDialogFrame({
             onTalkStart={startListening}
             onTalkStop={stopListening}
             talkError={talkError}
+            dialogueMessages={messages}
+            userName={userName}
           />
           {showComposerFooter && (
             <div className="dialog-composer-footer">

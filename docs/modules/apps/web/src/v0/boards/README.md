@@ -30,6 +30,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-10 — Nav architecture + cross-nav index + Kip duplicate fix
+- Domain nav order: Dialog → Keeper → Library → Chatter (Chatter collapsed by default).
+- Dialog vs Chatter via `title_source` (`user_set` | `auto_generated` | `system_promoted`); Drafts nest under owning Dialog.
+- `CrossNavIndex.tsx` + `GET /api/domains/:domainId/nav-index` (Cmd/Ctrl+K). Board Studio palette plan treated as stale/non-binding.
+- Vibe auto-cue excludes director; cast consults use `ephemeral: true` (no orphan Realm feed sessions).
+
 ### 2026-08-06 — Dialog Style (Vibe) beside Cueing
 - `DialogStyle` + `conversation.dialogStyle` on board defs (Domain/Realm default `"vibe"`). Cueing stays Directed; Style is room rhythm.
 - Header: `Style: Vibe · Cueing: Directed`. Vibe auto-cues Cast roster; cast delegation prompts use short-beat rules when `agentContext.dialogStyle === "vibe"`.

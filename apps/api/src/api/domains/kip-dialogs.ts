@@ -34,8 +34,40 @@ import {
 import { listChronicleEventsForDialog } from '../../services/kip/chronicleEvents.js';
 import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDocumentForChronicle.js';
 import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
+import { buildDomainNavIndex } from '../../services/kip/buildDomainNavIndex.js';
 
 const router = Router();
+
+// ─── GET /api/domains/:domainId/nav-index ────────────────────────────────────
+// Cross-nav index: Dialogs + Drafts + Keepers + Library (member search surface).
+
+router.get(
+  '/:domainId/nav-index',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const index = await buildDomainNavIndex(domainId);
+      const q = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : '';
+      const items = q
+        ? index.items.filter(
+            (item) =>
+              item.title.toLowerCase().includes(q)
+              || (item.subtitle?.toLowerCase().includes(q) ?? false)
+              || item.kind.includes(q),
+          )
+        : index.items;
+      return res.json({ domainId: index.domainId, items, total: items.length });
+    } catch (error) {
+      logger.error({ err: error, domainId }, '[nav-index] failed');
+      return res.status(500).json({ error: 'FAILED_TO_BUILD_NAV_INDEX' });
+    }
+  },
+);
 
 // ─── Validation schemas ───────────────────────────────────────────────────────
 
@@ -128,6 +160,7 @@ router.post(
       const dialog = await prisma.dialog.create({
         data: {
           title,
+          title_source: 'user_set',
           domain_id: domainId,
           user_id: userId,
           available_to,
@@ -189,6 +222,7 @@ router.get(
         dialogs: dialogs.map((d) => ({
           id: d.id,
           title: d.title,
+          title_source: d.title_source,
           domain_id: d.domain_id,
           user_id: d.user_id,
           available_to: d.available_to,
@@ -491,6 +525,7 @@ router.patch(
 
       const updateData: {
         title?: string;
+        title_source?: string;
         is_archived?: boolean;
         document_status?: 'drafts' | 'kept' | 'presented';
         forward_title?: string | null;
@@ -499,7 +534,11 @@ router.patch(
         step_body?: string | null;
         document_paths?: object | null;
       } = {};
-      if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
+      if (parsed.data.title !== undefined) {
+        updateData.title = parsed.data.title;
+        // Explicit rename → named Dialog (leaves Chatter).
+        updateData.title_source = 'user_set';
+      }
       if (parsed.data.is_archived !== undefined) updateData.is_archived = parsed.data.is_archived;
       if (parsed.data.document_status !== undefined) {
         updateData.document_status = parsed.data.document_status;

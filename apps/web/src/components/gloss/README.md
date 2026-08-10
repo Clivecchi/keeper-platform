@@ -5,23 +5,26 @@ Universal gesture for focused Dialog exchange on discrete chat content — hover
 
 ## 🧱 Key Files
 - `GlossProvider.tsx` — context, send handler, metadata persistence
-- `GlossSurface.tsx` — wraps glossable nodes; hover/long-press affordance
+- `GlossSurface.tsx` — wraps glossable nodes; hover/long-press affordance; phrase selection
+- `glossSelection.ts` — reads DOM selection inside a Gloss surface
 - `GlossThreadPanel.tsx` — inline mini-conversation UI
 - `gloss.css` — affordance styling
 - `index.ts` — public exports
 
 ## 🔄 Data & Behavior
 - `GlossAnchor` + optional `GlossContentSnapshot` identify the selected node
+- When the user selects text inside a surface and opens Gloss, that phrase becomes `selectionText` (and the snapshot content) — Kip discusses the selection, not the whole bubble
 - Threads stored on `kip_messages.metadata.glossThreads` via `KipApi.updateMessageMetadata`
 - Gloss sends use `runAgent` with `agentContext.glossMode: true` (sub-turns do not pollute main session)
 - Wired from `KeeperDialogFrame` → `DialogueMessageList` → `ActionReceiptCard` (image/moment receipts)
 
 ## ⚠️ Notes & ToDo
-- [ ] Phrase-level selection (`selectionText` on anchor)
+- [x] Phrase-level selection (`selectionText` on anchor)
 - [ ] Chronicle / DraftPointRow — migrate Discuss button to GlossSurface
 - [ ] Journey / Path receipt cards
 
 ## 📆 Update Log
+- **2026-08-09** — Phrase Gloss: selecting text inside a hovered `GlossSurface` sets `anchor.selectionText` + snapshot text to that phrase (captured before the Gloss click clears selection). Thread keys include the selection; API gloss prompt treats the phrase as primary focus.
 - **2026-08-09** — Affordance animation is opacity-only (no transform fight with border-rail `translateY(-50%)`). Default highlight is border/outline, not shadow frame. Multi-agent Cast/Lead/Echo bubbles are Glossable.
 - **2026-08-06** — `GlossThreadPanel` `surface="chronicle"`: no body snapshot replay (Point already visible), roomy thread (~half Chronicle), large composer. Dialog surface stays compact.
 - **2026-07-08** — Chat bubbles use `highlightMode="border"` + `affordancePlacement="border"`: hover recolors the existing 1px bubble border; Gloss pill rides on the top border rail (no text overlap, no layout jump).

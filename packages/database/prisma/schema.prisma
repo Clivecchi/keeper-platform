@@ -710,6 +710,8 @@ model kip_draft_versions {
 model Dialog {
   id           String   @id @default(cuid())
   title        String
+  /// user_set | auto_generated | system_promoted — Nav Dialog vs Chatter classification.
+  title_source String   @default("user_set")
   domain_id    String
   user_id      String?  // null for admin/domain-scoped dialogs
   available_to String[] // ["admin"] | ["keeper"] | ["admin", "keeper"]

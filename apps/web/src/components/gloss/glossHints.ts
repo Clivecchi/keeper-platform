@@ -4,7 +4,14 @@ import type { GlossAnchor, GlossContentSnapshot } from "@keeper/shared"
 export function describeGlossHint(
   anchor: GlossAnchor,
   snapshot?: GlossContentSnapshot,
+  liveSelection?: string | null,
 ): string {
+  const selected = (liveSelection ?? anchor.selectionText)?.trim()
+  if (selected) {
+    const preview = selected.length > 42 ? `${selected.slice(0, 41)}…` : selected
+    return `Discuss “${preview}”`
+  }
+
   const node = anchor.nodeId ?? "content"
 
   if (node === "body") {

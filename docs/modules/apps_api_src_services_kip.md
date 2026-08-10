@@ -6,6 +6,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ## 🧱 Key Files
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
+- `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
+- `buildKeeperCardRenderingPrompt.ts` — Shared keeper-card vs prose system prompt (decision consult Lock/Open/Next Step)
+- `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
@@ -26,6 +29,28 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-09 — Phrase-level Gloss focus
+`buildGlossDiscussPrompt` (in `api/kip/agents.ts`) prefers `glossAnchor.selectionText` when present so Kip discusses the highlighted phrase, not only the parent node snapshot.
+
+### 2026-08-09 — User message attachment metadata
+- Agent runs persist `displayContent`, `attachments`, and `supportingDocs` on the saved user `kip_messages.metadata` so Dialog can rehydrate sent thumbs / Pasted tiles after reload.
+
+### 2026-08-06 — Document Gloss carrier
+- `ensureDialogGlossCarrier.ts` + `POST /kip/dialogs/:id/gloss-carrier` — Chronicle Document Point Gloss can persist threads without requiring a prior Dialog turn.
+- Gloss prompt (agents.ts): draft Points must `draft.point.rewrite` in the same turn or admit no change — no “I’ll revise later” promises.
+
+### 2026-08-05 — Decision consult keeper-cards
+- `buildKeeperCardRenderingPrompt.ts` — Lead/cast decision synthesis must emit summary card with Lock / Open / Next Step items; Cockpit compose + live `callAIModel` share one helper.
+
+### 2026-08-05 — Cast ≠ domain lead (collaboration prompt)
+- `buildDomainLeadCollaborationPrompt.ts` — domain lead resolution requires `role === 'Lead'` among non-platform agents. Dialog Cast guests (`role: 'Cast'`) no longer trigger Kip “platform support / defer to X” overrides. Locked: Cast membership ≠ domain lead.
+
+### 2026-08-05 — follow-up budget guard
+- `actionFollowUp.ts` — `READ_FOLLOW_UP_MAX_ELAPSED_MS` + `formatReadActionResultsForUserFallback()` so a slow first model call does not start a second synthesis pass that hits the Vercel/proxy timeout; `agents.ts` skips AI follow-up past the budget and returns the retrieved results instead.
+
+### 2026-08-04 — web.search follow-up
+- `actionFollowUp.ts` treats `web.search` as read-only; formats title/URL/snippet results and instructs citation in the second model turn.
 
 ### 2026-08-03 — History = session chapters + Document keeps
 - Stopped per-turn session History rows. `recordSessionChapterEvent` writes once when an auto-named session gets its topic name.
@@ -80,6 +105,13 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ### 2026-06-22 — Read-action follow-up synthesis (Lead agents)
 - Added `actionFollowUp.ts` — when a turn is read-only (`draft.read`, `journey.read`, etc.), the server runs a second model call with action results so Kip completes the engagement instead of stopping at "Reading the draft now."
+
+### 2026-08-10 — Dialogs in domain index + dialog.read + nav index
+- `domainIndex.dialogs` added in `buildKipEnvironmentContext` / `resolveAgentEnvironment`.
+- Agent action `dialog.read` (list / search / get by id) — same pattern as `library.read`.
+- `buildDomainNavIndex.ts` powers member cross-nav search.
+- Draft attach promotes Chatter Dialogs (`title_source` auto_generated → system_promoted) in `linkDraftToSessionDialog`.
+- Cast-consult runs accept `ephemeral` to skip session create.
 
 ### 2026-07-14 — Library in domain index
 - `domainIndex` now includes up to 20 recent Library items (id, label, sourceType) alongside keepers and journeys in both `resolveAgentEnvironment` and `buildKipEnvironmentContext`.

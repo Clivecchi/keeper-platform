@@ -438,7 +438,16 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       library: true,
       boardDefs: false,
     },
-    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "externalAccess", "boards"],
+    // Dialog → Keeper → Library → Chatter (auto-titled sessions); journeys follow.
+    navBlockOrder: [
+      "dialogs",
+      "keepers",
+      "library",
+      "chatter",
+      "journeys",
+      "externalAccess",
+      "boards",
+    ],
     externalAccessSummary: true,
     keeperSectionTitle: "Keeper",
   },

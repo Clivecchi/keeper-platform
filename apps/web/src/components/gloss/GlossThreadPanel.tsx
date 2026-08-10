@@ -54,9 +54,17 @@ export function GlossThreadPanel({
     setInput("")
   }
 
+  const selection = anchor.selectionText?.trim()
+  const selectionPreview = selection
+    ? selection.length > 36
+      ? `${selection.slice(0, 35)}…`
+      : selection
+    : null
   const label =
-    snapshot?.label
-    ?? (anchor.nodeId ? String(anchor.nodeId) : "this")
+    selectionPreview
+      ? `“${selectionPreview}”`
+      : snapshot?.label
+        ?? (anchor.nodeId ? String(anchor.nodeId) : "this")
 
   // Dialog gloss may preview a receipt/image; Chronicle already shows the Point above — never re-print body text.
   const showSnapshotPreview =

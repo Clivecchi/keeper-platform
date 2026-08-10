@@ -180,13 +180,15 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
     }
 
     for (const session of sessions) {
-      const sessionDomainId = session.dialog?.domain_id?.trim() || null
-      const domain =
-        (sessionDomainId ? domainById.get(sessionDomainId) : null) ?? anchorDomain
       const label =
         session.session_name?.trim() ||
         session.topic?.trim() ||
         "Conversation"
+      // Hide orphan cast-consult sessions (pre-ephemeral fix leftovers).
+      if (/^\[Director delegation\b/i.test(label)) continue
+      const sessionDomainId = session.dialog?.domain_id?.trim() || null
+      const domain =
+        (sessionDomainId ? domainById.get(sessionDomainId) : null) ?? anchorDomain
       const dialogQuery = session.dialog_id
         ? `&dialog=${encodeURIComponent(session.dialog_id)}`
         : ""

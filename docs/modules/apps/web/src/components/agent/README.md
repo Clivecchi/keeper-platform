@@ -19,7 +19,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `AgentContextBar.tsx` -- Thin persistent bar showing active journey scope, keeper scope, SOLE memory status, and session ID. Displayed above the workspace to make agent operating context visible.
 - `SessionBannerCard.tsx` -- Unified dialogue session banner: editable session title, session ID, Journey/Keeper/SOLE/Session/Model context row, Change model button. Replaces WorkspaceHeader + AgentContextBar in dialogue workspace.
 - `types.ts` -- Shared types: `AgentDialogueMessage`, `DialogueMetaItem`, `normalizeActionReceipt()`.
-- `helpers.ts` -- Shared formatting utilities: `formatDate`, `formatTime`, `formatRelative`, `shortId`.
+- `helpers.ts` -- Shared formatting utilities: `formatDate`, `formatTime`, `formatRelative`, `shortId`, `formatDialogueAsMarkdown` (session transcript → copyable markdown).
 
 ## Data and Behavior
 - `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, clip attach (uploads to Library, stages in Thinking Space on Dialog boards), submit. Large paste (≥280 chars or multi-line block) becomes an ephemeral **supporting document** — staged in Thinking Space on Dialog boards (`attachmentDisplay="thinking-space"`), or above the textarea on legacy composer surfaces. Full context is sent with the next message; the Dialog transcript shows a short label via `displayContent`.
@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-08-09: **Dialog markdown export** — markdown icon exports the loaded Dialog/session transcript (`dialogueMessages`), not the draft composer text. `formatDialogueAsMarkdown` in `helpers.ts` includes speakers, cast/delegation/echo, attachments. Wired via `KeeperDialogFrame` + Agent Board composer props. Icon hover is color-only (no background square).
 - 2026-08-09: **Composer markdown + icon hover** — `AgentComposer` toolbar adds a document icon beside screen capture; opens a modal with the draft message as markdown (prompt, supporting docs, attachment links) and a Copy button. Toolbar icon buttons use CSS color hover (placeholder → primary/secondary ink).
 - 2026-08-09: **Attachment-follows-message + agent Gloss** — sent user bubbles keep image thumbs / file chips / Pasted tiles (`attachments` + `supportingDocs` on the message + API metadata). Multi-agent Cast/Lead/Echo voice cards wrap `GlossSurface` so agent replies are Glossable under Style: Vibe.
 - 2026-08-04: **Mobile Dialog overflow + frost** — `DialogueMessageList` rows use `w-full min-w-0`; bubble shells `min-w-0`; list + `.dialog-message-surface` clip `overflow-x`. Opaque list fill replaced with panel frost (`/ 0.38`, blur 16px). Mobile (≤767px) drops list `px-4` so `.dialog-column` clamp is the sole horizontal inset. `KipResponseCard` gains `maxWidth: 100%`. Unused `.dialog-message-lane--*` / `agentBubbleFullWidth` left unwired (lanes would be a cleaner max-width model later).

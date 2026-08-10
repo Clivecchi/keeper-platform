@@ -2492,15 +2492,16 @@ button.dialog-prelude:hover {
   border-radius: 6px;
 }
 
-/* Composer toolbar icons — muted by default; color shift on hover */
+/* Composer toolbar icons — muted by default; color-only hover (no background square) */
 .keeper-composer-icon-btn {
   color: hsl(var(--theme-ink-placeholder));
-  transition: color 0.15s ease, background-color 0.15s ease;
+  background-color: transparent;
+  transition: color 0.15s ease;
 }
 
 .keeper-composer-icon-btn:hover:not(:disabled) {
   color: hsl(var(--theme-ink-primary));
-  background-color: hsl(var(--theme-ink-primary) / 0.06);
+  background-color: transparent;
 }
 
 .dialog-bottom-zone .keeper-composer-icon-btn {
@@ -2509,7 +2510,7 @@ button.dialog-prelude:hover {
 
 .dialog-bottom-zone .keeper-composer-icon-btn:hover:not(:disabled) {
   color: hsl(var(--theme-ink-secondary));
-  background-color: hsl(var(--theme-ink-primary) / 0.06);
+  background-color: transparent;
 }
 
 /* Supporting documents — ephemeral pasted context tiles in composer (Claude-style) */

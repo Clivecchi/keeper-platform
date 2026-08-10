@@ -20,6 +20,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'keeper.read',
   'sole.read',
   'library.read',
+  'dialog.read',
   'web.search',
   'delegate.consult',
 ]);

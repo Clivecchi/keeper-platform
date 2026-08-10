@@ -54,6 +54,13 @@ export type CompactEnvironmentForPrompt = {
     keepers: Array<{ id: string; title: string; purpose?: string | null }>;
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
     library: Array<{ id: string; label: string; sourceType: string }>;
+    dialogs: Array<{
+      id: string;
+      title: string;
+      titleSource: string;
+      documentStatus: string;
+      updatedAt: string;
+    }>;
   };
   dialogDocumentRef?: {
     dialogId: string;
@@ -222,6 +229,15 @@ export function buildCompactEnvironmentForPrompt(
         : [],
       library: Array.isArray(domainIndex.library)
         ? (domainIndex.library as Array<{ id: string; label: string; sourceType: string }>)
+        : [],
+      dialogs: Array.isArray(domainIndex.dialogs)
+        ? (domainIndex.dialogs as Array<{
+            id: string;
+            title: string;
+            titleSource: string;
+            documentStatus: string;
+            updatedAt: string;
+          }>)
         : [],
     };
   }

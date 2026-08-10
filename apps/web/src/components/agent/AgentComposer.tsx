@@ -31,6 +31,8 @@ import {
   pastedPreview,
   shouldCapturePaste,
 } from "./composerSupporting"
+import { formatDialogueAsMarkdown } from "./helpers"
+import type { AgentDialogueMessage } from "./types"
 import { SupportingDocumentTile } from "./SupportingDocumentTile"
 
 const SURFACE = {
@@ -150,6 +152,13 @@ export interface AgentComposerProps {
   onTalkStart?: () => void
   onTalkStop?: () => void
   talkError?: string | null
+  /**
+   * Loaded Dialog/session transcript — used by the markdown export control.
+   * When omitted or empty, the markdown icon stays disabled.
+   */
+  dialogueMessages?: ReadonlyArray<AgentDialogueMessage>
+  /** Display name for the current user in markdown export (default "You"). */
+  userName?: string
 }
 
 const MIN_ROWS = 4
@@ -203,6 +212,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   onTalkStart,
   onTalkStop,
   talkError,
+  dialogueMessages,
+  userName,
 }) => {
   const fileInputId = React.useId()
   const formRef = React.useRef<HTMLFormElement>(null)
@@ -221,23 +232,20 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const showSupportingDocs =
     attachmentDisplay === "composer" && pastedSupporting.length > 0
 
-  /** Full message as markdown (prompt + supporting docs + attachment links). */
-  const messageMarkdown = React.useMemo(() => {
-    const { content } = buildComposerSubmitContent(inputValue, attachments)
-    const fileLines = uploadAttachments
-      .filter((a) => a.url)
-      .map((a) =>
-        a.type === "image" ? `![${a.name}](${a.url})` : `[${a.name}](${a.url})`,
-      )
-    if (fileLines.length === 0) return content
-    const filesBlock = fileLines.join("\n")
-    return content ? `${content}\n\n---\n\n${filesBlock}` : filesBlock
-  }, [inputValue, attachments, uploadAttachments])
+  /** Loaded Dialog/session transcript as markdown (not the draft composer text). */
+  const dialogueMarkdown = React.useMemo(
+    () =>
+      formatDialogueAsMarkdown(dialogueMessages ?? [], {
+        agentName,
+        userName,
+      }),
+    [dialogueMessages, agentName, userName],
+  )
 
-  const canOpenMarkdown = messageMarkdown.trim().length > 0
+  const canOpenMarkdown = dialogueMarkdown.trim().length > 0
 
   const handleCopyMarkdown = React.useCallback(async () => {
-    const text = messageMarkdown.trim()
+    const text = dialogueMarkdown.trim()
     if (!text) return
     try {
       await navigator.clipboard.writeText(text)
@@ -246,7 +254,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     } catch {
       alert("Could not copy to clipboard.")
     }
-  }, [messageMarkdown])
+  }, [dialogueMarkdown])
 
   React.useEffect(() => {
     if (!markdownOpen) {
@@ -602,8 +610,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               onClick={() => canOpenMarkdown && setMarkdownOpen(true)}
               disabled={!canOpenMarkdown || disabled}
               className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
-              title="View message as markdown"
-              aria-label="View message as markdown"
+              title="Copy dialog as markdown"
+              aria-label="Copy dialog as markdown"
             >
               <DocumentTextIcon className="h-4 w-4" />
             </button>
@@ -773,7 +781,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           <button
             type="button"
             className="absolute inset-0 bg-black/50"
-            aria-label="Close markdown preview"
+            aria-label="Close dialog markdown"
             onClick={() => setMarkdownOpen(false)}
           />
           <div
@@ -793,7 +801,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 className="text-sm font-medium"
                 style={{ color: SURFACE.inkPrimary }}
               >
-                Message markdown
+                Dialog markdown
               </h2>
               <div className="flex items-center gap-1.5">
                 <button
@@ -832,7 +840,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 backgroundColor: "hsl(var(--theme-surface-elevated) / 0.55)",
               }}
             >
-              {messageMarkdown.trim()}
+              {dialogueMarkdown.trim()}
             </pre>
           </div>
         </div>

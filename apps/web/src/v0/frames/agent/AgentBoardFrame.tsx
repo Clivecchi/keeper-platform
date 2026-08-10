@@ -1221,6 +1221,7 @@ export function AgentBoardFrame({
         : undefined,
     isSending,
     activeSessionId,
+    dialogueMessages: messages,
     feedbackSlot: messagesError ? (
       <button
         type="button"
