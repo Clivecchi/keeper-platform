@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-08-09: **Mobile composer bubble + card affordance** — `composerSize="mobile-compact"` renders a pinned Message bubble (not a short full-width bar); expand uses ~58–66vh. `KipResponseCard` / `ChronicleUpdateChip` mute non-actionable cards (no hover/press/CTA when `onOpen` is absent).
 - 2026-08-09: **Dialog markdown export** — markdown icon exports the loaded Dialog/session transcript (`dialogueMessages`), not the draft composer text. `formatDialogueAsMarkdown` in `helpers.ts` includes speakers, cast/delegation/echo, attachments. Wired via `KeeperDialogFrame` + Agent Board composer props. Icon hover is color-only (no background square).
 - 2026-08-09: **Composer markdown + icon hover** — `AgentComposer` toolbar adds a document icon beside screen capture; opens a modal with the draft message as markdown (prompt, supporting docs, attachment links) and a Copy button. Toolbar icon buttons use CSS color hover (placeholder → primary/secondary ink).
 - 2026-08-09: **Attachment-follows-message + agent Gloss** — sent user bubbles keep image thumbs / file chips / Pasted tiles (`attachments` + `supportingDocs` on the message + API metadata). Multi-agent Cast/Lead/Echo voice cards wrap `GlossSurface` so agent replies are Glossable under Style: Vibe.

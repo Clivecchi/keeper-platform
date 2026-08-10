@@ -24,10 +24,10 @@ export function useMobileKipDialogStage({
 
   const stage = React.useMemo<MobileKipDialogStage>(() => {
     if (isSending) return "thinking";
+    // Idle (including empty Dialog) stays collapsed until tap/focus or typed content.
     if (composerFocused || input.trim().length > 0 || hasAttachments) return "composing";
-    if (messages.length === 0) return "composing";
     return "response";
-  }, [isSending, composerFocused, input, hasAttachments, messages.length]);
+  }, [isSending, composerFocused, input, hasAttachments]);
 
   const displayMessages = React.useMemo(() => {
     if (stage !== "response") return messages;

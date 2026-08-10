@@ -21,6 +21,7 @@ import {
   DocumentTextIcon,
   ClipboardDocumentIcon,
   ClipboardDocumentCheckIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline"
 import type { TalkModeState } from "../../hooks/useTalkMode"
 import { useAuth } from "../../context/AuthContext"
@@ -443,6 +444,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
   }
 
+  const focusAfterExpandRef = React.useRef(false)
+
   // Auto-resize textarea (respect mobile-staged compact/expanded floors)
   React.useEffect(() => {
     const ta = textareaRef.current
@@ -453,13 +456,22 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
     ta.style.height = "auto"
     const lineHeight = 20
-    const minRows = composerSize === "mobile-expanded" ? 8 : MIN_ROWS
+    const minRows = composerSize === "mobile-expanded" ? 10 : MIN_ROWS
     const newHeight = Math.min(
       MAX_ROWS * lineHeight,
       Math.max(minRows * lineHeight, ta.scrollHeight),
     )
     ta.style.height = `${newHeight}px`
   }, [inputValue, composerSize])
+
+  // Bubble → expand: focus the textarea once the expanded composer mounts.
+  React.useEffect(() => {
+    if (composerSize !== "mobile-expanded" || !focusAfterExpandRef.current) return
+    focusAfterExpandRef.current = false
+    const ta = textareaRef.current
+    if (!ta || disabled || isSending) return
+    requestAnimationFrame(() => ta.focus())
+  }, [composerSize, disabled, isSending])
 
   const placeholder = disabled
     ? "Preparing conversation…"
@@ -489,6 +501,34 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     : talkState === "transcribing"
       ? "Transcribing…"
       : "Talk — speak to fill the composer"
+
+  const bubbleLabel = disabled
+    ? "Preparing conversation…"
+    : isSending
+      ? `${agentName} is responding…`
+      : `Message ${agentName}`
+
+  // Idle / thinking: pinned chat bubble. Tap expands to the full composer (~2/3 screen).
+  if (composerSize === "mobile-compact") {
+    return (
+      <div className="flex w-full justify-end">
+        <button
+          type="button"
+          className="keeper-composer-bubble"
+          disabled={disabled || isSending}
+          onClick={() => {
+            if (disabled || isSending) return
+            focusAfterExpandRef.current = true
+            onInputFocusChange?.(true)
+          }}
+          aria-label={bubbleLabel}
+        >
+          <ChatBubbleLeftRightIcon className="h-5 w-5 shrink-0" aria-hidden />
+          <span className="min-w-0 truncate">{bubbleLabel}</span>
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex w-full flex-col gap-1">
@@ -731,18 +771,14 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             disabled={isSending || disabled}
             rows={
               composerSize === "mobile-expanded"
-                ? 8
-                : composerSize === "mobile-compact"
-                  ? 1
-                  : MIN_ROWS
+                ? 10
+                : MIN_ROWS
             }
             className={[
               "keeper-composer-input w-full resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none",
               composerSize === "mobile-expanded"
-                ? "min-h-[38vh] max-h-[50vh]"
-                : composerSize === "mobile-compact"
-                  ? "min-h-[44px] max-h-[56px]"
-                  : "min-h-[44px] max-h-[120px]",
+                ? "min-h-[58vh] max-h-[66vh]"
+                : "min-h-[44px] max-h-[120px]",
             ].join(" ")}
             style={{
               backgroundColor: SURFACE.inputBg,

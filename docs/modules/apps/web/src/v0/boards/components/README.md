@@ -19,6 +19,11 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 
 ## 📆 Update Log
 
+### 2026-08-09 — Chronicle full-screen takeover
+- `BoardMobileChronicleOverlay` is edge-to-edge (no sheet inset / top radius / peeking Top Bar).
+- Single **X** dismisses; TrailBar hidden inside overlay body so Chronicle isn’t double-chromed.
+- Nested `.keeper-chronicle-panel` card chrome neutralized in `board-mobile.css`.
+
 ### 2026-08-04 — Top Bar Chronicle icon (retire Composer strip)
 - Removed `BoardMobileChronicleStrip` and `aboveComposer` wiring.
 - Chronicle opens from Top Bar right slot (`KeeperTopBar` → `onOpenChronicle` → overlay).

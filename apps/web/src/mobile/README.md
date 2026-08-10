@@ -63,6 +63,9 @@ Authenticated Domain and Realm boards on narrow viewports now mount **`Universal
 
 ## 📆 Update Log
 
+### 2026-08-09 — Composer bubble stage (Domain/Realm adaptive)
+- `useMobileKipDialogStage`: idle (including empty Dialog) stays `response` until focus/typed content — drives pinned Message bubble, not a forced expanded composer.
+
 ### 2026-07-12 — Phase 1b: adaptive UniversalBoard for all member boards
 - V0Shell no longer mounts `UniversalMobileShell` for Domain or Realm.
 - Mobile member boards use `UniversalBoard` + `BoardMobilePanelBar` (`usesAdaptiveMobileBoardLayout`).

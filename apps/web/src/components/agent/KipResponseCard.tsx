@@ -57,13 +57,15 @@ export function KipResponseCard({
   onOpen,
 }: KipResponseCardProps) {
   const { text: typeLabel, isError } = resolveTypeLabel(type)
-  const Tag = onOpen ? "button" : "div"
+  const actionable = typeof onOpen === "function"
+  const Tag = actionable ? "button" : "div"
 
   return (
     <Tag
-      type={onOpen ? "button" : undefined}
-      onClick={onOpen}
-      className="kip-response-card"
+      type={actionable ? "button" : undefined}
+      onClick={actionable ? onOpen : undefined}
+      className={actionable ? "kip-response-card kip-response-card--actionable" : "kip-response-card kip-response-card--static"}
+      data-actionable={actionable ? "true" : "false"}
       style={{
         display: "flex",
         alignItems: "stretch",
@@ -72,14 +74,19 @@ export function KipResponseCard({
         maxWidth: "100%",
         boxSizing: "border-box",
         textAlign: "left",
-        background: "hsl(var(--theme-surface-paper) / 0.90)",
-        border: "1px solid hsl(var(--theme-border-soft) / 0.45)",
+        background: actionable
+          ? "hsl(var(--theme-surface-paper) / 0.90)"
+          : "hsl(var(--theme-surface-panel) / 0.45)",
+        border: actionable
+          ? "1px solid hsl(var(--theme-border-soft) / 0.45)"
+          : "1px solid hsl(var(--theme-border-soft) / 0.28)",
         borderRadius: "8px",
         marginTop: "8px",
         overflow: "hidden",
-        cursor: onOpen ? "pointer" : undefined,
+        cursor: actionable ? "pointer" : "default",
+        opacity: actionable ? 1 : 0.78,
       }}
-      aria-label={onOpen ? `Open in Chronicle — ${title}` : undefined}
+      aria-label={actionable ? `Open in Chronicle — ${title}` : undefined}
     >
       <div
         aria-hidden
@@ -173,7 +180,7 @@ export function KipResponseCard({
           {meta}
         </p>
       )}
-      {onOpen ? (
+      {actionable ? (
         <p
           style={{
             fontSize: "12px",

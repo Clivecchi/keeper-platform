@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-09: **Mobile composer bubble** — Adaptive Domain/Realm idle/thinking stages use a pinned chat bubble (`composerSize="mobile-compact"`); tap/focus expands to ~2/3 screen (`mobile-expanded`). Composer footer (Cast / Agents) hidden while bubbled. Blur/send collapse unchanged.
 - 2026-08-09: **Dialog markdown export** — `KeeperDialogFrame` passes loaded `messages` (+ `userName`) into `AgentComposer` as `dialogueMessages` so the markdown toolbar control exports the current session transcript.
 - 2026-08-04: **Mobile Dialog frost + single inset** — `.dialogue-message-list` uses panel frost (`/ 0.38`, blur 16px) instead of opaque fill; ≤767px drops list horizontal `px-4` so `.dialog-column` clamp is the only side inset. Message-row `min-w-0` / `overflow-x: hidden` containment lives with Prompt 2 in `DialogueMessageList` + `.dialog-message-surface`.
 - 2026-08-04: **Removed `aboveComposer`** — Chronicle strip above Composer retired; mobile Chronicle opens from Top Bar icon → `BoardMobileChronicleOverlay`. `suppressMobileDomainBanner` retained.

@@ -27,29 +27,41 @@
   cursor: default;
 }
 
-/* ── Chronicle overlay ──────────────────────────────────────────────────── */
-
-.board-mobile-chronicle-overlay__scrim {
-  background: hsl(var(--theme-ink-primary) / 0.35);
-}
+/* ── Chronicle overlay — full-screen takeover (not a stacked sheet) ─────── */
 
 .board-mobile-chronicle-overlay__panel {
-  margin-top: max(2.5rem, env(safe-area-inset-top));
+  margin-top: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
   background: hsl(var(--theme-surface-page, var(--theme-surface-paper)));
-  border-top-left-radius: 14px;
-  border-top-right-radius: 14px;
-  box-shadow: 0 -8px 32px hsl(var(--theme-ink-primary) / 0.18);
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
 }
 
 .board-mobile-chronicle-overlay__header {
-  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.45);
-  background: hsl(var(--theme-surface-elevated) / 0.9);
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.35);
+  background: hsl(var(--theme-surface-page, var(--theme-surface-paper)));
 }
 
 .board-mobile-chronicle-overlay__body > .keeper-chronicle-panel,
 .board-mobile-chronicle-overlay__body > * {
   height: 100%;
+}
+
+/* Single dismiss (overlay X) — hide TrailBar so Chronicle isn't double-chromed */
+.board-mobile-chronicle-overlay__body .keeper-chronicle-trail-bar {
+  display: none;
+}
+
+/* Neutralize nested desktop side-panel card chrome inside the takeover */
+.board-mobile-chronicle-overlay__body .keeper-chronicle-panel {
+  border-radius: 0 !important;
+  border-left: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 /* ── Nav drawer ─────────────────────────────────────────────────────────── */
@@ -118,21 +130,65 @@
  * Desktop (>767px) never sets data-dialog-layout="mobile-staged" on this path.
  */
 @media (max-width: 767px) {
+  /* Idle: pinned chat bubble — no full composer bar */
   .keeper-board-scope
     .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
-    .dialog-bottom-zone
-    .keeper-composer-input {
-    min-height: 44px;
-    max-height: 56px;
-    padding: 8px 12px;
+    .dialog-bottom-zone,
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="thinking"]
+    .dialog-bottom-zone {
+    background: transparent;
+    border-top: none;
+    box-shadow: none;
+    padding: 0 16px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
+    .dialog-bottom-zone::before,
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="thinking"]
+    .dialog-bottom-zone::before {
+    display: none;
+  }
+
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
+    .dialog-composer-footer,
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="thinking"]
+    .dialog-composer-footer {
+    display: none;
+  }
+
+  .keeper-board-scope .keeper-composer-bubble {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    max-width: min(100%, 20rem);
+    min-height: 48px;
+    padding: 12px 16px;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--theme-border-soft) / 0.55);
+    background: hsl(var(--theme-surface-elevated) / 0.96);
+    box-shadow: 0 6px 20px hsl(var(--theme-ink-primary) / 0.14);
+    color: hsl(var(--theme-ink-secondary));
+    font-size: 14px;
+    line-height: 1.3;
+    text-align: left;
+  }
+
+  .keeper-board-scope .keeper-composer-bubble:active {
+    transform: scale(0.98);
   }
 
   .keeper-board-scope
     .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="composing"]
     .dialog-bottom-zone
     .keeper-composer-input {
-    min-height: 38vh;
-    max-height: 50vh;
+    min-height: 58vh;
+    max-height: 66vh;
   }
 
   /* Compact domain Dialog banner — name + LIVE row */

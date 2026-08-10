@@ -45,6 +45,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Message rows: `w-full min-w-0` + bubble `min-w-0`; `.dialog-message-surface` / list clip `overflow-x`.
 - List opaque fill → panel frost; mobile drops list `px-4` (column pad only). See `components/agent/README.md`.
 
+### 2026-08-09 — Mobile composer bubble + Chronicle takeover
+- Idle/thinking: pinned Message bubble (not full composer bar); tap expands ~2/3 screen; blur/send collapses.
+- `BoardMobileChronicleOverlay` edge-to-edge with single **X**; TrailBar hidden; no sheet inset peeking Top Bar.
+- Agent-returned cards: non-actionable keeper-cards / chips / LinkedCards render muted (affordance follows destination).
+
 ### 2026-08-04 — Top Bar Chronicle icon (retire Composer strip)
 - Adaptive mobile: Top Bar is Nav hamburger · Wordmark · Chronicle icon (opens `BoardMobileChronicleOverlay` via existing `onOpenChronicle` / `openChronicleOverlay`).
 - User avatar moved into `BoardMobileNavDrawer` footer (`BoardMobileNavAccount`); profile / sign-out unchanged.

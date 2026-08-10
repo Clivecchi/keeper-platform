@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { XMarkIcon } from "@heroicons/react/24/outline"
 
 export interface BoardMobileChronicleOverlayProps {
   open: boolean
@@ -9,7 +10,7 @@ export interface BoardMobileChronicleOverlayProps {
 }
 
 /**
- * Full-height Chronicle surface as an overlay — replaces the former Chronicle tab.
+ * Full-screen Chronicle takeover on mobile — owns the viewport; single X dismisses.
  */
 export function BoardMobileChronicleOverlay({
   open,
@@ -34,29 +35,19 @@ export function BoardMobileChronicleOverlay({
       aria-modal="true"
       aria-label="Chronicle"
     >
-      <div
-        className="board-mobile-chronicle-overlay__scrim absolute inset-0"
-        aria-hidden
-        onClick={onClose}
-      />
       <div className="board-mobile-chronicle-overlay__panel relative z-10 flex min-h-0 flex-1 flex-col">
-        <header className="board-mobile-chronicle-overlay__header shrink-0 flex items-center justify-between gap-3 px-3 py-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Chronicle
-          </p>
+        <header className="board-mobile-chronicle-overlay__header shrink-0 flex items-center justify-end px-3 py-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-[13px] font-medium"
+            className="board-mobile-chronicle-overlay__close flex h-10 w-10 items-center justify-center rounded-full"
             style={{
               color: "hsl(var(--theme-ink-primary))",
               background: "hsl(var(--theme-surface-panel) / 0.7)",
             }}
             aria-label="Close Chronicle"
           >
-            Done
+            <XMarkIcon className="h-5 w-5" strokeWidth={2} />
           </button>
         </header>
         <div className="board-mobile-chronicle-overlay__body min-h-0 flex-1 overflow-hidden">

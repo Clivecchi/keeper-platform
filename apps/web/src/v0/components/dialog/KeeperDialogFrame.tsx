@@ -504,12 +504,16 @@ export function KeeperDialogFrame({
   const showBannerEffective = showBanner && !hideDomainIdentityBanner
 
   const isMobileStaged = dialogLayout === "mobile-staged" && mode !== "feed"
+  // Idle + thinking: pinned bubble. Focus/type: expanded (~2/3). Desktop unchanged.
   const mobileComposerSize =
     isMobileStaged && mobileDialogStage === "composing"
       ? "mobile-expanded"
-      : isMobileStaged && mobileDialogStage === "response"
+      : isMobileStaged
         ? "mobile-compact"
         : "default"
+  const hideMobileComposerFooter =
+    isMobileStaged
+    && (mobileDialogStage === "response" || mobileDialogStage === "thinking")
 
   return (
     <div
@@ -934,7 +938,7 @@ export function KeeperDialogFrame({
             dialogueMessages={messages}
             userName={userName}
           />
-          {showComposerFooter && (
+          {showComposerFooter && !hideMobileComposerFooter && (
             <div className="dialog-composer-footer">
               {showServiceBar ? (
                 <IntegratedServicesBar

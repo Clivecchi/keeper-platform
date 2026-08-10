@@ -1,27 +1,19 @@
 # Universal Mobile
 
 ## 📌 Purpose
-**Universal Mobile** is the narrow-viewport shell for **Domain** and **Realm** Universal Boards — same backend and engagement pipeline as desktop, different layout patterns (tabs instead of Nav · Dialog · Chronicle).
+Mobile utilities for Keeper — PWA install, guest public story CSS, viewport hooks, and **deprecated** legacy tab shell (superseded by adaptive `UniversalBoard` layout).
 
-This is not a separate app, not legacy frame routing, and not a parallel API surface.
+Authenticated Domain and Realm boards on narrow viewports now mount **`UniversalBoard`** with `BoardMobilePanelBar` (Nav · Dialog · Chronicle) — see `v0/boards/`.
 
-**Realm** is a board name only (`?board=realm`), not a product synonym for Domain. Mobile copy uses **Domains** for the cross-domain picker tab.
+**Realm** is a board name only (`?board=realm`), not a product synonym for Domain.
 
 ## 🧱 Key Files
-- `UniversalMobileShell.tsx` — tab shell + moment overlay + PWA prompt (authenticated Domain · Realm boards)
-- `screens/RealmScreen.tsx` — cross-domain picker + composer (Domain Board mobile **Domains** tab)
 - `PublicGuestChrome.tsx` — Sign In / Get Started overlay for guest public story
 - `public-story.css` — mobile-safe layout for Cover / Present (Phase 3.3)
-- `hooks/useUniversalMobile.ts` — composes `UniversalBoardContext` + `UniversalMobileUIContext` + `V0Shell`
-- `context/UniversalMobileUIContext.tsx` — mobile-only UI: tabs, Kip focus chip, content refresh, PWA
-- `screens/RealmsRedirect.tsx` — `/realms` → user Home at `/home`
-- `screens/KeepScreen.tsx` — `moment.create` via `useBoardEngagement` + `ChronicleActPresence`
-- `screens/JourneysScreen.tsx` — journey list (Nav parity)
-- `screens/KipScreen.tsx` — Dialog parity: `useAgentDialog` + `KeeperDialogFrame`
-- `screens/MomentDetailScreen.tsx` — moment presence: read, `moment.update`, emotifs, Ask Kip
-- `hooks/useMobileSurface.ts` — routes to Universal Mobile when auth + narrow viewport
-- `mobile-shell.css` — full-height layout; Kip composer pinned above tab bar
-- `pwa/` — installability
+- `hooks/useIsMobile.ts` — `(max-width: 767px)` viewport hook
+- `hooks/useMobileSurface.ts` — auth + narrow → mobile surface mode (URL overrides via `?surface=`)
+- `pwa/` — installability (`PwaInstallPrompt` mounted from `UniversalBoard` on member boards)
+- **Deprecated (not mounted by V0Shell):** `UniversalMobileShell.tsx`, `screens/*`, `mobile-shell.css`, `UniversalMobileUIContext`
 
 ## 🔄 Data & Behavior
 
@@ -60,17 +52,24 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 - Cover forward CTA loads first public journey into `?frame=present&journeyId=…`.
 
 ### Manual verify
-1. Sign in on mobile — lands on `/home` with **Dialog** tab active (3 tabs: Moment · Journeys · Dialog).
-2. Open `/d/:slug?board=domain` — **Domains** tab shows domain picker; no World tab.
+1. Sign in on mobile — lands on `/home`; bottom bar **Nav · Dialog · Chronicle** (real Universal Board panels).
+2. Open `/d/:slug?board=domain` — same adaptive layout; domain picker via top-bar playbill (not separate Domains tab).
 3. Visit `/realms` while signed in — redirects to `/home`.
 
 ## ⚠️ Notes & ToDo
-- [x] **Realm mobile (Phase 4B.1):** Domains tab — domain list + text composer; mic via talk mode
-- [x] **Phase 4D.1–4D.2:** Talk mode STT on Domains composer + mobile Kip
-- [ ] **Phase 4B.3:** Quick capture from composer without full board chrome
+- [x] **Phase 1b:** Domain + Realm mobile use adaptive `UniversalBoard` (legacy tab shell retired from V0Shell)
+- [ ] Remove deprecated `UniversalMobileShell` + screen folder after soak period
 - [ ] Phase 3: offline draft queue, push notifications, app store wrappers
 
 ## 📆 Update Log
+
+### 2026-08-09 — Composer bubble stage (Domain/Realm adaptive)
+- `useMobileKipDialogStage`: idle (including empty Dialog) stays `response` until focus/typed content — drives pinned Message bubble, not a forced expanded composer.
+
+### 2026-07-12 — Phase 1b: adaptive UniversalBoard for all member boards
+- V0Shell no longer mounts `UniversalMobileShell` for Domain or Realm.
+- Mobile member boards use `UniversalBoard` + `BoardMobilePanelBar` (`usesAdaptiveMobileBoardLayout`).
+- PWA prompt moved to `UniversalBoard` mobile layout.
 
 ### 2026-07-03 — User Home at `/home` (mobile shell)
 - Realm board mobile experience lives at `/home` (`V0Shell mode="home"`, `workspaceBoardId=realm` via context).

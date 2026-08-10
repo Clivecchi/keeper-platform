@@ -14,12 +14,30 @@ export interface LinkedCardComponentProps extends LinkedCardProps {
 
 const isExternalHref = (href: string) => /^https?:\/\//i.test(href);
 
+const hasNavigableHref = (href: string | undefined): href is string => {
+  const value = href?.trim() ?? '';
+  return value.length > 0 && value !== '#';
+};
+
 const Wrapper: React.FC<
-  React.PropsWithChildren<{ href: string; isExternal: boolean; className: string; onNavigate?: () => void }>
-> = ({ href, isExternal, className, children, onNavigate }) => {
+  React.PropsWithChildren<{
+    href: string;
+    isExternal: boolean;
+    className: string;
+    onNavigate?: () => void;
+    actionable: boolean;
+  }>
+> = ({ href, isExternal, className, children, onNavigate, actionable }) => {
+  if (!actionable) {
+    return (
+      <div className={className} data-actionable="false" aria-disabled="true">
+        {children}
+      </div>
+    );
+  }
   if (onNavigate) {
     return (
-      <button type="button" onClick={onNavigate} className={className}>
+      <button type="button" onClick={onNavigate} className={className} data-actionable="true">
         {children}
       </button>
     );
@@ -31,13 +49,14 @@ const Wrapper: React.FC<
         target="_blank"
         rel="noopener noreferrer"
         className={className}
+        data-actionable="true"
       >
         {children}
       </a>
     );
   }
   return (
-    <Link to={href} className={className}>
+    <Link to={href} className={className} data-actionable="true">
       {children}
     </Link>
   );
@@ -54,12 +73,20 @@ export const LinkedCard: React.FC<LinkedCardComponentProps> = ({
   const hasSnippet = previewSnippet || card.description;
   const hasDate = Boolean(previewDate);
   const hasImage = variant === 'context' && card.preview?.image;
+  const actionable = typeof onNavigate === 'function' || hasNavigableHref(card.href);
 
   const baseClasses = clsx(
-    'group block rounded-2xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#C96E59]',
+    'group block rounded-2xl border',
+    actionable
+      ? 'transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#C96E59] cursor-pointer'
+      : 'cursor-default opacity-75',
     variant === 'context'
-      ? 'border-[#E6DED5] bg-white hover:border-[#C96E59]/70 hover:shadow-sm'
-      : 'border-dashed border-[#E6DED5] bg-white/80 hover:border-[#C96E59] hover:bg-white',
+      ? actionable
+        ? 'border-[#E6DED5] bg-white hover:border-[#C96E59]/70 hover:shadow-sm'
+        : 'border-[#E6DED5]/70 bg-white/70'
+      : actionable
+        ? 'border-dashed border-[#E6DED5] bg-white/80 hover:border-[#C96E59] hover:bg-white'
+        : 'border-dashed border-[#E6DED5]/70 bg-white/60',
     className,
   );
 
@@ -69,7 +96,13 @@ export const LinkedCard: React.FC<LinkedCardComponentProps> = ({
       : 'text-xs text-[#C96E59]';
 
   return (
-    <Wrapper href={card.href} isExternal={isExternalHref(card.href)} className={baseClasses} onNavigate={onNavigate}>
+    <Wrapper
+      href={card.href ?? '#'}
+      isExternal={isExternalHref(card.href ?? '')}
+      className={baseClasses}
+      onNavigate={onNavigate}
+      actionable={actionable}
+    >
       <div className="flex gap-3">
         {hasImage && (
           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100">
