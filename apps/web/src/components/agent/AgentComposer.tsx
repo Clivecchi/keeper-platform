@@ -18,6 +18,9 @@ import {
   MicrophoneIcon,
   XMarkIcon,
   ComputerDesktopIcon,
+  DocumentTextIcon,
+  ClipboardDocumentIcon,
+  ClipboardDocumentCheckIcon,
 } from "@heroicons/react/24/outline"
 import type { TalkModeState } from "../../hooks/useTalkMode"
 import { useAuth } from "../../context/AuthContext"
@@ -206,6 +209,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const { user } = useAuth()
   const [isUploading, setIsUploading] = React.useState(false)
+  const [markdownOpen, setMarkdownOpen] = React.useState(false)
+  const [markdownCopied, setMarkdownCopied] = React.useState(false)
   const [internalAttachments, setInternalAttachments] = React.useState<PendingAttachment[]>([])
   const attachments = controlledAttachments ?? internalAttachments
   const setAttachments = onAttachmentsChange ?? setInternalAttachments
@@ -215,6 +220,45 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   /** Thinking-space boards show pasted docs in Broadcast Strip, not above the textarea. */
   const showSupportingDocs =
     attachmentDisplay === "composer" && pastedSupporting.length > 0
+
+  /** Full message as markdown (prompt + supporting docs + attachment links). */
+  const messageMarkdown = React.useMemo(() => {
+    const { content } = buildComposerSubmitContent(inputValue, attachments)
+    const fileLines = uploadAttachments
+      .filter((a) => a.url)
+      .map((a) =>
+        a.type === "image" ? `![${a.name}](${a.url})` : `[${a.name}](${a.url})`,
+      )
+    if (fileLines.length === 0) return content
+    const filesBlock = fileLines.join("\n")
+    return content ? `${content}\n\n---\n\n${filesBlock}` : filesBlock
+  }, [inputValue, attachments, uploadAttachments])
+
+  const canOpenMarkdown = messageMarkdown.trim().length > 0
+
+  const handleCopyMarkdown = React.useCallback(async () => {
+    const text = messageMarkdown.trim()
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      setMarkdownCopied(true)
+      window.setTimeout(() => setMarkdownCopied(false), 2000)
+    } catch {
+      alert("Could not copy to clipboard.")
+    }
+  }, [messageMarkdown])
+
+  React.useEffect(() => {
+    if (!markdownOpen) {
+      setMarkdownCopied(false)
+      return
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMarkdownOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [markdownOpen])
 
   const TEXT_TYPES = ["text/plain", "text/markdown", "text/csv", "application/json"]
   const TEXT_EXT = /\.(txt|md|json|csv|pdf)$/i
@@ -517,14 +561,14 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 onClick={handleTalkClick}
                 disabled={disabled || isSending || talkState === "transcribing"}
                 className={[
-                  "keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-40",
-                  isTalkListening ? "keeper-composer-talk--active" : "hover:bg-black/5",
+                  "keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40",
+                  isTalkListening ? "keeper-composer-talk--active" : "",
                 ].join(" ")}
-                style={{
-                  color: isTalkListening
-                    ? "hsl(var(--theme-focus-ring))"
-                    : SURFACE.inkTertiary,
-                }}
+                style={
+                  isTalkListening
+                    ? { color: "hsl(var(--theme-focus-ring))" }
+                    : undefined
+                }
                 title={talkMicTitle}
                 aria-label={talkMicTitle}
                 aria-pressed={isTalkListening}
@@ -535,26 +579,36 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             {showTalkUnsupported ? (
               <span
                 className="keeper-composer-icon-btn flex h-8 w-8 items-center justify-center rounded-md opacity-40"
-                style={{ color: SURFACE.inkTertiary }}
                 title="Speech recognition is not supported in this browser"
               >
                 <MicrophoneIcon className="h-4 w-4" aria-hidden />
               </span>
             ) : null}
+            {/* Tools cluster — capture ‖ markdown ‖ attach — visual break from send */}
+            {stageFileUpload ? (
+              <button
+                type="button"
+                onClick={() => void handleScreenCapture()}
+                disabled={isSending || disabled || isUploading}
+                className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
+                title="Capture screen"
+                aria-label="Capture screen"
+              >
+                <ComputerDesktopIcon className="h-4 w-4" />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => canOpenMarkdown && setMarkdownOpen(true)}
+              disabled={!canOpenMarkdown || disabled}
+              className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
+              title="View message as markdown"
+              aria-label="View message as markdown"
+            >
+              <DocumentTextIcon className="h-4 w-4" />
+            </button>
             {stageFileUpload ? (
               <>
-                {/* Media tools cluster — capture ‖ attach — visual break from send */}
-                <button
-                  type="button"
-                  onClick={() => void handleScreenCapture()}
-                  disabled={isSending || disabled || isUploading}
-                  className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
-                  style={{ color: SURFACE.inkTertiary }}
-                  title="Capture screen"
-                  aria-label="Capture screen"
-                >
-                  <ComputerDesktopIcon className="h-4 w-4" />
-                </button>
                 <input
                   type="file"
                   id={fileInputId}
@@ -566,8 +620,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                   type="button"
                   onClick={() => document.getElementById(fileInputId)?.click()}
                   disabled={isSending || disabled || isUploading}
-                  className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
-                  style={{ color: SURFACE.inkTertiary }}
+                  className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
                   title="Attach file"
                   aria-label="Attach file"
                 >
@@ -577,13 +630,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                     <PaperClipIcon className="h-4 w-4" />
                   )}
                 </button>
-                <span
-                  aria-hidden
-                  className="mx-0.5 h-4 w-px shrink-0"
-                  style={{ background: "hsl(var(--theme-border-soft) / 0.65)" }}
-                />
               </>
             ) : null}
+            <span
+              aria-hidden
+              className="mx-0.5 h-4 w-px shrink-0"
+              style={{ background: "hsl(var(--theme-border-soft) / 0.65)" }}
+            />
             <button
               type="submit"
               disabled={!canSend}
@@ -707,6 +760,81 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             : talkState === "listening"
               ? "Listening… tap mic when done, then send."
               : "Transcribing…"}
+        </div>
+      ) : null}
+
+      {markdownOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="composer-markdown-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close markdown preview"
+            onClick={() => setMarkdownOpen(false)}
+          />
+          <div
+            className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-xl border shadow-xl"
+            style={{
+              backgroundColor: "hsl(var(--theme-surface-panel))",
+              borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+              maxHeight: "min(70vh, 560px)",
+            }}
+          >
+            <div
+              className="flex items-center justify-between gap-3 border-b px-4 py-3"
+              style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+            >
+              <h2
+                id="composer-markdown-title"
+                className="text-sm font-medium"
+                style={{ color: SURFACE.inkPrimary }}
+              >
+                Message markdown
+              </h2>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void handleCopyMarkdown()}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors"
+                  style={{
+                    backgroundColor: "hsl(var(--theme-focus-ring))",
+                    color: "hsl(0 0% 98%)",
+                  }}
+                  title="Copy markdown"
+                  aria-label="Copy markdown"
+                >
+                  {markdownCopied ? (
+                    <ClipboardDocumentCheckIcon className="h-3.5 w-3.5" />
+                  ) : (
+                    <ClipboardDocumentIcon className="h-3.5 w-3.5" />
+                  )}
+                  {markdownCopied ? "Copied" : "Copy"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMarkdownOpen(false)}
+                  className="keeper-composer-icon-btn flex h-8 w-8 items-center justify-center rounded-md"
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <XMarkIcon className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </div>
+            </div>
+            <pre
+              className="overflow-auto px-4 py-3 text-xs leading-5 whitespace-pre-wrap break-words font-mono"
+              style={{
+                color: SURFACE.inkPrimary,
+                backgroundColor: "hsl(var(--theme-surface-elevated) / 0.55)",
+              }}
+            >
+              {messageMarkdown.trim()}
+            </pre>
+          </div>
         </div>
       ) : null}
     </div>

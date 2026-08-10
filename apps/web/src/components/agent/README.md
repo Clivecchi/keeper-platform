@@ -4,7 +4,7 @@
 Shared presentational components for the agent/Kip interface. Extracted from the legacy `KipAgentBoardPage` monolith for reuse by the new `AgentBoardFrame` and any future agent surfaces.
 
 ## Key Files
-- `AgentComposer.tsx` -- Cursor-style chat input with tool kit: agent/mode dropdown, config dropdown (model/lens, Open Cockpit), textarea, library upload (composer clip), submit, feedback area. Used by AgentBoardFrame and KeeperDialogFrame.
+- `AgentComposer.tsx` -- Cursor-style chat input with tool kit: agent/mode dropdown, config dropdown (model/lens, Open Cockpit), textarea, screen capture, markdown preview/copy, library upload (composer clip), submit, feedback area. Used by AgentBoardFrame and KeeperDialogFrame.
 - `SupportingDocumentTile.tsx` -- Compact "Pasted" tile for ephemeral supporting context in the composer (Claude-style).
 - `composerSupporting.ts` -- Paste capture threshold, message assembly for supporting documents.
 - `AgentContextBanner.tsx` -- Context-first banner for Agent Board: domain · keeper/journey/studio, Live indicator, Open Cockpit. Agent name lives in AgentComposer.
@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-08-09: **Composer markdown + icon hover** — `AgentComposer` toolbar adds a document icon beside screen capture; opens a modal with the draft message as markdown (prompt, supporting docs, attachment links) and a Copy button. Toolbar icon buttons use CSS color hover (placeholder → primary/secondary ink).
 - 2026-08-09: **Attachment-follows-message + agent Gloss** — sent user bubbles keep image thumbs / file chips / Pasted tiles (`attachments` + `supportingDocs` on the message + API metadata). Multi-agent Cast/Lead/Echo voice cards wrap `GlossSurface` so agent replies are Glossable under Style: Vibe.
 - 2026-08-04: **Mobile Dialog overflow + frost** — `DialogueMessageList` rows use `w-full min-w-0`; bubble shells `min-w-0`; list + `.dialog-message-surface` clip `overflow-x`. Opaque list fill replaced with panel frost (`/ 0.38`, blur 16px). Mobile (≤767px) drops list `px-4` so `.dialog-column` clamp is the sole horizontal inset. `KipResponseCard` gains `maxWidth: 100%`. Unused `.dialog-message-lane--*` / `agentBubbleFullWidth` left unwired (lanes would be a cleaner max-width model later).
 - 2026-08-05: **System error role** — `AgentDialogueMessage.role` accepts `"system"`; `DialogueMessageList` renders those via `AgentErrorAlert` (System label, stronger error border — not agent bubble styling). Timeout presentation uses danger tone.
