@@ -97,6 +97,53 @@ export function parseDocumentPathDeclarations(value: unknown): DocumentPathDecla
 }
 
 /**
+ * Draft registered as a Document component (not manuscript Point storage).
+ * Stored on Dialog.document_components — distinct from Nav-only dialog_id links.
+ */
+export interface DocumentComponentDeclaration {
+  draftId: string;
+  order?: number;
+  label?: string;
+}
+
+export function isDocumentComponentDeclaration(
+  value: unknown,
+): value is DocumentComponentDeclaration {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.draftId === 'string' && row.draftId.trim().length > 0;
+}
+
+export function parseDocumentComponentDeclarations(
+  value: unknown,
+): DocumentComponentDeclaration[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: DocumentComponentDeclaration[] = [];
+  for (const raw of value) {
+    if (!isDocumentComponentDeclaration(raw)) continue;
+    const draftId = raw.draftId.trim();
+    if (!draftId || seen.has(draftId)) continue;
+    seen.add(draftId);
+    const order =
+      typeof raw.order === 'number' && Number.isFinite(raw.order)
+        ? Math.floor(raw.order)
+        : undefined;
+    const label =
+      typeof raw.label === 'string' && raw.label.trim()
+        ? raw.label.trim()
+        : undefined;
+    out.push({
+      draftId,
+      ...(order !== undefined ? { order } : {}),
+      ...(label ? { label } : {}),
+    });
+  }
+  out.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  return out;
+}
+
+/**
  * Authored destination (Forward Layer 1) — stable North Star for the Document.
  * Distinct from DocumentStep, which is the live tip of the lineage.
  */
@@ -120,6 +167,17 @@ export interface DocumentStep {
  * Document — one per Dialog. Cover + Points (optionally grouped by Path).
  * Durable identity is Dialog.id; kip_drafts holds the Point manuscript via dialog_id.
  */
+/** Resolved Document component draft for Chronicle (presentation). */
+export interface DocumentComponentDraft {
+  draftId: string;
+  title: string;
+  kind: string;
+  status: string;
+  summary?: string | null;
+  order?: number;
+  label?: string;
+}
+
 export interface Document {
   dialogId: string;
   status: DocumentLifecycleStatus;
@@ -131,6 +189,8 @@ export interface Document {
   step?: DocumentStep;
   paths: DocumentPathGroup[];
   points: Point[];
+  /** Non-manuscript drafts registered on this Document (not Point storage). */
+  components?: DocumentComponentDraft[];
 }
 
 export function isDocumentLifecycleStatus(value: unknown): value is DocumentLifecycleStatus {

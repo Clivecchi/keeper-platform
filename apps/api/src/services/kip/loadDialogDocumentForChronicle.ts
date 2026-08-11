@@ -1,13 +1,17 @@
 /**
  * Load Dialog Document for Chronicle UI — Forward/Step/Paths + manuscript drafts
- * with full Points (spec). One round-trip; no sessions, no domain-wide draft list.
+ * with full Points (spec) + registered Document component drafts.
+ * One round-trip; no sessions, no domain-wide draft list.
  */
 
 import { prisma } from '@keeper/database';
 import {
   normalizeDraftSpecJson,
+  parseDocumentComponentDeclarations,
   parseDocumentPathDeclarations,
+  type DocumentComponentDraft,
 } from '@keeper/shared';
+import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
 
 export type ChronicleManuscriptDraft = {
   id: string;
@@ -30,6 +34,8 @@ export type ChronicleDialogDocument = {
   step?: { title: string; body: string };
   paths: ReturnType<typeof parseDocumentPathDeclarations>;
   manuscripts: ChronicleManuscriptDraft[];
+  /** Non-manuscript drafts explicitly registered on Dialog.document_components. */
+  components: DocumentComponentDraft[];
 };
 
 export async function loadDialogDocumentForChronicle(
@@ -63,6 +69,7 @@ export async function loadDialogDocumentForChronicle(
       step_title: true,
       step_body: true,
       document_paths: true,
+      document_components: true,
     },
   });
   if (!dialog) return null;
@@ -71,6 +78,7 @@ export async function loadDialogDocumentForChronicle(
   const forwardDescription = dialog.forward_description?.trim() ?? '';
   const stepTitle = dialog.step_title?.trim() ?? '';
   const stepBody = dialog.step_body?.trim() ?? '';
+  const componentDecls = parseDocumentComponentDeclarations(dialog.document_components);
 
   // Dialog audience already authorized above — do not re-filter manuscripts by owner
   // (agent-created rows may not match the viewing user's id).
@@ -78,7 +86,7 @@ export async function loadDialogDocumentForChronicle(
     where: {
       dialog_id: dialogId,
       domain_id: domainId,
-      kind: 'document_manuscript',
+      kind: DOCUMENT_MANUSCRIPT_KIND,
       status: { notIn: ['promoted', 'archived'] },
     },
     select: {
@@ -95,6 +103,42 @@ export async function loadDialogDocumentForChronicle(
     orderBy: { updated_at: 'desc' },
     take: 5,
   });
+
+  let components: DocumentComponentDraft[] = [];
+  if (componentDecls.length > 0) {
+    const draftIds = componentDecls.map((row) => row.draftId);
+    const rows = await prisma.kip_drafts.findMany({
+      where: {
+        domain_id: domainId,
+        id: { in: draftIds },
+        kind: { not: DOCUMENT_MANUSCRIPT_KIND },
+        status: { notIn: ['archived'] },
+      },
+      select: {
+        id: true,
+        title: true,
+        kind: true,
+        status: true,
+        summary: true,
+      },
+    });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    components = componentDecls
+      .map((decl) => {
+        const row = byId.get(decl.draftId);
+        if (!row) return null;
+        return {
+          draftId: row.id,
+          title: row.title,
+          kind: row.kind,
+          status: row.status,
+          summary: row.summary ?? null,
+          ...(decl.order !== undefined ? { order: decl.order } : {}),
+          ...(decl.label ? { label: decl.label } : {}),
+        } satisfies DocumentComponentDraft;
+      })
+      .filter((row): row is DocumentComponentDraft => row != null);
+  }
 
   return {
     dialogId: dialog.id,
@@ -119,5 +163,6 @@ export async function loadDialogDocumentForChronicle(
       dialog_id: row.dialog_id ?? dialogId,
       spec: normalizeDraftSpecJson(row.spec_json),
     })),
+    components,
   };
 }

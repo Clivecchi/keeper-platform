@@ -7,7 +7,8 @@
  *   POST   /kip/dialogs             — create a new Dialog
  *   GET    /kip/dialogs             — list Dialogs for a domain (filtered by scope)
  *   GET    /kip/dialogs/:dialogId   — get a single Dialog with its sessions
- *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Paths + manuscripts)
+ *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Paths + manuscripts + components)
+ *   POST   /kip/dialogs/:dialogId/document-components — register a non-manuscript draft as Document component
  *   PATCH  /kip/dialogs/:dialogId   — update title, archive, or document_status
  *   DELETE /kip/dialogs/:dialogId   — hard delete (sessions/drafts SetNull dialog_id)
  *
@@ -22,7 +23,11 @@
 import { Router, type Response } from 'express';
 import { prisma } from '@keeper/database';
 import { z } from 'zod';
-import { logger, parseDocumentPathDeclarations } from '@keeper/shared';
+import {
+  logger,
+  parseDocumentComponentDeclarations,
+  parseDocumentPathDeclarations,
+} from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import {
@@ -35,6 +40,7 @@ import { listChronicleEventsForDialog } from '../../services/kip/chronicleEvents
 import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDocumentForChronicle.js';
 import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
 import { buildDomainNavIndex } from '../../services/kip/buildDomainNavIndex.js';
+import { registerDialogDocumentComponent } from '../../services/kip/registerDialogDocumentComponent.js';
 
 const router = Router();
 
@@ -89,6 +95,17 @@ const documentPathDeclarationSchema = z.object({
   prelude: z.string().max(2000).optional(),
 });
 
+const documentComponentDeclarationSchema = z.object({
+  draftId: z.string().uuid(),
+  order: z.number().int().min(0).max(999).optional(),
+  label: z.string().min(1).max(200).optional(),
+});
+
+const registerDocumentComponentSchema = z.object({
+  draftId: z.string().uuid(),
+  label: z.string().min(1).max(200).optional(),
+});
+
 const updateDialogSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   is_archived: z.boolean().optional(),
@@ -98,6 +115,7 @@ const updateDialogSchema = z.object({
   step_title: z.string().min(1).max(300).nullable().optional(),
   step_body: z.string().min(1).max(8000).nullable().optional(),
   document_paths: z.array(documentPathDeclarationSchema).max(40).nullable().optional(),
+  document_components: z.array(documentComponentDeclarationSchema).max(40).nullable().optional(),
 });
 
 const enableCastMemberSchema = z.object({
@@ -407,6 +425,70 @@ router.get(
   },
 );
 
+// ─── POST /api/domains/:domainId/kip/dialogs/:dialogId/document-components ───
+// Register a non-manuscript draft as an explicit Document component.
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/document-components',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const parsed = registerDocumentComponentSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: 'INVALID_BODY',
+          message: 'draftId (uuid) is required',
+          details: parsed.error.flatten(),
+        });
+      }
+
+      const result = await registerDialogDocumentComponent({
+        domainId,
+        dialogId,
+        draftId: parsed.data.draftId,
+        label: parsed.data.label,
+        userId: req.user.id,
+      });
+
+      if (!result.ok) {
+        const status =
+          result.error === 'DIALOG_NOT_FOUND' || result.error === 'DRAFT_NOT_FOUND'
+            ? 404
+            : 400;
+        return res.status(status).json({ error: result.error, message: result.message });
+      }
+
+      logger.info(
+        {
+          domainId,
+          dialogId,
+          draftId: result.draft.id,
+          created: result.created,
+          userId: req.user.id,
+        },
+        '[kip-dialogs] document component registered',
+      );
+      return res.status(result.created ? 201 : 200).json({
+        components: result.components,
+        draft: result.draft,
+        created: result.created,
+      });
+    } catch (error) {
+      logger.error(
+        { err: error, domainId, dialogId },
+        '[kip-dialogs] document-components failed',
+      );
+      return res.status(500).json({ error: 'FAILED_TO_REGISTER_DOCUMENT_COMPONENT' });
+    }
+  },
+);
+
 // ─── POST /api/domains/:domainId/kip/dialogs/:dialogId/gloss-carrier ─────────
 // Ensure a kip_message exists to host Document Point glossThreads (Chronicle Gloss).
 
@@ -560,6 +642,12 @@ router.patch(
           parsed.data.document_paths === null
             ? null
             : parseDocumentPathDeclarations(parsed.data.document_paths);
+      }
+      if (parsed.data.document_components !== undefined) {
+        updateData.document_components =
+          parsed.data.document_components === null
+            ? null
+            : parseDocumentComponentDeclarations(parsed.data.document_components);
       }
 
       const updated = await prisma.dialog.update({

@@ -49,6 +49,15 @@ type DialogDocumentMeta = {
   forward?: DocumentForward
   step?: DocumentStep
   paths: DocumentPathDeclaration[]
+  components: Array<{
+    draftId: string
+    title: string
+    kind: string
+    status: string
+    summary?: string | null
+    order?: number
+    label?: string
+  }>
 }
 
 function entryMatchesSelection(
@@ -125,7 +134,10 @@ export function DomainRealmStory({
     selectedLibraryItemId,
   ])
 
-  const [documentMeta, setDocumentMeta] = React.useState<DialogDocumentMeta>({ paths: [] })
+  const [documentMeta, setDocumentMeta] = React.useState<DialogDocumentMeta>({
+    paths: [],
+    components: [],
+  })
   const [manuscriptEntries, setManuscriptEntries] = React.useState<RealmNavEntry[]>([])
   const [documentLoading, setDocumentLoading] = React.useState(false)
   /** Bumps when Document Gloss rewrites a Point so Chronicle reloads past cache. */
@@ -179,7 +191,7 @@ export function DomainRealmStory({
 
   React.useEffect(() => {
     if (scope.status !== "dialog" || !scope.dialogId || !domainId) {
-      setDocumentMeta({ paths: [] })
+      setDocumentMeta({ paths: [], components: [] })
       setManuscriptEntries([])
       setDocumentLoading(false)
       return
@@ -200,6 +212,7 @@ export function DomainRealmStory({
           ...(document.forward ? { forward: document.forward } : {}),
           ...(document.step ? { step: document.step } : {}),
           paths: parseDocumentPathDeclarations(document.paths),
+          components: Array.isArray(document.components) ? document.components : [],
         }
         setDocumentMeta(meta)
 
@@ -212,7 +225,7 @@ export function DomainRealmStory({
         setManuscriptEntries(expanded)
       } catch {
         if (!cancelled) {
-          setDocumentMeta({ paths: [] })
+          setDocumentMeta({ paths: [], components: [] })
           setManuscriptEntries([])
         }
       } finally {
@@ -274,6 +287,13 @@ export function DomainRealmStory({
     [boardCtx, storyEntries, selectedDialogId],
   )
 
+  const handleOpenComponentDraft = React.useCallback(
+    (draftId: string) => {
+      boardCtx?.actions.onDraftSelect(draftId)
+    },
+    [boardCtx],
+  )
+
   const emptyState = (
     <div className="px-4 py-6">
       {scope.status === "none" ? (
@@ -327,6 +347,14 @@ export function DomainRealmStory({
         paths={paths}
         points={points}
         pointIds={storyEntries.map((entry) => entry.id)}
+        components={
+          scope.status === "dialog" && documentMeta.components.length > 0
+            ? documentMeta.components
+            : undefined
+        }
+        onOpenComponentDraft={
+          scope.status === "dialog" ? handleOpenComponentDraft : undefined
+        }
         onGlossPoint={handleGlossPoint}
         glossContext={
           domainId && scope.status === "dialog" && scope.dialogId

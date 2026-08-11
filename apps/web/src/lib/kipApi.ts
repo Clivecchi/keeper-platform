@@ -1060,6 +1060,15 @@ export class KipApi {
     step?: { title: string; body: string };
     paths: Array<{ id: string; title: string; prelude?: string }>;
     manuscripts: KipDraft[];
+    components: Array<{
+      draftId: string;
+      title: string;
+      kind: string;
+      status: string;
+      summary?: string | null;
+      order?: number;
+      label?: string;
+    }>;
   }> {
     const response = await apiFetch(
       `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document`,
@@ -1069,6 +1078,7 @@ export class KipApi {
       throw new Error(pickErrorMessage(response, 'Failed to load dialog document'));
     }
     const manuscriptsRaw = Array.isArray(document.manuscripts) ? document.manuscripts : [];
+    const componentsRaw = Array.isArray(document.components) ? document.components : [];
     return {
       dialogId: document.dialogId,
       ...(typeof document.title === 'string' ? { title: document.title } : {}),
@@ -1089,6 +1099,53 @@ export class KipApi {
           spec: normalizeDraftSpecJson(draft.spec),
         };
       }),
+      components: componentsRaw
+        .filter((row): row is Record<string, unknown> =>
+          Boolean(row) && typeof row === 'object' && !Array.isArray(row),
+        )
+        .map((row) => ({
+          draftId: String(row.draftId ?? ''),
+          title: typeof row.title === 'string' ? row.title : 'Draft',
+          kind: typeof row.kind === 'string' ? row.kind : 'draft',
+          status: typeof row.status === 'string' ? row.status : 'draft',
+          ...(typeof row.summary === 'string' || row.summary === null
+            ? { summary: row.summary as string | null }
+            : {}),
+          ...(typeof row.order === 'number' ? { order: row.order } : {}),
+          ...(typeof row.label === 'string' ? { label: row.label } : {}),
+        }))
+        .filter((row) => row.draftId.length > 0),
+    };
+  }
+
+  /** Register a non-manuscript draft as an explicit Dialog Document component. */
+  static async registerDialogDocumentComponent(
+    domainId: string,
+    dialogId: string,
+    draftId: string,
+    options?: { label?: string },
+  ): Promise<{
+    components: Array<{ draftId: string; order?: number; label?: string }>;
+    draft: { id: string; title: string; kind: string; status: string; summary: string | null };
+    created: boolean;
+  }> {
+    const response = await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document-components`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          draftId,
+          ...(options?.label?.trim() ? { label: options.label.trim() } : {}),
+        }),
+      },
+    );
+    if (!(response as { components?: unknown }).components) {
+      throw new Error(pickErrorMessage(response, 'Failed to register document component'));
+    }
+    return response as {
+      components: Array<{ draftId: string; order?: number; label?: string }>;
+      draft: { id: string; title: string; kind: string; status: string; summary: string | null };
+      created: boolean;
     };
   }
 

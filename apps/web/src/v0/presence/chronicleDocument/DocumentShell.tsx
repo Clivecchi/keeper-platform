@@ -2,7 +2,13 @@
 
 import * as React from "react"
 import { ChevronDown } from "lucide-react"
-import type { DocumentForward, DocumentPathGroup, DocumentStep, Point } from "@keeper/shared"
+import type {
+  DocumentComponentDraft,
+  DocumentForward,
+  DocumentPathGroup,
+  DocumentStep,
+  Point,
+} from "@keeper/shared"
 import { buildGlossThreadKey } from "@keeper/shared"
 import { PointView } from "./PointView"
 import { DocumentPointGloss } from "./DocumentPointGloss"
@@ -46,6 +52,13 @@ export interface DocumentShellProps {
   points: Point[]
   /** Durable IDs parallel to points (Point is intentionally presentation-only). */
   pointIds?: Array<string | null | undefined>
+  /**
+   * Non-manuscript drafts registered as Document components
+   * (Dialog.document_components — not Point storage).
+   */
+  components?: DocumentComponentDraft[]
+  /** Open a registered Document component draft in Chronicle. */
+  onOpenComponentDraft?: (draftId: string) => void
   onGlossPoint?: (point: Point, index: number) => void
   /**
    * When set, Point Gloss opens an inline polish panel on the Point (Document Gloss).
@@ -490,6 +503,8 @@ export function DocumentShell({
   paths,
   points,
   pointIds,
+  components,
+  onOpenComponentDraft,
   onGlossPoint,
   glossContext,
   scrollToPointId,
@@ -587,6 +602,72 @@ export function DocumentShell({
       ) : null}
       {!cover && resolvedForward ? (
         <ForwardBlock forward={resolvedForward} step={step} />
+      ) : null}
+
+      {components && components.length > 0 ? (
+        <section className="px-4 pb-2 pt-3" aria-label="Document drafts">
+          <p
+            className="mb-2 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Document drafts
+          </p>
+          <ul className="space-y-1.5">
+            {components.map((component) => {
+              const titleText = component.label?.trim() || component.title
+              const kindLabel = component.kind.replace(/_/g, " ")
+              return (
+                <li key={component.draftId}>
+                  {onOpenComponentDraft ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenComponentDraft(component.draftId)}
+                      className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors hover:opacity-90"
+                      style={{
+                        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+                        background: "hsl(var(--theme-surface-paper) / 0.55)",
+                      }}
+                    >
+                      <span
+                        className="text-[13px] font-semibold leading-snug"
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
+                      >
+                        {titleText}
+                      </span>
+                      <span
+                        className="shrink-0 text-[11px] capitalize"
+                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                      >
+                        {kindLabel}
+                      </span>
+                    </button>
+                  ) : (
+                    <div
+                      className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2"
+                      style={{
+                        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+                        background: "hsl(var(--theme-surface-paper) / 0.55)",
+                      }}
+                    >
+                      <span
+                        className="text-[13px] font-semibold leading-snug"
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
+                      >
+                        {titleText}
+                      </span>
+                      <span
+                        className="shrink-0 text-[11px] capitalize"
+                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                      >
+                        {kindLabel}
+                      </span>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       ) : null}
 
       {points.length > 0 ? (

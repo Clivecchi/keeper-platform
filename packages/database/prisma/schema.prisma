@@ -727,6 +727,9 @@ model Dialog {
   step_body  String?
   /// Declared Path groups for Document Points — [{ id, title, prelude? }], not Journey Path rows.
   document_paths Json?
+  /// Non-manuscript drafts registered as Document components — [{ draftId, order?, label? }].
+  /// Distinct from Nav-only kip_drafts.dialog_id association. Manuscript Points stay kind=document_manuscript.
+  document_components Json?
   presenceSchema Json?
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt

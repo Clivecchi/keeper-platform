@@ -12,6 +12,15 @@ export type CachedDialogDocument = {
   step?: { title: string; body: string }
   paths: Array<{ id: string; title: string; prelude?: string }>
   manuscripts: KipDraft[]
+  components?: Array<{
+    draftId: string
+    title: string
+    kind: string
+    status: string
+    summary?: string | null
+    order?: number
+    label?: string
+  }>
 }
 
 type CacheEntry = {
