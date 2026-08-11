@@ -1417,10 +1417,12 @@ export async function executeAgentActions(
     }
     if (!out.kind && typeof p.kind !== 'string') out.kind = 'journey_spec';
     if (!out.title && typeof p.view === 'string') out.title = p.view;
-    if (!out.title && typeof p.title !== 'string') out.title = 'Draft';
+    // Do not invent a title — schema requires title; omitting it must surface as a
+    // validation error receipt (cast-consult / Lead transparency), not silently succeed.
     if (!out.key || typeof out.key !== 'string') {
-      const title = (out.title as string) || 'draft';
-      out.key = slugifyKey(title) + '-' + Math.random().toString(36).slice(2, 8);
+      const titleForKey =
+        typeof out.title === 'string' && out.title.trim() ? out.title.trim() : 'draft';
+      out.key = slugifyKey(titleForKey) + '-' + Math.random().toString(36).slice(2, 8);
     }
     if (!out.spec || typeof out.spec !== 'object') out.spec = out.spec ? { ...(out.spec as object) } : {};
     if (out.type && !VALID_KINDS.includes(out.type as string)) delete out.type;
@@ -1616,7 +1618,19 @@ export async function executeAgentActions(
         switch (action.type) {
           case 'draft.create': {
             const payload = action.payload ?? {};
-            const title = typeof payload.title === 'string' && payload.title.trim() ? payload.title.trim() : 'Draft';
+            const title =
+              typeof payload.title === 'string' && payload.title.trim()
+                ? payload.title.trim()
+                : '';
+            if (!title) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'title is required',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
             const kind = typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
             const status = typeof payload.status === 'string' && payload.status.trim() ? payload.status.trim() : 'draft';
             const summary = normalizeSummary(payload.summary);

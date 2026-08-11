@@ -30,6 +30,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-11 — revive treatment.proposal on cast merge
+- `mergeCastAndLeadActionResults` prefers client cast payload when Lead fold kept `castSlug` but dropped nested `proposal` (Domain showed compact "Proposed treatment" instead of TreatmentProposeCard).
+
 ### 2026-08-10 — cast-consult action-result extract + merge
 - `directorDialog.ts` — recursive `extractActionResultsFromRunResult` (matches API envelope walk); `mergeCastAndLeadActionResults` for Domain/IDE cast-consult receipt transparency. Unit tests cover AgentResponse envelope + merge preference.
 

@@ -128,13 +128,51 @@ describe("cast-consult action-result extract", () => {
     expect((merged?.[0] as { data?: { castSlug?: string } }).data?.castSlug).toBe("rendr")
   })
 
-  it("prefers Lead actions when server already folded cast receipts", () => {
+  it("revives treatment.proposal from client when Lead fold dropped nested data", () => {
+    const lead = [
+      {
+        type: "treatment.propose",
+        status: "success",
+        message: "Proposed Treatment — tap Apply to update Chronicle",
+        data: { castSlug: "rendr", attributedTo: "Rendr" },
+      },
+    ]
+    const cast = annotateCastActionResults(
+      [
+        {
+          type: "treatment.propose",
+          status: "success",
+          message: "Proposed Treatment — tap Apply to update Chronicle",
+          data: {
+            summary: "Warm parchment · teal accent · Georgia",
+            proposal: {
+              name: "Archival",
+              palette: { background: "#f5f0e8", accent: "#2d6a7f" },
+              font: { family: "Georgia, serif" },
+            },
+          },
+        },
+      ],
+      { castSlug: "rendr", attributedTo: "Rendr" },
+    )
+    const merged = mergeCastAndLeadActionResults(lead, cast)
+    expect(merged).toHaveLength(1)
+    const data = (merged?.[0] as { data?: { proposal?: { name?: string } } }).data
+    expect(data?.proposal?.name).toBe("Archival")
+  })
+
+  it("keeps Lead cast receipt when it already has the richer payload", () => {
     const lead = [
       {
         type: "treatment.propose",
         status: "error",
         message: "Invalid palette",
-        data: { castSlug: "rendr", attributedTo: "Rendr" },
+        data: {
+          castSlug: "rendr",
+          attributedTo: "Rendr",
+          proposal: { name: "From Lead" },
+          summary: "lead",
+        },
       },
     ]
     const cast = annotateCastActionResults(

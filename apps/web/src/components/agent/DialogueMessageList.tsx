@@ -631,21 +631,40 @@ function MessageAttachments({
               )
             }
             // Always surface the proposal receipt — Apply stays optional (designer board).
-            if (isTreatmentPropose && treatmentData?.proposal) {
+            // Prefer structured proposal; if fold dropped it, still avoid a bare "Completed" chip.
+            if (isTreatmentPropose) {
               const attributedTo =
                 typeof receipt.data?.attributedTo === "string"
                   ? receipt.data.attributedTo
                   : null
+              if (treatmentData?.proposal) {
+                return (
+                  <TreatmentProposeCard
+                    key={idx}
+                    summary={treatmentData.summary ?? "Treatment update"}
+                    rationale={treatmentData.rationale}
+                    proposal={treatmentData.proposal}
+                    attributedTo={attributedTo}
+                    onApply={onApplyTreatmentProposal}
+                    onDismiss={onApplyTreatmentProposal ? () => {} : undefined}
+                    isApplying={applyingTreatmentProposal}
+                  />
+                )
+              }
               return (
-                <TreatmentProposeCard
+                <ActionReceiptCard
                   key={idx}
-                  summary={treatmentData.summary ?? "Treatment update"}
-                  rationale={treatmentData.rationale}
-                  proposal={treatmentData.proposal}
-                  attributedTo={attributedTo}
-                  onApply={onApplyTreatmentProposal}
-                  onDismiss={onApplyTreatmentProposal ? () => {} : undefined}
-                  isApplying={applyingTreatmentProposal}
+                  receipt={{
+                    ...receipt,
+                    message:
+                      treatmentData?.summary?.trim()
+                      || receipt.message
+                      || "Proposed Treatment",
+                  }}
+                  glossMessageId={message.id}
+                  glossReceiptIndex={idx}
+                  glossThreads={message.glossThreads}
+                  contextNarrative={message.role === "agent" ? message.content : undefined}
                 />
               )
             }

@@ -316,9 +316,38 @@ function rowHasCastSlug(row: unknown): boolean {
   return typeof data?.castSlug === "string" && data.castSlug.trim().length > 0
 }
 
+function actionTypeOf(row: unknown): string {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return ""
+  return typeof (row as { type?: unknown }).type === "string"
+    ? (row as { type: string }).type
+    : ""
+}
+
+function actionDataOf(row: unknown): Record<string, unknown> | null {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return null
+  const data = (row as { data?: unknown }).data
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null
+  return data as Record<string, unknown>
+}
+
+/** Prefer the richer of two same-type cast receipts (e.g. keep treatment.proposal). */
+function pickRicherCastReceipt(leadRow: unknown, castRow: unknown): unknown {
+  const leadData = actionDataOf(leadRow)
+  const castData = actionDataOf(castRow)
+  if (!castData) return leadRow
+  if (!leadData) return castRow
+  const leadHasProposal = Boolean(leadData.proposal && typeof leadData.proposal === "object")
+  const castHasProposal = Boolean(castData.proposal && typeof castData.proposal === "object")
+  if (!leadHasProposal && castHasProposal) return castRow
+  const leadKeys = Object.keys(leadData).length
+  const castKeys = Object.keys(castData).length
+  return castKeys > leadKeys ? castRow : leadRow
+}
+
 /**
  * Prefer Lead `actions` when the server already folded cast receipts.
  * Otherwise prepend client-held cast receipts so Domain/IDE still show cards.
+ * When Lead fold dropped nested payload (e.g. treatment.proposal), revive from client.
  */
 export function mergeCastAndLeadActionResults(
   leadActions: unknown[] | undefined,
@@ -326,8 +355,28 @@ export function mergeCastAndLeadActionResults(
 ): unknown[] | undefined {
   if (leadActions?.length) {
     const leadHasCastReceipts = leadActions.some(rowHasCastSlug)
-    if (leadHasCastReceipts || !castActions.length) return leadActions
-    return [...castActions, ...leadActions]
+    if (!leadHasCastReceipts) {
+      return castActions.length ? [...castActions, ...leadActions] : leadActions
+    }
+    if (!castActions.length) return leadActions
+
+    const usedCast = new Set<number>()
+    const merged = leadActions.map((leadRow) => {
+      if (!rowHasCastSlug(leadRow)) return leadRow
+      const leadType = actionTypeOf(leadRow)
+      const leadSlug = actionDataOf(leadRow)?.castSlug
+      const matchIdx = castActions.findIndex((castRow, idx) => {
+        if (usedCast.has(idx)) return false
+        if (actionTypeOf(castRow) !== leadType) return false
+        const castSlug = actionDataOf(castRow)?.castSlug
+        return !leadSlug || !castSlug || leadSlug === castSlug
+      })
+      if (matchIdx < 0) return leadRow
+      usedCast.add(matchIdx)
+      return pickRicherCastReceipt(leadRow, castActions[matchIdx])
+    })
+    const leftovers = castActions.filter((_, idx) => !usedCast.has(idx))
+    return leftovers.length ? [...leftovers, ...merged] : merged
   }
   return castActions.length ? castActions : undefined
 }
