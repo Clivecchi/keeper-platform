@@ -69,4 +69,37 @@ describe('coerceTreatmentProposePayload', () => {
     };
     expect(coerceTreatmentProposePayload(nested)).toEqual(nested);
   });
+
+  it('wraps top-level background/accent/fontFamily into treatment.palette/font', () => {
+    const coerced = coerceTreatmentProposePayload({
+      name: 'Archival',
+      background: '#f5f0e8',
+      accent: '2d6a7f',
+      fontFamily: 'Georgia, serif',
+    });
+    expect(coerced.treatment).toEqual({
+      name: 'Archival',
+      palette: { background: '#f5f0e8', accent: '2d6a7f' },
+      font: { family: 'Georgia, serif' },
+    });
+  });
+
+  it('parses treatment JSON string and theme nesting', () => {
+    const fromString = coerceTreatmentProposePayload({
+      treatment: JSON.stringify({
+        name: 'Studio',
+        palette: { background: '#111111', accent: '#eeeeee' },
+      }),
+    });
+    expect((fromString.treatment as { name?: string }).name).toBe('Studio');
+
+    const fromTheme = coerceTreatmentProposePayload({
+      theme: { name: 'Soft', palette: { background: '#fafafa' }, font: { family: 'Inter' } },
+    });
+    expect(fromTheme.treatment).toEqual({
+      name: 'Soft',
+      palette: { background: '#fafafa' },
+      font: { family: 'Inter' },
+    });
+  });
 });

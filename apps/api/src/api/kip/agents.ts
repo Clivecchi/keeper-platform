@@ -972,7 +972,8 @@ function buildRendrDesignBoardPrompt(
     '- font.family: CSS font-family (e.g. "Georgia, serif" or "Inter, sans-serif")',
     '',
     'When the human asks for mood, warmth, contrast, typography — propose concrete values using treatment.propose in the same response.',
-    'treatment.propose payload: { rationale?: string, treatment: { name?, palette?: { background?, accent? }, font?: { family? } } }',
+    'treatment.propose REQUIRED shape: payload.treatment must be an object — narration alone fails.',
+    'Example: {"type":"treatment.propose","payload":{"rationale":"warm archival","treatment":{"name":"Archival","palette":{"background":"#f5f0e8","accent":"#2d6a7f"},"font":{"family":"Georgia, serif"}}}}',
     'Include every field you intend to change; server merges with current Treatment and normalizes hex colors.',
     'Do NOT write Treatment directly — propose only. The human taps Apply in the dialog.',
     'Do NOT use draft.create for Treatment on Design Board.',
@@ -1398,14 +1399,14 @@ export async function executeAgentActions(
       if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
       return { type: action.type, payload: out };
     }
-    if (
-      action.type === 'treatment.propose'
-      && action.payload
-      && typeof action.payload === 'object'
-    ) {
+    if (action.type === 'treatment.propose') {
+      const rawPayload =
+        action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+          ? (action.payload as Record<string, unknown>)
+          : {};
       return {
         type: action.type,
-        payload: coerceTreatmentProposePayload(action.payload as Record<string, unknown>),
+        payload: coerceTreatmentProposePayload(rawPayload),
       };
     }
     if (action.type !== 'draft.create' || !action.payload || typeof action.payload !== 'object') return action;
@@ -1894,13 +1895,17 @@ export async function executeAgentActions(
             break;
           }
           case 'treatment.propose': {
-            const payload = action.payload ?? {};
+            const payload =
+              action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+                ? coerceTreatmentProposePayload(action.payload as Record<string, unknown>)
+                : coerceTreatmentProposePayload({});
             const rawTreatment = payload.treatment;
             if (!rawTreatment || typeof rawTreatment !== 'object' || Array.isArray(rawTreatment)) {
               results.push({
                 type: action.type,
                 status: 'error',
-                message: 'treatment object is required',
+                message:
+                  'treatment object is required — use payload.treatment: { name?, palette?: { background, accent }, font?: { family } }',
                 errorCode: 'VALIDATION_ERROR',
               });
               break;
