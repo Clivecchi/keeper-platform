@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-11 — Register Document component from selection
+- `DomainRealmStory` — with Dialog + selected draft, offers **Add to Document** → `KipApi.registerDialogDocumentComponent`, then reloads Chronicle Document. Elevate/Nav `dialog_id` alone does not register.
+
 ### 2026-08-06 — Document UX ship wiring
 - `manuscriptPointsToRealmNavEntries` attaches `gloss.snapshot` + `revisedAt`.
 - `DomainRealmStory` prefetches gloss-carrier threads for **Glossed** badges; reloads Document after Point rewrite; Search / Style:Vibe / capture live in sibling board+shell modules.

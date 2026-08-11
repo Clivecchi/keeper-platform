@@ -1139,13 +1139,20 @@ export class KipApi {
         }),
       },
     );
-    if (!(response as { components?: unknown }).components) {
-      throw new Error(pickErrorMessage(response, 'Failed to register document component'));
+    const body = response as {
+      components?: Array<{ draftId: string; order?: number; label?: string }>
+      draft?: { id: string; title: string; kind: string; status: string; summary: string | null }
+      created?: boolean
+      error?: string
+      message?: string
     }
-    return response as {
-      components: Array<{ draftId: string; order?: number; label?: string }>;
-      draft: { id: string; title: string; kind: string; status: string; summary: string | null };
-      created: boolean;
+    if (!Array.isArray(body.components) || !body.draft) {
+      throw new Error(pickErrorMessage(body, 'Failed to register document component'));
+    }
+    return {
+      components: body.components,
+      draft: body.draft,
+      created: body.created === true,
     };
   }
 

@@ -59,6 +59,18 @@ export interface DocumentShellProps {
   components?: DocumentComponentDraft[]
   /** Open a registered Document component draft in Chronicle. */
   onOpenComponentDraft?: (draftId: string) => void
+  /**
+   * Selected non-manuscript draft that can be registered as a Document component
+   * (explicit containment — distinct from Nav-only dialog_id).
+   */
+  pendingComponentDraft?: {
+    draftId: string
+    title: string
+    kind: string
+  } | null
+  onAddPendingComponent?: () => void | Promise<void>
+  addingPendingComponent?: boolean
+  addPendingComponentError?: string | null
   onGlossPoint?: (point: Point, index: number) => void
   /**
    * When set, Point Gloss opens an inline polish panel on the Point (Document Gloss).
@@ -505,6 +517,10 @@ export function DocumentShell({
   pointIds,
   components,
   onOpenComponentDraft,
+  pendingComponentDraft,
+  onAddPendingComponent,
+  addingPendingComponent = false,
+  addPendingComponentError = null,
   onGlossPoint,
   glossContext,
   scrollToPointId,
@@ -604,7 +620,7 @@ export function DocumentShell({
         <ForwardBlock forward={resolvedForward} step={step} />
       ) : null}
 
-      {components && components.length > 0 ? (
+      {(components && components.length > 0) || pendingComponentDraft ? (
         <section className="px-4 pb-2 pt-3" aria-label="Document drafts">
           <p
             className="mb-2 text-[11px] font-semibold uppercase tracking-wider"
@@ -612,61 +628,103 @@ export function DocumentShell({
           >
             Document drafts
           </p>
-          <ul className="space-y-1.5">
-            {components.map((component) => {
-              const titleText = component.label?.trim() || component.title
-              const kindLabel = component.kind.replace(/_/g, " ")
-              return (
-                <li key={component.draftId}>
-                  {onOpenComponentDraft ? (
-                    <button
-                      type="button"
-                      onClick={() => onOpenComponentDraft(component.draftId)}
-                      className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors hover:opacity-90"
-                      style={{
-                        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                        background: "hsl(var(--theme-surface-paper) / 0.55)",
-                      }}
-                    >
-                      <span
-                        className="text-[13px] font-semibold leading-snug"
-                        style={{ color: "hsl(var(--theme-ink-primary))" }}
+          {pendingComponentDraft && onAddPendingComponent ? (
+            <div
+              className="mb-2 rounded-lg border px-3 py-2"
+              style={{
+                borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+                background: "hsl(var(--theme-surface-elevated) / 0.45)",
+              }}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="min-w-0">
+                  <p
+                    className="truncate text-[13px] font-semibold leading-snug"
+                    style={{ color: "hsl(var(--theme-ink-primary))" }}
+                  >
+                    {pendingComponentDraft.title}
+                  </p>
+                  <p
+                    className="mt-0.5 text-[11px] capitalize"
+                    style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                  >
+                    {pendingComponentDraft.kind.replace(/_/g, " ")} · selected
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void onAddPendingComponent()}
+                  disabled={addingPendingComponent}
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
+                >
+                  {addingPendingComponent ? "Adding…" : "Add to Document"}
+                </button>
+              </div>
+              {addPendingComponentError ? (
+                <p className="mt-1.5 text-[11px]" style={{ color: "hsl(0 60% 45%)" }}>
+                  {addPendingComponentError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          {components && components.length > 0 ? (
+            <ul className="space-y-1.5">
+              {components.map((component) => {
+                const titleText = component.label?.trim() || component.title
+                const kindLabel = component.kind.replace(/_/g, " ")
+                return (
+                  <li key={component.draftId}>
+                    {onOpenComponentDraft ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenComponentDraft(component.draftId)}
+                        className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors hover:opacity-90"
+                        style={{
+                          borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+                          background: "hsl(var(--theme-surface-paper) / 0.55)",
+                        }}
                       >
-                        {titleText}
-                      </span>
-                      <span
-                        className="shrink-0 text-[11px] capitalize"
-                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                        <span
+                          className="text-[13px] font-semibold leading-snug"
+                          style={{ color: "hsl(var(--theme-ink-primary))" }}
+                        >
+                          {titleText}
+                        </span>
+                        <span
+                          className="shrink-0 text-[11px] capitalize"
+                          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                        >
+                          {kindLabel}
+                        </span>
+                      </button>
+                    ) : (
+                      <div
+                        className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2"
+                        style={{
+                          borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+                          background: "hsl(var(--theme-surface-paper) / 0.55)",
+                        }}
                       >
-                        {kindLabel}
-                      </span>
-                    </button>
-                  ) : (
-                    <div
-                      className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2"
-                      style={{
-                        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                        background: "hsl(var(--theme-surface-paper) / 0.55)",
-                      }}
-                    >
-                      <span
-                        className="text-[13px] font-semibold leading-snug"
-                        style={{ color: "hsl(var(--theme-ink-primary))" }}
-                      >
-                        {titleText}
-                      </span>
-                      <span
-                        className="shrink-0 text-[11px] capitalize"
-                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                      >
-                        {kindLabel}
-                      </span>
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+                        <span
+                          className="text-[13px] font-semibold leading-snug"
+                          style={{ color: "hsl(var(--theme-ink-primary))" }}
+                        >
+                          {titleText}
+                        </span>
+                        <span
+                          className="shrink-0 text-[11px] capitalize"
+                          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                        >
+                          {kindLabel}
+                        </span>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
         </section>
       ) : null}
 
