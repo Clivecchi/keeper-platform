@@ -123,21 +123,21 @@ export async function loadDialogDocumentForChronicle(
       },
     });
     const byId = new Map(rows.map((row) => [row.id, row]));
-    components = componentDecls
-      .map((decl) => {
-        const row = byId.get(decl.draftId);
-        if (!row) return null;
-        return {
-          draftId: row.id,
-          title: row.title,
-          kind: row.kind,
-          status: row.status,
-          summary: row.summary ?? null,
-          ...(decl.order !== undefined ? { order: decl.order } : {}),
-          ...(decl.label ? { label: decl.label } : {}),
-        } satisfies DocumentComponentDraft;
-      })
-      .filter((row): row is DocumentComponentDraft => row != null);
+    const resolved: DocumentComponentDraft[] = [];
+    for (const decl of componentDecls) {
+      const row = byId.get(decl.draftId);
+      if (!row) continue;
+      resolved.push({
+        draftId: row.id,
+        title: row.title,
+        kind: row.kind,
+        status: row.status,
+        summary: row.summary ?? null,
+        ...(decl.order !== undefined ? { order: decl.order } : {}),
+        ...(decl.label ? { label: decl.label } : {}),
+      });
+    }
+    components = resolved;
   }
 
   return {

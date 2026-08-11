@@ -456,7 +456,7 @@ router.post(
         userId: req.user.id,
       });
 
-      if (!result.ok) {
+      if (result.ok === false) {
         const status =
           result.error === 'DIALOG_NOT_FOUND' || result.error === 'DRAFT_NOT_FOUND'
             ? 404
@@ -615,6 +615,7 @@ router.patch(
         step_title?: string | null;
         step_body?: string | null;
         document_paths?: object | null;
+        document_components?: object | null;
       } = {};
       if (parsed.data.title !== undefined) {
         updateData.title = parsed.data.title;
