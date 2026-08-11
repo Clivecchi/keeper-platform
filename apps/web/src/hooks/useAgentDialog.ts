@@ -16,6 +16,7 @@ import {
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
   isDirectorDelegationFailureContent,
+  mergeCastAndLeadActionResults,
   resolveDirectorCastMember,
   resolveCastParticipation,
   sanitizeUserMessageContent,
@@ -1186,20 +1187,7 @@ export function useAgentDialog({
         // Prefer Lead response actions (server already folds forwarded cast
         // receipts into that stream for persistence). Fall back to client-held
         // cast receipts when Lead returned none (e.g. older API / failed merge).
-        const leadHasCastReceipts = Boolean(
-          leadActionsArr?.some((row) => {
-            if (!row || typeof row !== "object") return false
-            const data = (row as { data?: { castSlug?: unknown } }).data
-            return typeof data?.castSlug === "string" && data.castSlug.trim().length > 0
-          }),
-        )
-        const actionsArr = leadActionsArr?.length
-          ? leadHasCastReceipts || !castActionResults.length
-            ? leadActionsArr
-            : [...castActionResults, ...leadActionsArr]
-          : castActionResults.length
-            ? castActionResults
-            : undefined
+        const actionsArr = mergeCastAndLeadActionResults(leadActionsArr, castActionResults)
 
         let directorDelegation = extractedDelegation
         if (

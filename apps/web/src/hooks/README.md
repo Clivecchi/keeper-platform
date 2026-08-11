@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-10 — cast-consult receipt merge helper
+- `useAgentDialog` uses `mergeCastAndLeadActionResults` so cast-consult action receipts always attach to the Lead turn when the server fold is missing (Domain/IDE transparency).
+
 ### 2026-08-05 — system errors are not agent speech
 - `useAgentDialog` posts run failures as `role: "system"` dialogue messages (no agent sender stamp). Domain/IDE/Agent boards share the same path; IDE still removes the optimistic user row on failure.
 

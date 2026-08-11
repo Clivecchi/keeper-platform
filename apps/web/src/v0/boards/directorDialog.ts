@@ -272,21 +272,19 @@ export function extractAgentReplyFromRunResult(result: unknown): string | null {
  * Pull executed action receipts from a cast/Lead runAgent response envelope.
  * Cast-consult used to keep only extractAgentReplyFromRunResult — this restores
  * the same actionResults Lead attaches so receipts reach the Dialog UI.
+ *
+ * Walks nested `data` (KipApi AgentResponse → lead/system payload) the same way
+ * as apps/api extractActionResultsFromAgentRunResult.
  */
 export function extractActionResultsFromRunResult(result: unknown): unknown[] {
-  if (!result || typeof result !== "object") return []
-  const root = result as Record<string, unknown>
-  const layer1 = root.data
-  if (layer1 && typeof layer1 === "object") {
-    const l1 = layer1 as Record<string, unknown>
-    const layer2 = l1.data
-    if (layer2 && typeof layer2 === "object") {
-      const nested = (layer2 as Record<string, unknown>).actions
-      if (Array.isArray(nested)) return nested
-    }
-    if (Array.isArray(l1.actions)) return l1.actions
+  const visit = (node: unknown, depth = 0): unknown[] | null => {
+    if (!node || typeof node !== "object" || depth > 5) return null
+    const obj = node as Record<string, unknown>
+    if (Array.isArray(obj.actions)) return obj.actions
+    if (obj.data !== undefined) return visit(obj.data, depth + 1)
+    return null
   }
-  return Array.isArray(root.actions) ? root.actions : []
+  return visit(result) ?? []
 }
 
 /** Tag cast-run receipts so UI can attribute them without changing type/status. */
@@ -310,4 +308,26 @@ export function annotateCastActionResults(
       },
     }
   })
+}
+
+function rowHasCastSlug(row: unknown): boolean {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return false
+  const data = (row as { data?: { castSlug?: unknown } }).data
+  return typeof data?.castSlug === "string" && data.castSlug.trim().length > 0
+}
+
+/**
+ * Prefer Lead `actions` when the server already folded cast receipts.
+ * Otherwise prepend client-held cast receipts so Domain/IDE still show cards.
+ */
+export function mergeCastAndLeadActionResults(
+  leadActions: unknown[] | undefined,
+  castActions: unknown[],
+): unknown[] | undefined {
+  if (leadActions?.length) {
+    const leadHasCastReceipts = leadActions.some(rowHasCastSlug)
+    if (leadHasCastReceipts || !castActions.length) return leadActions
+    return [...castActions, ...leadActions]
+  }
+  return castActions.length ? castActions : undefined
 }

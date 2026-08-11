@@ -1551,7 +1551,10 @@ export async function executeAgentActions(
           results.push({
             type: action.type,
             status: 'skipped',
-            message: 'Action skipped (handled by draft intent pipeline)',
+            message:
+              action.type === 'delegate.consult'
+                ? 'delegate.consult blocked in nested cast run (loop prevention)'
+                : 'Action skipped (handled by draft intent pipeline)',
           });
           continue;
         }
@@ -3406,14 +3409,10 @@ export async function executeAgentActions(
                   domainId: ctx.domainId,
                   domainSlug: ctx.domainSlug,
                   environment: castMemberEnvironment ?? undefined,
-                  // Nested-consult / destructive loops stay blocked; other cast
-                  // actions must still surface as Lead-path receipts.
-                  skipActionTypes: new Set([
-                    'delegate.consult',
-                    'mcp.call',
-                    'draft.create',
-                    'draft.update',
-                  ]),
+                  // Loop prevention only — nested cast must still execute and
+                  // surface draft/mcp/treatment receipts like client cast-consult.
+                  // Lead-path mcp.call NOT_ALLOWED stays on the Lead allowlist.
+                  skipActionTypes: new Set(['delegate.consult']),
                 },
               );
               const reply = extractReplyFromAgentRunResult(castMemberRun);

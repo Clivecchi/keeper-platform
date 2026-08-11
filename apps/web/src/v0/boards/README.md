@@ -30,6 +30,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-10 — cast-consult action-result extract + merge
+- `directorDialog.ts` — recursive `extractActionResultsFromRunResult` (matches API envelope walk); `mergeCastAndLeadActionResults` for Domain/IDE cast-consult receipt transparency. Unit tests cover AgentResponse envelope + merge preference.
+
 ### 2026-08-10 — Nav architecture + cross-nav index + Kip duplicate fix
 - Domain nav order: Dialog → Keeper → Library → Chatter (Chatter collapsed by default).
 - Dialog vs Chatter via `title_source` (`user_set` | `auto_generated` | `system_promoted`); Drafts nest under owning Dialog.

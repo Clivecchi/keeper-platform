@@ -10,9 +10,12 @@ export interface TreatmentProposeCardProps {
   summary: string
   rationale?: string
   proposal: DomainFrameTreatment
-  onApply: (proposal: DomainFrameTreatment) => void
-  onDismiss: () => void
+  /** When omitted, the proposal still renders as a receipt (no Apply control). */
+  onApply?: (proposal: DomainFrameTreatment) => void
+  onDismiss?: () => void
   isApplying?: boolean
+  /** Attribution when the proposal came from a cast-consult (e.g. Rendr). */
+  attributedTo?: string | null
 }
 
 export const TreatmentProposeCard: React.FC<TreatmentProposeCardProps> = ({
@@ -22,6 +25,7 @@ export const TreatmentProposeCard: React.FC<TreatmentProposeCardProps> = ({
   onApply,
   onDismiss,
   isApplying = false,
+  attributedTo,
 }) => {
   const [dismissed, setDismissed] = React.useState(false)
 
@@ -50,6 +54,11 @@ export const TreatmentProposeCard: React.FC<TreatmentProposeCardProps> = ({
     >
       <p className="text-xs font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
         Proposed Treatment
+        {attributedTo?.trim() ? (
+          <span className="font-normal" style={{ color: "var(--theme-ink-tertiary-color)" }}>
+            {" "}· {attributedTo.trim()}
+          </span>
+        ) : null}
       </p>
       <p className="mt-1 text-xs" style={{ color: "var(--theme-ink-secondary-color)" }}>
         {summary}
@@ -105,33 +114,39 @@ export const TreatmentProposeCard: React.FC<TreatmentProposeCardProps> = ({
           </span>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => onApply(proposal)}
-          disabled={isApplying}
-          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
-        >
-          {isApplying ? "Applying…" : "Apply"}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setDismissed(true)
-            onDismiss()
-          }}
-          disabled={isApplying}
-          className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:opacity-50"
-          style={{
-            borderColor: "hsl(var(--theme-border-soft))",
-            backgroundColor: "hsl(var(--theme-surface-paper))",
-            color: "var(--theme-ink-primary-color)",
-          }}
-        >
-          Not now
-        </button>
-      </div>
+      {onApply ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onApply(proposal)}
+            disabled={isApplying}
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
+            style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
+          >
+            {isApplying ? "Applying…" : "Apply"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDismissed(true)
+              onDismiss?.()
+            }}
+            disabled={isApplying}
+            className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:opacity-50"
+            style={{
+              borderColor: "hsl(var(--theme-border-soft))",
+              backgroundColor: "hsl(var(--theme-surface-paper))",
+              color: "var(--theme-ink-primary-color)",
+            }}
+          >
+            Not now
+          </button>
+        </div>
+      ) : (
+        <p className="mt-3 text-[11px]" style={{ color: "var(--theme-ink-tertiary-color)" }}>
+          Proposal recorded. Apply from Design Board when you want it live.
+        </p>
+      )}
     </div>
   )
 }

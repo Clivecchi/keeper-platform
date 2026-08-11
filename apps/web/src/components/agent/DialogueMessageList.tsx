@@ -630,19 +630,21 @@ function MessageAttachments({
                 />
               )
             }
-            if (
-              isTreatmentPropose
-              && treatmentData?.proposal
-              && onApplyTreatmentProposal
-            ) {
+            // Always surface the proposal receipt — Apply stays optional (designer board).
+            if (isTreatmentPropose && treatmentData?.proposal) {
+              const attributedTo =
+                typeof receipt.data?.attributedTo === "string"
+                  ? receipt.data.attributedTo
+                  : null
               return (
                 <TreatmentProposeCard
                   key={idx}
                   summary={treatmentData.summary ?? "Treatment update"}
                   rationale={treatmentData.rationale}
                   proposal={treatmentData.proposal}
+                  attributedTo={attributedTo}
                   onApply={onApplyTreatmentProposal}
-                  onDismiss={() => {}}
+                  onDismiss={onApplyTreatmentProposal ? () => {} : undefined}
                   isApplying={applyingTreatmentProposal}
                 />
               )

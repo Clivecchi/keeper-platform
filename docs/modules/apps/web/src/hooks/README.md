@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-10 — cast-consult receipt merge helper
+- `useAgentDialog` uses `mergeCastAndLeadActionResults` so cast-consult action receipts always attach to the Lead turn when the server fold is missing (Domain/IDE transparency).
+
 ### 2026-08-05 — system errors are not agent speech
 - `useAgentDialog` posts run failures as `role: "system"` dialogue messages (no agent sender stamp). Domain/IDE/Agent boards share the same path; IDE still removes the optimistic user row on failure.
 
@@ -75,6 +78,13 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ### 2026-07-02 — P3.2 Draft–Journey promote fallback
 - **`useDraftPointPromote`**: optional `resolveJourneyId` when Nav has no selected Journey; surfaces error on promote without resolvable target.
+
+### 2026-08-10 — Cast-consult action-result transparency
+- Cast Mechanism A / single-pin runs previously kept only `extractAgentReplyFromRunResult` text; action receipts were dropped.
+- `extractActionResultsFromRunResult` + `annotateCastActionResults` now collect cast receipts; client merges them onto the Lead message with Lead `actionResults`.
+- Receipts are also forwarded via `castConsultations[].actionResults` / `directorDelegation.actionResults` so the server persists them on the Lead message (reload-safe). Nested `delegate.consult` still skips recursive consult / mcp.call / draft.create|update; other nested cast actions flatten onto Lead receipts.
+- Mechanism A cast consults run **in parallel** (was sequential) so multi-cue turns do not stack provider timeouts.
+- `treatment.propose` coerces flat `{ name, palette, font }` payloads into `{ treatment: … }` before validation.
 
 ### 2026-07-02 — P4.1 paste transcript + P2.3 Cloud routing visibility
 - `sendMessage` uses `displayContent` when patching session messages (supporting paste no longer appears raw in user bubble).

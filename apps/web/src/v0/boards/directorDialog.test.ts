@@ -4,6 +4,7 @@ import {
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
   isEchoInternalPrompt,
+  mergeCastAndLeadActionResults,
   sanitizeUserMessageContent,
 } from "./directorDialog"
 
@@ -87,5 +88,68 @@ describe("cast-consult action-result extract", () => {
         data: { castSlug: "rendr", attributedTo: "Rendr" },
       },
     ])
+  })
+
+  it("extracts actions from KipApi AgentResponse envelope (success → data → data.actions)", () => {
+    const kipApiReturn = {
+      id: "agent-1",
+      success: true,
+      data: {
+        action: "system_interaction",
+        type: "conversation",
+        data: {
+          response: "Saved a memory anchor.",
+          actions: [
+            {
+              type: "sole.save",
+              status: "success",
+              message: "Memory saved: Generation Keeper",
+              data: { memoryCard: { id: "m1", topic: "Generation Keeper" } },
+            },
+          ],
+        },
+      },
+      processing_time_ms: 12,
+    }
+    expect(extractActionResultsFromRunResult(kipApiReturn)).toHaveLength(1)
+    expect((extractActionResultsFromRunResult(kipApiReturn)[0] as { type: string }).type).toBe(
+      "sole.save",
+    )
+  })
+
+  it("merges client cast receipts when Lead response omitted castSlug tags", () => {
+    const cast = annotateCastActionResults(
+      [{ type: "treatment.propose", status: "success", message: "Proposed Treatment" }],
+      { castSlug: "rendr", attributedTo: "Rendr" },
+    )
+    const lead = [{ type: "sole.save", status: "success", message: "Memory saved" }]
+    const merged = mergeCastAndLeadActionResults(lead, cast)
+    expect(merged).toHaveLength(2)
+    expect((merged?.[0] as { data?: { castSlug?: string } }).data?.castSlug).toBe("rendr")
+  })
+
+  it("prefers Lead actions when server already folded cast receipts", () => {
+    const lead = [
+      {
+        type: "treatment.propose",
+        status: "error",
+        message: "Invalid palette",
+        data: { castSlug: "rendr", attributedTo: "Rendr" },
+      },
+    ]
+    const cast = annotateCastActionResults(
+      [{ type: "treatment.propose", status: "success", message: "stale client copy" }],
+      { castSlug: "rendr", attributedTo: "Rendr" },
+    )
+    expect(mergeCastAndLeadActionResults(lead, cast)).toEqual(lead)
+  })
+
+  it("falls back to cast-only receipts when Lead returned none", () => {
+    const cast = annotateCastActionResults(
+      [{ type: "draft.create", status: "success", message: "Created draft" }],
+      { castSlug: "cloud", attributedTo: "Cloud" },
+    )
+    expect(mergeCastAndLeadActionResults(undefined, cast)).toEqual(cast)
+    expect(mergeCastAndLeadActionResults([], cast)).toEqual(cast)
   })
 })

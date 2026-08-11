@@ -30,6 +30,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-10: **Cast-consult nested skip narrowed** — Mechanism B nested cast runs only skip `delegate.consult` (loop prevention). `draft.create` / `draft.update` / `mcp.call` execute and surface as Lead-path receipts. Lead-path `mcp.call` NOT_ALLOWED allowlist unchanged.
 - 2026-08-09: **Phrase Gloss** — `buildGlossDiscussPrompt` uses `glossAnchor.selectionText` as primary focus when the user highlighted text before opening Gloss.
 - 2026-08-05: **Decision consult cards** — shared `buildKeeperCardRenderingPrompt`; cast synthesis requires Lock / Open / Next Step keeper-card; cast delegation asks for short prose + card on operational lanes.
 - 2026-08-05: **Cast ≠ domain lead** — `buildDomainLeadCollaborationPrompt` lives in `services/kip/`; only `role === 'Lead'` (not Cast guests) can demote Kip to platform support or affirm domain-lead voice.
