@@ -69,6 +69,8 @@ function getActionLabel(actionType: string): string {
     "moment.keep": "Moment captured",
     "sole.save": "Memory saved",
     "image.generate": "Image generated",
+    "treatment.propose": "Proposed treatment",
+    "delegate.consult": "Consulted",
     "journey.create": "Journey created",
     "journey.update": "Journey updated",
     "path.create": "Path created",
@@ -619,6 +621,10 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   onKeepAsMoment,
 }) => {
   const { type, status, message, errorCode, data } = receipt
+  const attributedTo =
+    typeof data?.attributedTo === "string" && data.attributedTo.trim()
+      ? data.attributedTo.trim()
+      : null
   const draft =
     data?.draft ??
     (typeof data?.draftId === "string"
@@ -727,7 +733,9 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   if (status === "error") {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-        <p className="text-xs font-semibold text-red-800">✗ Failed</p>
+        <p className="text-xs font-semibold text-red-800">
+          ✗ Failed{attributedTo ? ` · ${attributedTo}` : ""}
+        </p>
         <p className="mt-1 text-sm text-red-700">{message}</p>
         {errorCode && <p className="mt-1 text-xs text-red-600">Error code: {errorCode}</p>}
       </div>
@@ -768,6 +776,11 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
         <div className="flex-1">
           <p className="text-xs font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
             ✓ {actionLabel}
+            {attributedTo ? (
+              <span className="font-normal" style={{ color: "var(--theme-ink-tertiary-color)" }}>
+                {" "}· {attributedTo}
+              </span>
+            ) : null}
             {draft?.title && (
               <>
                 :{" "}

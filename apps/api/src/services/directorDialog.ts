@@ -21,6 +21,8 @@ export type DirectorDelegationRequest = {
   instrumentRanClientSide?: boolean;
   /** Cast member reply from the client-side sub-run (may be empty on failure). */
   instrumentReply?: string | null;
+  /** Client-run cast action receipts — merged into Lead actionResults for UI. */
+  actionResults?: Array<Record<string, unknown>>;
 };
 
 export type DirectorDelegationResult = {
@@ -216,6 +218,42 @@ export function extractReplyFromAgentRunResult(result: unknown): string | null {
     return null;
   };
   return visit(result);
+}
+
+/** Nested cast/Lead run envelopes — same action list Lead returns as `data.actions`. */
+export function extractActionResultsFromAgentRunResult(result: unknown): unknown[] {
+  const visit = (node: unknown, depth = 0): unknown[] | null => {
+    if (!node || typeof node !== 'object' || depth > 5) return null;
+    const obj = node as Record<string, unknown>;
+    if (Array.isArray(obj.actions)) return obj.actions;
+    if (obj.data !== undefined) return visit(obj.data, depth + 1);
+    return null;
+  };
+  return visit(result) ?? [];
+}
+
+export function annotateCastActionResults(
+  actions: unknown[],
+  attribution: { castSlug: string; attributedTo: string },
+): Array<Record<string, unknown>> {
+  return actions
+    .filter((action): action is Record<string, unknown> =>
+      Boolean(action) && typeof action === 'object' && !Array.isArray(action),
+    )
+    .map((row) => {
+      const data =
+        row.data && typeof row.data === 'object' && !Array.isArray(row.data)
+          ? (row.data as Record<string, unknown>)
+          : {};
+      return {
+        ...row,
+        data: {
+          ...data,
+          castSlug: attribution.castSlug,
+          attributedTo: attribution.attributedTo,
+        },
+      };
+    });
 }
 
 /** Internal-only — never surface this copy in the Dialog UI. */

@@ -97,7 +97,9 @@ import {
   buildCastConsultationsSynthesisPrompt,
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
+  annotateCastActionResults,
   buildCastMemberDelegationPrompt,
+  extractActionResultsFromAgentRunResult,
   extractReplyFromAgentRunResult,
   resolveCastMemberLabel,
   type DirectorDelegationResult,
@@ -221,6 +223,7 @@ type RunAgentOptions = {
       instrumentSlug: string;
       instrumentReply?: string | null;
       status: 'ok' | 'empty' | 'failed' | 'error';
+      actionResults?: Array<Record<string, unknown>>;
     }>;
   };
   /**
@@ -3392,6 +3395,8 @@ export async function executeAgentActions(
                   domainId: ctx.domainId,
                   domainSlug: ctx.domainSlug,
                   environment: castMemberEnvironment ?? undefined,
+                  // Nested-consult / destructive loops stay blocked; other cast
+                  // actions must still surface as Lead-path receipts.
                   skipActionTypes: new Set([
                     'delegate.consult',
                     'mcp.call',
@@ -3401,12 +3406,22 @@ export async function executeAgentActions(
                 },
               );
               const reply = extractReplyFromAgentRunResult(castMemberRun);
+              const nestedActions = annotateCastActionResults(
+                extractActionResultsFromAgentRunResult(castMemberRun),
+                { castSlug: agentSlug, attributedTo: castMemberLabel },
+              );
               if (reply) {
                 results.push({
                   type: action.type,
                   status: 'success',
                   message: `${castMemberLabel} responded`,
-                  data: { agentId: castMemberAgent.id, agentSlug, label: castMemberLabel, reply },
+                  data: {
+                    agentId: castMemberAgent.id,
+                    agentSlug,
+                    label: castMemberLabel,
+                    reply,
+                    actionResults: nestedActions,
+                  },
                 });
               } else {
                 results.push({
@@ -3414,7 +3429,36 @@ export async function executeAgentActions(
                   status: 'error',
                   message: `${castMemberLabel} returned nothing`,
                   errorCode: 'EMPTY_REPLY',
-                  data: { agentId: castMemberAgent.id, agentSlug, label: castMemberLabel, reply: null },
+                  data: {
+                    agentId: castMemberAgent.id,
+                    agentSlug,
+                    label: castMemberLabel,
+                    reply: null,
+                    actionResults: nestedActions,
+                  },
+                });
+              }
+              // Flatten nested cast receipts onto the Lead actionResults stream
+              // so DialogueMessageList renders them like Lead-emitted actions.
+              for (const nested of nestedActions) {
+                const nestedType = typeof nested.type === 'string' ? nested.type : '';
+                if (!nestedType || nestedType === 'delegate.consult') continue;
+                const nestedStatus =
+                  nested.status === 'success' || nested.status === 'error' || nested.status === 'skipped'
+                    ? nested.status
+                    : 'error';
+                results.push({
+                  type: nestedType,
+                  status: nestedStatus,
+                  message:
+                    typeof nested.message === 'string' && nested.message.trim()
+                      ? nested.message
+                      : `${castMemberLabel} action ${nestedType}`,
+                  ...(typeof nested.errorCode === 'string' ? { errorCode: nested.errorCode } : {}),
+                  data:
+                    nested.data && typeof nested.data === 'object' && !Array.isArray(nested.data)
+                      ? (nested.data as ActionExecutionResult['data'])
+                      : { castSlug: agentSlug, attributedTo: castMemberLabel },
                 });
               }
             } catch (error) {
@@ -4040,6 +4084,8 @@ const AgentRunSchema = z.object({
       /** Legacy key — still accepted. Prefer `castMemberReply`. */
       instrumentReply: z.string().nullable().optional(),
       castMemberReply: z.string().nullable().optional(),
+      /** Client-run cast action receipts — merged into Lead actionResults for UI. */
+      actionResults: z.array(z.record(z.unknown())).optional(),
     })
     .refine((data) => Boolean(data.castMemberSlug ?? data.instrumentSlug), {
       message: 'directorDelegation requires castMemberSlug (or legacy instrumentSlug)',
@@ -4055,6 +4101,8 @@ const AgentRunSchema = z.object({
           instrumentSlug: z.string().min(1),
           instrumentReply: z.string().nullable().optional(),
           status: z.enum(['ok', 'empty', 'failed', 'error']),
+          /** Client-run cast action receipts — merged into Lead actionResults for UI. */
+          actionResults: z.array(z.record(z.unknown())).optional(),
         }),
       ).min(1),
     })
@@ -5627,6 +5675,8 @@ export class KipAgentService {
               status: 'ok' | 'empty' | 'failed';
             }>
           | undefined;
+        /** Server-side director cast receipts — merged into Lead actionResults for UI. */
+        let serverCastActionResults: ActionExecutionResult[] = [];
         let orchestrationMechanism:
           | 'plain_lead'
           | 'cast_consultation_a'
@@ -5641,14 +5691,53 @@ export class KipAgentService {
               const label = await resolveCastMemberLabel(row.instrumentSlug);
               const reply =
                 typeof row.instrumentReply === 'string' ? row.instrumentReply.trim() : '';
+              const castReceipts: ActionExecutionResult[] = [];
+              // Client already executed cast actions — fold receipts into Lead stream.
+              if (Array.isArray(row.actionResults) && row.actionResults.length) {
+                const annotated = annotateCastActionResults(row.actionResults, {
+                  castSlug: row.instrumentSlug,
+                  attributedTo: label,
+                });
+                for (const nested of annotated) {
+                  const nestedType = typeof nested.type === 'string' ? nested.type : '';
+                  if (!nestedType || nestedType === 'delegate.consult') continue;
+                  const nestedStatus =
+                    nested.status === 'success'
+                    || nested.status === 'error'
+                    || nested.status === 'skipped'
+                      ? nested.status
+                      : 'error';
+                  castReceipts.push({
+                    type: nestedType,
+                    status: nestedStatus,
+                    message:
+                      typeof nested.message === 'string' && nested.message.trim()
+                        ? nested.message
+                        : `${label} action ${nestedType}`,
+                    ...(typeof nested.errorCode === 'string'
+                      ? { errorCode: nested.errorCode }
+                      : {}),
+                    data:
+                      nested.data && typeof nested.data === 'object' && !Array.isArray(nested.data)
+                        ? (nested.data as ActionExecutionResult['data'])
+                        : { castSlug: row.instrumentSlug, attributedTo: label },
+                  });
+                }
+              }
               return {
                 slug: row.instrumentSlug,
                 label,
                 reply: reply || null,
                 status: row.status,
+                castReceipts,
               };
             }),
           );
+          for (const row of labeled) {
+            if (row.castReceipts.length) {
+              serverCastActionResults.push(...row.castReceipts);
+            }
+          }
           leadModelInput = buildCastConsultationsSynthesisPrompt({
             userMessage: cc.userMessage,
             directorName: cc.directorDisplayName,
@@ -5717,6 +5806,35 @@ export class KipAgentService {
             const precomputed =
               typeof dd.instrumentReply === 'string' ? dd.instrumentReply.trim() : '';
             castMemberReply = precomputed || null;
+            if (Array.isArray(dd.actionResults) && dd.actionResults.length) {
+              const annotated = annotateCastActionResults(dd.actionResults, {
+                castSlug: dd.instrumentSlug,
+                attributedTo: castMemberLabel,
+              });
+              for (const nested of annotated) {
+                const nestedType = typeof nested.type === 'string' ? nested.type : '';
+                if (!nestedType || nestedType === 'delegate.consult') continue;
+                const nestedStatus =
+                  nested.status === 'success'
+                  || nested.status === 'error'
+                  || nested.status === 'skipped'
+                    ? nested.status
+                    : 'error';
+                serverCastActionResults.push({
+                  type: nestedType,
+                  status: nestedStatus,
+                  message:
+                    typeof nested.message === 'string' && nested.message.trim()
+                      ? nested.message
+                      : `${castMemberLabel} action ${nestedType}`,
+                  ...(typeof nested.errorCode === 'string' ? { errorCode: nested.errorCode } : {}),
+                  data:
+                    nested.data && typeof nested.data === 'object' && !Array.isArray(nested.data)
+                      ? (nested.data as ActionExecutionResult['data'])
+                      : { castSlug: dd.instrumentSlug, attributedTo: castMemberLabel },
+                });
+              }
+            }
             if (!castMemberReply) {
               directorDelegationResult = {
                 attributedTo: castMemberLabel,
@@ -5771,6 +5889,33 @@ export class KipAgentService {
                 throw new Error(errMsg);
               }
               castMemberReply = extractReplyFromAgentRunResult(castMemberRun);
+              const nestedActions = annotateCastActionResults(
+                extractActionResultsFromAgentRunResult(castMemberRun),
+                { castSlug: dd.instrumentSlug, attributedTo: castMemberLabel },
+              );
+              for (const nested of nestedActions) {
+                const nestedType = typeof nested.type === 'string' ? nested.type : '';
+                if (!nestedType || nestedType === 'delegate.consult') continue;
+                const nestedStatus =
+                  nested.status === 'success'
+                  || nested.status === 'error'
+                  || nested.status === 'skipped'
+                    ? nested.status
+                    : 'error';
+                serverCastActionResults.push({
+                  type: nestedType,
+                  status: nestedStatus,
+                  message:
+                    typeof nested.message === 'string' && nested.message.trim()
+                      ? nested.message
+                      : `${castMemberLabel} action ${nestedType}`,
+                  ...(typeof nested.errorCode === 'string' ? { errorCode: nested.errorCode } : {}),
+                  data:
+                    nested.data && typeof nested.data === 'object' && !Array.isArray(nested.data)
+                      ? (nested.data as ActionExecutionResult['data'])
+                      : { castSlug: dd.instrumentSlug, attributedTo: castMemberLabel },
+                });
+              }
               if (!castMemberReply) {
                 console.warn('[director] Cast member returned empty reply', {
                   castMember: dd.instrumentSlug,
@@ -6261,6 +6406,10 @@ export class KipAgentService {
           }
         }
         
+        if (serverCastActionResults.length) {
+          actionResults = [...serverCastActionResults, ...actionResults];
+        }
+
         const dialogIdForChronicle =
           options?.dialogId
           ?? (options?.environment as AgentEnvironmentContext | null | undefined)
@@ -7609,6 +7758,9 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
                 instrumentSlug: row.instrumentSlug,
                 status: row.status,
                 instrumentReply: row.instrumentReply ?? null,
+                ...(Array.isArray(row.actionResults) && row.actionResults.length
+                  ? { actionResults: row.actionResults }
+                  : {}),
               })),
             };
           } else if (validation.data.directorDelegation) {
@@ -7623,6 +7775,9 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
                 directorDisplayName: dd.directorDisplayName,
                 instrumentRanClientSide: dd.castMemberRanClientSide ?? dd.instrumentRanClientSide,
                 instrumentReply: dd.castMemberReply ?? dd.instrumentReply,
+                ...(Array.isArray(dd.actionResults) && dd.actionResults.length
+                  ? { actionResults: dd.actionResults }
+                  : {}),
               } satisfies DirectorDelegationRequest;
             }
           }

@@ -10,8 +10,10 @@ import { extractLinkedCard } from "../components/agent/helpers"
 import { parseGlossThreads } from "@keeper/shared"
 import { apiFetch } from "../lib/api"
 import {
+  annotateCastActionResults,
   buildCastDelegationPrompt,
   buildInstrumentUnavailableDelegationBeat,
+  extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
   isDirectorDelegationFailureContent,
   resolveDirectorCastMember,
@@ -842,10 +844,13 @@ export function useAgentDialog({
               instrumentSlug: string
               instrumentReply?: string | null
               status: "ok" | "empty" | "failed" | "error"
+              actionResults?: unknown[]
             }>
           }
         | undefined
       let skipLeadRunForParticipation = false
+      /** Cast-run action receipts — previously discarded by text-only extract. */
+      const castActionResults: unknown[] = []
 
       if (liveDirectorConfig && consultSlugs.length > 0 && content.trim()) {
         onDirectorPhaseChange?.("cast")
@@ -861,6 +866,7 @@ export function useAgentDialog({
           instrumentSlug: string
           instrumentReply?: string | null
           status: "ok" | "empty" | "failed" | "error"
+          actionResults?: unknown[]
         }> = []
         for (const slug of consultSlugs) {
           const label = liveDirectorConfig.castLabels[slug] ?? slug
@@ -903,11 +909,31 @@ export function useAgentDialog({
               },
             )
             const reply = extractAgentReplyFromRunResult(castResult)
+            const castActions = annotateCastActionResults(
+              extractActionResultsFromRunResult(castResult),
+              { castSlug: slug, attributedTo: label },
+            )
+            if (castActions.length) {
+              castActionResults.push(...castActions)
+              appendThinkingStep(
+                `${label} returned ${castActions.length} action receipt${castActions.length === 1 ? "" : "s"}.`,
+              )
+            }
             if (reply) {
-              consultations.push({ instrumentSlug: slug, instrumentReply: reply, status: "ok" })
+              consultations.push({
+                instrumentSlug: slug,
+                instrumentReply: reply,
+                status: "ok",
+                ...(castActions.length ? { actionResults: castActions } : {}),
+              })
             } else {
               appendThinkingStep(`${label} returned nothing.`)
-              consultations.push({ instrumentSlug: slug, instrumentReply: null, status: "empty" })
+              consultations.push({
+                instrumentSlug: slug,
+                instrumentReply: null,
+                status: "empty",
+                ...(castActions.length ? { actionResults: castActions } : {}),
+              })
             }
           } catch (castErr: unknown) {
             const castMsg = castErr instanceof Error ? castErr.message : "cast member failed"
@@ -992,6 +1018,19 @@ export function useAgentDialog({
               },
             )
             clientCastMemberReply = extractAgentReplyFromRunResult(castResult)
+            const castActions = annotateCastActionResults(
+              extractActionResultsFromRunResult(castResult),
+              {
+                castSlug: castMember,
+                attributedTo: castMemberLabel ?? castMember,
+              },
+            )
+            if (castActions.length) {
+              castActionResults.push(...castActions)
+              appendThinkingStep(
+                `${castMemberLabel} returned ${castActions.length} action receipt${castActions.length === 1 ? "" : "s"}.`,
+              )
+            }
             if (!clientCastMemberReply) {
               appendThinkingStep(`${castMemberLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
             }
@@ -1030,6 +1069,9 @@ export function useAgentDialog({
                   directorDisplayName: liveDirectorConfig.directorDisplayName,
                   instrumentRanClientSide: true,
                   instrumentReply: clientCastMemberReply,
+                  ...(castActionResults.length
+                    ? { actionResults: castActionResults }
+                    : {}),
                 },
               }
             : {}),
@@ -1132,10 +1174,28 @@ export function useAgentDialog({
         }
 
         const {
-          actions: actionsArr,
+          actions: leadActionsArr,
           sessionId: returnedSessionId,
           directorDelegation: extractedDelegation,
         } = extractRunAgentPayload(result)
+
+        // Prefer Lead response actions (server already folds forwarded cast
+        // receipts into that stream for persistence). Fall back to client-held
+        // cast receipts when Lead returned none (e.g. older API / failed merge).
+        const leadHasCastReceipts = Boolean(
+          leadActionsArr?.some((row) => {
+            if (!row || typeof row !== "object") return false
+            const data = (row as { data?: { castSlug?: unknown } }).data
+            return typeof data?.castSlug === "string" && data.castSlug.trim().length > 0
+          }),
+        )
+        const actionsArr = leadActionsArr?.length
+          ? leadHasCastReceipts || !castActionResults.length
+            ? leadActionsArr
+            : [...castActionResults, ...leadActionsArr]
+          : castActionResults.length
+            ? castActionResults
+            : undefined
 
         let directorDelegation = extractedDelegation
         if (

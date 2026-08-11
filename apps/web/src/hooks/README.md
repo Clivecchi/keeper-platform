@@ -76,6 +76,11 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 ### 2026-07-02 — P3.2 Draft–Journey promote fallback
 - **`useDraftPointPromote`**: optional `resolveJourneyId` when Nav has no selected Journey; surfaces error on promote without resolvable target.
 
+### 2026-08-10 — Cast-consult action-result transparency
+- Cast Mechanism A / single-pin runs previously kept only `extractAgentReplyFromRunResult` text; action receipts were dropped.
+- `extractActionResultsFromRunResult` + `annotateCastActionResults` now collect cast receipts; client merges them onto the Lead message with Lead `actionResults`.
+- Receipts are also forwarded via `castConsultations[].actionResults` / `directorDelegation.actionResults` so the server persists them on the Lead message (reload-safe). Nested `delegate.consult` still skips recursive consult / mcp.call / draft.create|update; other nested cast actions flatten onto Lead receipts.
+
 ### 2026-07-02 — P4.1 paste transcript + P2.3 Cloud routing visibility
 - `sendMessage` uses `displayContent` when patching session messages (supporting paste no longer appears raw in user bubble).
 - `extractRunAgentPayload` accepts `directorDelegation.status` of `failed` | `empty`; attaches `buildInstrumentUnavailableDelegationBeat` when Cloud/Rendr was targeted but API returned no beat.

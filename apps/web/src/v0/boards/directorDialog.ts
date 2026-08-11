@@ -267,3 +267,47 @@ export function extractAgentReplyFromRunResult(result: unknown): string | null {
 
   return readResponseString(root.response)
 }
+
+/**
+ * Pull executed action receipts from a cast/Lead runAgent response envelope.
+ * Cast-consult used to keep only extractAgentReplyFromRunResult — this restores
+ * the same actionResults Lead attaches so receipts reach the Dialog UI.
+ */
+export function extractActionResultsFromRunResult(result: unknown): unknown[] {
+  if (!result || typeof result !== "object") return []
+  const root = result as Record<string, unknown>
+  const layer1 = root.data
+  if (layer1 && typeof layer1 === "object") {
+    const l1 = layer1 as Record<string, unknown>
+    const layer2 = l1.data
+    if (layer2 && typeof layer2 === "object") {
+      const nested = (layer2 as Record<string, unknown>).actions
+      if (Array.isArray(nested)) return nested
+    }
+    if (Array.isArray(l1.actions)) return l1.actions
+  }
+  return Array.isArray(root.actions) ? root.actions : []
+}
+
+/** Tag cast-run receipts so UI can attribute them without changing type/status. */
+export function annotateCastActionResults(
+  actions: unknown[],
+  attribution: { castSlug: string; attributedTo: string },
+): unknown[] {
+  return actions.map((action) => {
+    if (!action || typeof action !== "object" || Array.isArray(action)) return action
+    const row = action as Record<string, unknown>
+    const data =
+      row.data && typeof row.data === "object" && !Array.isArray(row.data)
+        ? (row.data as Record<string, unknown>)
+        : {}
+    return {
+      ...row,
+      data: {
+        ...data,
+        castSlug: attribution.castSlug,
+        attributedTo: attribution.attributedTo,
+      },
+    }
+  })
+}

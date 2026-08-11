@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
+  annotateCastActionResults,
+  extractActionResultsFromRunResult,
+  extractAgentReplyFromRunResult,
   isEchoInternalPrompt,
   sanitizeUserMessageContent,
 } from "./directorDialog"
@@ -43,5 +46,46 @@ describe("sanitizeUserMessageContent — Echo / collaboration scaffolds", () => 
       "Answer in first person as Cloud.",
     ].join("\n")
     expect(sanitizeUserMessageContent(raw)).toBe("Please open the PR.")
+  })
+})
+
+describe("cast-consult action-result extract", () => {
+  it("extracts actions from nested runAgent envelope (not just reply text)", () => {
+    const result = {
+      success: true,
+      data: {
+        data: {
+          response: "I proposed a warmer Treatment.",
+          actions: [
+            {
+              type: "treatment.propose",
+              status: "success",
+              message: "Proposed Treatment — tap Apply to update Chronicle",
+              data: { proposal: { name: "Warm" } },
+            },
+          ],
+        },
+      },
+    }
+    expect(extractAgentReplyFromRunResult(result)).toBe("I proposed a warmer Treatment.")
+    expect(extractActionResultsFromRunResult(result)).toHaveLength(1)
+    expect((extractActionResultsFromRunResult(result)[0] as { type: string }).type).toBe(
+      "treatment.propose",
+    )
+  })
+
+  it("annotates cast receipts with attribution for compact UI", () => {
+    const annotated = annotateCastActionResults(
+      [{ type: "draft.update.propose", status: "error", message: "Point content is required" }],
+      { castSlug: "rendr", attributedTo: "Rendr" },
+    )
+    expect(annotated).toEqual([
+      {
+        type: "draft.update.propose",
+        status: "error",
+        message: "Point content is required",
+        data: { castSlug: "rendr", attributedTo: "Rendr" },
+      },
+    ])
   })
 })

@@ -804,6 +804,8 @@ export class KipApi {
         directorDisplayName: string
         instrumentRanClientSide?: boolean
         instrumentReply?: string | null
+        /** Cast-run action receipts for Dialog transparency (merged onto Lead message). */
+        actionResults?: unknown[]
       }
       /** Domain/Realm multi-cast consultation — real replies only; empty is honest. */
       castConsultations?: {
@@ -813,6 +815,8 @@ export class KipApi {
           instrumentSlug: string
           instrumentReply?: string | null
           status: 'ok' | 'empty' | 'failed' | 'error'
+          /** Cast-run action receipts for Dialog transparency (merged onto Lead message). */
+          actionResults?: unknown[]
         }>
       }
       /**
