@@ -73,6 +73,63 @@ function readExistingTreatment(raw: unknown): NormalizedDomainTreatment {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Coerce common model payload mistakes for treatment.propose.
+ * Models often emit flat { name, palette, font } instead of { treatment: {...} },
+ * or nest under proposal / values.
+ */
+export function coerceTreatmentProposePayload(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...payload };
+
+  if (isRecord(out.treatment)) {
+    return out;
+  }
+
+  const nestedCandidates = [out.proposal, out.values, out.treatmentProposal, out.patch];
+  for (const candidate of nestedCandidates) {
+    if (!isRecord(candidate)) continue;
+    if (isRecord(candidate.treatment)) {
+      out.treatment = candidate.treatment;
+      if (typeof out.rationale !== 'string' && typeof candidate.rationale === 'string') {
+        out.rationale = candidate.rationale;
+      }
+      return out;
+    }
+    if (
+      typeof candidate.name === 'string'
+      || isRecord(candidate.palette)
+      || isRecord(candidate.font)
+    ) {
+      out.treatment = candidate;
+      if (typeof out.rationale !== 'string' && typeof candidate.rationale === 'string') {
+        out.rationale = candidate.rationale;
+      }
+      return out;
+    }
+  }
+
+  // Flat payload: treatment fields at top level.
+  if (
+    typeof out.name === 'string'
+    || isRecord(out.palette)
+    || isRecord(out.font)
+  ) {
+    const treatment: Record<string, unknown> = {};
+    if (typeof out.name === 'string') treatment.name = out.name;
+    if (isRecord(out.palette)) treatment.palette = out.palette;
+    if (isRecord(out.font)) treatment.font = out.font;
+    out.treatment = treatment;
+  }
+
+  return out;
+}
+
 /** Merge a partial proposal onto existing Treatment and normalize all fields. */
 export function normalizeTreatmentProposal(
   existing: unknown,

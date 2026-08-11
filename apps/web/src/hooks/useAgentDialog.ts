@@ -862,98 +862,102 @@ export function useAgentDialog({
           dialogId: activeDialogId ?? null,
           agentDisplayName,
         })
-        const consultations: Array<{
+        // Run cast consults in parallel — sequential Cloud→Rendr→Lead stacks
+        // provider timeouts (~45s each) and starves later members.
+        appendThinkingStep(
+          consultSlugs.length === 1
+            ? `Consulting ${liveDirectorConfig.castLabels[consultSlugs[0]] ?? consultSlugs[0]}…`
+            : `Consulting ${consultSlugs.length} cast members in parallel…`,
+        )
+        type ConsultationRow = {
           instrumentSlug: string
-          instrumentReply?: string | null
+          instrumentReply: string | null
           status: "ok" | "empty" | "failed" | "error"
           actionResults?: unknown[]
-        }> = []
-        for (const slug of consultSlugs) {
-          const label = liveDirectorConfig.castLabels[slug] ?? slug
-          const participation = resolveCastParticipation(liveDirectorConfig, slug)
-          if (participation === "silent") {
-            appendThinkingStep(`${label} is silent — skipped.`)
-            consultations.push({
-              instrumentSlug: slug,
-              instrumentReply: null,
-              status: "empty",
-            })
-            continue
-          }
-          if (participation === "support_only") {
-            appendThinkingStep(`${label} is support-only — not consulted as a Dialog voice.`)
-            consultations.push({
-              instrumentSlug: slug,
-              instrumentReply: null,
-              status: "empty",
-            })
-            continue
-          }
-          appendThinkingStep(`Consulting ${label}…`)
-          try {
-            const castAgent = await KipApi.getAgentBySlug(slug)
-            const castPrompt = buildCastDelegationPrompt({
-              userMessage: content,
-              instrumentLabel: label,
-              directorName: liveDirectorConfig.directorDisplayName,
-            })
-            const castResult = await KipApi.runAgent(
-              castAgent.id,
-              castPrompt,
-              userId ?? undefined,
-              undefined,
-              {
-                ...runOpts,
-                // Cast consults must not mint orphan sessions that pollute Realm feed.
-                ephemeral: true,
-              },
-            )
-            const reply = extractAgentReplyFromRunResult(castResult)
-            const castActions = annotateCastActionResults(
-              extractActionResultsFromRunResult(castResult),
-              { castSlug: slug, attributedTo: label },
-            )
-            if (castActions.length) {
-              castActionResults.push(...castActions)
-              appendThinkingStep(
-                `${label} returned ${castActions.length} action receipt${castActions.length === 1 ? "" : "s"}.`,
-              )
+        }
+        const consultationRows: ConsultationRow[] = await Promise.all(
+          consultSlugs.map(async (slug): Promise<ConsultationRow> => {
+            const label = liveDirectorConfig.castLabels[slug] ?? slug
+            const participation = resolveCastParticipation(liveDirectorConfig, slug)
+            if (participation === "silent") {
+              appendThinkingStep(`${label} is silent — skipped.`)
+              return { instrumentSlug: slug, instrumentReply: null, status: "empty" }
             }
-            if (reply) {
-              consultations.push({
-                instrumentSlug: slug,
-                instrumentReply: reply,
-                status: "ok",
-                ...(castActions.length ? { actionResults: castActions } : {}),
+            if (participation === "support_only") {
+              appendThinkingStep(`${label} is support-only — not consulted as a Dialog voice.`)
+              return { instrumentSlug: slug, instrumentReply: null, status: "empty" }
+            }
+            try {
+              const castAgent = await KipApi.getAgentBySlug(slug)
+              const castPrompt = buildCastDelegationPrompt({
+                userMessage: content,
+                instrumentLabel: label,
+                directorName: liveDirectorConfig.directorDisplayName,
               })
-            } else {
+              const castResult = await KipApi.runAgent(
+                castAgent.id,
+                castPrompt,
+                userId ?? undefined,
+                undefined,
+                {
+                  ...runOpts,
+                  // Cast consults must not mint orphan sessions that pollute Realm feed.
+                  ephemeral: true,
+                },
+              )
+              const reply = extractAgentReplyFromRunResult(castResult)
+              const castActions = annotateCastActionResults(
+                extractActionResultsFromRunResult(castResult),
+                { castSlug: slug, attributedTo: label },
+              )
+              if (castActions.length) {
+                appendThinkingStep(
+                  `${label} returned ${castActions.length} action receipt${castActions.length === 1 ? "" : "s"}.`,
+                )
+              }
+              if (reply) {
+                return {
+                  instrumentSlug: slug,
+                  instrumentReply: reply,
+                  status: "ok",
+                  ...(castActions.length ? { actionResults: castActions } : {}),
+                }
+              }
               appendThinkingStep(`${label} returned nothing.`)
-              consultations.push({
+              return {
                 instrumentSlug: slug,
                 instrumentReply: null,
                 status: "empty",
                 ...(castActions.length ? { actionResults: castActions } : {}),
-              })
-            }
-          } catch (castErr: unknown) {
-            const castMsg = castErr instanceof Error ? castErr.message : "cast member failed"
-            const isNetworkFail =
-              /failed to fetch|could not reach the keeper api|network_unreachable|network request failed/i.test(
-                castMsg,
+              }
+            } catch (castErr: unknown) {
+              const castMsg = castErr instanceof Error ? castErr.message : "cast member failed"
+              const isNetworkFail =
+                /failed to fetch|could not reach the keeper api|network_unreachable|network request failed/i.test(
+                  castMsg,
+                )
+              const isTimeout = /timed out/i.test(castMsg)
+              console.warn("[director] cast consult failed", { slug, castMsg })
+              appendThinkingStep(
+                isTimeout
+                  ? `${label} — timed out waiting for the AI provider.`
+                  : isNetworkFail
+                    ? `${label} — couldn't reach (network).`
+                    : `${label} — nothing back.`,
               )
-            console.warn("[director] cast consult failed", { slug, castMsg })
-            appendThinkingStep(
-              isNetworkFail
-                ? `${label} — couldn't reach (network).`
-                : `${label} — nothing back.`,
-            )
-            consultations.push({ instrumentSlug: slug, instrumentReply: null, status: "failed" })
+              return { instrumentSlug: slug, instrumentReply: null, status: "failed" }
+            }
+          }),
+        )
+        for (const row of consultationRows) {
+          if (row.actionResults?.length) {
+            castActionResults.push(...row.actionResults)
           }
         }
         castConsultations = {
           userMessage: content,
           directorDisplayName: liveDirectorConfig.directorDisplayName,
-          consultations,
+          consultations: consultationRows,
         }
       } else if (liveDirectorConfig && castMember && content.trim()) {
         const participation = resolveCastParticipation(liveDirectorConfig, castMember)

@@ -80,6 +80,8 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - Cast Mechanism A / single-pin runs previously kept only `extractAgentReplyFromRunResult` text; action receipts were dropped.
 - `extractActionResultsFromRunResult` + `annotateCastActionResults` now collect cast receipts; client merges them onto the Lead message with Lead `actionResults`.
 - Receipts are also forwarded via `castConsultations[].actionResults` / `directorDelegation.actionResults` so the server persists them on the Lead message (reload-safe). Nested `delegate.consult` still skips recursive consult / mcp.call / draft.create|update; other nested cast actions flatten onto Lead receipts.
+- Mechanism A cast consults run **in parallel** (was sequential) so multi-cue turns do not stack provider timeouts.
+- `treatment.propose` coerces flat `{ name, palette, font }` payloads into `{ treatment: … }` before validation.
 
 ### 2026-07-02 — P4.1 paste transcript + P2.3 Cloud routing visibility
 - `sendMessage` uses `displayContent` when patching session messages (supporting paste no longer appears raw in user bubble).

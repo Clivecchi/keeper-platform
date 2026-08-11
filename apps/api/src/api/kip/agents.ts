@@ -132,6 +132,7 @@ import {
 } from '../../policy/policyPack.js';
 import {
   buildTreatmentProposalSummary,
+  coerceTreatmentProposePayload,
   normalizeTreatmentProposal,
 } from '../../services/treatment/normalizeTreatmentProposal.js';
 import { RENDR_IDENTITY_LOCK } from '../../services/rendr/rendrAgentConfig.js';
@@ -1396,6 +1397,16 @@ export async function executeAgentActions(
       const out: Record<string, unknown> = { ...p };
       if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
       return { type: action.type, payload: out };
+    }
+    if (
+      action.type === 'treatment.propose'
+      && action.payload
+      && typeof action.payload === 'object'
+    ) {
+      return {
+        type: action.type,
+        payload: coerceTreatmentProposePayload(action.payload as Record<string, unknown>),
+      };
     }
     if (action.type !== 'draft.create' || !action.payload || typeof action.payload !== 'object') return action;
     const p = action.payload as Record<string, unknown>;

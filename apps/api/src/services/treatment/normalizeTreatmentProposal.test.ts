@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildTreatmentProposalSummary,
+  coerceTreatmentProposePayload,
   normalizeTreatmentProposal,
 } from './normalizeTreatmentProposal.js';
 
@@ -43,5 +44,29 @@ describe('normalizeTreatmentProposal', () => {
 
     expect(summary).toContain('Cool Studio');
     expect(summary).toContain('#f0f4f8');
+  });
+});
+
+describe('coerceTreatmentProposePayload', () => {
+  it('wraps flat name/palette/font into treatment', () => {
+    const coerced = coerceTreatmentProposePayload({
+      rationale: 'warmer',
+      name: 'Parchment',
+      palette: { background: '#f5f0e8', accent: '#2d6a7f' },
+      font: { family: 'Georgia, serif' },
+    });
+    expect(coerced.rationale).toBe('warmer');
+    expect(coerced.treatment).toEqual({
+      name: 'Parchment',
+      palette: { background: '#f5f0e8', accent: '#2d6a7f' },
+      font: { family: 'Georgia, serif' },
+    });
+  });
+
+  it('leaves nested treatment untouched', () => {
+    const nested = {
+      treatment: { name: 'Keep', palette: { background: '#111111' } },
+    };
+    expect(coerceTreatmentProposePayload(nested)).toEqual(nested);
   });
 });
