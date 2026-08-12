@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-11 — useDraftPointAccept onAccepted
+- Optional `onAccepted(draftId, pointId)` after successful Accept — used by DocumentShell/DomainRealmStory to reload Chronicle Document without leaving Dialog scope.
+
 ### 2026-08-10 — cast-consult receipt merge helper
 - `useAgentDialog` uses `mergeCastAndLeadActionResults` so cast-consult action receipts always attach to the Lead turn when the server fold is missing (Domain/IDE transparency).
 

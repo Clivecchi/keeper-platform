@@ -14,6 +14,13 @@ export interface PointViewProps {
   onGloss?: () => void
   /** @deprecated Use onGloss */
   onDiscuss?: () => void
+  /**
+   * Human Accept for manuscript Points on DocumentShell.
+   * Same `draft.point.accept` path as Cdraft / `useDraftPointAccept`.
+   */
+  onAccept?: () => void
+  /** True while Accept is in flight for this Point. */
+  isAccepting?: boolean
   /** Start expanded. Default false — title + short blurb only. */
   defaultExpanded?: boolean
   /** When true, Point stays collapsed (Document Gloss is the work surface). */
@@ -109,6 +116,8 @@ export function PointView({
   document,
   onGloss,
   onDiscuss,
+  onAccept,
+  isAccepting = false,
   defaultExpanded = false,
   forceCollapsed = false,
   glossActive = false,
@@ -320,8 +329,24 @@ export function PointView({
 
       {castOpen && castNotes.length > 0 ? <CastNotesPanel notes={castNotes} /> : null}
 
-      {/* Single action rail — no competing Open + Gloss text pair */}
+      {/* Single action rail — Accept + More/Voices; Gloss stays trailing */}
       <div className="document-point-actions flex flex-wrap items-center gap-2 pt-0.5">
+        {onAccept ? (
+          <button
+            type="button"
+            className="rounded-md px-2.5 py-1 text-[12px] font-semibold"
+            style={{
+              color: "hsl(var(--theme-status-success))",
+              background: "hsl(var(--theme-status-success) / 0.12)",
+              border: "1px solid hsl(var(--theme-status-success) / 0.35)",
+            }}
+            onClick={onAccept}
+            disabled={isAccepting}
+            aria-busy={isAccepting}
+          >
+            {isAccepting ? "Accepting…" : "Accept"}
+          </button>
+        ) : null}
         {!forceCollapsed ? (
           <button
             type="button"

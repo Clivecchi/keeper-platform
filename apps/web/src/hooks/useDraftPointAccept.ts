@@ -12,6 +12,8 @@ export interface UseDraftPointAcceptOptions {
   onDraftSelect?: (draftId: string) => void
   bumpDraftPresence?: () => void
   bumpDraftNav?: () => void
+  /** After a successful accept — e.g. reload Chronicle Document without leaving Dialog scope. */
+  onAccepted?: (draftId: string, pointId: string) => void
   setMessages?: React.Dispatch<React.SetStateAction<AgentDialogueMessage[]>>
   setError?: (message: string | null) => void
 }
@@ -28,6 +30,7 @@ export function useDraftPointAccept({
   onDraftSelect,
   bumpDraftPresence,
   bumpDraftNav,
+  onAccepted,
   setMessages,
   setError,
 }: UseDraftPointAcceptOptions): UseDraftPointAcceptResult {
@@ -54,6 +57,7 @@ export function useDraftPointAccept({
           onDraftSelect?.(draftId)
           bumpDraftPresence?.()
           bumpDraftNav?.()
+          onAccepted?.(draftId, pointId)
         })
         .catch((err: unknown) => {
           const message =
@@ -72,6 +76,7 @@ export function useDraftPointAccept({
       onDraftSelect,
       bumpDraftPresence,
       bumpDraftNav,
+      onAccepted,
       setMessages,
       setError,
     ],

@@ -61,6 +61,15 @@ export interface DocumentShellProps {
   onOpenComponentDraft?: (draftId: string) => void
   onGlossPoint?: (point: Point, index: number) => void
   /**
+   * Human Accept for manuscript Points — same `draft.point.accept` API as Cdraft.
+   * Draft/point ids come from `point.gloss.anchor` (entityId / nodeId).
+   */
+  onAcceptPoint?: (draftId: string, pointId: string) => void
+  acceptingPointId?: string | null
+  acceptedPointIds?: ReadonlySet<string>
+  /** Accept / Document action errors (human Chronicle control). */
+  acceptError?: string | null
+  /**
    * When set, Point Gloss opens an inline polish panel on the Point (Document Gloss).
    * Prefer this over Dialog-only discuss for Chronicle polish.
    */
@@ -71,6 +80,28 @@ export interface DocumentShellProps {
   breadcrumb?: string[] | null
   emptyState?: React.ReactNode
   className?: string
+}
+
+function isPointAccepted(
+  point: Point,
+  pointId: string | undefined,
+  acceptedPointIds?: ReadonlySet<string>,
+): boolean {
+  if (pointId && acceptedPointIds?.has(pointId)) return true
+  const label = point.status?.label?.trim().toLowerCase() ?? ""
+  return label === "accepted"
+}
+
+function resolveAcceptTarget(point: Point, pointId?: string): {
+  draftId: string
+  pointId: string
+} | null {
+  const anchor = point.gloss?.anchor
+  if (!anchor || anchor.entityKind !== "draft") return null
+  const draftId = anchor.entityId?.trim()
+  const nodeId = anchor.nodeId?.trim() || pointId?.trim()
+  if (!draftId || !nodeId) return null
+  return { draftId, pointId: nodeId }
 }
 
 type PathAccent = "progress" | "issue" | "development" | "cast" | "neutral"
@@ -199,6 +230,9 @@ function PointFrame({
   point,
   pointId,
   onGloss,
+  onAcceptPoint,
+  acceptingPointId,
+  acceptedPointIds,
   glossContext,
   accent,
   glossThread,
@@ -206,12 +240,21 @@ function PointFrame({
   point: Point
   pointId?: string
   onGloss?: () => void
+  onAcceptPoint?: (draftId: string, pointId: string) => void
+  acceptingPointId?: string | null
+  acceptedPointIds?: ReadonlySet<string>
   glossContext?: DocumentGlossContext | null
   accent: PathAccent
   glossThread?: DocumentGlossThreadInfo | null
 }) {
   const [glossOpen, setGlossOpen] = React.useState(false)
   const canInlineGloss = Boolean(glossContext && point.gloss?.anchor)
+  const acceptTarget = resolveAcceptTarget(point, pointId)
+  const accepted = isPointAccepted(point, acceptTarget?.pointId ?? pointId, acceptedPointIds)
+  const canAccept = Boolean(onAcceptPoint && acceptTarget && !accepted)
+  const isAccepting = Boolean(
+    acceptTarget && acceptingPointId && acceptingPointId === acceptTarget.pointId,
+  )
 
   const handleGloss = React.useCallback(() => {
     if (canInlineGloss) {
@@ -223,6 +266,17 @@ function PointFrame({
     }
     onGloss?.()
   }, [canInlineGloss, onGloss, pointId])
+
+  const displayPoint = React.useMemo((): Point => {
+    if (!accepted || point.status?.label?.toLowerCase() === "accepted") return point
+    return {
+      ...point,
+      status: {
+        label: "accepted",
+        tone: "active",
+      },
+    }
+  }, [accepted, point])
 
   return (
     <div
@@ -257,8 +311,14 @@ function PointFrame({
       />
       <div className="min-w-0 flex-1 px-3.5 py-3">
         <PointView
-          point={point}
+          point={displayPoint}
           onGloss={canInlineGloss || onGloss ? handleGloss : undefined}
+          onAccept={
+            canAccept && acceptTarget
+              ? () => onAcceptPoint?.(acceptTarget.draftId, acceptTarget.pointId)
+              : undefined
+          }
+          isAccepting={isAccepting}
           defaultExpanded={false}
           forceCollapsed={glossOpen}
           glossActive={glossOpen}
@@ -506,6 +566,10 @@ export function DocumentShell({
   components,
   onOpenComponentDraft,
   onGlossPoint,
+  onAcceptPoint,
+  acceptingPointId,
+  acceptedPointIds,
+  acceptError,
   glossContext,
   scrollToPointId,
   breadcrumb,
@@ -695,6 +759,12 @@ export function DocumentShell({
 
       {points.length === 0 ? emptyState : null}
 
+      {acceptError ? (
+        <p className="px-4 pb-1 text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
+          {acceptError}
+        </p>
+      ) : null}
+
       <div className="document-shell-paths flex flex-col gap-3 px-4 pb-6 pt-1">
         {groups.map((group) => {
           const accent = resolvePathAccent(group.path?.title)
@@ -749,6 +819,9 @@ export function DocumentShell({
                       accent={accent}
                       glossContext={glossContext}
                       glossThread={glossThread}
+                      onAcceptPoint={onAcceptPoint}
+                      acceptingPointId={acceptingPointId}
+                      acceptedPointIds={acceptedPointIds}
                       onGloss={
                         onGlossPoint && point.gloss?.anchor
                           ? () => onGlossPoint(point, index)

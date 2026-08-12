@@ -25,6 +25,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-11 — DocumentShell Point Accept (Phase 3)
+- `PointView` / `DocumentShell` — human **Accept** on manuscript Points via `onAcceptPoint` → same `POST …/points/:pointId/accept` as Cdraft (`useDraftPointAccept`). Stays on Document (no Nav switch). Agents already invoke `draft.point.accept` via chat — this surface is human Chronicle only.
+
 ### 2026-08-11 — Quieter Document drafts strip
 - `DocumentShell` component list: light rows (no bordered cards), label **Drafts in this Document**.
 

@@ -30,6 +30,7 @@ import {
 } from "./dialogDocumentCache"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { KipApi } from "../../lib/kipApi"
+import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
 import { ChronicleHistoryPanel } from "../presence/chronicleDocument/ChronicleHistoryPanel"
 
 export interface DomainRealmStoryProps {
@@ -150,6 +151,27 @@ export function DomainRealmStory({
     invalidateDialogDocument(domainId, scope.dialogId)
     setDocumentEpoch((n) => n + 1)
   }, [domainId, scope])
+
+  const [acceptError, setAcceptError] = React.useState<string | null>(null)
+  const handlePointAccepted = React.useCallback(() => {
+    refreshDocumentAfterMutation()
+  }, [refreshDocumentAfterMutation])
+  const {
+    acceptedDraftPointIds,
+    acceptingDraftPointId,
+    acceptDraftPoint,
+  } = useDraftPointAccept({
+    domainId,
+    // Stay on Document — do not switch Nav to the manuscript draft.
+    bumpDraftPresence: boardCtx?.actions.bumpDraftPresence,
+    bumpDraftNav: boardCtx?.actions.bumpDraftNav,
+    onAccepted: handlePointAccepted,
+    setError: setAcceptError,
+  })
+
+  React.useEffect(() => {
+    setAcceptError(null)
+  }, [scope])
 
   const [glossEpoch, setGlossEpoch] = React.useState(0)
   const refreshGlossActivity = React.useCallback(() => {
@@ -350,6 +372,12 @@ export function DomainRealmStory({
           scope.status === "dialog" ? handleOpenComponentDraft : undefined
         }
         onGlossPoint={handleGlossPoint}
+        onAcceptPoint={
+          scope.status === "dialog" ? acceptDraftPoint : undefined
+        }
+        acceptingPointId={acceptingDraftPointId}
+        acceptedPointIds={acceptedDraftPointIds}
+        acceptError={acceptError}
         glossContext={
           domainId && scope.status === "dialog" && scope.dialogId
             ? {
