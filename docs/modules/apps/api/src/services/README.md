@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-11 — SOLE vs DRAFT distinction in SoleMemoryService
+- `SoleMemoryService.getSoleMemoryLoopInstruction` — sole.save is agent memory only; must not substitute for draft.create on shaped work / ambiguous "hold onto" language.
+
 ### 2026-08-05 — AI provider chat timeouts raised
 - `ModelProviderService.ts` — OpenAI/Anthropic/Together chat AbortController budgets raised (90s / 110s / 90s, env-overridable) so long Sonnet turns stop failing at 30–60s; abort detection covers SDK-wrapped abort errors; Anthropic clears timeout in `finally`.
 

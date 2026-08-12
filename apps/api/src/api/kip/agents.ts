@@ -260,6 +260,25 @@ function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unk
   return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}`;
 }
 
+/**
+ * sole.save (agent memory) and draft.create (human working artifact) are different
+ * keep paths. Shared so Cockpit compose + live callAIModel stay aligned.
+ */
+function buildSoleVsDraftDistinctionPrompt(): string {
+  return [
+    'SOLE vs DRAFT — two different keep paths. Never interchange them.',
+    '- sole.save = agent MEMORY (SOLE). What YOU should recall next session: corrections to your behavior, preferences, durable facts about how this person or domain works. Cue words: remember, don\'t forget, keep in mind, for next time, correct yourself. High bar: "Will this matter to how I assist in 30 days?"',
+    '- draft.create / draft.update = human WORKING ARTIFACT. Specs, proposals, outlines, documents the person will shape in Chronicle / Document. Cue words: draft, document, spec, proposal, write this up, capture this as a draft, elevate this, put this in a draft.',
+    '- Do NOT use sole.save for shaped work-product just because the user said "hold onto", "save", or "keep this".',
+    '- Do NOT use draft.create for agent memory / corrections / preferences about how you should behave.',
+    'Ambiguous keep language ("hold onto this", "save this", "keep this", "don\'t lose this"):',
+    '- If the content is about YOU (how to behave, a preference, a correction) → sole.save',
+    '- If the content is shaped work (plan, spec, proposal, outline, Document-bound material, session elevation) → draft.create (or draft.update on an existing draft)',
+    '- If still unclear → ask one clarifying question: draft (working artifact) or SOLE memory (you remember next time)? Do not default to sole.save.',
+    'Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
+  ].join('\n');
+}
+
 class AgentExecutionError extends Error {
   code: AgentErrorCode;
   details?: Record<string, unknown>;
@@ -4810,13 +4829,11 @@ export class KipAgentService {
           'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
           '',
-          'SOLE vs DRAFTS — use the right tool:',
-          '- sole.save: for insights, learnings, corrections, capability clarifications. High bar: "Will this matter in 30 days?"',
-          '- draft.create/update: for durable documents, specs, and proposals only when the user explicitly asks to create, save, update, or work in a draft/document. Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
+          buildSoleVsDraftDistinctionPrompt(),
           '',
           'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
-          '- Call draft.create only when the user explicitly asks for a draft/document/spec/proposal to be created or saved. If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to save/create a draft, respond in text first and ask whether they want a draft.',
-          '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
+          '- Call draft.create when the user asks for a draft/document/spec/proposal, or when ambiguous keep language clearly points at shaped work (see SOLE vs DRAFT above). If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to keep anything yet, respond in text first and ask whether they want a draft.',
+          '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. Never give a minimal response when the user wants a full explanation. Use sole.save only if they ask you to remember a capability/correction for next time — never as a stand-in for creating a draft.',
           '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
           '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
           buildDraftUpdateInstruction(agent),
@@ -4849,7 +4866,7 @@ export class KipAgentService {
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
           draftRules?.autoDraft?.enabled
             ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
-            : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
+            : 'If the user asks for a new draft (or ambiguous keep language resolves to shaped work), include draft.create (or draft.update) with a short confirmation message.',
         ]
           .filter(Boolean)
           .join('\n'),
@@ -4970,7 +4987,7 @@ export class KipAgentService {
                 .map((c) => `- ${c.topic ? `[${c.topic}] ` : ''}${c.content.slice(0, 100)}`)
                 .join('\n');
               systemParts.push(
-                `Relevant SOLE memories (keeper-sharpened):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something, use the sole.save action.`,
+                `Relevant SOLE memories (keeper-sharpened):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something about how you should assist, use sole.save. When they want a working draft/document/spec, use draft.create — never sole.save for that.`,
               );
             }
           }
@@ -5301,13 +5318,11 @@ export class KipAgentService {
             'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             '',
-            'SOLE vs DRAFTS — use the right tool:',
-            '- sole.save: for insights, learnings, corrections, capability clarifications, anything you want to remember. Use it when the user corrects you or you learn something important. High bar: "Will this matter in 30 days?"',
-          '- draft.create/update: for durable documents, specs, and proposals only when the user explicitly asks to create, save, update, or work in a draft/document. Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
+            buildSoleVsDraftDistinctionPrompt(),
             '',
             'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
-          '- Call draft.create only when the user explicitly asks for a draft/document/spec/proposal to be created or saved. If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to save/create a draft, respond in text first and ask whether they want a draft.',
-            '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
+            '- Call draft.create when the user asks for a draft/document/spec/proposal, or when ambiguous keep language clearly points at shaped work (see SOLE vs DRAFT above). If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to keep anything yet, respond in text first and ask whether they want a draft.',
+            '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. Never give a minimal response when the user wants a full explanation. Use sole.save only if they ask you to remember a capability/correction for next time — never as a stand-in for creating a draft.',
             '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
             '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
             buildDraftUpdateInstruction(agent),
@@ -5332,13 +5347,13 @@ export class KipAgentService {
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
-          'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
+            'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
             draftRules?.autoDraft?.enabled
               ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
-              : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
+              : 'If the user asks for a new draft (or ambiguous keep language resolves to shaped work), include draft.create (or draft.update) with a short confirmation message.',
             mcpToolPrompt,
               ]),
           ]
@@ -5443,7 +5458,7 @@ export class KipAgentService {
                   .join('\n');
                 messages.push({
                   role: 'system',
-                  content: `Relevant SOLE memories (keeper-sharpened):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something, use the sole.save action.`,
+                  content: `Relevant SOLE memories (keeper-sharpened):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something about how you should assist, use sole.save. When they want a working draft/document/spec, use draft.create — never sole.save for that.`,
                 });
               }
             }
@@ -5461,7 +5476,7 @@ export class KipAgentService {
                 .join('\n');
               messages.push({
                 role: 'system',
-                content: `Relevant SOLE memories (domain anchor):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something or you learn something important, use the sole.save action.`,
+                  content: `Relevant SOLE memories (domain anchor):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something about how you should assist, use sole.save. When they want a working draft/document/spec, use draft.create — never sole.save for that.`,
               });
             }
           }

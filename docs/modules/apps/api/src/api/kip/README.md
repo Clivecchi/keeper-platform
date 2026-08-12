@@ -30,6 +30,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-11: **SOLE vs DRAFT distinction (Phase 1B)** — `buildSoleVsDraftDistinctionPrompt()` in both Lead prompt paths: `sole.save` = agent memory; `draft.create` = human working artifact. Ambiguous "hold onto / save / keep" must not default to `sole.save`. Aligned `SoleMemoryService` + SOLE memory injection lines.
 - 2026-08-11: **treatment.propose coerce hardened** — accepts flat background/accent/fontFamily, JSON-string `treatment`, and theme/look nesting; Rendr prompt includes a concrete payload example. Empty treatment still fails with a clearer VALIDATION_ERROR receipt.
 - 2026-08-11: **draft.create title required** — stopped inventing `title: "Draft"` before schema validation / in the executor. Omitting title now returns a visible `VALIDATION_ERROR` receipt (needed for cast-consult failure transparency).
 - 2026-08-10: **Cast-consult nested skip narrowed** — Mechanism B nested cast runs only skip `delegate.consult` (loop prevention). `draft.create` / `draft.update` / `mcp.call` execute and surface as Lead-path receipts. Lead-path `mcp.call` NOT_ALLOWED allowlist unchanged.
