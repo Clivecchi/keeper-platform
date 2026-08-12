@@ -294,85 +294,6 @@ export function DomainRealmStory({
     [boardCtx],
   )
 
-  /** Selected draft eligible for explicit Document containment (not manuscript, not already registered). */
-  const [pendingComponentDraft, setPendingComponentDraft] = React.useState<{
-    draftId: string
-    title: string
-    kind: string
-  } | null>(null)
-  const [addingPendingComponent, setAddingPendingComponent] = React.useState(false)
-  const [addPendingComponentError, setAddPendingComponentError] = React.useState<string | null>(
-    null,
-  )
-
-  React.useEffect(() => {
-    setAddPendingComponentError(null)
-    if (
-      !domainId
-      || scope.status !== "dialog"
-      || !scope.dialogId
-      || !selectedDraftId
-    ) {
-      setPendingComponentDraft(null)
-      return
-    }
-    if (documentMeta.components.some((row) => row.draftId === selectedDraftId)) {
-      setPendingComponentDraft(null)
-      return
-    }
-
-    let cancelled = false
-    void (async () => {
-      try {
-        const draft = await KipApi.getDraft(domainId, selectedDraftId)
-        if (cancelled) return
-        if (draft.kind === DOCUMENT_MANUSCRIPT_KIND) {
-          setPendingComponentDraft(null)
-          return
-        }
-        setPendingComponentDraft({
-          draftId: draft.id,
-          title: draft.title?.trim() || "Untitled draft",
-          kind: draft.kind || "draft",
-        })
-      } catch {
-        if (!cancelled) setPendingComponentDraft(null)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [domainId, scope, selectedDraftId, documentMeta.components])
-
-  const handleAddPendingComponent = React.useCallback(async () => {
-    if (
-      !domainId
-      || scope.status !== "dialog"
-      || !scope.dialogId
-      || !pendingComponentDraft
-    ) {
-      return
-    }
-    setAddingPendingComponent(true)
-    setAddPendingComponentError(null)
-    try {
-      await KipApi.registerDialogDocumentComponent(
-        domainId,
-        scope.dialogId,
-        pendingComponentDraft.draftId,
-      )
-      refreshDocumentAfterMutation()
-    } catch (err) {
-      setAddPendingComponentError(
-        err instanceof Error && err.message.trim()
-          ? err.message
-          : "Could not add this draft to the Document.",
-      )
-    } finally {
-      setAddingPendingComponent(false)
-    }
-  }, [domainId, scope, pendingComponentDraft, refreshDocumentAfterMutation])
-
   const emptyState = (
     <div className="px-4 py-6">
       {scope.status === "none" ? (
@@ -434,14 +355,6 @@ export function DomainRealmStory({
         onOpenComponentDraft={
           scope.status === "dialog" ? handleOpenComponentDraft : undefined
         }
-        pendingComponentDraft={
-          scope.status === "dialog" ? pendingComponentDraft : null
-        }
-        onAddPendingComponent={
-          scope.status === "dialog" ? handleAddPendingComponent : undefined
-        }
-        addingPendingComponent={addingPendingComponent}
-        addPendingComponentError={addPendingComponentError}
         onGlossPoint={handleGlossPoint}
         glossContext={
           domainId && scope.status === "dialog" && scope.dialogId

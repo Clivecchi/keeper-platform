@@ -22,6 +22,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `DialogConfigPresence.tsx` — Dialog Config Mode (title) via `useChronicleConfig`
 - `DialogChronicleBlocks.tsx` — Recent Exchanges + Sessions below dialog cover
 - `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
+- `DraftAddToDocumentControl.tsx` — draft-first **Add to Document** (Dialog picker → `document_components`)
 - `DraftChronicleBlocks.tsx` — Summary, points (Accept + Discuss), versions, linked dialog sessions
 - `cdraft.tsx` — Manuscript Chronicle treatment (header, manage bar, warm charcoal canvas)
 - `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering, `parseTargetJourneyIdFromSpec`
@@ -42,6 +43,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-08-11 — Draft-first Add to Document
+- `DraftAddToDocumentControl` — pick Dialog, register non-manuscript draft on `document_components`; Open Document after success. Mounted from `DraftFocusPresence` (cover + config).
 
 ### 2026-07-15 — External Access key Chronicle
 - `ExternalAccessKeyPresence` — overview + per-key manage (label save, revoke) for MCP domain keys (`dak:{id}` ids)

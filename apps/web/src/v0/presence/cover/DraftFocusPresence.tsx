@@ -8,6 +8,7 @@ import { useDraftPointAccept } from "../../../hooks/useDraftPointAccept"
 import { useDraftPointPromote } from "../../../hooks/useDraftPointPromote"
 import type { PresenceMeta } from "../presenceEnrichment"
 import { Cdraft } from "../integrationChronicle/cdraft"
+import { DraftAddToDocumentControl } from "../integrationChronicle/DraftAddToDocumentControl"
 import { DraftConfigPresence } from "../integrationChronicle/DraftConfigPresence"
 import { draftChronicleTitle } from "./schemas/draftCoverSchema"
 import { parseTargetJourneyIdFromSpec } from "../integrationChronicle/draftManuscriptUtils"
@@ -166,21 +167,37 @@ export function DraftFocusPresence({
     [boardCtx, dialogId],
   )
 
+  const draftKind = typeof record.kind === "string" ? record.kind : null
+  const addToDocumentControl = (
+    <DraftAddToDocumentControl
+      domainId={domainId}
+      draftId={objectId}
+      draftKind={draftKind}
+      linkedDialogId={dialogId}
+      onOpenDocument={boardCtx?.actions.onDialogSelect}
+    />
+  )
+
   if (coverMode === "config") {
     return (
-      <DraftConfigPresence
-        draftId={objectId}
-        domainId={domainId}
-        title={fieldValues.title}
-        kind={typeof record.kind === "string" ? record.kind : null}
-        status={typeof record.status === "string" ? record.status : null}
-        onBack={() => {
-          setCoverMode("cover")
-          onEngagementSuccess?.()
-        }}
-        onRefresh={onEngagementSuccess}
-        onLabelResolved={onLabelResolved}
-      />
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="shrink-0 pt-3">{addToDocumentControl}</div>
+        <div className="min-h-0 flex-1">
+          <DraftConfigPresence
+            draftId={objectId}
+            domainId={domainId}
+            title={fieldValues.title}
+            kind={draftKind}
+            status={typeof record.status === "string" ? record.status : null}
+            onBack={() => {
+              setCoverMode("cover")
+              onEngagementSuccess?.()
+            }}
+            onRefresh={onEngagementSuccess}
+            onLabelResolved={onLabelResolved}
+          />
+        </div>
+      </div>
     )
   }
 
@@ -196,6 +213,7 @@ export function DraftFocusPresence({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
+            <div className="pt-3">{addToDocumentControl}</div>
             <Cdraft
               draftId={objectId}
               domainId={domainId}

@@ -25,8 +25,8 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
-### 2026-08-11 — Document component Add control
-- `DocumentShell` — when a selected non-manuscript draft is not yet registered, shows **Add to Document** under Document drafts (explicit containment via `document_components`; manuscripts untouched).
+### 2026-08-11 — Document component list only (add is draft-first)
+- `DocumentShell` lists registered Document drafts; **Add to Document** lives on draft Chronicle (`DraftAddToDocumentControl`) because Nav selection is replace-only (dialog XOR draft).
 
 ### 2026-08-09 — Chronicle Gloss open reliability
 - Point card: open Gloss scrolls the Point into view; `overflow: visible` while Glossing so the roomy panel is not clipped.

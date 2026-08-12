@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-08-11 — Draft Focus hosts Add to Document
+- `DraftFocusPresence` mounts `DraftAddToDocumentControl` on cover and config (draft-first containment; Nav cannot select Dialog + Draft together).
+
 ### 2026-08-03 — Domain Treatment scope copy
 - `DomainConfigPresence` Treatment help text: full look on Chronicle/Presents; accent on Nav/Dialog; Trail stays Theme.
 
