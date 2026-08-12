@@ -168,20 +168,20 @@ export function DraftFocusPresence({
   )
 
   const draftKind = typeof record.kind === "string" ? record.kind : null
-  const addToDocumentControl = (
-    <DraftAddToDocumentControl
-      domainId={domainId}
-      draftId={objectId}
-      draftKind={draftKind}
-      linkedDialogId={dialogId}
-      onOpenDocument={boardCtx?.actions.onDialogSelect}
-    />
-  )
 
   if (coverMode === "config") {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <div className="shrink-0 pt-3">{addToDocumentControl}</div>
+        <div className="shrink-0 px-4 pt-3">
+          <DraftAddToDocumentControl
+            domainId={domainId}
+            draftId={objectId}
+            draftKind={draftKind}
+            linkedDialogId={dialogId}
+            onOpenDocument={boardCtx?.actions.onDialogSelect}
+            defaultOpen
+          />
+        </div>
         <div className="min-h-0 flex-1">
           <DraftConfigPresence
             draftId={objectId}
@@ -213,7 +213,6 @@ export function DraftFocusPresence({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="pt-3">{addToDocumentControl}</div>
             <Cdraft
               draftId={objectId}
               domainId={domainId}
@@ -238,6 +237,15 @@ export function DraftFocusPresence({
               onJourneySelect={boardCtx?.actions.onJourneySelect}
               onDialogSelect={boardCtx?.actions.onDialogSelect}
               onSessionSelect={boardCtx?.actions.onSessionSelect}
+              documentControl={
+                <DraftAddToDocumentControl
+                  domainId={domainId}
+                  draftId={objectId}
+                  draftKind={draftKind}
+                  linkedDialogId={dialogId}
+                  onOpenDocument={boardCtx?.actions.onDialogSelect}
+                />
+              }
             />
           </motion.div>
         </AnimatePresence>

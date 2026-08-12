@@ -33,6 +33,8 @@ export interface CdraftProps {
   onJourneySelect?: (journeyId: string) => void
   onDialogSelect?: (dialogId: string) => void
   onSessionSelect?: (sessionId: string) => void
+  /** Quiet Document promote control — rendered under meta, not above the title. */
+  documentControl?: React.ReactNode
 }
 
 function formatUpdatedLabel(value: unknown): string | undefined {
@@ -77,6 +79,7 @@ export function Cdraft({
   onJourneySelect,
   onDialogSelect,
   onSessionSelect,
+  documentControl,
 }: CdraftProps) {
   const title =
     typeof record.title === "string" && record.title.trim()
@@ -146,10 +149,6 @@ export function Cdraft({
       </div>
 
       <header className="cdraft-header">
-        {isSessionActive ? (
-          <span className="cdraft-session-badge">Active in Session</span>
-        ) : null}
-
         <h1 className="cdraft-title">{title}</h1>
 
         {breadcrumbParts.length > 0 ? (
@@ -170,6 +169,9 @@ export function Cdraft({
         ) : null}
 
         <div className="cdraft-meta-strip">
+          {isSessionActive ? (
+            <span className="cdraft-meta-item">In session</span>
+          ) : null}
           <span className="cdraft-status-pill">{formatStatusLabel(status)}</span>
           <span className="cdraft-meta-item">{kindLabel}</span>
           <span className="cdraft-meta-item">
@@ -185,6 +187,10 @@ export function Cdraft({
             <span className="cdraft-meta-item">Updated {updatedLabel}</span>
           ) : null}
         </div>
+
+        {documentControl ? (
+          <div className="cdraft-document-control mt-2">{documentControl}</div>
+        ) : null}
       </header>
 
       <div className="cdraft-body">

@@ -286,30 +286,36 @@ function PointFrame({
       style={{
         display: "flex",
         alignItems: "stretch",
-        borderRadius: 12,
-        // Keep radius when closed; open Gloss must not clip the roomy panel.
-        overflow: glossOpen ? "visible" : "hidden",
+        borderRadius: glossOpen ? 10 : 0,
+        overflow: "visible",
         background: glossOpen
-          ? "hsl(var(--theme-surface-elevated) / 0.88)"
-          : "hsl(var(--theme-surface-paper) / 0.78)",
-        border: glossThread
-          ? "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.38)"
-          : "1px solid hsl(var(--theme-border-soft) / 0.42)",
-        boxShadow: glossOpen
-          ? "0 4px 18px hsl(var(--theme-ink-primary) / 0.08)"
-          : "0 1px 2px hsl(var(--theme-ink-primary) / 0.04)",
+          ? "hsl(var(--theme-surface-elevated) / 0.72)"
+          : "transparent",
+        border: glossOpen
+          ? glossThread
+            ? "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.35)"
+            : "1px solid hsl(var(--theme-border-soft) / 0.35)"
+          : "none",
+        borderBottom: glossOpen
+          ? undefined
+          : "1px solid hsl(var(--theme-border-soft) / 0.22)",
+        paddingTop: 10,
+        paddingBottom: 12,
+        marginBottom: glossOpen ? 8 : 0,
       }}
     >
       <div
         aria-hidden
         style={{
-          width: 3,
+          width: 2,
           flexShrink: 0,
+          marginRight: 12,
+          borderRadius: 1,
           background: pathAccentColor(accent),
-          opacity: 0.85,
+          opacity: glossThread ? 0.95 : 0.55,
         }}
       />
-      <div className="min-w-0 flex-1 px-3.5 py-3">
+      <div className="min-w-0 flex-1 pr-1">
         <PointView
           point={displayPoint}
           onGloss={canInlineGloss || onGloss ? handleGloss : undefined}
@@ -577,7 +583,9 @@ export function DocumentShell({
   className,
 }: DocumentShellProps) {
   const [query, setQuery] = React.useState("")
+  const [searchOpen, setSearchOpen] = React.useState(false)
   const normalizedQuery = query.trim().toLowerCase()
+  const showSearchField = searchOpen || normalizedQuery.length > 0 || points.length >= 8
 
   const filteredPoints = React.useMemo(() => {
     if (!normalizedQuery) return points
@@ -668,92 +676,44 @@ export function DocumentShell({
         <ForwardBlock forward={resolvedForward} step={step} />
       ) : null}
 
-      {components && components.length > 0 ? (
-        <section className="px-4 pb-1 pt-2" aria-label="Document drafts">
-          <p
-            className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Drafts in this Document
-          </p>
-          <ul className="space-y-0.5">
-            {components.map((component) => {
-              const titleText = component.label?.trim() || component.title
-              const kindLabel = component.kind.replace(/_/g, " ")
-              const rowClass =
-                "flex w-full items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-left"
-              const rowStyle = {
-                color: "hsl(var(--theme-ink-primary))",
-              } as const
-              return (
-                <li key={component.draftId}>
-                  {onOpenComponentDraft ? (
-                    <button
-                      type="button"
-                      onClick={() => onOpenComponentDraft(component.draftId)}
-                      className={`${rowClass} transition-opacity hover:opacity-80`}
-                      style={{
-                        ...rowStyle,
-                        background: "hsl(var(--theme-ink-primary) / 0.04)",
-                      }}
-                    >
-                      <span className="text-[12px] font-medium leading-snug">
-                        {titleText}
-                      </span>
-                      <span
-                        className="shrink-0 text-[10px] capitalize"
-                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                      >
-                        {kindLabel}
-                      </span>
-                    </button>
-                  ) : (
-                    <div className={rowClass} style={rowStyle}>
-                      <span className="text-[12px] font-medium leading-snug">
-                        {titleText}
-                      </span>
-                      <span
-                        className="shrink-0 text-[10px] capitalize"
-                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                      >
-                        {kindLabel}
-                      </span>
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      ) : null}
-
       {points.length > 0 ? (
-        <div className="px-4 pb-2 pt-1">
-          <label className="sr-only" htmlFor="document-shell-search">
-            Search Document
-          </label>
-          <input
-            id="document-shell-search"
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search Points…"
-            className="w-full rounded-xl border px-3.5 py-2.5 text-[14px] outline-none focus:ring-1"
-            style={{
-              borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-              background: "hsl(var(--theme-surface-paper) / 0.72)",
-              color: "hsl(var(--theme-ink-primary))",
-              fontFamily: "var(--theme-font-ui, inherit)",
-              ["--tw-ring-color" as string]: "hsl(var(--theme-accent-primary, 42 55% 48%) / 0.45)",
-            }}
-          />
-          {normalizedQuery ? (
-            <p className="mt-1.5 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-              {filteredPoints.length === 0
-                ? "No Points match"
-                : `${filteredPoints.length} of ${points.length} Points`}
-            </p>
-          ) : null}
+        <div className="px-4 pb-1 pt-2">
+          {showSearchField ? (
+            <>
+              <label className="sr-only" htmlFor="document-shell-search">
+                Search Document
+              </label>
+              <input
+                id="document-shell-search"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find in Points…"
+                className="w-full border-0 border-b bg-transparent px-0 py-1.5 text-[13px] outline-none"
+                style={{
+                  borderColor: "hsl(var(--theme-border-soft) / 0.4)",
+                  color: "hsl(var(--theme-ink-primary))",
+                  fontFamily: "var(--theme-font-ui, inherit)",
+                }}
+              />
+              {normalizedQuery ? (
+                <p className="mt-1 text-[11px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                  {filteredPoints.length === 0
+                    ? "No Points match"
+                    : `${filteredPoints.length} of ${points.length}`}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="text-[12px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Find…
+            </button>
+          )}
         </div>
       ) : null}
 
@@ -765,7 +725,7 @@ export function DocumentShell({
         </p>
       ) : null}
 
-      <div className="document-shell-paths flex flex-col gap-3 px-4 pb-6 pt-1">
+      <div className="document-shell-paths flex flex-col gap-0 px-4 pb-4 pt-1">
         {groups.map((group) => {
           const accent = resolvePathAccent(group.path?.title)
           const isNamedPath = Boolean(group.path)
@@ -775,14 +735,9 @@ export function DocumentShell({
               key={group.key}
               className="document-shell-path"
               style={{
-                borderRadius: 12,
-                padding: group.path ? "10px 12px 10px" : "0",
-                background: group.path
-                  ? "hsl(var(--theme-surface-paper) / 0.58)"
-                  : "transparent",
-                border: group.path
-                  ? "1px solid hsl(var(--theme-border-soft) / 0.3)"
-                  : "none",
+                padding: group.path ? "8px 0 4px" : "0",
+                background: "transparent",
+                border: "none",
               }}
             >
               {group.path ? (
@@ -802,7 +757,7 @@ export function DocumentShell({
                 />
               ) : null}
               {expanded ? (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col">
                   {group.items.map(({ point, index }) => {
                     const threadKey = point.gloss?.anchor
                       ? buildGlossThreadKey(point.gloss.anchor)
@@ -836,6 +791,64 @@ export function DocumentShell({
           )
         })}
       </div>
+
+      {components && components.length > 0 ? (
+        <section
+          className="mx-4 mb-6 mt-2 border-t pt-3"
+          style={{ borderColor: "hsl(var(--theme-border-soft) / 0.28)" }}
+          aria-label="Document drafts"
+        >
+          <p
+            className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Also in this Document
+          </p>
+          <ul className="space-y-0.5">
+            {components.map((component) => {
+              const titleText = component.label?.trim() || component.title
+              const kindLabel = component.kind.replace(/_/g, " ")
+              return (
+                <li key={component.draftId}>
+                  {onOpenComponentDraft ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenComponentDraft(component.draftId)}
+                      className="flex w-full items-baseline justify-between gap-3 py-1 text-left transition-opacity hover:opacity-80"
+                      style={{ color: "hsl(var(--theme-ink-primary))" }}
+                    >
+                      <span className="text-[13px] font-medium leading-snug">
+                        {titleText}
+                      </span>
+                      <span
+                        className="shrink-0 text-[10px] capitalize"
+                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                      >
+                        {kindLabel}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="flex w-full items-baseline justify-between gap-3 py-1">
+                      <span
+                        className="text-[13px] font-medium leading-snug"
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
+                      >
+                        {titleText}
+                      </span>
+                      <span
+                        className="shrink-0 text-[10px] capitalize"
+                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                      >
+                        {kindLabel}
+                      </span>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ) : null}
     </div>
   )
 }

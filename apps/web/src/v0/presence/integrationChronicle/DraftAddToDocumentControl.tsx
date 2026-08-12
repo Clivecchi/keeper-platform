@@ -2,7 +2,7 @@
 
 /**
  * Draft-first Document containment — pick a Dialog, register this draft on
- * Dialog.document_components. Quiet inline control on draft Chronicle.
+ * Dialog.document_components. Collapsed by default so draft Chronicle stays readable.
  */
 
 import * as React from "react"
@@ -57,6 +57,8 @@ export function DraftAddToDocumentControl({
   draftKind,
   linkedDialogId,
   onOpenDocument,
+  /** When true, start open (e.g. Manage / Config). Cover stays collapsed. */
+  defaultOpen = false,
 }: {
   domainId: string
   draftId: string
@@ -64,10 +66,12 @@ export function DraftAddToDocumentControl({
   /** Nav association — preferred default target, not Document membership. */
   linkedDialogId?: string | null
   onOpenDocument?: (dialogId: string) => void
+  defaultOpen?: boolean
 }) {
   const kind = draftKind?.trim() || ""
   const isManuscript = kind === DOCUMENT_MANUSCRIPT_KIND
 
+  const [open, setOpen] = React.useState(defaultOpen)
   const [dialogs, setDialogs] = React.useState<DialogNavRow[]>([])
   const [targetDialogId, setTargetDialogId] = React.useState("")
   const [loadingDialogs, setLoadingDialogs] = React.useState(false)
@@ -76,7 +80,7 @@ export function DraftAddToDocumentControl({
   const [successDialogId, setSuccessDialogId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    if (isManuscript || !domainId) return
+    if (isManuscript || !domainId || (!open && !successDialogId)) return
     let cancelled = false
     setLoadingDialogs(true)
     void fetchBoardNavSlice<DialogNavRow[]>(domainId, "dialogs", () =>
@@ -84,18 +88,18 @@ export function DraftAddToDocumentControl({
     )
       .then((rows) => {
         if (cancelled) return
-        const open = sortDialogsForPicker(
+        const sorted = sortDialogsForPicker(
           (rows ?? []).filter((row) => row?.id && !row.is_archived),
           linkedDialogId,
         )
-        setDialogs(open)
+        setDialogs(sorted)
         const preferred =
-          (linkedDialogId && open.some((row) => row.id === linkedDialogId)
+          (linkedDialogId && sorted.some((row) => row.id === linkedDialogId)
             ? linkedDialogId
-            : open.find(isNamedDialog)?.id)
-          ?? open[0]?.id
+            : sorted.find(isNamedDialog)?.id)
+          ?? sorted[0]?.id
           ?? ""
-        setTargetDialogId(preferred)
+        setTargetDialogId((prev) => prev || preferred)
       })
       .catch(() => {
         if (!cancelled) {
@@ -109,7 +113,7 @@ export function DraftAddToDocumentControl({
     return () => {
       cancelled = true
     }
-  }, [domainId, linkedDialogId, isManuscript, draftId])
+  }, [domainId, linkedDialogId, isManuscript, draftId, open, successDialogId])
 
   if (isManuscript) return null
 
@@ -121,6 +125,7 @@ export function DraftAddToDocumentControl({
     try {
       await KipApi.registerDialogDocumentComponent(domainId, targetDialogId, draftId)
       setSuccessDialogId(targetDialogId)
+      setOpen(false)
     } catch (err) {
       setError(
         err instanceof Error && err.message.trim()
@@ -132,84 +137,127 @@ export function DraftAddToDocumentControl({
     }
   }
 
+  const successLabel =
+    successDialogId
+      ? dialogs.find((row) => row.id === successDialogId)
+      : null
+
   return (
     <section
-      className="mx-4 mb-4 border-b pb-3"
-      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.35)" }}
+      className="mb-1"
       aria-label="Add draft to Document"
     >
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="min-w-[10rem] flex-1">
-          <span
-            className="mb-1 block text-[10px] font-semibold uppercase tracking-wider"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Add to Document
-          </span>
-          <select
-            value={targetDialogId}
-            onChange={(e) => {
-              setTargetDialogId(e.target.value)
-              setSuccessDialogId(null)
-              setError(null)
-            }}
-            disabled={loadingDialogs || dialogs.length === 0 || adding}
-            className="w-full rounded-md border px-2.5 py-1.5 text-[12px] outline-none"
-            style={{
-              borderColor: "hsl(var(--theme-border-soft) / 0.45)",
-              background: "hsl(var(--theme-surface-paper) / 0.55)",
-              color: "hsl(var(--theme-ink-primary))",
-            }}
-          >
-            {dialogs.length === 0 ? (
-              <option value="">
-                {loadingDialogs ? "Loading…" : "No Dialogs"}
-              </option>
-            ) : (
-              dialogs.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {dialogLabel(row)}
-                  {!isNamedDialog(row) ? " · Chatter" : ""}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={() => void handleAdd()}
-          disabled={!targetDialogId || adding || loadingDialogs}
-          className="rounded-md px-3 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-45"
-          style={{
-            backgroundColor: successDialogId
-              ? "transparent"
-              : "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
-            color: successDialogId
-              ? "hsl(var(--theme-ink-secondary))"
-              : "white",
-            border: successDialogId
-              ? "1px solid hsl(var(--theme-border-soft) / 0.5)"
-              : "1px solid transparent",
-          }}
-        >
-          {adding ? "Adding…" : successDialogId ? "Added" : "Add"}
-        </button>
-        {successDialogId && onOpenDocument ? (
+      {successDialogId ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
+          <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            In Document
+            {successLabel ? ` · ${dialogLabel(successLabel)}` : ""}
+          </p>
+          {onOpenDocument ? (
+            <button
+              type="button"
+              onClick={() => onOpenDocument(successDialogId)}
+              className="text-[12px] font-medium underline-offset-2 hover:underline"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              Open Document
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={() => onOpenDocument(successDialogId)}
-            className="rounded-md px-2 py-1.5 text-[11px] font-medium underline-offset-2 hover:underline"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            onClick={() => {
+              setSuccessDialogId(null)
+              setOpen(true)
+            }}
+            className="text-[12px] font-medium"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            Open Document
+            Add to another
           </button>
-        ) : null}
-      </div>
-      {error ? (
-        <p className="mt-1.5 text-[11px]" style={{ color: "hsl(0 60% 45%)" }}>
-          {error}
-        </p>
-      ) : null}
+        </div>
+      ) : !open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="py-1 text-[12px] font-medium underline-offset-2 hover:underline"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Add to Document…
+        </button>
+      ) : (
+        <div
+          className="rounded-md px-2.5 py-2"
+          style={{ background: "hsl(var(--theme-ink-primary) / 0.03)" }}
+        >
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Add to Document
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setError(null)
+              }}
+              className="text-[11px]"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="min-w-[10rem] flex-1">
+              <span className="sr-only">Target Dialog</span>
+              <select
+                value={targetDialogId}
+                onChange={(e) => {
+                  setTargetDialogId(e.target.value)
+                  setError(null)
+                }}
+                disabled={loadingDialogs || dialogs.length === 0 || adding}
+                className="w-full rounded-md border px-2.5 py-1.5 text-[12px] outline-none"
+                style={{
+                  borderColor: "hsl(var(--theme-border-soft) / 0.4)",
+                  background: "hsl(var(--theme-surface-paper) / 0.7)",
+                  color: "hsl(var(--theme-ink-primary))",
+                }}
+              >
+                {dialogs.length === 0 ? (
+                  <option value="">
+                    {loadingDialogs ? "Loading…" : "No Dialogs"}
+                  </option>
+                ) : (
+                  dialogs.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {dialogLabel(row)}
+                      {!isNamedDialog(row) ? " · Chatter" : ""}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => void handleAdd()}
+              disabled={!targetDialogId || adding || loadingDialogs}
+              className="rounded-md px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-45"
+              style={{
+                backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+              }}
+            >
+              {adding ? "Adding…" : "Add"}
+            </button>
+          </div>
+          {error ? (
+            <p className="mt-1.5 text-[11px]" style={{ color: "hsl(0 60% 45%)" }}>
+              {error}
+            </p>
+          ) : null}
+        </div>
+      )}
     </section>
   )
 }

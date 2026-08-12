@@ -399,24 +399,36 @@ export function DomainRealmStory({
   return (
     <ChronicleTreatmentShell treatment={treatment}>
       {scope.status === "dialog" ? (
-        <div className="flex shrink-0 gap-1 px-4 pt-3" role="tablist" aria-label="Chronicle view">
-          {(["document", "history"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              role="tab"
-              aria-selected={panelMode === mode}
-              onClick={() => boardCtx?.actions.setChroniclePanelMode(mode)}
-              className="rounded-full px-3 py-1.5 text-[12px] font-semibold capitalize"
-              style={{
-                color: panelMode === mode ? "hsl(var(--theme-ink-primary))" : "hsl(var(--theme-ink-tertiary))",
-                background: panelMode === mode ? "hsl(var(--theme-surface-elevated))" : "transparent",
-                border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
-              }}
-            >
-              {mode}
-            </button>
-          ))}
+        <div
+          className="flex shrink-0 gap-4 px-4 pt-3"
+          role="tablist"
+          aria-label="Chronicle view"
+          style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.25)" }}
+        >
+          {(["document", "history"] as const).map((mode) => {
+            const selected = panelMode === mode
+            return (
+              <button
+                key={mode}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => boardCtx?.actions.setChroniclePanelMode(mode)}
+                className="pb-2 text-[12px] font-semibold capitalize"
+                style={{
+                  color: selected
+                    ? "hsl(var(--theme-ink-primary))"
+                    : "hsl(var(--theme-ink-tertiary))",
+                  borderBottom: selected
+                    ? "2px solid hsl(var(--theme-ink-primary) / 0.7)"
+                    : "2px solid transparent",
+                  marginBottom: -1,
+                }}
+              >
+                {mode}
+              </button>
+            )
+          })}
         </div>
       ) : null}
       {body}

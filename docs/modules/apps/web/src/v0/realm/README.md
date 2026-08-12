@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-11 — Document / History tab cleanup
+- `DomainRealmStory` Chronicle tabs are underline text (not pill chips).
+
 ### 2026-08-11 — Document Point Accept (Phase 3)
 - `DomainRealmStory` wires `useDraftPointAccept` into `DocumentShell` — Accept proposed manuscript Points in place; reloads Document after success; does not select the manuscript draft in Nav.
 

@@ -246,19 +246,10 @@ export function PointView({
           ) : null}
           {hasGlossThread ? (
             <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]"
-              style={{
-                color: "hsl(var(--theme-accent-primary, 42 55% 48%))",
-                background: "hsl(var(--theme-accent-primary, 42 55% 48%) / 0.14)",
-                border: "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.35)",
-              }}
+              className="text-[11px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
               title="This Point has a Gloss thread"
             >
-              <span
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ background: "hsl(var(--theme-accent-primary, 42 55% 48%))" }}
-                aria-hidden
-              />
               Glossed
               {typeof glossMessageCount === "number" && glossMessageCount > 0
                 ? ` · ${glossMessageCount}`
@@ -329,17 +320,13 @@ export function PointView({
 
       {castOpen && castNotes.length > 0 ? <CastNotesPanel notes={castNotes} /> : null}
 
-      {/* Single action rail — Accept + More/Voices; Gloss stays trailing */}
-      <div className="document-point-actions flex flex-wrap items-center gap-2 pt-0.5">
+      {/* Quiet action rail — text controls, no competing pills */}
+      <div className="document-point-actions flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
         {onAccept ? (
           <button
             type="button"
-            className="rounded-md px-2.5 py-1 text-[12px] font-semibold"
-            style={{
-              color: "hsl(var(--theme-status-success))",
-              background: "hsl(var(--theme-status-success) / 0.12)",
-              border: "1px solid hsl(var(--theme-status-success) / 0.35)",
-            }}
+            className="text-[12px] font-semibold"
+            style={{ color: "hsl(var(--theme-status-success))" }}
             onClick={onAccept}
             disabled={isAccepting}
             aria-busy={isAccepting}
@@ -350,7 +337,7 @@ export function PointView({
         {!forceCollapsed ? (
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-[12px] font-medium"
+            className="text-[12px] font-medium"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             onClick={() => setExpanded((open) => !open)}
             aria-expanded={showBody}
@@ -361,7 +348,7 @@ export function PointView({
         {castNotes.length > 0 && !forceCollapsed ? (
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-[12px] font-semibold"
+            className="text-[12px] font-medium"
             style={{
               color: castOpen
                 ? "hsl(var(--theme-accent-primary))"
@@ -381,29 +368,18 @@ export function PointView({
         {handleGloss ? (
           <button
             type="button"
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold"
+            className="ml-auto text-[12px] font-semibold"
             style={{
               color: glossActive
-                ? "hsl(var(--theme-surface-paper))"
-                : "hsl(var(--theme-accent-primary, 42 55% 48%))",
-              background: glossActive
                 ? "hsl(var(--theme-accent-primary, 42 55% 48%))"
-                : "hsl(var(--theme-accent-primary, 42 55% 48%) / 0.12)",
-              border: "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.4)",
+                : "hsl(var(--theme-ink-secondary))",
             }}
             onClick={handleGloss}
             aria-label={glossActive ? "Gloss open" : "Open Gloss"}
             aria-pressed={glossActive}
             title="Gloss this Point (long-press on mobile)"
           >
-            {glossActive ? "Glossing" : "Gloss"}
-            {hasGlossThread && !glossActive ? (
-              <span
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ background: "currentColor" }}
-                aria-hidden
-              />
-            ) : null}
+            {glossActive ? "Glossing" : hasGlossThread ? "Glossed" : "Gloss"}
           </button>
         ) : null}
       </div>

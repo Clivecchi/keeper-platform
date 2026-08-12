@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-08-11 — Draft promote under Cdraft meta
+- `DraftFocusPresence` passes collapsed `DraftAddToDocumentControl` into `Cdraft` via `documentControl` (title-first cover). Manage/Config still hosts Add open by default.
+
 ### 2026-08-11 — Draft Focus hosts Add to Document
 - `DraftFocusPresence` mounts `DraftAddToDocumentControl` on cover and config (draft-first containment; Nav cannot select Dialog + Draft together).
 
