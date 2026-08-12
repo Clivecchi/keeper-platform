@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-11 — Drafts never render as Document Points
+- `DomainRealmStory` filters all `kind: draft` nav entries out of the Point sequence. Registered drafts stay in DocumentShell’s component strip only.
+
 ### 2026-08-11 — Document components display only
 - `DomainRealmStory` still hydrates/opens `document_components` in DocumentShell. Registration is draft-first on draft Chronicle (selection cannot hold Dialog + Draft at once).
 

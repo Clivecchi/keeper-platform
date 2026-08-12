@@ -2,8 +2,7 @@
 
 /**
  * Draft-first Document containment — pick a Dialog, register this draft on
- * Dialog.document_components. Selection model is replace-only (draft XOR dialog),
- * so this control lives on the draft Chronicle surface, not DocumentShell.
+ * Dialog.document_components. Quiet inline control on draft Chronicle.
  */
 
 import * as React from "react"
@@ -16,6 +15,7 @@ type DialogNavRow = {
   title?: string | null
   forward_title?: string | null
   forwardTitle?: string | null
+  title_source?: string | null
   is_archived?: boolean
 }
 
@@ -26,6 +26,29 @@ function dialogLabel(row: DialogNavRow): string {
     || row.forwardTitle?.trim()
     || "Untitled Dialog"
   )
+}
+
+function isNamedDialog(row: DialogNavRow): boolean {
+  // Mirror UniversalNavPanel isChatterDialog (inverted).
+  const source = row.title_source?.trim()
+  if (source === "auto_generated") return false
+  if (source === "user_set" || source === "system_promoted") return true
+  const title = dialogLabel(row)
+  return !/^[A-Za-z][\w\s]* · .+ · (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}$/.test(
+    title,
+  )
+}
+
+function sortDialogsForPicker(rows: DialogNavRow[], linkedDialogId?: string | null): DialogNavRow[] {
+  return [...rows].sort((a, b) => {
+    const aLinked = a.id === linkedDialogId ? 1 : 0
+    const bLinked = b.id === linkedDialogId ? 1 : 0
+    if (aLinked !== bLinked) return bLinked - aLinked
+    const aNamed = isNamedDialog(a) ? 1 : 0
+    const bNamed = isNamedDialog(b) ? 1 : 0
+    if (aNamed !== bNamed) return bNamed - aNamed
+    return dialogLabel(a).localeCompare(dialogLabel(b))
+  })
 }
 
 export function DraftAddToDocumentControl({
@@ -61,12 +84,17 @@ export function DraftAddToDocumentControl({
     )
       .then((rows) => {
         if (cancelled) return
-        const open = (rows ?? []).filter((row) => row?.id && !row.is_archived)
+        const open = sortDialogsForPicker(
+          (rows ?? []).filter((row) => row?.id && !row.is_archived),
+          linkedDialogId,
+        )
         setDialogs(open)
         const preferred =
           (linkedDialogId && open.some((row) => row.id === linkedDialogId)
             ? linkedDialogId
-            : open[0]?.id) ?? ""
+            : open.find(isNamedDialog)?.id)
+          ?? open[0]?.id
+          ?? ""
         setTargetDialogId(preferred)
       })
       .catch(() => {
@@ -106,73 +134,74 @@ export function DraftAddToDocumentControl({
 
   return (
     <section
-      className="mx-4 mb-3 rounded-xl border px-3 py-3"
-      style={{
-        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-        background: "hsl(var(--theme-surface-elevated) / 0.4)",
-      }}
+      className="mx-4 mb-4 border-b pb-3"
+      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.35)" }}
       aria-label="Add draft to Document"
     >
-      <p
-        className="text-[11px] font-semibold uppercase tracking-wider"
-        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-      >
-        Document
-      </p>
-      <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-        Promote this draft into a Dialog Document (separate from Nav nesting).
-      </p>
-      <label className="mt-3 block">
-        <span className="sr-only">Target Dialog</span>
-        <select
-          value={targetDialogId}
-          onChange={(e) => {
-            setTargetDialogId(e.target.value)
-            setSuccessDialogId(null)
-            setError(null)
-          }}
-          disabled={loadingDialogs || dialogs.length === 0 || adding}
-          className="w-full rounded-md border px-3 py-2 text-[13px] bg-transparent outline-none"
-          style={{
-            borderColor: "hsl(var(--theme-border-soft) / 0.5)",
-            color: "hsl(var(--theme-ink-primary))",
-          }}
-        >
-          {dialogs.length === 0 ? (
-            <option value="">
-              {loadingDialogs ? "Loading Dialogs…" : "No Dialogs available"}
-            </option>
-          ) : (
-            dialogs.map((row) => (
-              <option key={row.id} value={row.id}>
-                {dialogLabel(row)}
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="min-w-[10rem] flex-1">
+          <span
+            className="mb-1 block text-[10px] font-semibold uppercase tracking-wider"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Add to Document
+          </span>
+          <select
+            value={targetDialogId}
+            onChange={(e) => {
+              setTargetDialogId(e.target.value)
+              setSuccessDialogId(null)
+              setError(null)
+            }}
+            disabled={loadingDialogs || dialogs.length === 0 || adding}
+            className="w-full rounded-md border px-2.5 py-1.5 text-[12px] outline-none"
+            style={{
+              borderColor: "hsl(var(--theme-border-soft) / 0.45)",
+              background: "hsl(var(--theme-surface-paper) / 0.55)",
+              color: "hsl(var(--theme-ink-primary))",
+            }}
+          >
+            {dialogs.length === 0 ? (
+              <option value="">
+                {loadingDialogs ? "Loading…" : "No Dialogs"}
               </option>
-            ))
-          )}
-        </select>
-      </label>
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            ) : (
+              dialogs.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {dialogLabel(row)}
+                  {!isNamedDialog(row) ? " · Chatter" : ""}
+                </option>
+              ))
+            )}
+          </select>
+        </label>
         <button
           type="button"
           onClick={() => void handleAdd()}
           disabled={!targetDialogId || adding || loadingDialogs}
-          className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
+          className="rounded-md px-3 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-45"
+          style={{
+            backgroundColor: successDialogId
+              ? "transparent"
+              : "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))",
+            color: successDialogId
+              ? "hsl(var(--theme-ink-secondary))"
+              : "white",
+            border: successDialogId
+              ? "1px solid hsl(var(--theme-border-soft) / 0.5)"
+              : "1px solid transparent",
+          }}
         >
-          {adding ? "Adding…" : successDialogId ? "Added" : "Add to Document"}
+          {adding ? "Adding…" : successDialogId ? "Added" : "Add"}
         </button>
         {successDialogId && onOpenDocument ? (
           <button
             type="button"
             onClick={() => onOpenDocument(successDialogId)}
-            className="rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-80"
-            style={{
-              borderColor: "hsl(var(--theme-border-soft))",
-              color: "hsl(var(--theme-ink-primary))",
-              background: "hsl(var(--theme-surface-paper))",
-            }}
+            className="rounded-md px-2 py-1.5 text-[11px] font-medium underline-offset-2 hover:underline"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
-            Open Document →
+            Open Document
           </button>
         ) : null}
       </div>

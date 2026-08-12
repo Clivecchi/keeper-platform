@@ -25,6 +25,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-11 — Quieter Document drafts strip
+- `DocumentShell` component list: light rows (no bordered cards), label **Drafts in this Document**.
+
 ### 2026-08-11 — Document component list only (add is draft-first)
 - `DocumentShell` lists registered Document drafts; **Add to Document** lives on draft Chronicle (`DraftAddToDocumentControl`) because Nav selection is replace-only (dialog XOR draft).
 

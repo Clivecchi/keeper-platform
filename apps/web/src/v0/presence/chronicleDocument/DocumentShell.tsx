@@ -605,58 +605,51 @@ export function DocumentShell({
       ) : null}
 
       {components && components.length > 0 ? (
-        <section className="px-4 pb-2 pt-3" aria-label="Document drafts">
+        <section className="px-4 pb-1 pt-2" aria-label="Document drafts">
           <p
-            className="mb-2 text-[11px] font-semibold uppercase tracking-wider"
+            className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            Document drafts
+            Drafts in this Document
           </p>
-          <ul className="space-y-1.5">
+          <ul className="space-y-0.5">
             {components.map((component) => {
               const titleText = component.label?.trim() || component.title
               const kindLabel = component.kind.replace(/_/g, " ")
+              const rowClass =
+                "flex w-full items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-left"
+              const rowStyle = {
+                color: "hsl(var(--theme-ink-primary))",
+              } as const
               return (
                 <li key={component.draftId}>
                   {onOpenComponentDraft ? (
                     <button
                       type="button"
                       onClick={() => onOpenComponentDraft(component.draftId)}
-                      className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors hover:opacity-90"
+                      className={`${rowClass} transition-opacity hover:opacity-80`}
                       style={{
-                        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                        background: "hsl(var(--theme-surface-paper) / 0.55)",
+                        ...rowStyle,
+                        background: "hsl(var(--theme-ink-primary) / 0.04)",
                       }}
                     >
-                      <span
-                        className="text-[13px] font-semibold leading-snug"
-                        style={{ color: "hsl(var(--theme-ink-primary))" }}
-                      >
+                      <span className="text-[12px] font-medium leading-snug">
                         {titleText}
                       </span>
                       <span
-                        className="shrink-0 text-[11px] capitalize"
+                        className="shrink-0 text-[10px] capitalize"
                         style={{ color: "hsl(var(--theme-ink-tertiary))" }}
                       >
                         {kindLabel}
                       </span>
                     </button>
                   ) : (
-                    <div
-                      className="flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2"
-                      style={{
-                        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                        background: "hsl(var(--theme-surface-paper) / 0.55)",
-                      }}
-                    >
-                      <span
-                        className="text-[13px] font-semibold leading-snug"
-                        style={{ color: "hsl(var(--theme-ink-primary))" }}
-                      >
+                    <div className={rowClass} style={rowStyle}>
+                      <span className="text-[12px] font-medium leading-snug">
                         {titleText}
                       </span>
                       <span
-                        className="shrink-0 text-[11px] capitalize"
+                        className="shrink-0 text-[10px] capitalize"
                         style={{ color: "hsl(var(--theme-ink-tertiary))" }}
                       >
                         {kindLabel}

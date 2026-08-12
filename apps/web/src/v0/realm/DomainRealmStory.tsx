@@ -21,7 +21,6 @@ import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatmen
 import { useRealmNavGrowth } from "./useRealmNavGrowth"
 import {
   buildDocumentPaths,
-  DOCUMENT_MANUSCRIPT_KIND,
   manuscriptPointsToRealmNavEntries,
   type RealmNavEntry,
 } from "./realmNavGrowth"
@@ -238,6 +237,8 @@ export function DomainRealmStory({
     }
   }, [domainId, scope, documentEpoch])
 
+  // Document Points are manuscript Points (+ non-draft kept/presented). Never render
+  // ordinary drafts as faux Point cards — those belong in Document drafts only.
   const legacyEntries = React.useMemo(() => {
     if (scope.status !== "dialog") return [] as RealmNavEntry[]
     const group = byDialog.find((row) => row.dialogId === scope.dialogId)
@@ -246,19 +247,12 @@ export function DomainRealmStory({
       ...group.byStage.kept,
       ...group.byStage.drafts,
       ...group.byStage.presented,
-    ].filter((entry) => {
-      // Manuscript wrapper draft is represented by its expanded Points, not the draft card.
-      if (entry.kind !== "draft") return true
-      return entry.description !== DOCUMENT_MANUSCRIPT_KIND
-        && !entry.label.toLowerCase().includes("becoming together · manuscript")
-    })
+    ].filter((entry) => entry.kind !== "draft")
   }, [byDialog, scope])
 
   const storyEntries = React.useMemo(() => {
     if (manuscriptEntries.length > 0) {
-      // Prefer manuscript Points; keep non-draft kept/presented alongside.
-      const extras = legacyEntries.filter((entry) => entry.kind !== "draft")
-      return [...manuscriptEntries, ...extras]
+      return [...manuscriptEntries, ...legacyEntries]
     }
     return legacyEntries
   }, [manuscriptEntries, legacyEntries])

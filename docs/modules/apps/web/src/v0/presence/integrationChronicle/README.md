@@ -44,6 +44,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-08-11 — Quiet Add to Document control
+- `DraftAddToDocumentControl` — inline picker (no card chrome); prefers named Dialogs over Chatter; labels Chatter options.
+
 ### 2026-08-11 — Draft-first Add to Document
 - `DraftAddToDocumentControl` — pick Dialog, register non-manuscript draft on `document_components`; Open Document after success. Mounted from `DraftFocusPresence` (cover + config).
 
