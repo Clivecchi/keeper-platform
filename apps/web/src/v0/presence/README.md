@@ -62,6 +62,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-17 — Draft enrichment skips second getDraft
+- `enrichDraft` reuses the record from `fetchPresenceRecord` (meta only) — draft Chronicle selection no longer double-fetches.
+
 ### 2026-07-24 — Dialog participation on Agent Config
 - Agent schema field `dialog_participation` (`voice` | `support_only` | `silent`) editable in Config; flattened from `config` in `enrichAgent`; PATCH via agents API config merge.
 

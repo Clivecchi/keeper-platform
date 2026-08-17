@@ -719,36 +719,23 @@ async function enrichDialog(record: Record<string, unknown>): Promise<Enrichment
   }
 }
 
-async function enrichDraft(
-  record: Record<string, unknown>,
-  domainId: string,
-  draftId: string,
-): Promise<EnrichmentResult> {
-  try {
-    const found = await KipApi.getDraft(domainId, draftId)
-    const mapped = mapDraftRecord(found as unknown as Record<string, unknown>)
-    return {
-      record: mapped,
-      meta: {
-        line: [
-          typeof mapped.status === "string" ? String(mapped.status) : null,
-          typeof mapped.updatedAt === "string"
-            ? formatWhenShort(mapped.updatedAt as string)
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" · ") || undefined,
-      },
-      relatedSections: [],
-      hiddenFields: ["status", "updatedAt", "kind"],
-    }
-  } catch {
-    const mapped = mapDraftRecord(record)
-    return {
-      record: mapped,
-      relatedSections: [],
-      hiddenFields: ["status", "updatedAt", "kind"],
-    }
+/** Reuse the record already loaded by `fetchPresenceRecord` — do not re-GET. */
+function enrichDraft(record: Record<string, unknown>): EnrichmentResult {
+  const mapped = mapDraftRecord(record)
+  return {
+    record: mapped,
+    meta: {
+      line: [
+        typeof mapped.status === "string" ? String(mapped.status) : null,
+        typeof mapped.updatedAt === "string"
+          ? formatWhenShort(mapped.updatedAt as string)
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || undefined,
+    },
+    relatedSections: [],
+    hiddenFields: ["status", "updatedAt", "kind"],
   }
 }
 
@@ -1335,7 +1322,7 @@ export async function enrichPresenceRecord(
     case "dialog":
       return enrichDialog(record)
     case "draft":
-      return enrichDraft(record, domainId, objectId)
+      return enrichDraft(record)
     case "domain":
       return enrichDomain(record, domainId, enrichmentCtx)
     case "frame":
