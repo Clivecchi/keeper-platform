@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node scripts/sync-object-glossary.mjs && vite",
+    "build": "node scripts/sync-object-glossary.mjs && vite build",
     "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",
-    "vercel-build": "vite build",
+    "vercel-build": "node scripts/sync-object-glossary.mjs && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

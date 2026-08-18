@@ -36,4 +36,6 @@ README.md
 !packages/shared/
 !package.json
 !pnpm-lock.yaml
-!pnpm-workspace.yaml 
+!pnpm-workspace.yaml
+# Object Glossary (and other web-app markdown) — `*.md` above would strip them
+!apps/web/**/*.md 

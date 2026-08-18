@@ -1,8 +1,10 @@
 /**
- * Object Glossary markdown — bundled from the governing repo file.
- * Single source: docs/keeper-object-glossary.md (not a Dialog Document).
+ * Object Glossary markdown — bundled for Vite.
+ * Governing source: docs/keeper-object-glossary.md (not a Dialog Document).
+ * Vercel ignores docs/ and *.md, so the web app imports a copy under this folder.
+ * `pnpm --filter keeper-web run build` syncs the copy when docs/ is present.
  */
-import objectGlossaryMarkdown from "../../../../../docs/keeper-object-glossary.md?raw"
+import objectGlossaryMarkdown from "./keeper-object-glossary.md?raw"
 
 export const OBJECT_GLOSSARY_MARKDOWN: string = objectGlossaryMarkdown
 
