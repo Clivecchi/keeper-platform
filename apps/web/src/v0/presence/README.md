@@ -63,6 +63,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-17 — Glossary presence lazy-loaded
+- `ChroniclePresenceView` lazy-loads `GlossaryPresence` so the Object Glossary markdown + remark-gfm stay out of the main PWA precache chunk.
+
 ### 2026-08-17 — Object Glossary Chronicle presence
 - `GlossaryPresence` — Domain focus (read) and Design config (definition ownership). Routed from `ChroniclePresenceView` before `KeeperPresence`. Not an EntityKind; not a Dialog Document.
 

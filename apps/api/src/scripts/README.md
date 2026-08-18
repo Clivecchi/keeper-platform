@@ -29,7 +29,7 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 ## 📆 Update Log
 
 ### 2026-08-17 — Glossary governance canon
-- `deploy-object-glossary-read-access.ts` condensed Governance block now includes the board-emphasis invariant and Build board label (`ide` internal key). Re-run with `--execute` to refresh Kip/Cloud Training Mode.
+- `deploy-object-glossary-read-access.ts` condensed Governance block now includes the board-emphasis invariant and Build board label (internal key `ide`). Re-run with `--execute` to refresh Kip/Cloud Training Mode. Template backticks around `ide` must stay escaped so `tsc` can compile this script.
 
 ### 2026-08-05 — Boards-as-lenses Document lock
 - `append-boards-as-lenses-lock.ts` — appends accepted decision Point under Progress + updates Becoming Together Step tip. Dry-run default.

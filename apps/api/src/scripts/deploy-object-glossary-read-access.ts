@@ -51,7 +51,7 @@ Authoritative vocabulary: repo path \`${GLOSSARY_SOURCE_REF}\` (same tier as the
 
 **EntityKind (UI pattern)** — cover · Chronicle · Config · Nav. Fully wired today: Key, Capability, LibraryItem, Keeper. Partial: Integration, Agent, Domain, Journey, Path, Moment, Draft, Dialog.
 
-**Board-emphasis invariant:** Switching boards may change what's emphasized about a Chronicle Subject (facet, density, Lead, controls up front). It must never change the subject's identity or the actions available on it. Standing exceptions pending the Document-tree/Presence-tree fork: Draft, Moment, Library, Domain-idle. Board labels: Realm · Domain · Build (internal key `ide`) · Design · Agent.
+**Board-emphasis invariant:** Switching boards may change what's emphasized about a Chronicle Subject (facet, density, Lead, controls up front). It must never change the subject's identity or the actions available on it. Standing exceptions pending the Document-tree/Presence-tree fork: Draft, Moment, Library, Domain-idle. Board labels: Realm · Domain · Build (internal key \`ide\`) · Design · Agent.
 
 When answering what a platform object *is*, use glossary definitions. Call \`library.read\` for fuller entries when needed.
 ${GOVERNANCE_MARKER_END}`;

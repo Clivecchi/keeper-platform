@@ -12,7 +12,6 @@
 import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
 import { SoleMemoryPresence } from "./SoleMemoryPresence"
-import { GlossaryPresence } from "./GlossaryPresence"
 import { ChronicleEntityView, isRegistryEntityKind } from "./ChronicleEntityView"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
@@ -21,6 +20,11 @@ import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatmen
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import { isExternalAccessChronicleKey } from "../boards/domain/externalAccessKeyIds"
 import { ExternalAccessKeyPresence } from "./integrationChronicle/ExternalAccessKeyPresence"
+
+const GlossaryPresence = React.lazy(async () => {
+  const mod = await import("./GlossaryPresence")
+  return { default: mod.GlossaryPresence }
+})
 
 export interface ChroniclePresenceViewProps {
   objectType: string
@@ -75,10 +79,20 @@ export function ChroniclePresenceView({
 
   if (objectType === "glossary") {
     const glossaryBody = (
-      <GlossaryPresence
-        layout={layout}
-        onLabelResolved={onLabelResolved}
-      />
+      <React.Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center px-4">
+            <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+              Loading glossary…
+            </p>
+          </div>
+        }
+      >
+        <GlossaryPresence
+          layout={layout}
+          onLabelResolved={onLabelResolved}
+        />
+      </React.Suspense>
     )
     return treatment ? (
       <ChronicleTreatmentShell treatment={treatment}>{glossaryBody}</ChronicleTreatmentShell>
