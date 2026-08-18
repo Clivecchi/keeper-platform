@@ -1022,6 +1022,7 @@ export function KeeperPresence({
     (objectType === "draft" && layout === "focus") ||
     (objectType === "service" && layout === "focus") ||
     objectType === "boardDef" ||
+    objectType === "glossary" ||
     (objectType === "frame" && layout === "config") ||
     (objectType === "domain" && layout === "focus")
   const { schema } = usePresenceSchema(

@@ -38,6 +38,9 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-08-17 — Glossary definition entry
+- Design Nav now includes a top-level **Glossary** section (same `UniversalNavPanel` as Board Definitions). Chronicle opens `GlossaryPresence` in config layout — definition ownership, not a Dialog Document.
+
 ### 2026-07-08 — Rendr primary, Kip + domain lead in Agents footer
 - **`DESIGNER_BOARD_DEF`:** `dialogOrchestration: "director"` — Rendr owns composer; Kip and domain lead pin-able in footer Agents bar.
 - **`UniversalConversation`:** designer director mode loads domain agent roster; delegates to Kip / domain lead without swapping Rendr session agent.

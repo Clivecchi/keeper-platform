@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { searchForWorkspaceRoot } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
@@ -114,6 +114,12 @@ export default defineConfig({
   base: '/',
   publicDir: '../../public',
   server: {
+    fs: {
+      allow: [
+        searchForWorkspaceRoot(__dirname),
+        path.resolve(__dirname, '../..'),
+      ],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3002',

@@ -30,7 +30,7 @@ export type CastMemberSlug = string
 // Left panel — Navigation
 // What sections appear. What board nav integrations are present.
 // Treatment character: orientation and confidence.
-export type NavSectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "library" | "boardDefs"
+export type NavSectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "library" | "boardDefs" | "glossary"
 
 /** Left-nav render blocks — entity sections plus board-layer sections. */
 export type NavRenderBlock =
@@ -53,7 +53,9 @@ export interface NavSectionsDef {
   agents: boolean
   /** Domain Board: uploaded files and linked sources for the domain library. */
   library?: boolean
-  /** IDE Board: platform capability registry grouped by kind. */
+  /** Domain / Design: Object Glossary — governing vocabulary (not nested in Library). */
+  glossary?: boolean
+  /** Build Board: platform capability registry grouped by kind. */
   capabilities?: boolean
   /**
    * designer mode: show the Board Definitions section (all entries from BOARD_DEFINITIONS).
@@ -65,7 +67,7 @@ export interface NavSectionsDef {
 export interface NavInstrumentDef {
   id: string
   label: string
-  /** Groups integrations in the left nav (IDE Board). */
+  /** Groups integrations in the left nav (Build Board). */
   group?: "infrastructure" | "ai"
 }
 
@@ -101,7 +103,7 @@ export interface NavPanelDef {
   /** Override the Keepers section card title (Domain Board uses "Keeper"). */
   keeperSectionTitle?: string
   /**
-   * Board Nav layer — integration connections (IDE Board: Vercel, Railway, GitHub).
+   * Board Nav layer — integration connections (Build Board: Vercel, Railway, GitHub).
    * Visually distinct from Domain Nav record sections above.
    */
   integrations?: NavInstrumentDef[]
@@ -191,6 +193,7 @@ export type PresenceSubject =
   | "draft"
   | "service"
   | "library"
+  | "glossary"
   | "domain"
   | "boardDef"
 
@@ -258,6 +261,11 @@ const UNIVERSAL_VIEW_STATE_DEFAULTS: ContextViewStateDef[] = [
       "Library item in view. Source reference and agent perspective forward. Assigned keeper and agent present but quiet.",
   },
   {
+    key: "glossary",
+    presenceTreatment:
+      "Object Glossary in view. Governing vocabulary forward. This is reference — not a Dialog Document.",
+  },
+  {
     key: "domain",
     presenceTreatment:
       "Domain breathing. Active journeys present — what is moving comes forward, what is settled is present but quiet.",
@@ -288,7 +296,7 @@ export interface BoardAccessDef {
 
 // ─── Primary Interface ────────────────────────────────────────────────────────
 
-/** Infra + MCP capability ceiling for IDE Board — keep in sync with apps/api/src/capabilities/infraCapabilities.ts IDE_BOARD_MCP_CEILING */
+/** Infra + MCP capability ceiling for Build Board — keep in sync with apps/api/src/capabilities/infraCapabilities.ts IDE_BOARD_MCP_CEILING */
 const IDE_BOARD_ALLOWED_CAPABILITIES: string[] = [
   "infra.railway.read",
   "infra.railway.deploy",
@@ -338,7 +346,7 @@ export interface UniversalBoardDef {
 
 export const IDE_BOARD_DEF: UniversalBoardDef = {
   boardId: "ide",
-  displayName: "IDE Board",
+  displayName: "Build Board",
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
@@ -400,7 +408,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
     navBlockOrder: ["agents", "aiAccess", "externalAccess", "boards"],
     aiAccessSummary: true,
     externalAccessSummary: true,
-    // Full Keys + platform AI providers live on IDE Board only.
+    // Full Keys + platform AI providers live on Build Board only.
   },
   conversation: {
     agentSlug: "kip",
@@ -436,12 +444,14 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       drafts: false,
       agents: false,
       library: true,
+      glossary: true,
       boardDefs: false,
     },
-    // Dialog → Keeper → Library → Chatter (auto-titled sessions); journeys follow.
+    // Dialog → Keeper → Glossary → Library → Chatter; journeys follow.
     navBlockOrder: [
       "dialogs",
       "keepers",
+      "glossary",
       "library",
       "chatter",
       "journeys",
@@ -534,8 +544,10 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
       keepers: false,
       drafts: false,
       agents: false,
+      glossary: true,
       boardDefs: true,
     },
+    navBlockOrder: ["glossary", "boardDefs"],
   },
   conversation: {
     agentSlug: "rendr",
@@ -553,6 +565,8 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
     viewStates: mergeViewStates({
       boardDef:
         "Board definition in view. Structure and access rules present. Declarative spec forward.",
+      glossary:
+        "Object Glossary definition surface. Governing vocabulary — Design owns what the Glossary says. Not a Dialog Document.",
       domain:
         "Design surface. Treatment and presence configuration in view. What governs how the domain feels and how objects surface.",
     }),

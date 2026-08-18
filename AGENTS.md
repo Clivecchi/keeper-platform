@@ -76,7 +76,7 @@ Chronicle = right panel (UniversalViewPanel), not a frame route.
 
 | Audience | Canonical URL | Surface | Wire features here |
 |---|---|---|---|
-| **Member (auth)** | `/d/:slug?board=domain` (or `ide` / `agent` / `designer`) | Universal Board: Nav · Dialog · Chronicle | `UniversalNavPanel`, `KeeperPresence` / Chronicle |
+| **Member (auth)** | `/d/:slug?board=domain` (or `build` / `agent` / `designer`) | Universal Board: Nav · Dialog · Chronicle | `UniversalNavPanel`, `KeeperPresence` / Chronicle |
 | **Guest / public story** | Present (target) · Cover today | Narrative read-only — not standalone journey frames | `PresentFrame` — Phase B after board engagement |
 | **Legacy frames** | `?frame=journeys`, `?frame=keepers`, etc. | Standalone v0 frames | **Do not extend for Phase 1 member work.** Redirect or retire over time. |
 
@@ -182,8 +182,8 @@ Do not treat these as competing implementations.
 **Prisma schema:** `packages/database/prisma/schema.prisma`
 (root-rules.mdc has a stale path — use the above)
 
-**Boards** (authenticated workspaces): `?board=ide|agent|domain|designer` on `/d/:slug/board`
-Universal Board = nav + conversation + Chronicle (right panel). See `apps/web/src/v0/boards/`.
+**Boards** (authenticated workspaces): `?board=realm|domain|build|designer|agent` on `/d/:slug`  
+Internal Build key remains `ide` (`?board=ide` still works). Universal Board = nav + conversation + Chronicle (right panel). See `apps/web/src/v0/boards/`.
 
 **Operational commands:**
 ```
@@ -198,7 +198,7 @@ DB generate:       pnpm db:generate
 **Live URLs:**
 - Production: `ke3p.com`
 - Hub: `ke3p.com/d/default?frame=hub`
-- IDE Board: `ke3p.com/d/default?board=ide`
+- Build Board: `ke3p.com/d/default?board=build` (`?board=ide` still resolves)
 - Agent Board: `ke3p.com/d/default?board=agent`
 - Local dev: `http://localhost:5173`
 

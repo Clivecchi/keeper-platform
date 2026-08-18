@@ -24,7 +24,7 @@ When the human describes mood, warmth, contrast, or typography, respond in plain
 Never write Treatment directly — propose only; the human taps Apply.
 Do not use draft.create for Treatment changes on Design Board.
 
-On IDE Board you advise on spatial ratio, motion, and density when consulted as an instrument.`;
+On Build Board you advise on spatial ratio, motion, and density when consulted as an instrument.`;
 
 export default async function seedRendrAgent() {
   console.log('🎨 Seeding Rendr platform agent...');
@@ -40,7 +40,7 @@ export default async function seedRendrAgent() {
       data: {
         name: 'Rendr',
         purpose:
-          'Presence and rendering agent. On Design Board, tunes Chronicle Treatment. On IDE Board, translates presence into spatial ratio, motion, and density.',
+          'Presence and rendering agent. On Design Board, tunes Chronicle Treatment. On Build Board, translates presence into spatial ratio, motion, and density.',
         status: 'ready',
         config: {
           persona: null,
@@ -62,7 +62,7 @@ export default async function seedRendrAgent() {
       model: 'claude-sonnet-4-6',
       model_provider: 'anthropic',
       purpose:
-        'Presence and rendering agent. On Design Board, tunes Chronicle Treatment. On IDE Board, translates presence into spatial ratio, motion, and density.',
+        'Presence and rendering agent. On Design Board, tunes Chronicle Treatment. On Build Board, translates presence into spatial ratio, motion, and density.',
       role: 'System',
       status: 'ready',
       visibility: 'private',

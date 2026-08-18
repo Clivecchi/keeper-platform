@@ -19,6 +19,8 @@ export interface LegacyChronicleSelectionIds {
   selectedLibraryItemId: string | null;
   selectedSoleMemoryId: string | null;
   selectedBoardDefId: string | null;
+  /** Object Glossary — governing vocabulary, not a Dialog Document. */
+  selectedGlossaryId: string | null;
 }
 
 export interface ResolveChronicleViewInput extends LegacyChronicleSelectionIds {
@@ -45,7 +47,11 @@ export type ChronicleSubject =
   | { kind: 'key'; id: string }
   | { kind: 'capability'; id: string }
   | { kind: 'library'; id: string }
-  | { kind: 'boardDef'; id: string };
+  | { kind: 'boardDef'; id: string }
+  | { kind: 'glossary'; id: string };
+
+/** Sentinel id for the single Object Glossary Chronicle subject. */
+export const OBJECT_GLOSSARY_SUBJECT_ID = 'object-glossary';
 
 export type ChronicleOverlay =
   | { kind: 'soleMemory'; id: string }
@@ -78,7 +84,8 @@ export type ChronicleLegacyKind =
   | 'capability'
   | 'library'
   | 'soleMemory'
-  | 'boardDef';
+  | 'boardDef'
+  | 'glossary';
 
 export interface ChronicleLegacyKindId {
   kind: ChronicleLegacyKind;
@@ -92,6 +99,9 @@ export function resolveChroniclePrimary(input: ResolveChronicleViewInput): Chron
   const boardDefId =
     input.isDesignerBoard && input.boardDefinitionId ? input.boardDefinitionId : null;
 
+  if (input.selectedGlossaryId) {
+    return { kind: 'glossary', id: input.selectedGlossaryId };
+  }
   if (boardDefId) return { kind: 'boardDef', id: boardDefId };
   if (input.selectedKeyId) return { kind: 'key', id: input.selectedKeyId };
   if (input.selectedCapabilityId) return { kind: 'capability', id: input.selectedCapabilityId };
@@ -167,6 +177,7 @@ export function chronicleSubjectToLegacyKindId(
     case 'capability':
     case 'library':
     case 'boardDef':
+    case 'glossary':
       return { kind: subject.kind, id: subject.id };
     default: {
       const _exhaustive: never = subject;
@@ -200,6 +211,7 @@ export function legacySelectionFromChronicleSubject(
         selectedCapabilityId: null,
         selectedLibraryItemId: null,
         selectedBoardDefId: null,
+        selectedGlossaryId: null,
       };
     case 'dialog':
       return { selectedDialogId: subject.id };
@@ -233,6 +245,8 @@ export function legacySelectionFromChronicleSubject(
       return { selectedLibraryItemId: subject.id };
     case 'boardDef':
       return { selectedBoardDefId: subject.id };
+    case 'glossary':
+      return { selectedGlossaryId: subject.id };
     default: {
       const _exhaustive: never = subject;
       return _exhaustive;

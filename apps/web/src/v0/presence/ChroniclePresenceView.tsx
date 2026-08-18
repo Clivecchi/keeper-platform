@@ -12,6 +12,7 @@
 import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
 import { SoleMemoryPresence } from "./SoleMemoryPresence"
+import { GlossaryPresence } from "./GlossaryPresence"
 import { ChronicleEntityView, isRegistryEntityKind } from "./ChronicleEntityView"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
@@ -69,6 +70,20 @@ export function ChroniclePresenceView({
           Waiting for domain context…
         </p>
       </div>
+    )
+  }
+
+  if (objectType === "glossary") {
+    const glossaryBody = (
+      <GlossaryPresence
+        layout={layout}
+        onLabelResolved={onLabelResolved}
+      />
+    )
+    return treatment ? (
+      <ChronicleTreatmentShell treatment={treatment}>{glossaryBody}</ChronicleTreatmentShell>
+    ) : (
+      glossaryBody
     )
   }
 

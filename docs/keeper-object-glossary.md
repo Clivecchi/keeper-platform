@@ -21,6 +21,30 @@ These two “path” concepts must never be collapsed:
 
 ---
 
+## Board-emphasis invariant (governing)
+
+Same standing as the EntityKind Recipe and Universal Board Constitution. **Acceptance criterion for any future board work.**
+
+> Switching boards may change what's emphasized about a Chronicle Subject — which facet is surfaced first, information density, which agent is Lead, which controls appear up front. It must never change the subject's identity or the actions available on it. If board switching changes what an object *is* or *can do*, that's a bug. If it only changes what's placed in front of the user first, it's working as intended.
+
+### Per-board lens
+
+Same underlying Dialog / Document / Draft in every row:
+
+| Board | What comes into focus | What must stay identical |
+|---|---|---|
+| **Domain** | Orientation — index across Dialogs, Keeper, Library, Journeys | The object itself, untouched — this is the index, not a deep dive |
+| **Build** | Construction — Points, Versions, Draft mechanics, Add to Document | Same underlying Points; Build surfaces editing controls first |
+| **Design** | Structure — EntityKind, rendering path, Treatment | Identity as an EntityKind; Design defines it, doesn't change it per-view |
+| **Realm** | Accumulation — kept/presented output | Same Document; Realm foregrounds finished state over raw mechanics |
+| **Agent** | Cast — Lead, cueing, participation for this Dialog | Same Dialog; Agent surfaces roster/responsibility controls only |
+
+### Standing exceptions (not bugs of this pass)
+
+Draft, Moment, Library, and Domain-idle currently violate this invariant via the Document-tree / Presence-tree fork (registry vs `KeeperPresence`). They will not conform until that fork is resolved separately. Do not treat those four as new bugs, and do not patch the fork as a side effect of board work.
+
+---
+
 ## How this glossary was built
 
 | Source | What was checked |
@@ -1301,6 +1325,7 @@ Feeds field resolution for KeeperPresence; not selectable as its own cover.
 6. **Unmounted route files** coexist with mounted ones (journey domain-integrated, sharing suite, sole-memory-routes) — schema implies features that mounts do not expose.
 7. **Stub agent Topic/Task/Activity APIs** do not touch their Prisma models.
 8. **Treatment is not an object table** while Domain.theme, themes table, and frame_json.theme/treatment all exist.
+9. **Board-emphasis invariant exceptions:** Draft, Moment, Library, and Domain-idle currently violate the governing board-emphasis invariant via the Document-tree / Presence-tree fork. Pending a separate Rendr/product decision — not patched as a side effect of board rename or Glossary nav.
 
 ---
 
@@ -1314,3 +1339,10 @@ Feeds field resolution for KeeperPresence; not selectable as its own cover.
 ---
 
 *Governing Object Glossary v1. Prefer a flagged gap over a polished invention.*
+
+## 📆 Update Log
+
+### 2026-08-17 — Board-emphasis invariant + Build board
+- Added governing **board-emphasis invariant** and per-board lens table (Domain · Build · Design · Realm · Agent). Acceptance criterion for future board work.
+- Flagged Draft / Moment / Library / Domain-idle as standing invariant exceptions (Document-tree / Presence-tree fork) — not patched here.
+- Display rename: IDE Board → **Build Board**. Internal routing key remains `ide`; canonical URL write is `?board=build` with `ide` as a legacy alias.

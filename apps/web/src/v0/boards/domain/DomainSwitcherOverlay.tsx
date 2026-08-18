@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../workspaceBoardNav"
+import { toWorkspaceBoardUrlParam } from "../workspaceBoardNav"
 import {
   HOME_SHELL_BOARD,
   isWorkspaceBoardAvailableForDomain,
@@ -121,7 +122,7 @@ function buildDomainBoardUrl(
   preservedSearch: URLSearchParams,
 ): string {
   const params = new URLSearchParams()
-  params.set("board", resolveTargetBoardForDomain(slug, boardId))
+  params.set("board", toWorkspaceBoardUrlParam(resolveTargetBoardForDomain(slug, boardId)))
   const theme = preservedSearch.get("theme")
   const style = preservedSearch.get("style")
   if (theme) params.set("theme", theme)

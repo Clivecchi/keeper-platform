@@ -21,6 +21,7 @@ const emptySelection = {
   selectedLibraryItemId: null,
   selectedSoleMemoryId: null,
   selectedBoardDefId: null,
+  selectedGlossaryId: null,
 };
 
 describe('resolveChroniclePrimary', () => {
@@ -44,6 +45,16 @@ describe('resolveChroniclePrimary', () => {
       selectedPathId: 'p-1',
     });
     expect(primary).toEqual({ kind: 'path', id: 'p-1', journeyId: 'j-1' });
+  });
+
+  it('prefers glossary over designer boardDef', () => {
+    const primary = resolveChroniclePrimary({
+      ...emptySelection,
+      isDesignerBoard: true,
+      boardDefinitionId: 'def-1',
+      selectedGlossaryId: 'object-glossary',
+    });
+    expect(primary).toEqual({ kind: 'glossary', id: 'object-glossary' });
   });
 
   it('uses designer boardDefinitionId when isDesignerBoard', () => {

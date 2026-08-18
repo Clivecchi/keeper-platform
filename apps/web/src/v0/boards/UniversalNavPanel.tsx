@@ -98,6 +98,7 @@ import {
   loadKeepers,
   removeCachedBoardNavRow,
 } from "./boardNavDataCache"
+import { OBJECT_GLOSSARY_SUBJECT_ID } from "@keeper/shared"
 import { CrossNavIndex, type CrossNavIndexItem } from "./CrossNavIndex"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -122,6 +123,7 @@ export interface UniversalNavPanelProps {
   selectedKeyId?: string | null
   selectedCapabilityId?: string | null
   selectedLibraryItemId?: string | null
+  selectedGlossaryId?: string | null
   selectedMomentId?: string | null
 
   // Selection callbacks — fired by this component, handled by the Board
@@ -134,6 +136,7 @@ export interface UniversalNavPanelProps {
   onKeySelect?: (id: string) => void
   onCapabilitySelect?: (id: string) => void
   onLibraryItemSelect?: (id: string) => void
+  onGlossarySelect?: () => void
   onMomentSelect?: (id: string) => void
 
   // Collapse state — controlled by the Board
@@ -244,6 +247,7 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "externalAccess",
   "capabilities",
   "library",
+  "glossary",
   "chatter",
   "connections",
   "agents",
@@ -264,6 +268,7 @@ function resolveNavBlockOrder(def: UniversalBoardDef): NavRenderBlock[] {
     const remainder = DEFAULT_NAV_BLOCK_ORDER.filter((block) => {
       if (ordered.includes(block)) return false
       if (block === "library" && !(def.nav.sections.library ?? false)) return false
+      if (block === "glossary" && !(def.nav.sections.glossary ?? false)) return false
       return true
     })
     return [...ordered, ...remainder]
@@ -351,6 +356,7 @@ export function UniversalNavPanel({
   selectedKeyId,
   selectedCapabilityId,
   selectedLibraryItemId,
+  selectedGlossaryId,
   selectedMomentId,
   onDialogSelect,
   onJourneySelect,
@@ -361,6 +367,7 @@ export function UniversalNavPanel({
   onKeySelect,
   onCapabilitySelect,
   onLibraryItemSelect,
+  onGlossarySelect,
   onMomentSelect,
   collapsed = false,
   onToggleCollapsed,
@@ -1186,6 +1193,7 @@ export function UniversalNavPanel({
   const showJourneys = def.nav.sections.journeys
   const showKeepers = def.nav.sections.keepers
   const showBoardDefs = def.nav.sections.boardDefs ?? false
+  const showGlossaryNav = def.nav.sections.glossary ?? false
   const activeBoardDefId = showBoardDefs ? boardDefinitionId : null
 
   React.useEffect(() => {
@@ -1278,9 +1286,10 @@ export function UniversalNavPanel({
 
   const selectBoardDef = React.useCallback(
     (boardDefId: string) => {
+      boardCtx?.actions.onBoardDefSelect(boardDefId)
       selectBoardDefinition(boardDefId)
     },
-    [selectBoardDefinition],
+    [boardCtx, selectBoardDefinition],
   )
 
   const boardDefItems = React.useMemo<SidebarCardItem[]>(
@@ -1692,6 +1701,23 @@ export function UniversalNavPanel({
               </p>
             )}
           </div>
+        )
+      case "glossary":
+        if (!showGlossaryNav) return null
+        return (
+          <SidebarCard
+            className="keeper-sidebar-card"
+            title="Glossary"
+            description={def.boardId === "designer" ? "Definition ownership" : "Governing vocabulary"}
+            items={[
+              {
+                id: OBJECT_GLOSSARY_SUBJECT_ID,
+                label: "Object Glossary",
+                isSelected: selectedGlossaryId === OBJECT_GLOSSARY_SUBJECT_ID,
+                onClick: () => onGlossarySelect?.(),
+              },
+            ]}
+          />
         )
       case "capabilities":
         if (!showCapabilitiesNav || !capabilitiesByKind) return null

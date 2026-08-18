@@ -8,7 +8,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `boardNavDataCache.ts` � In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
 - `domain/domainShellCache.ts` � Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` � Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
-- `workspaceBoardNav.ts` � Shared `?board=` / `?boardDef=` URL helpers for workspace switching
+- `workspaceBoardNav.ts` — Shared `?board=` / `?definition=` URL helpers. Build workspace writes `?board=build`; internal id stays `ide`.
 - `domainWorkspaceBoards.ts` � Per-domain allowed workspace boards (KE3P vs member domains)
 - `realm/` � Realm Board (`?board=realm`) � personal domain primary workspace
 - `designer/` � The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
@@ -29,6 +29,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-17 — Build board rename + Glossary nav + board-emphasis invariant
+- Display rename: IDE → **Build**. Internal key remains `ide` (kipMode, sessions, capability ceilings). Canonical URL write is `?board=build`; `?board=ide` still parses.
+- Domain Nav: top-level **Glossary** (not nested in Library) — Chronicle read of the Object Glossary.
+- Design Nav: **Glossary** as definition-ownership entry (config layout). Not labeled as a Document.
+- Board-emphasis invariant documented in `docs/keeper-object-glossary.md`.
 
 ### 2026-08-11 — revive treatment.proposal on cast merge
 - `mergeCastAndLeadActionResults` prefers client cast payload when Lead fold kept `castSlug` but dropped nested `proposal` (Domain showed compact "Proposed treatment" instead of TreatmentProposeCard).

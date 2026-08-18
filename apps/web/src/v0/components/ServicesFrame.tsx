@@ -37,7 +37,7 @@ function RailwaySection() {
   return (
     <div style={{ padding: "20px 20px 24px" }}>
       <p style={{ fontSize: "12px", lineHeight: "1.65", color: "var(--theme-ink-secondary-color)", marginBottom: "16px" }}>
-        Connect Railway to enable backend deployment from the IDE Board.
+        Connect Railway to enable backend deployment from the Build Board.
       </p>
       <StatusRow label="Status" value="Not connected" />
       <div style={{ marginTop: "16px" }}>
@@ -51,7 +51,7 @@ function VercelSection() {
   return (
     <div style={{ padding: "20px 20px 24px" }}>
       <p style={{ fontSize: "12px", lineHeight: "1.65", color: "var(--theme-ink-secondary-color)", marginBottom: "16px" }}>
-        Connect Vercel to enable frontend deployment and preview URLs from the IDE Board.
+        Connect Vercel to enable frontend deployment and preview URLs from the Build Board.
       </p>
       <StatusRow label="Status" value="Not connected" />
       <div style={{ marginTop: "16px" }}>
@@ -65,7 +65,7 @@ function GitHubSection() {
   return (
     <div style={{ padding: "20px 20px 24px" }}>
       <p style={{ fontSize: "12px", lineHeight: "1.65", color: "var(--theme-ink-secondary-color)", marginBottom: "16px" }}>
-        Connect GitHub to surface branch status, commits, and pull requests from the IDE Board.
+        Connect GitHub to surface branch status, commits, and pull requests from the Build Board.
       </p>
       <StatusRow label="Status" value="Not connected" />
       <div style={{ marginTop: "16px" }}>

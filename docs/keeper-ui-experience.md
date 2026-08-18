@@ -26,7 +26,7 @@ Keeper UI is composed as a frame-based experience rendered by a single shell and
 
 | Audience | Canonical URL | Surface | Wire features here |
 |---|---|---|---|
-| **Member (auth)** | `/d/:slug?board=domain` (or `ide` / `agent` / `designer`) | Universal Board: Nav · Dialog · Chronicle | `UniversalNavPanel`, `KeeperPresence` / Chronicle |
+| **Member (auth)** | `/d/:slug?board=domain` (or `build` / `agent` / `designer`) | Universal Board: Nav · Dialog · Chronicle | `UniversalNavPanel`, `KeeperPresence` / Chronicle |
 | **Guest / public story** | Present (target) · Cover today | Narrative read-only — not standalone journey frames | `PresentFrame` — after board engagement |
 | **Legacy frames** | `?frame=journeys`, `?frame=keepers`, etc. | Standalone v0 frames | **Do not extend for Phase 1 member work.** |
 

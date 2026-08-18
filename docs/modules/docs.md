@@ -20,6 +20,7 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
+- **2026-08-17**: Object Glossary — board-emphasis invariant (governing); IDE display rename to Build; in-product Glossary nav (Domain read / Design definition).
 - **2026-08-02**: Landed governing `keeper-object-glossary.md` (working v1) — same tier as EntityKind Recipe; agent read access via Library Item + Training Governance inject.
 - **2026-06-19**: Updated `keeper-ui-experience.md` — Declared Chronicle UI (Focus · Config · Act), `ChronicleActPresence`, no `EngagementForm` on board Acts.
 - 2026-06-17: Added `build-handoffs/` — v1.0 schema for Cloud → Cursor handoffs (Phase 0 file-based; Phase 1 MCP).

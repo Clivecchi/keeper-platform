@@ -4,6 +4,7 @@ import {
   isWorkspaceBoardAvailableForDomain,
   resolveAvailableWorkspaceBoardIds,
   resolveDefaultWorkspaceBoardId,
+  resolveWorkspaceBoardLinks,
 } from "./domainWorkspaceBoards"
 
 describe("domainWorkspaceBoards", () => {
@@ -13,8 +14,9 @@ describe("domainWorkspaceBoards", () => {
     expect(isPlatformDomainSlug("livecchi")).toBe(false)
   })
 
-  it("platform domain includes IDE and Design (no Home tab)", () => {
+  it("platform domain includes Realm, Domain, Build, Design, Agent", () => {
     expect(resolveAvailableWorkspaceBoardIds("default")).toEqual([
+      "realm",
       "domain",
       "ide",
       "designer",
@@ -22,8 +24,21 @@ describe("domainWorkspaceBoards", () => {
     ])
   })
 
-  it("member domains get Domain and Agent only", () => {
+  it("labels the ide workspace as Build", () => {
+    const links = resolveWorkspaceBoardLinks("default")
+    expect(links.find((board) => board.id === "ide")?.label).toBe("Build")
+    expect(links.map((board) => board.label)).toEqual([
+      "Realm",
+      "Domain",
+      "Build",
+      "Design",
+      "Agent",
+    ])
+  })
+
+  it("member domains get Realm, Domain, and Agent only", () => {
     expect(resolveAvailableWorkspaceBoardIds("livecchi")).toEqual([
+      "realm",
       "domain",
       "agent",
     ])
@@ -33,8 +48,8 @@ describe("domainWorkspaceBoards", () => {
     expect(isWorkspaceBoardAvailableForDomain("agent", "livecchi")).toBe(true)
   })
 
-  it("defaults to domain board", () => {
-    expect(resolveDefaultWorkspaceBoardId("livecchi")).toBe("domain")
-    expect(resolveDefaultWorkspaceBoardId("default")).toBe("domain")
+  it("defaults to Realm board", () => {
+    expect(resolveDefaultWorkspaceBoardId("livecchi")).toBe("realm")
+    expect(resolveDefaultWorkspaceBoardId("default")).toBe("realm")
   })
 })

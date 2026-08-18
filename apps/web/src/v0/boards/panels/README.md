@@ -29,7 +29,7 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 
 | Trigger | Renderer |
 |---|---|
-| Any selection (dialog, journey, moment, keeper, draft, agent, service, boardDef) | `KeeperPresence` |
+| Any selection (dialog, journey, moment, keeper, draft, agent, service, boardDef, glossary) | `KeeperPresence` / `GlossaryPresence` |
 | Nothing selected (domain idle) | `KeeperPresence` objectType=`domain` |
 
 `contextSurface.viewStates` on board defs carries **treatment copy only** — it does not gate routing. All boards declare every subject via `mergeViewStates()`.
@@ -70,6 +70,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - [x] Treatment v0 — `resolveDomainTreatment` from `domainFrame`; passed to Chronicle panel body
 
 ## 📆 Update Log
+
+### 2026-08-17 — Glossary Chronicle subject
+- Trail + `resolveChronicleView` include `glossary`. Domain: focus (read). Design: config (definition ownership).
 
 ### 2026-07-23 — chronicle-shows-document-universally
 - `showRealmDocument`: focused `dialog` routes to `RealmHomeChronicle` / `DomainRealmStory` on every board (not Realm-only). Realm still Document-routes domain/draft/moment/library.

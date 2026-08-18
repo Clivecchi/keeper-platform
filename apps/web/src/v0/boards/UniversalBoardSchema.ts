@@ -121,12 +121,12 @@ export interface UniversalBoardSchema {
 // ---------------------------------------------------------------------------
 
 /**
- * IDE Board — visual reference standard.
- * Agent Board's structural discipline + IDE Board's visual standard = Universal Board target.
+ * Build Board — visual reference standard.
+ * Agent Board's structural discipline + Build Board's visual standard = Universal Board target.
  */
 export const IDE_BOARD_SCHEMA: UniversalBoardSchema = {
   boardId: "ide",
-  displayName: "IDE Board",
+  displayName: "Build Board",
   access: {
     // boardRegistry.ts confirms isPrivate: true for all boards.
     // Schema document listed isPrivate: false — that diverges from registry. // TODO: verify intent

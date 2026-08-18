@@ -108,7 +108,7 @@ export class IntegrationMcpService {
         ),
         detail:
           service === 'github' && !row?.nangoConnectionId
-            ? 'Connect GitHub via Integrations (Nango OAuth) on the IDE board'
+            ? 'Connect GitHub via Integrations (Nango OAuth) on the Build board'
             : undefined,
       });
     }

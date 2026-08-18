@@ -573,6 +573,7 @@ function UniversalBoardShell({
               selectedKeyId={selection.selectedKeyId}
               selectedCapabilityId={selection.selectedCapabilityId}
               selectedLibraryItemId={selection.selectedLibraryItemId}
+              selectedGlossaryId={selection.selectedGlossaryId}
               onDialogSelect={(id) => {
                 actions.onDialogSelect(id)
                 if (useMobilePanelLayout) closeNavDrawer()
@@ -610,6 +611,10 @@ function UniversalBoardShell({
               }}
               onLibraryItemSelect={(id) => {
                 actions.onLibraryItemSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onGlossarySelect={() => {
+                actions.onGlossarySelect()
                 if (useMobilePanelLayout) closeNavDrawer()
               }}
               onMomentSelect={(id) => {

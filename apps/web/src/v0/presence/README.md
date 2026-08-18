@@ -9,6 +9,7 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `frameProps.ts` — normalize, fetch, persist frame props via domain board-data API
 - `FrameConfigPresence.tsx` — config layout for frame objects (preview, props, quiet JSON)
 - `BoardDefConfigPresence.tsx` — config layout for board definitions (human-readable structure)
+- `GlossaryPresence.tsx` — Object Glossary Chronicle surface (Domain read / Design definition ownership)
 - `KeeperPresenceDefaults.ts` — platform default schemas (journey, moment, keeper, agent, draft, dialog, service, domain, frame, boardDef)
 - `usePresenceSchema.ts` — React hook with 3-level resolution: object override → domain DB → platform default; module-level cache
 - `KeeperPresence.tsx` — schema-driven Chronicle surface; journey focus layout, breadcrumb, related sections, relative timestamps; agent explicit Save + structured prompts
@@ -61,6 +62,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-08-17 — Object Glossary Chronicle presence
+- `GlossaryPresence` — Domain focus (read) and Design config (definition ownership). Routed from `ChroniclePresenceView` before `KeeperPresence`. Not an EntityKind; not a Dialog Document.
 
 ### 2026-08-17 — Draft enrichment skips second getDraft
 - `enrichDraft` reuses the record from `fetchPresenceRecord` (meta only) — draft Chronicle selection no longer double-fetches.

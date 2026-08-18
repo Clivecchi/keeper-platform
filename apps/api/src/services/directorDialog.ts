@@ -66,7 +66,7 @@ export function buildCastMemberDelegationPrompt(params: {
 }): string {
   const task = params.userMessage.trim();
   const vibe = params.dialogStyle === 'vibe';
-  const lines = [`[Director delegation — ${params.castMemberLabel} on the IDE board]`];
+  const lines = [`[Director delegation — ${params.castMemberLabel} on the Build board]`];
 
   if (params.continuityCue?.trim()) {
     lines.push(
@@ -76,7 +76,7 @@ export function buildCastMemberDelegationPrompt(params: {
     );
   } else {
     lines.push(
-      `The user addressed ${params.castMemberLabel} (Cast member pinned on the IDE board).`,
+      `The user addressed ${params.castMemberLabel} (Cast member pinned on the Build board).`,
       `${params.directorName} (Lead) relayed:`,
       `"${task}"`,
     );
@@ -150,7 +150,7 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
     `[Director synthesis — ${params.directorName}]`,
     isContinuation
       ? `The user said "${display}" — continuing their prior request to ${params.castMemberLabel}:`
-      : `The user addressed ${params.castMemberLabel} on the IDE board.`,
+      : `The user addressed ${params.castMemberLabel} on the Build board.`,
     `"${task}"`,
     '',
     `${params.castMemberLabel} did not return a reply this turn.`,

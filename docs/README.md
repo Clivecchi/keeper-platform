@@ -7,7 +7,7 @@ Primary documentation hub for Keeper architecture, deployment notes, and operati
 - `keeper-heart-mind.md`
 - `keeper-ui-experience.md`
 - `entitykind-implementation-recipe.md`
-- `keeper-object-glossary.md` — governing platform object vocabulary (working v1)
+- `keeper-object-glossary.md` — governing platform object vocabulary (working v1); includes board-emphasis invariant
 - `build-handoffs/schema.md` — Cloud → Cursor handoff contract
 - `universal-board-dialog-cueing.md` — Dialog Cueing (Director · Cast · Cue); modes monologue / directed / …
 - `universal-board-dialog-orchestration.md` — legacy stub → see dialog-cueing doc
@@ -22,6 +22,7 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
+- **2026-08-17**: Object Glossary — board-emphasis invariant (governing); IDE display rename to Build; in-product Glossary nav (Domain read / Design definition).
 - **2026-08-02**: Landed governing `keeper-object-glossary.md` (working v1) — same tier as EntityKind Recipe; agent read access via Library Item + Training Governance inject.
 - **2026-06-19**: Updated `keeper-ui-experience.md` — Declared Chronicle UI (Focus · Config · Act), `ChronicleActPresence`, no `EngagementForm` on board Acts.
 - 2026-06-17: Added `build-handoffs/` — v1.0 schema for Cloud → Cursor handoffs (Phase 0 file-based; Phase 1 MCP).

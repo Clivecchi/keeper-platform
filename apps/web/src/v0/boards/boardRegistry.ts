@@ -65,7 +65,7 @@ export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
   },
   ide: {
     component: IDEBoard,
-    displayName: "IDE Board",
+    displayName: "Build Board",
     isPrivate: true,
     isAdminOnly: false,
     def: IDE_BOARD_DEF,

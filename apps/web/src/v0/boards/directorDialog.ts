@@ -70,8 +70,8 @@ export function buildCastDelegationPrompt(params: {
   directorName: string
 }): string {
   return [
-    `[Director delegation — ${params.instrumentLabel} on the IDE board]`,
-    `The user addressed ${params.instrumentLabel} (Cast member pinned on the IDE board).`,
+    `[Director delegation — ${params.instrumentLabel} on the Build board]`,
+    `The user addressed ${params.instrumentLabel} (Cast member pinned on the Build board).`,
     `${params.directorName} (Lead) relayed:`,
     `"${params.userMessage}"`,
     "",
@@ -111,7 +111,7 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
 }): string {
   return [
     `[Director synthesis — ${params.directorName}]`,
-    `The user addressed ${params.instrumentLabel} on the IDE board.`,
+    `The user addressed ${params.instrumentLabel} on the Build board.`,
     `"${params.userMessage}"`,
     "",
     `${params.instrumentLabel} did not return a reply this turn (delegation empty or failed).`,

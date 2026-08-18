@@ -32,6 +32,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## ?? Update Log
 
+### 2026-08-17 — Glossary in Domain Nav
+- Domain `navBlockOrder` inserts **Glossary** after Keeper and before Library. Chronicle read of the Object Glossary — not nested in Library, not labeled as a Document.
+
 ### 2026-08-03 — dialogCueing rename (Pass 1)
 - `resolveRevealNavSections.ts`: `def.conversation.dialogOrchestration === "director"` ? `def.conversation.dialogCueing === "directed"` (board def field rename, no behavior change).
 

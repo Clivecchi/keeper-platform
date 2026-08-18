@@ -23,6 +23,7 @@ import {
   resolveBoardDefinitionId,
   resolveWorkspaceBoardId,
   isMemberWorkspaceBoard,
+  toWorkspaceBoardUrlParam,
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import {
@@ -236,7 +237,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
         setSearchParams(
           (prev) => {
             const next = new URLSearchParams(prev)
-            next.set("board", targetBoard)
+            next.set("board", toWorkspaceBoardUrlParam(targetBoard))
             next.delete("frame")
             return next
           },
@@ -250,7 +251,7 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev)
-          next.set("board", resolveDefaultWorkspaceBoardId(resolvedSlug))
+          next.set("board", toWorkspaceBoardUrlParam(resolveDefaultWorkspaceBoardId(resolvedSlug)))
           return next
         },
         { replace: true },

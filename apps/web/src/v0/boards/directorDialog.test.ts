@@ -39,8 +39,8 @@ describe("sanitizeUserMessageContent — Echo / collaboration scaffolds", () => 
 
   it("still recovers quoted text from Director prompts", () => {
     const raw = [
-      "[Director delegation — Cloud on the IDE board]",
-      "The user addressed Cloud (instrument pinned on the IDE board).",
+      "[Director delegation — Cloud on the Build board]",
+      "The user addressed Cloud (instrument pinned on the Build board).",
       "Kip (Lead) relayed:",
       '"Please open the PR."',
       "",

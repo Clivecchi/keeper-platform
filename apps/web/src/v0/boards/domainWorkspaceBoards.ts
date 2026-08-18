@@ -3,8 +3,8 @@
  * ---------------------
  * Which workspace boards (`?board=`) are available for a domain slug.
  *
- * Platform (KE3P / slug `ke3p`): build surfaces — IDE + Design (+ member boards).
- * All other domains: Domain + Agent (+ Realm home) — no IDE or Design.
+ * Platform (KE3P / slug `ke3p`): build surfaces — Build + Design (+ member boards).
+ * All other domains: Domain + Agent (+ Realm home) — no Build or Design.
  */
 
 import {
@@ -42,7 +42,7 @@ export const HOME_SHELL_BOARD: WorkspaceBoardId = "realm"
 const WORKSPACE_BOARD_LABELS: Record<WorkspaceBoardId, string> = {
   realm: "Realm",
   domain: "Domain",
-  ide: "IDE",
+  ide: "Build",
   designer: "Design",
   agent: "Agent",
 }

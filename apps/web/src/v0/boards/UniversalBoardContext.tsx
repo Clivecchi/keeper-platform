@@ -24,7 +24,7 @@ import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import type { GlossAnchor, GlossContentSnapshot, ChroniclePanelMode, ChronicleView } from "@keeper/shared"
-import { glossAnchorToDraftDiscuss, resolveChronicleView } from "@keeper/shared"
+import { glossAnchorToDraftDiscuss, OBJECT_GLOSSARY_SUBJECT_ID, resolveChronicleView } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
@@ -72,6 +72,8 @@ export interface UniversalBoardSelection {
   selectedKeyId: string | null
   selectedCapabilityId: string | null
   selectedLibraryItemId: string | null
+  /** Object Glossary — governing vocabulary subject (not a Dialog Document). */
+  selectedGlossaryId: string | null
   /** When set, Chronicle shows this SOLE memory card stacked above the current entity (e.g. draft). */
   selectedSoleMemoryId: string | null
   /** designer mode: the board definition currently selected in the nav — drives right-panel BoardDefView. */
@@ -148,6 +150,8 @@ export interface UniversalBoardActions {
   onKeySelect: (id: string) => void
   onCapabilitySelect: (id: string) => void
   onLibraryItemSelect: (id: string) => void
+  /** Opens the Object Glossary in Chronicle (Domain read / Design definition). */
+  onGlossarySelect: () => void
   /** Opens a SOLE memory card in Chronicle; pass null to return to the underlying selection. */
   onSoleMemorySelect: (id: string | null) => void
   clearSelection: () => void
@@ -250,6 +254,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedKeyId, setSelectedKeyId] = React.useState<string | null>(null)
   const [selectedCapabilityId, setSelectedCapabilityId] = React.useState<string | null>(null)
   const [selectedLibraryItemId, setSelectedLibraryItemId] = React.useState<string | null>(null)
+  const [selectedGlossaryId, setSelectedGlossaryId] = React.useState<string | null>(null)
   const [selectedSoleMemoryId, setSelectedSoleMemoryId] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
   const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
@@ -327,6 +332,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
   }, [urlDraftId, selectedDraftId, selectedDialogId])
 
   // ── Nav state ──────────────────────────────────────────────────────────────
@@ -362,6 +368,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
     setChroniclePanelMode("document")
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
   }, [clearDraftIdFromUrl])
@@ -393,6 +400,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
   }, [clearDraftIdFromUrl])
 
   const onPathSelect = React.useCallback((id: string) => {
@@ -407,6 +415,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
   }, [clearDraftIdFromUrl])
 
   const onMomentSelect = React.useCallback((id: string) => {
@@ -422,6 +431,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
   }, [clearDraftIdFromUrl])
 
   const onMomentClear = React.useCallback(() => {
@@ -441,6 +451,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
   }, [clearDraftIdFromUrl])
 
   const onDraftSelect = React.useCallback((id: string) => {
@@ -456,6 +467,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
@@ -481,6 +493,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
   }, [clearDraftIdFromUrl])
 
   const onServiceOpen = React.useCallback((slug: string) => {
@@ -495,12 +508,14 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
   }, [])
 
   const onKeySelect = React.useCallback((id: string) => {
     setSelectedKeyId(id)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
     setSelectedSoleMemoryId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
@@ -516,6 +531,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(id)
     setSelectedKeyId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
     setSelectedSoleMemoryId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
@@ -529,6 +545,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onLibraryItemSelect = React.useCallback((id: string) => {
     setSelectedLibraryItemId(id)
+    setSelectedGlossaryId(null)
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedSoleMemoryId(null)
@@ -541,6 +558,24 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
   }, [])
+
+  const onGlossarySelect = React.useCallback(() => {
+    setSelectedGlossaryId(OBJECT_GLOSSARY_SUBJECT_ID)
+    setSelectedLibraryItemId(null)
+    setSelectedSoleMemoryId(null)
+    setSelectedDialogId(null)
+    setSelectedJourneyId(null)
+    setSelectedPathId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
+    setSelectedBoardDefId(null)
+    shell?.clearBoardDefinition()
+  }, [shell])
 
   const onSoleMemorySelect = React.useCallback((id: string | null) => {
     setSelectedSoleMemoryId(id)
@@ -595,6 +630,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
     setSelectedSoleMemoryId(null)
     setSelectedBoardDefId(null)
   }, [])
@@ -614,6 +650,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setSelectedKeyId(null)
       setSelectedCapabilityId(null)
       setSelectedLibraryItemId(null)
+      setSelectedGlossaryId(null)
     }
   }, [])
 
@@ -621,9 +658,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const definitionFromUrl = useBoardDefinitionFromUrl()
 
   React.useEffect(() => {
+    if (selectedGlossaryId) return
     if (definitionFromUrl === selectedBoardDefId) return
     onBoardDefSelect(definitionFromUrl)
-  }, [definitionFromUrl, selectedBoardDefId, onBoardDefSelect])
+  }, [definitionFromUrl, selectedBoardDefId, onBoardDefSelect, selectedGlossaryId])
 
   const bumpDraftPresence = React.useCallback(() => {
     setDraftPresenceRevision((n) => n + 1)
@@ -803,6 +841,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
           selectedLibraryItemId,
           selectedSoleMemoryId,
           selectedBoardDefId,
+          selectedGlossaryId,
         },
         chronicleEngagement
           ? { templateSlug: chronicleEngagement.template.slug }
@@ -822,6 +861,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedLibraryItemId,
       selectedSoleMemoryId,
       selectedBoardDefId,
+      selectedGlossaryId,
       chronicleEngagement,
     ],
   )
@@ -842,6 +882,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedKeyId,
         selectedCapabilityId,
         selectedLibraryItemId,
+        selectedGlossaryId,
         selectedSoleMemoryId,
         selectedBoardDefId,
         draftPresenceRevision,
@@ -886,6 +927,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onKeySelect,
         onCapabilitySelect,
         onLibraryItemSelect,
+        onGlossarySelect,
         onSoleMemorySelect,
         clearSelection,
         onBoardDefSelect,
@@ -935,6 +977,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedKeyId,
       selectedCapabilityId,
       selectedLibraryItemId,
+      selectedGlossaryId,
       selectedSoleMemoryId,
       selectedBoardDefId,
       draftPresenceRevision,
@@ -977,6 +1020,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onKeySelect,
       onCapabilitySelect,
       onLibraryItemSelect,
+      onGlossarySelect,
       onSoleMemorySelect,
       clearSelection,
       onBoardDefSelect,

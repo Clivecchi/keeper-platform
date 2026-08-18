@@ -80,6 +80,7 @@ const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
   library: "library",
   soleMemory: "soleMemory",
   boardDef: "boardDef",
+  glossary: "glossary",
 }
 
 const CONFIG_LAYOUT_KINDS = new Set<TrailKind>(["boardDef"])
@@ -326,7 +327,14 @@ function PanelBody({
         subject.kind === "library"))
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]
   const objectId = subject.kind === "domain" ? domainId : subject.id
-  const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(subject.kind) ? "config" : "focus"
+  const layout: PresenceLayout =
+    subject.kind === "glossary"
+      ? boardId === "designer"
+        ? "config"
+        : "focus"
+      : CONFIG_LAYOUT_KINDS.has(subject.kind)
+        ? "config"
+        : "focus"
 
   function renderPresence(): React.ReactNode {
     if (showRealmDocument) {
@@ -490,6 +498,7 @@ export function UniversalViewPanel({
       selectedLibraryItemId: boardCtx?.selection.selectedLibraryItemId ?? null,
       selectedSoleMemoryId: boardCtx?.selection.selectedSoleMemoryId ?? null,
       selectedBoardDefId: boardCtx?.selection.selectedBoardDefId ?? null,
+      selectedGlossaryId: boardCtx?.selection.selectedGlossaryId ?? null,
       boardDefinitionId,
       isDesignerBoard: def.boardId === "designer",
     },
@@ -601,6 +610,9 @@ export function UniversalViewPanel({
           break
         case "library":
           if (entry.id) actions.onLibraryItemSelect(entry.id)
+          break
+        case "glossary":
+          actions.onGlossarySelect()
           break
         case "boardDef":
           if (entry.id) {

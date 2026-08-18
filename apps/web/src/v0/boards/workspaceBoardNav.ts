@@ -3,16 +3,25 @@
  * -----------------
  * URL contract for workspace navigation.
  *
- * `?board=`     — active workspace (Domain · IDE · Design · Agent). Top bar only.
+ * `?board=`     — active workspace (Realm · Domain · Build · Design · Agent). Top bar only.
  * `?definition=` — Design workspace only: which built-in board *spec* is selected in nav.
  *
  * Legacy `?boardDef=` is read for deep links and stripped on write.
- * Do not use `board` for both — that caused IDE workspace vs "IDE Board" spec collisions.
+ * Do not use `board` for both — that caused Build workspace vs "Build Board" spec collisions.
+ *
+ * ## Build board migration (2026-08-17)
+ * Internal routing/storage key remains `ide` (kipMode, session resume, capability ceilings,
+ * TypeScript board ids). Display label is **Build**. Canonical URL write is `?board=build`;
+ * `?board=ide` continues to parse as the same workspace so existing bookmarks and stored
+ * links do not break. No database migration — board id is not a persisted user preference.
  */
 
 import { buildRealmShellPath } from "../../lib/realmPaths"
 
 export type WorkspaceBoardId = "domain" | "realm" | "ide" | "designer" | "agent"
+
+/** Canonical URL param for the Build workspace (internal id stays `ide`). */
+export const BUILD_BOARD_URL_PARAM = "build"
 
 export const WORKSPACE_BOARD_IDS: WorkspaceBoardId[] = [
   "domain",
@@ -50,13 +59,18 @@ export const BOARD_DEFINITION_PARAM = "definition"
 
 const LEGACY_BOARD_DEF_PARAM = "boardDef"
 
+/** Write the public `?board=` value for an internal workspace id. */
+export function toWorkspaceBoardUrlParam(boardId: WorkspaceBoardId): string {
+  return boardId === "ide" ? BUILD_BOARD_URL_PARAM : boardId
+}
+
 export function parseWorkspaceBoardId(
   searchParams: URLSearchParams,
 ): WorkspaceBoardId | null {
   const board = searchParams.get("board")?.toLowerCase()
   if (board === "domain") return "domain"
   if (board === "realm") return "realm"
-  if (board === "ide") return "ide"
+  if (board === "ide" || board === BUILD_BOARD_URL_PARAM) return "ide"
   if (board === "designer") return "designer"
   if (board === "agent") return "agent"
   return null
@@ -157,7 +171,7 @@ export function applyWorkspaceBoardSwitch(
   boardId: WorkspaceBoardId,
 ): URLSearchParams {
   const next = clearBoardDefinitionParams(new URLSearchParams(prev))
-  next.set("board", boardId)
+  next.set("board", toWorkspaceBoardUrlParam(boardId))
   return next
 }
 

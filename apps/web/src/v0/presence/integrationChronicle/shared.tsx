@@ -108,7 +108,7 @@ export function formatConnectedAt(iso: string | null): string {
 }
 
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
-  railway: "Monitor deployments, logs, and service health from the IDE Board.",
+  railway: "Monitor deployments, logs, and service health from the Build Board.",
   vercel: "Track preview and production deployments, build logs, and project status.",
   github: "View commits, pull requests, and branches from your connected repository.",
 }
