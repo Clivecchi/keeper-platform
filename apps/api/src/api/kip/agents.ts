@@ -3587,8 +3587,9 @@ export async function executeAgentActions(
               results.push({
                 type: action.type,
                 status: 'error',
-                message: errorMessage,
+                message: `${toolName}: ${errorMessage}`,
                 errorCode: 'EXECUTION_ERROR',
+                data: { tool: toolName },
               });
             }
             break;
@@ -6983,8 +6984,8 @@ export class KipAgentService {
                 finalResponseText = draftFailureNotice;
               } else if (execution.failedMessage) {
                 finalResponseText = structured.responseText
-                  ? `${structured.responseText} I attempted to save but it failed: ${execution.failedMessage}`
-                  : `I attempted to save but it failed: ${execution.failedMessage}`;
+                  ? `${structured.responseText} I attempted an action, but it failed: ${execution.failedMessage}`
+                  : `I attempted an action, but it failed: ${execution.failedMessage}`;
               }
 
               const allFailedSummary = buildAllActionsFailedSummary(execution.results);

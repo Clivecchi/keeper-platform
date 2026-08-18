@@ -30,6 +30,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-17: **Honest MCP failures** — Cloud `mcp.call` errors include the tool name; System-agent wrap no longer says "I attempted to save" for non-draft failures. GitHub 404s resolve in `GitHubService` (reconnect vs file/branch missing).
 - 2026-08-11: **SOLE vs DRAFT distinction (Phase 1B)** — `buildSoleVsDraftDistinctionPrompt()` in both Lead prompt paths: `sole.save` = agent memory; `draft.create` = human working artifact. Ambiguous "hold onto / save / keep" must not default to `sole.save`. Aligned `SoleMemoryService` + SOLE memory injection lines.
 - 2026-08-11: **treatment.propose coerce hardened** — accepts flat background/accent/fontFamily, JSON-string `treatment`, and theme/look nesting; Rendr prompt includes a concrete payload example. Empty treatment still fails with a clearer VALIDATION_ERROR receipt.
 - 2026-08-11: **draft.create title required** — stopped inventing `title: "Draft"` before schema validation / in the executor. Omitting title now returns a visible `VALIDATION_ERROR` receipt (needed for cast-consult failure transparency).

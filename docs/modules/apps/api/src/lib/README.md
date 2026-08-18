@@ -28,6 +28,9 @@ Shared utilities and service clients used across Express routes and middleware.
 
 ## 📆 Update Log
 
+### 2026-08-17 — Axios status parsed on Nango errors
+- `nangoConfig.formatNangoError` reads `status code NNN` from Axios messages when `response.status` is missing, so GitHub MCP can tell a 404 from a generic 502.
+
 ### 2026-07-28 — Railway GraphQL auth (logs)
 - `railwayGraphql.ts` — canonical host `backboard.railway.com`; project UUID tokens use `Project-Access-Token`.
 - `integrationCustomConnect` probe now verifies `deploymentLogs` (not only project reachability).

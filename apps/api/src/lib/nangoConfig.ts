@@ -204,13 +204,22 @@ export function extractNangoErrorMessage(data: unknown): string {
   }
 }
 
+function parseAxiosStatusFromMessage(message?: string): number | undefined {
+  if (!message) return undefined;
+  const match = message.match(/status code (\d{3})\b/i);
+  if (!match) return undefined;
+  const status = Number(match[1]);
+  return status >= 400 && status < 600 ? status : undefined;
+}
+
 export function formatNangoError(err: unknown): { status: number; message: string; detail?: unknown } {
   const axiosErr = err as {
     response?: { status?: number; data?: unknown };
     message?: string;
   };
+  const statusFromMessage = parseAxiosStatusFromMessage(axiosErr.message);
   if (axiosErr.response) {
-    const status = axiosErr.response.status ?? 502;
+    const status = axiosErr.response.status ?? statusFromMessage ?? 502;
     const data = axiosErr.response.data;
     const message = extractNangoErrorMessage(data) || axiosErr.message || 'Nango request failed';
     return {
@@ -220,6 +229,9 @@ export function formatNangoError(err: unknown): { status: number; message: strin
     };
   }
   if (err instanceof Error) {
+    if (statusFromMessage) {
+      return { status: statusFromMessage, message: err.message };
+    }
     return { status: 502, message: err.message };
   }
   return { status: 500, message: 'Nango request failed' };

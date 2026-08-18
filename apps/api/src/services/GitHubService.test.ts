@@ -21,7 +21,11 @@ vi.mock('../lib/nango.js', () => ({
   resolveNangoIntegrationId: nangoMock.resolveNangoIntegrationId,
 }));
 
-import { GitHubService } from './GitHubService.js';
+import {
+  GitHubService,
+  formatGitHubProxyError,
+  isGitHubFileNotFoundError,
+} from './GitHubService.js';
 
 describe('GitHubService', () => {
   beforeEach(() => {
@@ -64,5 +68,67 @@ describe('GitHubService', () => {
 
     expect(proxy).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ branch: 'cloud/test', created: true, sha: 'abc123' });
+  });
+
+  it('formatGitHubProxyError maps generic Axios 404 to reconnect copy', () => {
+    const err = Object.assign(new Error('Request failed with status code 404'), {
+      response: { status: 404, data: {} },
+    });
+    expect(
+      formatGitHubProxyError(err, '/repos/Clivecchi/keeper-platform/contents/README.md'),
+    ).toContain('GitHub is not connected in Nango');
+  });
+
+  it('formatGitHubProxyError maps GitHub file 404 without calling it a save failure', () => {
+    const err = Object.assign(new Error('Request failed with status code 404'), {
+      response: {
+        status: 404,
+        data: {
+          message: 'Not Found',
+          documentation_url: 'https://docs.github.com/rest/repos/contents',
+        },
+      },
+    });
+    const message = formatGitHubProxyError(
+      err,
+      '/repos/Clivecchi/keeper-platform/contents/apps/web/missing.ts',
+    );
+    expect(message).toContain('GitHub file not found: apps/web/missing.ts');
+    expect(message).toContain('Clivecchi/keeper-platform');
+    expect(isGitHubFileNotFoundError(new Error(message))).toBe(true);
+  });
+
+  it('formatGitHubProxyError maps missing branch refs', () => {
+    const err = Object.assign(new Error('Request failed with status code 404'), {
+      response: {
+        status: 404,
+        data: {
+          message: 'Not Found',
+          documentation_url: 'https://docs.github.com/rest/git/refs',
+        },
+      },
+    });
+    expect(
+      formatGitHubProxyError(err, '/repos/Clivecchi/keeper-platform/git/ref/heads/main'),
+    ).toContain('GitHub branch not found: main');
+  });
+
+  it('writeFile does not treat a dead Nango connection as a missing file', async () => {
+    const proxy = vi.fn().mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 404'), {
+        response: { status: 404, data: { error: { code: 'unknown_connection' } } },
+      }),
+    );
+    nangoMock.getNango.mockReturnValue({ proxy });
+
+    await expect(
+      GitHubService.writeFile({
+        repository: 'Clivecchi/keeper-platform',
+        path: 'README.md',
+        content: 'hello',
+        branch: 'main',
+      }),
+    ).rejects.toThrow(/GitHub is not connected in Nango/);
+    expect(proxy).toHaveBeenCalledTimes(1);
   });
 });

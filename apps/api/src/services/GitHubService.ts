@@ -3,6 +3,7 @@
  */
 
 import { prisma } from '@keeper/database';
+import { formatNangoError } from '../lib/nangoConfig.js';
 import { getNango, isNangoConfigured, resolveNangoIntegrationId } from '../lib/nango.js';
 import { mergeGitHubToolArgs } from '../lib/resolveServiceBinding.js';
 
@@ -48,6 +49,80 @@ async function findConnectedGitHubIntegration() {
   });
 }
 
+const GITHUB_RECONNECT_HINT =
+  'Reconnect GitHub on the Build board: Nav → Integrations → GitHub.';
+
+function repoFromEndpoint(endpoint: string): string | undefined {
+  const match = endpoint.match(/^\/repos\/([^/]+)\/([^/]+)/);
+  if (!match) return undefined;
+  return `${match[1]}/${match[2]}`;
+}
+
+function jsonBlob(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '';
+  }
+}
+
+function isGitHubApiNotFound(detail: unknown): boolean {
+  // GitHub REST 404s include documentation_url. Bare "Not Found" is Nango/Axios.
+  return /documentation_url/i.test(jsonBlob(detail));
+}
+
+function isNangoConnectionError(message: string, detail: unknown, status: number): boolean {
+  const blob = `${message} ${jsonBlob(detail)}`;
+  if (
+    /unknown_connection|connection not found|no connection found|connection_not_found|unknown_provider|providerconfigkey|integration not found|unknown_integration/i.test(
+      blob,
+    )
+  ) {
+    return true;
+  }
+  // Generic Axios 404 with no GitHub API payload — Nango never reached GitHub.
+  return status === 404 && !isGitHubApiNotFound(detail);
+}
+
+/** Map Nango/Axios GitHub proxy failures into a message Cloud can show honestly. */
+export function formatGitHubProxyError(err: unknown, endpoint: string): string {
+  const formatted = formatNangoError(err);
+  const { status, message, detail } = formatted;
+  const repo = repoFromEndpoint(endpoint);
+
+  if (isNangoConnectionError(message, detail, status)) {
+    return `GitHub is not connected in Nango. ${GITHUB_RECONNECT_HINT}`;
+  }
+
+  if (status === 401 || status === 403) {
+    return `GitHub access was denied (${status}). ${GITHUB_RECONNECT_HINT}`;
+  }
+
+  if (status === 404 || /not found/i.test(message)) {
+    if (/\/contents\//.test(endpoint)) {
+      const path = decodeURIComponent(endpoint.split('/contents/')[1]?.split('?')[0] ?? '');
+      return `GitHub file not found${path ? `: ${path}` : ''}${repo ? ` in ${repo}` : ''}. Check the path and repository binding.`;
+    }
+    if (/\/git\/ref\/heads\//.test(endpoint)) {
+      const branch = decodeURIComponent(endpoint.split('/git/ref/heads/')[1] ?? '');
+      return `GitHub branch not found${branch ? `: ${branch}` : ''}${repo ? ` in ${repo}` : ''}. Check the default branch in the GitHub binding.`;
+    }
+    return `GitHub repository not found or the connected GitHub app cannot access it${repo ? ` (${repo})` : ''}. ${GITHUB_RECONNECT_HINT}`;
+  }
+
+  if (message && !/status code \d+/i.test(message) && message !== 'Nango request failed') {
+    return `GitHub: ${message}`;
+  }
+
+  return `GitHub request failed (${status}). ${GITHUB_RECONNECT_HINT}`;
+}
+
+export function isGitHubFileNotFoundError(err: unknown): boolean {
+  return err instanceof Error && /GitHub file not found/i.test(err.message);
+}
+
 async function githubProxy<T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   endpoint: string,
@@ -59,18 +134,21 @@ async function githubProxy<T>(
 
   const integration = await findConnectedGitHubIntegration();
   if (!integration?.nangoConnectionId) {
-    throw new Error('GitHub integration is not connected');
+    throw new Error(`GitHub integration is not connected. ${GITHUB_RECONNECT_HINT}`);
   }
 
-  const response = await getNango().proxy({
-    method,
-    endpoint,
-    providerConfigKey: resolveNangoIntegrationId('github'),
-    connectionId: integration.nangoConnectionId,
-    data,
-  });
-
-  return response.data as T;
+  try {
+    const response = await getNango().proxy({
+      method,
+      endpoint,
+      providerConfigKey: resolveNangoIntegrationId('github'),
+      connectionId: integration.nangoConnectionId,
+      data,
+    });
+    return response.data as T;
+  } catch (error) {
+    throw new Error(formatGitHubProxyError(error, endpoint));
+  }
 }
 
 export class GitHubService {
@@ -223,7 +301,10 @@ export class GitHubService {
         `/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`,
       );
       existingSha = existing.sha;
-    } catch {
+    } catch (error) {
+      if (!isGitHubFileNotFoundError(error)) {
+        throw error;
+      }
       existingSha = undefined;
     }
 

@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-17 — GitHub MCP errors name the real failure
+- `GitHubService.ts` — Nango/Axios `Request failed with status code 404` is mapped: dead connection → reconnect GitHub; GitHub REST 404 → file/branch/repo not found. `writeFile` no longer treats a dead connection as a missing file.
+
 ### 2026-08-11 — SOLE vs DRAFT distinction in SoleMemoryService
 - `SoleMemoryService.getSoleMemoryLoopInstruction` — sole.save is agent memory only; must not substitute for draft.create on shaped work / ambiguous "hold onto" language.
 
