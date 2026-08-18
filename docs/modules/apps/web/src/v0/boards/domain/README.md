@@ -48,6 +48,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - `peekDomainSwitcherEntries` returns last-known list after TTL; overlay seeds from cache and never shows "Loading domains" when any list exists (background revalidate).
 - `prefetchDomainSwitcherEntries` refreshes stale cache instead of treating expired TTL as empty.
 
+### 2026-08-17 — External writing ingest
+- New External Access keys include `dialog.rw` (Bring in writing) alongside Dialog read and Gloss.
+
 ### 2026-07-24 ? cast-select-must-not-change-atmosphere
 - `domainShellCache` bumps a version + `subscribeDomainShellCache` so UniversalBoard can refresh cover without tying atmosphere to cast selection.
 - Cover resolve remains per-slug; never read another domain's theme during soft-switch races.

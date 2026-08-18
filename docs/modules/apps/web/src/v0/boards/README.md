@@ -35,6 +35,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Domain Nav: top-level **Glossary** (not nested in Library) — Chronicle read of the Object Glossary.
 - Design Nav: **Glossary** as definition-ownership entry (config layout). Not labeled as a Document.
 - Board-emphasis invariant documented in `docs/keeper-object-glossary.md`.
+- Dialogs Nav import (file icon) + Domain idle / DocumentShell "Bring in writing" — Chronicle Act, never a Library upload.
 
 ### 2026-08-11 — revive treatment.proposal on cast merge
 - `mergeCastAndLeadActionResults` prefers client cast payload when Lead fold kept `castSlug` but dropped nested `proposal` (Domain showed compact "Proposed treatment" instead of TreatmentProposeCard).

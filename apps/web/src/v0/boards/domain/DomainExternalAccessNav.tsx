@@ -37,17 +37,19 @@ function formatScopeList(scopes: string[]): string {
       if (scope === "library.ro") return "Library read"
       if (scope === "library.rw") return "Library read/write"
       if (scope === "dialog.ro") return "Dialog read"
+      if (scope === "dialog.rw") return "Bring in writing"
       if (scope === "gloss.rw") return "Gloss write"
       return scope
     })
     .join(", ")
 }
 
-/** Library + Dialog Document read + Gloss write — Claude Document → Gloss chain. */
+/** Library + Dialog read/write + Gloss — Claude Document → Gloss / bring-in chain. */
 function withDialogAndGlossScopes(scopes: string[]): string[] {
   const next = new Set(scopes)
   if (!next.has("library.rw")) next.add("library.ro")
   next.add("dialog.ro")
+  next.add("dialog.rw")
   next.add("gloss.rw")
   return [...next]
 }

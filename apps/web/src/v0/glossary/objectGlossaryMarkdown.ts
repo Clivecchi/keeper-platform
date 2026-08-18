@@ -11,3 +11,7 @@ export const OBJECT_GLOSSARY_MARKDOWN: string = objectGlossaryMarkdown
 export const OBJECT_GLOSSARY_TITLE = "Object Glossary"
 
 export const OBJECT_GLOSSARY_SOURCE_REF = "docs/keeper-object-glossary.md"
+
+/** GitHub blob on the Cloud branch — Design definition-ownership open-source action. */
+export const OBJECT_GLOSSARY_SOURCE_URL =
+  "https://github.com/Clivecchi/keeper-platform/blob/cloud/docs/keeper-object-glossary.md"

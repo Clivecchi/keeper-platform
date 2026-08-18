@@ -35,6 +35,12 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-08-17 — External writing ingest
+- `KipApi.ingestExternalWriting` — POST create (`/kip/dialogs/ingest`) or attach (`/kip/dialogs/:id/ingest`). Not a Library upload.
+
+### 2026-07-30 — Dialog Chronicle History
+- `KipApi.getDialogChronicleEvents(domainId, dialogId)` loads the Dialog-scoped History timeline without changing Realm Feed scope.
+
 ### 2026-07-30 — Echo sessions excluded from primary resume
 - `pickBestDialogSessionId` never returns `"Agent Board Echo"` / `"Domain Lead Collaboration"` side-sessions.
 - `resumeOrCreateBoardSession` matches/creates Echo sessions by exact name only (does not reuse the primary Kip thread).

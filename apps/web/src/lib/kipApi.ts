@@ -1118,6 +1118,56 @@ export class KipApi {
     };
   }
 
+  /**
+   * Bring external markdown into a Dialog-backed Document.
+   * Pass dialogId to attach; omit to create a new Dialog.
+   */
+  static async ingestExternalWriting(
+    domainId: string,
+    payload: {
+      markdown: string;
+      title?: string;
+      source?: string;
+      dialogId?: string | null;
+    },
+  ): Promise<{
+    created: boolean;
+    dialogId: string;
+    dialogTitle: string;
+    manuscriptId: string;
+    pointCount: number;
+    appendedCount: number;
+    sessionId: string;
+    truncated: boolean;
+  }> {
+    const dialogId = payload.dialogId?.trim() || '';
+    const path = dialogId
+      ? `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/ingest`
+      : `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/ingest`;
+    const response = await apiFetch(path, {
+      method: 'POST',
+      body: JSON.stringify({
+        markdown: payload.markdown,
+        ...(payload.title?.trim() ? { title: payload.title.trim() } : {}),
+        ...(payload.source?.trim() ? { source: payload.source.trim() } : {}),
+      }),
+    });
+    const ingest = (response as { ingest?: Record<string, unknown> })?.ingest;
+    if (!ingest || typeof ingest.dialogId !== 'string') {
+      throw new Error(pickErrorMessage(response, 'Failed to bring in writing'));
+    }
+    return {
+      created: ingest.created === true,
+      dialogId: ingest.dialogId,
+      dialogTitle: typeof ingest.dialogTitle === 'string' ? ingest.dialogTitle : 'Conversation',
+      manuscriptId: typeof ingest.manuscriptId === 'string' ? ingest.manuscriptId : '',
+      pointCount: typeof ingest.pointCount === 'number' ? ingest.pointCount : 0,
+      appendedCount: typeof ingest.appendedCount === 'number' ? ingest.appendedCount : 0,
+      sessionId: typeof ingest.sessionId === 'string' ? ingest.sessionId : '',
+      truncated: ingest.truncated === true,
+    };
+  }
+
   /** Register a non-manuscript draft as an explicit Dialog Document component. */
   static async registerDialogDocumentComponent(
     domainId: string,

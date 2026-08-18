@@ -25,6 +25,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-17 — Bring in writing
+- `DocumentShell` optional `onBringInWriting` — attach external markdown to the focused Dialog.
+
 ### 2026-08-11 — Document Chronicle cleanup pass
 - Composition: Forward → Points → **Also in this Document** (drafts appendix at bottom).
 - Points: hairline list (no stacked cards); quiet text Accept / More / Gloss.

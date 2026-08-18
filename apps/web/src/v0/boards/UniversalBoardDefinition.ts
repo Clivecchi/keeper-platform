@@ -263,7 +263,7 @@ const UNIVERSAL_VIEW_STATE_DEFAULTS: ContextViewStateDef[] = [
   {
     key: "glossary",
     presenceTreatment:
-      "Object Glossary in view. Governing vocabulary forward. This is reference — not a Dialog Document.",
+      "Object Glossary in view. Governing vocabulary forward. This is look-up, not a conversation.",
   },
   {
     key: "domain",
@@ -566,7 +566,7 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
       boardDef:
         "Board definition in view. Structure and access rules present. Declarative spec forward.",
       glossary:
-        "Object Glossary definition surface. Governing vocabulary — Design owns what the Glossary says. Not a Dialog Document.",
+        "Object Glossary definition surface. Governing vocabulary — Design owns what the Glossary says. Edits live in the source file.",
       domain:
         "Design surface. Treatment and presence configuration in view. What governs how the domain feels and how objects surface.",
     }),

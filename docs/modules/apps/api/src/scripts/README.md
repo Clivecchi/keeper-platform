@@ -13,6 +13,7 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `seed-becoming-together-document.ts` — write real Forward/Step/Paths + manuscript Points onto Dialog `cmrtyoraw0001ot0033p5wiwm` (dry-run default)
 - `deploy-object-glossary-read-access.ts` — catalog Object Glossary (+ EntityKind Recipe) as `source_type: github` Library Items and inject condensed Governance canon into Kip/Cloud `voice_prompt` (dry-run default)
 - `gloss-cursor-to-dialog.ts` — durable Cursor → Gloss writer (default ke3p · Becoming Together); `--file` / `--content` / stdin; does not create Points
+- `ingest-markdown-to-dialog.ts` — durable Cursor → Dialog ingest (`--file` / `--content`; `--dialog` attaches, omit to create); writes Points + session, not Gloss
 - `append-boards-as-lenses-lock.ts` — accepted Presentational-lenses decision Point + Dialog Step tip (dry-run; `--execute`)
 
 ## 🔄 Data & Behavior
@@ -27,6 +28,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 - [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-08-17 — External writing ingest
+- `ingest-markdown-to-dialog.ts` — Cursor/API path for Task 4. `--dialog` attaches to an existing Dialog; omit to create. Distinct from Gloss runner.
 
 ### 2026-08-17 — Glossary governance canon
 - `deploy-object-glossary-read-access.ts` condensed Governance block now includes the board-emphasis invariant and Build board label (internal key `ide`). Re-run with `--execute` to refresh Kip/Cloud Training Mode. Template backticks around `ide` must stay escaped so `tsc` can compile this script.

@@ -28,7 +28,7 @@
  */
 
 import * as React from "react"
-import { ChevronDown, Plus, Trash2 } from "lucide-react"
+import { ChevronDown, FileUp, Plus, Trash2 } from "lucide-react"
 import { InlineDeleteRow } from "./InlineDeleteRow"
 
 const SURFACE = {
@@ -89,6 +89,9 @@ export interface SidebarCardProps {
   items?: SidebarCardItem[]
   /** When provided, renders a "+" button inline with the title */
   onAdd?: () => void
+  /** Optional second trigger — Bring in writing (Nav only; Chronicle renders the Act). */
+  onImport?: () => void
+  onImportLabel?: string
   /** When provided, the title becomes clickable to show the full list in workspace */
   onTitleClick?: () => void
   /** When true, the item list can collapse to title-only (nav sections) */
@@ -112,6 +115,8 @@ export function SidebarCard({
   description,
   items,
   onAdd,
+  onImport,
+  onImportLabel = "Bring in writing",
   onTitleClick,
   collapsible = false,
   defaultCollapsed = false,
@@ -168,20 +173,40 @@ export function SidebarCard({
               {title}
             </h3>
           )}
-          {onAdd && (
-            <button
-              type="button"
-              onClick={onAdd}
-              className="inline-flex items-center justify-center rounded-full border p-1 transition-colors hover:opacity-80"
-              style={{
-                borderColor: SURFACE.border,
-                color: SURFACE.inkSecondary,
-                backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
-              }}
-              aria-label={`Add ${title.toLowerCase()}`}
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-            </button>
+          {(onAdd || onImport) && (
+            <div className="flex items-center gap-1 shrink-0">
+              {onImport ? (
+                <button
+                  type="button"
+                  onClick={onImport}
+                  className="inline-flex items-center justify-center rounded-full border p-1 transition-colors hover:opacity-80"
+                  style={{
+                    borderColor: SURFACE.border,
+                    color: SURFACE.inkSecondary,
+                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
+                  }}
+                  aria-label={onImportLabel}
+                  title={onImportLabel}
+                >
+                  <FileUp className="h-3.5 w-3.5" strokeWidth={1.5} />
+                </button>
+              ) : null}
+              {onAdd && (
+                <button
+                  type="button"
+                  onClick={onAdd}
+                  className="inline-flex items-center justify-center rounded-full border p-1 transition-colors hover:opacity-80"
+                  style={{
+                    borderColor: SURFACE.border,
+                    color: SURFACE.inkSecondary,
+                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
+                  }}
+                  aria-label={`Add ${title.toLowerCase()}`}
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                </button>
+              )}
+            </div>
           )}
         </div>
         {description ? (

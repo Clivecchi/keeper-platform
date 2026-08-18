@@ -323,9 +323,26 @@ export function DomainRealmStory({
           Loading story…
         </p>
       ) : (
-        <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          Realm is breathing. What you shape, keep, and show will accumulate here.
-        </p>
+        <div className="space-y-2">
+          <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            Realm is breathing. What you shape, keep, and show will accumulate here.
+          </p>
+          {scope.status === "dialog" && scope.dialogId ? (
+            <button
+              type="button"
+              onClick={() =>
+                boardCtx?.actions.requestDialogIngest({
+                  dialogId: scope.dialogId,
+                  dialogTitle: documentMeta.forward?.title ?? null,
+                })
+              }
+              className="text-[13px] underline underline-offset-2"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              Add writing from outside Keeper
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   )
@@ -393,6 +410,15 @@ export function DomainRealmStory({
         scrollToPointId={pointTarget?.pointId}
         breadcrumb={pointTarget?.breadcrumb}
         emptyState={emptyState}
+        onBringInWriting={
+          scope.status === "dialog" && scope.dialogId
+            ? () =>
+                boardCtx?.actions.requestDialogIngest({
+                  dialogId: scope.dialogId,
+                  dialogTitle: documentMeta.forward?.title ?? null,
+                })
+            : undefined
+        }
       />
     )
 

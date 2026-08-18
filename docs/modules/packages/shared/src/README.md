@@ -18,6 +18,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-17: `markdownToDraftPoints.ts` — heading/section split for Dialog ingest (truncates at `INGEST_MAX_POINTS`). `dialog.rw` added to `DOMAIN_ACCESS_KEY_SCOPES`.
 - 2026-07-25: `dialogParticipation` default is `voice` for every agent (including Cloud). `support_only` / `silent` only via Agent Config.
 - 2026-07-24: `dialogParticipation.ts` — `voice` | `support_only` | `silent` on agent config. `redactForLog.ts` — JWT/token redaction for console/debug capture.
 - 2026-07-19: `document.ts` — added `DocumentForward` / `DocumentStep` on the Document container (authored destination vs live tip).

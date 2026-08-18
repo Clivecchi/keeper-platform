@@ -63,6 +63,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-17 — Bring in writing + Glossary source path
+- `DialogIngestPresence` — Chronicle Act for external markdown → Dialog Document Points.
+- `GlossaryPresence` Design: Open source + Copy path; look-up copy no longer names the Glossary a Document.
+
 ### 2026-08-17 — Glossary presence lazy-loaded
 - `ChroniclePresenceView` lazy-loads `GlossaryPresence` so the Object Glossary markdown + remark-gfm stay out of the main PWA precache chunk.
 

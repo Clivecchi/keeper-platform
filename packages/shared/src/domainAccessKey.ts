@@ -3,6 +3,7 @@ export const DOMAIN_ACCESS_KEY_SCOPES = [
   'library.ro',
   'library.rw',
   'dialog.ro',
+  'dialog.rw',
   'gloss.rw',
 ] as const;
 

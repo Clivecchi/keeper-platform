@@ -5,6 +5,8 @@
  *
  * Routes (all nested under /api/domains/:domainId):
  *   POST   /kip/dialogs             — create a new Dialog
+ *   POST   /kip/dialogs/ingest      — create Dialog + Document Points from external markdown
+ *   POST   /kip/dialogs/:dialogId/ingest — attach markdown Points to an existing Dialog
  *   GET    /kip/dialogs             — list Dialogs for a domain (filtered by scope)
  *   GET    /kip/dialogs/:dialogId   — get a single Dialog with its sessions
  *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Paths + manuscripts + components)
@@ -41,6 +43,11 @@ import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDoc
 import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
 import { buildDomainNavIndex } from '../../services/kip/buildDomainNavIndex.js';
 import { registerDialogDocumentComponent } from '../../services/kip/registerDialogDocumentComponent.js';
+import {
+  ingestErrorStatus,
+  ingestExternalDocument,
+  IngestExternalDocumentError,
+} from '../../services/kip/ingestExternalDocument.js';
 
 const router = Router();
 
@@ -85,6 +92,12 @@ const createDialogSchema = z.object({
     frame: z.string().optional().default(''),
     subject: z.string().optional().default(''),
   }),
+});
+
+const ingestDialogSchema = z.object({
+  markdown: z.string().min(1).max(200_000),
+  title: z.string().min(1).max(200).optional(),
+  source: z.string().min(1).max(80).optional(),
 });
 
 const documentStatusSchema = z.enum(['drafts', 'kept', 'presented']);
@@ -192,6 +205,74 @@ router.post(
       logger.error({ err: error, domainId }, '[kip-dialogs] create failed');
       return res.status(500).json({ error: 'FAILED_TO_CREATE_DIALOG' });
     }
+  },
+);
+
+async function handleDialogIngest(
+  req: AuthenticatedRequest,
+  res: Response,
+  dialogId: string | null,
+): Promise<Response> {
+  const { domainId } = req.params;
+  if (!req.user) {
+    return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+  }
+  const parsed = ingestDialogSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
+  }
+  try {
+    const result = await ingestExternalDocument({
+      domainId,
+      userId: req.user.id,
+      markdown: parsed.data.markdown,
+      title: parsed.data.title,
+      source: parsed.data.source,
+      dialogId,
+    });
+    logger.info(
+      {
+        domainId,
+        dialogId: result.dialogId,
+        created: result.created,
+        appendedCount: result.appendedCount,
+      },
+      '[kip-dialogs] ingest ok',
+    );
+    return res.status(result.created ? 201 : 200).json({ ingest: result });
+  } catch (error) {
+    if (error instanceof IngestExternalDocumentError) {
+      return res.status(ingestErrorStatus(error.code)).json({
+        error: error.code,
+        message: error.message,
+      });
+    }
+    logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] ingest failed');
+    return res.status(500).json({ error: 'FAILED_TO_INGEST_WRITING' });
+  }
+}
+
+// ─── POST /api/domains/:domainId/kip/dialogs/ingest ──────────────────────────
+// Create a new Dialog + manuscript Points + session from external markdown.
+
+router.post(
+  '/:domainId/kip/dialogs/ingest',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    return handleDialogIngest(req, res, null);
+  },
+);
+
+// ─── POST /api/domains/:domainId/kip/dialogs/:dialogId/ingest ────────────────
+// Attach markdown Points to an existing Dialog's manuscript.
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/ingest',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    return handleDialogIngest(req, res, req.params.dialogId);
   },
 );
 

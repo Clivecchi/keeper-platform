@@ -27,6 +27,8 @@ function formatScopeList(scopes: string[]): string {
     .map((scope) => {
       if (scope === "library.ro") return "Library read"
       if (scope === "library.rw") return "Library read/write"
+      if (scope === "dialog.ro") return "Dialog read"
+      if (scope === "dialog.rw") return "Bring in writing"
       if (scope === "gloss.rw") return "Gloss write"
       return scope
     })

@@ -43,6 +43,7 @@ import { useBoardDefinitionFromUrl } from "../useBoardDefinitionFromUrl"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
 import { ChronicleEngagementSurface } from "../engagement/ChronicleEngagementSurface"
+import { DialogIngestPresence } from "../../presence/DialogIngestPresence"
 import {
   resolveDomainTreatment,
   type ResolvedDomainTreatment,
@@ -379,7 +380,27 @@ function PanelBody({
           treatment={treatment}
         />
         {boardId === "domain" && subject.kind === "domain" ? (
-          <LibrarySharedContextRoadmapPanel />
+          <>
+            {boardCtx?.actions.requestDialogIngest ? (
+              <div className="px-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => boardCtx.actions.requestDialogIngest()}
+                  className="text-[13px] underline underline-offset-2"
+                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                >
+                  Bring in writing from outside Keeper
+                </button>
+                <p
+                  className="text-[12px] mt-1 leading-snug"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  Starts a conversation with sections you can Gloss — not a Library upload.
+                </p>
+              </div>
+            ) : null}
+            <LibrarySharedContextRoadmapPanel />
+          </>
         ) : null}
       </>
     )
@@ -712,6 +733,30 @@ export function UniversalViewPanel({
             intent={chronicleEngagement}
             onClose={() => boardCtx?.actions.closeChronicleEngagement()}
           />
+        ) : boardCtx?.dialogIngest ? (
+          domainId ? (
+            <DialogIngestPresence
+              domainId={domainId}
+              dialogId={boardCtx.dialogIngest.dialogId}
+              dialogTitle={boardCtx.dialogIngest.dialogTitle}
+              onClose={() => boardCtx.actions.closeDialogIngest()}
+            />
+          ) : (
+            <PanelBody
+              subject={liveSubject}
+              subjectKey={contextKey}
+              domainId={domainId}
+              domainName={domainName}
+              domainSlug={domainSlug}
+              boardId={def.boardId}
+              onJourneySelect={handleJourneySelect}
+              onPathSelect={handlePathSelect}
+              onMomentSelect={handleMomentSelect}
+              onSessionSelect={handleSessionSelect}
+              onLabelResolved={handleLabelResolved}
+              treatment={chronicleTreatment}
+            />
+          )
         ) : (
           <PanelBody
             subject={liveSubject}

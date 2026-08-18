@@ -17,6 +17,7 @@ import type { PresenceLayout } from "./types"
 import {
   OBJECT_GLOSSARY_MARKDOWN,
   OBJECT_GLOSSARY_SOURCE_REF,
+  OBJECT_GLOSSARY_SOURCE_URL,
   OBJECT_GLOSSARY_TITLE,
 } from "../glossary/objectGlossaryMarkdown"
 
@@ -146,6 +147,17 @@ export function GlossaryPresence({
   }, [onLabelResolved])
 
   const isConfig = layout === "config"
+  const [copied, setCopied] = React.useState(false)
+
+  const handleCopyPath = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(OBJECT_GLOSSARY_SOURCE_REF)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1600)
+    } catch {
+      setCopied(false)
+    }
+  }, [])
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -170,16 +182,35 @@ export function GlossaryPresence({
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {isConfig
-            ? "Design owns what the Glossary says. Domain sidebar is read access. This is not a Dialog Document."
-            : "Platform vocabulary — same governing tier as the EntityKind Recipe. This is not a Dialog Document."}
+            ? "Design owns what the Glossary says. Domain sidebar is look-up. Edits happen in the source file — there is no in-product save."
+            : "Platform vocabulary — same governing tier as the EntityKind Recipe."}
         </p>
         {isConfig ? (
-          <p
-            className="text-[12px] mt-2 font-mono"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Source · {OBJECT_GLOSSARY_SOURCE_REF}
-          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <p
+              className="text-[12px] font-mono"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Source · {OBJECT_GLOSSARY_SOURCE_REF}
+            </p>
+            <a
+              href={OBJECT_GLOSSARY_SOURCE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[12px] underline underline-offset-2"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              Open source
+            </a>
+            <button
+              type="button"
+              onClick={() => void handleCopyPath()}
+              className="text-[12px] underline underline-offset-2"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              {copied ? "Copied" : "Copy path"}
+            </button>
+          </div>
         ) : null}
       </div>
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-8">

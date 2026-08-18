@@ -10,7 +10,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `contact.ts` – Domain contact form submission handler.
 - `kip-drafts.ts` – Domain-scoped Kip draft directory and session active-draft pointer routes.
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
-- `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, `GET …/document` (Chronicle Document), update/archive/document_status, delete, resolve-active; cast membership (`cast-candidates`, `cast-members`).
+- `kip-dialogs.ts` – Dialog CRUD routes: create, ingest (create/attach markdown as Document Points + session), list, get-with-sessions, `GET …/document` (Chronicle Document), update/archive/document_status, delete, resolve-active; cast membership (`cast-candidates`, `cast-members`).
 - `domain-access-key-routes.ts` – Domain external access keys (MCP): list, create (secret once), revoke, PATCH label.
 - `domain-oauth-grant-routes.ts` – MCP OAuth grants: list + revoke + PATCH scopes (External Access).
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
@@ -43,6 +43,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-08-17: **External writing ingest** — `POST /:domainId/kip/dialogs/ingest` creates a Dialog + manuscript Points + session; `POST /:domainId/kip/dialogs/:dialogId/ingest` attaches to an existing Dialog. Not a Library upload.
 - 2026-08-03: **OAuth grant scope PATCH** — `PATCH /:domainId/oauth-grants/:id` updates active grant scopes (e.g. add `dialog.ro` + `gloss.rw` for Claude Document → Gloss).
 - 2026-07-30: **Chronicle History endpoint** — `GET /:domainId/kip/dialogs/:dialogId/chronicle-events` returns authorized, dialog-scoped nested events. Realm Feed behavior is unchanged.
 - 2026-07-28: **Chronicle Document endpoint** — `GET /:domainId/kip/dialogs/:dialogId/document` returns Forward/Step/Paths + manuscript drafts with Points (no sessions); powers fast Chronicle hydration.

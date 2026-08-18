@@ -46,6 +46,16 @@ describe('MCP OAuth scope gating', () => {
     expect(names).not.toContain('integrations_list');
   });
 
+  it('dialog.rw implies dialog.ro and exposes dialog_ingest', () => {
+    const names = filterToolsByScopes(['dialog.rw']).map((t) => t.name);
+    expect(names).toEqual(
+      expect.arrayContaining(['dialog_list', 'dialog_read', 'dialog_ingest']),
+    );
+    expect(filterToolsByScopes(['dialog.ro']).map((t) => t.name)).not.toContain(
+      'dialog_ingest',
+    );
+  });
+
   it('mcpListActions with library.ro hides infra tools Claude was approving', () => {
     const { actions } = mcpListActions(['library.ro']);
     const names = actions.map((a) => a.name);

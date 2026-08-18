@@ -9,6 +9,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Shared keeper-card vs prose system prompt (decision consult Lock/Open/Next Step)
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
+- `ingestExternalDocument.ts` — External markdown → Dialog + document_manuscript Points + real session (create or attach)
 - `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
@@ -29,6 +30,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-17 — External writing ingest
+- `ingestExternalDocument.ts` — markdown → accepted Document Points on `document_manuscript`; creates or attaches a Dialog; starts a real Kip session on create, reuses the latest session on attach; ensures Gloss carrier. Never a Library item.
 
 ### 2026-08-09 — Phrase-level Gloss focus
 `buildGlossDiscussPrompt` (in `api/kip/agents.ts`) prefers `glossAnchor.selectionText` when present so Kip discusses the highlighted phrase, not only the parent node snapshot.

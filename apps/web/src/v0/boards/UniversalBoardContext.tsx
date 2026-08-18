@@ -152,6 +152,9 @@ export interface UniversalBoardActions {
   onLibraryItemSelect: (id: string) => void
   /** Opens the Object Glossary in Chronicle (Domain read / Design definition). */
   onGlossarySelect: () => void
+  /** Open Chronicle Act to bring writing from outside Keeper into a Dialog. */
+  requestDialogIngest: (options?: { dialogId?: string | null; dialogTitle?: string | null }) => void
+  closeDialogIngest: () => void
   /** Opens a SOLE memory card in Chronicle; pass null to return to the underlying selection. */
   onSoleMemorySelect: (id: string | null) => void
   clearSelection: () => void
@@ -206,6 +209,8 @@ export interface UniversalBoardContextValue {
   actions: UniversalBoardActions
   /** Active engagement form — renders in Chronicle, never in Nav. */
   chronicleEngagement: BoardEngagementIntent | null
+  /** Bring-in-writing Act — Chronicle, never Nav. */
+  dialogIngest: { dialogId: string | null; dialogTitle?: string | null } | null
   /** Layer-1 Chronicle subject + overlay derived from selection (compat shim). */
   chronicleView: ChronicleView
   /** Whether the left nav panel is collapsed. Controlled by the board. */
@@ -287,6 +292,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     React.useState<string | null>(null)
   const [chronicleEngagement, setChronicleEngagement] =
     React.useState<BoardEngagementIntent | null>(null)
+  const [dialogIngest, setDialogIngest] = React.useState<{
+    dialogId: string | null
+    dialogTitle?: string | null
+  } | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
   const [activeTrainingFrame, setActiveTrainingFrame] =
     React.useState<VoicePromptSectionKey>("currently")
@@ -774,6 +783,21 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setChronicleEngagement(null)
   }, [])
 
+  const closeDialogIngest = React.useCallback(() => {
+    setDialogIngest(null)
+  }, [])
+
+  const requestDialogIngest = React.useCallback(
+    (options?: { dialogId?: string | null; dialogTitle?: string | null }) => {
+      setChronicleEngagement(null)
+      setDialogIngest({
+        dialogId: options?.dialogId?.trim() ? options.dialogId : null,
+        dialogTitle: options?.dialogTitle ?? null,
+      })
+    },
+    [],
+  )
+
   const prevDomainSlugRef = React.useRef(shell?.domainSlug ?? "")
   React.useEffect(() => {
     const nextSlug = shell?.domainSlug ?? ""
@@ -782,6 +806,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     clearPrefetchedDialogSession()
     clearSelection()
     closeChronicleEngagement()
+    closeDialogIngest()
     setActiveSessionId(null)
     setDraftDiscussAnchor(null)
     setDraftDiscussGlossContent(null)
@@ -790,7 +815,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setTrainingMode(false)
     setActiveCastMember(null)
     shell?.clearBoardDefinition()
-  }, [shell?.domainSlug, shell, clearSelection, closeChronicleEngagement])
+  }, [shell?.domainSlug, shell, clearSelection, closeChronicleEngagement, closeDialogIngest])
 
   const requestChronicleEngagement = React.useCallback(
     async (slug: string, context: EngagementContext) => {
@@ -805,6 +830,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
           window.alert(message)
           return
         }
+        setDialogIngest(null)
         setChronicleEngagement({ template, context })
       } catch (error) {
         const message =
@@ -928,6 +954,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onCapabilitySelect,
         onLibraryItemSelect,
         onGlossarySelect,
+        requestDialogIngest,
+        closeDialogIngest,
         onSoleMemorySelect,
         clearSelection,
         onBoardDefSelect,
@@ -960,6 +988,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       navCollapsed,
       onToggleNavCollapsed,
       chronicleEngagement,
+      dialogIngest,
       chronicleView,
     }),
     [
@@ -1040,6 +1069,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setDraftComposeHintAction,
       requestChronicleEngagement,
       closeChronicleEngagement,
+      requestDialogIngest,
+      closeDialogIngest,
       onEnterTrainingMode,
       onExitTrainingMode,
       onTrainingFrameSelect,
@@ -1051,6 +1082,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       navCollapsed,
       onToggleNavCollapsed,
       chronicleEngagement,
+      dialogIngest,
       chronicleView,
     ],
   )

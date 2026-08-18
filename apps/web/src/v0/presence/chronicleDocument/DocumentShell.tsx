@@ -79,6 +79,7 @@ export interface DocumentShellProps {
   /** Optional context shown while the document is focused through a deep-link. */
   breadcrumb?: string[] | null
   emptyState?: React.ReactNode
+  onBringInWriting?: () => void
   className?: string
 }
 
@@ -580,6 +581,7 @@ export function DocumentShell({
   scrollToPointId,
   breadcrumb,
   emptyState,
+  onBringInWriting,
   className,
 }: DocumentShellProps) {
   const [query, setQuery] = React.useState("")
@@ -674,6 +676,18 @@ export function DocumentShell({
       ) : null}
       {!cover && resolvedForward ? (
         <ForwardBlock forward={resolvedForward} step={step} />
+      ) : null}
+      {onBringInWriting ? (
+        <div className="px-4 pt-2">
+          <button
+            type="button"
+            onClick={onBringInWriting}
+            className="text-[12px] underline underline-offset-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Add writing from outside Keeper
+          </button>
+        </div>
       ) : null}
 
       {points.length > 0 ? (

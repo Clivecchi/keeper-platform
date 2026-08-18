@@ -215,6 +215,7 @@ function UniversalBoardShell({
     navCollapsed,
     onToggleNavCollapsed,
     chronicleEngagement,
+    dialogIngest,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -226,10 +227,10 @@ function UniversalBoardShell({
   // Chronicle Acts / engagement — open overlay instead of a Chronicle tab.
   React.useEffect(() => {
     if (!useMobilePanelLayout) return
-    if (chronicleEngagement != null) {
+    if (chronicleEngagement != null || dialogIngest != null) {
       setChronicleOverlayOpen(true)
     }
-  }, [useMobilePanelLayout, chronicleEngagement])
+  }, [useMobilePanelLayout, chronicleEngagement, dialogIngest])
 
   React.useEffect(() => {
     if (chronicleOverlayOpen && selection.selectedDialogId) {

@@ -11,6 +11,7 @@ import { prisma } from '@keeper/database';
 import { searchLibraryItems } from '../services/LibraryItemSearchService.js';
 import { appendGlossTurn } from '../services/GlossWriteService.js';
 import { DialogMcpService } from '../services/DialogMcpService.js';
+import { ingestExternalDocument } from '../services/kip/ingestExternalDocument.js';
 import { resolveMcpDomainLabel } from './domainContext.js';
 import { DOMAIN_ACCESS_KEY_SCOPES, isGlossAnchor } from '@keeper/shared';
 
@@ -69,6 +70,7 @@ export function scopesAllowCapability(
   if (scopes.includes('*')) return true;
   if (scopes.includes(requiredCapability)) return true;
   if (requiredCapability === 'library.ro' && scopes.includes('library.rw')) return true;
+  if (requiredCapability === 'dialog.ro' && scopes.includes('dialog.rw')) return true;
   return false;
 }
 
@@ -736,6 +738,59 @@ const tools: Tool[] = [
         domainId: ctx.domainId,
         entityId,
         messageLimit: Number(args.messageLimit ?? 8),
+      });
+    },
+  },
+  {
+    name: 'dialog_ingest',
+    description:
+      'Bring writing from outside Keeper into a Dialog-backed Document (Points + a real session). Pass dialogId to attach to an existing Dialog; omit it to create a new one. Never creates a Library item. Required capability: dialog.rw.',
+    requiredCapability: 'dialog.rw',
+    parameters: {
+      type: 'object',
+      required: ['markdown'],
+      properties: {
+        markdown: {
+          type: 'string',
+          description: 'Markdown or plain text to turn into Document Points (one Point per heading)',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional Dialog title; defaults to the first heading',
+        },
+        dialogId: {
+          type: 'string',
+          description: 'Existing Dialog id to attach to. Omit to create a new Dialog.',
+        },
+        source: {
+          type: 'string',
+          description: 'Attribution label (e.g. Claude, Cursor). Default: External',
+        },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'dialog_ingest')!, ctx);
+      if (!ctx.domainId) throw new Error('x-domain-id header is required');
+      const markdown = String(args.markdown ?? '');
+      const title = typeof args.title === 'string' ? args.title : undefined;
+      const dialogId = typeof args.dialogId === 'string' ? args.dialogId : undefined;
+      const source = typeof args.source === 'string' ? args.source : undefined;
+      let userId = ctx.userId?.trim() || '';
+      if (!userId) {
+        const domain = await prisma.domain.findUnique({
+          where: { id: ctx.domainId },
+          select: { ownerId: true },
+        });
+        userId = domain?.ownerId ?? '';
+      }
+      if (!userId) throw new Error('A domain owner is required to bring in writing');
+      return ingestExternalDocument({
+        domainId: ctx.domainId,
+        userId,
+        markdown,
+        title,
+        source,
+        dialogId,
       });
     },
   },

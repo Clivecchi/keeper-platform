@@ -12,9 +12,12 @@ Bundles the governing Object Glossary markdown for in-product Chronicle read (Do
 Vite `?raw` import so Domain/Design Chronicle can render the Object Glossary. Nav selection is `objectType: "glossary"` via `GlossaryPresence`. Governing source remains `docs/keeper-object-glossary.md`; the in-app copy exists because Vercel does not upload `docs/`.
 
 ## ⚠️ Notes & ToDo
-- [ ] In-product save of glossary text is not wired — Design is the definition-ownership surface; source of truth remains the repo file.
+- [ ] In-product save of glossary text is not wired — Design is the definition-ownership surface; source of truth remains the repo file. Open source / Copy path ship instead of a PATCH editor.
 
 ## 📆 Update Log
+
+### 2026-08-17 — Design source-path action
+- Design config layout: Open source (Cloud branch GitHub blob) + Copy path. Look-up copy no longer calls the Glossary a Document.
 
 ### 2026-08-17 — Vercel bundle path
 - Vite no longer imports `docs/keeper-object-glossary.md` (Vercel `.vercelignore` drops `docs/` and `*.md`). The web app now ships `keeper-object-glossary.md` and syncs it from `docs/` when that file is present.

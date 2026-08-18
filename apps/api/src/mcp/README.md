@@ -29,7 +29,7 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 - **Platform key:** `OPAI_AGENT_MCP_KEY` — full scope (`*`), optional `x-domain-id`
 - **Scoped keys:** `KAM_LIBRARY_MCP_KEYS` JSON array — `{ key, domainId, scopes: ["library.ro"] }` or `["dialog.ro","gloss.rw"]`; header `x-domain-id` must match entry
 - **DomainAccessKey:** `keeper_dak_*` hashed keys from Domain Nav → External Access
-- **Scopes:** `library.ro` | `library.rw` | `dialog.ro` | `gloss.rw` (see `@keeper/shared` `DOMAIN_ACCESS_KEY_SCOPES`)
+- **Scopes:** `library.ro` | `library.rw` | `dialog.ro` | `dialog.rw` | `gloss.rw` (see `@keeper/shared` `DOMAIN_ACCESS_KEY_SCOPES`)
 - Accepts key from either:
   - `Authorization: Bearer <key>`
   - `x-api-key: <key>`
@@ -1007,6 +1007,8 @@ Run comprehensive verification:
 See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
 
 ## 📆 Update Log
+
+**2026-08-17**: `dialog_ingest` MCP tool (`dialog.rw`) — bring external markdown in as a Dialog-backed Document. `dialog.rw` implies `dialog.ro`. Distinct from `gloss_write_turn`.
 
 **2026-08-03**: **OAuth consent false expiry** — `express.text(*/*)` parsed HTML form POSTs before `urlencoded`, so `consent_ticket` never reached `/oauth/authorize` ("Expired consent"). Middleware order fixed in `index.ts`; OAuth routes also parse raw form strings defensively.
 

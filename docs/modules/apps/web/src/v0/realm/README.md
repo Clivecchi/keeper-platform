@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-17 — External writing ingest
+- `DomainRealmStory` empty Document + `DocumentShell` "Add writing from outside Keeper" open the Chronicle ingest Act (attach to the focused Dialog).
+
 ### 2026-08-11 — Document / History tab cleanup
 - `DomainRealmStory` Chronicle tabs are underline text (not pill chips).
 

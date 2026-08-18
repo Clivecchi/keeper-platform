@@ -478,6 +478,18 @@ export function UniversalNavPanel({
   /** Inline confirm target for hard-delete (Draft-style; Nav list only). */
   const [confirmingDeleteDialogId, setConfirmingDeleteDialogId] = React.useState<string | null>(null)
 
+  const handleDialogIngest = React.useCallback(() => {
+    if (!domainId || !user || !boardCtx) return
+    const selectedId = boardCtx.selection.selectedDialogId
+    const selectedTitle = selectedId
+      ? dialogs?.find((row) => row.id === selectedId)?.title ?? null
+      : null
+    boardCtx.actions.requestDialogIngest({
+      dialogId: selectedId,
+      dialogTitle: selectedTitle,
+    })
+  }, [boardCtx, dialogs, domainId, user])
+
   React.useEffect(() => {
     setConfirmingDeleteDialogId(null)
   }, [domainId])
@@ -1382,6 +1394,8 @@ export function UniversalNavPanel({
               items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
               onTitleClick={() => toggleExpanded("dialogs")}
               onAdd={user && domainId ? handleDialogCreate : undefined}
+              onImport={user && domainId ? handleDialogIngest : undefined}
+              onImportLabel="Bring in writing"
             />
             {dialogError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>

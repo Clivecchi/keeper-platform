@@ -71,6 +71,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-08-17 — Bring in writing Chronicle Act
+- `UniversalViewPanel` renders `DialogIngestPresence` when `dialogIngest` is set (Nav file icon / Domain idle / DocumentShell).
+
 ### 2026-08-17 — Glossary Chronicle subject
 - Trail + `resolveChronicleView` include `glossary`. Domain: focus (read). Design: config (definition ownership).
 
