@@ -124,6 +124,29 @@ describe('actionFollowUp', () => {
     expect(unbuilt).toContain('Do not claim you read a body');
   });
 
+  it('formats glossary.read as Chronicle presence, not a draft', () => {
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'Can you read the glossary?',
+      agentName: 'Ceox',
+      priorResponseText: 'Reading now.',
+      actionResults: [
+        {
+          type: 'glossary.read',
+          status: 'success',
+          message: 'Found 1 glossary entry for query',
+          data: {
+            honesty: 'The Object Glossary is Chronicle presence from docs/keeper-object-glossary.md — not a Dialog Document and not a draft.',
+            sections: [{ title: 'Dialog', body: 'Persistent named conversation container.' }],
+            terms: ['Dialog', 'Session'],
+          },
+        },
+      ],
+    });
+    expect(input).toContain('not a draft');
+    expect(input).toContain('Persistent named conversation container.');
+    expect(input).toContain('Do not treat a husk draft titled Glossary as the glossary.');
+  });
+
   it('runs follow-up for web.search and formats titles/urls', () => {
     expect(
       shouldRunReadActionFollowUp(

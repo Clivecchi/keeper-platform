@@ -31,7 +31,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
-### 2026-08-18 — dialog.read honesty
+### 2026-08-18 — glossary.read + dialog.read honesty
+- `loadObjectGlossary.ts` — same governing file Chronicle renders. `glossary.read` lists terms or returns matching sections. Honesty: not a draft.
 - `buildDialogReadHonesty` — empty Points means the Document is unbuilt; follow-up tells Lead not to claim a read. `dialog.read { id }` uses `loadDialogDocumentForAgent` (same source Chronicle renders).
 
 ### 2026-08-17 — External writing ingest

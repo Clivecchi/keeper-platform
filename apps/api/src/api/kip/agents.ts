@@ -56,6 +56,7 @@ import {
   buildDialogReadHonesty,
   loadDialogDocumentForAgent,
 } from '../../services/kip/loadDialogDocumentForAgent.js';
+import { readObjectGlossary } from '../../services/kip/loadObjectGlossary.js';
 import { WebSearchService } from '../../services/WebSearchService.js';
 import type { 
   AgentInput, 
@@ -1150,6 +1151,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('sole.read');
   allow.add('library.read');
   allow.add('dialog.read');
+  allow.add('glossary.read');
   allow.add('journey.read');
   allow.add('moment.read');
   allow.add('keeper.read');
@@ -1524,6 +1526,7 @@ export async function executeAgentActions(
     'sole.read',
     'library.read',
     'dialog.read',
+    'glossary.read',
     'journey.read',
     'moment.read',
     'keeper.read',
@@ -3403,6 +3406,44 @@ export async function executeAgentActions(
             break;
           }
 
+          case 'glossary.read': {
+            const payload = action.payload ?? {};
+            const query =
+              (typeof payload.query === 'string' && payload.query.trim())
+              || (typeof payload.term === 'string' && payload.term.trim())
+              || '';
+            const limit =
+              typeof payload.limit === 'number' && payload.limit >= 1 && payload.limit <= 20
+                ? payload.limit
+                : 8;
+            const glossary = readObjectGlossary({
+              ...(query ? { query } : {}),
+              limit,
+            });
+            const matched = glossary.sections.length;
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: !glossary.available
+                ? 'Glossary source is not on this runtime. Do not treat a draft as the glossary.'
+                : query
+                  ? matched
+                    ? `Found ${matched} glossary ${matched === 1 ? 'entry' : 'entries'} for query`
+                    : 'No glossary entries matched. Use a term from the terms list. Do not read a draft titled Glossary.'
+                  : `Object Glossary index — ${glossary.terms.length} terms. Call glossary.read { query } for a term.`,
+              data: {
+                ...(query ? { query } : {}),
+                title: glossary.title,
+                sourceRef: glossary.sourceRef,
+                honesty: glossary.honesty,
+                available: glossary.available,
+                terms: glossary.terms,
+                sections: glossary.sections,
+              },
+            });
+            break;
+          }
+
           case 'delegate.consult': {
             const payload = action.payload ?? {};
             const agentSlug =
@@ -4956,6 +4997,9 @@ export class KipAgentService {
         'For dialog.read { id }: report Forward, Step, and Points from the returned Document.',
         'If the result says the Document is unbuilt (no Points), say that — do not claim you read a body.',
         '',
+        'For glossary.read: this is Chronicle presence from docs/keeper-object-glossary.md — not a draft.',
+        'Report matched entries. If a draft titled Glossary has empty Points, that is not the glossary.',
+        '',
         'For web.search: cite titles and URLs from the returned results. Do not invent links.',
         '',
         'The Completed receipt confirms the action ran.',
@@ -4984,6 +5028,11 @@ export class KipAgentService {
         'If Points are empty, the Document is unbuilt — say that. Do not claim you read a body from a title/status husk.',
         'Use when the user names a Dialog from Nav that is not the active one.',
         'titleSource auto_generated = Chatter; user_set / system_promoted = Dialog. Prefer domainIndex.dialogs first.',
+        '',
+        'glossary.read — Chronicle Object Glossary from docs/keeper-object-glossary.md (same body Nav Glossary opens).',
+        'Not a Dialog Document and not a draft. Payload: { query? or term?, limit? }.',
+        'Call with no query for the term index; call with { query: "Dialog" } for that entry.',
+        'Never treat a husk draft titled Glossary as the glossary.',
         '',
         'web.search — live internet search (Brave). Use when the user needs current public information',
         'outside the domain Library. Payload: { query (required), count? (1–10, default 5) }.',

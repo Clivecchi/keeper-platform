@@ -374,7 +374,10 @@ function AgentMessageTurn({
   const delegation =
     castVoices.length > 0 ? null : visibleDelegationBeat(message.delegation)
   const echo =
-    message.echo?.content?.trim() && !isDirectorDelegationFailureContent(message.echo.content)
+    message.echo?.status !== "failed"
+    && message.echo?.status !== "empty"
+    && message.echo?.content?.trim()
+    && !isDirectorDelegationFailureContent(message.echo.content)
       ? message.echo
       : null
   const isMultiAgentTurn = Boolean(castVoices.length > 0 || delegation || echo)

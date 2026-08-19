@@ -6,6 +6,7 @@ import {
   isEchoInternalPrompt,
   mergeCastAndLeadActionResults,
   sanitizeUserMessageContent,
+  shouldAttachEcho,
 } from "./directorDialog"
 
 describe("sanitizeUserMessageContent — Echo / collaboration scaffolds", () => {
@@ -189,5 +190,17 @@ describe("cast-consult action-result extract", () => {
     )
     expect(mergeCastAndLeadActionResults(undefined, cast)).toEqual(cast)
     expect(mergeCastAndLeadActionResults([], cast)).toEqual(cast)
+  })
+})
+
+describe("shouldAttachEcho", () => {
+  it("attaches only ok replies with substance", () => {
+    expect(shouldAttachEcho({ content: "Platform note: Dialog is the conversation.", status: "ok" })).toBe(true)
+  })
+
+  it("keeps empty and failed offstage", () => {
+    expect(shouldAttachEcho({ content: "", status: "empty" })).toBe(false)
+    expect(shouldAttachEcho({ content: "", status: "failed" })).toBe(false)
+    expect(shouldAttachEcho({ content: "Cloud did not respond this turn.", status: "ok" })).toBe(false)
   })
 })

@@ -79,6 +79,7 @@ import type { GlossThread } from "@keeper/shared"
 import {
   CAST_MEMBER_LABELS,
   extractAgentReplyFromRunResult,
+  shouldAttachEcho,
   type DirectorSendPhase,
 } from "./directorDialog"
 import {
@@ -1584,18 +1585,20 @@ export function UniversalConversation({
         )
         const echoContent = extractAgentReplyFromRunResult(echoResult)?.trim() ?? ""
         const status: DirectorDelegationStatus = echoContent ? "ok" : "empty"
-        attachEcho({
-          content: echoContent,
-          attributedTo,
-          status,
-        })
+        if (
+          shouldAttachEcho({
+            content: echoContent,
+            status,
+          })
+        ) {
+          attachEcho({
+            content: echoContent,
+            attributedTo,
+            status: "ok",
+          })
+        }
       } catch {
-        /* Silence is valid — failed agent echo inference renders nothing, but status persists. */
-        attachEcho({
-          content: "",
-          attributedTo,
-          status: "failed",
-        })
+        /* Empty and failed stay offstage — do not paint Echo · _(failed)_. */
       }
     },
     [

@@ -213,6 +213,21 @@ export function isDirectorDelegationFailureContent(content: string): boolean {
   return /did not respond this turn/i.test(content.trim())
 }
 
+/**
+ * Echo / Kip support is offstage unless it returned real substance.
+ * Empty and failed must not paint a voice card or `_(failed)_`.
+ */
+export function shouldAttachEcho(params: {
+  content: string
+  status: DirectorDelegationBeat["status"]
+}): boolean {
+  if (params.status !== "ok") return false
+  const body = params.content.trim()
+  if (!body) return false
+  if (isDirectorDelegationFailureContent(body)) return false
+  return true
+}
+
 const RAW_ACTION_JSON_PATTERN =
   /^\s*\{\s*"type"\s*:\s*"(?:sole\.save|draft\.(?:create|update|update\.propose)|moment\.create|treatment\.propose)"/i
 

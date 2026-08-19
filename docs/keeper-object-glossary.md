@@ -1344,6 +1344,9 @@ Feeds field resolution for KeeperPresence; not selectable as its own cover.
 
 ## 📆 Update Log
 
+### 2026-08-18 — Glossary agent read
+- Agents read this file via `glossary.read` (same Chronicle presence as Nav Glossary). A draft titled Glossary with empty Points is not the glossary.
+
 ### 2026-08-18 — Nav · Dialog · Chronicle pathway locked
 - Dialog entry records the locked three-panel sentence: Nav selects; Dialog is that conversation; Chronicle + `dialog.read` share the Document. Empty Points = unbuilt.
 

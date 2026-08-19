@@ -154,8 +154,12 @@ export function formatDialogueAsMarkdown(
     }
 
     if (message.echo) {
-      const name = message.echo.attributedTo?.trim() || "Echo"
-      appendBeat(lines, `Echo · ${name}`, message.echo.content, message.echo.status)
+      const echoStatus = message.echo.status
+      const echoBody = message.echo.content?.trim() ?? ""
+      if (echoStatus !== "empty" && echoStatus !== "failed" && echoBody) {
+        const name = message.echo.attributedTo?.trim() || "Echo"
+        appendBeat(lines, `Echo · ${name}`, echoBody, echoStatus)
+      }
     }
 
     lines.push("---")

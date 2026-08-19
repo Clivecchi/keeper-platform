@@ -87,6 +87,8 @@ Chronicle = right panel (UniversalViewPanel), not a frame route.
 
 **Locked pathway:** Nav selects the subject. When the subject is a Dialog — or belongs to one — Dialog is that conversation. Chronicle renders the subject’s most relevant body. No third object.
 
+Object Glossary is Chronicle presence from `docs/keeper-object-glossary.md` (`glossary.read`). Not a draft. Echo / Kip support stays offstage unless it has substance.
+
 **Declared UI — Chronicle has three modes (no custom fourth layout):**
 | Mode | Component | Shell |
 |---|---|---|

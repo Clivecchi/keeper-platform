@@ -166,6 +166,6 @@ On Universal Board, engagement follows a strict panel contract:
 
 ## 📆 Update Log
 
-- **2026-08-18** — Locked Nav · Dialog · Chronicle pathway: Nav selects the subject; Dialog is that conversation; Chronicle + agent context share the same body (Document for a Dialog). Selecting a Dialog resumes its session; `dialog.read { id }` returns that Document.
+- **2026-08-18** — Locked Nav · Dialog · Chronicle pathway: Nav selects the subject; Dialog is that conversation; Chronicle + agent context share the same body (Document for a Dialog). Selecting a Dialog resumes its session; `dialog.read { id }` returns that Document. Echo / Kip support stays offstage unless it has substance. `glossary.read` is the live Object Glossary — not a draft husk.
 - **2026-06-19** — Declared Chronicle Act surface: `ChronicleActPresence` uses `ChronicleConfigShell` (same as Agent Manage); engagement forms must not bypass declared UI.
 - **2026-02-01** — Initial canonical UI experience doc (surfaces, engagement pipeline, narrative mapping).

@@ -21,6 +21,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'sole.read',
   'library.read',
   'dialog.read',
+  'glossary.read',
   'web.search',
   'delegate.consult',
 ]);
@@ -82,7 +83,22 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
         if (Array.isArray(data.drafts)) {
           lines.push(`Drafts listed: ${data.drafts.length}`);
         }
-        if (result.type === 'dialog.read' && data.document && typeof data.document === 'object') {
+        if (result.type === 'glossary.read') {
+          lines.push('Object Glossary (Chronicle presence — not a draft):');
+          if (typeof data.honesty === 'string') {
+            lines.push(data.honesty);
+          }
+          if (Array.isArray(data.sections) && data.sections.length > 0) {
+            for (const row of data.sections.slice(0, 8)) {
+              if (!row || typeof row !== 'object') continue;
+              const item = row as { title?: string; body?: string };
+              lines.push(`## ${item.title ?? '?'}`);
+              if (item.body) lines.push(String(item.body).slice(0, 800));
+            }
+          } else if (Array.isArray(data.terms)) {
+            lines.push(`Terms: ${(data.terms as unknown[]).slice(0, 40).join('; ')}`);
+          }
+        } else if (result.type === 'dialog.read' && data.document && typeof data.document === 'object') {
           const doc = data.document as {
             title?: string;
             status?: string;
@@ -148,6 +164,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           && data.draft === undefined
           && !Array.isArray(data.drafts)
           && !(result.type === 'dialog.read' && (data.document || Array.isArray(data.results)))
+          && result.type !== 'glossary.read'
         ) {
           lines.push(`Data: ${JSON.stringify(data, null, 2).slice(0, 4000)}`);
         }
@@ -179,6 +196,20 @@ export function formatReadActionResultsForUserFallback(results: ActionResultLike
         lines.push(
           `- ${item.title ?? 'Result'}${item.url ? ` — ${item.url}` : ''}${item.snippet ? `: ${String(item.snippet).slice(0, 160)}` : ''}`,
         );
+      }
+      continue;
+    }
+
+    if (result.type === 'glossary.read') {
+      lines.push('Object Glossary:');
+      if (Array.isArray(data.sections) && data.sections.length > 0) {
+        for (const row of data.sections.slice(0, 4)) {
+          if (!row || typeof row !== 'object') continue;
+          const item = row as { title?: string };
+          lines.push(`- ${item.title ?? 'Entry'}`);
+        }
+      } else if (Array.isArray(data.terms)) {
+        lines.push(`Terms: ${(data.terms as unknown[]).slice(0, 12).join(', ')}`);
       }
       continue;
     }
@@ -279,6 +310,9 @@ export function buildReadActionFollowUpInput(params: {
     'If dialog.read returned a Document:',
     '- Use Forward, Step, Paths, and Points from the result — same source Chronicle renders.',
     '- If the result says the Document is unbuilt (no Points), say that. Do not claim you read a body.',
+    'If glossary.read returned terms or entries:',
+    '- This is Chronicle presence from docs/keeper-object-glossary.md — not a draft.',
+    '- Do not treat a husk draft titled Glossary as the glossary.',
     'Do not stop at "I read the draft" — complete the engagement.',
   ].join('\n');
 }

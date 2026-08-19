@@ -180,6 +180,13 @@ const dialogReadPayloadSchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(20),
 });
 
+/** Chronicle Object Glossary — same file GlossaryPresence renders. Not a draft. */
+const glossaryReadPayloadSchema = z.object({
+  query: z.string().optional(),
+  term: z.string().optional(),
+  limit: z.number().int().min(1).max(20).optional().default(8),
+});
+
 /**
  * Journey read action payload schema
  */
@@ -281,6 +288,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'sole.read': soleReadPayloadSchema,
   'library.read': libraryReadPayloadSchema,
   'dialog.read': dialogReadPayloadSchema,
+  'glossary.read': glossaryReadPayloadSchema,
   'journey.read': journeyReadPayloadSchema,
   'moment.read': momentReadPayloadSchema,
   'keeper.read': keeperReadPayloadSchema,
