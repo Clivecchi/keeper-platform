@@ -6,9 +6,13 @@ export interface AgentErrorPresentation {
   tone: AgentErrorTone
 }
 
-export function getAgentErrorPresentation(error: string): AgentErrorPresentation {
+export function getAgentErrorPresentation(
+  error: string,
+  agentName = "Kip",
+): AgentErrorPresentation {
   const detail = error.trim()
   const lower = detail.toLowerCase()
+  const name = agentName.trim() || "Kip"
 
   if (lower.includes("credits") || lower.includes("quota") || lower.includes("billing")) {
     return {
@@ -20,7 +24,7 @@ export function getAgentErrorPresentation(error: string): AgentErrorPresentation
 
   if (lower.includes("overloaded") || lower.includes("temporarily unavailable") || lower.includes("provider status: 529")) {
     return {
-      title: "Kip is temporarily overloaded",
+      title: `${name} is temporarily overloaded`,
       detail,
       tone: "warning",
     }
@@ -42,17 +46,17 @@ export function getAgentErrorPresentation(error: string): AgentErrorPresentation
     lower.includes("gateway")
   ) {
     return {
-      title: "Connection to Kip dropped",
+      title: `Connection to ${name} dropped`,
       detail:
         detail ||
-        "The request was cut off before Kip finished. Try again — long board turns (Rendr + Kip) are split into shorter steps now.",
+        `The request was cut off before ${name} finished. Try again — long board turns are split into shorter steps now.`,
       tone: "warning",
     }
   }
 
   if (lower.includes("api key") || lower.includes("provider key")) {
     return {
-      title: "Kip needs a provider key",
+      title: `${name} needs a provider key`,
       detail,
       tone: "warning",
     }
@@ -60,13 +64,13 @@ export function getAgentErrorPresentation(error: string): AgentErrorPresentation
 
   if (lower.includes("model") && (lower.includes("configured") || lower.includes("supported") || lower.includes("does not accept"))) {
     return {
-      title: "Kip model is misconfigured",
+      title: `${name} model is misconfigured`,
       detail,
       tone: "warning",
     }
   }
 
-  if (lower.includes("session expired")) {
+  if (lower.includes("session expired") || (lower.includes("session") && lower.includes("not found"))) {
     return {
       title: "Session expired",
       detail,
@@ -75,7 +79,7 @@ export function getAgentErrorPresentation(error: string): AgentErrorPresentation
   }
 
   return {
-    title: "Kip could not respond",
+    title: `${name} could not respond`,
     detail,
     tone: "danger",
   }

@@ -834,7 +834,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           return (
             <div key={message.id} className="flex w-full min-w-0 justify-start" role="alert">
               <div className="w-full max-w-xl min-w-0">
-                <AgentErrorAlert error={message.content} />
+                <AgentErrorAlert error={message.content} agentName={agentName} />
               </div>
             </div>
           )
@@ -864,12 +864,12 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
     {isSending && !horizonThinking && (
       <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue?.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
     )}
-    {error && <AgentErrorAlert error={error} />}
+    {error && <AgentErrorAlert error={error} agentName={agentName} />}
   </div>
 )
 
-const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
-  const presentation = getAgentErrorPresentation(error)
+const AgentErrorAlert: React.FC<{ error: string; agentName: string }> = ({ error, agentName }) => {
+  const presentation = getAgentErrorPresentation(error, agentName)
   const isWarning = presentation.tone === "warning"
 
   return (

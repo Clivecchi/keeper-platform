@@ -30,6 +30,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-19 — Kip support on lead-led Domain
+- Platform Kip lookup uses slug (not Lead-role). Echo runs with userId + Dialog id. Collaboration prompt forbids hanging promises and tells Kip to use tools when the lead deferred a launch. Echo action receipts attach to the lead turn.
+
 ### 2026-08-18 — Nav CRUD + single Drafts header
 - Domain Nav: inline delete for Drafts, Journeys, and Library items (Dialog delete already existed).
 - `resolveNavBlockOrder` no longer appends section-disabled remainder blocks (stops leftover Drafts on Domain).

@@ -30,6 +30,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-19: **Honest agent-run errors** — `AGENT_MISCONFIGURED` is only for a missing agent record. Session / Dialog / message "not found" no longer maps to "Kip is not configured correctly for this board."
 - 2026-08-18: **glossary.read + quiet Echo follow-through** — `glossary.read` returns Chronicle Object Glossary from `docs/keeper-object-glossary.md` (index or term). Not a draft. Prompt + follow-up forbid treating a husk Glossary draft as the glossary.
 - 2026-08-18: **Nav Dialog bind + dialog.read Document** — `createSession` accepts `dialogId` to attach to a Nav-selected Dialog (does not findOrCreate Chatter). `dialog.read { id }` returns the Chronicle Document (Forward/Step/Paths/Points); empty Points = unbuilt, not a claimed read.
 - 2026-08-17: **Honest MCP failures** — Cloud `mcp.call` errors include the tool name; System-agent wrap no longer says "I attempted to save" for non-draft failures. GitHub 404s resolve in `GitHubService` (reconnect vs file/branch missing).

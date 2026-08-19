@@ -495,8 +495,27 @@ const mockAgents: KipAgent[] = [
   }
 ];
 
-function normalizeKipRunErrorCode(code: unknown, message: unknown): KipRunErrorCode {
+function isAgentRecordMissingMessage(message: string): boolean {
+  return (
+    /agent with (?:id|slug) '.+' not found/i.test(message)
+    || /failed to fetch agent:.*not found/i.test(message)
+    || /^agent not found$/i.test(message)
+    || /platform kip agent not found/i.test(message)
+  );
+}
+
+export function normalizeKipRunErrorCode(code: unknown, message: unknown): KipRunErrorCode {
+  const rawMessage = typeof message === 'string' ? message : '';
   const rawCode = typeof code === 'string' ? code : '';
+
+  // Server used to stamp AGENT_MISCONFIGURED on any "not found" (session/dialog/message).
+  if (rawCode === 'AGENT_MISCONFIGURED' && rawMessage && !isAgentRecordMissingMessage(rawMessage)) {
+    const lower = rawMessage.toLowerCase();
+    if (lower.includes('session') && lower.includes('not found')) return 'UNKNOWN';
+    if (lower.includes('dialog') && lower.includes('not found')) return 'UNKNOWN';
+    if (lower.includes('not found')) return 'UNKNOWN';
+  }
+
   if (
     rawCode === 'MISSING_API_KEY' ||
     rawCode === 'INVALID_MODEL' ||
@@ -508,20 +527,23 @@ function normalizeKipRunErrorCode(code: unknown, message: unknown): KipRunErrorC
     return rawCode;
   }
 
-  const rawMessage = typeof message === 'string' ? message.toLowerCase() : '';
-  if (rawMessage.includes('overloaded') || rawMessage.includes('529') || rawMessage.includes('temporarily unavailable')) {
+  const lower = rawMessage.toLowerCase();
+  if (isAgentRecordMissingMessage(rawMessage)) {
+    return 'AGENT_MISCONFIGURED';
+  }
+  if (lower.includes('overloaded') || lower.includes('529') || lower.includes('temporarily unavailable')) {
     return 'PROVIDER_UNAVAILABLE';
   }
-  if (rawMessage.includes('timeout') || rawMessage.includes('timed out')) {
+  if (lower.includes('timeout') || lower.includes('timed out')) {
     return 'TIMEOUT';
   }
-  if (rawMessage.includes('quota') || rawMessage.includes('credits') || rawMessage.includes('billing')) {
+  if (lower.includes('quota') || lower.includes('credits') || lower.includes('billing')) {
     return 'QUOTA_EXCEEDED';
   }
-  if (rawMessage.includes('api key') || rawMessage.includes('anthropic_api_key') || rawMessage.includes('openai_api_key')) {
+  if (lower.includes('api key') || lower.includes('anthropic_api_key') || lower.includes('openai_api_key')) {
     return 'MISSING_API_KEY';
   }
-  if (rawMessage.includes('model') && rawMessage.includes('not')) {
+  if (lower.includes('model') && lower.includes('not')) {
     return 'INVALID_MODEL';
   }
 
@@ -555,32 +577,45 @@ function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | und
   };
 }
 
-function formatKipRunErrorMessage(code: KipRunErrorCode, rawMessage: unknown, details?: KipRunErrorDetails): string {
+export function formatKipRunErrorMessage(
+  code: KipRunErrorCode,
+  rawMessage: unknown,
+  details?: KipRunErrorDetails,
+  agentLabel = 'Kip',
+): string {
+  const label = agentLabel.trim() || 'Kip';
   const provider = getProviderLabel(details?.provider);
   const modelContext = details?.model ? ` Model: ${details.model}.` : '';
   const retryContext = typeof details?.retries === 'number' && details.retries > 0
-    ? ` Kip retried ${details.retries} ${details.retries === 1 ? 'time' : 'times'}.`
+    ? ` ${label} retried ${details.retries} ${details.retries === 1 ? 'time' : 'times'}.`
     : '';
   const statusContext = details?.providerStatus ? ` Provider status: ${details.providerStatus}.` : '';
   const suggestedAction = details?.suggestedAction ? ` ${details.suggestedAction}` : '';
+  const text = typeof rawMessage === 'string' ? rawMessage.toLowerCase() : '';
 
   switch (code) {
     case 'PROVIDER_UNAVAILABLE':
-      return `Kip could not respond because ${provider} is temporarily overloaded or unavailable.${statusContext}${retryContext}${modelContext} Try again in a moment.${suggestedAction}`.trim();
+      return `${label} could not respond because ${provider} is temporarily overloaded or unavailable.${statusContext}${retryContext}${modelContext} Try again in a moment.${suggestedAction}`.trim();
     case 'TIMEOUT':
-      return `Kip timed out waiting for ${provider}.${retryContext}${modelContext} Try again, or switch to a faster model if it keeps happening.${suggestedAction}`.trim();
+      return `${label} timed out waiting for ${provider}.${retryContext}${modelContext} Try again, or switch to a faster model if it keeps happening.${suggestedAction}`.trim();
     case 'QUOTA_EXCEEDED':
-      return `Kip cannot respond because the AI provider key is out of credits or quota.${modelContext} Add credits or switch Kip to another configured provider key.${suggestedAction}`.trim();
+      return `${label} cannot respond because the AI provider key is out of credits or quota.${modelContext} Add credits or switch to another configured provider key.${suggestedAction}`.trim();
     case 'MISSING_API_KEY':
-      return `Kip cannot respond because the AI provider API key is missing or invalid. Add the provider key in Railway or configure a platform/user key.${modelContext}${suggestedAction}`.trim();
+      return `${label} cannot respond because the AI provider API key is missing or invalid. Add the provider key in Railway or configure a platform/user key.${modelContext}${suggestedAction}`.trim();
     case 'INVALID_MODEL':
-      return `Kip is configured with a model that ${provider} does not accept.${modelContext} Choose a supported model in Cockpit and retry.${suggestedAction}`.trim();
+      return `${label} is configured with a model that ${provider} does not accept.${modelContext} Choose a supported model in Cockpit and retry.${suggestedAction}`.trim();
     case 'AGENT_MISCONFIGURED':
-      return `Kip is not configured correctly for this board.${suggestedAction || ' Check the Kip agent configuration and try again.'}`.trim();
+      return `${label} is not configured correctly for this board.${suggestedAction || ` Check the ${label} agent configuration and try again.`}`.trim();
     case 'UNKNOWN':
     default: {
+      if (text.includes('session') && text.includes('not found')) {
+        return 'This conversation session could not be found. Send again to continue.';
+      }
+      if (text.includes('dialog') && text.includes('not found')) {
+        return 'That Dialog is not available in this domain. Select it in Nav and try again.';
+      }
       const safeMessage = sanitizeKipErrorMessage(rawMessage);
-      return safeMessage || `Kip could not respond. Try again, or check Kip server logs if the problem continues.`;
+      return safeMessage || `${label} could not respond. Try again, or check server logs if the problem continues.`;
     }
   }
 }

@@ -168,6 +168,27 @@ const DIRECTOR_INTERNAL_PROMPT_PATTERN = /^\[Director (delegation|synthesis)/
 const AGENT_ECHO_INTERNAL_PROMPT_PATTERN = /^\[Agent Echo — supporting role\]/
 const PLATFORM_COLLABORATION_PROMPT_PATTERN = /^\[Platform collaboration —/
 
+/** Kip support turn after a domain lead reply — act, don't offer hanging help. */
+export function buildDomainCollaborationPrompt(params: {
+  userMessage: string
+  leadName: string
+  leadReply: string
+}): string {
+  return [
+    `[Platform collaboration — Kip]`,
+    `The user asked: "${params.userMessage}"`,
+    `${params.leadName} (domain lead) responded: "${params.leadReply}"`,
+    ``,
+    `You are Keeper platform support — not the lead voice.`,
+    `Defer relationship and strategy voice to ${params.leadName}. Do NOT defer platform construction.`,
+    `If the user asked to launch, build, or present a surface and the lead only asked questions or promised later work, use your tools in this turn (draft.create, journey.create, moment.create).`,
+    `Do NOT re-answer the user's question or correct the lead.`,
+    `Do not offer help you are not delivering now. Do not say you are available later.`,
+    `If the lead already completed the platform work, return empty.`,
+    `Maximum five sentences. Empty is valid only when no platform work remains.`,
+  ].join("\n")
+}
+
 /** True when persisted session text is director orchestration input, not the user's words. */
 export function isDirectorInternalPrompt(content: string): boolean {
   return DIRECTOR_INTERNAL_PROMPT_PATTERN.test(content.trim())

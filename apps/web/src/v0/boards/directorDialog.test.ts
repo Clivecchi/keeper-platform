@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   annotateCastActionResults,
+  buildDomainCollaborationPrompt,
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
   isEchoInternalPrompt,
@@ -202,5 +203,18 @@ describe("shouldAttachEcho", () => {
     expect(shouldAttachEcho({ content: "", status: "empty" })).toBe(false)
     expect(shouldAttachEcho({ content: "", status: "failed" })).toBe(false)
     expect(shouldAttachEcho({ content: "Cloud did not respond this turn.", status: "ok" })).toBe(false)
+  })
+})
+
+describe("buildDomainCollaborationPrompt", () => {
+  it("keeps the Platform collaboration scaffold and forbids hanging promises", () => {
+    const prompt = buildDomainCollaborationPrompt({
+      userMessage: "Let's launch a new surface.",
+      leadName: "Ceox",
+      leadReply: "What's the occasion?",
+    })
+    expect(isEchoInternalPrompt(prompt)).toBe(true)
+    expect(prompt).toContain("Do not offer help you are not delivering now")
+    expect(prompt).toContain("draft.create")
   })
 })

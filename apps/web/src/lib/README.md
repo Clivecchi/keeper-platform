@@ -35,6 +35,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-08-19 — Honest Kip run errors + named agent
+- `formatKipRunErrorMessage` / `normalizeKipRunErrorCode` — session/dialog "not found" is not agent misconfiguration. Error copy names the speaking agent (Ceox, Kip) instead of always "Kip".
+
 ### 2026-08-18 — Named Dialog session bind
 - `kipDialogSession` — `fetchDialogSessions`, `resumeNamedDialogSession`, `resumeOrCreateNamedDialogSession` attach to a Nav-selected Dialog instead of board Chatter `findOrCreate`.
 - `KipApi.createSession` accepts `dialogId` to attach a new session to an existing Dialog.

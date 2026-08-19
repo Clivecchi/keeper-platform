@@ -481,11 +481,16 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
     let ignore = false
 
     const cachedAudience = getCachedDomainAudience(effectiveSlug)
-    if (cachedAudience) {
+    const staleGuestCache = isAuthenticated && cachedAudience?.audience === "guest"
+    if (cachedAudience && !staleGuestCache) {
       setDomainAudienceContext(cachedAudience)
+    } else if (staleGuestCache) {
+      // Login flipped auth while a pre-login guest row was still cached.
+      // Drop it so fallback uses isAuthenticated/isAdmin until the fresh fetch lands.
+      setDomainAudienceContext(null)
     }
 
-    void fetchDomainAudience(effectiveSlug)
+    void fetchDomainAudience(effectiveSlug, { forceRefresh: staleGuestCache })
       .then((response) => {
         if (!ignore) setDomainAudienceContext(response)
       })

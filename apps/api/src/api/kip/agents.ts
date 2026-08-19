@@ -7293,7 +7293,7 @@ function buildProviderAgentErrorDetails(
     PROVIDER_UNAVAILABLE: 'Retry shortly; if the provider remains unavailable, switch Kip to another model in Cockpit.',
     TIMEOUT: 'Retry shortly; if timeouts continue, switch Kip to a faster model or reduce context.',
     QUOTA_EXCEEDED: 'Add provider credits or switch Kip to a funded provider key.',
-    AGENT_MISCONFIGURED: 'Check the Kip agent configuration.',
+    AGENT_MISCONFIGURED: 'Check the agent configuration.',
     UNKNOWN: 'Check server logs and retry.',
   };
 
@@ -7312,8 +7312,18 @@ function resolveAgentErrorCode(error: unknown): AgentErrorCode {
     return error.code;
   }
 
-  if (error instanceof Error && /not found/i.test(error.message)) {
-    return 'AGENT_MISCONFIGURED';
+  if (error instanceof Error) {
+    const message = error.message;
+    // Only agent-record misses are misconfiguration. Session / Dialog / message
+    // "not found" used to match a generic /not found/i and the UI blamed Kip.
+    if (
+      /agent with (?:id|slug) '.+' not found/i.test(message)
+      || /failed to fetch agent:.*not found/i.test(message)
+      || /^agent not found$/i.test(message)
+      || /platform kip agent not found/i.test(message)
+    ) {
+      return 'AGENT_MISCONFIGURED';
+    }
   }
 
   return 'UNKNOWN';

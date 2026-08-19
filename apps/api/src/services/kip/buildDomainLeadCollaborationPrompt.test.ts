@@ -68,6 +68,7 @@ describe('buildDomainLeadCollaborationPrompt', () => {
     expect(prompt).toContain('PLATFORM SUPPORT');
     expect(prompt).toContain('Ceox');
     expect(prompt).toContain('slug: ceox');
+    expect(prompt).toContain('Do not offer help you are not delivering now');
   });
 
   it('affirms the domain Lead when that agent is speaking', () => {
@@ -77,6 +78,7 @@ describe('buildDomainLeadCollaborationPrompt', () => {
     );
     expect(prompt).toContain('LEAD AGENT');
     expect(prompt).toContain('Ceox');
+    expect(prompt).toMatch(/let Kip construct|create the draft/i);
   });
 
   it('returns null for Cast guests (no lead/support override)', () => {

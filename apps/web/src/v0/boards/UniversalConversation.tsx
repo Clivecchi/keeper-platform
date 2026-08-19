@@ -80,6 +80,8 @@ import {
   CAST_MEMBER_LABELS,
   extractAgentReplyFromRunResult,
   shouldAttachEcho,
+  extractActionResultsFromRunResult,
+  buildDomainCollaborationPrompt,
   type DirectorSendPhase,
 } from "./directorDialog"
 import {
@@ -1210,11 +1212,14 @@ export function UniversalConversation({
       return
     }
     let cancelled = false
-    KipApi.getLeadAgent(KIP_FALLBACK_SLUG)
+    // Platform Kip is support here — lookup by slug, not Lead-role. A domain
+    // with Ceox as Lead must still be able to run Kip.
+    KipApi.getAgentBySlug(KIP_FALLBACK_SLUG)
       .then((agent) => {
         if (!cancelled) setEchoAgentId(agent.id)
       })
-      .catch(() => {
+      .catch((err) => {
+        console.warn("[UniversalConversation] platform Kip is not available for support", err)
         if (!cancelled) setEchoAgentId(null)
       })
     return () => {
@@ -1487,17 +1492,11 @@ export function UniversalConversation({
       if (!exchange?.agentMessage) return
 
       const echoPrompt = runDomainCollaboration
-        ? [
-            `[Platform collaboration — ${KIP_FALLBACK_DISPLAY_NAME}]`,
-            `The user asked: "${exchange.userMessage || "[no user message]"}"`,
-            `${dialogAgentDisplayName} (domain lead) responded: "${exchange.agentMessage}"`,
-            ``,
-            `You are Keeper platform support — not the lead voice.`,
-            `Add only platform, infrastructure, or Keeper-context the lead may have missed.`,
-            `Do NOT re-answer the user's question or correct the lead.`,
-            `If the lead answer is accurate and complete, return empty.`,
-            `Maximum three sentences. Empty is valid.`,
-          ].join("\n")
+        ? buildDomainCollaborationPrompt({
+            userMessage: exchange.userMessage || "[no user message]",
+            leadName: dialogAgentDisplayName,
+            leadReply: exchange.agentMessage,
+          })
         : [
             `[Agent Echo — supporting role]`,
             `The user asked: "${exchange.userMessage || "[no user message]"}"`,
@@ -1575,16 +1574,18 @@ export function UniversalConversation({
         const echoResult = await KipApi.runAgent(
           echoAgentId,
           echoPrompt,
-          undefined,
+          user?.id ?? undefined,
           sessionIdForEcho,
           {
             domainSlug: domainSlug || undefined,
             domainId: domainId || undefined,
+            dialogId: selectedDialogId || undefined,
             mode: "domain",
             agentContext,
           },
         )
         const echoContent = extractAgentReplyFromRunResult(echoResult)?.trim() ?? ""
+        const echoActions = extractActionResultsFromRunResult(echoResult)
         const status: DirectorDelegationStatus = echoContent ? "ok" : "empty"
         if (
           shouldAttachEcho({
@@ -1596,6 +1597,29 @@ export function UniversalConversation({
             content: echoContent,
             attributedTo,
             status: "ok",
+          })
+        }
+        if (echoActions.length && setMessagesRef.current) {
+          setMessagesRef.current((prev) => {
+            let targetIdx = prev.findIndex((m) => m.id === exchange.id)
+            if (targetIdx < 0) {
+              targetIdx = prev.findLastIndex(
+                (m) =>
+                  m.role === "agent"
+                  && !isThinkingPlaceholder(m.content, dialogAgentDisplayName),
+              )
+            }
+            if (targetIdx < 0) return prev
+            const updated = [...prev]
+            const existing = updated[targetIdx].actionResults ?? []
+            updated[targetIdx] = {
+              ...updated[targetIdx],
+              actionResults: [
+                ...existing,
+                ...(echoActions as NonNullable<AgentDialogueMessage["actionResults"]>),
+              ],
+            }
+            return updated
           })
         }
       } catch {
@@ -1618,6 +1642,8 @@ export function UniversalConversation({
       dialogAgentDisplayName,
       defaultAgentName,
       castMultiSelect,
+      user?.id,
+      selectedDialogId,
     ],
   )
 

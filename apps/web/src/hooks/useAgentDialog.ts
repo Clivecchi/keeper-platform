@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import type { FormEvent } from "react"
-import { KipApi } from "../lib/kipApi"
+import { KipApi, KipAgentRunError, formatKipRunErrorMessage } from "../lib/kipApi"
 import type { KipMessage } from "../lib/kipApi"
 import type { AgentAttachment } from "../components/agent/AgentComposer"
 import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components/agent/types"
@@ -481,6 +481,7 @@ export function useAgentDialog({
   )
   const [input, setInput] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
+  const sendInFlightRef = React.useRef(false)
   const [error, setError] = React.useState<string | null>(null)
   const [thinkingSteps, setThinkingSteps] = React.useState<DialogThinkingStep[]>([])
   const [agentId, setAgentId] = React.useState<string | null>(null)
@@ -703,9 +704,12 @@ export function useAgentDialog({
       if (mode === "designer" && !frameKey) return
 
       // ── ide / agent / domain / designer: KipApi.runAgent ──────────────────
-      if ((!content.trim() && !attachments?.length) || isSending || !agentId) {
+      if ((!content.trim() && !attachments?.length) || isSending || sendInFlightRef.current || !agentId) {
         return
       }
+      sendInFlightRef.current = true
+      setIsSending(true)
+      setError(null)
 
       const resolvedDomainId =
         domainId && !String(domainId).startsWith("fallback-")
@@ -765,11 +769,17 @@ export function useAgentDialog({
             applyBoundSession(bound.sessionId)
           }
         } catch {
+          sendInFlightRef.current = false
+          setIsSending(false)
           setError(`Couldn't start a session with ${agentDisplayName}. Try again.`)
           return
         }
       } else if (!sessionId) {
-        if (!resolvedDomainId) return
+        if (!resolvedDomainId) {
+          sendInFlightRef.current = false
+          setIsSending(false)
+          return
+        }
         try {
           const name = await resolveSessionName()
           const ensured = await resumeOrCreateBoardSession({
@@ -784,12 +794,18 @@ export function useAgentDialog({
           })
           applyBoundSession(ensured.sessionId)
         } catch {
+          sendInFlightRef.current = false
+          setIsSending(false)
           setError(`Couldn't start a session with ${agentDisplayName}. Try again.`)
           return
         }
       }
 
-      if (!sessionId) return
+      if (!sessionId) {
+        sendInFlightRef.current = false
+        setIsSending(false)
+        return
+      }
 
       const ts = Date.now()
 
@@ -809,8 +825,6 @@ export function useAgentDialog({
       // Clear sessionStorage immediately so a mid-send session-key change cannot
       // re-fill the composer (blocks mobile compact-after-send). Hold text for failure restore.
       armSendDraft(content)
-      setIsSending(true)
-      if (mode === "ide") setError(null)
 
       let stepIndex = 0
       const appendThinkingStep = (label: string) => {
@@ -1089,6 +1103,7 @@ export function useAgentDialog({
         clearSavedDraft()
         setThinkingSteps([])
         onDirectorPhaseChange?.(null)
+        sendInFlightRef.current = false
         setIsSending(false)
         return
       }
@@ -1172,6 +1187,7 @@ export function useAgentDialog({
         clearSavedDraft()
         setThinkingSteps([])
         onDirectorPhaseChange?.(null)
+        sendInFlightRef.current = false
         setIsSending(false)
         return
       }
@@ -1371,11 +1387,11 @@ export function useAgentDialog({
         clearSavedDraft()
       } catch (err: unknown) {
         const status = (err as { status?: number })?.status
-        const message = err instanceof Error ? err.message : ""
         const authMsg = `Please sign in to continue the conversation with ${agentDisplayName}.`
-        const failMsg =
-          message && message.length > 0 && message.length < 300
-            ? message
+        const failMsg = err instanceof KipAgentRunError
+          ? formatKipRunErrorMessage(err.code, err.message, err.details, agentDisplayName)
+          : err instanceof Error && err.message.length > 0 && err.message.length < 300
+            ? err.message
             : `${agentDisplayName} couldn't respond. Try again.`
         const reply = status === 401 ? authMsg : failMsg
 
@@ -1398,6 +1414,7 @@ export function useAgentDialog({
         ])
       } finally {
         onDirectorPhaseChange?.(null)
+        sendInFlightRef.current = false
         setIsSending(false)
       }
     },
