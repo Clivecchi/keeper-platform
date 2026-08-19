@@ -36,11 +36,13 @@ Authenticated users with no query params redirect to `?board=domain` (see `V0She
 
 The member workspace is a three-panel board, not a standalone frame route.
 
+**Locked pathway (2026-08-18):** Nav selects the subject. When the subject is a Dialog — or belongs to one — Dialog is that conversation. Chronicle renders the subject’s most relevant body: Document for a Dialog, glossary markdown for Glossary, cover + blocks for an EntityKind. Agent context must be that same body, or the agent must say it does not have it. No third object.
+
 | Panel | Runtime | Role |
 |---|---|---|
 | **Nav** | `UniversalNavPanel` | List records, select focus, `+` trigger. Fetch, collapse, label. **Never** host engagement forms, Acts, or Config save UI. |
-| **Dialog** | `UniversalConversation` | Kip / agent conversation. Independent session selection; does not clear Chronicle focus. |
-| **Chronicle** | `UniversalViewPanel` → `KeeperPresence` | Presence, Acts, engagement forms, editable fields, Config mode. The right panel is where intentional interaction happens. |
+| **Dialog** | `UniversalConversation` | Conversation for the focused Dialog (or the Dialog that owns the subject). Selecting a Dialog in Nav resumes that Dialog’s session — banner, thread, and Chronicle become one room. |
+| **Chronicle** | `UniversalViewPanel` → DocumentShell / `KeeperPresence` | Most relevant body of the object in focus. Focused Dialog → Document (`DocumentShell`), not a session dump. |
 
 **Declared UI — one Chronicle shell family:**
 - **Focus** — `EntityCoverPresence` + declaration blocks (`KeeperPresence`)
@@ -164,5 +166,6 @@ On Universal Board, engagement follows a strict panel contract:
 
 ## 📆 Update Log
 
+- **2026-08-18** — Locked Nav · Dialog · Chronicle pathway: Nav selects the subject; Dialog is that conversation; Chronicle + agent context share the same body (Document for a Dialog). Selecting a Dialog resumes its session; `dialog.read { id }` returns that Document.
 - **2026-06-19** — Declared Chronicle Act surface: `ChronicleActPresence` uses `ChronicleConfigShell` (same as Agent Manage); engagement forms must not bypass declared UI.
 - **2026-02-01** — Initial canonical UI experience doc (surfaces, engagement pipeline, narrative mapping).

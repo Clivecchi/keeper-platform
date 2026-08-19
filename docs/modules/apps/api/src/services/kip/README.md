@@ -31,6 +31,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-18 — dialog.read honesty
+- `buildDialogReadHonesty` — empty Points means the Document is unbuilt; follow-up tells Lead not to claim a read. `dialog.read { id }` uses `loadDialogDocumentForAgent` (same source Chronicle renders).
+
 ### 2026-08-17 — External writing ingest
 - `ingestExternalDocument.ts` — markdown → accepted Document Points on `document_manuscript`; creates or attaches a Dialog; starts a real Kip session on create, reuses the latest session on attach; ensures Gloss carrier. Never a Library item.
 

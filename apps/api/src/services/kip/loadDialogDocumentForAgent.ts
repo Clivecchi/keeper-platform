@@ -20,6 +20,26 @@ export type AgentDialogDocument = {
   manuscriptDraftId?: string;
 };
 
+export type DialogReadHonesty = {
+  documentUnbuilt: boolean;
+  honesty: string;
+};
+
+/** Empty Points = unbuilt Document. Agents must not claim they read a body. */
+export function buildDialogReadHonesty(pointCount: number): DialogReadHonesty {
+  if (pointCount <= 0) {
+    return {
+      documentUnbuilt: true,
+      honesty:
+        'Document is unbuilt — no Points loaded. Do not claim you read a body. Report the title and say the Document has no Points yet.',
+    };
+  }
+  return {
+    documentUnbuilt: false,
+    honesty: `Document has ${pointCount} Point(s) — same source Chronicle renders. Use these Points; do not invent others.`,
+  };
+}
+
 export async function loadDialogDocumentForAgent(
   dialogId: string,
   domainId: string,

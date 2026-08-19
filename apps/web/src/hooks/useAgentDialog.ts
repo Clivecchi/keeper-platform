@@ -25,7 +25,11 @@ import {
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
 import { resolveDirectorDelegationMessage } from "@keeper/shared"
-import { resumeBoardSession, resumeOrCreateBoardSession } from "../lib/kipDialogSession"
+import {
+  resumeBoardSession,
+  resumeOrCreateBoardSession,
+  resumeOrCreateNamedDialogSession,
+} from "../lib/kipDialogSession"
 import { takePrefetchedDialogSession } from "../v0/boards/domain/dialogSessionPrefetch"
 import {
   actionResultsToThinkingSteps,
@@ -582,8 +586,10 @@ export function useAgentDialog({
   }, [agentSlug, resolvedAgentId, strictAgentResolution, agentDisplayName])
 
   // Seed prefetched session before paint so Chronicle/Dialog do not flash empty after curtain.
+  // Named Dialog in Nav owns the thread — do not restore board Chatter underneath it.
   React.useLayoutEffect(() => {
     if (mode === "ide" || mode === "designer" || manageSessionExternally) return
+    if (dialogId) return
     if (!domainId || String(domainId).startsWith("fallback-")) return
     if (activeSessionIdRef.current) return
     const board = dialogBoard ?? mode
@@ -591,7 +597,7 @@ export function useAgentDialog({
     if (!prefetched) return
     if (onControlledSessionIdChange) onControlledSessionIdChange(prefetched)
     else setInternalSessionId(prefetched)
-  }, [mode, domainId, dialogBoard, manageSessionExternally, onControlledSessionIdChange])
+  }, [mode, domainId, dialogBoard, dialogId, manageSessionExternally, onControlledSessionIdChange])
 
   // agent / domain: resume existing board session only — create deferred to first send.
   // ide and designer use controlled session lifecycle from the board shell.
@@ -600,6 +606,7 @@ export function useAgentDialog({
   // UniversalConversation (manageSessionExternally=true for ide) and KipScreen (mode=domain).
   React.useEffect(() => {
     if (mode === "ide" || mode === "designer" || manageSessionExternally || !agentId) return
+    if (dialogId) return
     if (
       (mode === "domain" || mode === "agent") &&
       (!domainId || String(domainId).startsWith("fallback-"))
@@ -652,6 +659,7 @@ export function useAgentDialog({
     resolvedAudience,
     dialogBoard,
     dialogFrame,
+    dialogId,
     onControlledSessionIdChange,
   ])
 
@@ -707,27 +715,63 @@ export function useAgentDialog({
             : undefined
 
       let sessionId = activeSessionIdRef.current
-      if (!sessionId) {
+      const namedDialogId = dialogIdRef.current?.trim() || ""
+      const applyBoundSession = (nextId: string) => {
+        sessionId = nextId
+        if (onControlledSessionIdChange) {
+          onControlledSessionIdChange(nextId)
+        } else {
+          setInternalSessionId(nextId)
+        }
+        activeSessionIdRef.current = nextId
+      }
+
+      const resolveSessionName = async (): Promise<string> => {
+        if (typeof sessionDisplayName === "function") {
+          return sessionDisplayName()
+        }
+        if (sessionDisplayName) return sessionDisplayName
+        if (mode === "ide" && resolvedDomainId) {
+          return buildIdeSessionName({
+            domainId: resolvedDomainId,
+            activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? null,
+            activeKeeperId: frameCtx?.selection?.activeKeeperId ?? null,
+          })
+        }
+        if (mode === "agent") return "Agent Board"
+        if (mode === "designer") return frameKey ?? "Designer"
+        return sessionNameDateFallback()
+      }
+
+      if (namedDialogId && resolvedDomainId) {
+        try {
+          const previousId = sessionId
+          const name = await resolveSessionName()
+          const bound = await resumeOrCreateNamedDialogSession({
+            domainId: resolvedDomainId,
+            dialogId: namedDialogId,
+            agentId,
+            domainSlug,
+            sessionName: name,
+          })
+          if (bound.sessionId !== previousId) {
+            applyBoundSession(bound.sessionId)
+            if (bound.created) {
+              setMessages([])
+            } else {
+              await fetchMessages(bound.sessionId)
+            }
+          } else {
+            applyBoundSession(bound.sessionId)
+          }
+        } catch {
+          setError(`Couldn't start a session with ${agentDisplayName}. Try again.`)
+          return
+        }
+      } else if (!sessionId) {
         if (!resolvedDomainId) return
         try {
-          let name: string
-          if (typeof sessionDisplayName === "function") {
-            name = await sessionDisplayName()
-          } else if (sessionDisplayName) {
-            name = sessionDisplayName
-          } else if (mode === "ide") {
-            name = await buildIdeSessionName({
-              domainId: resolvedDomainId,
-              activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? null,
-              activeKeeperId: frameCtx?.selection?.activeKeeperId ?? null,
-            })
-          } else if (mode === "agent") {
-            name = "Agent Board"
-          } else if (mode === "designer") {
-            name = frameKey ?? "Designer"
-          } else {
-            name = sessionNameDateFallback()
-          }
+          const name = await resolveSessionName()
           const ensured = await resumeOrCreateBoardSession({
             domainId: resolvedDomainId,
             agentId,
@@ -738,13 +782,7 @@ export function useAgentDialog({
             domainSlug,
             sessionName: name,
           })
-          sessionId = ensured.sessionId
-          if (onControlledSessionIdChange) {
-            onControlledSessionIdChange(sessionId)
-          } else {
-            setInternalSessionId(sessionId)
-          }
-          activeSessionIdRef.current = sessionId
+          applyBoundSession(ensured.sessionId)
         } catch {
           setError(`Couldn't start a session with ${agentDisplayName}. Try again.`)
           return

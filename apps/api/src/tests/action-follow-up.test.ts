@@ -79,6 +79,51 @@ describe('actionFollowUp', () => {
     expect(text).toContain('https://brave.com/search/api/');
   });
 
+  it('formats dialog.read Document Points and unbuilt honesty', () => {
+    const built = buildReadActionFollowUpInput({
+      originalInput: 'Read the Realm dialog',
+      agentName: 'Ceox',
+      priorResponseText: 'Reading now.',
+      actionResults: [
+        {
+          type: 'dialog.read',
+          status: 'success',
+          message: 'Dialog "Realm" retrieved — Document has 1 Point(s).',
+          data: {
+            document: {
+              title: 'Realm · conversation · Jul 29',
+              status: 'drafts',
+              points: [{ type: 'point', preview: 'Nav selects the subject.' }],
+            },
+            documentUnbuilt: false,
+          },
+        },
+      ],
+    });
+    expect(built).toContain('Nav selects the subject.');
+    expect(built).toContain('same source Chronicle renders');
+
+    const unbuilt = buildReadActionFollowUpInput({
+      originalInput: 'Read the Realm dialog',
+      agentName: 'Ceox',
+      priorResponseText: 'Reading now.',
+      actionResults: [
+        {
+          type: 'dialog.read',
+          status: 'success',
+          message: 'Dialog "Realm" retrieved — Document is unbuilt (no Points).',
+          data: {
+            document: { title: 'Realm · conversation · Jul 29', status: 'drafts', points: [] },
+            documentUnbuilt: true,
+            honesty: 'Document is unbuilt — no Points loaded. Do not claim you read a body.',
+          },
+        },
+      ],
+    });
+    expect(unbuilt).toContain('Document is unbuilt');
+    expect(unbuilt).toContain('Do not claim you read a body');
+  });
+
   it('runs follow-up for web.search and formats titles/urls', () => {
     expect(
       shouldRunReadActionFollowUp(

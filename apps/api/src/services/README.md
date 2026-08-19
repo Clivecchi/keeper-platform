@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-18 — dialog.read returns Chronicle Document
+- `kip/loadDialogDocumentForAgent.ts` — `buildDialogReadHonesty`; empty Points = unbuilt. Agent `dialog.read { id }` uses this loader (same source Chronicle renders).
+
 ### 2026-08-17 — GitHub MCP errors name the real failure
 - `GitHubService.ts` — Nango/Axios `Request failed with status code 404` is mapped: dead connection → reconnect GitHub; GitHub REST 404 → file/branch/repo not found. `writeFile` no longer treats a dead connection as a missing file.
 

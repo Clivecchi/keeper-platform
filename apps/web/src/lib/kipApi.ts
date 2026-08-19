@@ -1561,6 +1561,7 @@ export class KipApi {
     options: {
       domainId?: string | null;
       domainSlug?: string | null;
+      dialogId?: string | null;
       dialogBoard?: string;
       dialogFrame?: string;
       dialogSubject?: string;
@@ -1568,6 +1569,7 @@ export class KipApi {
     } = {},
   ): Promise<KipSession> {
     try {
+      const attachDialogId = options.dialogId?.trim() || '';
       const payload = {
         action: 'createSession',
         agentId,
@@ -1575,14 +1577,16 @@ export class KipApi {
         sessionName,
         ...(options.domainId ? { domainId: options.domainId } : {}),
         ...(options.domainSlug ? { domainSlug: options.domainSlug } : {}),
-        ...(options.dialogBoard && options.dialogFrame && options.dialogScope
-          ? {
-              dialogBoard: options.dialogBoard,
-              dialogFrame: options.dialogFrame,
-              ...(options.dialogSubject ? { dialogSubject: options.dialogSubject } : {}),
-              dialogScope: options.dialogScope,
-            }
-          : {}),
+        ...(attachDialogId
+          ? { dialogId: attachDialogId }
+          : options.dialogBoard && options.dialogFrame && options.dialogScope
+            ? {
+                dialogBoard: options.dialogBoard,
+                dialogFrame: options.dialogFrame,
+                ...(options.dialogSubject ? { dialogSubject: options.dialogSubject } : {}),
+                dialogScope: options.dialogScope,
+              }
+            : {}),
       };
 
       console.info?.('[KipApi] createSession payload', {

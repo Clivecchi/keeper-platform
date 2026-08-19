@@ -80,9 +80,12 @@ Chronicle = right panel (UniversalViewPanel), not a frame route.
 | **Guest / public story** | Present (target) · Cover today | Narrative read-only — not standalone journey frames | `PresentFrame` — Phase B after board engagement |
 | **Legacy frames** | `?frame=journeys`, `?frame=keepers`, etc. | Standalone v0 frames | **Do not extend for Phase 1 member work.** Redirect or retire over time. |
 
-**Nav vs Chronicle (Universal Board):**
-- **Nav** — list, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI.
-- **Chronicle** — declared render surface for presence, Config, and Acts. Nav `+` → `requestChronicleEngagement` → `ChronicleActPresence`.
+**Nav vs Dialog vs Chronicle (Universal Board):**
+- **Nav** — list, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI. Selecting a Dialog puts that Dialog in focus.
+- **Dialog** — the conversation for the focused Dialog (or the Dialog that owns the subject). Nav click resumes that Dialog’s session.
+- **Chronicle** — declared render surface for presence, Config, and Acts. Focused Dialog → Document. Nav `+` → `requestChronicleEngagement` → `ChronicleActPresence`. Agent context must be that same body.
+
+**Locked pathway:** Nav selects the subject. When the subject is a Dialog — or belongs to one — Dialog is that conversation. Chronicle renders the subject’s most relevant body. No third object.
 
 **Declared UI — Chronicle has three modes (no custom fourth layout):**
 | Mode | Component | Shell |

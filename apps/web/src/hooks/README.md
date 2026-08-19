@@ -31,6 +31,10 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-18 — Nav Dialog bind
+- `useSelectionSessionResume` — selecting a Dialog resumes that Dialog’s session (or idles if it has none). No longer keeps board Chatter when the focused Dialog is empty.
+- `useAgentDialog` — skips board Chatter resume/prefetch while a Dialog is selected; first send attaches to that Dialog via `resumeOrCreateNamedDialogSession`.
+
 ### 2026-08-11 — useDraftPointAccept onAccepted
 - Optional `onAccepted(draftId, pointId)` after successful Accept — used by DocumentShell/DomainRealmStory to reload Chronicle Document without leaving Dialog scope.
 

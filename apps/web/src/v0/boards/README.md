@@ -30,6 +30,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-18 — Nav · Dialog · Chronicle pathway
+- Locked: Nav selects the subject; Dialog is that conversation; Chronicle + agent share the same body.
+- Selecting a Dialog in Nav resumes that Dialog’s session (`useSelectionSessionResume` + named-dialog create). Board Chatter is not restored underneath a focused Dialog.
+
 ### 2026-08-17 — Build board rename + Glossary nav + board-emphasis invariant
 - Display rename: IDE → **Build**. Internal key remains `ide` (kipMode, sessions, capability ceilings). Canonical URL write is `?board=build`; `?board=ide` still parses.
 - Domain Nav: top-level **Glossary** (not nested in Library) — Chronicle read of the Object Glossary.

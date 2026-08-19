@@ -52,6 +52,10 @@ import {
 import { resolveAgentCapabilities } from '../../capabilities/resolveCapabilities.js';
 import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import { searchLibraryItems } from '../../services/LibraryItemSearchService.js';
+import {
+  buildDialogReadHonesty,
+  loadDialogDocumentForAgent,
+} from '../../services/kip/loadDialogDocumentForAgent.js';
 import { WebSearchService } from '../../services/WebSearchService.js';
 import type { 
   AgentInput, 
@@ -3296,10 +3300,15 @@ export async function executeAgentActions(
                   });
                   break;
                 }
+                const document = await loadDialogDocumentForAgent(dialog.id, ctx.domainId);
+                const points = document?.points ?? [];
+                const honesty = buildDialogReadHonesty(points.length);
                 results.push({
                   type: action.type,
                   status: 'success',
-                  message: `Dialog "${dialog.title}" retrieved`,
+                  message: honesty.documentUnbuilt
+                    ? `Dialog "${dialog.title}" retrieved — Document is unbuilt (no Points).`
+                    : `Dialog "${dialog.title}" retrieved — Document has ${points.length} Point(s).`,
                   data: {
                     entityIds: [dialog.id],
                     dialogId: dialog.id,
@@ -3312,6 +3321,20 @@ export async function executeAgentActions(
                       stepTitle: dialog.step_title,
                       updatedAt: dialog.updated_at.toISOString(),
                     },
+                    document: document
+                      ? {
+                          dialogId: document.dialogId,
+                          title: document.title,
+                          status: document.status,
+                          forward: document.forward,
+                          step: document.step,
+                          paths: document.paths,
+                          points,
+                          manuscriptDraftId: document.manuscriptDraftId,
+                        }
+                      : null,
+                    documentUnbuilt: honesty.documentUnbuilt,
+                    honesty: honesty.honesty,
                   },
                 });
                 break;
@@ -4436,10 +4459,12 @@ export class KipAgentService {
     context?: { primaryJourneyId?: string | null; primaryKeeperId?: string | null },
     dialogLink?: {
       domainId: string;
-      board: string;
-      frame: string;
+      board?: string;
+      frame?: string;
       subject?: string;
-      scope: 'admin' | 'keeper';
+      scope?: 'admin' | 'keeper';
+      /** Attach to an existing Dialog (Nav-selected). Wins over board/frame findOrCreate. */
+      dialogId?: string;
     },
   ): Promise<KipSessionWithRelations> {
     try {
@@ -4451,8 +4476,28 @@ export class KipAgentService {
 
       // Board Dialogs are created here when clients pass dialogLink — web boards
       // must only call createSession on first real send (not mount). See resumeBoardSession.
+      // Named Dialog attach: Nav selected an existing Dialog — do not findOrCreate Chatter.
       let dialogId: string | undefined;
-      if (dialogLink) {
+      const attachDialogId = dialogLink?.dialogId?.trim() ?? '';
+      if (dialogLink && attachDialogId) {
+        const existing = await prisma.dialog.findFirst({
+          where: {
+            id: attachDialogId,
+            domain_id: dialogLink.domainId,
+            is_archived: false,
+          },
+          select: { id: true },
+        });
+        if (!existing) {
+          throw new Error('Dialog not found in this domain');
+        }
+        dialogId = existing.id;
+      } else if (
+        dialogLink
+        && dialogLink.board
+        && dialogLink.frame
+        && (dialogLink.scope === 'admin' || dialogLink.scope === 'keeper')
+      ) {
         const dialog = await findOrCreateKipDialog(prisma, {
           domainId: dialogLink.domainId,
           board: dialogLink.board,
@@ -4908,6 +4953,9 @@ export class KipAgentService {
         'item (renders a tappable Library receipt) and include envelope "card": {"type":"summary","title":"<item title>","body":"<rationale>","meta":"<item id>"}.',
         'Nested ```keeper-card fences remain accepted for backward compatibility.',
         '',
+        'For dialog.read { id }: report Forward, Step, and Points from the returned Document.',
+        'If the result says the Document is unbuilt (no Points), say that — do not claim you read a body.',
+        '',
         'For web.search: cite titles and URLs from the returned results. Do not invent links.',
         '',
         'The Completed receipt confirms the action ran.',
@@ -4932,7 +4980,9 @@ export class KipAgentService {
         'with { limit: 20 } first, then { id } for full detail on your choice.',
         '',
         'dialog.read — list recent Dialogs ({ limit? }), search by title ({ query, limit? }),',
-        'or fetch one Dialog ({ id }). Use when the user names a Dialog from Nav that is not the active one.',
+        'or fetch one Dialog ({ id }). { id } returns the same Document Chronicle shows (Forward, Step, Paths, Points).',
+        'If Points are empty, the Document is unbuilt — say that. Do not claim you read a body from a title/status husk.',
+        'Use when the user names a Dialog from Nav that is not the active one.',
         'titleSource auto_generated = Chatter; user_set / system_promoted = Dialog. Prefer domainIndex.dialogs first.',
         '',
         'web.search — live internet search (Brave). Use when the user needs current public information',
@@ -7948,16 +7998,25 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             const ds = body.dialogScope;
             const dialogScope = ds === 'admin' || ds === 'keeper' ? ds : null;
 
+            const attachDialogId =
+              typeof body.dialogId === 'string' ? body.dialogId.trim() : '';
+
             let dialogLink:
               | {
                   domainId: string;
-                  board: string;
-                  frame: string;
+                  board?: string;
+                  frame?: string;
                   subject?: string;
-                  scope: 'admin' | 'keeper';
+                  scope?: 'admin' | 'keeper';
+                  dialogId?: string;
                 }
               | undefined;
-            if (domainIdForDialog && dialogBoard && dialogFrame && dialogScope) {
+            if (attachDialogId && domainIdForDialog) {
+              dialogLink = {
+                domainId: domainIdForDialog,
+                dialogId: attachDialogId,
+              };
+            } else if (domainIdForDialog && dialogBoard && dialogFrame && dialogScope) {
               dialogLink = {
                 domainId: domainIdForDialog,
                 board: dialogBoard,

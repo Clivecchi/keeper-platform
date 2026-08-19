@@ -141,6 +141,60 @@ export type ResumeBoardSessionResult = {
   created: boolean
 }
 
+export async function fetchDialogSessions(
+  domainId: string,
+  dialogId: string,
+): Promise<DialogSessionRow[]> {
+  const res = (await apiFetch(
+    `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}`,
+  )) as { dialog?: { sessions?: DialogSessionRow[] } | null }
+
+  return res.dialog?.sessions ?? []
+}
+
+/** Resume-only: best primary session on a named Dialog, or null. Never creates. */
+export async function resumeNamedDialogSession(params: {
+  domainId: string
+  dialogId: string
+  agentId?: string | null
+}): Promise<string | null> {
+  const sessions = await fetchDialogSessions(params.domainId, params.dialogId)
+  return pickBestDialogSessionId(sessions, params.agentId)
+}
+
+/**
+ * Resume the named Dialog's session, or create one attached to that Dialog.
+ * First send after Nav select — never findOrCreate the board Chatter Dialog.
+ */
+export async function resumeOrCreateNamedDialogSession(params: {
+  domainId: string
+  dialogId: string
+  agentId: string
+  domainSlug?: string | null
+  sessionName: string
+}): Promise<ResumeBoardSessionResult> {
+  const existingId = await resumeNamedDialogSession({
+    domainId: params.domainId,
+    dialogId: params.dialogId,
+    agentId: params.agentId,
+  })
+  if (existingId) {
+    return { sessionId: existingId, created: false }
+  }
+
+  const session = await KipApi.createSession(
+    params.agentId,
+    undefined,
+    params.sessionName,
+    {
+      domainSlug: params.domainSlug ?? undefined,
+      domainId: params.domainId,
+      dialogId: params.dialogId,
+    },
+  )
+  return { sessionId: session.id, created: true }
+}
+
 export async function resolveActiveDialogSessions(
   domainId: string,
   params: {

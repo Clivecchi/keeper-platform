@@ -82,7 +82,32 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
         if (Array.isArray(data.drafts)) {
           lines.push(`Drafts listed: ${data.drafts.length}`);
         }
-        if (Array.isArray(data.results)) {
+        if (result.type === 'dialog.read' && data.document && typeof data.document === 'object') {
+          const doc = data.document as {
+            title?: string;
+            status?: string;
+            points?: Array<{ type?: string; preview?: string; status?: string }>;
+          };
+          const points = Array.isArray(doc.points) ? doc.points : [];
+          lines.push(`Document: ${doc.title ?? 'untitled'}${doc.status ? ` [${doc.status}]` : ''}`);
+          if (data.documentUnbuilt === true || points.length === 0) {
+            lines.push(
+              typeof data.honesty === 'string'
+                ? data.honesty
+                : 'Document is unbuilt — no Points. Do not claim you read a body.',
+            );
+          } else {
+            lines.push(`Points: ${points.length}`);
+            for (const point of points.slice(0, 24)) {
+              const preview = typeof point.preview === 'string' ? point.preview.trim() : '';
+              lines.push(
+                preview
+                  ? `- (${point.type ?? 'point'}): ${preview}`
+                  : `- (${point.type ?? 'point'})`,
+              );
+            }
+          }
+        } else if (Array.isArray(data.results)) {
           if (result.type === 'web.search') {
             lines.push(`Web results: ${data.results.length}`);
             if (typeof data.query === 'string') {
@@ -93,6 +118,16 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
                 const item = row as { title?: string; url?: string; snippet?: string };
                 lines.push(
                   `- ${item.title ?? '?'} — ${item.url ?? '?'}${item.snippet ? `: ${String(item.snippet).slice(0, 200)}` : ''}`,
+                );
+              }
+            }
+          } else if (result.type === 'dialog.read') {
+            lines.push(`Dialogs listed: ${data.results.length}`);
+            for (const row of data.results.slice(0, 12)) {
+              if (row && typeof row === 'object') {
+                const item = row as { id?: string; title?: string; titleSource?: string; tier?: string };
+                lines.push(
+                  `- ${item.title ?? item.id ?? '?'} (${item.tier ?? item.titleSource ?? '?'})`,
                 );
               }
             }
@@ -108,7 +143,12 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
             }
           }
         }
-        if (data.spec === undefined && data.draft === undefined && !Array.isArray(data.drafts)) {
+        if (
+          data.spec === undefined
+          && data.draft === undefined
+          && !Array.isArray(data.drafts)
+          && !(result.type === 'dialog.read' && (data.document || Array.isArray(data.results)))
+        ) {
           lines.push(`Data: ${JSON.stringify(data, null, 2).slice(0, 4000)}`);
         }
       }
@@ -236,6 +276,9 @@ export function buildReadActionFollowUpInput(params: {
     '- Summarize what they say; do not invent links that were not returned',
     '- Do NOT call web.search again in this follow-up unless the user asked for a different query',
     'If they asked to rebuild or restore draft points, use draft.update.propose or draft.update actions now with the content you recover from the session.',
+    'If dialog.read returned a Document:',
+    '- Use Forward, Step, Paths, and Points from the result — same source Chronicle renders.',
+    '- If the result says the Document is unbuilt (no Points), say that. Do not claim you read a body.',
     'Do not stop at "I read the draft" — complete the engagement.',
   ].join('\n');
 }

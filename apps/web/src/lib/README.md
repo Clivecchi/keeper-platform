@@ -35,6 +35,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-08-18 — Named Dialog session bind
+- `kipDialogSession` — `fetchDialogSessions`, `resumeNamedDialogSession`, `resumeOrCreateNamedDialogSession` attach to a Nav-selected Dialog instead of board Chatter `findOrCreate`.
+- `KipApi.createSession` accepts `dialogId` to attach a new session to an existing Dialog.
+
 ### 2026-08-17 — External writing ingest
 - `KipApi.ingestExternalWriting` — POST create (`/kip/dialogs/ingest`) or attach (`/kip/dialogs/:id/ingest`). Not a Library upload.
 

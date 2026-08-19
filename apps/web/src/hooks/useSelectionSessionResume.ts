@@ -1,9 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { apiFetch } from "../lib/api"
 import { KipApi, type KipSession } from "../lib/kipApi"
-import { pickBestDialogSessionId, resumeBoardSession } from "../lib/kipDialogSession"
+import {
+  fetchDialogSessions,
+  pickBestDialogSessionId,
+  resumeBoardSession,
+} from "../lib/kipDialogSession"
 import type { AgentDialogueMessage } from "../components/agent/types"
 
 type DialogSessionRow = {
@@ -176,17 +179,25 @@ export function useSelectionSessionResume({
     void (async () => {
       try {
         if (selectedDialogId) {
-          const res = (await apiFetch(
-            `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}`,
-          )) as { dialog?: { sessions?: DialogSessionRow[] } }
-          if (cancelled || token !== resumeRef.current) return
+          try {
+            const sessions = await fetchDialogSessions(domainId!, selectedDialogId)
+            if (cancelled || token !== resumeRef.current) return
 
-          const sessionId = pickMostRecentSessionId(res.dialog?.sessions ?? [])
-          if (sessionId) {
-            onSessionSelect(sessionId)
-            await fetchMessages(sessionId)
-          } else {
-            openIdle()
+            const sessionId = pickBestDialogSessionId(sessions, kipAgentId)
+            if (sessionId) {
+              if (sessionId !== activeSessionIdRef.current) {
+                onSessionSelect(sessionId)
+              }
+              await fetchMessages(sessionId)
+            } else {
+              // Named Dialog in focus with no primary session yet — leave board Chatter behind.
+              onSessionSelect(null)
+              setMessages(idleMessages)
+            }
+          } catch {
+            if (cancelled || token !== resumeRef.current) return
+            onSessionSelect(null)
+            setMessages(idleMessages)
           }
           return
         }
@@ -316,5 +327,6 @@ export function useSelectionSessionResume({
     fetchMessages,
     setMessages,
     idleMessages,
+    isSending,
   ])
 }
