@@ -2,6 +2,7 @@
  * Read-only verify: Dialog Document loads for agent context + redaction helpers.
  * Usage: cd apps/api && npx tsx src/scripts/verify-dialog-document-context.ts
  */
+import 'dotenv/config';
 import { prisma } from '@keeper/database';
 import { redactForLog, resolveDialogParticipation } from '@keeper/shared';
 import { loadDialogDocumentForAgent } from '../services/kip/loadDialogDocumentForAgent.js';

@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-18 — Nav CRUD + single Drafts header
+- Domain Nav: inline delete for Drafts, Journeys, and Library items (Dialog delete already existed).
+- `resolveNavBlockOrder` no longer appends section-disabled remainder blocks (stops leftover Drafts on Domain).
+- Multi-kind Drafts: one "Drafts" header, not a parent card plus a kind card both titled Drafts.
+
 ### 2026-08-18 — Nav · Dialog · Chronicle pathway
 - Locked: Nav selects the subject; Dialog is that conversation; Chronicle + agent share the same body.
 - Selecting a Dialog in Nav resumes that Dialog’s session (`useSelectionSessionResume` + named-dialog create). Board Chatter is not restored underneath a focused Dialog.

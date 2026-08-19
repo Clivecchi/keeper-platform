@@ -45,6 +45,10 @@ model Journey {
   theme_id       String?          @db.Uuid
   domainId       String?
   presenceSchema Json?
+  display_label      String?
+  description        String?
+  chronicle_blocks   String[]         @default([])
+  chronicle_actions  String[]         @default([])
   domain         Domain?          @relation(fields: [domainId], references: [id])
   Keeper         Keeper           @relation(fields: [keeperId], references: [id])
   themes         themes?          @relation(fields: [theme_id], references: [id])
@@ -274,6 +278,10 @@ model Moment {
   claimToken          String?
   claimTokenExpiresAt DateTime?
   presenceSchema      Json?
+  display_label       String?
+  description         String?
+  chronicle_blocks    String[]         @default([])
+  chronicle_actions   String[]         @default([])
   /// Originating kip_drafts.id when this Moment was kept from a Document Point.
   sourceDraftId       String?          @db.Uuid
   /// Originating DraftPoint.id — primary Moment keeps Point.id as Moment.id when 1:1.
@@ -307,6 +315,10 @@ model Path {
   keeperId       String
   theme_id       String?  @db.Uuid
   presenceSchema Json?
+  display_label      String?
+  description        String?
+  chronicle_blocks   String[]  @default([])
+  chronicle_actions  String[]  @default([])
   Moment         Moment[]
   Journey        Journey  @relation(fields: [journeyId], references: [id])
   Keeper         Keeper   @relation(fields: [keeperId], references: [id])
@@ -629,6 +641,10 @@ model kip_agents {
   created_by             String?                  @db.Uuid
   visibility             String                   @default("private")
   presenceSchema         Json?
+  display_label          String?
+  description            String?
+  chronicle_blocks       String[]                 @default([])
+  chronicle_actions      String[]                 @default([])
   kip_agent_keeper_types kip_agent_keeper_types[]
   kip_agent_logs         kip_agent_logs[]
   kip_agent_permissions  kip_agent_permissions[]
@@ -672,6 +688,10 @@ model kip_drafts {
   status           String         @default("draft")
   spec_json        Json           @default("{}")
   presenceSchema   Json?
+  display_label    String?
+  description      String?
+  chronicle_blocks String[]      @default([])
+  chronicle_actions String[]     @default([])
   dialog_id        String?
   created_at       DateTime       @default(now())
   updated_at       DateTime       @default(now())
@@ -731,6 +751,10 @@ model Dialog {
   /// Distinct from Nav-only kip_drafts.dialog_id association. Manuscript Points stay kind=document_manuscript.
   document_components Json?
   presenceSchema Json?
+  display_label      String?
+  description        String?
+  chronicle_blocks   String[]  @default([])
+  chronicle_actions  String[]  @default([])
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
@@ -1213,6 +1237,9 @@ model Domain {
   theme                                                    Json?                      @default("{}")
   settings                                                 Json?                      @default("{}")
   frame_json                                               Json?                      @default("{}")
+  display_label                                            String?
+  chronicle_blocks                                         String[]                   @default([])
+  chronicle_actions                                        String[]                   @default([])
   CollaborationActivity                                    CollaborationActivity[]
   CrossDomainCollaboration                                 CrossDomainCollaboration[]
   CrossDomainShare_CrossDomainShare_sourceDomainIdToDomain CrossDomainShare[]         @relation("CrossDomainShare_sourceDomainIdToDomain")

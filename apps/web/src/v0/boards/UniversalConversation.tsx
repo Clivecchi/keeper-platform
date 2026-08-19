@@ -428,6 +428,7 @@ export function UniversalConversation({
   const frameLeadIdentity = useFrameLeadAgentIdentity(
     effectiveDomainLeadSlug,
     def.conversation.agentName ?? "Kip",
+    domainLead.name,
   )
 
   const normalizedDomainLeadSlug = React.useMemo(() => {

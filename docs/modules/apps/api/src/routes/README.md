@@ -172,6 +172,9 @@ Using `requestId` prevents duplicate operations:
 
 ## 📆 Update Log
 
+### 2026-08-18 — Library item DELETE
+- `DELETE /api/library-items/:id` — domain-write gated; used by Domain Nav inline delete.
+
 ### 2026-07-13 — Library semantic search endpoint
 - `GET /api/library-items/search?domainId=&q=` — cosine similarity over stored `Float[]` embeddings
 - `LibraryItemSearchService.ts` — query embedding via OpenAI, in-domain scan (Pass 1, no pgvector)

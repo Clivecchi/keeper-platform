@@ -82,6 +82,10 @@ export function resolveChroniclePatchEndpoint(
       return `/api/capabilities/${encodeURIComponent(entityId)}`
     case "library":
       return `/api/library-items/${encodeURIComponent(entityId)}`
+    case "frame":
+      return ""
+    case "boardDef":
+      return ""
     default:
       return ""
   }
@@ -321,6 +325,27 @@ export async function handleChronicleSave(
       }
 
       return { status: "saved", message: "Saved" }
+    }
+
+    if (entityKind === "frame") {
+      const frameSlug = ctx.domainSlug?.trim().toLowerCase() || ""
+      if (!frameSlug) {
+        return { status: "error", message: "Domain slug is required to save frame config." }
+      }
+      await apiFetch(resolveChronicleFramePatchEndpoint(frameSlug), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      return { status: "saved", message: "Saved" }
+    }
+
+    if (entityKind === "boardDef") {
+      return {
+        status: "error",
+        message:
+          "Board definitions are code-defined; Chronicle cannot persist boardDef edits.",
+      }
     }
 
     let endpoint = resolveChroniclePatchEndpoint(entityKind, entityId, ctx.domainId)

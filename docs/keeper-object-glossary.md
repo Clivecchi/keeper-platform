@@ -1320,7 +1320,7 @@ Feeds field resolution for KeeperPresence; not selectable as its own cover.
 # Part C — Cross-cutting open questions (code-backed)
 
 1. **Two Chronicle architectures:** Library uses `CHRONICLE_ENTITY_REGISTRY` / `ChronicleEntityView`; other EntityKinds still hard-branch in `KeeperPresence` — open whether registry is the intended end-state for all kinds.
-2. **Declaration columns only on some models:** Keeper, Integration, Key, Capability, LibraryItem have them; Journey/Path/Moment/Dialog/Draft/Agent/Domain do not — despite Partial EntityKind UI.
+2. **Declaration columns** (`display_label`, `description`, `chronicle_blocks`, `chronicle_actions`) now exist on Journey, Path, Moment, Dialog, kip_drafts, kip_agents, and Domain (`description` already existed on Domain). Schema + migration `20260819010000_entitykind_declaration_columns`. Chronicle UI/PATCH wiring for the new columns is remaining work.
 3. **Multiple “Key” stores:** `Key`, `kip_user_keys`, `kip_platform_keys`, `DomainAccessKey`, `UserApiCredential`, plus env — Chronicle `objectType: "key"` is overloaded.
 4. **Multiple “Path” / “Forward” / “Document” vocabularies:** Journey Path rows vs Dialog `document_paths` vs DraftPoints; Journey.forward vs Dialog.forward_*.
 5. **Multiple memory stacks:** MemoryCard/ThreadBlob vs Sole* vs SoleMemoryScope share suite — live paths favor Sole* + Library embeddings.

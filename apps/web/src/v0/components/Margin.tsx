@@ -21,6 +21,7 @@ import {
 } from "../data/publicJourneyCache"
 import { buildPublicPresentUrl } from "../data/publicJourneyNavigation"
 import { buildRealmBoardPath } from "../../lib/realmPaths"
+import { resolveDialogLeadSlug, type DomainLeadRecord } from "../lib/domainLeadAgent"
 
 export const V0_MARGIN_HEIGHT = "72px"
 export const V0_MARGIN_HEIGHT_WITH_COMPOSER = "180px"
@@ -363,7 +364,7 @@ export function Margin() {
     : (domainFrame?.kip.greeting ??
       domainFrame?.kip_context?.[audience] ??
       "Hello. What would you like to keep today?")
-  const companionAgentId = domainFrame?.kip.agent_id ?? "kip"
+  const companionAgentId = resolveDialogLeadSlug(v0Shell.domainData as DomainLeadRecord | null)
   const companionExperienceSurface = isPresentFrame ? "present" : frame === "cover" ? "cover" : undefined
 
   // agentContext — Spec Step 6: pass the resolved domain frame context into Kip's environment.

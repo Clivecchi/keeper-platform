@@ -30,6 +30,9 @@ SlideTypes receive data from the domain frame JSON and the resolved audience rol
 
 ## 📆 Update Log
 
+### 2026-08-18 — Companion lead identity
+- Composer draft scope uses the passed `agentId` (authoritative domain lead slug) instead of hardcoded `kip`.
+
 ### 2026-07-02 — Guest diary-on-Present
 - CompanionSlide: domain theme tokens, diary mode, `experienceContext` on companion API; removed mock seed chat
 - JourneyInvitationSlide: optional **Browse journeys** link below Forward

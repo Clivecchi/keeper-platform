@@ -424,4 +424,27 @@ router.patch(
   }
 });
 
+/**
+ * DELETE /api/library-items/:id
+ */
+router.delete(
+  '/:id',
+  authMiddlewareCompat,
+  attachLibraryItemDomainContext,
+  requireDomainWriteCompat,
+  async (req: Request, res: Response) => {
+  try {
+    const existing = await prisma.libraryItem.findUnique({ where: { id: req.params.id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Library item not found' });
+    }
+
+    await prisma.libraryItem.delete({ where: { id: req.params.id } });
+    return res.status(200).json({ success: true, id: req.params.id });
+  } catch (err) {
+    console.error('[library-items/delete]', err);
+    return res.status(500).json({ error: 'Failed to delete library item' });
+  }
+});
+
 export default router;

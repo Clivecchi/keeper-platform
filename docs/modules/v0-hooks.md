@@ -15,5 +15,8 @@ Shared React hooks for Universal Board and shell behavior — cross-board concer
 
 ## 📆 Update Log
 
+### 2026-08-18 — Authoritative lead identity
+- `useFrameLeadAgentIdentity` prefers API-enriched `leadAgentName`; slug lookup is fallback only.
+
 ### 2026-06-30 — Frame lead agent identity
 - Added `useFrameLeadAgentIdentity` so Realm, Domain, and mobile Dialog show the configured lead agent name instead of the provisioning slug.

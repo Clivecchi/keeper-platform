@@ -30,7 +30,7 @@
 import * as React from "react"
 import { apiFetch } from "../../lib/api"
 import { deleteDialog } from "../../lib/kipDialogSession"
-import type { KipDraftSummary } from "../../lib/kipApi"
+import { KipApi, type KipDraftSummary } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { SidebarCard } from "../components/SidebarCard"
@@ -262,13 +262,24 @@ function resolveSidebarWorkspaceBoardNavItems(
   return resolveWorkspaceBoardNavItems(domainSlug, currentBoardId)
 }
 
+function isNavSectionEnabled(def: UniversalBoardDef, block: NavRenderBlock): boolean {
+  if (block === "library") return def.nav.sections.library === true
+  if (block === "glossary") return def.nav.sections.glossary === true
+  if (block === "drafts") return def.nav.sections.drafts === true
+  if (block === "dialogs") return def.nav.sections.dialogs === true
+  if (block === "journeys") return def.nav.sections.journeys === true
+  if (block === "keepers") return def.nav.sections.keepers === true
+  if (block === "agents") return def.nav.sections.agents === true
+  if (block === "boardDefs") return def.nav.sections.boardDefs === true
+  return true
+}
+
 function resolveNavBlockOrder(def: UniversalBoardDef): NavRenderBlock[] {
   if (def.nav.navBlockOrder?.length) {
     const ordered = def.nav.navBlockOrder
     const remainder = DEFAULT_NAV_BLOCK_ORDER.filter((block) => {
       if (ordered.includes(block)) return false
-      if (block === "library" && !(def.nav.sections.library ?? false)) return false
-      if (block === "glossary" && !(def.nav.sections.glossary ?? false)) return false
+      if (!isNavSectionEnabled(def, block)) return false
       return true
     })
     return [...ordered, ...remainder]
@@ -477,6 +488,9 @@ export function UniversalNavPanel({
   const [dialogs, setDialogs] = React.useState<DialogItem[] | null>(null)
   /** Inline confirm target for hard-delete (Draft-style; Nav list only). */
   const [confirmingDeleteDialogId, setConfirmingDeleteDialogId] = React.useState<string | null>(null)
+  const [confirmingDeleteDraftId, setConfirmingDeleteDraftId] = React.useState<string | null>(null)
+  const [confirmingDeleteJourneyId, setConfirmingDeleteJourneyId] = React.useState<string | null>(null)
+  const [confirmingDeleteLibraryId, setConfirmingDeleteLibraryId] = React.useState<string | null>(null)
 
   const handleDialogIngest = React.useCallback(() => {
     if (!domainId || !user || !boardCtx) return
@@ -492,6 +506,9 @@ export function UniversalNavPanel({
 
   React.useEffect(() => {
     setConfirmingDeleteDialogId(null)
+    setConfirmingDeleteDraftId(null)
+    setConfirmingDeleteJourneyId(null)
+    setConfirmingDeleteLibraryId(null)
   }, [domainId])
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
@@ -505,6 +522,62 @@ export function UniversalNavPanel({
   const [libraryError, setLibraryError] = React.useState<string | null>(null)
   const [libraryCreating, setLibraryCreating] = React.useState(false)
   const libraryFileInputRef = React.useRef<HTMLInputElement>(null)
+
+  const handleConfirmDeleteDialog = React.useCallback(
+    async (dialogId: string) => {
+      if (!domainId) throw new Error("Domain not ready")
+      await deleteDialog(domainId, dialogId)
+      setDialogs((prev) => (prev ? prev.filter((d) => d.id !== dialogId) : prev))
+      removeCachedBoardNavRow(domainId, "dialogs", dialogId)
+      setConfirmingDeleteDialogId(null)
+      if (selectedDialogId === dialogId) {
+        boardCtx?.actions.clearSelection()
+        boardCtx?.actions.onSessionSelect(null)
+      }
+    },
+    [domainId, selectedDialogId, boardCtx],
+  )
+
+  const handleConfirmDeleteDraft = React.useCallback(
+    async (draftId: string) => {
+      if (!domainId) throw new Error("Domain not ready")
+      await KipApi.deleteDraft(domainId, draftId)
+      setDrafts((prev) => (prev ? prev.filter((d) => d.id !== draftId) : prev))
+      removeCachedBoardNavRow(domainId, "drafts", draftId)
+      setConfirmingDeleteDraftId(null)
+      if (selectedDraftId === draftId) {
+        boardCtx?.actions.clearSelection()
+      }
+    },
+    [domainId, selectedDraftId, boardCtx],
+  )
+
+  const handleConfirmDeleteJourney = React.useCallback(
+    async (journeyId: string) => {
+      await KipApi.deleteJourney(journeyId)
+      setJourneys((prev) => (prev ? prev.filter((j) => j.id !== journeyId) : prev))
+      if (domainId) removeCachedBoardNavRow(domainId, "journeys", journeyId)
+      setConfirmingDeleteJourneyId(null)
+      if (selectedJourneyId === journeyId) {
+        boardCtx?.actions.clearSelection()
+      }
+    },
+    [domainId, selectedJourneyId, boardCtx],
+  )
+
+  const handleConfirmDeleteLibraryItem = React.useCallback(
+    async (itemId: string) => {
+      await KipApi.deleteLibraryItem(itemId)
+      setAllLibraryRows((prev) => (prev ? prev.filter((row) => row.id !== itemId) : prev))
+      if (domainId) removeCachedBoardNavRow(domainId, "library", itemId)
+      setConfirmingDeleteLibraryId(null)
+      if (selectedLibraryItemId === itemId) {
+        boardCtx?.actions.clearSelection()
+      }
+    },
+    [domainId, selectedLibraryItemId, boardCtx],
+  )
+
   const [connectionItems, setConnectionItems] = React.useState<ConnectionNavItem[] | null>(null)
   const [connectionError, setConnectionError] = React.useState<string | null>(null)
 
@@ -827,8 +900,19 @@ export function UniversalNavPanel({
         label: draftNavLabel(draft, draftNavTitleCounts),
         isSelected: draft.id === selectedDraftId,
         onClick: () => onDraftSelect?.(draft.id),
+        onRequestDelete: () => setConfirmingDeleteDraftId(draft.id),
+        deleteConfirming: confirmingDeleteDraftId === draft.id,
+        onConfirmDelete: () => handleConfirmDeleteDraft(draft.id),
+        onCancelDelete: () => setConfirmingDeleteDraftId(null),
+        deleteConfirmLabel: `Delete draft "${draft.title?.trim() || "Untitled draft"}"?`,
       })),
-    [draftNavTitleCounts, selectedDraftId, onDraftSelect],
+    [
+      draftNavTitleCounts,
+      selectedDraftId,
+      onDraftSelect,
+      confirmingDeleteDraftId,
+      handleConfirmDeleteDraft,
+    ],
   )
 
   // ── Fetch: Agents — domain-accessible roster (lead + Kip + Cloud + Rendr) ──
@@ -1084,21 +1168,6 @@ export function UniversalNavPanel({
 
   // ── Derived SidebarCardItem arrays ───────────────────────────────────────
 
-  const handleConfirmDeleteDialog = React.useCallback(
-    async (dialogId: string) => {
-      if (!domainId) throw new Error("Domain not ready")
-      await deleteDialog(domainId, dialogId)
-      setDialogs((prev) => (prev ? prev.filter((d) => d.id !== dialogId) : prev))
-      removeCachedBoardNavRow(domainId, "dialogs", dialogId)
-      setConfirmingDeleteDialogId(null)
-      if (selectedDialogId === dialogId) {
-        boardCtx?.actions.clearSelection()
-        boardCtx?.actions.onSessionSelect(null)
-      }
-    },
-    [domainId, selectedDialogId, boardCtx],
-  )
-
   const toDialogNavItem = React.useCallback(
     (d: DialogItem): SidebarCardItem => {
       const title = resolveDialogNavTitle(d) || "Untitled dialog"
@@ -1153,6 +1222,11 @@ export function UniversalNavPanel({
           description: "draft",
           isSelected: draft.id === selectedDraftId,
           onClick: () => onDraftSelect?.(draft.id),
+          onRequestDelete: () => setConfirmingDeleteDraftId(draft.id),
+          deleteConfirming: confirmingDeleteDraftId === draft.id,
+          onConfirmDelete: () => handleConfirmDeleteDraft(draft.id),
+          onCancelDelete: () => setConfirmingDeleteDraftId(null),
+          deleteConfirmLabel: `Delete draft "${draft.title?.trim() || "Untitled draft"}"?`,
         })
       }
     }
@@ -1163,6 +1237,8 @@ export function UniversalNavPanel({
     toDialogNavItem,
     selectedDraftId,
     onDraftSelect,
+    confirmingDeleteDraftId,
+    handleConfirmDeleteDraft,
   ])
 
   const chatterDialogs = React.useMemo(
@@ -1172,12 +1248,20 @@ export function UniversalNavPanel({
   const allChatterItems: SidebarCardItem[] = chatterDialogs.map(toDialogNavItem)
 
   // Journeys: embed moment count — matches IDE Board's label format
-  const allJourneyItems: SidebarCardItem[] = (journeys ?? []).map((j) => ({
-    id: j.id,
-    label: `${j.name?.trim() || "Untitled journey"}${j.momentCount != null ? ` · ${j.momentCount} moment${j.momentCount === 1 ? "" : "s"}` : ""}`,
-    isSelected: j.id === selectedJourneyId,
-    onClick: () => onJourneySelect?.(j.id),
-  }))
+  const allJourneyItems: SidebarCardItem[] = (journeys ?? []).map((j) => {
+    const name = j.name?.trim() || "Untitled journey"
+    return {
+      id: j.id,
+      label: `${name}${j.momentCount != null ? ` · ${j.momentCount} moment${j.momentCount === 1 ? "" : "s"}` : ""}`,
+      isSelected: j.id === selectedJourneyId,
+      onClick: () => onJourneySelect?.(j.id),
+      onRequestDelete: () => setConfirmingDeleteJourneyId(j.id),
+      deleteConfirming: confirmingDeleteJourneyId === j.id,
+      onConfirmDelete: () => handleConfirmDeleteJourney(j.id),
+      onCancelDelete: () => setConfirmingDeleteJourneyId(null),
+      deleteConfirmLabel: `Delete journey "${name}"?`,
+    }
+  })
 
   // Keepers: display_label via keeperChronicleTitle (matches Chronicle cover)
   const allKeeperItems: SidebarCardItem[] = (patchedKeepers ?? []).map((k) => ({
@@ -1276,6 +1360,11 @@ export function UniversalNavPanel({
       label: libraryItemChronicleTitle(row),
       isSelected: row.id === selectedLibraryItemId,
       onClick: () => onLibraryItemSelect?.(row.id),
+      onRequestDelete: () => setConfirmingDeleteLibraryId(row.id),
+      deleteConfirming: confirmingDeleteLibraryId === row.id,
+      onConfirmDelete: () => handleConfirmDeleteLibraryItem(row.id),
+      onCancelDelete: () => setConfirmingDeleteLibraryId(null),
+      deleteConfirmLabel: `Delete library item "${libraryItemChronicleTitle(row)}"?`,
     }))
     if (showLibraryNav && !libraryCreating) {
       items.push({
@@ -1292,6 +1381,8 @@ export function UniversalNavPanel({
     showLibraryNav,
     libraryCreating,
     handleLibraryAddUrl,
+    confirmingDeleteLibraryId,
+    handleConfirmDeleteLibraryItem,
   ])
 
   // ── designer sections: Board Definitions ─────────────────────────────────
@@ -1585,26 +1676,26 @@ export function UniversalNavPanel({
           return (
             <>
               <div className="flex flex-col gap-3">
-                <SidebarCard
-                  className="keeper-sidebar-card"
-                  title="Drafts"
-                  description={
-                    !domainId ? "Loading…" : countLabel(orphanDraftsForNav.length, "loose draft")
-                  }
-                  onAdd={handleDraftCreate}
-                />
-                {draftNavGroups.map(({ kind, drafts: groupDrafts }) => {
+                {draftNavGroups.map(({ kind, drafts: groupDrafts }, index) => {
                   const groupItems = buildDraftNavItems(groupDrafts)
                   const kindLabel = formatDraftKindLabel(kind)
+                  const isFirst = index === 0
                   return (
                     <SidebarCard
                       key={kind}
                       className="keeper-sidebar-card"
-                      title={kindLabel}
-                      description={countLabel(groupDrafts.length, "draft")}
+                      title={isFirst ? "Drafts" : kindLabel}
+                      description={
+                        isFirst
+                          ? (!domainId
+                              ? "Loading…"
+                              : countLabel(orphanDraftsForNav.length, "loose draft"))
+                          : countLabel(groupDrafts.length, "draft")
+                      }
                       items={groupItems.length ? groupItems : undefined}
                       collapsible={groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
                       defaultCollapsed={groupItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+                      onAdd={isFirst ? handleDraftCreate : undefined}
                     />
                   )
                 })}

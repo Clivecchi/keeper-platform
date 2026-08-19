@@ -26,8 +26,10 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 - Known gaps flagged in code: unchanged save no-op, static model list, capability textarea, domain assignment read-only, recent sessions not tappable
 
 ## ⚠️ Notes & ToDo
+- [x] Frame Chronicle save → `PATCH /api/domains/:slug/frame` (`handleChronicleSave` entityKind `frame`)
+- [x] BoardDef Chronicle save is explicit (code-defined; no silent empty PATCH)
 - [ ] Wire FrameConfigPresence prop edits through explicit save bar (Design Board — props still save on add)
-- [ ] BoardDefConfigPresence remains read-only — no targeted save route for board defs
+- [ ] BoardDef persistence remains deferred until board defs are data-owned (`resolveBoardDefs` code-wins)
 - [ ] **Domain ops migration (Phase 5):** retire `?frame=admin` DomainManager path; keep `/admin/domains` for platform admins
 
 ### Domain Management migration plan (Universal Chronicle)
@@ -40,6 +42,10 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 | **5** | Retire legacy | Remove standalone `DomainManager` from `?frame=admin`; keep `/admin/domains` for platform admins only |
 
 ## 📆 Update Log
+
+### 2026-08-18 — Frame / boardDef Chronicle PATCH
+- `handleChronicleSave("frame")` writes `frame_json` via `PATCH /api/domains/:slug/frame`
+- `handleChronicleSave("boardDef")` returns an explicit code-defined error (no silent fall-through)
 
 ### 2026-07-04 — Platform slug rename save fix
 - Domain save: frame PATCH uses slug returned from domain PATCH (fixes `default` → `ke3p` "Domain not found")

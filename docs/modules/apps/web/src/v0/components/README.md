@@ -34,6 +34,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-08-18: `Margin` guest companion `agentId` reads `settings.primaryAgentId` enrichment (`resolveDialogLeadSlug`), not `domainFrame.kip.agent_id`.
 - 2026-08-17: **Bring in writing** — `SidebarCard` optional `onImport` (file icon) next to `+`. Dialogs Nav uses it to open Chronicle ingest Act.
 - 2026-08-04: **Mobile Top Bar Chronicle icon** — Adaptive mobile right slot is Chronicle (`BookOpen` → `onOpenChronicle`); avatar relocated to Nav drawer. Desktop Top Bar avatar unchanged.
 - 2026-08-03: **Treatment title mark** — `SidebarCard` section titles use `.keeper-treatment-title` so Nav accent shell can apply Treatment font to headers only.

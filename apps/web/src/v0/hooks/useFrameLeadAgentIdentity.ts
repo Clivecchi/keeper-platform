@@ -20,19 +20,23 @@ export interface FrameLeadAgentIdentity {
 }
 
 /**
- * Shared resolver for `domainFrame.kip.agent_id` → human display name.
- * Used by Universal Dialog, Guided Arrival, and mobile Kip so all boards show the same lead agent label.
+ * Shared resolver for domain-lead display name.
+ * Prefers API-enriched `settings.primaryAgentId` name; slug lookup is fallback only.
  */
 export function useFrameLeadAgentIdentity(
   agentSlug: string | null | undefined,
   /** Shown while the agent record is loading (avoids flashing the technical slug). */
   pendingDisplayName: string = KIP_FALLBACK_DISPLAY_NAME,
+  /** Authoritative name from GET /api/domains/by-slug (`leadAgentName`). */
+  authoritativeName?: string | null,
 ): FrameLeadAgentIdentity {
   const slug =
     typeof agentSlug === "string" ? agentSlug.trim() || null : null
   const resolvedSlug = slug && slug !== KIP_FALLBACK_SLUG ? slug : null
+  const knownName = typeof authoritativeName === "string" ? authoritativeName.trim() || null : null
 
   const [displayName, setDisplayName] = React.useState(() => {
+    if (knownName) return knownName
     if (!resolvedSlug) return KIP_FALLBACK_DISPLAY_NAME
     return (
       getCachedFrameLeadAgentDisplayName(resolvedSlug)
@@ -41,10 +45,16 @@ export function useFrameLeadAgentIdentity(
   })
 
   const [isLoading, setIsLoading] = React.useState(
-    () => !!resolvedSlug && !getCachedFrameLeadAgentDisplayName(resolvedSlug),
+    () => !knownName && !!resolvedSlug && !getCachedFrameLeadAgentDisplayName(resolvedSlug),
   )
 
   React.useEffect(() => {
+    if (knownName) {
+      setDisplayName(knownName)
+      setIsLoading(false)
+      return
+    }
+
     if (!resolvedSlug) {
       setDisplayName(KIP_FALLBACK_DISPLAY_NAME)
       setIsLoading(false)
@@ -95,7 +105,7 @@ export function useFrameLeadAgentIdentity(
     return () => {
       cancelled = true
     }
-  }, [resolvedSlug, pendingDisplayName])
+  }, [resolvedSlug, pendingDisplayName, knownName])
 
   return {
     slug: resolvedSlug,

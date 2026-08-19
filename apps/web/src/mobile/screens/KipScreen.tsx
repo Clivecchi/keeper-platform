@@ -74,7 +74,7 @@ export function KipScreen() {
   const { feed: realmFeed, isLoading: realmFeedLoading } = useRealmFeed(isRealmHome);
 
   const domainLead = resolveDomainLeadContext(domainData as DomainLeadRecord | null)
-  const frameLeadIdentity = useFrameLeadAgentIdentity(domainLead.slug, "Kip");
+  const frameLeadIdentity = useFrameLeadAgentIdentity(domainLead.slug, "Kip", domainLead.name);
   const dialogAgentSlug = arrivalActive
     ? guidedArrival.leadAgentSlug
     : resolveDialogLeadSlug(domainData as DomainLeadRecord | null);

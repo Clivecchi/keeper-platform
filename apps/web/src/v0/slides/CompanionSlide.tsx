@@ -395,7 +395,7 @@ export function CompanionSlide({
   kipLabel = "Kip",
   audience: _audience,
   domainSlug,
-  agentId: _agentId,
+  agentId,
   onSignIn,
   agentContext,
   experienceSurface,
@@ -403,8 +403,8 @@ export function CompanionSlide({
   journeyName,
   diaryMode = false,
 }: CompanionSlideProps) {
-  void _agentId
   void agentContext
+  const companionAgentId = agentId.trim() || "kip"
   // State is never reset on close — session persists across open/close
   const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting, diaryMode))
   const [inputValue,         setInputValue]         = React.useState("")
@@ -418,7 +418,7 @@ export function CompanionSlide({
     scope: {
       domainSlug,
       board: diaryMode && journeyId ? `present-diary:${journeyId}` : "companion",
-      agentId: "kip",
+      agentId: companionAgentId,
       sessionId: companionSessionId,
     },
     input: inputValue,

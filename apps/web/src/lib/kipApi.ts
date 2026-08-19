@@ -1417,6 +1417,15 @@ export class KipApi {
     }
   }
 
+  static async deleteLibraryItem(itemId: string): Promise<void> {
+    const response = await apiFetch(`/api/library-items/${encodeURIComponent(itemId)}`, {
+      method: 'DELETE',
+    });
+    if (response?.error) {
+      throw new Error(pickErrorMessage(response, 'Failed to delete library item'));
+    }
+  }
+
   static async publishDraft(domainId: string, draftId: string): Promise<{ success: boolean; idempotent?: boolean; domain?: { id: string; slug: string }; status?: string }> {
     const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}/publish`, {
       method: 'POST',

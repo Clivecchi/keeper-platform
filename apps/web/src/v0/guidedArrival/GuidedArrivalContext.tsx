@@ -89,7 +89,11 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
     }
     return dbLead
   }, [playbillGreetSlug, domainData])
-  const frameLeadIdentity = useFrameLeadAgentIdentity(leadAgentSlug)
+  const frameLeadIdentity = useFrameLeadAgentIdentity(
+    leadAgentSlug,
+    "Kip",
+    (domainData as DomainLeadRecord | null | undefined)?.leadAgentName,
+  )
   const greeting = domainFrame?.kip?.greeting?.trim() || ""
   const coverGreeting = greeting || domainFrame?.theme?.tagline?.trim() || ""
 

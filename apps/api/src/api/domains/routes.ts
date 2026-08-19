@@ -326,6 +326,7 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
       customDomainVerified: domain.customDomainVerified,
       ownerId: domain.ownerId,
       theme: domain.theme,
+      leadAgentId: leadAgent?.id ?? null,
       leadAgentSlug: leadAgent?.slug ?? null,
       leadAgentName: leadAgent?.name ?? null,
     });

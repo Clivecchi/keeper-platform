@@ -183,6 +183,17 @@ function patchEndpoint(
       return `/api/domains/${encodeURIComponent(domainId)}/kip/drafts/${encodeURIComponent(objectId)}`
     case "dialog":
       return `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(objectId)}`
+    case "path":
+      return `/api/paths/${encodeURIComponent(objectId)}`
+    case "service":
+    case "integration":
+      return `/api/integrations/${encodeURIComponent(objectId)}?domainId=${encodeURIComponent(domainId)}`
+    case "key":
+      return `/api/keys/${encodeURIComponent(objectId)}`
+    case "capability":
+      return `/api/capabilities/${encodeURIComponent(objectId)}`
+    case "library":
+      return `/api/library-items/${encodeURIComponent(objectId)}`
     default:
       return ""
   }
