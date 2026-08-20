@@ -51,7 +51,6 @@ import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
 import { useUniversalBoard } from "./UniversalBoardContext"
 import { useDesignerDraftOptional } from "./DesignerDraftContext"
-import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { usesAdaptiveMobileBoardLayout } from "./workspaceBoardNav"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { useMobileKipDialogStage } from "../../mobile/hooks/useMobileKipDialogStage"
@@ -274,7 +273,6 @@ export function UniversalConversation({
   suppressMobileDomainBanner,
 }: UniversalConversationProps) {
   const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame, shellMode, domainData } = useV0Shell()
-  const boardDefinitionId = useBoardDefinitionFromUrl()
   const frameCtx = useFrameContextOptional()
   const { refreshSession, user } = useAuth()
   const isMobile = useIsMobile()
@@ -333,18 +331,18 @@ export function UniversalConversation({
   // ── designer mode: frame key + draft context ───────────────────────────────
   const { selection, actions } = useUniversalBoard()
   const boardSelectedAgentId = selection.selectedAgentId ?? selectedAgentId ?? null
+  const selectedBoardDefId =
+    kipMode === "designer" ? selection.selectedBoardDefId : null
+  /** Board Def is the Nav subject — not a sticky Design URL. */
+  const designerFocusKey =
+    kipMode === "designer" &&
+    selectedBoardDefId &&
+    !selectedDialogId &&
+    !selectedDraftId
+      ? selectedBoardDefId
+      : null
 
-  // Agent Board: dialog agent persists when Chronicle nav shifts to keeper/journey/draft.
-  const activeDialogAgentIdRef = React.useRef<string | null>(null)
-  React.useEffect(() => {
-    if (kipMode !== "agent" || !boardSelectedAgentId) return
-    activeDialogAgentIdRef.current = boardSelectedAgentId
-  }, [kipMode, boardSelectedAgentId])
-
-  const activeDialogAgentId =
-    kipMode === "agent"
-      ? (boardSelectedAgentId ?? activeDialogAgentIdRef.current)
-      : boardSelectedAgentId
+  const activeDialogAgentId = boardSelectedAgentId
 
   // Agent Board: resolve slug/name from the active dialog agent when it differs from the board default.
   const [selectedAgentRecord, setSelectedAgentRecord] = React.useState<SelectedAgentRecord | null>(null)
@@ -969,10 +967,6 @@ export function UniversalConversation({
 
   const [directorSendPhase, setDirectorSendPhase] = React.useState<DirectorSendPhase | null>(null)
 
-  const selectedBoardDefId = kipMode === "designer" ? boardDefinitionId : null
-  /** Design board focus — defaults to domain so Rendr is talkable without Nav selection. */
-  const designerFocusKey =
-    kipMode === "designer" ? (selectedBoardDefId ?? "domain") : null
   const designerDraftCtx = useDesignerDraftOptional()
 
   // ── agentContext — computed once, shared across all modes ─────────────
@@ -1739,8 +1733,9 @@ export function UniversalConversation({
     mode: kipMode,
     // Board id owns the Dialog key — Realm must not share Domain's Dialog (kipMode is "domain").
     dialogBoard: def.boardId,
-    dialogFrame: kipMode === "designer" ? (designerFocusKey ?? undefined) : "conversation",
-    dialogSubject: kipMode === "designer" ? "boardDef" : undefined,
+    dialogFrame:
+      kipMode === "designer" ? (designerFocusKey ?? "conversation") : "conversation",
+    dialogSubject: kipMode === "designer" && designerFocusKey ? "boardDef" : undefined,
     domainSlug,
     domainId,
     agentContext,
@@ -2002,14 +1997,14 @@ export function UniversalConversation({
       designerDraftCtx.setPublishSuccess(false)
     }
 
-    if (!domainId || !designerFocusKey || !agentId) {
+    if (!domainId || !agentId) {
       handleSessionChange(null)
       setMessages([])
       return
     }
 
     let cancelled = false
-    const focusKey = designerFocusKey
+    const focusKey = designerFocusKey ?? "conversation"
     const aid = agentId
 
     void (async () => {
@@ -2144,14 +2139,19 @@ export function UniversalConversation({
           secondary: "Agent Studio",
         }
       case "designer": {
+        if (selectedDialogId) {
+          return {
+            primary: dialogTitle ?? dialogAgentDisplayName,
+            secondary: def.displayName,
+            ...(hasDraftSpec ? { prelude: "Draft in progress" } : {}),
+          }
+        }
         const boardDefLabel = selectedBoardDefId
           ? (BOARD_DEFINITIONS[selectedBoardDefId]?.displayName ?? selectedBoardDefId)
           : null
         return {
           primary: dialogAgentDisplayName,
-          secondary: designerFocusKey
-            ? (BOARD_DEFINITIONS[designerFocusKey]?.displayName ?? designerFocusKey)
-            : boardDefLabel ?? "Treatment",
+          secondary: boardDefLabel ?? "Design",
           ...(hasDraftSpec ? { prelude: "Draft in progress" } : {}),
         }
       }

@@ -24,8 +24,9 @@ export interface LegacyChronicleSelectionIds {
 }
 
 export interface ResolveChronicleViewInput extends LegacyChronicleSelectionIds {
-  /** Designer board: URL-resolved definition id. */
+  /** @deprecated unused — Board Def is Nav context (`selectedBoardDefId`) on every board. */
   boardDefinitionId?: string | null;
+  /** @deprecated unused — Design is a lens, not a Chronicle routing fork. */
   isDesignerBoard?: boolean;
 }
 
@@ -95,8 +96,8 @@ export interface ChronicleLegacyKindId {
 const DOMAIN_SUBJECT: ChronicleSubject = { kind: 'domain' };
 
 /**
- * True when Nav has an EntityKind / Dialog / Draft subject.
- * Design `?definition=` is idle spec only — it must not steal Chronicle from these.
+ * True when Nav has a Dialog / Draft / EntityKind subject.
+ * Used so a Design `?definition=` deep-link cannot overwrite that subject.
  */
 export function hasChronicleEntitySubject(input: LegacyChronicleSelectionIds): boolean {
   return Boolean(
@@ -117,10 +118,6 @@ export function hasChronicleEntitySubject(input: LegacyChronicleSelectionIds): b
 
 /** Resolve primary subject from legacy flat IDs — mirrors resolveKindId() without soleMemory. */
 export function resolveChroniclePrimary(input: ResolveChronicleViewInput): ChronicleSubject {
-  const boardDefId =
-    input.selectedBoardDefId ||
-    (input.isDesignerBoard && input.boardDefinitionId ? input.boardDefinitionId : null);
-
   if (input.selectedGlossaryId) {
     return { kind: 'glossary', id: input.selectedGlossaryId };
   }
@@ -144,8 +141,7 @@ export function resolveChroniclePrimary(input: ResolveChronicleViewInput): Chron
   }
   if (input.selectedJourneyId) return { kind: 'journey', id: input.selectedJourneyId };
   if (input.selectedKeeperId) return { kind: 'keeper', id: input.selectedKeeperId };
-  // Design board-def URL is idle spec — never ahead of a Nav entity (Dialog, Draft, …).
-  if (boardDefId) return { kind: 'boardDef', id: boardDefId };
+  if (input.selectedBoardDefId) return { kind: 'boardDef', id: input.selectedBoardDefId };
   return DOMAIN_SUBJECT;
 }
 

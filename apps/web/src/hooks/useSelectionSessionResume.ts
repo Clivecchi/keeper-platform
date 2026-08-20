@@ -83,9 +83,8 @@ function sessionKeeperId(session: KipSession): string | null {
 }
 
 /**
- * Resumes the most recent Dialog session when Nav selection changes.
- * Design Board: idle (no Dialog/Draft) still uses board-def Chatter in UniversalConversation.
- * With a Dialog or Draft selected, this hook owns resume — same objects as Realm/Agent.
+ * Resumes the session that belongs to the Nav subject.
+ * Same rule on every board: Nav selects; Dialog is that conversation.
  */
 export function useSelectionSessionResume({
   domainId,
@@ -126,31 +125,8 @@ export function useSelectionSessionResume({
   isSendingRef.current = isSending
 
   React.useEffect(() => {
-    if (kipMode === "designer") {
-      // Idle Design Board still uses board-def Chatter. Nav Dialog/Draft owns the wire.
-      if (!selectedDialogId && !selectedDraftId) return
-    }
     if (isSendingRef.current) return
     if (!domainId || !resumeKey) return
-
-    // Agent Board: keeper/journey/draft nav drives Chronicle only — do not swap center Dialog.
-    if (
-      kipMode === "agent" &&
-      !selectedAgentId &&
-      !selectedDialogId &&
-      (selectedKeeperId || selectedJourneyId || selectedDraftId)
-    ) {
-      return
-    }
-
-    // Domain Board: same rule — draft/journey/keeper nav drives Chronicle; center Dialog keeps its session.
-    if (
-      kipMode === "domain" &&
-      !selectedDialogId &&
-      (selectedKeeperId || selectedJourneyId || selectedDraftId)
-    ) {
-      return
-    }
 
     const token = ++resumeRef.current
     let cancelled = false

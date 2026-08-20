@@ -386,9 +386,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
+    shell?.clearBoardDefinition()
     setChroniclePanelMode("document")
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
-  }, [clearDraftIdFromUrl])
+  }, [clearDraftIdFromUrl, shell])
 
   const openChronicleDocument = React.useCallback((options: {
     dialogId: string
@@ -419,6 +420,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
   }, [clearDraftIdFromUrl])
 
   const onPathSelect = React.useCallback((id: string) => {
@@ -434,6 +436,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
   }, [clearDraftIdFromUrl])
 
   const onMomentSelect = React.useCallback((id: string) => {
@@ -450,6 +453,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
   }, [clearDraftIdFromUrl])
 
   const onMomentClear = React.useCallback(() => {
@@ -470,6 +474,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
   }, [clearDraftIdFromUrl])
 
   const onDraftSelect = React.useCallback((id: string) => {
@@ -491,7 +496,6 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       (prev) => {
         const next = new URLSearchParams(prev)
         next.set("draftId", id)
-        if (!next.get("board")) next.set("board", "domain")
         return next
       },
       { replace: true },
@@ -513,6 +517,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
   }, [clearDraftIdFromUrl])
 
   const onServiceOpen = React.useCallback((slug: string) => {
@@ -528,6 +533,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
   }, [])
 
   const onKeySelect = React.useCallback((id: string) => {
@@ -544,6 +550,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedBoardDefId(null)
   }, [])
 
   const onCapabilitySelect = React.useCallback((id: string) => {
@@ -560,6 +567,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedBoardDefId(null)
   }, [])
 
   const onLibraryItemSelect = React.useCallback((id: string) => {
@@ -576,6 +584,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedBoardDefId(null)
   }, [])
 
   const onGlossarySelect = React.useCallback(() => {
@@ -673,11 +682,38 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     }
   }, [])
 
-  // Design workspace: mirror ?definition= into context when Design is idle.
-  // A Nav entity (Dialog, Draft, Glossary, …) is the subject — do not let the
-  // URL default (`domain`) wipe it via onBoardDefSelect.
+  // Design deep-link: read `?definition=` once into Nav context. Context is the
+  // subject after that — URL must not override Dialog/Draft/Glossary.
   const definitionFromUrl = useBoardDefinitionFromUrl()
-  const entitySubjectActive = hasChronicleEntitySubject({
+  const hydratedBoardDefFromUrl = React.useRef(false)
+  React.useEffect(() => {
+    if (hydratedBoardDefFromUrl.current) return
+    if (!definitionFromUrl) return
+    hydratedBoardDefFromUrl.current = true
+    if (
+      hasChronicleEntitySubject({
+        selectedDialogId,
+        selectedJourneyId,
+        selectedPathId,
+        selectedMomentId,
+        selectedKeeperId,
+        selectedDraftId,
+        selectedAgentId,
+        selectedServiceSlug,
+        selectedKeyId,
+        selectedCapabilityId,
+        selectedLibraryItemId,
+        selectedGlossaryId,
+        selectedSoleMemoryId,
+        selectedBoardDefId,
+      })
+    ) {
+      return
+    }
+    onBoardDefSelect(definitionFromUrl)
+  }, [
+    definitionFromUrl,
+    onBoardDefSelect,
     selectedDialogId,
     selectedJourneyId,
     selectedPathId,
@@ -692,13 +728,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     selectedGlossaryId,
     selectedSoleMemoryId,
     selectedBoardDefId,
-  })
-
-  React.useEffect(() => {
-    if (entitySubjectActive) return
-    if (definitionFromUrl === selectedBoardDefId) return
-    onBoardDefSelect(definitionFromUrl)
-  }, [definitionFromUrl, selectedBoardDefId, onBoardDefSelect, entitySubjectActive])
+  ])
 
   const bumpDraftPresence = React.useCallback(() => {
     setDraftPresenceRevision((n) => n + 1)

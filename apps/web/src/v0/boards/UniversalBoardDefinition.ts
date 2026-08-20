@@ -58,8 +58,8 @@ export interface NavSectionsDef {
   drafts: boolean
   agents: boolean
   /**
-   * Sessions for the selected Dialog. Design Board uses this so agents share
-   * the same conversation the user is looking at — not a board-def Chatter thread.
+   * Sessions for the selected Dialog — thread picker, not a Nav subject.
+   * Same meaning on every board that enables it.
    */
   sessions?: boolean
   /** Domain Board: uploaded files and linked sources for the domain library. */
@@ -539,8 +539,8 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
       glossary: true,
       boardDefs: true,
     },
-    // Dialog + Session first so Design shares the same conversation as Realm/Agent.
-    // Realm Stages (Drafts → Kept → Presented) stay on Realm — they replace the whole Nav.
+    // Board Definitions is a Nav subject on the same exclusive list as Dialog.
+    // Realm Stages stay on Realm — they replace the whole Nav.
     navBlockOrder: ["dialogs", "sessions", "chatter", "drafts", "glossary", "boardDefs"],
   },
   conversation: {

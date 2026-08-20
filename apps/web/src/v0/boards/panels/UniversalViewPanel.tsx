@@ -40,7 +40,6 @@ import {
   type ChronicleLegacyKind,
 } from "@keeper/shared"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
-import { useBoardDefinitionFromUrl } from "../useBoardDefinitionFromUrl"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
 import { ChronicleEngagementSurface } from "../engagement/ChronicleEngagementSurface"
@@ -479,9 +478,6 @@ export function UniversalViewPanel({
     () => resolveDomainTreatment(shell?.domainFrame ?? null),
     [shell?.domainFrame],
   )
-  const urlBoardDefinitionId = useBoardDefinitionFromUrl()
-  const boardDefinitionId =
-    def.boardId === "designer" ? urlBoardDefinitionId : null
 
   const resolved = {
     selectedDialogId: boardCtx?.selection.selectedDialogId ?? null,
@@ -525,8 +521,6 @@ export function UniversalViewPanel({
       selectedSoleMemoryId: boardCtx?.selection.selectedSoleMemoryId ?? null,
       selectedBoardDefId: boardCtx?.selection.selectedBoardDefId ?? null,
       selectedGlossaryId: boardCtx?.selection.selectedGlossaryId ?? null,
-      boardDefinitionId,
-      isDesignerBoard: def.boardId === "designer",
     },
     chronicleEngagement
       ? { templateSlug: chronicleEngagement.template.slug }
@@ -642,7 +636,7 @@ export function UniversalViewPanel({
           break
         case "boardDef":
           if (entry.id) {
-            shell?.selectBoardDefinition(entry.id)
+            actions.onBoardDefSelect(entry.id)
           }
           break
         case "domain":

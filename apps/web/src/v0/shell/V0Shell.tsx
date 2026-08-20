@@ -867,14 +867,6 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
     commitBoardSearch((params) => clearBoardDefinitionParams(params))
   }, [commitBoardSearch])
 
-  // Design workspace: default to Domain board spec when none selected — enables Kip session bootstrap.
-  React.useEffect(() => {
-    if (!isPlatformDomainSlug(resolvedSlug)) return
-    if (workspaceBoardId !== "designer") return
-    if (boardDefinitionId) return
-    selectBoardDefinition("domain")
-  }, [resolvedSlug, workspaceBoardId, boardDefinitionId, selectBoardDefinition])
-
   const shellWorkspaceNav = React.useMemo(
     () => ({
       workspaceBoardId: isHomeShell ? HOME_SHELL_BOARD : urlOrPendingBoardId,

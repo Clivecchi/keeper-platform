@@ -702,7 +702,7 @@ export function useAgentDialog({
         supportingDocs?: ReadonlyArray<{ name: string; preview?: string }>
       },
     ) => {
-      if (mode === "designer" && !frameKey) return
+      if (mode === "designer" && !frameKey && !dialogIdRef.current) return
 
       // ── build / agent / domain / designer: KipApi.runAgent ──────────────────
       if ((!content.trim() && !attachments?.length) || isSending || sendInFlightRef.current || !agentId) {
@@ -788,7 +788,7 @@ export function useAgentDialog({
             agentId,
             board: dialogBoard ?? mode,
             frame: dialogFrame ?? frameKey ?? "conversation",
-            subject: dialogSubject ?? (mode === "designer" ? "boardDef" : "domain"),
+            subject: dialogSubject ?? (mode === "designer" && (dialogFrame || frameKey) ? "boardDef" : "domain"),
             dialogScope: resolvedAudience === "admin" || mode === "designer" ? "admin" : "keeper",
             domainSlug,
             sessionName: name,

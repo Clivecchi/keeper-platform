@@ -15,8 +15,8 @@
  * Nav selection modes:
  * - entity — dialogs, journeys, keepers, drafts, agents, keys, integrations.
  *   onClick → board context action (same frame). No URL change.
- * - boardDef — Design-only meta/spec nav (built-in board definitions).
- *   onClick → shell selectBoardDefinition (?definition=). Reads selection from useBoardDefinitionFromUrl().
+ * - boardDef — Design Board Definitions. Mutually exclusive Nav subject (same list as Dialog).
+ *   onClick → onBoardDefSelect. Optional `?definition=` is a shareable projection, not a second OS.
  *
  * CRITICAL RULES:
  * - This component NEVER calls /api/domains/by-slug. domainId is resolved
@@ -46,7 +46,6 @@ import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import type { UniversalBoardDef, NavRenderBlock } from "./UniversalBoardDefinition"
 import { shouldRenderContentGatedBlock } from "./navContentGating"
 import { useBoardDefs } from "./useBoardDefs"
-import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "./workspaceBoardNav"
 import { resolveWorkspaceBoardNavItems } from "./domainWorkspaceBoards"
@@ -503,7 +502,6 @@ export function UniversalNavPanel({
 
   // ── designer board definitions — live from location.search ─────────────────
   const { selectBoardDefinition, switchWorkspace, workspaceBoardId, shellMode: contextShellMode, openDomainWorkspace: contextOpenDomainWorkspace, anchorDomainSlug } = useV0Shell()
-  const boardDefinitionId = useBoardDefinitionFromUrl()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -1376,7 +1374,9 @@ export function UniversalNavPanel({
   const showKeepers = def.nav.sections.keepers
   const showBoardDefs = def.nav.sections.boardDefs ?? false
   const showGlossaryNav = def.nav.sections.glossary ?? false
-  const activeBoardDefId = showBoardDefs ? boardDefinitionId : null
+  const activeBoardDefId = showBoardDefs
+    ? (boardCtx?.selection.selectedBoardDefId ?? null)
+    : null
 
   React.useEffect(() => {
     if (!showBoardDefs) return
@@ -1384,7 +1384,7 @@ export function UniversalNavPanel({
     console.log(
       "[UniversalNavPanel]",
       JSON.stringify({
-        definition: boardDefinitionId,
+        definition: activeBoardDefId,
         activeBoardDefId,
         windowDefinition:
           typeof window !== "undefined"
@@ -1392,7 +1392,7 @@ export function UniversalNavPanel({
             : null,
       }),
     )
-  }, [showBoardDefs, boardDefinitionId, activeBoardDefId])
+  }, [showBoardDefs, activeBoardDefId])
 
   const integrationDefs = def.nav.integrations ?? []
   const infrastructureIntegrations = integrationDefs.filter((item) => item.group !== "ai")
@@ -1481,30 +1481,17 @@ export function UniversalNavPanel({
     [boardCtx, selectBoardDefinition],
   )
 
-  const navSubjectIsEntity = Boolean(
-    selectedDialogId ||
-      selectedDraftId ||
-      selectedGlossaryId ||
-      selectedJourneyId ||
-      selectedKeeperId ||
-      selectedAgentId ||
-      selectedLibraryItemId ||
-      selectedKeyId ||
-      selectedCapabilityId ||
-      selectedMomentId,
-  )
-
   const boardDefItems = React.useMemo<SidebarCardItem[]>(
     () => {
       if (!showBoardDefs) return []
       return allBoardDefs.map((d) => ({
         id: d.boardId,
         label: d.displayName,
-        isSelected: !navSubjectIsEntity && d.boardId === activeBoardDefId,
+        isSelected: d.boardId === activeBoardDefId,
         onClick: () => selectBoardDef(d.boardId),
       }))
     },
-    [showBoardDefs, allBoardDefs, activeBoardDefId, selectBoardDef, navSubjectIsEntity],
+    [showBoardDefs, allBoardDefs, activeBoardDefId, selectBoardDef],
   )
 
   const navBlockOrder = resolveNavBlockOrder(def)

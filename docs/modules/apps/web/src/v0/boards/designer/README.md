@@ -38,6 +38,10 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-08-19 — Universal pattern
+- Design follows the same Nav → Dialog → Chronicle path as every board. Board Definitions is a mutually exclusive Nav item. `?definition=` is a deep-link only, not a second focus.
+- Conversation identity follows the Nav subject (Dialog vs Board Def). Rendr remains the Design lead (lens).
+
 ### 2026-08-19 — One Nav subject (Design Chronicle)
 - Selecting a Dialog on Design is the subject: Chronicle follows Touchdown (not Domain Board config). `?definition=` stays as Rendr’s idle lens, not a second selected object.
 - Board Definitions highlight clears while a Dialog or Draft is selected. Sessions is a thread picker under that Dialog, not a competing selection.

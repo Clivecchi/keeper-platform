@@ -48,43 +48,47 @@ describe('resolveChroniclePrimary', () => {
     expect(primary).toEqual({ kind: 'path', id: 'p-1', journeyId: 'j-1' });
   });
 
-  it('prefers glossary over designer boardDef', () => {
+  it('prefers glossary over boardDef', () => {
     const primary = resolveChroniclePrimary({
       ...emptySelection,
-      isDesignerBoard: true,
-      boardDefinitionId: 'def-1',
+      selectedBoardDefId: 'def-1',
       selectedGlossaryId: 'object-glossary',
     });
     expect(primary).toEqual({ kind: 'glossary', id: 'object-glossary' });
   });
 
-  it('Nav Dialog wins over designer boardDefinitionId', () => {
+  it('Nav Dialog wins over boardDef (exclusive list, Dialog is the subject)', () => {
     const primary = resolveChroniclePrimary({
       ...emptySelection,
-      isDesignerBoard: true,
-      boardDefinitionId: 'domain',
+      selectedBoardDefId: 'domain',
       selectedDialogId: 'dialog-touchdown',
     });
     expect(primary).toEqual({ kind: 'dialog', id: 'dialog-touchdown' });
   });
 
-  it('Nav Draft wins over designer boardDefinitionId', () => {
+  it('Nav Draft wins over boardDef', () => {
     const primary = resolveChroniclePrimary({
       ...emptySelection,
-      isDesignerBoard: true,
-      boardDefinitionId: 'domain',
+      selectedBoardDefId: 'domain',
       selectedDraftId: 'draft-1',
     });
     expect(primary).toEqual({ kind: 'draft', id: 'draft-1' });
   });
 
-  it('uses designer boardDefinitionId only when no entity is selected', () => {
-    const primary = resolveChroniclePrimary({
-      ...emptySelection,
-      isDesignerBoard: true,
-      boardDefinitionId: 'def-1',
-    });
-    expect(primary).toEqual({ kind: 'boardDef', id: 'def-1' });
+  it('boardDef is Chronicle subject only from Nav context, not a Design URL', () => {
+    expect(
+      resolveChroniclePrimary({
+        ...emptySelection,
+        isDesignerBoard: true,
+        boardDefinitionId: 'def-1',
+      }),
+    ).toEqual({ kind: 'domain' });
+    expect(
+      resolveChroniclePrimary({
+        ...emptySelection,
+        selectedBoardDefId: 'def-1',
+      }),
+    ).toEqual({ kind: 'boardDef', id: 'def-1' });
   });
 });
 

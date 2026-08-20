@@ -4,7 +4,8 @@
  * URL contract for Board navigation.
  *
  * `?board=`     — active Board (Realm · Domain · Build · Design · Agent). Top bar only.
- * `?definition=` — Design Board only: which built-in board *spec* is selected in nav.
+ * `?definition=` — optional Design deep-link / share projection of Board Definition Nav.
+ * Not a second selection OS. Chronicle and Nav highlight follow board context.
  *
  * Legacy `?boardDef=` is read for deep links and stripped on write.
  *

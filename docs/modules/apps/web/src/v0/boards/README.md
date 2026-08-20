@@ -30,6 +30,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-19 — Universal Nav subject (all boards)
+- One exclusive Nav subject drives Dialog and Chronicle on every board. Design Board Definitions is on that list — not a parallel `?definition=` OS.
+- Chronicle resolves `boardDef` from Nav context only. Design no longer auto-selects Domain Board on entry.
+- Domain/Agent no longer leave the center conversation behind when Nav picks a Journey, Keeper, or Draft.
+- `?draftId=` no longer forces `board=domain`.
+
 ### 2026-08-19 — One Nav subject (Design Chronicle)
 - Nav selects one subject. That subject loads Dialog, then Chronicle. Session is which thread of the Dialog — not a second gold row.
 - Design `?definition=` no longer steals Chronicle from a Dialog or Draft. Board Definitions highlight only when Design is idle on a board spec.
