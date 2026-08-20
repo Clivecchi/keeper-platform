@@ -772,6 +772,18 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.dialogs, dialogListVersion])
 
+  const setDialogTitleSources = boardCtx?.actions.setDialogTitleSources
+  React.useEffect(() => {
+    if (!dialogs || !setDialogTitleSources) return
+    const next: Record<string, string> = {}
+    for (const dialog of dialogs) {
+      if (dialog.id && typeof dialog.title_source === "string" && dialog.title_source.trim()) {
+        next[dialog.id] = dialog.title_source
+      }
+    }
+    setDialogTitleSources(next)
+  }, [dialogs, setDialogTitleSources])
+
   // ── Fetch: Journeys ──────────────────────────────────────────────────────
   React.useEffect(() => {
     if (!domainId || !def.nav.sections.journeys) return
@@ -877,10 +889,23 @@ export function UniversalNavPanel({
     [patchedDrafts],
   )
 
-  // Top-level Drafts bucket only lists orphans — drafts with dialog_id nest under Dialogs.
+  const chatterDialogIds = React.useMemo(() => {
+    const ids = new Set<string>()
+    for (const dialog of dialogs ?? []) {
+      if (isNavVisibleDialog(dialog) && isChatterDialog(dialog)) ids.add(dialog.id)
+    }
+    return ids
+  }, [dialogs])
+
+  // Top-level Drafts: true orphans, plus drafts hung on Chatter (so they stay openable).
   const orphanDraftsForNav = React.useMemo(
-    () => visibleDrafts.filter((d) => !d.dialog_id?.trim()),
-    [visibleDrafts],
+    () =>
+      visibleDrafts.filter((d) => {
+        const dialogId = d.dialog_id?.trim()
+        if (!dialogId) return true
+        return chatterDialogIds.has(dialogId)
+      }),
+    [visibleDrafts, chatterDialogIds],
   )
 
   const draftNavGroups = React.useMemo(

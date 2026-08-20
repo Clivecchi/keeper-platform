@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-19 — Session ≠ Dialog (locked)
+- Chronicle Document shell only for human-named Dialogs (`user_set`). Chatter and `system_promoted` shells do not open an empty Document.
+- Realm draft selection uses Draft presence, not DomainRealmStory.
+- Nav lists Chatter-linked working drafts in Drafts so they stay openable.
+
 ### 2026-08-19 — Kip support on lead-led Domain
 - Platform Kip lookup uses slug (not Lead-role). Echo runs with userId + Dialog id. Collaboration prompt forbids hanging promises and tells Kip to use tools when the lead deferred a launch. Echo action receipts attach to the lead turn.
 

@@ -29,7 +29,11 @@ function buildMockTx(overrides: Record<string, unknown> = {}) {
       findFirst: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    kip_sessions: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     dialog: {
+      findUnique: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     ...overrides,

@@ -1010,6 +1010,7 @@ function buildRendrDesignBoardPrompt(
     'Include every field you intend to change; server merges with current Treatment and normalizes hex colors.',
     'Do NOT write Treatment directly — propose only. The human taps Apply in the dialog.',
     'Do NOT use draft.create for Treatment on Design Board.',
+    'When the human asks for a working draft or Points (not Treatment): draft.create with kind "draft" and payload.content for the first Point. Never kind document_manuscript.',
     RENDR_IDENTITY_LOCK,
   ].join('\n');
 }

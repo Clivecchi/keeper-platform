@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `kip/linkDraftToSessionDialog.ts` — working drafts do not promote Chatter into Document-bearing Dialogs.
+
 ### 2026-08-18 — dialog.read + glossary.read
 - `kip/loadDialogDocumentForAgent.ts` — `buildDialogReadHonesty`; empty Points = unbuilt. Agent `dialog.read { id }` uses this loader (same source Chronicle renders).
 - `kip/loadObjectGlossary.ts` — Chronicle Object Glossary for `glossary.read`. Not a draft.

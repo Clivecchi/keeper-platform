@@ -2,6 +2,7 @@ import type { KipDraftSummary } from "../../../lib/kipApi"
 import { formatDraftKindLabel } from "./draftManuscriptUtils"
 
 export const HIDDEN_DRAFT_NAV_STATUSES = new Set(["promoted", "archived"])
+export const HIDDEN_DRAFT_NAV_KINDS = new Set(["document_manuscript"])
 
 const GENERIC_DRAFT_TITLES = new Set([
   "untitled draft",
@@ -50,7 +51,11 @@ function kindSortIndex(kind: string): number {
 }
 
 export function filterVisibleDraftNavRows(drafts: KipDraftSummary[]): KipDraftSummary[] {
-  return drafts.filter((draft) => !HIDDEN_DRAFT_NAV_STATUSES.has(draft.status))
+  return drafts.filter(
+    (draft) =>
+      !HIDDEN_DRAFT_NAV_STATUSES.has(draft.status)
+      && !HIDDEN_DRAFT_NAV_KINDS.has(draft.kind),
+  )
 }
 
 export function countDraftNavTitles(drafts: KipDraftSummary[]): Map<string, number> {

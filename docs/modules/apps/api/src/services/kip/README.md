@@ -24,12 +24,16 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ## 🔄 Data & Behavior
 - Draft mutations during agent runs call `ensureDraftLinkedToSessionDialog` so Chronicle Sessions blocks can load linked Dialog sessions.
 - Linking is idempotent: existing `dialog_id` on a draft is never overwritten.
+- Working drafts link only to human-named Dialogs (`user_set`). Chatter stays a session — draft attach does not promote it to a Document.
 - `getKipAgentBySlugEnsured` repairs drifted `role` / `visibility` for canonical Lead slugs before agent metadata is returned.
 
 ## ⚠️ Notes & ToDo
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `linkDraftToSessionDialog.ts` — no Chatter→Dialog promotion; working drafts link only to `user_set` Dialogs.
 
 ### 2026-08-19 — Capability Ledger Phase 1
 - `resolveKipActionAllowlistStatus.ts` — session-bound read of the Kip executor allowlist + JWT `canDraft`. Used by MCP `kip_actions_list` and `GET /api/kip/actions/allowlist`. `resolveSessionDraftCapability` exported from `resolveAgentEnvironment.ts`.

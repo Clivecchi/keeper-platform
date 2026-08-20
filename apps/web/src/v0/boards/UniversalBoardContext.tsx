@@ -74,6 +74,11 @@ export interface UniversalBoardSelection {
   selectedLibraryItemId: string | null
   /** Object Glossary — governing vocabulary subject (not a Dialog Document). */
   selectedGlossaryId: string | null
+  /**
+   * title_source by Dialog id from Nav. Chronicle Document shell only for user_set.
+   * Chatter / system_promoted stay conversations.
+   */
+  dialogTitleSourceById: Record<string, string>
   /** When set, Chronicle shows this SOLE memory card stacked above the current entity (e.g. draft). */
   selectedSoleMemoryId: string | null
   /** designer mode: the board definition currently selected in the nav — drives right-panel BoardDefView. */
@@ -167,6 +172,8 @@ export interface UniversalBoardActions {
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   bumpJourneyNav: () => void
   bumpDialogNav: () => void
+  /** Hydrate Dialog title_source from Nav so Chronicle can tell Chatter from named Dialogs. */
+  setDialogTitleSources: (byId: Record<string, string>) => void
   bumpDraftNav: (patch?: DraftNavRowPatch) => void
   bumpAgentNav: (patch?: AgentNavRowPatch) => void
   /** Pass a gloss anchor into Dialog context for the next Kip exchange. */
@@ -249,6 +256,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   // ── Selection state ────────────────────────────────────────────────────────
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
   const [selectedDialogId, setSelectedDialogId] = React.useState<string | null>(null)
+  const [dialogTitleSourceById, setDialogTitleSourceById] = React.useState<Record<string, string>>({})
   const [selectedJourneyId, setSelectedJourneyId] = React.useState<string | null>(null)
   const [selectedPathId, setSelectedPathId] = React.useState<string | null>(null)
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
@@ -387,6 +395,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     pointId?: string | null
     breadcrumb?: string[] | null
   }) => {
+    setDialogTitleSourceById((prev) => ({ ...prev, [options.dialogId]: "user_set" }))
     onDialogSelect(options.dialogId)
     setChroniclePanelMode("document")
     setChroniclePointTarget({
@@ -704,6 +713,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setDialogNavRevision((n) => n + 1)
   }, [])
 
+  const setDialogTitleSources = React.useCallback((byId: Record<string, string>) => {
+    setDialogTitleSourceById(byId)
+  }, [])
+
   const bumpDraftNav = React.useCallback((patch?: DraftNavRowPatch) => {
     setDraftNavRowPatch(patch ?? null)
     setDraftNavRevision((n) => n + 1)
@@ -898,6 +911,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         activeSessionId,
         activeJourneyId: frameCtx?.selection.activeJourneyId ?? null,
         selectedDialogId,
+        dialogTitleSourceById,
         selectedJourneyId,
         selectedPathId,
         selectedMomentId,
@@ -966,6 +980,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpKeeperNav,
         bumpJourneyNav,
         bumpDialogNav,
+        setDialogTitleSources,
         bumpDraftNav,
         bumpAgentNav,
         requestDiscussDraftPoint,
@@ -996,6 +1011,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       frameCtx?.selection.activeJourneyId,
       onSetActiveJourney,
       selectedDialogId,
+      dialogTitleSourceById,
       selectedJourneyId,
       selectedPathId,
       selectedMomentId,
@@ -1060,6 +1076,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpKeeperNav,
       bumpJourneyNav,
       bumpDialogNav,
+      setDialogTitleSources,
       bumpDraftNav,
       bumpAgentNav,
       requestDiscussDraftPoint,

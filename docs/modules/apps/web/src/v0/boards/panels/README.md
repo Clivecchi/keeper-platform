@@ -71,6 +71,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `UniversalViewPanel` Document routing: named Dialog (`user_set`) only. Realm drafts open as drafts, not an empty Document shell.
+
 ### 2026-08-17 — Bring in writing Chronicle Act
 - `UniversalViewPanel` renders `DialogIngestPresence` when `dialogIngest` is set (Nav file icon / Domain idle / DocumentShell).
 

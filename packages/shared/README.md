@@ -15,7 +15,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
 - `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
-- `src/chronicleSubject.ts` — Chronicle subject/overlay resolution (`glossary` subject + `OBJECT_GLOSSARY_SUBJECT_ID`)
+- `src/dialogTitleSource.ts` — Chatter vs named Dialog vs Document-bearing (`user_set` only)
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -29,6 +29,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `isDocumentBearingDialogTitleSource` — Chronicle Document is `user_set` only. `system_promoted` stays a conversation.
 
 ### 2026-08-17 — Glossary Chronicle subject
 - `chronicleSubject.ts` — `glossary` kind, `OBJECT_GLOSSARY_SUBJECT_ID`, priority over Design `boardDef`.

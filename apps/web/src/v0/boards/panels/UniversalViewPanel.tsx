@@ -35,6 +35,7 @@ import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import {
   chronicleSubjectKey,
   chronicleSubjectToLegacyKindId,
+  isDocumentBearingDialogTitleSource,
   resolveChronicleView,
   type ChronicleLegacyKind,
 } from "@keeper/shared"
@@ -316,14 +317,18 @@ function PanelBody({
   const realmArrival = useRealmArrivalOptional()
   /**
    * Chronicle Document via DomainRealmStory.
-   * Dialog is universal (every board) — Chuck confirmed: focused Dialog → Document, not Realm-only.
-   * Realm keeps Document routing for domain/draft/moment/library subjects.
+   * Named Dialogs (`user_set`) → Document. Chatter / draft-promoted shells stay
+   * conversations — not an empty Document. Realm drafts open as Draft presence.
    */
+  const dialogTitleSource =
+    subject.kind === "dialog" && subject.id
+      ? boardCtx?.selection.dialogTitleSourceById?.[subject.id]
+      : undefined
   const showRealmDocument =
-    subject.kind === "dialog" ||
+    (subject.kind === "dialog" &&
+      isDocumentBearingDialogTitleSource(dialogTitleSource)) ||
     (boardId === "realm" &&
       (subject.kind === "domain" ||
-        subject.kind === "draft" ||
         subject.kind === "moment" ||
         subject.kind === "library"))
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]

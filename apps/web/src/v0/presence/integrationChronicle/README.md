@@ -44,6 +44,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `draftNavUtils` hides `document_manuscript` from Drafts Nav (Dialog Document storage).
+
 ### 2026-08-11 — Document Chronicle cleanup (draft promote)
 - `DraftAddToDocumentControl` — collapsed **Add to Document…** on cover; expands only when used; success shows **In Document · Open**.
 - `Cdraft` — optional `documentControl` under meta (title first); session cue is quiet meta text, not a badge.

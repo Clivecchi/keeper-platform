@@ -5,6 +5,7 @@ Normalize and validate structured Kip agent actions before `executeAgentActions`
 
 ## 🧱 Key Files
 - `normalizeDraftPropose.ts` — coerce common model mistakes for `draft.update.propose` / point id aliases
+- `normalizeDraftCreate.ts` — working-draft kind + first Points from `content`
 - `normalizeDraftPropose.test.ts`
 - `schema.ts` — action envelope schemas and `parseActionsOrThrow`
 
@@ -18,5 +19,6 @@ Normalize and validate structured Kip agent actions before `executeAgentActions`
 - [ ] Confirm with Chuck: cast agents proposing on journey drafts should stay `proposed` (human Accept)
 
 ## 📆 Update Log
+- 2026-08-19: `normalizeDraftCreate.ts` — reject `document_manuscript` as a working-draft kind; persist `content` as proposed Points.
 - 2026-08-04: Added `web.search` payload schema (`webSearchPayloadSchema`) — `{ query, count? }` for Brave-backed live search.
 - 2026-08-03: Added `normalizeDraftPropose.ts` for content/author coercion used by draft propose execution.
