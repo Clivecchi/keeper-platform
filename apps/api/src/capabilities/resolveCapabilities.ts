@@ -3,7 +3,8 @@
  */
 
 import { prisma } from '@keeper/database';
-import { BOARD_CAPABILITY_CEILINGS } from './boardCapabilityCeilings.js';
+import { normalizeUniversalBoardId } from '@keeper/shared';
+import { boardCeilingFor } from './boardCapabilityCeilings.js';
 
 export type ResolveCapabilitiesInput = {
   agentId?: string;
@@ -36,9 +37,9 @@ export async function resolveAgentCapabilities(
     ? agent.capabilities.filter((c): c is string => typeof c === 'string')
     : [];
 
-  const boardCeiling: string[] | null = boardId
-    ? [...(BOARD_CAPABILITY_CEILINGS[boardId] ?? [])]
-    : null;
+  const canonicalBoardId = normalizeUniversalBoardId(boardId);
+  const lookedUp = canonicalBoardId ? boardCeilingFor(canonicalBoardId) : [];
+  const boardCeiling: string[] | null = canonicalBoardId ? [...lookedUp] : null;
 
   let effective: string[];
   if (boardCeiling && boardCeiling.length > 0) {
@@ -51,7 +52,7 @@ export async function resolveAgentCapabilities(
   return {
     agentId: agent.id,
     agentSlug: agent.slug,
-    boardId: boardId ?? null,
+    boardId: canonicalBoardId ?? null,
     agentCapabilities: agentCaps,
     boardCeiling,
     capabilities: effective,

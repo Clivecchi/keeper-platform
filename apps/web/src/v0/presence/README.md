@@ -63,6 +63,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-19 — Build Board presence
+- Domain Config on Build includes build-context fields via `isBuildBoardId` (legacy `ide` still matches). Integration Chronicle defaults `boardId` to `build`.
+
 ### 2026-08-17 — Bring in writing + Glossary source path
 - `DialogIngestPresence` — Chronicle Act for external markdown → Dialog Document Points.
 - `GlossaryPresence` Design: Open source + Copy path; look-up copy no longer names the Glossary a Document.

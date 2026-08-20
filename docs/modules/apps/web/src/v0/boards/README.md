@@ -8,7 +8,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `boardNavDataCache.ts` � In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
 - `domain/domainShellCache.ts` � Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` � Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
-- `workspaceBoardNav.ts` — Shared `?board=` / `?definition=` URL helpers. Build workspace writes `?board=build`; internal id stays `ide`.
+- `workspaceBoardNav.ts` — Shared `?board=` / `?definition=` URL helpers. Canonical Board id is `build`; `?board=ide` is a URL alias only.
 - `domainWorkspaceBoards.ts` � Per-domain allowed workspace boards (KE3P vs member domains)
 - `realm/` � Realm Board (`?board=realm`) � personal domain primary workspace
 - `designer/` � The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
@@ -29,6 +29,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-19 — `ide` identity retired
+- Canonical Board id is `build`. `?board=ide` and stale frame JSON `boardId: "ide"` normalize at the edge.
+- `BUILD_BOARD_DEF` / `kipMode: "build"`. Cloud MCP ceiling is `CLOUD_MCP_CEILING` from `@keeper/shared`.
+- Directed cueing and the service bar follow the Board def (`dialogCueing`, `showServiceBar`), not an `ide` kipMode gate.
+- Dead `ide/` wrappers removed. Live service bar is `components/IntegratedServicesBar.tsx`. Thin `build/BuildBoard.tsx` remains for the registry.
 
 ### 2026-08-19 — Session ≠ Dialog (locked)
 - Chronicle Document shell only for human-named Dialogs (`user_set`). Chatter and `system_promoted` shells do not open an empty Document.

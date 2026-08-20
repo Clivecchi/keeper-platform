@@ -11,6 +11,7 @@
  */
 
 import * as React from "react"
+import { isBuildBoardId } from "@keeper/shared"
 import { useLocation, useNavigate } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
@@ -1076,7 +1077,7 @@ export function KeeperPresence({
       }
       if (objectType === "domain") {
         const keys =
-          boardId === "ide"
+          isBuildBoardId(boardId)
             ? [
                 "name",
                 "slug",
@@ -1679,7 +1680,7 @@ function KeeperPresenceSurface({
 
   if (objectType === "domain" && layout === "focus" && record) {
     const ideBuildContextFields = (
-      boardId === "ide"
+      isBuildBoardId(boardId)
         ? (Object.entries(schema.fields).filter(
             ([key, def]) =>
               def.editable &&

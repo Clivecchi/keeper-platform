@@ -43,14 +43,7 @@ export const LIBRARY_MCP_TOOL_CAPABILITIES: readonly string[] = ['library.ro'];
 /** Gloss MCP tool capability — write gloss turns only; never entity mutation. */
 export const GLOSS_MCP_TOOL_CAPABILITIES: readonly string[] = ['gloss.rw'];
 
-/** IDE board ceiling — infra + all MCP tool capabilities Cloud may invoke. */
-export const IDE_BOARD_MCP_CEILING: readonly string[] = [
-  ...ALL_INFRA_CAPABILITIES,
-  ...GITHUB_MCP_TOOL_CAPABILITIES,
-  ...INTEGRATION_MCP_TOOL_CAPABILITIES,
-  ...LIBRARY_MCP_TOOL_CAPABILITIES,
-  ...GLOSS_MCP_TOOL_CAPABILITIES,
-];
+export { CLOUD_MCP_CEILING } from '@keeper/shared';
 
 /** Read-only infra capabilities seeded on Cloud. */
 export const CLOUD_INFRA_READ_CAPABILITIES: readonly string[] = [

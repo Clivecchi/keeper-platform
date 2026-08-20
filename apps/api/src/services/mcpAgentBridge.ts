@@ -21,8 +21,6 @@ export type McpActionResultLike = {
   data?: Record<string, unknown>;
 };
 
-const BOARD_INSTRUMENT_SLUGS = new Set(['cloud', 'rendr']);
-
 export function getMcpToolsForCapabilities(capabilities: string[]): McpToolDescriptor[] {
   const capSet = new Set(capabilities);
   const schema = getSchema();
@@ -36,14 +34,10 @@ export async function resolveMcpToolsForAgent(params: {
   agentSlug: string;
   boardId?: string | null;
 }): Promise<{ tools: McpToolDescriptor[]; capabilities: string[] }> {
-  const boardId =
-    params.boardId ??
-    (BOARD_INSTRUMENT_SLUGS.has(params.agentSlug) ? 'ide' : undefined);
-
   const resolved = await resolveAgentCapabilities({
     agentId: params.agentId,
     agentSlug: params.agentSlug,
-    boardId: boardId ?? undefined,
+    boardId: params.boardId ?? undefined,
   });
 
   const capabilities = resolved?.capabilities ?? [];

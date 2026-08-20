@@ -26,7 +26,7 @@ import { isPastedSupportingDoc } from "../../../components/agent/composerSupport
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
-import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
+import { IntegratedServicesBar } from "../../boards/components/IntegratedServicesBar"
 import {
   CastCueBar,
   type CastMemberChip,

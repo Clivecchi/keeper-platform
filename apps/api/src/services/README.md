@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-19 — Cloud does not invent a Board id
+- `mcpAgentBridge.ts` — `resolveMcpToolsForAgent` no longer defaults Cloud/Rendr to `boardId: ide`. Agent record capabilities are the source.
+
 ### 2026-08-19 — Session ≠ Dialog (locked)
 - `kip/linkDraftToSessionDialog.ts` — working drafts do not promote Chatter into Document-bearing Dialogs.
 

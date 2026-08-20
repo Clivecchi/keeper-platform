@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-19 — Build session mode
+- `useAgentDialog` / `useSelectionSessionResume` session mode is `build` (not `ide`). `?board=ide` is a URL alias only.
+
 ### 2026-08-19 — Send lock + named failure copy
 - `useAgentDialog` — in-flight send lock (set before session resume) so one click cannot post two system errors. Failures reword with `agentDisplayName` instead of always "Kip". Error state clears at send start on every board.
 

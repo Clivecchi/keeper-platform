@@ -1049,8 +1049,7 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, showKeysNav, keyListVersion, applyKeyNavRowPatch])
 
-  const showCapabilitiesNav =
-    def.boardId === "ide" && (def.nav.sections.capabilities ?? false)
+  const showCapabilitiesNav = def.nav.sections.capabilities ?? false
 
   React.useEffect(() => {
     if (!showCapabilitiesNav) return

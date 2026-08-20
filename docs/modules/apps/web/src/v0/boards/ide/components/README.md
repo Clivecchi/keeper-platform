@@ -1,40 +1,16 @@
-# IDE Board Components
+# Retired — IDE Board components
 
 ## 📌 Purpose
-IDE Board-specific UI pieces mounted inside the Universal Board shell — notably the Composer Service Bar.
+Former IDE Board-specific UI. The live service bar is `../../components/IntegratedServicesBar.tsx`.
 
 ## 🧱 Key Files
-- `IntegratedServicesBar.tsx` — Composer footer (left): composes shared `CastCueBar` for **Agents** (Kip director + Cloud / Rendr) and appends **Services** (Railway, Vercel, GitHub). Pairs with `ComposerDebugToolbar` on the right via `.dialog-composer-footer` in `KeeperDialogFrame`.
+- None remaining in this folder.
 
 ## 🔄 Data & Behavior
-- Rendered inside `.dialog-composer-footer` when `def.conversation.showServiceBar` is true (IDE Board only). Debug icon (`ComposerDebugToolbar`) sits on the right of the same footer at all times in dialog mode.
-- Agent chips come from `UniversalConversation` (`ideBoardInstruments`) via `instruments` / `onInstrumentInvoke` / `activeInstrumentSlug` — same wiring as Domain / Realm / Designer.
-- `onOpen` opens the integrations panel in Chronicle (`UniversalViewPanel` → `ServicesFrame`).
+`KeeperDialogFrame` imports `IntegratedServicesBar` from `boards/components`.
 
 ## ⚠️ Notes & ToDo
-- [ ] Wire live connection status for Railway, Vercel, GitHub chips.
+- [ ] Delete this folder when the parent `ide/` retirement is complete.
 
 ## 📆 Update Log
-
-### 2026-08-03 — dialogCueing rename (Pass 1)
-- Import switched from `BoardInstrumentsBar`/`BoardInstrumentChip` to `CastCueBar`/`CastMemberChip`. Own prop names (`instruments`, `onInstrumentInvoke`, `activeInstrumentSlug`) unchanged — callers now pass renamed `boardCast` / `onCastCueToggle` / `activeCastMemberSlug` from `KeeperDialogFrame`.
-
-### 2026-07-20 — Director-mode unification
-- Agents section delegates to shared `BoardInstrumentsBar` (Kip as `isDirector` + declared `boardInstruments`).
-- Legacy `onToolInvoke` / `activeToolSlug` retained as fallback only.
-
-### 2026-07-03 — Agents label (not Tools)
-- Renamed composer footer eyebrow from **Tools** to **Agents** for Cloud/Rendr chips — matches Domain board `BoardInstrumentsBar` vocabulary.
-
-### 2026-06-27 — Debug always visible
-- `ComposerDebugToolbar` no longer gated on agent working state; footer shows in all dialog modes.
-
-### 2026-06-27 — Composer footer layout
-- Left-aligned Tools/Services only; top border moved to `.dialog-composer-footer` wrapper. Debug control lives in `ComposerDebugToolbar` (right).
-
-### 2026-06-17 — Dialog column alignment
-- Inner row uses `.dialog-column` so Tools/Services align with composer and message stream (replaces `max-w-3xl`).
-
-### 2026-05-23 — Gate 2: Tools in Composer
-- Split bar into Tools (Cloud, Rendr — pill chips, invokable) and Services (Railway, Vercel, GitHub — status dots, navigational).
-- Removed Cloud from Services row; Cloud is Tools-only per Gate 2 spec.
+- 2026-08-19: Moved `IntegratedServicesBar` to `boards/components`. Deleted unused `KeeperPanel`.

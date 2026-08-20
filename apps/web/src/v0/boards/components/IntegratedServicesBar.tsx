@@ -4,7 +4,7 @@ import * as React from "react"
 import {
   CastCueBar,
   type CastMemberChip,
-} from "../../components/CastCueBar"
+} from "./CastCueBar"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

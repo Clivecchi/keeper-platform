@@ -4,6 +4,7 @@
 Shared UI pieces for Universal Board orchestration — composer instrument bars and related controls.
 
 ## 🧱 Key Files
+- `IntegratedServicesBar.tsx` — Build Board composer footer: Cast chips + Railway / Vercel / GitHub (moved from retired `ide/components`).
 - `DirectorCastHeader.tsx` — Header cast identity (Lead + available Cast); not click-to-invoke. Optional `cueingLabel` shows the Dialog cueing mode next to the eyebrow (e.g. "Cueing: Directed").
 - `CastCueBar.tsx` — Composer invoke bar: lead locked-on; Cast members single-swap (IDE/Designer) or multi-select (Domain/Realm). `BoardInstrumentsBar.tsx` is now a deprecated thin re-export shim for untouched call sites.
 - `BoardMobileChronicleOverlay.tsx` — Full Chronicle as overlay (replaces Chronicle tab).
@@ -18,6 +19,9 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 - **Adaptive mobile (≤767px Domain/Realm):** Dialog always primary; Nav = hamburger → drawer (account at bottom); Chronicle = Top Bar right icon → overlay. No bottom tab bar; Composer strip removed.
 
 ## 📆 Update Log
+
+### 2026-08-19 — IntegratedServicesBar
+- Moved from retired `ide/components` into this shared folder. `KeeperDialogFrame` imports from here.
 
 ### 2026-08-09 — Chronicle full-screen takeover
 - `BoardMobileChronicleOverlay` is edge-to-edge (no sheet inset / top radius / peeking Top Bar).

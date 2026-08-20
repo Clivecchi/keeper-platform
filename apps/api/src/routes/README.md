@@ -10,7 +10,7 @@ Express route handlers for all API endpoints. Handles HTTP request/response cycl
 - `railway-routes.ts` - Capability-gated Railway GraphQL proxy (services, deployments, logs, redeploy)
 - `vercel-routes.ts` - Capability-gated Vercel deployment routes (deployments, logs, project)
 - `webhook-routes.ts` - Inbound Railway, Vercel, GitHub webhook receivers (stub processing)
-- `capability-routes.ts` - `GET /api/capabilities/resolve` and `GET /api/capabilities/ceiling` for Chronicle and clients
+- `capability-routes.ts` - `GET /api/capabilities/resolve`, `/ceiling`, and `/ledger` for Chronicle and clients
 - `boards.ts` - Board CRUD and management operations
   - Standard CRUD: GET, POST, PATCH, DELETE
   - Domain Board Management: viewer-mode, frames, cover, nav, publish (NEW)
@@ -172,8 +172,13 @@ Using `requestId` prevents duplicate operations:
 
 ## 📆 Update Log
 
+### 2026-08-19 — Capability Ledger Phase 2
+- `GET /api/capabilities/ledger?domainId=&agentSlug=` — one read of MCP scopes (JWT placeholder), Kip allowlist, and Cloud ceiling. Does not change enforcement. Key stores listed, not merged.
+
+### 2026-08-19 — Cloud MCP ceiling
+- `GET /api/capabilities/ceiling?boardId=build&agentSlug=cloud` — read-only Cloud MCP ceiling (optional agent intersection). Legacy `boardId=ide` normalizes to `build`. No enforcement change.
+
 ### 2026-08-19 — Capability Ledger Phase 1
-- `GET /api/capabilities/ceiling?boardId=&agentSlug=` — read-only IDE/Build MCP ceiling (optional agent intersection). Same rule as `resolveAgentCapabilities`. No enforcement change.
 
 ### 2026-08-18 — Library item DELETE
 - `DELETE /api/library-items/:id` — domain-write gated; used by Domain Nav inline delete.

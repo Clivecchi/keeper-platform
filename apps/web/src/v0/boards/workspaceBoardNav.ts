@@ -1,32 +1,33 @@
 /**
  * workspaceBoardNav
  * -----------------
- * URL contract for workspace navigation.
+ * URL contract for Board navigation.
  *
- * `?board=`     — active workspace (Realm · Domain · Build · Design · Agent). Top bar only.
- * `?definition=` — Design workspace only: which built-in board *spec* is selected in nav.
+ * `?board=`     — active Board (Realm · Domain · Build · Design · Agent). Top bar only.
+ * `?definition=` — Design Board only: which built-in board *spec* is selected in nav.
  *
  * Legacy `?boardDef=` is read for deep links and stripped on write.
- * Do not use `board` for both — that caused Build workspace vs "Build Board" spec collisions.
  *
- * ## Build board migration (2026-08-17)
- * Internal routing/storage key remains `ide` (kipMode, session resume, capability ceilings,
- * TypeScript board ids). Display label is **Build**. Canonical URL write is `?board=build`;
- * `?board=ide` continues to parse as the same workspace so existing bookmarks and stored
- * links do not break. No database migration — board id is not a persisted user preference.
+ * Canonical Board id is `build`. `?board=ide` is a URL alias for old links only.
+ * Runtime never keys off `ide`.
  */
 
+import {
+  BUILD_BOARD_ID,
+  LEGACY_BUILD_BOARD_ALIAS,
+  normalizeUniversalBoardId,
+} from "@keeper/shared"
 import { buildRealmShellPath } from "../../lib/realmPaths"
 
-export type WorkspaceBoardId = "domain" | "realm" | "ide" | "designer" | "agent"
+export type WorkspaceBoardId = "domain" | "realm" | "build" | "designer" | "agent"
 
-/** Canonical URL param for the Build workspace (internal id stays `ide`). */
-export const BUILD_BOARD_URL_PARAM = "build"
+/** Canonical URL param for Build Board (same as the runtime id). */
+export const BUILD_BOARD_URL_PARAM = BUILD_BOARD_ID
 
 export const WORKSPACE_BOARD_IDS: WorkspaceBoardId[] = [
   "domain",
   "realm",
-  "ide",
+  "build",
   "designer",
   "agent",
 ]
@@ -59,9 +60,9 @@ export const BOARD_DEFINITION_PARAM = "definition"
 
 const LEGACY_BOARD_DEF_PARAM = "boardDef"
 
-/** Write the public `?board=` value for an internal workspace id. */
+/** Write the public `?board=` value for an internal Board id. */
 export function toWorkspaceBoardUrlParam(boardId: WorkspaceBoardId): string {
-  return boardId === "ide" ? BUILD_BOARD_URL_PARAM : boardId
+  return boardId
 }
 
 export function parseWorkspaceBoardId(
@@ -70,19 +71,19 @@ export function parseWorkspaceBoardId(
   const board = searchParams.get("board")?.toLowerCase()
   if (board === "domain") return "domain"
   if (board === "realm") return "realm"
-  if (board === "ide" || board === BUILD_BOARD_URL_PARAM) return "ide"
+  if (board === LEGACY_BUILD_BOARD_ALIAS || board === BUILD_BOARD_ID) return "build"
   if (board === "designer") return "designer"
   if (board === "agent") return "agent"
   return null
 }
 
-/** Design nav: selected board definition id (ide | agent | domain | designer). */
+/** Design nav: selected board definition id (build | agent | domain | designer). */
 export function parseBoardDefinitionId(
   searchParams: URLSearchParams,
 ): string | null {
   const canonical = searchParams.get(BOARD_DEFINITION_PARAM)
-  if (canonical) return canonical
-  return searchParams.get(LEGACY_BOARD_DEF_PARAM) ?? null
+  const raw = canonical ?? searchParams.get(LEGACY_BOARD_DEF_PARAM)
+  return normalizeUniversalBoardId(raw)
 }
 
 /** Normalize `location.search` (or raw query) into URLSearchParams. */
@@ -121,7 +122,7 @@ export function resolveWorkspaceBoardId(
 }
 
 /**
- * Resolve ?definition= on Design workspace; prefers window when router lags.
+ * Resolve ?definition= on Design Board; prefers window when router lags.
  */
 export function resolveBoardDefinitionId(
   workspaceBoardId: WorkspaceBoardId | null,
@@ -165,7 +166,7 @@ export function clearBoardDefinitionParams(prev: URLSearchParams): URLSearchPara
   return next
 }
 
-/** Top-bar workspace switch — clears any Design definition param. */
+/** Top-bar Board switch — clears any Design definition param. */
 export function applyWorkspaceBoardSwitch(
   prev: URLSearchParams,
   boardId: WorkspaceBoardId,
@@ -177,24 +178,24 @@ export function applyWorkspaceBoardSwitch(
 
 /**
  * Design sidebar: select a board definition spec.
- * Does not change `?board=` — caller must already be on Design workspace.
+ * Does not change `?board=` — caller must already be on Design Board.
  */
 export function applyBoardDefinitionSelection(
   prev: URLSearchParams,
   definitionId: string,
 ): URLSearchParams {
   const next = new URLSearchParams(prev)
-  next.set(BOARD_DEFINITION_PARAM, definitionId)
+  next.set(BOARD_DEFINITION_PARAM, normalizeUniversalBoardId(definitionId) ?? definitionId)
   next.delete(LEGACY_BOARD_DEF_PARAM)
   return next
 }
 
-/** Migrate legacy ?boardDef= to ?definition= on Design workspace. */
+/** Migrate legacy ?boardDef= to ?definition= on Design Board. */
 export function migrateLegacyBoardDefParam(prev: URLSearchParams): URLSearchParams | null {
   const legacy = prev.get(LEGACY_BOARD_DEF_PARAM)
   if (!legacy || prev.get(BOARD_DEFINITION_PARAM)) return null
   const next = new URLSearchParams(prev)
-  next.set(BOARD_DEFINITION_PARAM, legacy)
+  next.set(BOARD_DEFINITION_PARAM, normalizeUniversalBoardId(legacy) ?? legacy)
   next.delete(LEGACY_BOARD_DEF_PARAM)
   return next
 }
@@ -206,7 +207,7 @@ export function buildWorkspaceBoardPath(
   return buildRealmShellPath(domainSlug, searchParams)
 }
 
-/** No-op workspace + home nav for frame preview shells that override V0ShellProvider. */
+/** No-op Board + home nav for frame preview shells that override V0ShellProvider. */
 export const BOARD_WORKSPACE_NAV_STUB = {
   workspaceBoardId: null as WorkspaceBoardId | null,
   boardDefinitionId: null as string | null,

@@ -45,7 +45,7 @@ See `docs/library-shared-context-roadmap.md` for rationale.
 Session self-check (always visible to authenticated scoped clients — no grant required):
 0. **`capabilities_list`** — granted / denied scopes for this token + visible tool names (not an integrations inventory)
 0b. **`kip_actions_list`** — Kip executor allowlist (golden path + domain policy) + JWT `canDraft` when user/domain are bound. `mcp.call` is not on the Lead list.
-0c. **`ide_ceiling_list`** — IDE/Build MCP ceiling and optional agent ∩ ceiling (what Cloud may reach via `mcp.call`)
+0d. **`capability_ledger`** — Phase 2 aggregation of MCP scopes + Kip allowlist + Cloud ceiling (Key stores listed, not merged)
 
 Library (read-only, `library.ro`) — responses include `domainId`, `domainName`, `domainSlug`:
 1. **`library_list`** — recent Library items for domain
@@ -1010,7 +1010,11 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 ## 📆 Update Log
 
-**2026-08-19**: Capability Ledger Phase 1 — always-visible `kip_actions_list` and `ide_ceiling_list` MCP tools. Read-only introspection of the Kip action allowlist and `IDE_BOARD_MCP_CEILING`. JWT twins: `GET /api/kip/actions/allowlist`, `GET /api/capabilities/ceiling`. No enforcement changes. Phase 2 (aggregating Capability Ledger) is not in this pass.
+**2026-08-19**: Capability Ledger Phase 2 — always-visible `capability_ledger` MCP tool + JWT `GET /api/capabilities/ledger`. One read of the three Phase 1 slices. Key stores listed, not merged. No enforcement changes. Phase 3 (Key-store consolidation) is not in this pass.
+
+**2026-08-19**: Retired `ide_ceiling_list`. Always-visible self-check is `cloud_ceiling_list` (`CLOUD_MCP_CEILING`). Cloud `mcp.call` uses the agent record and does not invent a Board id.
+
+**2026-08-19**: Capability Ledger Phase 1 — always-visible `kip_actions_list` and `cloud_ceiling_list` MCP tools. Read-only introspection of the Kip action allowlist and `CLOUD_MCP_CEILING`. JWT twins: `GET /api/kip/actions/allowlist`, `GET /api/capabilities/ceiling`. No enforcement changes. Phase 2 (aggregating Capability Ledger) is not in this pass.
 
 **2026-08-17**: `dialog_ingest` MCP tool (`dialog.rw`) — bring external markdown in as a Dialog-backed Document. `dialog.rw` implies `dialog.ro`. Distinct from `gloss_write_turn`.
 

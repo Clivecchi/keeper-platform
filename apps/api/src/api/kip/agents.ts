@@ -1183,7 +1183,6 @@ async function buildCastMemberRunEnvironment(params: {
     const caps = await resolveAgentCapabilities({
       agentId: params.castMemberAgentId,
       agentSlug: params.castMemberSlug,
-      boardId: 'ide',
     });
     if (caps?.capabilities.length) {
       const allow = new Set([
@@ -3587,10 +3586,6 @@ export async function executeAgentActions(
                 const resolved = await resolveAgentCapabilities({
                   agentId: ctx.agentId,
                   agentSlug: agentRecord?.slug,
-                  boardId:
-                    agentRecord?.slug === 'cloud' || agentRecord?.slug === 'rendr'
-                      ? 'ide'
-                      : undefined,
                 });
                 agentCapabilities = resolved?.capabilities ?? [];
               } catch (error) {

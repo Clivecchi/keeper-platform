@@ -22,14 +22,14 @@
  * Future boards will use a standard UniversalConversation (to be built).
  *
  *   <UniversalBoard
- *     def={IDE_BOARD_DEF}
- *     center={(props) => <IDEBoardConversation {...props} ... />}
+ *     def={BUILD_BOARD_DEF}
+ *     center={(props) => <UniversalConversation {...props} ... />}
  *   />
  *
  * The optional `right` render prop mirrors `center`. Return a node to override
    * Chronicle (UniversalViewPanel) for that render cycle. Return null to fall back to it.
    * Use for boards with conditional right panel content — e.g. ServicesFrame
-   * when a service connection is active in the IDE Board.
+   * when a service connection is active on Build Board.
  *
  * CRITICAL RULES:
  * - domainId is resolved once, here, at board root. Never resolved by panels.
@@ -498,10 +498,10 @@ function UniversalBoardShell({
   }
 
   // ── Panel group board kind — maps boardId to known layout presets ──────────
-  // ide and agent have distinct persisted layout preferences.
-  // All other board IDs default to "ide" layout ratios.
+  // build and agent have distinct persisted layout preferences.
+  // All other board IDs default to Build layout ratios.
   const boardKind: KeeperBoardKind =
-    def.boardId === "ide" ? "ide" : def.boardId === "agent" ? "agent" : "ide"
+    def.boardId === "agent" ? "agent" : "build"
 
   // ── Left panel — resolved identity for render prop ─────────────────────────
   const leftProps: UniversalBoardLeftProps = {

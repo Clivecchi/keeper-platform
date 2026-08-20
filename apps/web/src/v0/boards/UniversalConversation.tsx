@@ -12,12 +12,12 @@
  *   - Computes agentContext once from useV0Shell()
  *   - Calls useAgentDialog with parameters from def.conversation
  *   - Branches on def.conversation.kipMode only for banner props
- *     and the three ide-mode callbacks
- *   - Calls useDraftContext for ide and agent modes
+ *     and Build-session callbacks
+ *   - Calls useDraftContext for build and agent modes
  *   - Renders KeeperDialogFrame once
  *
  * Modes:
- *   "ide"    — keeper + journey banner, Kip context sync, session title save,
+ *   "build"  — keeper + journey banner, Kip context sync, session title save,
  *              service bar, draft-session linking
  *   "agent"  — agent studio banner, draft context
  *   "domain" — domain identity (wordmark, tagline, live pulse, counts) via bannerContext → KeeperDialogFrame
@@ -460,7 +460,7 @@ export function UniversalConversation({
   const isDirectedCueing =
     !guidedArrivalActive
     && def.conversation.dialogCueing === "directed"
-    && (kipMode === "ide" || kipMode === "designer" || (kipMode === "domain" && !hasDomainLeadAgent))
+    && !(kipMode === "domain" && hasDomainLeadAgent)
 
   const dialogStyle = def.conversation.dialogStyle
   const isVibeStyle = dialogStyle === "vibe"
@@ -576,7 +576,7 @@ export function UniversalConversation({
   )
 
   const directorCastLabels = React.useMemo((): Record<string, string> => {
-    if (kipMode === "ide") return { ...CAST_MEMBER_LABELS }
+    if (kipMode === "build") return { ...CAST_MEMBER_LABELS }
     if (kipMode === "designer") {
       const labels: Record<string, string> = {
         [KIP_FALLBACK_SLUG]: KIP_FALLBACK_DISPLAY_NAME,
@@ -789,9 +789,9 @@ export function UniversalConversation({
     def.conversation.boardCast,
   ])
 
-  /** IDE Board — Kip is director; Cloud / Rendr from boardCast. */
-  const ideCast = React.useMemo((): CastMemberChip[] => {
-    if (kipMode !== "ide" || !isDirectedCueing) return []
+  /** Build Board — Kip is director; Cloud / Rendr from boardCast. */
+  const buildCast = React.useMemo((): CastMemberChip[] => {
+    if (kipMode !== "build" || !isDirectedCueing) return []
     const castMembers: CastMemberChip[] = [
       {
         slug: directorAgentSlug,
@@ -1056,7 +1056,7 @@ export function UniversalConversation({
     return domainFrame?.agent_board?.messaging
   }, [kipMode, domainFrame])
 
-  // ── ide mode: resolved names for banner ───────────────────────────────────
+  // ── build mode: resolved names for banner ───────────────────────────────────
   const activeKeeperId = selectedKeeperId ?? frameCtx?.selection?.activeKeeperId ?? null
   const activeJourneyId = selectedJourneyId ?? frameCtx?.selection?.activeJourneyId ?? null
 
@@ -1266,7 +1266,7 @@ export function UniversalConversation({
 
   const setMessagesRef = React.useRef<React.Dispatch<React.SetStateAction<AgentDialogueMessage[]>> | null>(null)
 
-  // ── ide / designer / agent mode: post-run callbacks ─────────────────────────
+  // ── build / designer / agent mode: post-run callbacks ─────────────────────────
   const onAfterAgentRun = React.useCallback(
     (latestRaw: KipMessage[] | undefined, actionResults: unknown[] | undefined) => {
       const discussAnchor = selection.draftDiscussAnchor
@@ -1401,7 +1401,7 @@ export function UniversalConversation({
         return
       }
 
-      if (kipMode !== "ide") return
+      if (kipMode !== "build") return
 
       if (Array.isArray(actionResults)) {
         for (const ar of actionResults) {
@@ -1456,7 +1456,7 @@ export function UniversalConversation({
       result: unknown,
     ) => {
       void result
-      if (kipMode === "ide" || kipMode === "designer" || kipMode === "agent") {
+      if (kipMode === "build" || kipMode === "designer" || kipMode === "agent") {
         onAfterAgentRun(latestRaw, actionResults)
       }
       if (kipMode === "domain") {
@@ -1688,7 +1688,7 @@ export function UniversalConversation({
 
   const handleRefreshDraftsAfterRun = React.useCallback(
     async (result: unknown) => {
-      if ((kipMode !== "agent" && kipMode !== "ide") || !onDraftListRefresh) return
+      if ((kipMode !== "agent" && kipMode !== "build") || !onDraftListRefresh) return
       const { actions: actionResults } = extractRunAgentPayload(result)
       if (!actionResults?.length) return
       const hasDraftMutation = actionResults.some((ar: unknown) => {
@@ -1748,18 +1748,18 @@ export function UniversalConversation({
     resolvedAudience: audience,
     refreshSession,
     frameCtx,
-    activeJourneyId: kipMode === "ide" ? activeJourneyId : null,
+    activeJourneyId: kipMode === "build" ? activeJourneyId : null,
     controlledSessionId: activeSessionId,
     onControlledSessionIdChange: handleSessionChange,
     onAfterAgentRun:
-      kipMode === "domain" || kipMode === "ide" || kipMode === "designer" || kipMode === "agent"
+      kipMode === "domain" || kipMode === "build" || kipMode === "designer" || kipMode === "agent"
         ? onAfterAgentRunWithEcho
         : undefined,
     onRefreshDraftsAfterRun:
-      kipMode === "agent" || kipMode === "ide" ? handleRefreshDraftsAfterRun : undefined,
+      kipMode === "agent" || kipMode === "build" ? handleRefreshDraftsAfterRun : undefined,
     frameKey: designerFocusKey ?? undefined,
     manageSessionExternally:
-      kipMode === "ide" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
+      kipMode === "build" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
     directorConfig,
     onDirectorPhaseChange: isDirectedCueing ? setDirectorSendPhase : undefined,
     userId: user?.id ?? null,
@@ -1790,11 +1790,11 @@ export function UniversalConversation({
 
   // ── useDraftContext — IDE draft–session linking ─────────────────────────────
   useDraftContext({
-    selectedDraftId: kipMode === "ide" ? selectedDraftId : null,
+    selectedDraftId: kipMode === "build" ? selectedDraftId : null,
     domainId,
-    agentId: kipMode === "ide" ? agentId : null,
+    agentId: kipMode === "build" ? agentId : null,
     activeSessionId: dialogSessionId,
-    onActiveSessionIdChange: kipMode === "ide" ? handleSessionChange : undefined,
+    onActiveSessionIdChange: kipMode === "build" ? handleSessionChange : undefined,
   })
 
   const idleMessages = React.useMemo<AgentDialogueMessage[]>(
@@ -1808,7 +1808,7 @@ export function UniversalConversation({
           ),
         ]
       }
-      if (kipMode === "ide") {
+      if (kipMode === "build") {
         return [{
           id: "kip-greeting",
           role: "agent",
@@ -1941,7 +1941,7 @@ export function UniversalConversation({
   // IDE Board owns Kip session lifecycle (cast cues do not swap the dialog agent).
   // Resume-only on mount — Dialog/session create waits for first real send.
   React.useEffect(() => {
-    if (kipMode !== "ide" || !agentId) return
+    if (kipMode !== "build" || !agentId) return
     if (frameCtx?.isResolving) return
     if (activeSessionId) return
 
@@ -2052,7 +2052,7 @@ export function UniversalConversation({
     def.boardId,
   ])
 
-  // ── ide mode: session title save ──────────────────────────────────────────
+  // ── build mode: session title save ──────────────────────────────────────────
   const handleSaveTitle = React.useCallback(
     async (title: string) => {
       if (!dialogSessionId || !agentId) return
@@ -2106,7 +2106,7 @@ export function UniversalConversation({
     }
 
     switch (kipMode) {
-      case "ide":
+      case "build":
         return {
           primary: defaultAgentName,
           secondary: activeCastMember
@@ -2216,8 +2216,8 @@ export function UniversalConversation({
     actions,
   ])
 
-  // ── modelProvider — ide mode reads from domain frame ──────────────────────
-  const modelProvider = kipMode === "ide"
+  // ── modelProvider — build mode reads from domain frame ──────────────────────
+  const modelProvider = kipMode === "build"
     ? ((domainFrame as { kip?: { model?: string } } | null)?.kip?.model ?? null)
     : null
 
@@ -2489,7 +2489,7 @@ export function UniversalConversation({
   const resolvedBoardCast = React.useMemo((): CastMemberChip[] | undefined => {
     if (isLeadLedDomain && kipMode === "domain") return domainCollaborationCast
     if (!isDirectedCueing) return undefined
-    if (kipMode === "ide") return ideCast
+    if (kipMode === "build") return buildCast
     if (kipMode === "designer") return designerCast
     if (kipMode === "domain") return domainDirectorCast
     return undefined
@@ -2497,7 +2497,7 @@ export function UniversalConversation({
     isLeadLedDomain,
     kipMode,
     isDirectedCueing,
-    ideCast,
+    buildCast,
     designerCast,
     domainDirectorCast,
     domainCollaborationCast,
@@ -2556,16 +2556,16 @@ export function UniversalConversation({
         sessionId={dialogSessionId}
         soleActive={false}
         modelProvider={modelProvider}
-        onSaveTitle={kipMode === "ide" ? handleSaveTitle : undefined}
+        onSaveTitle={kipMode === "build" ? handleSaveTitle : undefined}
         dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}
         mobileDialogStage={useMobileStagedComposer ? mobileDialogStage : undefined}
         onComposerFocusChange={useMobileStagedComposer ? handleComposerFocusChange : undefined}
         suppressMobileDomainBanner={suppressMobileDomainBanner === true}
         showServiceBar={def.conversation.showServiceBar}
-        onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
-        onToolInvoke={isDirectedCueing && kipMode === "ide" ? handleToolInvoke : undefined}
+        onServiceOpen={def.conversation.showServiceBar ? (service) => onServiceOpen(service ?? "vercel") : undefined}
+        onToolInvoke={isDirectedCueing && def.conversation.showServiceBar ? handleToolInvoke : undefined}
         activeToolSlug={
-          isDirectedCueing && kipMode === "ide"
+          isDirectedCueing && def.conversation.showServiceBar
             ? (activeCastMember === "cloud" || activeCastMember === "rendr"
                 ? activeCastMember
                 : null)
@@ -2579,7 +2579,6 @@ export function UniversalConversation({
           isLeadLedDomain && kipMode === "domain"
             ? (kipSupportInvoked ? KIP_FALLBACK_SLUG : KIP_SUPPORT_DISENGAGED)
             : isDirectedCueing && !castMultiSelect
-              && (kipMode === "designer" || kipMode === "ide")
               ? activeCastMember
               : null
         }
@@ -2639,7 +2638,7 @@ export function UniversalConversation({
         onAcceptDraftPoint={domainId ? handleAcceptDraftPoint : undefined}
         acceptedDraftPointIds={acceptedDraftPointIds}
         acceptingDraftPointId={acceptingDraftPointId}
-        agentBubbleFullWidth={kipMode !== "ide"}
+        agentBubbleFullWidth={kipMode !== "build"}
         agentId={dialogAgentId}
         domainId={domainId ?? null}
         dialogueMode={def.conversation.dialogueMode === "domain" ? "domain" : undefined}

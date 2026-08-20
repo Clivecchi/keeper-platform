@@ -9,7 +9,12 @@
 
 // ─── Supporting Types ─────────────────────────────────────────────────────────
 
-export type BoardId = "ide" | "agent" | "domain" | "designer" | "realm" | (string & {})
+import { CLOUD_MCP_CEILING } from "@keeper/shared"
+
+export type BoardId = "build" | "agent" | "domain" | "designer" | "realm" | (string & {})
+
+/** Session mode on a Board — drives context injection. Distinct from Board id. */
+export type KipSessionMode = "build" | "agent" | "domain" | "designer"
 
 /** How Dialog coordinates agents on this board — see docs/universal-board-dialog-cueing.md */
 export type DialogCueingMode =
@@ -108,7 +113,7 @@ export interface NavPanelDef {
    */
   integrations?: NavInstrumentDef[]
   /**
-   * Realm / Agent boards: soft AI access summary (included vs yours) — not the IDE key registry.
+   * Realm / Agent boards: soft AI access summary (included vs yours) — not the Build key registry.
    */
   aiAccessSummary?: boolean
   /** Domain / Realm / IDE: domain-bound MCP keys for external tools */
@@ -138,7 +143,7 @@ export interface ConversationPanelDef {
   dialogueMode: "domain" | "agent"
   showServiceBar: boolean
   /** Which KipSession mode the conversation uses. Drives context injection and session behavior. */
-  kipMode: "ide" | "agent" | "domain" | "designer"
+  kipMode: KipSessionMode
   /**
    * Dialog cueing — who owns the composer and how Cast participates.
    * @default "monologue" when omitted (legacy boards)
@@ -165,7 +170,7 @@ export interface ConversationPanelDef {
   castBar?: boolean
   /**
    * Domain/Realm: multiple non-lead Cast members may be cued at once.
-   * IDE/Designer omit this (single-active-Cast-member swap unchanged).
+   * Build/Designer omit this (single-active-Cast-member swap unchanged).
    */
   castMultiSelect?: boolean
   /**
@@ -296,28 +301,8 @@ export interface BoardAccessDef {
 
 // ─── Primary Interface ────────────────────────────────────────────────────────
 
-/** Infra + MCP capability ceiling for Build Board — keep in sync with apps/api/src/capabilities/infraCapabilities.ts IDE_BOARD_MCP_CEILING */
-const IDE_BOARD_ALLOWED_CAPABILITIES: string[] = [
-  "infra.railway.read",
-  "infra.railway.deploy",
-  "infra.vercel.read",
-  "infra.vercel.deploy",
-  "infra.github.read",
-  "infra.github.write",
-  "infra.nango.read",
-  "infra.resend.read",
-  "github.repo.read",
-  "github.commits.list",
-  "github.branch.create",
-  "github.file.write",
-  "github.pr.create",
-  "github.pr.read",
-  "github.actions.status",
-  "integrations.list",
-  "nango.status.read",
-  "resend.status.read",
-  "library.ro",
-]
+/** Cloud MCP ceiling declared on Build Board — shared with API. */
+const BUILD_BOARD_ALLOWED_CAPABILITIES: string[] = [...CLOUD_MCP_CEILING]
 
 /**
  * UniversalBoardDef
@@ -344,8 +329,8 @@ export interface UniversalBoardDef {
 // Each existing Board expressed as a UniversalBoardDef.
 // Future boards are new entries here — not new components.
 
-export const IDE_BOARD_DEF: UniversalBoardDef = {
-  boardId: "ide",
+export const BUILD_BOARD_DEF: UniversalBoardDef = {
+  boardId: "build",
   displayName: "Build Board",
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
@@ -374,11 +359,11 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
     agentName: "Kip",
     dialogueMode: "domain",
     showServiceBar: true,
-    kipMode: "ide",
+    kipMode: "build",
     dialogCueing: "directed",
     directorAgentSlug: "kip",
     boardCast: ["cloud", "rendr"],
-    allowedCapabilities: IDE_BOARD_ALLOWED_CAPABILITIES,
+    allowedCapabilities: BUILD_BOARD_ALLOWED_CAPABILITIES,
   },
   contextSurface: {
     viewStates: mergeViewStates({
@@ -576,7 +561,7 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
 
 // Registry of all board definitions — index by boardId
 export const BOARD_DEFINITIONS: Record<string, UniversalBoardDef> = {
-  ide: IDE_BOARD_DEF,
+  build: BUILD_BOARD_DEF,
   agent: AGENT_BOARD_DEF,
   domain: DOMAIN_BOARD_DEF,
   realm: REALM_BOARD_DEF,

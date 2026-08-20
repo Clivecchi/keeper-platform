@@ -3,9 +3,14 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
+import { authMiddlewareCompat, type AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
-import { buildIdeBoardCeilingStatus } from '../capabilities/ideBoardCeilingStatus.js';
+import { BUILD_BOARD_ID } from '@keeper/shared';
+import { buildCloudCeilingStatus } from '../capabilities/boardCeilingStatus.js';
+import {
+  buildJwtMcpSlice,
+  resolveCapabilityLedger,
+} from '../capabilities/capabilityLedger.js';
 
 const router = Router();
 
@@ -35,13 +40,13 @@ router.get('/resolve', authMiddlewareCompat, async (req: Request, res: Response)
 });
 
 /**
- * GET /api/capabilities/ceiling?boardId=ide&agentSlug=cloud
- * Read-only IDE/Build MCP ceiling. Optional agent intersection.
+ * GET /api/capabilities/ceiling?boardId=build&agentSlug=cloud
+ * Read-only Cloud MCP ceiling. Optional agent intersection.
  * Does not change requireCapability or mcp.call gates.
  */
 router.get('/ceiling', authMiddlewareCompat, async (req: Request, res: Response) => {
   const q = req.query as Record<string, string | undefined>;
-  const boardId = q.boardId?.trim() || 'ide';
+  const boardId = q.boardId?.trim() || BUILD_BOARD_ID;
   const agentId = q.agentId?.trim();
   const agentSlug = q.agentSlug?.trim();
 
@@ -56,7 +61,7 @@ router.get('/ceiling', authMiddlewareCompat, async (req: Request, res: Response)
 
     return res.json({
       success: true,
-      data: buildIdeBoardCeilingStatus({
+      data: buildCloudCeilingStatus({
         boardId,
         resolved,
       }),
@@ -64,6 +69,38 @@ router.get('/ceiling', authMiddlewareCompat, async (req: Request, res: Response)
   } catch (error) {
     console.error('[capabilities/ceiling]', error);
     return res.status(500).json({ error: 'Failed to read board capability ceiling' });
+  }
+});
+
+/**
+ * GET /api/capabilities/ledger?domainId=&agentSlug=&boardId=
+ * Phase 2 Capability Ledger — one read of MCP scopes (JWT placeholder),
+ * Kip allowlist, and Cloud ceiling. Does not change enforcement.
+ */
+router.get('/ledger', authMiddlewareCompat, async (req: Request, res: Response) => {
+  const q = req.query as Record<string, string | undefined>;
+  const domainId = q.domainId?.trim() || null;
+  const boardId = q.boardId?.trim() || BUILD_BOARD_ID;
+  const agentId = q.agentId?.trim();
+  const agentSlug = q.agentSlug?.trim();
+  const userId = (req as AuthenticatedRequest).user?.id ?? null;
+
+  try {
+    const ledger = await resolveCapabilityLedger({
+      mcp: buildJwtMcpSlice(domainId),
+      domainId,
+      userId,
+      agentSlug,
+      agentId,
+      boardId,
+    });
+    return res.json({
+      success: true,
+      data: ledger,
+    });
+  } catch (error) {
+    console.error('[capabilities/ledger]', error);
+    return res.status(500).json({ error: 'Failed to read capability ledger' });
   }
 });
 

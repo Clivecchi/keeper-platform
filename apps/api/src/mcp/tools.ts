@@ -13,11 +13,12 @@ import { appendGlossTurn } from '../services/GlossWriteService.js';
 import { DialogMcpService } from '../services/DialogMcpService.js';
 import { ingestExternalDocument } from '../services/kip/ingestExternalDocument.js';
 import { resolveMcpDomainLabel } from './domainContext.js';
-import { DOMAIN_ACCESS_KEY_SCOPES, isGlossAnchor } from '@keeper/shared';
+import { BUILD_BOARD_ID, DOMAIN_ACCESS_KEY_SCOPES, isGlossAnchor } from '@keeper/shared';
 import { buildKipActionAllowlistStatus } from '../policy/kipActionAllowlist.js';
 import { resolveKipActionAllowlistStatusForSession } from '../services/kip/resolveKipActionAllowlistStatus.js';
 import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
-import { buildIdeBoardCeilingStatus } from '../capabilities/ideBoardCeilingStatus.js';
+import { buildCloudCeilingStatus } from '../capabilities/boardCeilingStatus.js';
+import { resolveCapabilityLedger } from '../capabilities/capabilityLedger.js';
 
 export type ToolContext = {
   domainId: string | null;
@@ -148,7 +149,7 @@ export async function buildCapabilitiesManifest(params: {
     tools: visible,
     note: isPlatform
       ? 'Platform key — full MCP catalog.'
-      : 'Scoped token — tools/list only includes granted capabilities (plus capabilities_list, kip_actions_list, ide_ceiling_list).',
+      : 'Scoped token — tools/list only includes granted capabilities (plus capabilities_list, kip_actions_list, cloud_ceiling_list, capability_ledger).',
   };
 }
 
@@ -604,16 +605,16 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'ide_ceiling_list',
+    name: 'cloud_ceiling_list',
     description:
-      'Read the IDE/Build board MCP ceiling (what Cloud may reach via mcp.call) and, when agent context is present, the agent ∩ ceiling intersection. Self-check only — does not change enforcement.',
+      'Read the Cloud MCP ceiling (what Cloud may reach via mcp.call) and, when agent context is present, the agent ∩ ceiling intersection. Self-check only — does not change enforcement.',
     alwaysVisible: true,
     parameters: {
       type: 'object',
       properties: {
         agentSlug: { type: 'string', description: 'Optional agent slug (e.g. cloud) to intersect with the ceiling' },
         agentId: { type: 'string', description: 'Optional agent id to intersect with the ceiling' },
-        boardId: { type: 'string', description: 'Board id. ide and build share the same ceiling. Defaults to ide.' },
+        boardId: { type: 'string', description: 'Optional board id. ide is accepted as a legacy alias for build. Defaults to build.' },
       },
     },
     async handler(args, ctx) {
@@ -628,7 +629,7 @@ const tools: Tool[] = [
       const boardId =
         typeof args?.boardId === 'string' && args.boardId.trim()
           ? args.boardId.trim()
-          : 'ide';
+          : BUILD_BOARD_ID;
 
       if (agentSlug || agentId) {
         const resolved = await resolveAgentCapabilities({
@@ -636,10 +637,53 @@ const tools: Tool[] = [
           agentSlug,
           boardId,
         });
-        return buildIdeBoardCeilingStatus({ boardId, resolved });
+        return buildCloudCeilingStatus({ boardId, resolved });
       }
 
-      return buildIdeBoardCeilingStatus({
+      return buildCloudCeilingStatus({
+        boardId,
+        agentCapabilities: ctx.agentCapabilities ?? null,
+      });
+    },
+  },
+  {
+    name: 'capability_ledger',
+    description:
+      'Read the Capability Ledger — one aggregation of MCP scopes, Kip action allowlist, and Cloud MCP ceiling. Self-check only — does not change enforcement. Key stores are listed, not merged.',
+    alwaysVisible: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        agentSlug: { type: 'string', description: 'Optional agent slug (e.g. cloud) to intersect with the Cloud ceiling' },
+        agentId: { type: 'string', description: 'Optional agent id to intersect with the Cloud ceiling' },
+        boardId: { type: 'string', description: 'Optional board id for the Cloud ceiling slice. ide is a legacy alias for build. Defaults to build.' },
+      },
+    },
+    async handler(args, ctx) {
+      const agentSlug =
+        typeof args?.agentSlug === 'string' && args.agentSlug.trim()
+          ? args.agentSlug.trim()
+          : undefined;
+      const agentId =
+        typeof args?.agentId === 'string' && args.agentId.trim()
+          ? args.agentId.trim()
+          : undefined;
+      const boardId =
+        typeof args?.boardId === 'string' && args.boardId.trim()
+          ? args.boardId.trim()
+          : BUILD_BOARD_ID;
+
+      const mcp = await buildCapabilitiesManifest({
+        scopes: ctx.scopes ?? ctx.agentCapabilities,
+        domainId: ctx.domainId,
+      });
+
+      return resolveCapabilityLedger({
+        mcp,
+        domainId: ctx.domainId,
+        userId: ctx.userId,
+        agentSlug,
+        agentId,
         boardId,
         agentCapabilities: ctx.agentCapabilities ?? null,
       });

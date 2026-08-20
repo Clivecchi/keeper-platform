@@ -57,7 +57,7 @@ export interface UniversalBoardDataFetch {
  */
 export interface UniversalBoardSchema {
   /** Canonical key. Maps to boardRegistry.ts keys. */
-  boardId: "ide" | "agent" | "domain" | "designer"
+  boardId: "build" | "agent" | "domain" | "designer"
 
   /** Human-readable label used in navigation and registry. */
   displayName: string
@@ -124,8 +124,8 @@ export interface UniversalBoardSchema {
  * Build Board — visual reference standard.
  * Agent Board's structural discipline + Build Board's visual standard = Universal Board target.
  */
-export const IDE_BOARD_SCHEMA: UniversalBoardSchema = {
-  boardId: "ide",
+export const BUILD_BOARD_SCHEMA: UniversalBoardSchema = {
+  boardId: "build",
   displayName: "Build Board",
   access: {
     // boardRegistry.ts confirms isPrivate: true for all boards.
@@ -135,9 +135,9 @@ export const IDE_BOARD_SCHEMA: UniversalBoardSchema = {
   },
   layoutEngine: "panel-group",
   centerPanel: {
-    // IDEBoardConversation sub-component owns KeeperDialogFrame, not the Board root.
+    // UniversalConversation owns KeeperDialogFrame.
     ownsDialogFrame: false,
-    componentName: "IDEBoardConversation",
+    componentName: "UniversalConversation",
   },
   rightPanel: {
     viewStates: [
@@ -200,7 +200,7 @@ export const IDE_BOARD_SCHEMA: UniversalBoardSchema = {
     "Visual reference standard. All Universal Boards render to this visual standard.",
     "activeKeeperId is read from useFrameContextOptional, not Board-owned state.",
     "Mutual exclusion of selection IDs (draft/moment/keeper/journey) is enforced manually per callback — not abstracted.",
-    "IDEBoardConversation sub-component owns KeeperDialogFrame, not the Board root.",
+    "UniversalConversation owns KeeperDialogFrame, not a Board-specific conversation wrapper.",
     "5 right panel view states confirmed: service, journey, draft, moment, keeper, plus idle fallback.",
   ],
 }

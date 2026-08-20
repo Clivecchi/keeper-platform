@@ -44,7 +44,7 @@ export function IntegrationFocusPresence({
   objectId,
   domainId,
   record: _record,
-  boardId = "ide",
+  boardId = "build",
   onKeySelect,
   onLabelResolved,
 }: IntegrationFocusPresenceProps) {

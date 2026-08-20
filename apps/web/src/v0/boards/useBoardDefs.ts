@@ -7,7 +7,7 @@
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import {
-  IDE_BOARD_DEF,
+  BUILD_BOARD_DEF,
   AGENT_BOARD_DEF,
   DOMAIN_BOARD_DEF,
   REALM_BOARD_DEF,
@@ -20,7 +20,7 @@ import { resolveBoardDefs } from "./resolveBoardDefs"
  * Used when domainFrame.boards is absent (domains not yet seeded).
  */
 export const BOARD_DEFINITIONS_FALLBACK: Record<string, UniversalBoardDef> = {
-  ide: IDE_BOARD_DEF,
+  build: BUILD_BOARD_DEF,
   agent: AGENT_BOARD_DEF,
   domain: DOMAIN_BOARD_DEF,
   realm: REALM_BOARD_DEF,

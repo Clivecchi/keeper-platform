@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-export type KeeperBoardKind = "ide" | "agent"
+export type KeeperBoardKind = "build" | "agent"
 
 export interface KeeperBoardPanelGroupProps {
   boardKind: KeeperBoardKind
@@ -19,7 +19,7 @@ const MAX_SIDE = 52
 const LAYOUT_VERSION = "v4"
 
 const DEFAULTS: Record<KeeperBoardKind, { leftPct: number; rightPct: number }> = {
-  ide: { leftPct: 15, rightPct: 35 },
+  build: { leftPct: 15, rightPct: 35 },
   agent: { leftPct: 15, rightPct: 35 },
 }
 
@@ -41,8 +41,25 @@ function validPair(leftPct: number, rightPct: number): boolean {
   )
 }
 
-function loadStored(groupId: string, fallback: { leftPct: number; rightPct: number }) {
+function loadStored(
+  groupId: string,
+  fallback: { leftPct: number; rightPct: number },
+  legacyGroupId?: string | null,
+) {
   if (typeof localStorage === "undefined") return fallback
+  const current = readStoredPair(groupId)
+  if (current) return current
+  if (legacyGroupId) {
+    const legacy = readStoredPair(legacyGroupId)
+    if (legacy) {
+      saveStored(groupId, legacy.leftPct, legacy.rightPct)
+      return legacy
+    }
+  }
+  return fallback
+}
+
+function readStoredPair(groupId: string): { leftPct: number; rightPct: number } | null {
   try {
     const raw = JSON.parse(localStorage.getItem(storageKey(groupId)) || "null") as {
       leftPct?: number
@@ -58,7 +75,7 @@ function loadStored(groupId: string, fallback: { leftPct: number; rightPct: numb
   } catch {
     /* ignore */
   }
-  return fallback
+  return null
 }
 
 function saveStored(groupId: string, leftPct: number, rightPct: number) {
@@ -82,12 +99,14 @@ export function KeeperBoardPanelGroup({
   right: rightChild,
 }: KeeperBoardPanelGroupProps) {
   const fallback = DEFAULTS[boardKind]
-  const groupId =
-    domainSlug.trim().length > 0
-      ? `keeper-board-${boardKind}:${domainSlug}`
-      : `keeper-board-${boardKind}:default`
+  const slugKey = domainSlug.trim().length > 0 ? domainSlug : "default"
+  const groupId = `keeper-board-${boardKind}:${slugKey}`
+  const legacyGroupId =
+    boardKind === "build" ? `keeper-board-ide:${slugKey}` : null
 
-  const [{ leftPct, rightPct }, setPercents] = React.useState(() => loadStored(groupId, fallback))
+  const [{ leftPct, rightPct }, setPercents] = React.useState(() =>
+    loadStored(groupId, fallback, legacyGroupId),
+  )
 
   const rootRef = React.useRef<HTMLDivElement>(null)
 

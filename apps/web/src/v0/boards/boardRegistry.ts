@@ -7,23 +7,24 @@
 // Each entry now carries a `def` field — the UniversalBoardDef for that board.
 // This is the source of truth for the board's panel configuration.
 // New boards are entries here + a def in UniversalBoardDefinition.ts.
+// V0Shell renders UniversalBoard from the def; wrapper components stay for registry completeness.
 
 import * as React from "react"
 import { DesignBoard } from "./designer/DesignBoard"
 import { DomainBoard } from "./domain/DomainBoard"
 import { RealmBoard } from "./realm/RealmBoard"
 import { AgentBoard } from "./agent/AgentBoard"
-import { IDEBoard } from "./ide/IDEBoard"
+import { BuildBoard } from "./build/BuildBoard"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import {
-  IDE_BOARD_DEF,
+  BUILD_BOARD_DEF,
   AGENT_BOARD_DEF,
   DOMAIN_BOARD_DEF,
   REALM_BOARD_DEF,
   DESIGNER_BOARD_DEF,
 } from "./UniversalBoardDefinition"
 
-export type V0BoardKey = "designer" | "domain" | "realm" | "agent" | "ide"
+export type V0BoardKey = "designer" | "domain" | "realm" | "agent" | "build"
 
 export interface BoardRegistryEntry {
   component: React.ComponentType<any>
@@ -63,11 +64,11 @@ export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
     isAdminOnly: false,
     def: AGENT_BOARD_DEF,
   },
-  ide: {
-    component: IDEBoard,
+  build: {
+    component: BuildBoard,
     displayName: "Build Board",
     isPrivate: true,
     isAdminOnly: false,
-    def: IDE_BOARD_DEF,
+    def: BUILD_BOARD_DEF,
   },
 }

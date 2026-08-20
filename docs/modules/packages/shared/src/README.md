@@ -8,6 +8,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `logger.ts` – Minimal console logger
 - `roles.ts` – Shared role identifiers
 - `canonicalBoards.ts` – Canonical logged-in experience board slugs & helpers
+- `universalBoardId.ts` – `build` Board id; `ide` is a URL/frame-JSON alias only
+- `cloudMcpCeiling.ts` – Cloud MCP capability ceiling (shared by API + Build Board def)
 
 ## 🔄 Data & Behavior
 - All exports are side-effect free utilities or type helpers.
@@ -18,6 +20,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-19: `universalBoardId.ts` + `cloudMcpCeiling.ts` — Build is the Board id; Cloud ceiling is Cloud's list, not an IDE identity.
 - 2026-08-17: `markdownToDraftPoints.ts` — heading/section split for Dialog ingest (truncates at `INGEST_MAX_POINTS`). `dialog.rw` added to `DOMAIN_ACCESS_KEY_SCOPES`.
 - 2026-07-25: `dialogParticipation` default is `voice` for every agent (including Cloud). `support_only` / `silent` only via Agent Config.
 - 2026-07-24: `dialogParticipation.ts` — `voice` | `support_only` | `silent` on agent config. `redactForLog.ts` — JWT/token redaction for console/debug capture.

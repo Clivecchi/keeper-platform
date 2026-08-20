@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest"
 import {
   isPlatformDomainSlug,
@@ -18,15 +19,15 @@ describe("domainWorkspaceBoards", () => {
     expect(resolveAvailableWorkspaceBoardIds("default")).toEqual([
       "realm",
       "domain",
-      "ide",
+      "build",
       "designer",
       "agent",
     ])
   })
 
-  it("labels the ide workspace as Build", () => {
+  it("labels the Build Board as Build", () => {
     const links = resolveWorkspaceBoardLinks("default")
-    expect(links.find((board) => board.id === "ide")?.label).toBe("Build")
+    expect(links.find((board) => board.id === "build")?.label).toBe("Build")
     expect(links.map((board) => board.label)).toEqual([
       "Realm",
       "Domain",
@@ -42,6 +43,7 @@ describe("domainWorkspaceBoards", () => {
       "domain",
       "agent",
     ])
+    expect(isWorkspaceBoardAvailableForDomain("build", "livecchi")).toBe(false)
     expect(isWorkspaceBoardAvailableForDomain("ide", "livecchi")).toBe(false)
     expect(isWorkspaceBoardAvailableForDomain("designer", "livecchi")).toBe(false)
     expect(isWorkspaceBoardAvailableForDomain("domain", "livecchi")).toBe(true)

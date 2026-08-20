@@ -20,7 +20,7 @@ export interface UseSelectionSessionResumeOptions {
   domainId: string | null | undefined
   domainSlug?: string | null
   kipAgentId: string | null
-  kipMode: "ide" | "agent" | "domain" | "designer"
+  kipMode: "build" | "agent" | "domain" | "designer"
   selectedDialogId: string | null | undefined
   selectedJourneyId: string | null | undefined
   selectedKeeperId: string | null | undefined
@@ -227,8 +227,8 @@ export function useSelectionSessionResume({
               /* best-effort link */
             }
             await fetchMessages(activeSessionIdRef.current)
-          } else if (kipMode === "ide") {
-            // IDE board session bootstrap owns first session — do not wipe to idle greeting.
+          } else if (kipMode === "build") {
+            // Build Board session bootstrap owns first session — do not wipe to idle greeting.
             return
           } else {
             openIdle()

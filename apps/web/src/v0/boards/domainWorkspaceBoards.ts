@@ -3,7 +3,7 @@
  * ---------------------
  * Which workspace boards (`?board=`) are available for a domain slug.
  *
- * Platform (KE3P / slug `ke3p`): build surfaces — Build + Design (+ member boards).
+ * Platform (KE3P / slug `ke3p`): Build + Design (+ member boards).
  * All other domains: Domain + Agent (+ Realm home) — no Build or Design.
  */
 
@@ -12,6 +12,7 @@ import {
   LEGACY_PLATFORM_DOMAIN_SLUG,
   normalizePlatformDomainSlug,
   PLATFORM_DOMAIN_SLUG,
+  normalizeUniversalBoardId,
 } from "@keeper/shared"
 import type { WorkspaceBoardId } from "./workspaceBoardNav"
 
@@ -31,7 +32,7 @@ const MEMBER_DOMAIN_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
 const PLATFORM_WORKSPACE_BOARDS: readonly WorkspaceBoardId[] = [
   "realm",
   "domain",
-  "ide",
+  "build",
   "designer",
   "agent",
 ]
@@ -42,7 +43,7 @@ export const HOME_SHELL_BOARD: WorkspaceBoardId = "realm"
 const WORKSPACE_BOARD_LABELS: Record<WorkspaceBoardId, string> = {
   realm: "Realm",
   domain: "Domain",
-  ide: "Build",
+  build: "Build",
   designer: "Design",
   agent: "Agent",
 }
@@ -65,7 +66,9 @@ export function isWorkspaceBoardAvailableForDomain(
   domainSlug: string | null | undefined,
 ): boardId is WorkspaceBoardId {
   if (!boardId) return false
-  return resolveAvailableWorkspaceBoardIds(domainSlug).includes(boardId as WorkspaceBoardId)
+  const id = normalizeUniversalBoardId(boardId)
+  if (!id) return false
+  return resolveAvailableWorkspaceBoardIds(domainSlug).includes(id as WorkspaceBoardId)
 }
 
 /** Desktop default when landing on `/d/:slug` with no `?board=`. */

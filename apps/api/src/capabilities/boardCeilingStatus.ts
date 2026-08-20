@@ -1,20 +1,18 @@
 /**
- * IDE / Build board MCP ceiling — read-only descriptor of what Cloud may
- * reach via in-process mcp.call after agent record ∩ board ceiling.
+ * Cloud MCP ceiling — read-only descriptor of what Cloud may reach via
+ * in-process mcp.call after agent record ∩ ceiling.
  *
  * Does not change requireCapability or MCP tool gates.
  */
 
-import {
-  IDE_BOARD_MCP_CEILING,
-} from './infraCapabilities.js';
-import { BOARD_CAPABILITY_CEILINGS } from './boardCapabilityCeilings.js';
+import { BUILD_BOARD_ID, normalizeUniversalBoardId } from '@keeper/shared';
+import { BOARD_CAPABILITY_CEILINGS, boardCeilingFor } from './boardCapabilityCeilings.js';
 import type { ResolvedCapabilities } from './resolveCapabilities.js';
 
-export type IdeBoardCeilingStatus = {
-  surface: 'ide_board_mcp_ceiling';
+export type CloudCeilingStatus = {
+  surface: 'cloud_mcp_ceiling';
   boardId: string;
-  /** Canonical ceiling strings for ide/build. */
+  /** Canonical ceiling strings for Cloud / Build Board. */
   ceiling: string[];
   /** Agent record capabilities before ceiling filter. */
   agentCapabilities: string[] | null;
@@ -22,28 +20,28 @@ export type IdeBoardCeilingStatus = {
   granted: string[] | null;
   /** On the ceiling but not on the agent record (or filtered off). */
   denied: string[] | null;
-  /** Agent caps that are not on this board's ceiling. */
+  /** Agent caps that are not on this ceiling. */
   aboveCeiling: string[] | null;
   note: string;
 };
 
-export type BuildIdeBoardCeilingStatusParams = {
+export type BuildCloudCeilingStatusParams = {
   boardId?: string | null;
   agentCapabilities?: string[] | null;
   resolved?: ResolvedCapabilities | null;
 };
 
 function resolveBoardId(boardId?: string | null): string {
-  if (boardId === 'build' || boardId === 'ide') return boardId;
-  if (boardId && boardId in BOARD_CAPABILITY_CEILINGS) return boardId;
-  return 'ide';
+  const normalized = normalizeUniversalBoardId(boardId);
+  if (normalized && normalized in BOARD_CAPABILITY_CEILINGS) return normalized;
+  return BUILD_BOARD_ID;
 }
 
-export function buildIdeBoardCeilingStatus(
-  params: BuildIdeBoardCeilingStatusParams = {},
-): IdeBoardCeilingStatus {
+export function buildCloudCeilingStatus(
+  params: BuildCloudCeilingStatusParams = {},
+): CloudCeilingStatus {
   const boardId = resolveBoardId(params.boardId ?? params.resolved?.boardId);
-  const ceiling = [...(BOARD_CAPABILITY_CEILINGS[boardId] ?? IDE_BOARD_MCP_CEILING)];
+  const ceiling = [...boardCeilingFor(boardId)];
   const ceilingSet = new Set(ceiling);
 
   const agentCapabilities =
@@ -71,7 +69,7 @@ export function buildIdeBoardCeilingStatus(
 
   const hasAgent = agentCapabilities !== null;
   return {
-    surface: 'ide_board_mcp_ceiling',
+    surface: 'cloud_mcp_ceiling',
     boardId,
     ceiling: [...ceiling].sort(),
     agentCapabilities: agentCapabilities ? [...agentCapabilities].sort() : null,
@@ -79,7 +77,7 @@ export function buildIdeBoardCeilingStatus(
     denied,
     aboveCeiling,
     note: hasAgent
-      ? 'Effective set is agent record ∩ board ceiling. Same rule as resolveAgentCapabilities / mcp.call. This read does not change enforcement.'
-      : 'Declared IDE/Build ceiling only (no agent context). Pass agentSlug or call from Cloud mcp.call to see the intersection. JWT twin: GET /api/capabilities/resolve.',
+      ? 'Effective set is agent record ∩ Cloud MCP ceiling. Same rule as resolveAgentCapabilities / mcp.call. This read does not change enforcement.'
+      : 'Declared Cloud MCP ceiling only (no agent context). Pass agentSlug or call from Cloud mcp.call to see the intersection. JWT twin: GET /api/capabilities/resolve.',
   };
 }

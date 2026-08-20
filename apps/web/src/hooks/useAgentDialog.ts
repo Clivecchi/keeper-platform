@@ -39,6 +39,7 @@ import {
 } from "../v0/components/dialog/dialogThinking"
 import { useComposerDraftAutosave } from "./useComposerDraftAutosave"
 import { resolveLeadAgentId } from "../v0/lib/frameLeadAgentIdentity"
+import type { KipSessionMode } from "../v0/boards/UniversalBoardDefinition"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
 export type AgentContext = NonNullable<Parameters<typeof KipApi.runAgent>[4]>["agentContext"]
@@ -279,9 +280,9 @@ export interface UseAgentDialogOptions {
   resolvedAgentId?: string | null
   /** Display name shown in thinking/error strings. */
   agentDisplayName: string
-  /** Greeting shown in ide mode when the session has no messages yet. Defaults to "I'm here. What are we building?" */
+  /** Greeting shown in build mode when the session has no messages yet. Defaults to "I'm here. What are we building?" */
   greetingMessage?: string
-  mode: "ide" | "agent" | "domain" | "designer"
+  mode: KipSessionMode
   /** Overrides the session metadata `dialogBoard` field. Defaults to `mode`. */
   dialogBoard?: string
   /** Overrides the session metadata `dialogFrame` field. Defaults to "conversation". */
@@ -309,10 +310,10 @@ export interface UseAgentDialogOptions {
   resolvedAudience?: string | null
   refreshSession?: () => Promise<boolean>
   frameCtx?: IdeFrameContextLike
-  /** ide mode: session id owned by parent board */
+  /** build mode: session id owned by parent board */
   controlledSessionId?: string | null
   onControlledSessionIdChange?: (id: string | null) => void
-  /** ide mode: after runAgent success — e.g. context sync + action receipts on last agent message */
+  /** build mode: after runAgent success — e.g. context sync + action receipts on last agent message */
   onAfterAgentRun?: (
     latestRaw: KipMessage[] | undefined,
     actionResults: unknown[] | undefined,
@@ -477,7 +478,7 @@ export function useAgentDialog({
   )
 
   const [messages, setMessages] = React.useState<AgentDialogueMessage[]>(() =>
-    mode === "ide" ? [greeting] : [],
+    mode === "build" ? [greeting] : [],
   )
   const [input, setInput] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
@@ -495,7 +496,7 @@ export function useAgentDialog({
     if (prevBoardSessionKeyRef.current === boardSessionKey) return
     prevBoardSessionKeyRef.current = boardSessionKey
     setInternalSessionId(null)
-    setMessages(boardSessionKey === "ide" ? [greeting] : [])
+    setMessages(boardSessionKey === "build" ? [greeting] : [])
   }, [boardSessionKey, greeting])
 
   // Always-current snapshot of messages — lets sendMessage build conversation
@@ -541,7 +542,7 @@ export function useAgentDialog({
       try {
         const msgs: KipMessage[] = await KipApi.getSessionMessages(sessionId)
         const normalized = msgs.map(normalizeMessage).map(stampSenderName)
-        if (mode === "ide" || mode === "designer") {
+        if (mode === "build" || mode === "designer") {
           setMessages(normalized.length ? normalized : [greeting])
         } else {
           setMessages(normalized)
@@ -589,7 +590,7 @@ export function useAgentDialog({
   // Seed prefetched session before paint so Chronicle/Dialog do not flash empty after curtain.
   // Named Dialog in Nav owns the thread — do not restore board Chatter underneath it.
   React.useLayoutEffect(() => {
-    if (mode === "ide" || mode === "designer" || manageSessionExternally) return
+    if (mode === "build" || mode === "designer" || manageSessionExternally) return
     if (dialogId) return
     if (!domainId || String(domainId).startsWith("fallback-")) return
     if (activeSessionIdRef.current) return
@@ -601,12 +602,12 @@ export function useAgentDialog({
   }, [mode, domainId, dialogBoard, dialogId, manageSessionExternally, onControlledSessionIdChange])
 
   // agent / domain: resume existing board session only — create deferred to first send.
-  // ide and designer use controlled session lifecycle from the board shell.
+  // build and designer use controlled session lifecycle from the board shell.
   // domain: wait for a resolved domainId — shell fetch completes before session bootstrap.
   // Dead path removed (was useAgentDialog IDE bootstrap ~553-620): only callers are
-  // UniversalConversation (manageSessionExternally=true for ide) and KipScreen (mode=domain).
+  // UniversalConversation (manageSessionExternally=true for build) and KipScreen (mode=domain).
   React.useEffect(() => {
-    if (mode === "ide" || mode === "designer" || manageSessionExternally || !agentId) return
+    if (mode === "build" || mode === "designer" || manageSessionExternally || !agentId) return
     if (dialogId) return
     if (
       (mode === "domain" || mode === "agent") &&
@@ -703,7 +704,7 @@ export function useAgentDialog({
     ) => {
       if (mode === "designer" && !frameKey) return
 
-      // ── ide / agent / domain / designer: KipApi.runAgent ──────────────────
+      // ── build / agent / domain / designer: KipApi.runAgent ──────────────────
       if ((!content.trim() && !attachments?.length) || isSending || sendInFlightRef.current || !agentId) {
         return
       }
@@ -735,7 +736,7 @@ export function useAgentDialog({
           return sessionDisplayName()
         }
         if (sessionDisplayName) return sessionDisplayName
-        if (mode === "ide" && resolvedDomainId) {
+        if (mode === "build" && resolvedDomainId) {
           return buildIdeSessionName({
             domainId: resolvedDomainId,
             activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? null,
@@ -814,7 +815,7 @@ export function useAgentDialog({
         id: `user-${ts}`,
         role: "user" as const,
         content: transcriptContent,
-        createdAt: new Date(mode === "ide" ? Date.now() : ts).toISOString(),
+        createdAt: new Date(mode === "build" ? Date.now() : ts).toISOString(),
         ...(attachments?.length ? { attachments } : {}),
         ...(supportingDocs?.length ? { supportingDocs: [...supportingDocs] } : {}),
       })
@@ -1204,7 +1205,7 @@ export function useAgentDialog({
           )
         } catch (firstErr: unknown) {
           const status = (firstErr as { status?: number })?.status
-          if (mode === "ide" && status === 401 && refreshSession) {
+          if (mode === "build" && status === 401 && refreshSession) {
             const refreshed = await refreshSession()
             if (refreshed) {
               result = await KipApi.runAgent(
@@ -1318,10 +1319,10 @@ export function useAgentDialog({
           return updated
         }
 
-        if (latestRaw?.length || mode === "ide") {
+        if (latestRaw?.length || mode === "build") {
           const normalized = (latestRaw?.length
             ? latestRaw.map(normalizeMessage)
-            : mode === "ide"
+            : mode === "build"
               ? [greeting]
               : []
           ).map(stampSenderName)
@@ -1399,7 +1400,7 @@ export function useAgentDialog({
         restoreSavedDraft()
 
         // System/runtime failures must not look like the agent speaking.
-        if (mode === "ide") {
+        if (mode === "build") {
           setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
         }
         setError(null)
