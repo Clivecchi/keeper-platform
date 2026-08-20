@@ -2739,6 +2739,11 @@ button.dialog-prelude:hover {
   opacity: 0.82;
 }
 
+.cdraft[data-document-header] {
+  min-height: 0;
+  padding-bottom: 0;
+}
+
 .cdraft-body {
   padding-top: 0.35rem;
 }

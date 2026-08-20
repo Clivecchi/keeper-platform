@@ -6,6 +6,7 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 ## ?? Key Files
 - `PointView.tsx` ? clamped body, status, optional Gloss action (atomic Point)
 - `DocumentShell.tsx` ? cover + Points sequence (universal container; Realm adapter consumes this)
+- `DocumentHeader.tsx` / `documentHeader.ts` — Document identity header (same Chronicle header job as Cdraft)
 - `DocumentPointGloss.tsx` — inline polish panel on a Document Point (Dialog carrier + Kip chat)
 - `ChronicleHistoryPanel.tsx` — Dialog-scoped History quick review (session chapters + Document keeps) with parent/child disclosure
 - `chronicleMobile.ts` ? viewed-state, deep-link scroll, and History grouping helpers
@@ -15,9 +16,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 
 ## ?? Data & Behavior
 - Adapters produce `Point` from `@keeper/shared`
-- `Document` (shared) is the Dialog-scoped container shape; Realm mounts `DocumentShell`
+- `Document` (shared) is the Dialog-scoped container shape; Realm mounts `DocumentHeader` + `DocumentShell`
 - `DocumentShell` accepts optional Path groups (`pointIds` as indexes into `points`)
-- Optional `forward` + `step` replace the plain title/subtitle header; Back/Forward lineage nav stays disabled until Layer 3
+- Identity header is always present for a named Dialog Document (title, Document kind, point count) — including empty Documents. Authored `forward` + `step` are destination content below the header, not a substitute for it.
 - Gloss: library items use `buildLibraryGlossAnchor`; manuscript Points use draft+nodeId anchors + body snapshot. With `glossContext` (Dialog scope), Gloss opens `DocumentPointGloss` inline on the Point — not Dialog sprawl.
 
 ## ?? Notes & ToDo
@@ -25,6 +26,11 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-19 — Document identity header (Universal Render)
+- Named Dialog Documents always render `DocumentHeader` — same Chronicle header job as Draft (`Cdraft`): title, Document kind, status pill, point count, Manage.
+- Empty Documents say **No Points yet.** Realm idle copy ("Realm is breathing") is gone.
+- Authored Forward/Step stay as Document content, not a replacement for the header.
+
 ### 2026-08-17 — Bring in writing
 - `DocumentShell` optional `onBringInWriting` — attach external markdown to the focused Dialog.
 

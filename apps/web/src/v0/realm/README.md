@@ -9,7 +9,7 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - `realmInvitations.ts` — shared invitation candidate logic (max four)
 - `RealmFeedPanel.tsx` — Realm feed in Chronicle (via invitation; no empty stub)
 - `RealmHomeChronicle.tsx` — Chronicle: user feed at `/home`; domain story at `?board=realm`
-- `DomainRealmStory.tsx` — domain-scoped Document (Point) story frames via `PointView`
+- `DomainRealmStory.tsx` — domain-scoped Document: identity header + Point story via `DocumentShell`
 - `dialogDocumentCache.ts` — short TTL + in-flight dedupe for Chronicle Document fetches
 - `RealmStagedNav.tsx` — Dialog-scoped nav (Dialog → Drafts / Kept / Presented)
 - `realmNavGrowth.ts` / `useRealmNavGrowth.ts` — Document-shaped nav data; `byDialog` + `byStage`
@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-19 — Document identity header
+- `DomainRealmStory` mounts `DocumentHeader` for every named Dialog Document (same header job as Draft). Empty Documents no longer use Realm idle copy.
+
 ### 2026-08-17 — External writing ingest
 - `DomainRealmStory` empty Document + `DocumentShell` "Add writing from outside Keeper" open the Chronicle ingest Act (attach to the focused Dialog).
 

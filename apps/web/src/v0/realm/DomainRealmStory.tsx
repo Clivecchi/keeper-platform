@@ -16,6 +16,15 @@ import {
   DocumentShell,
   type DocumentGlossThreadInfo,
 } from "../presence/chronicleDocument/DocumentShell"
+import { DocumentHeader } from "../presence/chronicleDocument/DocumentHeader"
+import {
+  DOCUMENT_EMPTY_POINTS_COPY,
+  DOCUMENT_LOADING_COPY,
+  DOCUMENT_SELECT_DIALOG_COPY,
+  resolveDocumentHeaderTitle,
+} from "../presence/chronicleDocument/documentHeader"
+import { DialogConfigPresence } from "../presence/integrationChronicle/DialogConfigPresence"
+import type { EntityCoverMode } from "../presence/cover/coverTypes"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { useRealmNavGrowth } from "./useRealmNavGrowth"
@@ -46,6 +55,8 @@ type DialogDocumentScope =
   | { status: "dialog"; dialogId: string | null }
 
 type DialogDocumentMeta = {
+  title?: string
+  status?: string
   forward?: DocumentForward
   step?: DocumentStep
   paths: DocumentPathDeclaration[]
@@ -138,6 +149,7 @@ export function DomainRealmStory({
     paths: [],
     components: [],
   })
+  const [coverMode, setCoverMode] = React.useState<EntityCoverMode>("cover")
   const [manuscriptEntries, setManuscriptEntries] = React.useState<RealmNavEntry[]>([])
   const [documentLoading, setDocumentLoading] = React.useState(false)
   /** Bumps when Document Gloss rewrites a Point so Chronicle reloads past cache. */
@@ -171,6 +183,10 @@ export function DomainRealmStory({
 
   React.useEffect(() => {
     setAcceptError(null)
+  }, [scope])
+
+  React.useEffect(() => {
+    setCoverMode("cover")
   }, [scope])
 
   const [glossEpoch, setGlossEpoch] = React.useState(0)
@@ -230,6 +246,8 @@ export function DomainRealmStory({
         if (cancelled) return
 
         const meta: DialogDocumentMeta = {
+          ...(document.title?.trim() ? { title: document.title.trim() } : {}),
+          ...(document.status?.trim() ? { status: document.status.trim() } : {}),
           ...(document.forward ? { forward: document.forward } : {}),
           ...(document.step ? { step: document.step } : {}),
           paths: parseDocumentPathDeclarations(document.paths),
@@ -310,42 +328,50 @@ export function DomainRealmStory({
     [boardCtx],
   )
 
+  const dialogNavTitle =
+    scope.status === "dialog" && scope.dialogId
+      ? byDialog.find((group) => group.dialogId === scope.dialogId)?.title
+      : undefined
+  const documentTitle = resolveDocumentHeaderTitle({
+    dialogTitle: documentMeta.title,
+    forwardTitle: documentMeta.forward?.title,
+    navTitle: dialogNavTitle,
+  })
+  const documentContextSummary = documentMeta.forward?.description?.trim() || ""
+
   const emptyState = (
     <div className="px-4 py-6">
       {scope.status === "none" ? (
         <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          {loading
-            ? "Loading story…"
-            : "Select a Dialog to see its Document"}
+          {loading ? DOCUMENT_LOADING_COPY : DOCUMENT_SELECT_DIALOG_COPY}
         </p>
       ) : (loading || documentLoading) && storyEntries.length === 0 ? (
         <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          Loading story…
+          {DOCUMENT_LOADING_COPY}
         </p>
       ) : (
-        <div className="space-y-2">
-          <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Realm is breathing. What you shape, keep, and show will accumulate here.
-          </p>
-          {scope.status === "dialog" && scope.dialogId ? (
-            <button
-              type="button"
-              onClick={() =>
-                boardCtx?.actions.requestDialogIngest({
-                  dialogId: scope.dialogId,
-                  dialogTitle: documentMeta.forward?.title ?? null,
-                })
-              }
-              className="text-[13px] underline underline-offset-2"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-            >
-              Add writing from outside Keeper
-            </button>
-          ) : null}
-        </div>
+        <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+          {DOCUMENT_EMPTY_POINTS_COPY}
+        </p>
       )}
     </div>
   )
+
+  const ingestControl =
+    scope.status === "dialog" && scope.dialogId ? (
+      <button
+        type="button"
+        onClick={() =>
+          boardCtx?.actions.requestDialogIngest({
+            dialogId: scope.dialogId,
+            dialogTitle: documentTitle,
+          })
+        }
+        className="cdraft-breadcrumb-link text-[13px]"
+      >
+        Add writing from outside Keeper
+      </button>
+    ) : null
 
   // When a Dialog is active, Document/History own the body — never the Realm
   // arrival feed. Passing userFeedContent on /home used to short-circuit both tabs
@@ -410,20 +436,36 @@ export function DomainRealmStory({
         scrollToPointId={pointTarget?.pointId}
         breadcrumb={pointTarget?.breadcrumb}
         emptyState={emptyState}
-        onBringInWriting={
-          scope.status === "dialog" && scope.dialogId
-            ? () =>
-                boardCtx?.actions.requestDialogIngest({
-                  dialogId: scope.dialogId,
-                  dialogTitle: documentMeta.forward?.title ?? null,
-                })
-            : undefined
-        }
       />
     )
 
+  if (coverMode === "config" && domainId && scope.status === "dialog" && scope.dialogId) {
+    return (
+      <ChronicleTreatmentShell treatment={treatment}>
+        <DialogConfigPresence
+          dialogId={scope.dialogId}
+          domainId={domainId}
+          title={documentTitle}
+          contextSummary={documentContextSummary}
+          onBack={() => setCoverMode("cover")}
+          onRefresh={refreshDocumentAfterMutation}
+        />
+      </ChronicleTreatmentShell>
+    )
+  }
+
   return (
     <ChronicleTreatmentShell treatment={treatment}>
+      {scope.status === "dialog" ? (
+        <DocumentHeader
+          title={documentTitle}
+          status={documentMeta.status}
+          pointCount={points.length}
+          componentCount={documentMeta.components.length}
+          onManage={domainId ? () => setCoverMode("config") : undefined}
+          documentControl={ingestControl}
+        />
+      ) : null}
       {scope.status === "dialog" ? (
         <div
           className="flex shrink-0 gap-4 px-4 pt-3"

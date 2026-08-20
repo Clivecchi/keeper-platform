@@ -40,7 +40,10 @@ export interface DocumentShellProps {
    */
   title?: string
   subtitle?: string
-  /** Authored destination — replaces the plain title/subtitle header. */
+  /**
+   * Authored destination card — not the Document identity header.
+   * Named Dialog Documents render `DocumentHeader` (Cdraft pattern) outside this shell.
+   */
   forward?: DocumentForward
   /** Live tip of the lineage; always visible when set, regardless of Forward collapse. */
   step?: DocumentStep
@@ -674,7 +677,7 @@ export function DocumentShell({
           {breadcrumb.join(" · ")}
         </div>
       ) : null}
-      {!cover && resolvedForward ? (
+      {resolvedForward ? (
         <ForwardBlock forward={resolvedForward} step={step} />
       ) : null}
       {onBringInWriting ? (
