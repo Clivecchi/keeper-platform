@@ -38,6 +38,10 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-08-19 — One Nav subject (Design Chronicle)
+- Selecting a Dialog on Design is the subject: Chronicle follows Touchdown (not Domain Board config). `?definition=` stays as Rendr’s idle lens, not a second selected object.
+- Board Definitions highlight clears while a Dialog or Draft is selected. Sessions is a thread picker under that Dialog, not a competing selection.
+
 ### 2026-08-19 — Dialog + Session in Design Nav
 - Design Board uses `UniversalNavPanel` (no left-panel override). Dialogs, Sessions, Chatter, and Drafts now sit above Glossary and Board Definitions.
 - Selecting a Dialog resumes that Dialog’s session in the center composer. Sessions picker switches threads on the same Dialog. Board-def Chatter only resumes when nothing is selected.

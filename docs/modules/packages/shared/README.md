@@ -30,6 +30,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-19 — One Nav subject
+- `resolveChroniclePrimary` — Design `boardDefinitionId` is idle spec only. Dialog, Draft, and other Nav entities win Chronicle. `hasChronicleEntitySubject` is the shared gate so URL `?definition=` cannot wipe a Dialog.
+
 ### 2026-08-19 — Session ≠ Dialog (locked)
 - `isDocumentBearingDialogTitleSource` — Chronicle Document is `user_set` only. `system_promoted` stays a conversation.
 

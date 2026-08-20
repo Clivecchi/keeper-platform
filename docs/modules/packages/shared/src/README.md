@@ -20,6 +20,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-19: `chronicleSubject.ts` — Design `?definition=` no longer outranks a Nav Dialog/Draft. `hasChronicleEntitySubject` gates idle board-def sync.
 - 2026-08-19: `universalBoardId.ts` + `cloudMcpCeiling.ts` — Build is the Board id; Cloud ceiling is Cloud's list, not an IDE identity.
 - 2026-08-17: `markdownToDraftPoints.ts` — heading/section split for Dialog ingest (truncates at `INGEST_MAX_POINTS`). `dialog.rw` added to `DOMAIN_ACCESS_KEY_SCOPES`.
 - 2026-07-25: `dialogParticipation` default is `voice` for every agent (including Cloud). `support_only` / `silent` only via Agent Config.

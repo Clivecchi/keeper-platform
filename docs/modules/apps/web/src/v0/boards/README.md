@@ -30,6 +30,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-19 — One Nav subject (Design Chronicle)
+- Nav selects one subject. That subject loads Dialog, then Chronicle. Session is which thread of the Dialog — not a second gold row.
+- Design `?definition=` no longer steals Chronicle from a Dialog or Draft. Board Definitions highlight only when Design is idle on a board spec.
+- Sessions card appears only after a Dialog is selected. Current thread uses a live marker, not the subject highlight.
+
 ### 2026-08-19 — Design Board Dialog + Session nav
 - Design Nav now lists Dialogs, Sessions (for the selected Dialog), Chatter, and Drafts — then Glossary and Board Definitions. Same objects as Realm/Agent; Design is the lens, not a different conversation.
 - `UniversalNavPanel` gained a Sessions block (`nav.sections.sessions`). Empty copy is "Select a Dialog" until one is chosen. Echo side-sessions stay out of the picker.

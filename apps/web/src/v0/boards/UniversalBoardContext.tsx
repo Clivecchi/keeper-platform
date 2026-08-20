@@ -10,12 +10,11 @@
  * without prop-drilling through the board shell.
  *
  * Selection rules:
- * - Domain entity selections are mutually exclusive:
- *   selecting a Journey clears Keeper, Draft, Agent, Moment, Service.
- * - Board definition selection (Design nav — spec/meta, not API records) is also
- *   mutually exclusive with entity selections when a def is chosen.
- * - Session selection is independent: it does not clear entity focus.
- *   The conversation can change sessions while the right panel stays in context.
+ * - Nav selects one subject. Dialog, Draft, Journey, Glossary, Board Definition, …
+ *   are mutually exclusive. That subject loads into Dialog, then Chronicle.
+ * - Session is which thread of the selected Dialog — not a second subject.
+ * - Design `?definition=` is idle board-spec only. It must not steal Chronicle
+ *   from a Dialog or Draft.
  * - Collapsed nav panel state lives here — the board owns collapse, not the panel.
  */
 
@@ -24,7 +23,7 @@ import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import type { GlossAnchor, GlossContentSnapshot, ChroniclePanelMode, ChronicleView } from "@keeper/shared"
-import { glossAnchorToDraftDiscuss, OBJECT_GLOSSARY_SUBJECT_ID, resolveChronicleView } from "@keeper/shared"
+import { glossAnchorToDraftDiscuss, hasChronicleEntitySubject, OBJECT_GLOSSARY_SUBJECT_ID, resolveChronicleView } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
@@ -386,6 +385,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
     setChroniclePanelMode("document")
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
   }, [clearDraftIdFromUrl])
@@ -486,6 +486,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
@@ -672,14 +673,32 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     }
   }, [])
 
-  // Design workspace: mirror ?definition= into context whenever the URL param changes.
+  // Design workspace: mirror ?definition= into context when Design is idle.
+  // A Nav entity (Dialog, Draft, Glossary, …) is the subject — do not let the
+  // URL default (`domain`) wipe it via onBoardDefSelect.
   const definitionFromUrl = useBoardDefinitionFromUrl()
+  const entitySubjectActive = hasChronicleEntitySubject({
+    selectedDialogId,
+    selectedJourneyId,
+    selectedPathId,
+    selectedMomentId,
+    selectedKeeperId,
+    selectedDraftId,
+    selectedAgentId,
+    selectedServiceSlug,
+    selectedKeyId,
+    selectedCapabilityId,
+    selectedLibraryItemId,
+    selectedGlossaryId,
+    selectedSoleMemoryId,
+    selectedBoardDefId,
+  })
 
   React.useEffect(() => {
-    if (selectedGlossaryId) return
+    if (entitySubjectActive) return
     if (definitionFromUrl === selectedBoardDefId) return
     onBoardDefSelect(definitionFromUrl)
-  }, [definitionFromUrl, selectedBoardDefId, onBoardDefSelect, selectedGlossaryId])
+  }, [definitionFromUrl, selectedBoardDefId, onBoardDefSelect, entitySubjectActive])
 
   const bumpDraftPresence = React.useCallback(() => {
     setDraftPresenceRevision((n) => n + 1)

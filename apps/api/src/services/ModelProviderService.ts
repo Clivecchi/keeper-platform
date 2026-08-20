@@ -87,6 +87,8 @@ export interface ModelCallOptions {
   environment?: Record<string, unknown> | null;
   /** When true, request JSON object output (OpenAI response_format) for structured responses */
   jsonMode?: boolean;
+  /** When set, providers stream tokens and invoke this for each text delta. */
+  onDelta?: (chunk: string) => void;
 }
 
 export interface ImageGenerationBrief {
@@ -186,7 +188,8 @@ class OpenAIProvider {
     messages: ModelMessage[], 
     settings: ModelSettings, 
     apiKey?: string,
-    jsonMode?: boolean
+    jsonMode?: boolean,
+    onDelta?: (chunk: string) => void,
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
     // Use provided API key or fall back to system key
     const rawKey = apiKey || process.env.OPENAI_API_KEY;
@@ -225,6 +228,35 @@ class OpenAIProvider {
         const capabilities = getModelCapabilities('openai', settings.model);
         if (jsonMode && capabilities.jsonMode) {
           (createParams as any).response_format = { type: 'json_object' };
+        }
+        if (onDelta) {
+          createParams.stream = true;
+          const stream = await openai.chat.completions.create(
+            createParams as any,
+            { signal: controller.signal },
+          );
+          let content = '';
+          for await (const chunk of stream as unknown as AsyncIterable<{
+            choices?: Array<{ delta?: { content?: string | null } }>
+            model?: string
+          }>) {
+            const piece = chunk.choices?.[0]?.delta?.content;
+            if (typeof piece === 'string' && piece.length > 0) {
+              content += piece;
+              onDelta(piece);
+            }
+            if (typeof chunk.model === 'string' && chunk.model.trim()) {
+              createParams.model = chunk.model;
+            }
+          }
+          if (!content) {
+            throw new Error('No response content from OpenAI');
+          }
+          return {
+            success: true,
+            content,
+            model: typeof createParams.model === 'string' ? createParams.model : settings.model,
+          };
         }
         response = await openai.chat.completions.create(
           createParams as any,
@@ -288,7 +320,8 @@ class AnthropicProvider {
     messages: ModelMessage[],
     settings: ModelSettings,
     apiKey?: string,
-    jsonMode?: boolean
+    jsonMode?: boolean,
+    onDelta?: (chunk: string) => void,
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
     const rawKey = apiKey || process.env.ANTHROPIC_API_KEY;
     const finalApiKey = typeof rawKey === 'string' && rawKey.trim().length > 0 ? rawKey.trim() : null;
@@ -323,6 +356,34 @@ class AnthropicProvider {
 
       let response;
       try {
+        if (onDelta) {
+          const stream = await client.messages.create(
+            { ...createParams, stream: true } as any,
+            { signal: controller.signal },
+          );
+          let textContent = '';
+          for await (const event of stream as unknown as AsyncIterable<{
+            type?: string
+            delta?: { type?: string; text?: string }
+            usage?: { input_tokens?: number; output_tokens?: number }
+            model?: string
+          }>) {
+            if (
+              event.type === 'content_block_delta'
+              && event.delta?.type === 'text_delta'
+              && typeof event.delta.text === 'string'
+              && event.delta.text.length > 0
+            ) {
+              textContent += event.delta.text;
+              onDelta(event.delta.text);
+            }
+          }
+          return {
+            success: true,
+            content: textContent || '[No response content]',
+            model: settings.model,
+          };
+        }
         response = await client.messages.create(createParams as any, {
           signal: controller.signal,
         });
@@ -464,7 +525,8 @@ class TogetherProvider {
     messages: ModelMessage[],
     settings: ModelSettings,
     apiKey?: string,
-    jsonMode?: boolean
+    jsonMode?: boolean,
+    onDelta?: (chunk: string) => void,
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
     const rawKey = apiKey || process.env.TOGETHER_API_KEY;
     const finalApiKey = typeof rawKey === 'string' && rawKey.trim().length > 0 ? rawKey.trim() : null;
@@ -500,11 +562,39 @@ class TogetherProvider {
           top_p: settings.top_p,
           frequency_penalty: settings.frequency_penalty,
           presence_penalty: settings.presence_penalty,
-          stream: false,
+          stream: Boolean(onDelta),
         };
         const capabilities = getModelCapabilities('together-ai', settings.model);
         if (jsonMode && capabilities.jsonMode) {
           (createParams as any).response_format = { type: 'json_object' };
+        }
+        if (onDelta) {
+          const stream = await together.chat.completions.create(
+            createParams as any,
+            { signal: controller.signal },
+          );
+          let content = '';
+          for await (const chunk of stream as unknown as AsyncIterable<{
+            choices?: Array<{ delta?: { content?: string | null } }>
+            model?: string
+          }>) {
+            const piece = chunk.choices?.[0]?.delta?.content;
+            if (typeof piece === 'string' && piece.length > 0) {
+              content += piece;
+              onDelta(piece);
+            }
+            if (typeof chunk.model === 'string' && chunk.model.trim()) {
+              createParams.model = chunk.model;
+            }
+          }
+          if (!content) {
+            throw new Error('No response content from Together AI');
+          }
+          return {
+            success: true,
+            content,
+            model: typeof createParams.model === 'string' ? createParams.model : settings.model,
+          };
         }
         response = await together.chat.completions.create(
           createParams as any,
@@ -804,7 +894,14 @@ export class ModelProviderService {
     for (let attempt = 0; attempt <= retryConfig.max_retries; attempt++) {
       attemptsUsed = attempt;
       try {
-        const response = await this.callProviderModel(provider, messages, settings, apiKey, options.jsonMode);
+        const response = await this.callProviderModel(
+          provider,
+          messages,
+          settings,
+          apiKey,
+          options.jsonMode,
+          options.onDelta,
+        );
         
         return {
           ...response,
@@ -860,15 +957,16 @@ export class ModelProviderService {
     messages: ModelMessage[], 
     settings: ModelSettings,
     apiKey?: string | null,
-    jsonMode?: boolean
+    jsonMode?: boolean,
+    onDelta?: (chunk: string) => void,
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
     switch (provider) {
       case 'openai':
-        return OpenAIProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
+        return OpenAIProvider.callModel(messages, settings, apiKey || undefined, jsonMode, onDelta);
       case 'anthropic':
-        return AnthropicProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
+        return AnthropicProvider.callModel(messages, settings, apiKey || undefined, jsonMode, onDelta);
       case 'together-ai':
-        return TogetherProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
+        return TogetherProvider.callModel(messages, settings, apiKey || undefined, jsonMode, onDelta);
       case 'elevenlabs':
         return ElevenLabsProvider.callModel(messages, settings, apiKey || undefined);
       default:

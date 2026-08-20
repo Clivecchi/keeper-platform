@@ -11,6 +11,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
+- `streamAgentOutput.ts` — Incremental extractor for the streamed `response` field inside `agent_output` JSON
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
 - `loadDialogDocumentForAgent.ts` — Agent-facing Document summary (prompt injection)
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
@@ -29,6 +30,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-19 — Streamed Dialog replies
+- `streamAgentOutput.ts` — extracts user-facing `response` tokens from the JSON envelope as they arrive.
+- `actionFollowUp.ts` — `responseAlreadyUsesReadResults` skips a second model call when the first reply already cites live read titles/URLs (never skips `delegate.consult`).
 
 ### 2026-08-09 — Phrase-level Gloss focus
 `buildGlossDiscussPrompt` (in `api/kip/agents.ts`) prefers `glossAnchor.selectionText` when present so Kip discusses the highlighted phrase, not only the parent node snapshot.

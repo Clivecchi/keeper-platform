@@ -6,7 +6,8 @@
  * Handles agent management and execution
  */
 
-import { apiFetch } from './api';
+import { apiFetch, getApiBase } from './api';
+import { getAuthToken } from './authTokenStore';
 import {
   normalizeDraftSpecJson,
   type DraftPoint,
@@ -648,6 +649,100 @@ function getProviderLabel(provider?: ModelProvider | 'together'): string {
   }
 }
 
+function unwrapAgentRunResult(agentResult: AgentResponse): AgentResponse {
+  if (agentResult && agentResult.success === false) {
+    const dataAny = agentResult.data as Record<string, unknown> | undefined
+    const innerError =
+      (typeof dataAny?.error === 'string' && dataAny.error)
+      || (dataAny?.data && typeof dataAny.data === 'object'
+        ? String((dataAny.data as { error?: unknown }).error ?? '')
+        : '')
+      || 'The agent was unable to process your request'
+    const errorCode =
+      (typeof dataAny?.errorCode === 'string' && dataAny.errorCode)
+      || 'UNKNOWN'
+    const details = normalizeKipRunErrorDetails(
+      dataAny?.details || (dataAny?.data as { details?: unknown } | undefined)?.details,
+    )
+    const normalizedCode = normalizeKipRunErrorCode(errorCode, innerError)
+    throw new KipAgentRunError(
+      formatKipRunErrorMessage(normalizedCode, innerError, details),
+      normalizedCode,
+      details,
+    )
+  }
+  return agentResult
+}
+
+async function consumeAgentRunSse(
+  response: Response,
+  handlers?: {
+    onDelta?: (text: string) => void
+    onReset?: () => void
+    onStatus?: (label: string) => void
+  },
+): Promise<{ success?: boolean; data?: AgentResponse; error?: string }> {
+  if (!response.body) {
+    throw new Error('Agent stream had no body')
+  }
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let donePayload: { success?: boolean; data?: AgentResponse; error?: string } | null = null
+
+  const flushBlock = (block: string) => {
+    const lines = block.split('\n')
+    let event = 'message'
+    const dataLines: string[] = []
+    for (const line of lines) {
+      if (line.startsWith('event:')) event = line.slice(6).trim()
+      else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart())
+    }
+    if (dataLines.length === 0) return
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(dataLines.join('\n'))
+    } catch {
+      return
+    }
+    if (event === 'delta' && parsed && typeof parsed === 'object') {
+      const text = (parsed as { text?: unknown }).text
+      if (typeof text === 'string' && text) handlers?.onDelta?.(text)
+      return
+    }
+    if (event === 'reset') {
+      handlers?.onReset?.()
+      return
+    }
+    if (event === 'status' && parsed && typeof parsed === 'object') {
+      const label = (parsed as { label?: unknown }).label
+      if (typeof label === 'string' && label.trim()) handlers?.onStatus?.(label)
+      return
+    }
+    if (event === 'done' || event === 'error') {
+      donePayload = parsed as { success?: boolean; data?: AgentResponse; error?: string }
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done })
+    let sep = buffer.indexOf('\n\n')
+    while (sep >= 0) {
+      const block = buffer.slice(0, sep)
+      buffer = buffer.slice(sep + 2)
+      flushBlock(block)
+      sep = buffer.indexOf('\n\n')
+    }
+    if (done) break
+  }
+  if (buffer.trim()) flushBlock(buffer)
+  if (!donePayload) {
+    throw new Error('Agent stream ended without a result')
+  }
+  return donePayload
+}
+
 /**
  * KIP API Client Class
  */
@@ -916,6 +1011,102 @@ export class KipApi {
     }
 
     return agentResult;
+  }
+
+  /**
+   * Same as `runAgent`, but streams the user-facing `response` field over SSE
+   * so the Dialog can paint tokens before actions / follow-up finish.
+   */
+  static async runAgentStream(
+    agentId: string,
+    input: string,
+    userId: string | undefined,
+    sessionId: string | undefined,
+    options: Parameters<typeof KipApi.runAgent>[4],
+    handlers?: {
+      onDelta?: (text: string) => void
+      onReset?: () => void
+      onStatus?: (label: string) => void
+    },
+  ): Promise<AgentResponse> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    }
+    const token = getAuthToken()
+    if (token) headers.Authorization = `Bearer ${token}`
+    const base = getApiBase()
+    const url = `${base}/api/kip/agents`
+
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({
+          action: 'run',
+          stream: true,
+          agentId,
+          input,
+          userId,
+          sessionId,
+          domainId: options?.domainId ?? undefined,
+          domainSlug: options?.domainSlug ?? undefined,
+          dialogId: options?.dialogId ?? undefined,
+          mode: options?.mode,
+          debugBundle: options?.debugBundle,
+          activeJourneyId: options?.activeJourneyId ?? undefined,
+          activeKeeperId: options?.activeKeeperId ?? undefined,
+          activeDraftId: options?.activeDraftId ?? undefined,
+          attachments: options?.attachments ?? undefined,
+          displayContent: options?.displayContent ?? undefined,
+          supportingDocs: options?.supportingDocs ?? undefined,
+          agentContext: options?.agentContext ?? undefined,
+          directorDelegation: options?.directorDelegation ?? undefined,
+          castConsultations: options?.castConsultations ?? undefined,
+          ephemeral: options?.ephemeral === true ? true : undefined,
+        }),
+      })
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err)
+      const networkish =
+        /failed to fetch|networkerror|load failed|network request failed/i.test(raw)
+      const error: Error & { code?: string; status?: number } = new Error(
+        networkish
+          ? `Could not reach the Keeper API (${url}). Check connection or try again.`
+          : raw || 'Request failed',
+      )
+      error.code = networkish ? 'NETWORK_UNREACHABLE' : 'FETCH_ERROR'
+      throw error
+    }
+
+    if (!response.ok) {
+      const error: Error & { status?: number } = new Error(
+        `HTTP ${response.status}: ${response.statusText || 'Request failed'}`,
+      )
+      error.status = response.status
+      throw error
+    }
+
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.includes('text/event-stream')) {
+      const json = await response.json() as { success?: boolean; error?: string; data?: AgentResponse }
+      if (!json.success) {
+        throw new Error(json.error || 'Failed to run agent')
+      }
+      return unwrapAgentRunResult(json.data as AgentResponse)
+    }
+
+    const envelope = await consumeAgentRunSse(response, handlers)
+    if (envelope.success === false) {
+      const errText =
+        typeof envelope.error === 'string'
+          ? envelope.error
+          : 'Failed to run agent'
+      throw new Error(errText)
+    }
+    return unwrapAgentRunResult(envelope.data as AgentResponse)
   }
 
   /**

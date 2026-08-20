@@ -35,6 +35,7 @@ import {
   isGlossAnchor,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
+import { openSse, startSseHeartbeat, writeSseEvent } from '../../lib/sse.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
 import { buildDomainLeadCollaborationPrompt } from '../../services/kip/buildDomainLeadCollaborationPrompt.js';
@@ -49,6 +50,7 @@ import {
   summarizeAgentRunTimings,
   type AgentRunPhaseTimings,
 } from '../../services/kip/agentRunTimings.js';
+import { createAgentResponseFieldExtractor } from '../../services/kip/streamAgentOutput.js';
 import { resolveAgentCapabilities } from '../../capabilities/resolveCapabilities.js';
 import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import { searchLibraryItems } from '../../services/LibraryItemSearchService.js';
@@ -95,6 +97,7 @@ import {
   buildReadActionFollowUpInput,
   formatReadActionResultsForUserFallback,
   READ_FOLLOW_UP_MAX_ELAPSED_MS,
+  responseAlreadyUsesReadResults,
   shouldRunMutationDeferralFollowUp,
   shouldRunReadActionFollowUp,
 } from '../../services/kip/actionFollowUp.js';
@@ -247,6 +250,12 @@ type RunAgentOptions = {
   ephemeral?: boolean;
   /** Mutable per-turn timing bag (filled by handler + runAgent + callAIModel). */
   timings?: AgentRunPhaseTimings;
+  /** Visible Dialog tokens (extracted `response` field). */
+  onDelta?: (text: string) => void;
+  /** Follow-up turn replaces the first streamed draft. */
+  onReset?: () => void;
+  /** Optional thinking labels for the SSE client. */
+  onStatus?: (label: string) => void;
 };
 
 function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown }): boolean {
@@ -4186,6 +4195,8 @@ const AgentRunSchema = z.object({
     .optional(),
   /** Skip session create/persist when sessionId is absent (cast consults). */
   ephemeral: z.boolean().optional(),
+  /** Dialog streams tokens as SSE (`delta` / `reset` / `done`). */
+  stream: z.boolean().optional(),
 }).refine(
   (data) => (typeof data.input === 'string' && data.input.trim().length > 0) || (Array.isArray(data.attachments) && data.attachments.length > 0),
   { message: 'Either input text or at least one attachment is required', path: ['input'] }
@@ -4604,7 +4615,10 @@ export class KipAgentService {
     agentId: string,
   ): Promise<KipMessageWithRelations[]> {
     try {
-      const session = await getKipSessionById(sessionId);
+      const session = await prisma.kip_sessions.findUnique({
+        where: { id: sessionId },
+        select: { id: true, agent_id: true },
+      });
       if (!session) {
         throw new Error(`Session with ID '${sessionId}' not found`);
       }
@@ -4616,7 +4630,12 @@ export class KipAgentService {
         });
         return [];
       }
-      return await getSessionMessages(sessionId);
+      const recent = await prisma.kip_messages.findMany({
+        where: { session_id: sessionId },
+        orderBy: { created_at: 'desc' },
+        take: 10,
+      });
+      return recent.reverse() as KipMessageWithRelations[];
     } catch (error) {
       console.error('Error fetching session memory:', error);
       throw new Error(`Failed to fetch session memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -5124,8 +5143,18 @@ export class KipAgentService {
       timings?: AgentRunPhaseTimings;
       /** Label for this model call in timings.modelCalls (default: model). */
       timingLabel?: string;
+      /** Skip env/contract/SOLE rebuild — reuse a prior callAIModel message list. */
+      reuseMessages?: ModelMessage[];
+      /** Stream decoded `response` field tokens to the Dialog. */
+      onDelta?: (text: string) => void;
     },
-  ): Promise<{ content: string; composedSystemPrompt: string; durationMs: number }> {
+  ): Promise<{
+    content: string
+    composedSystemPrompt: string
+    durationMs: number
+    messages: ModelMessage[]
+    streamedVisible: boolean
+  }> {
     try {
       const modelProvider = (agent.model_provider || 'openai') as ModelProvider;
       const defaults = ModelProviderService.getDefaultSettings(modelProvider);
@@ -5145,9 +5174,20 @@ export class KipAgentService {
         model: resolvedModel,
       };
       const capabilities = getModelCapabilities(modelProvider, modelSettings.model);
+      const extractor = createAgentResponseFieldExtractor();
+      const onModelDelta = promptOptions?.onDelta
+        ? (chunk: string) => {
+            const visible = extractor.push(chunk);
+            if (visible) promptOptions.onDelta!(visible);
+          }
+        : undefined;
       
       // Build conversation messages for the AI model
       const messages: ModelMessage[] = [];
+      const reusingPrompt = Boolean(promptOptions?.reuseMessages?.length);
+      if (reusingPrompt) {
+        messages.push(...promptOptions!.reuseMessages!);
+      } else {
       
       // Add system message with agent context
       const config = agent.config || {};
@@ -5557,12 +5597,17 @@ export class KipAgentService {
           content: msg.content
         });
       }
+      } // !reusingPrompt
+
+      if (reusingPrompt) {
+        const reuseInput = typeof input === 'string' && input.trim() ? input : '[No text provided]';
+        messages.push({ role: 'user', content: reuseInput });
+      } else {
       
       // Add current user message (multimodal when images are attached)
       const attachments = promptOptions?.attachments ?? [];
       const imageAttachments = attachments.filter((a) => a.type === 'image');
-      let textContent =
-        typeof modelInput.input === 'string' ? modelInput.input : JSON.stringify(modelInput.input);
+      let textContent = typeof input === 'string' ? input : '';
 
       const fileContext = await resolveFileAttachmentContext(attachments);
       if (fileContext) {
@@ -5587,6 +5632,7 @@ export class KipAgentService {
         const userContent = textContent || '[No text provided]';
         messages.push({ role: 'user', content: userContent });
       }
+      } // !reusingPrompt user branch
       
       // Build composed system prompt (all system messages concatenated)
       const composedSystemPrompt = messages
@@ -5605,6 +5651,7 @@ export class KipAgentService {
         domainId: promptOptions?.domainId,
         environment: promptOptions?.environment ?? undefined,
         jsonMode: requiresStructuredOutput && capabilities.jsonMode,
+        onDelta: onModelDelta,
       });
       const durationMs = Date.now() - modelStartedAt;
       recordModelCall(
@@ -5614,7 +5661,13 @@ export class KipAgentService {
       );
       
       if (response.success) {
-        return { content: response.content, composedSystemPrompt, durationMs };
+        return {
+          content: response.content,
+          composedSystemPrompt,
+          durationMs,
+          messages,
+          streamedVisible: extractor.didEmit(),
+        };
       }
 
       const mappedCode = mapProviderCodeToAgentCode(response.errorCode);
@@ -6151,10 +6204,12 @@ export class KipAgentService {
           attachments: options?.attachments ?? undefined,
           timings: options?.timings,
           timingLabel: 'lead_main',
+          onDelta: options?.onDelta,
         });
 
         const response = aiResult.content;
         const composedSystemPrompt = aiResult.composedSystemPrompt;
+        let lastPromptMessages = aiResult.messages;
 
         const requestId = randomUUID();
         const allowActions = buildAllowedActions(options?.environment ?? null);
@@ -6163,6 +6218,9 @@ export class KipAgentService {
           userId,
           allowedActions: Array.from(allowActions),
         });
+        if (options?.onDelta && !aiResult.streamedVisible && structured.responseText.trim()) {
+          options.onDelta(structured.responseText);
+        }
         console.log('[kip/agents] Raw AI response (first 1000):', response.slice(0, 1000));
         console.log('[actions] Parsed actions:', JSON.stringify(structured.actions));
         console.log('[kip/agents] ignoredReason:', structured.ignoredReason ?? null);
@@ -6261,7 +6319,12 @@ export class KipAgentService {
             domainId: options?.domainId ?? null,
             timings: options?.timings,
             timingLabel: `governance_retry_${governanceRetryCount + 1}`,
+            reuseMessages: [
+              ...lastPromptMessages,
+              { role: 'assistant', content: lastResponse },
+            ],
           });
+          lastPromptMessages = retryResult.messages;
           lastResponse = retryResult.content;
           lastStructured = await ensureKipAgentOutputEnvelope(lastResponse, {
             requestId,
@@ -6297,6 +6360,7 @@ export class KipAgentService {
               message: 'Action execution disabled by server (draft pipeline owns persistence)',
             }));
           } else {
+            options?.onStatus?.('Taking action…');
             const actionsStartedAt = Date.now();
             const execution = await executeAgentActions(structured.actions, {
               domainId: options?.domainId ?? null,
@@ -6351,7 +6415,10 @@ export class KipAgentService {
               finalResponseText = (finalResponseText || '') + postResult.appendText;
             }
 
-            if (shouldRunReadActionFollowUp(structured.actions, actionResults)) {
+            if (
+              shouldRunReadActionFollowUp(structured.actions, actionResults)
+              && !responseAlreadyUsesReadResults(finalResponseText, actionResults)
+            ) {
               const elapsedBeforeFollowUp = Date.now() - startTime;
               if (elapsedBeforeFollowUp >= READ_FOLLOW_UP_MAX_ELAPSED_MS) {
                 console.warn('[AgentTurn] skipping read follow-up — turn budget', {
@@ -6362,6 +6429,8 @@ export class KipAgentService {
                 });
                 finalResponseText = formatReadActionResultsForUserFallback(actionResults);
               } else {
+                options?.onStatus?.('Synthesizing what I found…');
+                options?.onReset?.();
                 const followUpInput = buildReadActionFollowUpInput({
                   originalInput: input,
                   agentName: agent.name,
@@ -6389,8 +6458,14 @@ export class KipAgentService {
                     attachments: options?.attachments ?? undefined,
                     timings: options?.timings,
                     timingLabel: 'read_follow_up',
+                    reuseMessages: [
+                      ...lastPromptMessages,
+                      { role: 'assistant', content: lastResponse },
+                    ],
+                    onDelta: options?.onDelta,
                   },
                 );
+                lastPromptMessages = followUpResult.messages;
                 const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
                   requestId: randomUUID(),
                   userId,
@@ -6400,6 +6475,9 @@ export class KipAgentService {
                   followUpStructured.responseText?.trim()
                   || followUpResult.content.trim()
                   || finalResponseText;
+                if (options?.onDelta && !followUpResult.streamedVisible && finalResponseText.trim()) {
+                  options.onDelta(finalResponseText);
+                }
                 if (followUpStructured.card) {
                   structured = { ...structured, card: followUpStructured.card };
                 }
@@ -6444,6 +6522,8 @@ export class KipAgentService {
             actionResults,
           })
         ) {
+          options?.onStatus?.('Finishing draft work…');
+          options?.onReset?.();
           const followUpInput = buildMutationDeferralFollowUpInput({
             originalInput: input,
             agentName: agent.name,
@@ -6470,8 +6550,14 @@ export class KipAgentService {
               attachments: options?.attachments ?? undefined,
               timings: options?.timings,
               timingLabel: 'mutation_deferral_follow_up',
+              reuseMessages: [
+                ...lastPromptMessages,
+                { role: 'assistant', content: lastResponse },
+              ],
+              onDelta: options?.onDelta,
             },
           );
+          lastPromptMessages = followUpResult.messages;
           const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
             requestId: randomUUID(),
             userId,
@@ -6481,6 +6567,9 @@ export class KipAgentService {
             followUpStructured.responseText?.trim()
             || followUpResult.content.trim()
             || finalResponseText;
+          if (options?.onDelta && !followUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
           if (followUpStructured.card) {
             structured = { ...structured, card: followUpStructured.card };
           }
@@ -6946,7 +7035,9 @@ export class KipAgentService {
           attachments: options?.attachments ?? undefined,
           timings: options?.timings,
           timingLabel: 'system_main',
+          onDelta: options?.onDelta,
         });
+        let lastSystemPromptMessages = aiResult.messages;
 
         const systemRequestId = randomUUID();
         const systemAllowActions = buildAllowedActions(options?.environment ?? null);
@@ -7026,6 +7117,11 @@ export class KipAgentService {
                   attachments: options?.attachments ?? undefined,
                   timings: options?.timings,
                   timingLabel: 'mcp_follow_up',
+                  reuseMessages: [
+                    ...lastSystemPromptMessages,
+                    { role: 'assistant', content: aiResult.content },
+                  ],
+                  onDelta: options?.onDelta,
                 },
               );
               const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
@@ -7390,6 +7486,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
     origin: req.headers.origin,
   };
   let ctxFlags: ReturnType<typeof buildContextFlags> | undefined;
+  let sseOpened = false;
   try {
     const resolvedUser = resolveUserId(req, res);
     const resolvedDomain = resolveDomain(req);
@@ -7711,12 +7808,26 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             agentContext: (req.body as any)?.agentContext ?? undefined,
             directorDelegation: (req.body as { directorDelegation?: unknown })?.directorDelegation,
             castConsultations: (req.body as { castConsultations?: unknown })?.castConsultations,
+            ephemeral: (req.body as { ephemeral?: unknown })?.ephemeral,
+            stream: (req.body as { stream?: unknown })?.stream === true,
           });
           if (!validation.success) {
             return respond(400, { 
               success: false, 
               error: 'Invalid request data',
               details: validation.error.errors
+            });
+          }
+
+          const wantsStream = validation.data.stream === true;
+          let heartbeat: NodeJS.Timeout | null = null;
+          if (wantsStream) {
+            openSse(res);
+            sseOpened = true;
+            heartbeat = startSseHeartbeat(res);
+            writeSseEvent(res, 'status', { label: 'Preparing…' });
+            req.on('close', () => {
+              if (heartbeat) clearInterval(heartbeat);
             });
           }
           
@@ -7866,6 +7977,13 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             agentContext: validation.data.agentContext,
             ephemeral: validation.data.ephemeral === true,
             timings: runTimings,
+            ...(wantsStream
+              ? {
+                  onDelta: (text: string) => writeSseEvent(res, 'delta', { text }),
+                  onReset: () => writeSseEvent(res, 'reset', {}),
+                  onStatus: (label: string) => writeSseEvent(res, 'status', { label }),
+                }
+              : {}),
           };
           if (validation.data.castConsultations) {
             const cc = validation.data.castConsultations;
@@ -7921,6 +8039,12 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             };
           }
 
+          if (wantsStream) {
+            if (heartbeat) clearInterval(heartbeat);
+            writeSseEvent(res, 'done', { success: true, data: result, ctx: ctxFlags });
+            res.end();
+            return;
+          }
           return respond(200, { success: true, data: result });
         }
         
@@ -8258,6 +8382,15 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
     }
   } catch (error) {
     console.error('KIP Agents API Error:', error);
+    if (sseOpened && !res.writableEnded) {
+      writeSseEvent(res, 'error', {
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error',
+        ...(ctxFlags ? { ctx: ctxFlags } : {}),
+      });
+      res.end();
+      return;
+    }
     return res.status(500).json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Internal server error',

@@ -5,6 +5,7 @@ import {
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
   formatReadActionResultsForUserFallback,
+  responseAlreadyUsesReadResults,
   shouldRunMutationDeferralFollowUp,
   shouldRunReadActionFollowUp,
 } from '../services/kip/actionFollowUp.js';
@@ -17,6 +18,31 @@ describe('actionFollowUp', () => {
         [{ type: 'draft.read', status: 'success', message: 'ok' }],
       ),
     ).toBe(true);
+  });
+
+  it('skips follow-up when the first reply already cites the draft title', () => {
+    expect(
+      responseAlreadyUsesReadResults(
+        'I opened The Future We Are Building. The draft currently has no points — we should rebuild from this session.',
+        [
+          {
+            type: 'draft.read',
+            status: 'success',
+            message: 'ok',
+            data: { draft: { title: 'The Future We Are Building' } },
+          },
+        ],
+      ),
+    ).toBe(true);
+  });
+
+  it('does not skip follow-up for delegate.consult', () => {
+    expect(
+      responseAlreadyUsesReadResults(
+        'Cloud looked at Railway and here is a long enough placeholder reply about the stack.',
+        [{ type: 'delegate.consult', status: 'success', message: 'ok', data: { reply: 'live' } }],
+      ),
+    ).toBe(false);
   });
 
   it('skips follow-up when write actions are present', () => {

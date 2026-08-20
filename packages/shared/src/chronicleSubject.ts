@@ -94,15 +94,36 @@ export interface ChronicleLegacyKindId {
 
 const DOMAIN_SUBJECT: ChronicleSubject = { kind: 'domain' };
 
+/**
+ * True when Nav has an EntityKind / Dialog / Draft subject.
+ * Design `?definition=` is idle spec only — it must not steal Chronicle from these.
+ */
+export function hasChronicleEntitySubject(input: LegacyChronicleSelectionIds): boolean {
+  return Boolean(
+    input.selectedGlossaryId ||
+      input.selectedKeyId ||
+      input.selectedCapabilityId ||
+      input.selectedLibraryItemId ||
+      input.selectedServiceSlug ||
+      input.selectedDialogId ||
+      input.selectedDraftId ||
+      input.selectedAgentId ||
+      input.selectedMomentId ||
+      input.selectedPathId ||
+      input.selectedJourneyId ||
+      input.selectedKeeperId,
+  );
+}
+
 /** Resolve primary subject from legacy flat IDs — mirrors resolveKindId() without soleMemory. */
 export function resolveChroniclePrimary(input: ResolveChronicleViewInput): ChronicleSubject {
   const boardDefId =
-    input.isDesignerBoard && input.boardDefinitionId ? input.boardDefinitionId : null;
+    input.selectedBoardDefId ||
+    (input.isDesignerBoard && input.boardDefinitionId ? input.boardDefinitionId : null);
 
   if (input.selectedGlossaryId) {
     return { kind: 'glossary', id: input.selectedGlossaryId };
   }
-  if (boardDefId) return { kind: 'boardDef', id: boardDefId };
   if (input.selectedKeyId) return { kind: 'key', id: input.selectedKeyId };
   if (input.selectedCapabilityId) return { kind: 'capability', id: input.selectedCapabilityId };
   if (input.selectedLibraryItemId) return { kind: 'library', id: input.selectedLibraryItemId };
@@ -123,6 +144,8 @@ export function resolveChroniclePrimary(input: ResolveChronicleViewInput): Chron
   }
   if (input.selectedJourneyId) return { kind: 'journey', id: input.selectedJourneyId };
   if (input.selectedKeeperId) return { kind: 'keeper', id: input.selectedKeeperId };
+  // Design board-def URL is idle spec — never ahead of a Nav entity (Dialog, Draft, …).
+  if (boardDefId) return { kind: 'boardDef', id: boardDefId };
   return DOMAIN_SUBJECT;
 }
 

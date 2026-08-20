@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   chronicleSubjectKey,
   chronicleSubjectToLegacyKindId,
+  hasChronicleEntitySubject,
   resolveChronicleOverlay,
   resolveChroniclePrimary,
   resolveChronicleView,
@@ -57,14 +58,54 @@ describe('resolveChroniclePrimary', () => {
     expect(primary).toEqual({ kind: 'glossary', id: 'object-glossary' });
   });
 
-  it('uses designer boardDefinitionId when isDesignerBoard', () => {
+  it('Nav Dialog wins over designer boardDefinitionId', () => {
+    const primary = resolveChroniclePrimary({
+      ...emptySelection,
+      isDesignerBoard: true,
+      boardDefinitionId: 'domain',
+      selectedDialogId: 'dialog-touchdown',
+    });
+    expect(primary).toEqual({ kind: 'dialog', id: 'dialog-touchdown' });
+  });
+
+  it('Nav Draft wins over designer boardDefinitionId', () => {
+    const primary = resolveChroniclePrimary({
+      ...emptySelection,
+      isDesignerBoard: true,
+      boardDefinitionId: 'domain',
+      selectedDraftId: 'draft-1',
+    });
+    expect(primary).toEqual({ kind: 'draft', id: 'draft-1' });
+  });
+
+  it('uses designer boardDefinitionId only when no entity is selected', () => {
     const primary = resolveChroniclePrimary({
       ...emptySelection,
       isDesignerBoard: true,
       boardDefinitionId: 'def-1',
-      selectedKeeperId: 'k-1',
     });
     expect(primary).toEqual({ kind: 'boardDef', id: 'def-1' });
+  });
+});
+
+describe('hasChronicleEntitySubject', () => {
+  it('is true for a Dialog even when a Design boardDef URL is present', () => {
+    expect(
+      hasChronicleEntitySubject({
+        ...emptySelection,
+        selectedDialogId: 'dialog-touchdown',
+        selectedBoardDefId: 'domain',
+      }),
+    ).toBe(true);
+  });
+
+  it('is false when Design is idle on a boardDef', () => {
+    expect(
+      hasChronicleEntitySubject({
+        ...emptySelection,
+        selectedBoardDefId: 'domain',
+      }),
+    ).toBe(false);
   });
 });
 

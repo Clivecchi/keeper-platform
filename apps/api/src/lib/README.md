@@ -16,6 +16,7 @@ Shared utilities and service clients used across Express routes and middleware.
 - `resolveProviderApiKey.ts` — env → user → platform key resolution (presence sync)
 - `env.ts` — database/redis disable helpers
 - `redis.ts` — Redis client helpers
+- `sse.ts` — SSE open/write/heartbeat for streamed agent turns
 - `errors/DomainError.ts` — domain-scoped API errors
 
 ## 🔄 Data & Behavior
@@ -27,6 +28,9 @@ Shared utilities and service clients used across Express routes and middleware.
 - [ ] Webhook HMAC verification before public launch
 
 ## 📆 Update Log
+
+### 2026-08-19 — Agent turn SSE
+- `sse.ts` — open SSE with `X-Accel-Buffering: no`, write named events, heartbeat so Vercel rewrites keep the first-byte window.
 
 ### 2026-08-17 — Axios status parsed on Nango errors
 - `nangoConfig.formatNangoError` reads `status code NNN` from Axios messages when `response.status` is missing, so GitHub MCP can tell a 404 from a generic 502.

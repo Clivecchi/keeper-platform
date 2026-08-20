@@ -35,6 +35,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-08-19 — Streamed Kip runs
+- `kipApi.runAgentStream` — POST `action=run` with `stream: true`, consumes SSE `delta`/`reset`/`status`/`done`. Cast consults still use blocking `runAgent`.
+- Vite `/api` proxy timeouts disabled so local SSE is not cut off. PWA runtime cache is GET-only so streamed POSTs are not intercepted.
+
 ### 2026-08-19 — Honest Kip run errors + named agent
 - `formatKipRunErrorMessage` / `normalizeKipRunErrorCode` — session/dialog "not found" is not agent misconfiguration. Error copy names the speaking agent (Ceox, Kip) instead of always "Kip".
 

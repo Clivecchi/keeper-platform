@@ -1112,6 +1112,28 @@ export function useAgentDialog({
       onDirectorPhaseChange?.("director")
       appendThinkingStep(`${agentDisplayName} is composing a reply…`)
 
+      const streamAgentId = `stream-agent-${ts}`
+      setMessages((prev) => [
+        ...prev,
+        stampSenderName({
+          id: streamAgentId,
+          role: "agent" as const,
+          content: "",
+          createdAt: new Date().toISOString(),
+        }),
+      ])
+      const applyStreamText = (text: string, replace: boolean) => {
+        setMessages((prev) =>
+          prev.map((message) => {
+            if (message.id !== streamAgentId) return message
+            return {
+              ...message,
+              content: replace ? text : `${message.content}${text}`,
+            }
+          }),
+        )
+      }
+
       const kipRunOpts = {
         ...runOpts,
         ...(castConsultations
@@ -1196,27 +1218,37 @@ export function useAgentDialog({
       try {
         let result: Awaited<ReturnType<typeof KipApi.runAgent>>
         try {
-          result = await KipApi.runAgent(
+          result = await KipApi.runAgentStream(
             agentId,
             content,
             userId ?? undefined,
             sessionId,
             kipRunOpts,
+            {
+              onDelta: (text) => applyStreamText(text, false),
+              onReset: () => applyStreamText("", true),
+              onStatus: (label) => appendThinkingStep(label),
+            },
           )
         } catch (firstErr: unknown) {
           const status = (firstErr as { status?: number })?.status
           if (mode === "build" && status === 401 && refreshSession) {
             const refreshed = await refreshSession()
             if (refreshed) {
-              result = await KipApi.runAgent(
+              result = await KipApi.runAgentStream(
                 agentId,
                 content,
                 userId ?? undefined,
                 sessionId,
                 kipRunOpts,
+                {
+                  onDelta: (text) => applyStreamText(text, false),
+                  onReset: () => applyStreamText("", true),
+                  onStatus: (label) => appendThinkingStep(label),
+                },
               )
             } else {
-              setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
+              setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}` && m.id !== streamAgentId))
               setError(`Please sign in to continue the conversation with ${agentDisplayName}.`)
               restoreSavedDraft()
               return
@@ -1224,13 +1256,6 @@ export function useAgentDialog({
           } else {
             throw firstErr
           }
-        }
-
-        let latestRaw: KipMessage[] | undefined
-        try {
-          latestRaw = await KipApi.getSessionMessages(sessionId)
-        } catch {
-          latestRaw = await fetchMessages(sessionId)
         }
 
         const {
@@ -1319,46 +1344,17 @@ export function useAgentDialog({
           return updated
         }
 
-        if (latestRaw?.length || mode === "build") {
-          const normalized = (latestRaw?.length
-            ? latestRaw.map(normalizeMessage)
-            : mode === "build"
-              ? [greeting]
-              : []
-          ).map(stampSenderName)
-          setMessages(mergeOntoLastAgent(normalized))
-        } else {
-          const replyText = extractAgentReplyFromRunResult(result)
-          if (replyText) {
-            setMessages((prev) => {
-              const hasUser = prev.some((m) => m.id === `user-${ts}`)
-              const base = hasUser
-                ? prev
-                : [
-                    ...prev,
-                    stampSenderName({
-                      id: `user-${ts}`,
-                      role: "user" as const,
-                      content: transcriptContent,
-                      createdAt: new Date(ts).toISOString(),
-                      ...(attachments?.length ? { attachments } : {}),
-                      ...(supportingDocs?.length
-                        ? { supportingDocs: [...supportingDocs] }
-                        : {}),
-                    }),
-                  ]
-              return mergeOntoLastAgent([
-                ...base,
-                stampSenderName({
-                  id: `${agentSlug}-reply-${ts}`,
-                  role: "agent" as const,
-                  content: replyText,
-                  createdAt: new Date().toISOString(),
-                }),
-              ])
-            })
-          }
-        }
+        const replyText = extractAgentReplyFromRunResult(result)
+        setMessages((prev) => {
+          const painted = prev.map((message) => {
+            if (message.id !== streamAgentId) return message
+            return {
+              ...message,
+              content: replyText?.trim() || message.content,
+            }
+          })
+          return mergeOntoLastAgent(painted)
+        })
 
         if (
           returnedSessionId &&
@@ -1380,9 +1376,19 @@ export function useAgentDialog({
         }
         appendThinkingStep("Run complete")
 
-        if (onAfterAgentRun) {
-          onAfterAgentRun(latestRaw, actionsArr, result)
-        }
+        void (async () => {
+          let latestRaw: KipMessage[] | undefined
+          try {
+            latestRaw = await KipApi.getSessionMessages(sessionId)
+          } catch {
+            latestRaw = await fetchMessages(sessionId)
+          }
+          if (latestRaw?.length) {
+            const normalized = latestRaw.map(normalizeMessage).map(stampSenderName)
+            setMessages(mergeOntoLastAgent(normalized))
+          }
+          onAfterAgentRun?.(latestRaw, actionsArr, result)
+        })()
 
         await onRefreshDraftsAfterRun?.(result)
         clearSavedDraft()
@@ -1401,7 +1407,9 @@ export function useAgentDialog({
 
         // System/runtime failures must not look like the agent speaking.
         if (mode === "build") {
-          setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
+          setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}` && m.id !== streamAgentId))
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== streamAgentId))
         }
         setError(null)
         setMessages((prev) => [

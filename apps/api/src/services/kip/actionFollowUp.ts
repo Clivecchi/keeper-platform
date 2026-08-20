@@ -45,6 +45,55 @@ export function shouldRunReadActionFollowUp(
   );
 }
 
+/**
+ * Skip a second model call when the first reply already cites live read results
+ * (titles, URLs). Never skip `delegate.consult` — nested replies are not in the
+ * first envelope.
+ */
+export function responseAlreadyUsesReadResults(
+  responseText: string,
+  results: ActionResultLike[],
+): boolean {
+  if (results.some((result) => result.type === 'delegate.consult')) return false;
+  const text = responseText.trim();
+  if (text.length < 80) return false;
+  const needles = collectReadResultNeedles(results);
+  if (needles.length === 0) return false;
+  const hay = text.toLowerCase();
+  const hits = needles.filter((needle) => hay.includes(needle.toLowerCase()));
+  return hits.length >= Math.min(2, needles.length);
+}
+
+function collectReadResultNeedles(results: ActionResultLike[]): string[] {
+  const needles: string[] = [];
+  for (const result of results) {
+    if (result.status !== 'success') continue;
+    const data = result.data;
+    if (!data) continue;
+    const draft = data.draft as { title?: unknown } | undefined;
+    if (typeof draft?.title === 'string' && draft.title.trim().length >= 4) {
+      needles.push(draft.title.trim());
+    }
+    if (typeof data.query === 'string' && data.query.trim().length >= 4) {
+      needles.push(data.query.trim());
+    }
+    const searchResults = data.results;
+    if (Array.isArray(searchResults)) {
+      for (const row of searchResults.slice(0, 3)) {
+        if (!row || typeof row !== 'object') continue;
+        const item = row as { title?: unknown; url?: unknown };
+        if (typeof item.title === 'string' && item.title.trim().length >= 4) {
+          needles.push(item.title.trim());
+        }
+        if (typeof item.url === 'string' && item.url.startsWith('http')) {
+          needles.push(item.url);
+        }
+      }
+    }
+  }
+  return Array.from(new Set(needles)).slice(0, 8);
+}
+
 function summarizeDraftSpec(spec: unknown): string {
   if (!spec || typeof spec !== 'object') return 'spec: (empty)';
   const points = (spec as { points?: unknown[] }).points;

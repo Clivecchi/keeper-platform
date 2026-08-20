@@ -1319,7 +1319,9 @@ export function UniversalNavPanel({
       (dialogSessions ?? []).map((session) => ({
         id: session.id,
         label: sessionNavLabel(session),
-        isSelected: session.id === selectedSessionId,
+        // Session is which thread of the selected Dialog — not a second Nav subject.
+        isSelected: false,
+        description: session.id === selectedSessionId ? "live" : undefined,
         onClick: () => onSessionSelect?.(session.id),
       })),
     [dialogSessions, selectedSessionId, onSessionSelect],
@@ -1479,17 +1481,30 @@ export function UniversalNavPanel({
     [boardCtx, selectBoardDefinition],
   )
 
+  const navSubjectIsEntity = Boolean(
+    selectedDialogId ||
+      selectedDraftId ||
+      selectedGlossaryId ||
+      selectedJourneyId ||
+      selectedKeeperId ||
+      selectedAgentId ||
+      selectedLibraryItemId ||
+      selectedKeyId ||
+      selectedCapabilityId ||
+      selectedMomentId,
+  )
+
   const boardDefItems = React.useMemo<SidebarCardItem[]>(
     () => {
       if (!showBoardDefs) return []
       return allBoardDefs.map((d) => ({
         id: d.boardId,
         label: d.displayName,
-        isSelected: d.boardId === activeBoardDefId,
+        isSelected: !navSubjectIsEntity && d.boardId === activeBoardDefId,
         onClick: () => selectBoardDef(d.boardId),
       }))
     },
-    [showBoardDefs, allBoardDefs, activeBoardDefId, selectBoardDef],
+    [showBoardDefs, allBoardDefs, activeBoardDefId, selectBoardDef, navSubjectIsEntity],
   )
 
   const navBlockOrder = resolveNavBlockOrder(def)
@@ -1580,17 +1595,15 @@ export function UniversalNavPanel({
           </>
         )
       case "sessions":
-        if (!showSessions) return null
+        if (!showSessions || !selectedDialogId) return null
         return (
           <SidebarCard
             title="Sessions"
             className="keeper-sidebar-card"
             description={
-              !selectedDialogId
-                ? "Select a Dialog"
-                : dialogSessions === null
-                  ? "Loading…"
-                  : countLabel(allSessionItems.length, "session")
+              dialogSessions === null
+                ? "Loading…"
+                : countLabel(allSessionItems.length, "session")
             }
             items={
               selectedDialogId && slice("sessions", allSessionItems).length
