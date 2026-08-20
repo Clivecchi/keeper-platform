@@ -575,8 +575,13 @@ function UniversalBoardShell({
               selectedCapabilityId={selection.selectedCapabilityId}
               selectedLibraryItemId={selection.selectedLibraryItemId}
               selectedGlossaryId={selection.selectedGlossaryId}
+              selectedSessionId={selection.activeSessionId}
               onDialogSelect={(id) => {
                 actions.onDialogSelect(id)
+                if (useMobilePanelLayout) closeNavDrawer()
+              }}
+              onSessionSelect={(id) => {
+                actions.onSessionSelect(id)
                 if (useMobilePanelLayout) closeNavDrawer()
               }}
               onJourneySelect={(id) => {

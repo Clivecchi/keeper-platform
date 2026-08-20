@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-19 — Design Board Dialog + Session nav
+- `useSelectionSessionResume` no longer skips Design Board when a Dialog or Draft is selected. Idle Design still uses board-def Chatter. Named Dialog resume prefers the session with messages (not Rendr-only), so prior Realm/Agent work can open on Design.
+
 ### 2026-08-19 — Build session mode
 - `useAgentDialog` / `useSelectionSessionResume` session mode is `build` (not `ide`). `?board=ide` is a URL alias only.
 

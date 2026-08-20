@@ -84,7 +84,8 @@ function sessionKeeperId(session: KipSession): string | null {
 
 /**
  * Resumes the most recent Dialog session when Nav selection changes.
- * Mirrors designer dialog restore in UniversalConversation — uses existing routes only.
+ * Design Board: idle (no Dialog/Draft) still uses board-def Chatter in UniversalConversation.
+ * With a Dialog or Draft selected, this hook owns resume — same objects as Realm/Agent.
  */
 export function useSelectionSessionResume({
   domainId,
@@ -125,7 +126,10 @@ export function useSelectionSessionResume({
   isSendingRef.current = isSending
 
   React.useEffect(() => {
-    if (kipMode === "designer") return
+    if (kipMode === "designer") {
+      // Idle Design Board still uses board-def Chatter. Nav Dialog/Draft owns the wire.
+      if (!selectedDialogId && !selectedDraftId) return
+    }
     if (isSendingRef.current) return
     if (!domainId || !resumeKey) return
 
@@ -183,7 +187,10 @@ export function useSelectionSessionResume({
             const sessions = await fetchDialogSessions(domainId!, selectedDialogId)
             if (cancelled || token !== resumeRef.current) return
 
-            const sessionId = pickBestDialogSessionId(sessions, kipAgentId)
+            const sessionId = pickBestDialogSessionId(
+              sessions,
+              kipMode === "designer" ? null : kipAgentId,
+            )
             if (sessionId) {
               if (sessionId !== activeSessionIdRef.current) {
                 onSessionSelect(sessionId)

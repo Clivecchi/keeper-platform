@@ -47,6 +47,7 @@ export type NavRenderBlock =
   | "capabilities"
   | "library"
   | "chatter"
+  | "sessions"
   | "connections"
   | "boards"
 
@@ -56,6 +57,11 @@ export interface NavSectionsDef {
   keepers: boolean
   drafts: boolean
   agents: boolean
+  /**
+   * Sessions for the selected Dialog. Design Board uses this so agents share
+   * the same conversation the user is looking at — not a board-def Chatter thread.
+   */
+  sessions?: boolean
   /** Domain Board: uploaded files and linked sources for the domain library. */
   library?: boolean
   /** Domain / Design: Object Glossary — governing vocabulary (not nested in Library). */
@@ -524,15 +530,18 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   access: { isPrivate: true, isAdminOnly: true },
   nav: {
     sections: {
-      dialogs: false,
+      dialogs: true,
       journeys: false,
       keepers: false,
-      drafts: false,
+      drafts: true,
       agents: false,
+      sessions: true,
       glossary: true,
       boardDefs: true,
     },
-    navBlockOrder: ["glossary", "boardDefs"],
+    // Dialog + Session first so Design shares the same conversation as Realm/Agent.
+    // Realm Stages (Drafts → Kept → Presented) stay on Realm — they replace the whole Nav.
+    navBlockOrder: ["dialogs", "sessions", "chatter", "drafts", "glossary", "boardDefs"],
   },
   conversation: {
     agentSlug: "rendr",

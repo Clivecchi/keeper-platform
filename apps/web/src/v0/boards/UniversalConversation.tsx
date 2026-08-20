@@ -1992,8 +1992,10 @@ export function UniversalConversation({
   }, [kipMode, domainFrame])
 
   // ── designer mode: resume existing session per board definition (create on first send)
+  // Nav Dialog / Draft wins — do not overwrite with board-def Chatter.
   React.useEffect(() => {
     if (kipMode !== "designer") return
+    if (selectedDialogId || selectedDraftId) return
     if (designerDraftCtx) {
       designerDraftCtx.setDraftSpecJson(null)
       designerDraftCtx.setDraftId(null)
@@ -2050,6 +2052,8 @@ export function UniversalConversation({
     fetchMessages,
     setMessages,
     def.boardId,
+    selectedDialogId,
+    selectedDraftId,
   ])
 
   // ── build mode: session title save ──────────────────────────────────────────

@@ -29,7 +29,13 @@
 
 import * as React from "react"
 import { apiFetch } from "../../lib/api"
-import { deleteDialog } from "../../lib/kipDialogSession"
+import {
+  deleteDialog,
+  fetchDialogSessions,
+  isEchoSessionName,
+  sessionDisplayName,
+  type DialogSessionRow,
+} from "../../lib/kipDialogSession"
 import { KipApi, type KipDraftSummary } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
@@ -125,9 +131,11 @@ export interface UniversalNavPanelProps {
   selectedLibraryItemId?: string | null
   selectedGlossaryId?: string | null
   selectedMomentId?: string | null
+  selectedSessionId?: string | null
 
   // Selection callbacks — fired by this component, handled by the Board
   onDialogSelect?: (id: string) => void
+  onSessionSelect?: (id: string | null) => void
   onJourneySelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
   onDraftSelect?: (id: string) => void
@@ -234,10 +242,11 @@ type ConnectionNavItem = {
   description?: string
 }
 
-type SectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "chatter"
+type SectionKey = "dialogs" | "sessions" | "journeys" | "keepers" | "drafts" | "agents" | "chatter"
 
 const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "dialogs",
+  "sessions",
   "journeys",
   "keepers",
   "drafts",
@@ -267,6 +276,7 @@ function isNavSectionEnabled(def: UniversalBoardDef, block: NavRenderBlock): boo
   if (block === "glossary") return def.nav.sections.glossary === true
   if (block === "drafts") return def.nav.sections.drafts === true
   if (block === "dialogs") return def.nav.sections.dialogs === true
+  if (block === "sessions") return def.nav.sections.sessions === true
   if (block === "journeys") return def.nav.sections.journeys === true
   if (block === "keepers") return def.nav.sections.keepers === true
   if (block === "agents") return def.nav.sections.agents === true
@@ -299,6 +309,7 @@ const NAV_COLLAPSE_ITEM_THRESHOLD = 4
 // Items shown before expand (onTitleClick toggles full list)
 const PREVIEW_LIMIT: Record<SectionKey, number> = {
   dialogs: 3,
+  sessions: 4,
   journeys: 4,
   keepers: 4,
   drafts: 5,
@@ -318,6 +329,15 @@ function formatDate(iso: string | null | undefined): string {
 function countLabel(n: number | null, singular: string): string {
   if (n === null) return "Loading…"
   return `${n} ${n === 1 ? singular : `${singular}s`}`
+}
+
+function sessionNavLabel(session: DialogSessionRow): string {
+  const name = sessionDisplayName(session)
+  if (name) return name
+  const ts =
+    session.updated_at ?? session.updatedAt ?? session.created_at ?? session.createdAt
+  const stamp = typeof ts === "string" ? formatDate(ts) : null
+  return stamp && stamp !== "—" ? `Session · ${stamp}` : "Session"
 }
 
 // ─── SVG Primitives ──────────────────────────────────────────────────────────
@@ -369,7 +389,9 @@ export function UniversalNavPanel({
   selectedLibraryItemId,
   selectedGlossaryId,
   selectedMomentId,
+  selectedSessionId,
   onDialogSelect,
+  onSessionSelect,
   onJourneySelect,
   onKeeperSelect,
   onDraftSelect,
@@ -522,6 +544,7 @@ export function UniversalNavPanel({
   const [libraryError, setLibraryError] = React.useState<string | null>(null)
   const [libraryCreating, setLibraryCreating] = React.useState(false)
   const libraryFileInputRef = React.useRef<HTMLInputElement>(null)
+  const [dialogSessions, setDialogSessions] = React.useState<DialogSessionRow[] | null>(null)
 
   const handleConfirmDeleteDialog = React.useCallback(
     async (dialogId: string) => {
@@ -783,6 +806,32 @@ export function UniversalNavPanel({
     }
     setDialogTitleSources(next)
   }, [dialogs, setDialogTitleSources])
+
+  // ── Fetch: Sessions for the selected Dialog ─────────────────────────────
+  const showSessions = def.nav.sections.sessions === true
+  React.useEffect(() => {
+    if (!showSessions) {
+      setDialogSessions(null)
+      return
+    }
+    if (!domainId || !selectedDialogId) {
+      setDialogSessions([])
+      return
+    }
+    let cancelled = false
+    setDialogSessions(null)
+    void fetchDialogSessions(domainId, selectedDialogId)
+      .then((list) => {
+        if (cancelled) return
+        setDialogSessions(list.filter((session) => !isEchoSessionName(sessionDisplayName(session))))
+      })
+      .catch(() => {
+        if (!cancelled) setDialogSessions([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showSessions, domainId, selectedDialogId])
 
   // ── Fetch: Journeys ──────────────────────────────────────────────────────
   React.useEffect(() => {
@@ -1265,6 +1314,17 @@ export function UniversalNavPanel({
     handleConfirmDeleteDraft,
   ])
 
+  const allSessionItems: SidebarCardItem[] = React.useMemo(
+    () =>
+      (dialogSessions ?? []).map((session) => ({
+        id: session.id,
+        label: sessionNavLabel(session),
+        isSelected: session.id === selectedSessionId,
+        onClick: () => onSessionSelect?.(session.id),
+      })),
+    [dialogSessions, selectedSessionId, onSessionSelect],
+  )
+
   const chatterDialogs = React.useMemo(
     () => (dialogs ?? []).filter(isNavVisibleDialog).filter(isChatterDialog),
     [dialogs],
@@ -1519,6 +1579,31 @@ export function UniversalNavPanel({
             )}
           </>
         )
+      case "sessions":
+        if (!showSessions) return null
+        return (
+          <SidebarCard
+            title="Sessions"
+            className="keeper-sidebar-card"
+            description={
+              !selectedDialogId
+                ? "Select a Dialog"
+                : dialogSessions === null
+                  ? "Loading…"
+                  : countLabel(allSessionItems.length, "session")
+            }
+            items={
+              selectedDialogId && slice("sessions", allSessionItems).length
+                ? slice("sessions", allSessionItems)
+                : undefined
+            }
+            onTitleClick={
+              selectedDialogId && allSessionItems.length > PREVIEW_LIMIT.sessions
+                ? () => toggleExpanded("sessions")
+                : undefined
+            }
+          />
+        )
       case "journeys":
         if (!showJourneys) return null
         return (
@@ -1588,7 +1673,7 @@ export function UniversalNavPanel({
           />
         )
       case "chatter":
-        if (def.boardId !== "domain" && def.boardId !== "realm") return null
+        if (def.boardId !== "domain" && def.boardId !== "realm" && def.boardId !== "designer") return null
         return (
           <>
             <SidebarCard

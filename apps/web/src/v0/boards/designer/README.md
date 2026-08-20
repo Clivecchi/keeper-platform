@@ -38,6 +38,11 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-08-19 — Dialog + Session in Design Nav
+- Design Board uses `UniversalNavPanel` (no left-panel override). Dialogs, Sessions, Chatter, and Drafts now sit above Glossary and Board Definitions.
+- Selecting a Dialog resumes that Dialog’s session in the center composer. Sessions picker switches threads on the same Dialog. Board-def Chatter only resumes when nothing is selected.
+- Stages stay on Realm. Design does not use `navStages` — that control replaces the whole Nav.
+
 ### 2026-08-17 — Glossary definition entry
 - Design Nav now includes a top-level **Glossary** section (same `UniversalNavPanel` as Board Definitions). Chronicle opens `GlossaryPresence` in config layout — definition ownership, not a Dialog Document.
 

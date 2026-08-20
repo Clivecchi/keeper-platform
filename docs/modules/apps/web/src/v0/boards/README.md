@@ -30,6 +30,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-19 — Design Board Dialog + Session nav
+- Design Nav now lists Dialogs, Sessions (for the selected Dialog), Chatter, and Drafts — then Glossary and Board Definitions. Same objects as Realm/Agent; Design is the lens, not a different conversation.
+- `UniversalNavPanel` gained a Sessions block (`nav.sections.sessions`). Empty copy is "Select a Dialog" until one is chosen. Echo side-sessions stay out of the picker.
+- `UniversalConversation` no longer resumes board-def Chatter over a Nav-selected Dialog or Draft on Design Board.
+- Realm Stages stay on Realm. They replace the entire Nav; they are not a Design Board section.
+
 ### 2026-08-19 — `ide` identity retired
 - Canonical Board id is `build`. `?board=ide` and stale frame JSON `boardId: "ide"` normalize at the edge.
 - `BUILD_BOARD_DEF` / `kipMode: "build"`. Cloud MCP ceiling is `CLOUD_MCP_CEILING` from `@keeper/shared`.
