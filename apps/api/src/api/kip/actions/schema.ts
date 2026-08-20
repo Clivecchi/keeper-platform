@@ -23,6 +23,8 @@ const draftCreatePayloadSchema = z.object({
   title: z.string().min(1, 'title is required'),
   summary: z.string().nullable().optional().default(''),
   spec: z.record(z.any()).optional().default({}),
+  /** First Point body when spec.points is omitted. Never used as Dialog manuscript storage. */
+  content: z.string().optional(),
   agentId: z.string().uuid().optional(),
   keeperId: z.string().min(1).optional(),
 });

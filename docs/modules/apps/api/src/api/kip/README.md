@@ -5,6 +5,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 
 ## 🧱 Key Files
 - `agents.ts`
+- `action-allowlist.ts` — GET `/api/kip/actions/allowlist` (read-only Kip executor allowlist + canDraft)
 - `actions/normalizeDraftPropose.ts` — coerce nested/synonym payloads for `draft.update.propose` (+ author attribution)
 - `actions/schema.ts` — action envelope / payload schemas
 - `companion.ts` — POST /api/kip/companion (public guest chat — no auth, rate-limited)
@@ -16,6 +17,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 
 ## 🔄 Data & Behavior
 - GET `/api/kip/agents` reads from DB normally.
+- GET `/api/kip/actions/allowlist?domainId=` — JWT. Returns golden-path ∪ policy allowlist plus `canDraft` when user+domain are bound. Same object as MCP `kip_actions_list`. Does not change executor behavior.
 - GET `/api/kip/agents?actionPack=true&agentId=...&domainId=...` returns the action pack (tools/actions the agent can use) for the given agent and domain. Resolves environment via KAM and returns `{ actionPack, allowedActions, soleStatus, composedSystemPrompt? }`. `soleStatus.soleActive` is true when in domain (SOLE always accessible); `keeperSharpening` when keeper uses SOLE. Add `composePrompt=true` and optionally `journeyId`/`keeperId` to get `composedSystemPrompt`.
 - When `DISABLE_DB=true` or `DATABASE_URL` is unset, it returns a static mock list instead of touching the DB.
 - POST `/api/kip/agents` (action=run) now resolves env-v1 context via KAM and injects it (with debug canary) into Kip model input without changing response shapes.
@@ -30,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-19: **Capability Ledger Phase 1** — GET `/api/kip/actions/allowlist` (`action-allowlist.ts`). Read-only Kip allowlist + `canDraft`. Executor now imports `buildAllowedActions` from `policy/kipActionAllowlist.ts` (same set as before). No enforcement changes.
 - 2026-08-19: **Honest agent-run errors** — `AGENT_MISCONFIGURED` is only for a missing agent record. Session / Dialog / message "not found" no longer maps to "Kip is not configured correctly for this board."
 - 2026-08-18: **glossary.read + quiet Echo follow-through** — `glossary.read` returns Chronicle Object Glossary from `docs/keeper-object-glossary.md` (index or term). Not a draft. Prompt + follow-up forbid treating a husk Glossary draft as the glossary.
 - 2026-08-18: **Nav Dialog bind + dialog.read Document** — `createSession` accepts `dialogId` to attach to a Nav-selected Dialog (does not findOrCreate Chatter). `dialog.read { id }` returns the Chronicle Document (Forward/Step/Paths/Points); empty Points = unbuilt, not a claimed read.

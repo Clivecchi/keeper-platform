@@ -44,6 +44,8 @@ See `docs/library-shared-context-roadmap.md` for rationale.
 ### Available Tools
 Session self-check (always visible to authenticated scoped clients — no grant required):
 0. **`capabilities_list`** — granted / denied scopes for this token + visible tool names (not an integrations inventory)
+0b. **`kip_actions_list`** — Kip executor allowlist (golden path + domain policy) + JWT `canDraft` when user/domain are bound. `mcp.call` is not on the Lead list.
+0c. **`ide_ceiling_list`** — IDE/Build MCP ceiling and optional agent ∩ ceiling (what Cloud may reach via `mcp.call`)
 
 Library (read-only, `library.ro`) — responses include `domainId`, `domainName`, `domainSlug`:
 1. **`library_list`** — recent Library items for domain
@@ -1007,6 +1009,8 @@ Run comprehensive verification:
 See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
 
 ## 📆 Update Log
+
+**2026-08-19**: Capability Ledger Phase 1 — always-visible `kip_actions_list` and `ide_ceiling_list` MCP tools. Read-only introspection of the Kip action allowlist and `IDE_BOARD_MCP_CEILING`. JWT twins: `GET /api/kip/actions/allowlist`, `GET /api/capabilities/ceiling`. No enforcement changes. Phase 2 (aggregating Capability Ledger) is not in this pass.
 
 **2026-08-17**: `dialog_ingest` MCP tool (`dialog.rw`) — bring external markdown in as a Dialog-backed Document. `dialog.rw` implies `dialog.ro`. Distinct from `gloss_write_turn`.
 

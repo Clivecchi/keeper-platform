@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mcpListActions } from './core.js';
 import {
   buildCapabilitiesManifest,
+  callTool,
   filterToolsByScopes,
   scopesAllowCapability,
 } from './tools.js';
@@ -20,6 +21,8 @@ describe('MCP OAuth scope gating', () => {
   it('filters tools/list to library + gloss for Claude OAuth grants', () => {
     const names = filterToolsByScopes(['library.ro', 'gloss.rw']).map((t) => t.name);
     expect(names).toContain('capabilities_list');
+    expect(names).toContain('kip_actions_list');
+    expect(names).toContain('ide_ceiling_list');
     expect(names).toContain('library_list');
     expect(names).toContain('library_search');
     expect(names).toContain('gloss_write_turn');
@@ -27,6 +30,14 @@ describe('MCP OAuth scope gating', () => {
     expect(names).not.toContain('integrations_list');
     expect(names).not.toContain('github_repo_read');
     expect(names).not.toContain('railway_get_services');
+  });
+
+  it('empty scoped token still sees the three self-check tools', () => {
+    const names = filterToolsByScopes([]).map((t) => t.name);
+    expect(names).toEqual(
+      expect.arrayContaining(['capabilities_list', 'kip_actions_list', 'ide_ceiling_list']),
+    );
+    expect(names).not.toContain('library_list');
   });
 
   it('exposes dialog tools when dialog.ro is granted', () => {
@@ -87,6 +98,34 @@ describe('MCP OAuth scope gating', () => {
     expect(manifest.capabilities).toContain('dialog.ro: not granted');
     expect(manifest.capabilities).toContain('library.ro');
     expect(manifest.tools).toContain('capabilities_list');
+    expect(manifest.tools).toContain('kip_actions_list');
+    expect(manifest.tools).toContain('ide_ceiling_list');
     expect(manifest.tools).not.toContain('dialog_read');
+  });
+
+  it('kip_actions_list returns the Lead allowlist without mcp.call', async () => {
+    const status = (await callTool('kip_actions_list', {}, { domainId: null })) as {
+      surface: string;
+      allowed: string[];
+      canDraft: boolean | null;
+    };
+    expect(status.surface).toBe('kip_action_allowlist');
+    expect(status.allowed).toContain('draft.create');
+    expect(status.allowed).not.toContain('mcp.call');
+    expect(status.canDraft).toBeNull();
+  });
+
+  it('ide_ceiling_list returns the declared ide ceiling', async () => {
+    const status = (await callTool('ide_ceiling_list', {}, { domainId: null })) as {
+      surface: string;
+      boardId: string;
+      ceiling: string[];
+      granted: string[] | null;
+    };
+    expect(status.surface).toBe('ide_board_mcp_ceiling');
+    expect(status.boardId).toBe('ide');
+    expect(status.ceiling).toContain('infra.railway.read');
+    expect(status.ceiling).toContain('github.repo.read');
+    expect(status.granted).toBeNull();
   });
 });

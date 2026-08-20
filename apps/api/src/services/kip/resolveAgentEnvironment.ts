@@ -629,3 +629,34 @@ export async function resolveAgentEnvironment(args: {
   return environment;
 }
 
+/**
+ * JWT domain write permission used as prompt `canDraft`.
+ * The Kip executor does not gate on this flag — it gates on the action allowlist.
+ */
+export async function resolveSessionDraftCapability(
+  userId: string,
+  domainId: string,
+): Promise<{ canDraft: boolean; canPromote: boolean }> {
+  let accessibleDomains: Array<{
+    id: string;
+    permissions: string[];
+  }> = [];
+  try {
+    accessibleDomains = await getDomainAuthManager().getAccessibleDomains(userId);
+  } catch (error) {
+    console.warn('[resolveSessionDraftCapability] getAccessibleDomains failed', {
+      userId,
+      error,
+    });
+    return { canDraft: false, canPromote: false };
+  }
+
+  const match = accessibleDomains.find((row) => row.id === domainId);
+  const hasReadAccess = Boolean(match);
+  const perms = match?.permissions ?? [];
+  return {
+    canDraft: hasReadAccess && perms.includes('write'),
+    canPromote: hasReadAccess && (perms.includes('admin') || perms.includes('share')),
+  };
+}
+

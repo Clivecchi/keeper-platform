@@ -10,7 +10,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildKeeperCardRenderingPrompt.ts` — Shared keeper-card vs prose system prompt (decision consult Lock/Open/Next Step)
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `ingestExternalDocument.ts` — External markdown → Dialog + document_manuscript Points + real session (create or attach)
-- `buildCompactEnvironmentForPrompt.ts` — Allowlisted slim env for model system-prompt JSON (not the full KAM object)
+- `resolveKipActionAllowlistStatus.ts` — session-bound Kip allowlist + canDraft read (MCP / REST)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
 - `loadDialogDocumentForAgent.ts` — Agent-facing Document summary (prompt injection)
@@ -30,6 +30,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-19 — Capability Ledger Phase 1
+- `resolveKipActionAllowlistStatus.ts` — session-bound read of the Kip executor allowlist + JWT `canDraft`. Used by MCP `kip_actions_list` and `GET /api/kip/actions/allowlist`. `resolveSessionDraftCapability` exported from `resolveAgentEnvironment.ts`.
 
 ### 2026-08-19 — Kip support must act, not promise
 - `buildDomainLeadCollaborationPrompt` — platform Kip uses tools in the same turn when the user asks to launch/build/present a surface. No hanging "I'm here if you need me." Domain lead is told not to only ask clarifying questions on a launch ask.

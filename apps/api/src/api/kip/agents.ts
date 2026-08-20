@@ -136,6 +136,10 @@ import {
   type ActionPack,
 } from '../../policy/policyPack.js';
 import {
+  KIP_ACTION_HANDLERS,
+  buildAllowedActions,
+} from '../../policy/kipActionAllowlist.js';
+import {
   buildTreatmentProposalSummary,
   coerceTreatmentProposePayload,
   normalizeTreatmentProposal,
@@ -155,6 +159,10 @@ import {
   normalizeDraftPointIdPayload,
   normalizeDraftUpdateProposePayload,
 } from './actions/normalizeDraftPropose.js';
+import {
+  coerceWorkingDraftKind,
+  mergeDraftCreateSpec,
+} from './actions/normalizeDraftCreate.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -279,6 +287,7 @@ function buildSoleVsDraftDistinctionPrompt(): string {
     'Ambiguous keep language ("hold onto this", "save this", "keep this", "don\'t lose this"):',
     '- If the content is about YOU (how to behave, a preference, a correction) → sole.save',
     '- If the content is shaped work (plan, spec, proposal, outline, Document-bound material, session elevation) → draft.create (or draft.update on an existing draft)',
+    '- draft.create is a working draft the human can open in Chronicle. Never kind document_manuscript (that is Dialog Document storage, hidden from Drafts). Optional payload.content becomes the first Point(s). Add more Points with draft.update.propose. Creating a draft does not turn a Chatter session into a Dialog Document.',
     '- If still unclear → ask one clarifying question: draft (working artifact) or SOLE memory (you remember next time)? Do not default to sole.save.',
     'Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
   ].join('\n');
@@ -1133,37 +1142,6 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
 
 // Domain lead collaboration — role-aware (Lead only; never Cast). See services/kip/buildDomainLeadCollaborationPrompt.ts
 
-function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
-  const pack = buildPolicyPackFromEnvironment(environment);
-  const allow = new Set(Array.isArray(pack?.actions?.allow) ? pack.actions.allow : DEFAULT_POLICY_PACK_V1.actions.allow);
-  // Golden Path actions — always allowed (domain policy cannot block core capabilities)
-  allow.add('draft.setActive');
-  allow.add('draft.create');
-  allow.add('image.generate');
-  allow.add('draft.update');
-  allow.add('draft.update.propose');
-  allow.add('treatment.propose');
-  allow.add('draft.point.accept');
-  allow.add('draft.point.rewrite');
-  allow.add('draft.delete');
-  allow.add('moment.create');
-  allow.add('sole.save');
-  allow.add('sole.read');
-  allow.add('library.read');
-  allow.add('dialog.read');
-  allow.add('glossary.read');
-  allow.add('journey.read');
-  allow.add('moment.read');
-  allow.add('keeper.read');
-  allow.add('web.search');
-  // Lead may consult cast members listed in environment.domainAgents.
-  const domainAgents = (environment as { domainAgents?: unknown[] } | null | undefined)?.domainAgents;
-  if (Array.isArray(domainAgents) && domainAgents.length > 0) {
-    allow.add('delegate.consult');
-  }
-  return allow;
-}
-
 function buildActionPackFromAllowlist(allowlist: Set<string>): ActionPack {
   return buildActionPack(Array.from(allowlist));
 }
@@ -1442,6 +1420,9 @@ export async function executeAgentActions(
       out.kind = VALID_KINDS.includes(t) ? t : 'journey_spec';
     }
     if (!out.kind && typeof p.kind !== 'string') out.kind = 'journey_spec';
+    if (typeof out.kind === 'string') {
+      out.kind = coerceWorkingDraftKind(out.kind).kind;
+    }
     if (!out.title && typeof p.view === 'string') out.title = p.view;
     // Do not invent a title — schema requires title; omitting it must surface as a
     // validation error receipt (cast-consult / Lead transparency), not silently succeed.
@@ -1507,33 +1488,7 @@ export async function executeAgentActions(
   }
 
   // Check for core action handlers
-  const supportedActions = new Set([
-    'draft.create',
-    'draft.update',
-    'draft.update.propose',
-    'draft.point.accept',
-    'draft.point.promote',
-    'draft.point.rewrite',
-    'draft.delete',
-    'draft.list',
-    'draft.get',
-    'draft.read',
-    'draft.setActive',
-    'image.generate',
-    'treatment.propose',
-    'moment.create',
-    'sole.save',
-    'sole.read',
-    'library.read',
-    'dialog.read',
-    'glossary.read',
-    'journey.read',
-    'moment.read',
-    'keeper.read',
-    'web.search',
-    'mcp.call',
-    'delegate.consult',
-  ]);
+  const supportedActions = new Set<string>(KIP_ACTION_HANDLERS);
 
   for (const coreAction of CORE_ACTIONS) {
     if (!supportedActions.has(coreAction)) {
@@ -1658,10 +1613,11 @@ export async function executeAgentActions(
               });
               break;
             }
-            const kind = typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
+            const requestedKind =
+              typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
+            const { kind, remappedFromManuscript } = coerceWorkingDraftKind(requestedKind);
             const status = typeof payload.status === 'string' && payload.status.trim() ? payload.status.trim() : 'draft';
             const summary = normalizeSummary(payload.summary);
-            const rawSpec = payload.spec ?? {};
             const keeperId = typeof payload.keeperId === 'string' && payload.keeperId.trim() ? payload.keeperId.trim() : (ctx.keeperId ?? null);
 
             const key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
@@ -1687,12 +1643,18 @@ export async function executeAgentActions(
                 },
               });
 
+              const incomingSpec = mergeDraftCreateSpec({
+                spec: payload.spec ?? {},
+                content: payload.content,
+                title,
+                proposedBy,
+              });
               const canonicalSpec = existing
                 ? canonicalizeDraftSpecJson(
-                    mergeDraftSpecPatch(existing.spec_json, rawSpec),
+                    mergeDraftSpecPatch(existing.spec_json, incomingSpec),
                     { proposedBy },
                   )
-                : canonicalizeDraftSpecJson(rawSpec, { proposedBy });
+                : incomingSpec;
 
               const baseData = {
                 title,
@@ -1762,7 +1724,13 @@ export async function executeAgentActions(
               results.push({
                 type: action.type,
                 status: 'success',
-                message: existing ? 'Draft updated successfully' : 'Draft created successfully',
+                message: remappedFromManuscript
+                  ? existing
+                    ? 'Draft updated as a working draft (document_manuscript is Dialog storage, not a draft you can open).'
+                    : 'Working draft created (document_manuscript remapped — that kind is Dialog Document storage).'
+                  : existing
+                    ? 'Draft updated successfully'
+                    : 'Draft created successfully',
                 data: {
                   entityIds: [draft.id],
                   draft: {
@@ -4949,8 +4917,8 @@ export class KipAgentService {
           'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
           'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
           'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
-          'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
-          'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
+          'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
+          'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
           draftRules?.autoDraft?.enabled
             ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
             : 'If the user asks for a new draft (or ambiguous keep language resolves to shaped work), include draft.create (or draft.update) with a short confirmation message.',
@@ -5449,8 +5417,8 @@ export class KipAgentService {
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
             'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
-            'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
-            'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
+            'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
+            'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
             draftRules?.autoDraft?.enabled
               ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
               : 'If the user asks for a new draft (or ambiguous keep language resolves to shaped work), include draft.create (or draft.update) with a short confirmation message.',

@@ -29,3 +29,14 @@ export function isChatterTitleSource(source: string | null | undefined): boolean
 export function isDialogNavTitleSource(source: string | null | undefined): boolean {
   return source === 'user_set' || source === 'system_promoted'
 }
+
+/**
+ * Chronicle Document shell is Dialog state, not session state.
+ * Only a human-named Dialog (`user_set`) owns a Document.
+ * `system_promoted` was Chatter elevated by draft-attach — conversation, not Document.
+ */
+export function isDocumentBearingDialogTitleSource(
+  source: string | null | undefined,
+): boolean {
+  return source === 'user_set'
+}

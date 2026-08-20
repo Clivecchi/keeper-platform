@@ -14,6 +14,10 @@ import { DialogMcpService } from '../services/DialogMcpService.js';
 import { ingestExternalDocument } from '../services/kip/ingestExternalDocument.js';
 import { resolveMcpDomainLabel } from './domainContext.js';
 import { DOMAIN_ACCESS_KEY_SCOPES, isGlossAnchor } from '@keeper/shared';
+import { buildKipActionAllowlistStatus } from '../policy/kipActionAllowlist.js';
+import { resolveKipActionAllowlistStatusForSession } from '../services/kip/resolveKipActionAllowlistStatus.js';
+import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
+import { buildIdeBoardCeilingStatus } from '../capabilities/ideBoardCeilingStatus.js';
 
 export type ToolContext = {
   domainId: string | null;
@@ -144,7 +148,7 @@ export async function buildCapabilitiesManifest(params: {
     tools: visible,
     note: isPlatform
       ? 'Platform key — full MCP catalog.'
-      : 'Scoped token — tools/list only includes granted capabilities (plus capabilities_list).',
+      : 'Scoped token — tools/list only includes granted capabilities (plus capabilities_list, kip_actions_list, ide_ceiling_list).',
   };
 }
 
@@ -577,6 +581,67 @@ const tools: Tool[] = [
       return buildCapabilitiesManifest({
         scopes: ctx.scopes ?? ctx.agentCapabilities,
         domainId: ctx.domainId,
+      });
+    },
+  },
+  {
+    name: 'kip_actions_list',
+    description:
+      'Read the Kip action allowlist that executeAgentActions actually gates on (golden path + domain policy), plus JWT canDraft when a user/domain is bound. Self-check only — does not change enforcement. mcp.call is Cloud/System-only and is not on the Lead list.',
+    alwaysVisible: true,
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    async handler(_args, ctx) {
+      if (ctx.userId && ctx.domainId) {
+        return resolveKipActionAllowlistStatusForSession({
+          userId: ctx.userId,
+          domainId: ctx.domainId,
+        });
+      }
+      return buildKipActionAllowlistStatus({ canDraft: null });
+    },
+  },
+  {
+    name: 'ide_ceiling_list',
+    description:
+      'Read the IDE/Build board MCP ceiling (what Cloud may reach via mcp.call) and, when agent context is present, the agent ∩ ceiling intersection. Self-check only — does not change enforcement.',
+    alwaysVisible: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        agentSlug: { type: 'string', description: 'Optional agent slug (e.g. cloud) to intersect with the ceiling' },
+        agentId: { type: 'string', description: 'Optional agent id to intersect with the ceiling' },
+        boardId: { type: 'string', description: 'Board id. ide and build share the same ceiling. Defaults to ide.' },
+      },
+    },
+    async handler(args, ctx) {
+      const agentSlug =
+        typeof args?.agentSlug === 'string' && args.agentSlug.trim()
+          ? args.agentSlug.trim()
+          : undefined;
+      const agentId =
+        typeof args?.agentId === 'string' && args.agentId.trim()
+          ? args.agentId.trim()
+          : undefined;
+      const boardId =
+        typeof args?.boardId === 'string' && args.boardId.trim()
+          ? args.boardId.trim()
+          : 'ide';
+
+      if (agentSlug || agentId) {
+        const resolved = await resolveAgentCapabilities({
+          agentId,
+          agentSlug,
+          boardId,
+        });
+        return buildIdeBoardCeilingStatus({ boardId, resolved });
+      }
+
+      return buildIdeBoardCeilingStatus({
+        boardId,
+        agentCapabilities: ctx.agentCapabilities ?? null,
       });
     },
   },

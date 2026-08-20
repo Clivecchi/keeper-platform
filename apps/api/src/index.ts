@@ -55,6 +55,7 @@ import kipLensesRouter from './api/kip/lenses.js';
 import kipModeConfigRouter from './api/kip/mode-config.js';
 import kipModelsRouter from './api/kip/models.js';
 import { getKipAgentBySlugEnsured } from './services/kip/ensureKnownLeadAgent.js';
+import kipActionAllowlistRouter from './api/kip/action-allowlist.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
 import companionRouter from './api/kip/companion.js';
 import sessionHandoffKeysRouter from './api/kip/session-handoff-keys.js';
@@ -1158,6 +1159,7 @@ app.use('/api/kip/models', ...kipChain, kipModelsRouter);
 app.use('/api/kip/agents', ...kipChain, kipModeConfigRouter);
 app.use('/api/kip/agents', ...kipChain, kipAgentsHandler);
 app.use('/api/kip/platform-keys', ...kipChain, kipPlatformKeysRouter);
+app.use('/api/kip/actions', ...kipChain, kipActionAllowlistRouter);
 // Connect unified Debug routes
 app.use('/api/debug', debugRouter);
 
