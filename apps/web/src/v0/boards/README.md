@@ -4,8 +4,11 @@
 V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A Board owns its layout, chrome (top banner, InteractionBar), and context entirely � V0Shell mounts a Board and steps back.
 
 ## ?? Key Files
-- `UniversalBoard.tsx` � Master orchestrator shell (Nav � Dialog � Chronicle); mounts domain switcher overlay for all boards
-- `boardNavDataCache.ts` � In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
+- `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle)
+- `UniversalNavPanel.tsx` — Left nav with Universal / Keepers / Config panes; default for every board
+- `navPanes.ts` — Pane membership (Universal · Keepers · Config) and Config block order
+- `LibraryScreen.tsx` — Library list overlay that sits on Dialog; selected item renders in Chronicle
+- `boardNavDataCache.ts` — In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
 - `domain/domainShellCache.ts` � Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` � Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
 - `workspaceBoardNav.ts` — Shared `?board=` / `?definition=` URL helpers. Canonical Board id is `build`; `?board=ide` is a URL alias only.
@@ -19,7 +22,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - V0Shell reads `?board=` and renders the matching Board component inside V0ShellProvider context
 - Boards call `useV0Shell()` to access `domainSlug`, `domainFrame`, `resolvedAudience`, etc.
 - `?board=` takes precedence over `?frame=` when both are present in the URL
-- **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` � `"static"` (default) shows all enabled sections; `"contentGated"` hides entity sections when loaded count is 0. Override with `navAlwaysShow` (e.g. `["dialogs"]`). Logic in `navContentGating.ts`; applied in `UniversalNavPanel.renderNavBlock`.
+- **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 
 ## ?? Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace � they share `/d/:slug/board`
@@ -29,6 +32,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-20 — Universal / Keepers / Config Nav panes
+- Nav is three panes on every board. **Universal** (default): Dialogs, Drafts, Chatter, Library link. **Keepers:** Keeper, Journeys, Moment. **Config:** board-specific (Build integrations/keys/capabilities, Domain glossary/external access, Agent agents/access, Design glossary/board defs).
+- Dialogs and Drafts no longer disappear on Build/Agent/Realm. Library is a Nav link that opens `LibraryScreen` over Dialog; Chronicle shows the selected item; **X** closes the overlay.
+- Cross-nav search modal uses theme surface tokens (was nearly transparent via unset `--background`).
+- Realm staged nav no longer replaces the panel.
 
 ### 2026-08-19 — Universal Nav subject (all boards)
 - One exclusive Nav subject drives Dialog and Chronicle on every board. Design Board Definitions is on that list — not a parallel `?definition=` OS.

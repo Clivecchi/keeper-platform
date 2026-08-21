@@ -40,7 +40,7 @@ The member workspace is a three-panel board, not a standalone frame route.
 
 | Panel | Runtime | Role |
 |---|---|---|
-| **Nav** | `UniversalNavPanel` | List records, select focus, `+` trigger. Fetch, collapse, label. **Never** host engagement forms, Acts, or Config save UI. |
+| **Nav** | `UniversalNavPanel` | Three panes — **Universal** (Dialog, Draft, Chatter, Library link), **Keepers** (Keeper, Journeys, Moment), **Config** (board-specific: integrations, keys, agents, glossary, …). List records, select focus, `+` trigger. Fetch, collapse, label. **Never** host engagement forms, Acts, or Config save UI. Library opens a screen over Dialog; the selected item renders in Chronicle. |
 | **Dialog** | `UniversalConversation` | Conversation for the focused Dialog (or the Dialog that owns the subject). Selecting a Dialog in Nav resumes that Dialog’s session — banner, thread, and Chronicle become one room. |
 | **Chronicle** | `UniversalViewPanel` → DocumentShell / `KeeperPresence` | Most relevant body of the object in focus. Focused Dialog → Document (`DocumentShell`), not a session dump. |
 

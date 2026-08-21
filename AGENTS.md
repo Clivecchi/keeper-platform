@@ -81,7 +81,7 @@ Chronicle = right panel (UniversalViewPanel), not a frame route.
 | **Legacy frames** | `?frame=journeys`, `?frame=keepers`, etc. | Standalone v0 frames | **Do not extend for Phase 1 member work.** Redirect or retire over time. |
 
 **Nav vs Dialog vs Chronicle (Universal Board):**
-- **Nav** — list, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI. Selecting a Dialog puts that Dialog in focus.
+- **Nav** — three panes on every board: **Universal** (Dialog, Draft, Chatter, Library link), **Keepers** (Keeper, Journeys, Moment), **Config** (board-specific). List, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI. Selecting a Dialog puts that Dialog in focus. Library opens a screen over Dialog; the selected item renders in Chronicle.
 - **Dialog** — the conversation for the focused Dialog (or the Dialog that owns the subject). Nav click resumes that Dialog’s session.
 - **Chronicle** — declared render surface for presence, Config, and Acts. Focused Dialog → Document. Nav `+` → `requestChronicleEngagement` → `ChronicleActPresence`. Agent context must be that same body.
 

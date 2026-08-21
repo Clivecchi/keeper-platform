@@ -2343,6 +2343,40 @@ button.dialog-prelude:hover {
 }
 
 /* Nav SidebarCard — section headers + record hierarchy (nav panel only) */
+.keeper-nav-pane-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 10px 8px;
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.4);
+}
+
+.keeper-nav-pane-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 4px 7px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: hsl(var(--theme-ink-secondary));
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.keeper-nav-pane-tab:hover {
+  color: hsl(var(--theme-ink-primary));
+  background: hsl(var(--theme-surface-paper) / 0.4);
+}
+
+.keeper-nav-pane-tab[aria-selected="true"] {
+  color: hsl(var(--theme-accent-primary) / 0.95);
+  background: hsl(var(--theme-accent-primary) / 0.12);
+}
+
 .keeper-nav-panel .keeper-sidebar-card {
   background: transparent !important;
   border: none !important;

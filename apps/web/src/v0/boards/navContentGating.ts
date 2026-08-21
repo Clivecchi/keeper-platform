@@ -1,4 +1,8 @@
 import type { NavPanelDef, NavRenderBlock, NavMode } from "./UniversalBoardDefinition"
+import {
+  isKeepersAlwaysOnBlock,
+  isUniversalAlwaysOnBlock,
+} from "./navPanes"
 
 export type { NavMode }
 
@@ -66,6 +70,7 @@ export function shouldRenderContentGatedBlock(
   counts: NavContentCountSnapshot,
 ): boolean {
   if (resolveNavMode(nav) === "static") return true
+  if (isUniversalAlwaysOnBlock(block) || isKeepersAlwaysOnBlock(block)) return true
   if (!CONTENT_GATED_BLOCKS.includes(block)) return true
   if (nav.navAlwaysShow?.includes(block)) return true
 

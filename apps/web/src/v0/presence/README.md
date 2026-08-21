@@ -63,6 +63,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-20 — Nav panes in Board Def presence
+- `BoardDefConfigPresence` lists Universal / Keepers / Config rather than a flat section dump.
+
 ### 2026-08-19 — Build Board presence
 - Domain Config on Build includes build-context fields via `isBuildBoardId` (legacy `ide` still matches). Integration Chronicle defaults `boardId` to `build`.
 

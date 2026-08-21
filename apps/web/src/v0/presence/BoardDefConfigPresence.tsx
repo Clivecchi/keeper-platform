@@ -56,18 +56,18 @@ function StructureRow({ label, value }: { label: string; value: string }) {
 
 function formatNavSections(def: UniversalBoardDef): string {
   const s = def.nav.sections
-  const parts: string[] = []
-  if (s.dialogs) parts.push("Dialogs")
-  if (s.journeys) parts.push("Journeys")
-  if (s.keepers) parts.push("Keepers")
-  if (s.drafts) parts.push("Drafts")
-  if (s.agents) parts.push("Agents")
-  if (s.library) parts.push("Library")
-  if (s.glossary) parts.push("Glossary")
-  if (s.boardDefs) parts.push("Board Definitions")
+  const parts: string[] = ["Universal: Dialogs · Drafts · Chatter · Library", "Keepers"]
+  const config: string[] = []
+  if (s.agents) config.push("Agents")
+  if (s.glossary) config.push("Glossary")
+  if (s.boardDefs) config.push("Board Definitions")
+  if (s.capabilities) config.push("Capabilities")
   const integrations = def.nav.integrations?.map((i) => i.label) ?? []
-  if (integrations.length > 0) parts.push(`Integrations (${integrations.join(", ")})`)
-  return parts.length > 0 ? parts.join(" · ") : "None"
+  if (integrations.length > 0) config.push(`Integrations (${integrations.join(", ")})`)
+  if (def.nav.externalAccessSummary) config.push("External Access")
+  if (def.nav.aiAccessSummary) config.push("AI Access")
+  if (config.length > 0) parts.push(`Config: ${config.join(" · ")}`)
+  return parts.join(" · ")
 }
 
 export function BoardDefConfigPresence({

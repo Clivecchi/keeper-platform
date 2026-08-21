@@ -13,22 +13,22 @@ export const DEFAULT_REVEAL_NAV_SECTIONS: BoardNavPrefetchSections = {
   dialogs: true,
   journeys: true,
   keepers: true,
-  drafts: false,
+  drafts: true,
   agents: true,
   library: true,
 }
 
 function sectionsFromDef(def: UniversalBoardDef): BoardNavPrefetchSections {
   return {
-    journeys: !!def.nav.sections.journeys,
-    keepers: !!def.nav.sections.keepers,
-    dialogs: !!def.nav.sections.dialogs,
-    drafts: !!def.nav.sections.drafts,
+    journeys: true,
+    keepers: true,
+    dialogs: true,
+    drafts: true,
     agents:
       !!def.nav.sections.agents ||
       (def.conversation.kipMode === "domain" &&
         def.conversation.dialogCueing === "directed"),
-    library: !!def.nav.sections.library,
+    library: true,
   }
 }
 

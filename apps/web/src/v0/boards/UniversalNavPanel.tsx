@@ -70,10 +70,6 @@ import {
   type CapabilityNavRowPatch,
 } from "../presence/integrationChronicle/capabilityNavUtils"
 import {
-  applyLibraryNavRowPatch,
-  fetchDomainLibraryNavRows,
-  libraryItemChronicleTitle,
-  type LibraryNavRow,
   type LibraryNavRowPatch,
 } from "../presence/integrationChronicle/libraryNavUtils"
 import {
@@ -82,8 +78,6 @@ import {
   type KeeperNavRowPatch,
 } from "../presence/integrationChronicle/keeperNavUtils"
 import { applyAgentNavRowPatch } from "../presence/integrationChronicle/agentNavUtils"
-import { addLibraryUploadFromFile, createLibraryItem } from "../presence/integrationChronicle/libraryNavCreate"
-import { RealmStagedNav } from "../realm/RealmStagedNav"
 import { resolveDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { TreatmentAccentShell } from "../treatment/TreatmentAccentShell"
 import {
@@ -105,6 +99,12 @@ import {
 } from "./boardNavDataCache"
 import { OBJECT_GLOSSARY_SUBJECT_ID } from "@keeper/shared"
 import { CrossNavIndex, type CrossNavIndexItem } from "./CrossNavIndex"
+import {
+  boardHasConfigPane,
+  NAV_PANE_LABELS,
+  paneBlocksFor,
+  type NavPaneId,
+} from "./navPanes"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -243,63 +243,11 @@ type ConnectionNavItem = {
 
 type SectionKey = "dialogs" | "sessions" | "journeys" | "keepers" | "drafts" | "agents" | "chatter"
 
-const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
-  "dialogs",
-  "sessions",
-  "journeys",
-  "keepers",
-  "drafts",
-  "integrations",
-  "keys",
-  "aiAccess",
-  "externalAccess",
-  "capabilities",
-  "library",
-  "glossary",
-  "chatter",
-  "connections",
-  "agents",
-  "boardDefs",
-  "boards",
-]
-
 function resolveSidebarWorkspaceBoardNavItems(
   domainSlug: string,
   currentBoardId: WorkspaceBoardId,
 ): { id: WorkspaceBoardId; label: string }[] {
   return resolveWorkspaceBoardNavItems(domainSlug, currentBoardId)
-}
-
-function isNavSectionEnabled(def: UniversalBoardDef, block: NavRenderBlock): boolean {
-  if (block === "library") return def.nav.sections.library === true
-  if (block === "glossary") return def.nav.sections.glossary === true
-  if (block === "drafts") return def.nav.sections.drafts === true
-  if (block === "dialogs") return def.nav.sections.dialogs === true
-  if (block === "sessions") return def.nav.sections.sessions === true
-  if (block === "journeys") return def.nav.sections.journeys === true
-  if (block === "keepers") return def.nav.sections.keepers === true
-  if (block === "agents") return def.nav.sections.agents === true
-  if (block === "boardDefs") return def.nav.sections.boardDefs === true
-  return true
-}
-
-function resolveNavBlockOrder(def: UniversalBoardDef): NavRenderBlock[] {
-  if (def.nav.navBlockOrder?.length) {
-    const ordered = def.nav.navBlockOrder
-    const remainder = DEFAULT_NAV_BLOCK_ORDER.filter((block) => {
-      if (ordered.includes(block)) return false
-      if (!isNavSectionEnabled(def, block)) return false
-      return true
-    })
-    return [...ordered, ...remainder]
-  }
-  if (def.nav.primarySection) {
-    return [
-      def.nav.primarySection,
-      ...DEFAULT_NAV_BLOCK_ORDER.filter((block) => block !== def.nav.primarySection),
-    ]
-  }
-  return DEFAULT_NAV_BLOCK_ORDER
 }
 
 /** Nav sections with more than this many items default collapsed when collapsible. */
@@ -412,8 +360,6 @@ export function UniversalNavPanel({
   keyNavRowPatch = null,
   capabilityListVersion = 0,
   capabilityNavRowPatch = null,
-  libraryListVersion = 0,
-  libraryNavRowPatch = null,
   keeperNavRowPatch = null,
   agentListVersion = 0,
   agentNavRowPatch = null,
@@ -423,7 +369,6 @@ export function UniversalNavPanel({
     () => resolveDomainTreatment(domainFrame ?? null),
     [domainFrame],
   )
-  const navStages = def.nav.navStages
 
   const { user } = useAuth()
   const frameCtx = useFrameContextOptional()
@@ -510,7 +455,6 @@ export function UniversalNavPanel({
   const [confirmingDeleteDialogId, setConfirmingDeleteDialogId] = React.useState<string | null>(null)
   const [confirmingDeleteDraftId, setConfirmingDeleteDraftId] = React.useState<string | null>(null)
   const [confirmingDeleteJourneyId, setConfirmingDeleteJourneyId] = React.useState<string | null>(null)
-  const [confirmingDeleteLibraryId, setConfirmingDeleteLibraryId] = React.useState<string | null>(null)
 
   const handleDialogIngest = React.useCallback(() => {
     if (!domainId || !user || !boardCtx) return
@@ -528,7 +472,6 @@ export function UniversalNavPanel({
     setConfirmingDeleteDialogId(null)
     setConfirmingDeleteDraftId(null)
     setConfirmingDeleteJourneyId(null)
-    setConfirmingDeleteLibraryId(null)
   }, [domainId])
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
@@ -538,10 +481,6 @@ export function UniversalNavPanel({
   const [keyError, setKeyError] = React.useState<string | null>(null)
   const [allCapabilityRows, setAllCapabilityRows] = React.useState<CapabilityNavRow[] | null>(null)
   const [capabilityError, setCapabilityError] = React.useState<string | null>(null)
-  const [allLibraryRows, setAllLibraryRows] = React.useState<LibraryNavRow[] | null>(null)
-  const [libraryError, setLibraryError] = React.useState<string | null>(null)
-  const [libraryCreating, setLibraryCreating] = React.useState(false)
-  const libraryFileInputRef = React.useRef<HTMLInputElement>(null)
   const [dialogSessions, setDialogSessions] = React.useState<DialogSessionRow[] | null>(null)
 
   const handleConfirmDeleteDialog = React.useCallback(
@@ -586,19 +525,6 @@ export function UniversalNavPanel({
     [domainId, selectedJourneyId, boardCtx],
   )
 
-  const handleConfirmDeleteLibraryItem = React.useCallback(
-    async (itemId: string) => {
-      await KipApi.deleteLibraryItem(itemId)
-      setAllLibraryRows((prev) => (prev ? prev.filter((row) => row.id !== itemId) : prev))
-      if (domainId) removeCachedBoardNavRow(domainId, "library", itemId)
-      setConfirmingDeleteLibraryId(null)
-      if (selectedLibraryItemId === itemId) {
-        boardCtx?.actions.clearSelection()
-      }
-    },
-    [domainId, selectedLibraryItemId, boardCtx],
-  )
-
   const [connectionItems, setConnectionItems] = React.useState<ConnectionNavItem[] | null>(null)
   const [connectionError, setConnectionError] = React.useState<string | null>(null)
 
@@ -640,11 +566,6 @@ export function UniversalNavPanel({
   const applyCapabilityNavPatch = React.useCallback(
     (rows: CapabilityNavRow[]) => applyCapabilityNavRowPatch(rows, capabilityNavRowPatch),
     [capabilityNavRowPatch],
-  )
-
-  const applyLibraryNavPatch = React.useCallback(
-    (rows: LibraryNavRow[]) => applyLibraryNavRowPatch(rows, libraryNavRowPatch),
-    [libraryNavRowPatch],
   )
 
   const patchedKeepers = React.useMemo(
@@ -726,6 +647,11 @@ export function UniversalNavPanel({
   // ── Section expand state ─────────────────────────────────────────────────
   const [expanded, setExpanded] = React.useState<Set<SectionKey>>(new Set())
   const [crossNavOpen, setCrossNavOpen] = React.useState(false)
+  const [navPane, setNavPane] = React.useState<NavPaneId>("universal")
+
+  React.useEffect(() => {
+    setNavPane("universal")
+  }, [def.boardId])
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -740,12 +666,22 @@ export function UniversalNavPanel({
 
   const handleCrossNavSelect = React.useCallback(
     (item: CrossNavIndexItem) => {
-      if (item.kind === "dialog") onDialogSelect?.(item.id)
-      else if (item.kind === "draft") onDraftSelect?.(item.id)
-      else if (item.kind === "keeper") onKeeperSelect?.(item.id)
-      else if (item.kind === "library") onLibraryItemSelect?.(item.id)
+      if (item.kind === "dialog") {
+        setNavPane("universal")
+        onDialogSelect?.(item.id)
+      } else if (item.kind === "draft") {
+        setNavPane("universal")
+        onDraftSelect?.(item.id)
+      } else if (item.kind === "keeper") {
+        setNavPane("keepers")
+        onKeeperSelect?.(item.id)
+      } else if (item.kind === "library") {
+        setNavPane("universal")
+        boardCtx?.actions.openLibraryScreen()
+        onLibraryItemSelect?.(item.id)
+      }
     },
-    [onDialogSelect, onDraftSelect, onKeeperSelect, onLibraryItemSelect],
+    [boardCtx, onDialogSelect, onDraftSelect, onKeeperSelect, onLibraryItemSelect],
   )
 
   const toggleExpanded = React.useCallback((section: SectionKey) => {
@@ -766,7 +702,7 @@ export function UniversalNavPanel({
 
   // ── Fetch: Dialogs ───────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!domainId || !def.nav.sections.dialogs) return
+    if (!domainId) return
     let cancelled = false
     const cached = getCachedBoardNavData<DialogItem[]>(domainId, "dialogs")
     if (cached) setDialogs(cached)
@@ -791,7 +727,7 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, def.nav.sections.dialogs, dialogListVersion])
+  }, [domainId, dialogListVersion])
 
   const setDialogTitleSources = boardCtx?.actions.setDialogTitleSources
   React.useEffect(() => {
@@ -833,7 +769,7 @@ export function UniversalNavPanel({
 
   // ── Fetch: Journeys ──────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!domainId || !def.nav.sections.journeys) return
+    if (!domainId) return
     let cancelled = false
     const cached = getCachedBoardNavData<JourneyItem[]>(domainId, "journeys")
     if (cached) setJourneys(cached)
@@ -857,11 +793,11 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, def.nav.sections.journeys, journeyListVersion])
+  }, [domainId, journeyListVersion])
 
   // ── Fetch: Keepers ───────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!domainId || !def.nav.sections.keepers) return
+    if (!domainId) return
     let cancelled = false
     const cached = getCachedBoardNavData<KeeperItem[]>(domainId, "keepers")
     if (cached) setKeepers(cached)
@@ -885,13 +821,12 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, def.nav.sections.keepers, keeperListVersion])
+  }, [domainId, keeperListVersion])
 
-  const showDrafts = def.nav.sections.drafts
+  const showDrafts = true
 
   // ── Fetch: Drafts — for top-level Drafts nav and nesting under Dialogs ──────
-  const loadDraftsForNav =
-    Boolean(def.nav.sections.drafts) || Boolean(def.nav.sections.dialogs)
+  const loadDraftsForNav = true
   React.useEffect(() => {
     if (!domainId || !loadDraftsForNav) return
     let cancelled = false
@@ -1127,116 +1062,6 @@ export function UniversalNavPanel({
     setAllKeyRows((prev) => (prev ? applyKeyNavRowPatch(prev) : prev))
   }, [keyListVersion, keyNavRowPatch, applyKeyNavRowPatch])
 
-  const showLibraryNav = def.nav.sections.library ?? false
-
-  React.useEffect(() => {
-    if (!domainId || !showLibraryNav) return
-    let cancelled = false
-    setLibraryError(null)
-    void fetchDomainLibraryNavRows(domainId)
-      .then((rows) => {
-        if (!cancelled) setAllLibraryRows(applyLibraryNavPatch(rows))
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setLibraryError(err instanceof Error ? err.message : "Failed to load library")
-          setAllLibraryRows([])
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [domainId, showLibraryNav, libraryListVersion, applyLibraryNavPatch])
-
-  React.useEffect(() => {
-    if (!libraryNavRowPatch) return
-    setAllLibraryRows((prev) => (prev ? applyLibraryNavPatch(prev) : prev))
-  }, [libraryListVersion, libraryNavRowPatch, applyLibraryNavPatch])
-
-  const activeKeeperIdForLibrary =
-    selectedKeeperId ?? frameCtx?.selection.activeKeeperId ?? null
-  const activeAgentIdForLibrary = selectedAgentId ?? null
-
-  const handleLibraryUploadClick = React.useCallback(() => {
-    libraryFileInputRef.current?.click()
-  }, [])
-
-  const handleLibraryFileChange = React.useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      event.target.value = ""
-      if (!file || !domainId || !user?.id) {
-        if (!user?.id) alert("Sign in to upload library files.")
-        return
-      }
-
-      setLibraryCreating(true)
-      try {
-        const created = await addLibraryUploadFromFile({
-          domainId,
-          userId: user.id,
-          file,
-          activeKeeperId: activeKeeperIdForLibrary,
-          activeAgentId: activeAgentIdForLibrary,
-        })
-        onLibraryItemSelect?.(created.id)
-        boardCtx?.actions.bumpLibraryNav()
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to add upload to library")
-      } finally {
-        setLibraryCreating(false)
-      }
-    },
-    [
-      domainId,
-      user?.id,
-      activeKeeperIdForLibrary,
-      activeAgentIdForLibrary,
-      onLibraryItemSelect,
-      boardCtx?.actions,
-    ],
-  )
-
-  const handleLibraryAddUrl = React.useCallback(async () => {
-    if (!domainId || !user?.id) {
-      alert("Sign in to add library links.")
-      return
-    }
-    const url = window.prompt("Paste a URL to add to the library:")
-    if (!url?.trim()) return
-    try {
-      new URL(url.trim())
-    } catch {
-      alert("Enter a valid URL (including https://).")
-      return
-    }
-
-    setLibraryCreating(true)
-    try {
-      const created = await createLibraryItem({
-        domainId,
-        userId: user.id,
-        sourceType: "url",
-        sourceRef: url.trim(),
-        activeKeeperId: activeKeeperIdForLibrary,
-        activeAgentId: activeAgentIdForLibrary,
-      })
-      onLibraryItemSelect?.(created.id)
-      boardCtx?.actions.bumpLibraryNav()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add URL to library")
-    } finally {
-      setLibraryCreating(false)
-    }
-  }, [
-    domainId,
-    user?.id,
-    activeKeeperIdForLibrary,
-    activeAgentIdForLibrary,
-    onLibraryItemSelect,
-    boardCtx?.actions,
-  ])
-
   // ── Derived SidebarCardItem arrays ───────────────────────────────────────
 
   const toDialogNavItem = React.useCallback(
@@ -1369,9 +1194,9 @@ export function UniversalNavPanel({
   }, [agents, agentNavRowPatch, selectedAgentId, onAgentSelect])
 
   const showAgents = def.nav.sections.agents
-  const showDialogs = def.nav.sections.dialogs
-  const showJourneys = def.nav.sections.journeys
-  const showKeepers = def.nav.sections.keepers
+  const showDialogs = true
+  const showJourneys = true
+  const showKeepers = true
   const showBoardDefs = def.nav.sections.boardDefs ?? false
   const showGlossaryNav = def.nav.sections.glossary ?? false
   const activeBoardDefId = showBoardDefs
@@ -1437,40 +1262,6 @@ export function UniversalNavPanel({
     onClick: () => onKeySelect?.(key.id),
   }))
 
-  const libraryItems: SidebarCardItem[] = React.useMemo(() => {
-    const rows = (allLibraryRows ?? []).filter(
-      (row) => row.id && row.source_ref?.trim() && libraryItemChronicleTitle(row).trim(),
-    )
-    const items: SidebarCardItem[] = rows.map((row) => ({
-      id: row.id,
-      label: libraryItemChronicleTitle(row),
-      isSelected: row.id === selectedLibraryItemId,
-      onClick: () => onLibraryItemSelect?.(row.id),
-      onRequestDelete: () => setConfirmingDeleteLibraryId(row.id),
-      deleteConfirming: confirmingDeleteLibraryId === row.id,
-      onConfirmDelete: () => handleConfirmDeleteLibraryItem(row.id),
-      onCancelDelete: () => setConfirmingDeleteLibraryId(null),
-      deleteConfirmLabel: `Delete library item "${libraryItemChronicleTitle(row)}"?`,
-    }))
-    if (showLibraryNav && !libraryCreating) {
-      items.push({
-        id: "__library_add_url__",
-        label: "Add URL…",
-        onClick: () => void handleLibraryAddUrl(),
-      })
-    }
-    return items
-  }, [
-    allLibraryRows,
-    selectedLibraryItemId,
-    onLibraryItemSelect,
-    showLibraryNav,
-    libraryCreating,
-    handleLibraryAddUrl,
-    confirmingDeleteLibraryId,
-    handleConfirmDeleteLibraryItem,
-  ])
-
   // ── designer sections: Board Definitions ─────────────────────────────────
 
   const selectBoardDef = React.useCallback(
@@ -1494,11 +1285,7 @@ export function UniversalNavPanel({
     [showBoardDefs, allBoardDefs, activeBoardDefId, selectBoardDef],
   )
 
-  const navBlockOrder = resolveNavBlockOrder(def)
-
-  const libraryRowCount = (allLibraryRows ?? []).filter(
-    (row) => row.id && row.source_ref?.trim(),
-  ).length
+  const navBlockOrder = paneBlocksFor(def, navPane)
 
   const navContentCounts = React.useMemo(
     () => ({
@@ -1507,7 +1294,7 @@ export function UniversalNavPanel({
       keepers: keepers?.length ?? null,
       drafts: patchedDrafts === null ? null : orphanDraftsForNav.length,
       agents: agents?.length ?? null,
-      library: allLibraryRows === null ? null : libraryRowCount,
+      library: null,
       chatter: dialogs === null ? null : chatterDialogs.length,
       connections: connectionItems === null ? null : connectionItems.length,
     }),
@@ -1519,8 +1306,6 @@ export function UniversalNavPanel({
       patchedDrafts,
       orphanDraftsForNav.length,
       agents,
-      allLibraryRows,
-      libraryRowCount,
       chatterDialogs.length,
       connectionItems,
     ],
@@ -1673,7 +1458,6 @@ export function UniversalNavPanel({
           />
         )
       case "chatter":
-        if (def.boardId !== "domain" && def.boardId !== "realm" && def.boardId !== "designer") return null
         return (
           <>
             <SidebarCard
@@ -1881,40 +1665,20 @@ export function UniversalNavPanel({
           />
         )
       case "library":
-        if (!showLibraryNav) return null
         return (
-          <div className="flex flex-col gap-2">
-            <input
-              ref={libraryFileInputRef}
-              type="file"
-              className="hidden"
-              accept="image/*,.txt,.md,.pdf,.json,.csv"
-              onChange={(event) => void handleLibraryFileChange(event)}
-            />
-            <SidebarCard
-              className="keeper-sidebar-card"
-              title="Library"
-              description={
-                libraryCreating
-                  ? "Adding item…"
-                  : !domainId
-                    ? "Loading…"
-                    : countLabel(
-                        (allLibraryRows ?? []).filter((row) => row.id && row.source_ref?.trim()).length,
-                        "item",
-                      )
-              }
-              items={libraryItems.length ? libraryItems : undefined}
-              collapsible={libraryItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
-              defaultCollapsed={libraryItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
-              onAdd={libraryCreating ? undefined : handleLibraryUploadClick}
-            />
-            {libraryError && (
-              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-                {libraryError}
-              </p>
-            )}
-          </div>
+          <SidebarCard
+            className="keeper-sidebar-card"
+            title="Library"
+            description="Opens over Dialog"
+            items={[
+              {
+                id: "library-open",
+                label: boardCtx?.libraryScreenOpen ? "Browsing…" : "Open library",
+                isSelected: Boolean(boardCtx?.libraryScreenOpen || selectedLibraryItemId),
+                onClick: () => boardCtx?.actions.openLibraryScreen(),
+              },
+            ]}
+          />
         )
       case "glossary":
         if (!showGlossaryNav) return null
@@ -2002,55 +1766,10 @@ export function UniversalNavPanel({
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  if (navStages?.length) {
-    return (
-      <TreatmentAccentShell treatment={realmTreatment} className="keeper-nav-panel overflow-hidden">
-        <div
-          className="flex flex-col h-full min-h-0 overflow-hidden"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          <div
-            className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
-            style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)" }}
-          >
-            <p
-              className="keeper-treatment-title text-[13px] font-medium truncate flex-1 min-w-0"
-              style={{ color: "hsl(var(--theme-ink-secondary))", letterSpacing: "0.01em" }}
-              title={domainName}
-            >
-              {domainName}
-            </p>
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              className="shrink-0 ml-1 p-1 rounded-md transition-opacity hover:opacity-60"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              aria-label="Collapse navigation panel"
-            >
-              <ChevronLeftIcon />
-            </button>
-          </div>
-          <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
-            <RealmStagedNav
-              domainId={domainId}
-              domainSlug={domainSlug}
-              treatment={realmTreatment}
-              stages={navStages}
-              selectedDialogId={selectedDialogId}
-              selectedDraftId={selectedDraftId}
-              selectedLibraryItemId={selectedLibraryItemId}
-              selectedMomentId={selectedMomentId}
-              onDialogSelect={onDialogSelect}
-              onDraftSelect={onDraftSelect}
-              onLibraryItemSelect={onLibraryItemSelect}
-              onMomentSelect={onMomentSelect}
-              onDraftCreate={user && domainId ? handleDraftCreate : undefined}
-            />
-          </div>
-        </div>
-      </TreatmentAccentShell>
-    )
-  }
+  const showConfigPane = boardHasConfigPane(def)
+  const paneIds: NavPaneId[] = showConfigPane
+    ? ["universal", "keepers", "config"]
+    : ["universal", "keepers"]
 
   return (
     <TreatmentAccentShell treatment={realmTreatment} className="keeper-nav-panel overflow-hidden">
@@ -2063,7 +1782,6 @@ export function UniversalNavPanel({
         {/* Domain name header — quiet anchor, not interactive */}
         <div
           className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
-          style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)" }}
         >
           <p
             className="keeper-treatment-title text-[13px] font-medium truncate flex-1 min-w-0"
@@ -2097,7 +1815,28 @@ export function UniversalNavPanel({
           </div>
         </div>
 
-        {/* Scrollable SidebarCards — order from def.nav.primarySection when set */}
+        <div
+          className="keeper-nav-pane-tabs shrink-0"
+          role="tablist"
+          aria-label="Navigation panes"
+        >
+          {paneIds.map((pane) => {
+            const selected = navPane === pane
+            return (
+              <button
+                key={pane}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className="keeper-nav-pane-tab"
+                onClick={() => setNavPane(pane)}
+              >
+                {NAV_PANE_LABELS[pane]}
+              </button>
+            )
+          })}
+        </div>
+
         <div className="keeper-panel-scroll flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
           {navBlockOrder.map((block) => (
             <React.Fragment key={block}>{renderNavBlock(block)}</React.Fragment>

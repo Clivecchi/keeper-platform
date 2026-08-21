@@ -154,6 +154,10 @@ export interface UniversalBoardActions {
   onKeySelect: (id: string) => void
   onCapabilitySelect: (id: string) => void
   onLibraryItemSelect: (id: string) => void
+  /** Opens the Library screen over Dialog. Selected item still renders in Chronicle. */
+  openLibraryScreen: () => void
+  /** Closes the Library screen. Chronicle keeps the selected library item. */
+  closeLibraryScreen: () => void
   /** Opens the Object Glossary in Chronicle (Domain read / Design definition). */
   onGlossarySelect: () => void
   /** Open Chronicle Act to bring writing from outside Keeper into a Dialog. */
@@ -222,6 +226,8 @@ export interface UniversalBoardContextValue {
   /** Whether the left nav panel is collapsed. Controlled by the board. */
   navCollapsed: boolean
   onToggleNavCollapsed: () => void
+  /** Library list overlay sitting on the Dialog (center) panel. */
+  libraryScreenOpen: boolean
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -353,6 +359,15 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
+  const [libraryScreenOpen, setLibraryScreenOpen] = React.useState(false)
+
+  const openLibraryScreen = React.useCallback(() => {
+    setLibraryScreenOpen(true)
+  }, [])
+
+  const closeLibraryScreen = React.useCallback(() => {
+    setLibraryScreenOpen(false)
+  }, [])
 
   // ── Actions ───────────────────────────────────────────────────────────────
   // Domain entity selections are mutually exclusive.
@@ -372,6 +387,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   )
 
   const onDialogSelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedDialogId(id)
     setSelectedJourneyId(null)
@@ -407,6 +423,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [onDialogSelect])
 
   const onJourneySelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedJourneyId(id)
     setSelectedPathId(null)
@@ -424,6 +441,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [clearDraftIdFromUrl])
 
   const onPathSelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedPathId(id)
     setSelectedMomentId(null)
@@ -440,6 +458,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [clearDraftIdFromUrl])
 
   const onMomentSelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedMomentId(id)
     setSelectedPathId(null)
@@ -461,6 +480,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onKeeperSelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedKeeperId(id)
     setSelectedDialogId(null)
@@ -478,6 +498,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [clearDraftIdFromUrl])
 
   const onDraftSelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(id)
     setSelectedDialogId(null)
@@ -503,6 +524,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [setSearchParams])
 
   const onAgentSelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setTrainingMode(false)
     setSelectedAgentId(id)
@@ -521,6 +543,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [clearDraftIdFromUrl])
 
   const onServiceOpen = React.useCallback((slug: string) => {
+    setLibraryScreenOpen(false)
     setSelectedServiceSlug(slug)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
@@ -537,6 +560,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onKeySelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     setSelectedKeyId(id)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
@@ -554,6 +578,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onCapabilitySelect = React.useCallback((id: string) => {
+    setLibraryScreenOpen(false)
     setSelectedCapabilityId(id)
     setSelectedKeyId(null)
     setSelectedLibraryItemId(null)
@@ -571,12 +596,12 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onLibraryItemSelect = React.useCallback((id: string) => {
+    // Library sits over Dialog — keep the conversation, show the item in Chronicle.
     setSelectedLibraryItemId(id)
     setSelectedGlossaryId(null)
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedSoleMemoryId(null)
-    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
     setSelectedMomentId(null)
@@ -588,6 +613,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onGlossarySelect = React.useCallback(() => {
+    setLibraryScreenOpen(false)
     setSelectedGlossaryId(OBJECT_GLOSSARY_SUBJECT_ID)
     setSelectedLibraryItemId(null)
     setSelectedSoleMemoryId(null)
@@ -644,6 +670,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   )
 
   const clearSelection = React.useCallback(() => {
+    setLibraryScreenOpen(false)
     setTrainingMode(false)
     setActiveCastMember(null)
     setCuedCastMembers([])
@@ -664,6 +691,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onBoardDefSelect = React.useCallback((id: string | null) => {
+    setLibraryScreenOpen(false)
     setSelectedBoardDefId(id)
     if (id) {
       setSelectedSoleMemoryId(null)
@@ -1016,6 +1044,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onKeySelect,
         onCapabilitySelect,
         onLibraryItemSelect,
+        openLibraryScreen,
+        closeLibraryScreen,
         onGlossarySelect,
         requestDialogIngest,
         closeDialogIngest,
@@ -1051,6 +1081,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       },
       navCollapsed,
       onToggleNavCollapsed,
+      libraryScreenOpen,
       chronicleEngagement,
       dialogIngest,
       chronicleView,
@@ -1114,6 +1145,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onKeySelect,
       onCapabilitySelect,
       onLibraryItemSelect,
+      openLibraryScreen,
+      closeLibraryScreen,
       onGlossarySelect,
       onSoleMemorySelect,
       clearSelection,
@@ -1147,6 +1180,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setChroniclePanelMode,
       navCollapsed,
       onToggleNavCollapsed,
+      libraryScreenOpen,
       chronicleEngagement,
       dialogIngest,
       chronicleView,

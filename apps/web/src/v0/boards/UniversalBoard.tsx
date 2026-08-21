@@ -47,6 +47,7 @@ import { DomainBriefSlideOver } from "../components/DomainBriefSlideOver"
 import { KeeperBoardPanelGroup } from "./KeeperBoardPanelGroup"
 import type { KeeperBoardKind } from "./KeeperBoardPanelGroup"
 import { UniversalNavPanel } from "./UniversalNavPanel"
+import { LibraryScreen } from "./LibraryScreen"
 import { UniversalViewPanel } from "./panels/UniversalViewPanel"
 import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardContext"
 import { DesignerDraftProvider } from "./DesignerDraftContext"
@@ -216,6 +217,7 @@ function UniversalBoardShell({
     onToggleNavCollapsed,
     chronicleEngagement,
     dialogIngest,
+    libraryScreenOpen,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -293,6 +295,10 @@ function UniversalBoardShell({
 
   const closeNavDrawer = React.useCallback(() => setNavDrawerOpen(false), [])
   const closeChronicleOverlay = React.useCallback(() => setChronicleOverlayOpen(false), [])
+
+  React.useEffect(() => {
+    if (libraryScreenOpen && useMobilePanelLayout) closeNavDrawer()
+  }, [libraryScreenOpen, useMobilePanelLayout, closeNavDrawer])
 
   const handleGoHome = React.useCallback(() => {
     actions.clearSelection()
@@ -376,15 +382,15 @@ function UniversalBoardShell({
     if (!isResolvedDomainId(domainId)) return
 
     const slices = {
-      journeys: !!def.nav.sections.journeys,
-      keepers: !!def.nav.sections.keepers,
-      dialogs: !!def.nav.sections.dialogs,
-      drafts: !!def.nav.sections.drafts,
+      journeys: true,
+      keepers: true,
+      dialogs: true,
+      drafts: true,
       agents:
         !!def.nav.sections.agents ||
         (def.conversation.kipMode === "domain" &&
           def.conversation.dialogCueing === "directed"),
-      library: !!def.nav.sections.library,
+      library: true,
     }
 
     const run = () => prefetchBoardNavData(domainId, slices)
@@ -651,12 +657,23 @@ function UniversalBoardShell({
   const centerNode = (
     <PanelErrorBoundary panel="dialog">
       <div
-        className="flex h-full min-h-0 flex-col overflow-hidden"
+        className="relative flex h-full min-h-0 flex-col overflow-hidden"
         style={{ background: "transparent", borderRadius: useMobilePanelLayout ? undefined : "8px" }}
       >
         {center
           ? center(centerProps)
           : <UniversalConversation def={def} {...centerProps} />}
+        {domainId && libraryScreenOpen ? (
+          <LibraryScreen
+            domainId={domainId}
+            selectedLibraryItemId={selection.selectedLibraryItemId}
+            onSelect={(id) => {
+              actions.onLibraryItemSelect(id)
+              if (useMobilePanelLayout) closeNavDrawer()
+            }}
+            onClose={actions.closeLibraryScreen}
+          />
+        ) : null}
       </div>
     </PanelErrorBoundary>
   )

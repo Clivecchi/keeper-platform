@@ -33,7 +33,8 @@ export type DialogStyle = "directed" | "monologue" | "vibe"
 export type CastMemberSlug = string
 
 // Left panel — Navigation
-// What sections appear. What board nav integrations are present.
+// Three panes: Universal (Dialog, Draft, Chatter, Library) · Keepers · Config.
+// Universal and Keepers are the same on every board. Config is board-specific.
 // Treatment character: orientation and confidence.
 export type NavSectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "library" | "boardDefs" | "glossary"
 
@@ -107,8 +108,8 @@ export interface NavPanelDef {
    */
   primarySection?: NavSectionKey
   /**
-   * Full nav block order override. When omitted, UniversalNavPanel uses its default order.
-   * Domain Board: Keeper → Dialogs → Journeys → Boards, then any remaining enabled sections.
+   * Config pane block order. Universal and Keepers panes ignore this — they are shared.
+   * Remaining enabled Config blocks append after this list.
    */
   navBlockOrder?: NavRenderBlock[]
   /** Override the Keepers section card title (Domain Board uses "Keeper"). */
@@ -125,8 +126,8 @@ export interface NavPanelDef {
   /** Domain / Realm / IDE: domain-bound MCP keys for external tools */
   externalAccessSummary?: boolean
   /**
-   * Realm board: maturity stages instead of flat entity categories.
-   * When set, UniversalNavPanel renders RealmStagedNav.
+   * Realm board: maturity stages (Drafts → Kept → Presented).
+   * Nav now uses Universal / Keepers / Config panes on every board; stages no longer replace Nav.
    */
   navStages?: RealmNavStage[]
 }
@@ -341,11 +342,12 @@ export const BUILD_BOARD_DEF: UniversalBoardDef = {
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
-      dialogs: false,
-      journeys: false,
-      keepers: false,
+      dialogs: true,
+      journeys: true,
+      keepers: true,
       drafts: true,
       agents: false,
+      library: true,
       capabilities: true,
       boardDefs: false,
     },
@@ -358,7 +360,7 @@ export const BUILD_BOARD_DEF: UniversalBoardDef = {
       { id: "together-ai", label: "Together AI", group: "ai" },
       { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
     ],
-    navBlockOrder: ["drafts", "integrations", "keys", "capabilities", "boards"],
+    navBlockOrder: ["integrations", "keys", "capabilities"],
   },
   conversation: {
     agentSlug: "kip",
@@ -388,15 +390,16 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
-      dialogs: false,
-      journeys: false,
-      keepers: false,
-      drafts: false,
+      dialogs: true,
+      journeys: true,
+      keepers: true,
+      drafts: true,
       agents: true,
+      library: true,
       boardDefs: false,
     },
     primarySection: "agents",
-    navBlockOrder: ["agents", "aiAccess", "externalAccess", "boards"],
+    navBlockOrder: ["agents", "aiAccess", "externalAccess"],
     aiAccessSummary: true,
     externalAccessSummary: true,
     // Full Keys + platform AI providers live on Build Board only.
@@ -432,23 +435,13 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       dialogs: true,
       journeys: true,
       keepers: true,
-      drafts: false,
+      drafts: true,
       agents: false,
       library: true,
       glossary: true,
       boardDefs: false,
     },
-    // Dialog → Keeper → Glossary → Library → Chatter; journeys follow.
-    navBlockOrder: [
-      "dialogs",
-      "keepers",
-      "glossary",
-      "library",
-      "chatter",
-      "journeys",
-      "externalAccess",
-      "boards",
-    ],
+    navBlockOrder: ["glossary", "externalAccess", "boards"],
     externalAccessSummary: true,
     keeperSectionTitle: "Keeper",
   },
@@ -485,9 +478,9 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
-      dialogs: false,
-      journeys: false,
-      keepers: false,
+      dialogs: true,
+      journeys: true,
+      keepers: true,
       drafts: true,
       agents: false,
       library: true,
@@ -495,7 +488,7 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     },
     navMode: "contentGated",
     navStages: ["drafts", "kept", "presented"],
-    navBlockOrder: ["boards"],
+    navBlockOrder: ["connections", "externalAccess", "boards"],
     externalAccessSummary: true,
   },
   conversation: {
@@ -531,17 +524,16 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   nav: {
     sections: {
       dialogs: true,
-      journeys: false,
-      keepers: false,
+      journeys: true,
+      keepers: true,
       drafts: true,
       agents: false,
+      library: true,
       sessions: true,
       glossary: true,
       boardDefs: true,
     },
-    // Board Definitions is a Nav subject on the same exclusive list as Dialog.
-    // Realm Stages stay on Realm — they replace the whole Nav.
-    navBlockOrder: ["dialogs", "sessions", "chatter", "drafts", "glossary", "boardDefs"],
+    navBlockOrder: ["glossary", "boardDefs"],
   },
   conversation: {
     agentSlug: "rendr",

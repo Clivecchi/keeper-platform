@@ -34,10 +34,20 @@ describe("shouldRenderContentGatedBlock", () => {
     expect(shouldRenderContentGatedBlock("keepers", staticNav, emptyCounts)).toBe(true)
   })
 
-  it("hides empty entity blocks when contentGated", () => {
+  it("hides empty Config entity blocks when contentGated", () => {
     const nav: NavPanelDef = { ...staticNav, navMode: "contentGated" }
-    expect(shouldRenderContentGatedBlock("journeys", nav, emptyCounts)).toBe(false)
-    expect(shouldRenderContentGatedBlock("library", nav, emptyCounts)).toBe(false)
+    expect(shouldRenderContentGatedBlock("agents", nav, emptyCounts)).toBe(false)
+    expect(shouldRenderContentGatedBlock("connections", nav, emptyCounts)).toBe(false)
+  })
+
+  it("always shows Universal and Keepers blocks even when empty", () => {
+    const nav: NavPanelDef = { ...staticNav, navMode: "contentGated" }
+    expect(shouldRenderContentGatedBlock("dialogs", nav, emptyCounts)).toBe(true)
+    expect(shouldRenderContentGatedBlock("drafts", nav, emptyCounts)).toBe(true)
+    expect(shouldRenderContentGatedBlock("keepers", nav, emptyCounts)).toBe(true)
+    expect(shouldRenderContentGatedBlock("journeys", nav, emptyCounts)).toBe(true)
+    expect(shouldRenderContentGatedBlock("library", nav, emptyCounts)).toBe(true)
+    expect(shouldRenderContentGatedBlock("chatter", nav, emptyCounts)).toBe(true)
   })
 
   it("keeps navAlwaysShow blocks visible when empty", () => {

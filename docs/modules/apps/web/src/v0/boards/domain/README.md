@@ -32,6 +32,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## ?? Update Log
 
+### 2026-08-20 — Universal Nav prefetch
+- Reveal curtain always warms Dialogs, Drafts, Keepers, Journeys, and Library. External Access stays on Domain Config.
+
 ### 2026-08-17 — Glossary in Domain Nav
 - Domain `navBlockOrder` inserts **Glossary** after Keeper and before Library. Chronicle read of the Object Glossary — not nested in Library, not labeled as a Document.
 
