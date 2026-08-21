@@ -45,7 +45,7 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
-            Proposed {typeLabel.toLowerCase()}
+            {accepted ? "Added" : "Proposed"} {typeLabel.toLowerCase()}
             {draftTitle ? (
               <>
                 {" "}

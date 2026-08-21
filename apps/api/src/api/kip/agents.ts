@@ -103,14 +103,19 @@ import {
 } from '../../services/kip/actionFollowUp.js';
 import {
   applyManuscriptDraftIdToProposePayload,
+  buildPointContributionCard,
   buildPointObligationBlockedNotice,
   buildPointObligationFollowUpInput,
   buildPointObligationSystemPrompt,
   buildPointObligationUnmetNotice,
+  clampCastAdviceForPointTurn,
+  countSuccessfulPointProposes,
+  preferShortPointTurnResponse,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
   type PointTurnObligation,
 } from '../../services/kip/pointIntent.js';
+import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import {
   buildCastConsultationsSynthesisPrompt,
   buildDirectorFallbackSynthesisPrompt,
@@ -1176,6 +1181,46 @@ function attachPointTurnObligation(
   return obligation;
 }
 
+async function resolvePointObligationForRun(params: {
+  input: string;
+  environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
+  domainId?: string | null;
+  userId?: string;
+  agentId?: string | null;
+}): Promise<PointTurnObligation | null> {
+  const obligation = attachPointTurnObligation(params.input, params.environment ?? null);
+  if (
+    obligation?.blocker !== 'no_manuscript'
+    || !obligation.dialogId
+    || !params.domainId
+    || !params.userId
+  ) {
+    return obligation;
+  }
+
+  try {
+    const manuscript = await ensureDialogDocumentManuscript({
+      domainId: params.domainId,
+      dialogId: obligation.dialogId,
+      dialogTitle: obligation.dialogTitle,
+      userId: params.userId,
+      agentId: params.agentId ?? null,
+    });
+    if (!manuscript?.id) return obligation;
+    const env = params.environment as AgentEnvironmentContext | undefined;
+    if (env?.dialogDocument) {
+      env.dialogDocument.manuscriptDraftId = manuscript.id;
+    }
+    return attachPointTurnObligation(params.input, params.environment ?? null);
+  } catch (error) {
+    console.warn('[kip/agents] ensure dialog manuscript failed', {
+      dialogId: obligation.dialogId,
+      error: error instanceof Error ? error.message : error,
+    });
+    return obligation;
+  }
+}
+
 function pointObligationFromEnv(
   environment?: AgentEnvironmentContext | KipEnvironmentContext | null,
 ): PointTurnObligation | undefined {
@@ -1185,9 +1230,15 @@ function pointObligationFromEnv(
 function mergePointSkipActionTypes(
   base: Set<string> | undefined,
   obligation?: PointTurnObligation,
+  actor: 'lead' | 'cast' = 'lead',
 ): Set<string> | undefined {
   const next = new Set(base ?? []);
   if (obligation?.constrained) {
+    next.add('draft.update.propose');
+    next.add('draft.create');
+    next.add('draft.point.rewrite');
+  }
+  if (obligation?.required && actor === 'cast') {
     next.add('draft.update.propose');
     next.add('draft.create');
     next.add('draft.point.rewrite');
@@ -1207,10 +1258,12 @@ function buildExecuteAgentActionsCtx(
     sessionId?: string | null;
     requestId: string;
     skipActionTypes?: Set<string>;
+    actor?: 'lead' | 'cast';
   },
 ) {
   const env = options?.environment as AgentEnvironmentContext | undefined;
   const obligation = pointObligationFromEnv(options?.environment);
+  const actor = extras.actor ?? 'lead';
   return {
     domainId: options?.domainId ?? null,
     domainSlug: options?.domainSlug ?? null,
@@ -1227,6 +1280,7 @@ function buildExecuteAgentActionsCtx(
     skipActionTypes: mergePointSkipActionTypes(
       extras.skipActionTypes ?? options?.skipActionTypes,
       obligation,
+      actor,
     ),
     manuscriptDraftId:
       obligation?.manuscriptDraftId ?? env?.dialogDocument?.manuscriptDraftId,
@@ -1637,6 +1691,8 @@ export async function executeAgentActions(
               ? 'delegate.consult blocked in nested cast run (loop prevention)'
               : ctx.pointConstraint && action.type.startsWith('draft.')
                 ? 'Skipped — the human asked not to add Points yet'
+                : action.type === 'draft.update.propose' && ctx.pointObligationRequired
+                  ? 'Lead writes Document Points this turn — Cast advises'
                 : action.type === 'draft.create' && ctx.manuscriptDraftId
                   ? 'Skipped draft.create — Point writes go to the active Document manuscript'
                   : 'Action skipped (handled by draft intent pipeline)';
@@ -5825,7 +5881,13 @@ export class KipAgentService {
       // Get agent safely using our helper method
       const agent = await this.getAgentSafely(agentId);
 
-      attachPointTurnObligation(input, options?.environment ?? null);
+      await resolvePointObligationForRun({
+        input,
+        environment: options?.environment ?? null,
+        domainId: options?.domainId ?? null,
+        userId,
+        agentId: agent.id,
+      });
 
       // Update log to use the actual agent UUID for consistency
       logData.agent_id = agent.id;
@@ -6483,6 +6545,7 @@ export class KipAgentService {
                 allowlist: allowActions,
                 sessionId: currentSessionId,
                 requestId,
+                actor: agent.role === 'Lead' ? 'lead' : 'cast',
               }),
             );
             if (options?.timings) {
@@ -6599,6 +6662,7 @@ export class KipAgentService {
                       allowlist: allowActions,
                       sessionId: currentSessionId,
                       requestId,
+                      actor: agent.role === 'Lead' ? 'lead' : 'cast',
                     }),
                   );
                   if (options?.timings) {
@@ -6685,6 +6749,7 @@ export class KipAgentService {
                 allowlist: allowActions,
                 sessionId: currentSessionId,
                 requestId,
+                actor: agent.role === 'Lead' ? 'lead' : 'cast',
               }),
             );
             if (options?.timings) {
@@ -6769,6 +6834,7 @@ export class KipAgentService {
                 allowlist: allowActions,
                 sessionId: currentSessionId,
                 requestId,
+                actor: agent.role === 'Lead' ? 'lead' : 'cast',
               }),
             );
             if (options?.timings) {
@@ -6850,6 +6916,24 @@ export class KipAgentService {
               meta: chronicleChip.anchor.breadcrumb?.join(' › '),
             },
           };
+        }
+
+        const pointCard = buildPointContributionCard({
+          results: actionResults,
+          dialogTitle: dialogTitleForChronicle,
+        });
+        if (pointCard) {
+          structured = { ...structured, card: pointCard };
+          const shortened = preferShortPointTurnResponse({
+            responseText: finalResponseText,
+            pointCount: countSuccessfulPointProposes(actionResults),
+            dialogTitle: dialogTitleForChronicle,
+          });
+          if (shortened !== finalResponseText.trim()) {
+            finalResponseText = shortened;
+            options?.onReset?.();
+            if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
+          }
         }
 
         try {
@@ -7276,6 +7360,7 @@ export class KipAgentService {
                 allowlist: systemAllowActions,
                 sessionId: currentSessionId,
                 requestId: systemRequestId,
+                actor: 'cast',
               }),
             );
             if (options?.timings) {
@@ -7341,6 +7426,16 @@ export class KipAgentService {
                 finalResponseText = (finalResponseText || '') + allFailedSummary;
               }
             }
+          }
+        }
+
+        const systemPointObligation = pointObligationFromEnv(options?.environment);
+        if (systemPointObligation?.required && !systemPointObligation.constrained) {
+          const clamped = clampCastAdviceForPointTurn(finalResponseText);
+          if (clamped !== finalResponseText.trim()) {
+            finalResponseText = clamped;
+            options?.onReset?.();
+            if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
           }
         }
 

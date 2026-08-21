@@ -9,6 +9,7 @@ import clsx from "clsx"
 import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard, type KeepAsMomentPayload } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
+import { DraftPointProposeCard } from "../kip/DraftPointProposeCard"
 import { TreatmentProposeCard } from "../kip/TreatmentProposeCard"
 import type { DomainFrameTreatment } from "../../v0/data/domain-frame.types"
 import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
@@ -18,7 +19,7 @@ import { getAgentErrorPresentation } from "./errorPresentation"
 import { isDirectorDelegationFailureContent, sanitizeAgentMessageContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
-import { buildMessageGlossAnchor } from "@keeper/shared"
+import { buildMessageGlossAnchor, type DraftPoint } from "@keeper/shared"
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
@@ -633,6 +634,26 @@ function MessageAttachments({
                 />
               )
             }
+            const point = receiptDraftPoint(receipt.data)
+            const pointDraftId =
+              (typeof receipt.data?.draft?.id === "string" && receipt.data.draft.id)
+              || (typeof receipt.data?.draftId === "string" ? receipt.data.draftId : "")
+            if (isPropose && point && pointDraftId) {
+              const manuscript = receipt.data?.draft?.kind === "document_manuscript"
+              return (
+                <DraftPointProposeCard
+                  key={idx}
+                  draftId={pointDraftId}
+                  draftTitle={
+                    receipt.data?.draft?.title
+                    || (typeof receipt.data?.draftTitle === "string" ? receipt.data.draftTitle : "Document")
+                  }
+                  point={point}
+                  accepted={manuscript || point.status === "accepted"}
+                  onOpenDraft={onOpenDraft}
+                />
+              )
+            }
             // Always surface the proposal receipt — Apply stays optional (designer board).
             // Prefer structured proposal; if fold dropped it, still avoid a bare "Completed" chip.
             if (isTreatmentPropose) {
@@ -916,10 +937,25 @@ const AgentErrorAlert: React.FC<{ error: string; agentName: string }> = ({ error
 function isVisibleActionResult(actionResult: NonNullable<AgentDialogueMessage["actionResults"]>[number]): boolean {
   if (!actionResult || typeof actionResult !== "object") return false
   const receipt = normalizeActionReceipt(actionResult)
-  if (receipt.status === "skipped" || receipt.status === "error") {
+  if (receipt.status === "skipped") {
+    const message = receipt.message?.trim() ?? ""
+    if (/Lead writes Document Points|Skipped draft.create — Point writes/i.test(message)) {
+      return false
+    }
+    return Boolean(message)
+  }
+  if (receipt.status === "error") {
     return Boolean(receipt.message?.trim())
   }
   return true
+}
+
+function receiptDraftPoint(data: ReturnType<typeof normalizeActionReceipt>["data"]): DraftPoint | null {
+  const raw = data?.point
+  if (!raw || typeof raw !== "object") return null
+  const point = raw as Partial<DraftPoint>
+  if (typeof point.id !== "string" || typeof point.content !== "string") return null
+  return point as DraftPoint
 }
 
 const SkeletonBubble: React.FC<{ alignment: "left" | "right" }> = ({

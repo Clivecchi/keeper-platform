@@ -34,7 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
-- 2026-08-19: **Named agent errors** — `getAgentErrorPresentation(error, agentName)` titles failures as the speaking agent (Ceox on a lead-led domain, not always Kip). Lost sessions title as Session expired.
+- 2026-08-21: `DialogueMessageList` renders `DraftPointProposeCard` for `draft.update.propose` so Points appear as UI, not only compact receipts. Pipeline skip receipts for Cast Point writes are hidden.
 - 2026-08-18: **Quiet Echo** — `formatDialogueAsMarkdown` and `DialogueMessageList` skip empty/failed Echo beats. Kip support is not painted as `Echo · _(failed)_`.
 - 2026-08-10: **Cast-consult treatment receipts** — `DialogueMessageList` always shows `TreatmentProposeCard` for successful `treatment.propose` (Apply remains designer-only via optional `onApplyTreatmentProposal`).
 - 2026-08-09: **Mobile composer bubble + card affordance** — `composerSize="mobile-compact"` renders a pinned Message bubble (not a short full-width bar); expand uses ~58–66vh. `KipResponseCard` / `ChronicleUpdateChip` mute non-actionable cards (no hover/press/CTA when `onOpen` is absent).

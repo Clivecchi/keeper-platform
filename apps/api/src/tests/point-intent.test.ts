@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyManuscriptDraftIdToProposePayload,
+  buildPointContributionCard,
   buildPointObligationBlockedNotice,
   buildPointObligationFollowUpInput,
   buildPointObligationSystemPrompt,
+  clampCastAdviceForPointTurn,
   detectPointIntent,
+  preferShortPointTurnResponse,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
 } from '../services/kip/pointIntent.js';
@@ -17,7 +20,7 @@ describe('detectPointIntent', () => {
     expect(detectPointIntent('capture these points').kind).toBe('required');
     expect(detectPointIntent('put that in the Document').kind).toBe('required');
     expect(detectPointIntent('make that a Point').kind).toBe('required');
-    expect(detectPointIntent('can you create and add points yet?').kind).toBe('required');
+    expect(detectPointIntent('Propose the points into the draft').kind).toBe('required');
     expect(
       detectPointIntent(
         'We have concluded that the model provides intelligence and Keeper provides Agency. Add that as a Point.',
@@ -160,6 +163,7 @@ describe('point prompts', () => {
     expect(prompt).toContain('not layout');
     expect(prompt).toContain('spec_json.points');
     expect(prompt).toContain('ms-1');
+    expect(prompt).toContain('two sentences maximum');
     expect(prompt).not.toMatch(/TURN OBLIGATION/);
   });
 
@@ -176,6 +180,7 @@ describe('point prompts', () => {
     );
     expect(prompt).toContain('TURN OBLIGATION');
     expect(prompt).toContain('ms-1');
+    expect(prompt).toContain('1–3 short sentences');
   });
 
   it('surfaces Chatter blockers honestly', () => {
@@ -202,5 +207,44 @@ describe('applyManuscriptDraftIdToProposePayload', () => {
     expect(
       applyManuscriptDraftIdToProposePayload({ id: 'other', content: 'Agency' }, 'ms-1'),
     ).toEqual({ id: 'other', content: 'Agency' });
+  });
+});
+
+describe('Point UI over essays', () => {
+  it('builds a summary card from successful Point writes', () => {
+    const card = buildPointContributionCard({
+      dialogTitle: 'Finding the plot',
+      results: [
+        {
+          type: 'draft.update.propose',
+          status: 'success',
+          data: { point: { prelude: 'Agency over habit', content: 'Keeper owns the write.' } },
+        },
+        {
+          type: 'draft.update.propose',
+          status: 'success',
+          data: { point: { content: 'Cast advises; Lead writes.' } },
+        },
+      ],
+    });
+    expect(card?.title).toBe('Added 2 Points · Finding the plot');
+    expect(card?.items).toEqual(['Agency over habit', 'Cast advises; Lead writes.']);
+  });
+
+  it('replaces Cast roll-call novels after Points land', () => {
+    expect(
+      preferShortPointTurnResponse({
+        responseText: '### Cloud\nA long implementation essay.\n\n### Rendr\nA layout essay.',
+        pointCount: 2,
+        dialogTitle: 'Finding the plot',
+      }),
+    ).toBe('Added 2 Points to Finding the plot.');
+  });
+
+  it('clamps Cast Point-turn advice', () => {
+    const long = `${'Word. '.repeat(80)}More after that.`;
+    const clamped = clampCastAdviceForPointTurn(long);
+    expect(clamped.length).toBeLessThan(long.length);
+    expect(clamped.length).toBeLessThanOrEqual(360);
   });
 });

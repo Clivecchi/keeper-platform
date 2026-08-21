@@ -191,6 +191,7 @@ export function buildPointObligationSystemPrompt(
       KEEPER_POINT_GROUNDING,
       ...targetLines,
       'This Turn has an explicit Point request. Advise in your specialty so the Lead can draft.update.propose.',
+      'UI: two sentences maximum. No reports, no layout essays, no ### headings. Dialog already shows your voice card.',
       'Do not interpret “Point” as spatial ratio, motion, or layout unless they clearly asked about Treatment.',
       'If DIALOG DOCUMENT is in this prompt, that is the subject — do not ask what the Dialog is about.',
     ].join('\n');
@@ -220,6 +221,7 @@ export function buildPointObligationSystemPrompt(
     'TURN OBLIGATION (Keeper-owned, not optional): the human explicitly asked to add/propose Points.',
     ...targetLines,
     'Before this Turn is complete, emit one or more draft.update.propose actions with that manuscript id and payload.content for each Point.',
+    'UI: "response" is 1–3 short sentences. Do not paste Cast replies or ### Cloud / ### Rendr roll-calls — Dialog already shows their voice cards. Points appear as cards from the actions, not as a markdown essay.',
     'You still choose the wording and how many Points are useful. Keeper requires that the write happens.',
     'Never claim Points were added unless those actions are in this response.',
   ].join('\n');
@@ -262,6 +264,7 @@ export function buildPointObligationFollowUpInput(params: {
     `Original user message: "${params.originalInput}"`,
     'Emit draft.update.propose now with payload.id set to the manuscript id above.',
     'One action per Point. payload.content is required. Do not draft.create. Do not defer.',
+    'Keep "response" to 1–3 short sentences. Do not paste Cast replies.',
   ].join('\n');
 }
 
@@ -317,3 +320,81 @@ export function countSuccessfulPointProposes(
     (result) => result.type === 'draft.update.propose' && result.status === 'success',
   ).length;
 }
+
+export type PointContributionCard = {
+  type: 'summary';
+  title: string;
+  body?: string;
+  items: string[];
+};
+
+function pointPreviewFromResult(result: {
+  data?: Record<string, unknown>;
+  message?: string;
+}): string | null {
+  const data = result.data;
+  const point = data?.point;
+  if (point && typeof point === 'object' && !Array.isArray(point)) {
+    const record = point as { prelude?: unknown; content?: unknown };
+    const prelude = typeof record.prelude === 'string' ? record.prelude.trim() : '';
+    const content = typeof record.content === 'string' ? record.content.trim() : '';
+    if (prelude) return prelude;
+    if (content) return content.length > 140 ? `${content.slice(0, 137)}…` : content;
+  }
+  const message = typeof result.message === 'string' ? result.message.trim() : '';
+  return message || null;
+}
+
+export function buildPointContributionCard(params: {
+  results: Array<{
+    type: string;
+    status: string;
+    message?: string;
+    data?: Record<string, unknown>;
+  }>;
+  dialogTitle?: string;
+}): PointContributionCard | null {
+  const successful = params.results.filter(
+    (result) => result.type === 'draft.update.propose' && result.status === 'success',
+  );
+  if (!successful.length) return null;
+  const items = successful
+    .map((result) => pointPreviewFromResult(result))
+    .filter((item): item is string => Boolean(item));
+  if (!items.length) return null;
+  const noun = successful.length === 1 ? 'Point' : 'Points';
+  const where = params.dialogTitle?.trim() ? ` · ${params.dialogTitle.trim()}` : '';
+  return {
+    type: 'summary',
+    title: `Added ${successful.length} ${noun}${where}`,
+    body: 'On the Dialog Document — open Chronicle to read the full beats.',
+    items,
+  };
+}
+
+const CAST_DUMP_PATTERN = /^#{1,3}\s+(Cloud|Rendr|Kip|Ceox)\b/im;
+
+export function preferShortPointTurnResponse(params: {
+  responseText: string;
+  pointCount: number;
+  dialogTitle?: string;
+}): string {
+  const text = params.responseText.trim();
+  if (params.pointCount <= 0) return text;
+  const looksLikeCastDump = CAST_DUMP_PATTERN.test(text) || (text.match(/\n#{1,3}\s+/g)?.length ?? 0) >= 2;
+  const tooLong = text.length > 520;
+  if (!looksLikeCastDump && !tooLong) return text;
+  const noun = params.pointCount === 1 ? 'Point' : 'Points';
+  const where = params.dialogTitle?.trim() ? ` to ${params.dialogTitle.trim()}` : '';
+  return `Added ${params.pointCount} ${noun}${where}.`;
+}
+
+export function clampCastAdviceForPointTurn(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= 320) return trimmed;
+  const sentences = trimmed.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const clipped = sentences.slice(0, 2).join(' ').trim();
+  if (clipped && clipped.length <= 360) return clipped;
+  return `${trimmed.slice(0, 277).trim()}…`;
+}
+

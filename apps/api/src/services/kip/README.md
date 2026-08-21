@@ -19,6 +19,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → target manuscript → prompt + follow-up)
+- `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
 - `modeConfig.ts` — Kip mode configuration helpers
 - `mockAgents.ts` — DB-disabled development agents
@@ -33,6 +34,12 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-21 — Point Turns reply with UI, not novels
+- Successful `draft.update.propose` attaches a summary keeper-card of the Point titles. Lead essays that dump Cast as `### Cloud` / `### Rendr` are replaced with a short confirmation. Cast Point-turn advice is clamped. Prompt: 1–3 sentences + cards/actions.
+
+### 2026-08-21 — Named Dialog manuscript on Point intent
+- `ensureDialogDocumentManuscript.ts` — a named Dialog showing “No Points yet” is an unbuilt Document, not a missing target. Explicit Point intent now creates the empty `document_manuscript` and Lead writes into it. Cast advises; Lead owns `draft.update.propose`.
 
 ### 2026-08-20 — Explicit Point intent (first Agency obligation)
 - `pointIntent.ts` — detects “propose/add/capture Points” vs “don’t add yet”; resolves the active named Dialog’s `document_manuscript`; Lead follow-up requires `draft.update.propose`; Cast gets compact Keeper-Point grounding.
