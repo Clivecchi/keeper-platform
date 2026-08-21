@@ -35,6 +35,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-21 — Point contract is content-only
+- Model emits `payload.content`. Keeper owns the manuscript id (ensure + fill at execute). Point grounding forbids Domain Contract / schema / Prisma in Point wording.
+
 ### 2026-08-21 — Point UI on failure, not just success
 - `pointIntent.ts` — failed `draft.update.propose` builds an error keeper-card and strips Prisma from Dialog copy. Point cards are the UI whether the write landed or not.
 

@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-21: **Point contract is content-only** — `draft.update.propose` no longer requires the model to supply a draft UUID. Keeper resolves or creates the Dialog manuscript at write time. Point cards never show schema/Prisma contract text.
 - 2026-08-21: **Point UI on failure** — Point turns attach a keeper-card and Point receipts even when propose fails. Prisma / executor dumps are not appended to the Dialog bubble.
 - 2026-08-21: **Point write target is Keeper-owned** — `draft.update.propose` no longer trusts model ids like `none` or the manuscript `key` (`manuscript-…`). Point obligation forces the Dialog manuscript UUID; Prisma UUID columns are never queried with those strings.
 - 2026-08-21: **Point UI** — successful Point writes attach a summary keeper-card; Lead Cast-dump essays are shortened; Cast Point-turn replies are clamped. `DialogueMessageList` shows `DraftPointProposeCard`.

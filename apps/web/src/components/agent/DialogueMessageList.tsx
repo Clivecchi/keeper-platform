@@ -941,8 +941,12 @@ const AgentErrorAlert: React.FC<{ error: string; agentName: string }> = ({ error
 function sanitizeReceiptMessage(message?: string): string {
   const trimmed = message?.trim() ?? ""
   if (!trimmed) return "The Point was not added."
-  if (/prisma\.|Error creating UUID|Inconsistent column data|invalid prisma|invocation:/i.test(trimmed)) {
-    return "The Point was not added — Keeper could not reach the Dialog Document."
+  if (
+    /prisma\.|Error creating UUID|Inconsistent column data|invalid prisma|invocation:|draft id required|Must provide id or draftId/i.test(
+      trimmed,
+    )
+  ) {
+    return "The Dialog Document was not updated."
   }
   return trimmed.length > 180 ? `${trimmed.slice(0, 177).trim()}…` : trimmed
 }
@@ -955,16 +959,11 @@ function intendedPointFromReceipt(
   if (existing) return existing
   const content =
     typeof receipt.data?.content === "string" ? receipt.data.content.trim() : ""
-  const fallback =
-    receipt.type === "draft.update.propose" && receipt.status === "error"
-      ? sanitizeReceiptMessage(receipt.message)
-      : ""
-  const body = content || fallback
-  if (!body) return null
+  if (!content) return null
   const now = new Date().toISOString()
   return {
-    id: content ? `intended-${idx}` : `miss-${idx}`,
-    content: body,
+    id: `intended-${idx}`,
+    content,
     status: "proposed",
     type: "general",
     proposedBy: "agent",

@@ -95,10 +95,7 @@ const draftUpdateProposePayloadSchema = z.object({
   closer: z.string().optional(),
   moments: z.array(draftPointMomentSchema).optional(),
   referencesPointId: z.string().uuid().optional(),
-}).refine(
-  (data) => Boolean(data.id || data.draftId),
-  { message: 'Must provide id or draftId' },
-);
+});
 
 /**
  * Draft delete action payload schema

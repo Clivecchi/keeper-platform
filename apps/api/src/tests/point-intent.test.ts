@@ -164,7 +164,7 @@ describe('point prompts', () => {
     );
     expect(prompt).toContain('not layout');
     expect(prompt).toContain('spec_json.points');
-    expect(prompt).toContain('ms-1');
+    expect(prompt).toContain('do not invent payload.id');
     expect(prompt).toContain('two sentences maximum');
     expect(prompt).not.toMatch(/TURN OBLIGATION/);
   });
@@ -181,7 +181,7 @@ describe('point prompts', () => {
       'lead',
     );
     expect(prompt).toContain('TURN OBLIGATION');
-    expect(prompt).toContain('ms-1');
+    expect(prompt).toContain('payload.content');
     expect(prompt).toContain('1–3 short sentences');
   });
 

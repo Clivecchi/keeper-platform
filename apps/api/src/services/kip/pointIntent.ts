@@ -162,6 +162,8 @@ const KEEPER_POINT_GROUNDING = [
   'A Point is a durable Document/Draft beat stored in kip_drafts.spec_json.points on the Dialog manuscript (kind document_manuscript).',
   'Chronicle renders those Points. Gloss threads are not Points. Working drafts are not the Dialog Document.',
   'When the human asks to propose/add/capture Points, they mean this object.',
+  'Point content is the beat only — never Domain Contract, action-schema rules, draft UUIDs, Prisma, or executor errors.',
+  'Keeper fills the manuscript id. Emit draft.update.propose with payload.content only.',
 ].join('\n');
 
 export function buildPointObligationSystemPrompt(
@@ -181,7 +183,7 @@ export function buildPointObligationSystemPrompt(
   const targetLines = obligation.manuscriptDraftId
     ? [
         `Active Dialog: ${obligation.dialogTitle ?? 'this Dialog'} (${obligation.dialogId}).`,
-        `Manuscript draft id (required as draft.update.propose payload.id / payload.draftId): ${obligation.manuscriptDraftId}`,
+        'Keeper already has the manuscript id — do not invent payload.id / payload.draftId.',
         'Do not create a new Draft. Do not use draft.create. Do not write Gloss instead of Points.',
       ]
     : [];
@@ -220,7 +222,7 @@ export function buildPointObligationSystemPrompt(
     KEEPER_POINT_GROUNDING,
     'TURN OBLIGATION (Keeper-owned, not optional): the human explicitly asked to add/propose Points.',
     ...targetLines,
-    'Before this Turn is complete, emit one or more draft.update.propose actions with that manuscript id and payload.content for each Point.',
+    'Before this Turn is complete, emit one or more draft.update.propose actions with payload.content for each Point.',
     'UI: "response" is 1–3 short sentences. Do not paste Cast replies or ### Cloud / ### Rendr roll-calls — Dialog already shows their voice cards. Points appear as cards from the actions, not as a markdown essay.',
     'You still choose the wording and how many Points are useful. Keeper requires that the write happens.',
     'Never claim Points were added unless those actions are in this response.',
@@ -262,7 +264,7 @@ export function buildPointObligationFollowUpInput(params: {
     `Your prior message did not successfully draft.update.propose: "${params.priorResponseText.trim().slice(0, 800)}"`,
     '',
     `Original user message: "${params.originalInput}"`,
-    'Emit draft.update.propose now with payload.id set to the manuscript id above.',
+    'Emit draft.update.propose now. payload.content is the Point beat. Do not invent a draft id.',
     'One action per Point. payload.content is required. Do not draft.create. Do not defer.',
     'Keep "response" to 1–3 short sentences. Do not paste Cast replies.',
   ].join('\n');
@@ -440,7 +442,7 @@ export function buildPointTurnFailureCard(params: {
   return {
     type: 'error',
     title: `Points were not added${where}`,
-    body: 'The Dialog Document was not updated. Point wording stays on the cards — not in a Prisma receipt.',
+    body: 'The Dialog Document was not updated.',
     items: items.slice(0, 6),
   };
 }

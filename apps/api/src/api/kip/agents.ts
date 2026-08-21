@@ -285,7 +285,7 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW draft content, use draft.update.propose with payload.id (draft UUID), payload.content (string body — required), optional payload.author or payload.proposedBy (attribution label when the user names an author, e.g. "Claude"), optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), and optional payload.type (moment | decision | context | general — default general). Put the full point text in payload.content as a string — never nest content as an object. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
+    '- When adding NEW draft content, use draft.update.propose with payload.content (string body — required). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy (attribution label when the user names an author, e.g. "Claude"), optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), and optional payload.type (moment | decision | context | general — default general). Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
   const rewritePoints =
     '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), payload.content, and optional payload.prelude, payload.closer, payload.moments. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place (the Document is a living work tool; the human still publishes/keeps). Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
@@ -1131,7 +1131,7 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
   ];
   if (doc.manuscriptDraftId) {
     lines.push(
-      `Manuscript draft id (draft.update.propose payload.id for new Points): ${doc.manuscriptDraftId}`,
+      'Keeper will write new Points to this Dialog manuscript — omit payload.id on draft.update.propose.',
     );
   }
   if (doc.forward) {
@@ -1188,7 +1188,21 @@ async function resolvePointObligationForRun(params: {
   domainId?: string | null;
   userId?: string;
   agentId?: string | null;
+  dialogId?: string | null;
 }): Promise<PointTurnObligation | null> {
+  const env = params.environment as AgentEnvironmentContext | undefined;
+  if (env && !env.dialogDocument?.dialogId && params.dialogId && params.domainId) {
+    try {
+      const loaded = await loadDialogDocumentForAgent(params.dialogId, params.domainId);
+      if (loaded) env.dialogDocument = loaded;
+    } catch (error) {
+      console.warn('[kip/agents] dialogDocument load for Point obligation failed', {
+        dialogId: params.dialogId,
+        error: error instanceof Error ? error.message : error,
+      });
+    }
+  }
+
   const obligation = attachPointTurnObligation(params.input, params.environment ?? null);
   if (
     obligation?.blocker !== 'no_manuscript'
@@ -1208,7 +1222,6 @@ async function resolvePointObligationForRun(params: {
       agentId: params.agentId ?? null,
     });
     if (!manuscript?.id) return obligation;
-    const env = params.environment as AgentEnvironmentContext | undefined;
     if (env?.dialogDocument) {
       env.dialogDocument.manuscriptDraftId = manuscript.id;
     }
@@ -1436,6 +1449,28 @@ function redactHeaders(headers: Record<string, unknown>): Record<string, unknown
  */
 function getRequestId(ctx: { requestId?: string }): string {
   return ctx.requestId || randomUUID();
+}
+
+async function resolveManuscriptDraftIdForPropose(ctx: {
+  manuscriptDraftId?: string | null;
+  dialogId?: string | null;
+  domainId?: string | null;
+  userId?: string;
+  agentId?: string | null;
+}): Promise<string | null> {
+  if (isKipDraftUuid(ctx.manuscriptDraftId)) return ctx.manuscriptDraftId.trim();
+  if (!ctx.dialogId || !ctx.domainId || !ctx.userId) return null;
+  const manuscript = await ensureDialogDocumentManuscript({
+    domainId: ctx.domainId,
+    dialogId: ctx.dialogId,
+    userId: ctx.userId,
+    agentId: ctx.agentId ?? null,
+  });
+  if (manuscript?.id && isKipDraftUuid(manuscript.id)) {
+    ctx.manuscriptDraftId = manuscript.id;
+    return manuscript.id;
+  }
+  return null;
 }
 
 function pointProposeFailure(
@@ -1968,13 +2003,21 @@ export async function executeAgentActions(
               (typeof payload.draftId === 'string' && payload.draftId.trim())
               || (typeof payload.id === 'string' && payload.id.trim())
               || '';
-            const draftId =
-              (isKipDraftUuid(rawDraftId) ? rawDraftId.trim() : '')
-              || (isKipDraftUuid(ctx.manuscriptDraftId) ? ctx.manuscriptDraftId.trim() : '')
-              || rawDraftId;
+            let draftId =
+              (isKipDraftUuid(rawDraftId) && !ctx.pointObligationRequired
+                ? rawDraftId.trim()
+                : '')
+              || (isKipDraftUuid(ctx.manuscriptDraftId) ? ctx.manuscriptDraftId.trim() : '');
+            if (!draftId) {
+              draftId = (await resolveManuscriptDraftIdForPropose(ctx)) ?? '';
+            }
             const content = typeof payload.content === 'string' ? payload.content.trim() : '';
             if (!draftId) {
-              results.push(pointProposeFailure(payload, 'Draft id required for propose', 'DRAFT_NOT_FOUND'));
+              results.push(pointProposeFailure(
+                payload,
+                'The Dialog Document was not available to receive Points.',
+                'DRAFT_NOT_FOUND',
+              ));
               break;
             }
             if (!content) {
@@ -5940,6 +5983,7 @@ export class KipAgentService {
         domainId: options?.domainId ?? null,
         userId,
         agentId: agent.id,
+        dialogId: options?.dialogId ?? null,
       });
 
       // Update log to use the actual agent UUID for consistency
