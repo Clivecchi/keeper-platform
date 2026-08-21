@@ -19,6 +19,10 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-20 — Cloud GitHub folder reads
+- `GitHubService.ts` — `github_repo_read` encodes nested Contents paths, returns directory listings, and falls back to the git tree with nearby-path hints when a folder 404s (fixes Cloud `apps/web/src/components` / `.../board` EXECUTION_ERROR).
+- `mcpAgentBridge.ts` — Cloud prompt notes folder paths are valid for `github_repo_read`.
+
 ### 2026-08-19 — Streamed model completions
 - `ModelProviderService.ts` — optional `onDelta` streams OpenAI / Anthropic / Together chat tokens. Non-stream path unchanged.
 

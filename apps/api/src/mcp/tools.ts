@@ -384,7 +384,7 @@ const tools: Tool[] = [
     // Underscore names for Claude.ai (`^[a-zA-Z0-9_-]{1,64}$`); dotted aliases still resolve in callTool.
     name: 'github_repo_read',
     description:
-      'Read repository contents, file tree, or a specific file by path. Required capability: github.repo.read.',
+      'Read a file, list a directory, or list the git tree. Pass path to a file for contents, or path to a folder to list that directory (nested paths work; mode=tree is not required for folders). Omit path for a recursive tree. Required capability: github.repo.read.',
     requiredCapability: 'github.repo.read',
     parameters: {
       type: 'object',
@@ -392,10 +392,17 @@ const tools: Tool[] = [
         repository: { type: 'string', description: 'Repository as owner/repo' },
         owner: { type: 'string', description: 'Repository owner' },
         repo: { type: 'string', description: 'Repository name' },
-        path: { type: 'string', description: 'File path within the repository' },
+        path: {
+          type: 'string',
+          description: 'File or directory path within the repository (nested folders are supported)',
+        },
         branch: { type: 'string', description: 'Branch or ref (default main)' },
         ref: { type: 'string', description: 'Alias for branch' },
-        mode: { type: 'string', enum: ['file', 'tree'], description: 'file or tree listing' },
+        mode: {
+          type: 'string',
+          enum: ['file', 'dir', 'tree'],
+          description: 'file, directory listing, or recursive tree (omit to auto-detect from path)',
+        },
       },
     },
     async handler(args, ctx) {

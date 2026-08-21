@@ -64,6 +64,7 @@ export function buildMcpToolSystemPrompt(tools: McpToolDescriptor[]): string {
     'When the user asks for Railway, Vercel, GitHub, integration/Nango, or Resend status — call the relevant tool(s) in "actions" using mcp.call BEFORE answering.',
     'GitHub repo/commits/PR/actions tools require a connected GitHub integration (Nango OAuth). Use integrations_list or nango_get_status when connection state is unclear.',
     'When repository or branch is omitted on GitHub tools, the domain GitHub binding (repository + default branch from Chronicle Manage) is applied automatically.',
+    'github_repo_read: pass a file path for contents, or a folder path to list that directory. Nested paths are supported.',
     'mcp.call payload schema: { "name": "<tool_name>", "args": { ...optional params } }',
     'Example envelope:',
     '{"type":"agent_output","response":"Checking live deploy status.","actions":[',

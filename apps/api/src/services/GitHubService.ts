@@ -8,12 +8,45 @@ import { getNango, isNangoConfigured, resolveNangoIntegrationId } from '../lib/n
 import { mergeGitHubToolArgs } from '../lib/resolveServiceBinding.js';
 
 const DEFAULT_REPOSITORY = process.env.GITHUB_DEFAULT_REPOSITORY?.trim() || 'Clivecchi/keeper-platform';
+const GITHUB_JSON_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28',
+};
 
 export type GitHubRepoRef = {
   owner: string;
   repo: string;
   fullName: string;
 };
+
+export type GitHubTreeEntry = {
+  path?: string;
+  type?: string;
+  sha?: string;
+  size?: number;
+};
+
+export type GitHubDirEntry = {
+  type: string;
+  name: string;
+  path: string;
+  sha?: string;
+  size?: number;
+};
+
+/** Normalize a repo-relative path (no leading/trailing slashes). */
+export function normalizeGitHubPath(value: string): string {
+  return value.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
+/**
+ * Encode a Contents path for the Nango GitHub proxy.
+ * Encoding slashes as `%2F` keeps nested folders as one path (unencoded slashes
+ * are otherwise eaten as extra proxy routes and GitHub 404s the folder).
+ */
+export function encodeGitHubContentsPath(path: string): string {
+  return encodeURIComponent(normalizeGitHubPath(path));
+}
 
 function parseRepository(value: string): GitHubRepoRef {
   const [owner, repo] = value.split('/');
@@ -66,6 +99,92 @@ function jsonBlob(value: unknown): string {
   } catch {
     return '';
   }
+}
+
+function pathBaseName(path: string): string {
+  const i = path.lastIndexOf('/');
+  return i >= 0 ? path.slice(i + 1) : path;
+}
+
+function parentGitHubPath(path: string): string {
+  const i = path.lastIndexOf('/');
+  return i >= 0 ? path.slice(0, i) : '';
+}
+
+function scoreNearbyName(candidate: string, needle: string): number {
+  if (candidate === needle) return 100;
+  if (candidate === `${needle}s` || needle === `${candidate}s`) return 90;
+  if (candidate.startsWith(needle) || needle.startsWith(candidate)) return 80;
+  return 0;
+}
+
+export function nearbyGitHubPaths(entries: GitHubTreeEntry[], missingPath: string): string[] {
+  const parent = parentGitHubPath(missingPath);
+  const needle = pathBaseName(missingPath).toLowerCase();
+  const siblings = [
+    ...new Set(
+      entries
+        .map((entry) => entry.path)
+        .filter((path): path is string => Boolean(path) && parentGitHubPath(path) === parent),
+    ),
+  ];
+  siblings.sort((a, b) => {
+    const scoreA = scoreNearbyName(pathBaseName(a).toLowerCase(), needle);
+    const scoreB = scoreNearbyName(pathBaseName(b).toLowerCase(), needle);
+    if (scoreA !== scoreB) return scoreB - scoreA;
+    return a.localeCompare(b);
+  });
+  return siblings.slice(0, 15);
+}
+
+function directTreeChildren(entries: GitHubTreeEntry[], dirPath: string): GitHubTreeEntry[] {
+  const prefix = dirPath ? `${dirPath}/` : '';
+  return entries.filter((entry) => {
+    if (!entry.path?.startsWith(prefix)) return false;
+    const rest = entry.path.slice(prefix.length);
+    return rest.length > 0 && !rest.includes('/');
+  });
+}
+
+function mapTreeChild(entry: GitHubTreeEntry): GitHubDirEntry {
+  const path = entry.path ?? '';
+  const type = entry.type === 'tree' ? 'dir' : entry.type === 'blob' ? 'file' : (entry.type ?? 'file');
+  return {
+    type,
+    name: pathBaseName(path),
+    path,
+    sha: entry.sha,
+    size: entry.size,
+  };
+}
+
+function mapContentEntry(entry: {
+  type?: string;
+  name?: string;
+  path?: string;
+  sha?: string;
+  size?: number;
+}): GitHubDirEntry {
+  return {
+    type: entry.type ?? 'file',
+    name: entry.name ?? pathBaseName(entry.path ?? ''),
+    path: entry.path ?? '',
+    sha: entry.sha,
+    size: entry.size,
+  };
+}
+
+function decodeBase64Content(encoding: string | undefined, content: string | undefined): string | null {
+  if (encoding !== 'base64' || typeof content !== 'string') return null;
+  return Buffer.from(content.replace(/\n/g, ''), 'base64').toString('utf8');
+}
+
+function contentsEndpoint(owner: string, repo: string, path: string, ref: string): string {
+  const encoded = encodeGitHubContentsPath(path);
+  const base = encoded
+    ? `/repos/${owner}/${repo}/contents/${encoded}`
+    : `/repos/${owner}/${repo}/contents`;
+  return `${base}?ref=${encodeURIComponent(ref)}`;
 }
 
 function isGitHubApiNotFound(detail: unknown): boolean {
@@ -143,6 +262,7 @@ async function githubProxy<T>(
       endpoint,
       providerConfigKey: resolveNangoIntegrationId('github'),
       connectionId: integration.nangoConnectionId,
+      headers: GITHUB_JSON_HEADERS,
       data,
     });
     return response.data as T;
@@ -151,68 +271,156 @@ async function githubProxy<T>(
   }
 }
 
+async function readPathFromGitTree(params: {
+  owner: string;
+  repo: string;
+  fullName: string;
+  path: string;
+  ref: string;
+}) {
+  const { owner, repo, fullName, path, ref } = params;
+  const tree = await GitHubService.loadGitTree(owner, repo, ref);
+  const exact = tree.entries.find((entry) => entry.path === path);
+  const children = directTreeChildren(tree.entries, path);
+
+  if (exact?.type === 'blob' && exact.sha) {
+    const blob = await githubProxy<{
+      encoding?: string;
+      content?: string;
+      sha?: string;
+      size?: number;
+    }>('GET', `/repos/${owner}/${repo}/git/blobs/${exact.sha}`);
+    return {
+      repository: fullName,
+      path,
+      ref,
+      mode: 'file' as const,
+      type: 'file',
+      sha: blob.sha ?? exact.sha,
+      size: blob.size ?? exact.size,
+      content: decodeBase64Content(blob.encoding, blob.content),
+    };
+  }
+
+  if (exact?.type === 'tree' || children.length > 0) {
+    return {
+      repository: fullName,
+      path,
+      ref,
+      mode: 'dir' as const,
+      type: 'dir',
+      entries: children.map(mapTreeChild),
+      truncated: tree.truncated,
+    };
+  }
+
+  const nearby = nearbyGitHubPaths(tree.entries, path);
+  const parent = parentGitHubPath(path) || 'repository root';
+  const nearbyHint = nearby.length
+    ? ` Nearby in ${parent}: ${nearby.map(pathBaseName).join(', ')}.`
+    : '';
+  throw new Error(
+    `GitHub file not found: ${path} in ${fullName}.${nearbyHint} Check the path and repository binding.`,
+  );
+}
+
 export class GitHubService {
   static resolveRepository(args: Record<string, unknown>): GitHubRepoRef {
     return resolveRepository(args);
   }
 
-  /** Read repository contents — file body or directory listing. */
+  static async loadGitTree(
+    owner: string,
+    repo: string,
+    ref: string,
+  ): Promise<{ ref: string; sha: string; entries: GitHubTreeEntry[]; truncated: boolean }> {
+    const branchRef = await githubProxy<{ object?: { sha?: string } }>(
+      'GET',
+      `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(ref)}`,
+    );
+    const treeSha = branchRef.object?.sha;
+    if (!treeSha) {
+      throw new Error(`Could not resolve branch ref "${ref}" for ${owner}/${repo}`);
+    }
+    const tree = await githubProxy<{
+      tree?: GitHubTreeEntry[];
+      truncated?: boolean;
+    }>('GET', `/repos/${owner}/${repo}/git/trees/${treeSha}?recursive=1`);
+    return {
+      ref,
+      sha: treeSha,
+      entries: tree.tree ?? [],
+      truncated: tree.truncated ?? false,
+    };
+  }
+
+  /** Read repository contents — file body, directory listing, or git tree. */
   static async readRepository(args: Record<string, unknown>, domainId?: string | null) {
     const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
     const { owner, repo, fullName } = resolveRepository(resolvedArgs);
-    const path = typeof args.path === 'string' ? args.path.replace(/^\//, '') : '';
-    const mode = typeof args.mode === 'string' ? args.mode : path ? 'file' : 'tree';
+    const path = typeof args.path === 'string' ? normalizeGitHubPath(args.path) : '';
+    const ref =
+      (typeof resolvedArgs.ref === 'string' && resolvedArgs.ref) ||
+      (typeof resolvedArgs.branch === 'string' && resolvedArgs.branch) ||
+      'main';
+    const mode = typeof args.mode === 'string' ? args.mode : path ? 'auto' : 'tree';
 
     if (mode === 'tree') {
-      const ref =
-        (typeof resolvedArgs.ref === 'string' && resolvedArgs.ref) ||
-        (typeof resolvedArgs.branch === 'string' && resolvedArgs.branch) ||
-        'main';
-      const branchRef = await githubProxy<{ object?: { sha?: string } }>(
-        'GET',
-        `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(ref)}`,
-      );
-      const treeSha = branchRef.object?.sha;
-      if (!treeSha) {
-        throw new Error(`Could not resolve branch ref "${ref}" for ${fullName}`);
-      }
-      const tree = await githubProxy<{
-        tree?: Array<{ path?: string; type?: string; sha?: string; size?: number }>;
-        truncated?: boolean;
-      }>('GET', `/repos/${owner}/${repo}/git/trees/${treeSha}?recursive=1`);
+      const tree = await GitHubService.loadGitTree(owner, repo, ref);
+      const entries = path
+        ? tree.entries.filter(
+            (entry) => entry.path === path || Boolean(entry.path?.startsWith(`${path}/`)),
+          )
+        : tree.entries;
       return {
         repository: fullName,
         ref,
+        path: path || undefined,
         mode: 'tree' as const,
-        entries: tree.tree ?? [],
-        truncated: tree.truncated ?? false,
+        entries,
+        truncated: tree.truncated,
       };
     }
 
-    const content = await githubProxy<{
-      type?: string;
-      name?: string;
-      path?: string;
-      sha?: string;
-      size?: number;
-      encoding?: string;
-      content?: string;
-    }>('GET', `/repos/${owner}/${repo}/contents/${path}`);
+    try {
+      const content = await githubProxy<
+        | {
+            type?: string;
+            name?: string;
+            path?: string;
+            sha?: string;
+            size?: number;
+            encoding?: string;
+            content?: string;
+          }
+        | Array<{ type?: string; name?: string; path?: string; sha?: string; size?: number }>
+      >('GET', contentsEndpoint(owner, repo, path, ref));
 
-    let decoded: string | null = null;
-    if (content.encoding === 'base64' && typeof content.content === 'string') {
-      decoded = Buffer.from(content.content.replace(/\n/g, ''), 'base64').toString('utf8');
+      if (Array.isArray(content)) {
+        return {
+          repository: fullName,
+          path,
+          ref,
+          mode: 'dir' as const,
+          type: 'dir',
+          entries: content.map(mapContentEntry),
+        };
+      }
+
+      return {
+        repository: fullName,
+        path,
+        ref,
+        mode: 'file' as const,
+        type: content.type,
+        sha: content.sha,
+        size: content.size,
+        content: decodeBase64Content(content.encoding, content.content),
+      };
+    } catch (error) {
+      if (!isGitHubFileNotFoundError(error)) throw error;
+      return readPathFromGitTree({ owner, repo, fullName, path, ref });
     }
-
-    return {
-      repository: fullName,
-      path,
-      mode: 'file' as const,
-      type: content.type,
-      sha: content.sha,
-      size: content.size,
-      content: decoded,
-    };
   }
 
   static async listCommits(args: Record<string, unknown>, domainId?: string | null) {
@@ -284,12 +492,13 @@ export class GitHubService {
   static async writeFile(args: Record<string, unknown>, domainId?: string | null) {
     const resolvedArgs = await mergeGitHubToolArgs(args, domainId);
     const { owner, repo, fullName } = resolveRepository(resolvedArgs);
-    const path = typeof args.path === 'string' ? args.path.replace(/^\//, '') : '';
+    const path = typeof args.path === 'string' ? normalizeGitHubPath(args.path) : '';
     const branch =
       typeof resolvedArgs.branch === 'string' ? resolvedArgs.branch : 'main';
     const message =
       (typeof args.message === 'string' && args.message.trim()) || `Update ${path} via Keeper MCP`;
     const content = typeof args.content === 'string' ? args.content : '';
+    const encodedPath = encodeGitHubContentsPath(path);
 
     if (!path) throw new Error('path is required');
     if (!content) throw new Error('content is required');
@@ -298,7 +507,7 @@ export class GitHubService {
     try {
       const existing = await githubProxy<{ sha?: string }>(
         'GET',
-        `/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`,
+        `/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`,
       );
       existingSha = existing.sha;
     } catch (error) {
@@ -311,7 +520,7 @@ export class GitHubService {
     const result = await githubProxy<{
       content?: { sha?: string; path?: string };
       commit?: { sha?: string; html_url?: string };
-    }>('PUT', `/repos/${owner}/${repo}/contents/${path}`, {
+    }>('PUT', `/repos/${owner}/${repo}/contents/${encodedPath}`, {
       message,
       content: Buffer.from(content, 'utf8').toString('base64'),
       branch,
