@@ -257,6 +257,17 @@ export function sanitizeAgentMessageContent(content: string): string {
   const trimmed = content.trim()
   if (!trimmed) return trimmed
   if (RAW_ACTION_JSON_PATTERN.test(trimmed)) return ""
+  const withoutExecutorLeak = trimmed
+    .replace(/\s*I attempted draft work, but it did not complete:[\s\S]*$/i, "")
+    .replace(/\s*I attempted an action, but it failed:[\s\S]*$/i, "")
+    .replace(/\s*I could not add Points:[^\n]*$/i, "")
+    .split(/\n\n+/)
+    .filter((paragraph) => !/prisma\.|Error creating UUID|Inconsistent column data|invalid prisma|EXECUTION_ERROR/i.test(paragraph))
+    .join("\n\n")
+    .trim()
+  if (withoutExecutorLeak !== trimmed) {
+    return withoutExecutorLeak
+  }
   if (trimmed.startsWith("{") && trimmed.includes('"type"') && trimmed.includes('"payload"')) {
     try {
       const parsed = JSON.parse(trimmed) as Record<string, unknown>

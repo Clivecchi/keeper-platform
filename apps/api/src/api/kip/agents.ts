@@ -103,14 +103,15 @@ import {
 } from '../../services/kip/actionFollowUp.js';
 import {
   applyManuscriptDraftIdToProposePayload,
-  buildPointContributionCard,
+  applyPointTurnDialogCopy,
+  isKipDraftUuid,
+  buildPointTurnCard,
   buildPointObligationBlockedNotice,
+  sanitizePointExecutorMessage,
   buildPointObligationFollowUpInput,
   buildPointObligationSystemPrompt,
   buildPointObligationUnmetNotice,
   clampCastAdviceForPointTurn,
-  countSuccessfulPointProposes,
-  preferShortPointTurnResponse,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
   type PointTurnObligation,
@@ -1437,6 +1438,21 @@ function getRequestId(ctx: { requestId?: string }): string {
   return ctx.requestId || randomUUID();
 }
 
+function pointProposeFailure(
+  payload: Record<string, unknown>,
+  message: string,
+  errorCode: string,
+): { type: string; status: 'error'; message: string; errorCode: string; data?: Record<string, unknown> } {
+  const content = typeof payload.content === 'string' ? payload.content.trim() : '';
+  return {
+    type: 'draft.update.propose',
+    status: 'error',
+    message: sanitizePointExecutorMessage(message),
+    errorCode,
+    ...(content ? { data: { content, intended: true } } : {}),
+  };
+}
+
 /**
  * Resolve a draft for point mutations.
  * Prefer owner-scoped rows; fall back to domain document_manuscript
@@ -1448,20 +1464,41 @@ async function findDraftForPointMutation(
   ctx: { domainId?: string | null; userId?: string; dialogId?: string | null },
 ) {
   if (!ctx.domainId || !ctx.userId) return null;
+  const id = draftId.trim();
+  if (!id) return null;
 
-  const owned = await tx.kip_drafts.findFirst({
-    where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
-  });
-  if (owned) return owned;
+  try {
+    if (isKipDraftUuid(id)) {
+      const owned = await tx.kip_drafts.findFirst({
+        where: { id, domain_id: ctx.domainId, owner_id: ctx.userId },
+      });
+      if (owned) return owned;
 
-  // Dialog Documents are living domain work — do not require owner_id match.
-  return tx.kip_drafts.findFirst({
-    where: {
-      id: draftId,
-      domain_id: ctx.domainId,
-      kind: 'document_manuscript',
-    },
-  });
+      // Dialog Documents are living domain work — do not require owner_id match.
+      return tx.kip_drafts.findFirst({
+        where: {
+          id,
+          domain_id: ctx.domainId,
+          kind: 'document_manuscript',
+        },
+      });
+    }
+
+    // Models often copy the manuscript `key` (`manuscript-…`) as payload.id.
+    return tx.kip_drafts.findFirst({
+      where: {
+        key: id,
+        domain_id: ctx.domainId,
+        kind: 'document_manuscript',
+      },
+    });
+  } catch (error) {
+    console.warn('[kip.actions] draft lookup rejected invalid id', {
+      draftId: id,
+      error: error instanceof Error ? error.message : error,
+    });
+    return null;
+  }
 }
 
 export async function executeAgentActions(
@@ -1543,6 +1580,7 @@ export async function executeAgentActions(
         payload: applyManuscriptDraftIdToProposePayload(
           normalizeDraftUpdateProposePayload(action.payload as Record<string, unknown>),
           ctx.manuscriptDraftId,
+          { forceManuscript: ctx.pointObligationRequired === true },
         ),
       };
     }
@@ -1926,19 +1964,26 @@ export async function executeAgentActions(
           }
           case 'draft.update.propose': {
             const payload = action.payload ?? {};
-            const draftId = payload.draftId || payload.id;
+            const rawDraftId =
+              (typeof payload.draftId === 'string' && payload.draftId.trim())
+              || (typeof payload.id === 'string' && payload.id.trim())
+              || '';
+            const draftId =
+              (isKipDraftUuid(rawDraftId) ? rawDraftId.trim() : '')
+              || (isKipDraftUuid(ctx.manuscriptDraftId) ? ctx.manuscriptDraftId.trim() : '')
+              || rawDraftId;
             const content = typeof payload.content === 'string' ? payload.content.trim() : '';
             if (!draftId) {
-              results.push({ type: action.type, status: 'error', message: 'Draft id required for propose', errorCode: 'DRAFT_NOT_FOUND' });
+              results.push(pointProposeFailure(payload, 'Draft id required for propose', 'DRAFT_NOT_FOUND'));
               break;
             }
             if (!content) {
-              results.push({ type: action.type, status: 'error', message: 'Point content is required', errorCode: 'VALIDATION_ERROR' });
+              results.push(pointProposeFailure(payload, 'Point content is required', 'VALIDATION_ERROR'));
               break;
             }
             const draft = await findDraftForPointMutation(tx, draftId, ctx);
             if (!draft) {
-              results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
+              results.push(pointProposeFailure(payload, 'Draft not found', 'DRAFT_NOT_FOUND'));
               break;
             }
 
@@ -3970,12 +4015,20 @@ export async function executeAgentActions(
           error: errorMessage,
           actionSnippet: { type: action.type, hasPayload: !!action.payload },
         }, '[kip.actions] rejected');
-        results.push({
-          type: action.type,
-          status: 'error',
-          message: errorMessage,
-          errorCode: 'EXECUTION_ERROR',
-        });
+        const payload =
+          action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+            ? (action.payload as Record<string, unknown>)
+            : {};
+        results.push(
+          action.type === 'draft.update.propose'
+            ? pointProposeFailure(payload, errorMessage, 'EXECUTION_ERROR')
+            : {
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              },
+        );
       }
     }
   });
@@ -6553,21 +6606,24 @@ export class KipAgentService {
             }
             actionResults = execution.results;
 
-            const draftFailureNotice = buildDraftMutationFailureNotice(
-              execution.results,
-              structured.responseText,
-            );
-            if (draftFailureNotice) {
-              finalResponseText = draftFailureNotice;
-            } else if (execution.failedMessage) {
-              finalResponseText = structured.responseText
-                ? `${structured.responseText} I attempted an action, but it failed: ${execution.failedMessage}`
-                : `I attempted an action, but it failed: ${execution.failedMessage}`;
-            }
+            const pointWriteTurn = pointObligation?.required === true && !pointObligation.constrained;
+            if (!pointWriteTurn) {
+              const draftFailureNotice = buildDraftMutationFailureNotice(
+                execution.results,
+                structured.responseText,
+              );
+              if (draftFailureNotice) {
+                finalResponseText = draftFailureNotice;
+              } else if (execution.failedMessage) {
+                finalResponseText = structured.responseText
+                  ? `${structured.responseText} I attempted an action, but it failed: ${execution.failedMessage}`
+                  : `I attempted an action, but it failed: ${execution.failedMessage}`;
+              }
 
-            const allFailedSummary = buildAllActionsFailedSummary(execution.results);
-            if (allFailedSummary && !draftFailureNotice) {
-              finalResponseText = (finalResponseText || '') + allFailedSummary;
+              const allFailedSummary = buildAllActionsFailedSummary(execution.results);
+              if (allFailedSummary && !draftFailureNotice) {
+                finalResponseText = (finalResponseText || '') + allFailedSummary;
+              }
             }
 
             // Post-exec governance: append failure template if required action failed
@@ -6670,7 +6726,10 @@ export class KipAgentService {
                       (options.timings.actionsMs ?? 0) + (Date.now() - followUpActionsStartedAt);
                   }
                   actionResults = [...actionResults, ...followUpExecution.results];
-                  if (followUpExecution.failedMessage) {
+                  if (
+                    followUpExecution.failedMessage
+                    && !(pointObligation?.required === true && !pointObligation.constrained)
+                  ) {
                     finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
                   }
                 }
@@ -6757,7 +6816,10 @@ export class KipAgentService {
                 (options.timings.actionsMs ?? 0) + (Date.now() - mutationActionsStartedAt);
             }
             actionResults = [...actionResults, ...followUpExecution.results];
-            if (followUpExecution.failedMessage) {
+            if (
+              followUpExecution.failedMessage
+              && !(pointObligation?.required === true && !pointObligation.constrained)
+            ) {
               finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
             }
           }
@@ -6842,7 +6904,10 @@ export class KipAgentService {
                 (options.timings.actionsMs ?? 0) + (Date.now() - pointActionsStartedAt);
             }
             actionResults = [...actionResults, ...pointFollowUpExecution.results];
-            if (pointFollowUpExecution.failedMessage) {
+            if (
+              pointFollowUpExecution.failedMessage
+              && !(pointObligation?.required === true && !pointObligation.constrained)
+            ) {
               finalResponseText = `${finalResponseText}\n\n${pointFollowUpExecution.failedMessage}`;
             }
           }
@@ -6856,9 +6921,7 @@ export class KipAgentService {
             agent.role === 'Lead'
             && pointObligation.required
             && pointObligation.manuscriptDraftId
-            && !actionResults.some(
-              (result) => result.type === 'draft.update.propose' && result.status === 'success',
-            )
+            && !actionResults.some((result) => result.type === 'draft.update.propose')
           ) {
             finalResponseText = `${finalResponseText}\n\n${buildPointObligationUnmetNotice(actionResults)}`;
           }
@@ -6918,19 +6981,20 @@ export class KipAgentService {
           };
         }
 
-        const pointCard = buildPointContributionCard({
+        const pointCard = buildPointTurnCard({
           results: actionResults,
           dialogTitle: dialogTitleForChronicle,
         });
         if (pointCard) {
           structured = { ...structured, card: pointCard };
-          const shortened = preferShortPointTurnResponse({
+          const presented = applyPointTurnDialogCopy({
             responseText: finalResponseText,
-            pointCount: countSuccessfulPointProposes(actionResults),
+            results: actionResults,
             dialogTitle: dialogTitleForChronicle,
+            obligationRequired: pointObligation?.required === true && !pointObligation.constrained,
           });
-          if (shortened !== finalResponseText.trim()) {
-            finalResponseText = shortened;
+          if (presented !== finalResponseText.trim()) {
+            finalResponseText = presented;
             options?.onReset?.();
             if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
           }
@@ -7408,7 +7472,10 @@ export class KipAgentService {
               if (followUpStructured.card) {
                 structured = { ...structured, card: followUpStructured.card };
               }
-            } else {
+            } else if (!(
+              pointObligationFromEnv(options?.environment)?.required === true
+              && !pointObligationFromEnv(options?.environment)?.constrained
+            )) {
               const draftFailureNotice = buildDraftMutationFailureNotice(
                 execution.results,
                 structured.responseText,

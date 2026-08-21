@@ -602,10 +602,11 @@ function MessageAttachments({
           />
         </div>
       )}
-      {message.actionResults && message.actionResults.filter(isVisibleActionResult).length > 0 && (
+      {message.actionResults && foldVisibleActionResults(message.actionResults).length > 0 && (
         <div className="mt-2 space-y-2">
-          {message.actionResults.filter(isVisibleActionResult).map((actionResult, idx) => {
+          {foldVisibleActionResults(message.actionResults).map((actionResult, idx) => {
             const receipt = normalizeActionReceipt(actionResult)
+            const isProposeError = receipt.type === "draft.update.propose" && receipt.status === "error"
             const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
             const isTreatmentPropose =
               receipt.type === "treatment.propose" && receipt.status === "success"
@@ -634,11 +635,12 @@ function MessageAttachments({
                 />
               )
             }
-            const point = receiptDraftPoint(receipt.data)
+            const point = intendedPointFromReceipt(receipt, idx)
             const pointDraftId =
               (typeof receipt.data?.draft?.id === "string" && receipt.data.draft.id)
               || (typeof receipt.data?.draftId === "string" ? receipt.data.draftId : "")
-            if (isPropose && point && pointDraftId) {
+              || "document"
+            if ((isPropose || isProposeError) && point) {
               const manuscript = receipt.data?.draft?.kind === "document_manuscript"
               return (
                 <DraftPointProposeCard
@@ -649,7 +651,9 @@ function MessageAttachments({
                     || (typeof receipt.data?.draftTitle === "string" ? receipt.data.draftTitle : "Document")
                   }
                   point={point}
-                  accepted={manuscript || point.status === "accepted"}
+                  accepted={!isProposeError && (manuscript || point.status === "accepted")}
+                  failed={isProposeError}
+                  failureReason={isProposeError ? sanitizeReceiptMessage(receipt.message) : undefined}
                   onOpenDraft={onOpenDraft}
                 />
               )
@@ -932,6 +936,63 @@ const AgentErrorAlert: React.FC<{ error: string; agentName: string }> = ({ error
       </div>
     </div>
   )
+}
+
+function sanitizeReceiptMessage(message?: string): string {
+  const trimmed = message?.trim() ?? ""
+  if (!trimmed) return "The Point was not added."
+  if (/prisma\.|Error creating UUID|Inconsistent column data|invalid prisma|invocation:/i.test(trimmed)) {
+    return "The Point was not added — Keeper could not reach the Dialog Document."
+  }
+  return trimmed.length > 180 ? `${trimmed.slice(0, 177).trim()}…` : trimmed
+}
+
+function intendedPointFromReceipt(
+  receipt: ReturnType<typeof normalizeActionReceipt>,
+  idx: number,
+): DraftPoint | null {
+  const existing = receiptDraftPoint(receipt.data)
+  if (existing) return existing
+  const content =
+    typeof receipt.data?.content === "string" ? receipt.data.content.trim() : ""
+  const fallback =
+    receipt.type === "draft.update.propose" && receipt.status === "error"
+      ? sanitizeReceiptMessage(receipt.message)
+      : ""
+  const body = content || fallback
+  if (!body) return null
+  const now = new Date().toISOString()
+  return {
+    id: content ? `intended-${idx}` : `miss-${idx}`,
+    content: body,
+    status: "proposed",
+    type: "general",
+    proposedBy: "agent",
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function foldVisibleActionResults(
+  results: NonNullable<AgentDialogueMessage["actionResults"]>,
+): NonNullable<AgentDialogueMessage["actionResults"]> {
+  const visible = results.filter(isVisibleActionResult)
+  const folded: NonNullable<AgentDialogueMessage["actionResults"]> = []
+  let sawBareProposeError = false
+  for (const actionResult of visible) {
+    const receipt = normalizeActionReceipt(actionResult)
+    if (receipt.type === "draft.update.propose" && receipt.status === "error") {
+      const hasBody =
+        Boolean(receiptDraftPoint(receipt.data))
+        || (typeof receipt.data?.content === "string" && Boolean(receipt.data.content.trim()))
+      if (!hasBody) {
+        if (sawBareProposeError) continue
+        sawBareProposeError = true
+      }
+    }
+    folded.push(actionResult)
+  }
+  return folded
 }
 
 function isVisibleActionResult(actionResult: NonNullable<AgentDialogueMessage["actionResults"]>[number]): boolean {

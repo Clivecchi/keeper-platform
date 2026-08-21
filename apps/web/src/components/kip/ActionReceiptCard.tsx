@@ -737,7 +737,11 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
         <p className="text-xs font-semibold text-red-800">
           ✗ Failed{attributedTo ? ` · ${attributedTo}` : ""}
         </p>
-        <p className="mt-1 text-sm text-red-700">{message}</p>
+        <p className="mt-1 text-sm text-red-700">
+          {/prisma\.|Error creating UUID|Inconsistent column data|invalid prisma/i.test(message ?? "")
+            ? "The action could not be completed."
+            : message}
+        </p>
         {errorCode && <p className="mt-1 text-xs text-red-600">Error code: {errorCode}</p>}
       </div>
     )

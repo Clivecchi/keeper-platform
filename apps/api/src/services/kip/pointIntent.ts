@@ -291,25 +291,68 @@ export function buildPointObligationUnmetNotice(results: Array<{
   if (!propose.length) {
     return 'I could not add Points this turn — no draft.update.propose ran. The Document was not updated.';
   }
-  const failed = propose.filter((result) => result.status !== 'success');
-  if (failed.length) {
-    return `I could not add Points: ${failed.map((result) => result.message || result.status).join('; ')}`;
-  }
   return 'I could not add Points this turn. The Document was not updated.';
+}
+
+const EXECUTOR_LEAK_PATTERN =
+  /prisma\.|Error creating UUID|Inconsistent column data|invalid prisma|invocation:/i;
+
+export function sanitizePointExecutorMessage(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return 'The Point was not added.';
+  if (EXECUTOR_LEAK_PATTERN.test(trimmed)) {
+    return 'The Point was not added — Keeper could not reach the Dialog Document.';
+  }
+  if (trimmed.length > 180) return `${trimmed.slice(0, 177).trim()}…`;
+  return trimmed;
+}
+
+export function stripExecutorLeakFromDialogText(text: string): string {
+  let next = text.trim();
+  next = next.replace(/\s*I attempted draft work, but it did not complete:[\s\S]*$/i, '');
+  next = next.replace(/\s*I attempted an action, but it failed:[\s\S]*$/i, '');
+  next = next.replace(/\s*I could not add Points:[^\n]*$/i, '');
+  next = next
+    .split(/\n\n+/)
+    .filter((paragraph) => !EXECUTOR_LEAK_PATTERN.test(paragraph) && !/EXECUTION_ERROR/i.test(paragraph))
+    .join('\n\n')
+    .trim();
+  return next;
+}
+
+/** Prisma `kip_drafts.id` is UUID. Models often send `none` or the manuscript `key` (`manuscript-…`). */
+export function isKipDraftUuid(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  );
+}
+
+function firstDraftUuid(...candidates: unknown[]): string | undefined {
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && isKipDraftUuid(candidate)) {
+      return candidate.trim();
+    }
+  }
+  return undefined;
 }
 
 export function applyManuscriptDraftIdToProposePayload(
   payload: Record<string, unknown>,
   manuscriptDraftId?: string | null,
+  options?: { forceManuscript?: boolean },
 ): Record<string, unknown> {
   const out = { ...payload };
-  const existing =
-    (typeof out.id === 'string' && out.id.trim()) ||
-    (typeof out.draftId === 'string' && out.draftId.trim()) ||
-    '';
-  if (existing || !manuscriptDraftId?.trim()) return out;
-  out.id = manuscriptDraftId.trim();
-  out.draftId = manuscriptDraftId.trim();
+  const manuscript = firstDraftUuid(manuscriptDraftId);
+  const existing = firstDraftUuid(out.id, out.draftId);
+  const chosen = options?.forceManuscript ? (manuscript ?? existing) : (existing ?? manuscript);
+
+  if (typeof out.id === 'string' && !isKipDraftUuid(out.id)) delete out.id;
+  if (typeof out.draftId === 'string' && !isKipDraftUuid(out.draftId)) delete out.draftId;
+
+  if (!chosen) return out;
+  out.id = chosen;
+  out.draftId = chosen;
   return out;
 }
 
@@ -322,7 +365,7 @@ export function countSuccessfulPointProposes(
 }
 
 export type PointContributionCard = {
-  type: 'summary';
+  type: 'summary' | 'error';
   title: string;
   body?: string;
   items: string[];
@@ -341,8 +384,9 @@ function pointPreviewFromResult(result: {
     if (prelude) return prelude;
     if (content) return content.length > 140 ? `${content.slice(0, 137)}…` : content;
   }
-  const message = typeof result.message === 'string' ? result.message.trim() : '';
-  return message || null;
+  const intended = typeof data?.content === 'string' ? data.content.trim() : '';
+  if (intended) return intended.length > 140 ? `${intended.slice(0, 137)}…` : intended;
+  return null;
 }
 
 export function buildPointContributionCard(params: {
@@ -372,7 +416,74 @@ export function buildPointContributionCard(params: {
   };
 }
 
+export function buildPointTurnFailureCard(params: {
+  results: Array<{
+    type: string;
+    status: string;
+    message?: string;
+    data?: Record<string, unknown>;
+  }>;
+  dialogTitle?: string;
+}): PointContributionCard | null {
+  const failed = params.results.filter(
+    (result) => result.type === 'draft.update.propose' && result.status === 'error',
+  );
+  if (!failed.length) return null;
+  const items = [
+    ...new Set(
+      failed
+        .map((result) => pointPreviewFromResult(result) || sanitizePointExecutorMessage(result.message || ''))
+        .filter(Boolean),
+    ),
+  ];
+  const where = params.dialogTitle?.trim() ? ` · ${params.dialogTitle.trim()}` : '';
+  return {
+    type: 'error',
+    title: `Points were not added${where}`,
+    body: 'The Dialog Document was not updated. Point wording stays on the cards — not in a Prisma receipt.',
+    items: items.slice(0, 6),
+  };
+}
+
+export function buildPointTurnCard(params: {
+  results: Array<{
+    type: string;
+    status: string;
+    message?: string;
+    data?: Record<string, unknown>;
+  }>;
+  dialogTitle?: string;
+}): PointContributionCard | null {
+  return buildPointContributionCard(params) ?? buildPointTurnFailureCard(params);
+}
+
 const CAST_DUMP_PATTERN = /^#{1,3}\s+(Cloud|Rendr|Kip|Ceox)\b/im;
+
+export function applyPointTurnDialogCopy(params: {
+  responseText: string;
+  results: Array<{ type: string; status: string }>;
+  dialogTitle?: string;
+  obligationRequired?: boolean;
+}): string {
+  const cleaned = stripExecutorLeakFromDialogText(params.responseText);
+  const successCount = countSuccessfulPointProposes(params.results);
+  if (successCount > 0) {
+    return preferShortPointTurnResponse({
+      responseText: cleaned,
+      pointCount: successCount,
+      dialogTitle: params.dialogTitle,
+    });
+  }
+  if (!params.obligationRequired) return cleaned;
+  const failed = params.results.some(
+    (result) => result.type === 'draft.update.propose' && result.status === 'error',
+  );
+  if (!failed) return cleaned;
+  const looksLikeCastDump = CAST_DUMP_PATTERN.test(cleaned) || (cleaned.match(/\n#{1,3}\s+/g)?.length ?? 0) >= 2;
+  if (cleaned && !looksLikeCastDump && cleaned.length <= 280) return cleaned;
+  const where = params.dialogTitle?.trim() ? ` to ${params.dialogTitle.trim()}` : '';
+  return `I could not add Points${where}.`;
+}
 
 export function preferShortPointTurnResponse(params: {
   responseText: string;

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyManuscriptDraftIdToProposePayload,
+  applyPointTurnDialogCopy,
   buildPointContributionCard,
+  buildPointTurnFailureCard,
   buildPointObligationBlockedNotice,
   buildPointObligationFollowUpInput,
   buildPointObligationSystemPrompt,
@@ -195,18 +197,55 @@ describe('point prompts', () => {
 });
 
 describe('applyManuscriptDraftIdToProposePayload', () => {
+  const manuscriptId = '3861059e-09b0-453d-9bdd-16ad8c02bb12';
+  const otherDraftId = '3f638fba-d84d-453f-9add-e6e288e0db03';
+
   it('fills omitted draft id from the active manuscript', () => {
-    expect(applyManuscriptDraftIdToProposePayload({ content: 'Agency' }, 'ms-1')).toEqual({
+    expect(applyManuscriptDraftIdToProposePayload({ content: 'Agency' }, manuscriptId)).toEqual({
       content: 'Agency',
-      id: 'ms-1',
-      draftId: 'ms-1',
+      id: manuscriptId,
+      draftId: manuscriptId,
     });
   });
 
-  it('does not override an explicit draft id', () => {
+  it('replaces placeholder and manuscript-key ids', () => {
     expect(
-      applyManuscriptDraftIdToProposePayload({ id: 'other', content: 'Agency' }, 'ms-1'),
-    ).toEqual({ id: 'other', content: 'Agency' });
+      applyManuscriptDraftIdToProposePayload(
+        { id: 'none', content: 'Agency' },
+        manuscriptId,
+      ),
+    ).toEqual({ id: manuscriptId, draftId: manuscriptId, content: 'Agency' });
+    expect(
+      applyManuscriptDraftIdToProposePayload(
+        { id: 'manuscript-finding-the-plot-abc123', content: 'Agency' },
+        manuscriptId,
+      ),
+    ).toEqual({ id: manuscriptId, draftId: manuscriptId, content: 'Agency' });
+  });
+
+  it('does not override an explicit draft UUID', () => {
+    expect(
+      applyManuscriptDraftIdToProposePayload(
+        { id: otherDraftId, content: 'Agency' },
+        manuscriptId,
+      ),
+    ).toEqual({ id: otherDraftId, draftId: otherDraftId, content: 'Agency' });
+  });
+
+  it('Point obligation forces the Dialog manuscript UUID', () => {
+    expect(
+      applyManuscriptDraftIdToProposePayload(
+        { id: otherDraftId, content: 'Agency' },
+        manuscriptId,
+        { forceManuscript: true },
+      ),
+    ).toEqual({ id: manuscriptId, draftId: manuscriptId, content: 'Agency' });
+  });
+
+  it('does not send a non-UUID manuscript id to Prisma', () => {
+    expect(
+      applyManuscriptDraftIdToProposePayload({ content: 'Agency' }, 'manuscript-finding-the-plot'),
+    ).toEqual({ content: 'Agency' });
   });
 });
 
@@ -239,6 +278,43 @@ describe('Point UI over essays', () => {
         dialogTitle: 'Finding the plot',
       }),
     ).toBe('Added 2 Points to Finding the plot.');
+  });
+
+  it('builds a Point card when the write fails', () => {
+    const card = buildPointTurnFailureCard({
+      dialogTitle: 'Finding the plot',
+      results: [
+        {
+          type: 'draft.update.propose',
+          status: 'error',
+          message: 'invalid prisma.kip_drafts.findFirst() invocation',
+          data: { content: 'The model supplies intelligence.' },
+        },
+      ],
+    });
+    expect(card?.type).toBe('error');
+    expect(card?.title).toBe('Points were not added · Finding the plot');
+    expect(card?.items).toEqual(['The model supplies intelligence.']);
+  });
+
+  it('does not leave Prisma in the Dialog copy', () => {
+    expect(
+      applyPointTurnDialogCopy({
+        responseText:
+          'Let us propose some Points. I attempted draft work, but it did not complete: invalid prisma.kip_drafts.findFirst()',
+        results: [{ type: 'draft.update.propose', status: 'error' }],
+        dialogTitle: 'Finding the plot',
+        obligationRequired: true,
+      }),
+    ).toBe('Let us propose some Points.');
+    expect(
+      applyPointTurnDialogCopy({
+        responseText: 'invalid prisma.kip_drafts.findFirst() invocation',
+        results: [{ type: 'draft.update.propose', status: 'error' }],
+        dialogTitle: 'Finding the plot',
+        obligationRequired: true,
+      }),
+    ).toBe('I could not add Points to Finding the plot.');
   });
 
   it('clamps Cast Point-turn advice', () => {

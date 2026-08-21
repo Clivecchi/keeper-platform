@@ -32,6 +32,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-21: **Point UI on failure** — Point turns attach a keeper-card and Point receipts even when propose fails. Prisma / executor dumps are not appended to the Dialog bubble.
+- 2026-08-21: **Point write target is Keeper-owned** — `draft.update.propose` no longer trusts model ids like `none` or the manuscript `key` (`manuscript-…`). Point obligation forces the Dialog manuscript UUID; Prisma UUID columns are never queried with those strings.
 - 2026-08-21: **Point UI** — successful Point writes attach a summary keeper-card; Lead Cast-dump essays are shortened; Cast Point-turn replies are clamped. `DialogueMessageList` shows `DraftPointProposeCard`.
 - 2026-08-21: **Named Dialog manuscript** — explicit Point intent creates the Dialog `document_manuscript` when missing, then Lead `draft.update.propose`. Cast propose is skipped so Cloud/Rendr do not fail with empty payload.
 - 2026-08-20: **Explicit Point intent** — `agents.ts` attaches `turnObligations.point` after env resolve; fills omitted propose ids with the Dialog manuscript; skips `draft.create` when that target exists; Lead follow-up if the write did not happen; honest blocker when Chatter / no manuscript.

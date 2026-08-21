@@ -14,6 +14,8 @@ export interface DraftPointProposeCardProps {
   onOpenDraft?: (draftId: string) => void
   isAccepting?: boolean
   accepted?: boolean
+  failed?: boolean
+  failureReason?: string
 }
 
 const TYPE_LABELS: Record<DraftPointType, string> = {
@@ -31,21 +33,30 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
   onOpenDraft,
   isAccepting = false,
   accepted = false,
+  failed = false,
+  failureReason,
 }) => {
   const typeLabel = TYPE_LABELS[point.type] ?? "Point"
+  const heading = failed
+    ? `Not added · ${typeLabel.toLowerCase()}`
+    : `${accepted ? "Added" : "Proposed"} ${typeLabel.toLowerCase()}`
 
   return (
     <div
       className="rounded-lg border p-3"
       style={{
-        borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
-        backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))",
+        borderColor: failed
+          ? "hsl(14 50% 70%)"
+          : "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+        backgroundColor: failed
+          ? "hsl(14 40% 96%)"
+          : "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))",
       }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
-            {accepted ? "Added" : "Proposed"} {typeLabel.toLowerCase()}
+            {heading}
             {draftTitle ? (
               <>
                 {" "}
@@ -60,10 +71,24 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
             {point.content}
           </p>
           <p className="mt-1 text-[11px]" style={{ color: "var(--theme-ink-tertiary-color)" }}>
-            {point.proposedBy} · {point.status}
+            {failed
+              ? (failureReason || "The Dialog Document was not updated.")
+              : `${point.proposedBy} · ${point.status}`}
           </p>
         </div>
-        {accepted && (
+        {failed && (
+          <span
+            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+            style={{
+              background: "hsl(14 40% 94%)",
+              color: "hsl(14 50% 32%)",
+              border: "1px solid hsl(14 30% 80%)",
+            }}
+          >
+            Not added
+          </span>
+        )}
+        {accepted && !failed && (
           <span
             className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
             style={{
@@ -77,7 +102,7 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
         )}
       </div>
 
-      {!accepted && (
+      {!accepted && !failed && (
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"

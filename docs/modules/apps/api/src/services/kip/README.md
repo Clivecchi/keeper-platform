@@ -35,6 +35,12 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-21 — Point UI on failure, not just success
+- `pointIntent.ts` — failed `draft.update.propose` builds an error keeper-card and strips Prisma from Dialog copy. Point cards are the UI whether the write landed or not.
+
+### 2026-08-21 — Point write target is Keeper-owned
+- `pointIntent.ts` — `isKipDraftUuid` + `applyManuscriptDraftIdToProposePayload`: placeholder ids (`none`) and manuscript keys (`manuscript-…`) are not draft ids. Explicit Point turns force the Dialog manuscript UUID. `findDraftForPointMutation` looks up by UUID or manuscript `key` and never sends a non-UUID to `kip_drafts.id`.
+
 ### 2026-08-21 — Point Turns reply with UI, not novels
 - Successful `draft.update.propose` attaches a summary keeper-card of the Point titles. Lead essays that dump Cast as `### Cloud` / `### Rendr` are replaced with a short confirmation. Cast Point-turn advice is clamped. Prompt: 1–3 sentences + cards/actions.
 

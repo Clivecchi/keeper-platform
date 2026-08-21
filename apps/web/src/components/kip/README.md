@@ -15,6 +15,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-08-21: `DraftPointProposeCard` can render a **Not added** state so failed Point writes stay on the Point card, not a generic Failed receipt. Prisma text is not shown.
 - 2026-08-21: `DraftPointProposeCard` labels accepted/manuscript writes as **Added Point**. `DialogueMessageList` now mounts it for Point receipts.
 - 2026-08-20: `ActionReceiptCard` labels manuscript `draft.update.propose` as **Added Point** (working drafts remain **Proposed Point**) and notes when the write was an explicit request.
 - 2026-08-10: `TreatmentProposeCard` always renders the proposal receipt; Apply is optional (designer board). Shows cast attribution when present; outside designer, copy points to Design Board for Apply.
