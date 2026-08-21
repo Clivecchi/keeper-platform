@@ -6580,6 +6580,7 @@ export class KipAgentService {
           }, '[kip/agents] action validation warning');
         }
 
+        const pointObligation = pointObligationFromEnv(options?.environment);
         if (structured.actions.length) {
           if (options?.forceSkipActions) {
             actionResults = structured.actions.map((action) => ({
@@ -6825,7 +6826,6 @@ export class KipAgentService {
           }
         }
 
-        const pointObligation = pointObligationFromEnv(options?.environment);
         if (
           pointObligation
           && shouldRunPointObligationFollowUp({
