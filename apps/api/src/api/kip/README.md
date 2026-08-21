@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-20: **Explicit Point intent** — `agents.ts` attaches `turnObligations.point` after env resolve; fills omitted propose ids with the Dialog manuscript; skips `draft.create` when that target exists; Lead follow-up if the write did not happen; honest blocker when Chatter / no manuscript.
 - 2026-08-19: **Streamed agent turns (A+B)** — POST `action=run` with `stream: true` opens SSE (`delta` / `reset` / `status` / `done`). `callAIModel` streams provider tokens and extracts the `response` field. Follow-up/governance retries reuse the composed prompt. Session memory loads the last 10 messages only. JSON `action=run` unchanged for Cast consults and other callers.
 - 2026-08-19: **Cloud does not invent a Board id** — director cast merge and `mcp.call` resolve agent capabilities without defaulting `boardId` to `ide`.
 - 2026-08-19: **Working drafts, not manuscripts** — `draft.create` remaps `document_manuscript` to kind `draft`; `payload.content` becomes first Point(s). Rendr/Lead prompts updated. Chatter attach no longer creates a Document.

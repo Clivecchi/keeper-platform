@@ -18,6 +18,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
+- `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → target manuscript → prompt + follow-up)
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
 - `modeConfig.ts` — Kip mode configuration helpers
 - `mockAgents.ts` — DB-disabled development agents
@@ -32,6 +33,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-20 — Explicit Point intent (first Agency obligation)
+- `pointIntent.ts` — detects “propose/add/capture Points” vs “don’t add yet”; resolves the active named Dialog’s `document_manuscript`; Lead follow-up requires `draft.update.propose`; Cast gets compact Keeper-Point grounding.
+- `loadDialogDocumentForAgent` now includes `titleSource` + manuscript id so Chatter vs Document and the write target are knowable without a UUID from the human.
 
 ### 2026-08-19 — Streamed Dialog replies
 - `streamAgentOutput.ts` — extracts user-facing `response` tokens from the JSON envelope as they arrive.

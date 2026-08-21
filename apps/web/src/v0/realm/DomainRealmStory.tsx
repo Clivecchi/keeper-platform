@@ -105,6 +105,7 @@ export function DomainRealmStory({
   const selectedLibraryItemId = boardCtx?.selection.selectedLibraryItemId ?? null
   const panelMode = boardCtx?.selection.chroniclePanelMode ?? "document"
   const pointTarget = boardCtx?.selection.chroniclePointTarget
+  const draftPresenceRevision = boardCtx?.selection.draftPresenceRevision ?? 0
 
   const scope = React.useMemo((): DialogDocumentScope => {
     if (selectedDialogId) {
@@ -163,6 +164,11 @@ export function DomainRealmStory({
     invalidateDialogDocument(domainId, scope.dialogId)
     setDocumentEpoch((n) => n + 1)
   }, [domainId, scope])
+
+  React.useEffect(() => {
+    if (!draftPresenceRevision) return
+    refreshDocumentAfterMutation()
+  }, [draftPresenceRevision, refreshDocumentAfterMutation])
 
   const [acceptError, setAcceptError] = React.useState<string | null>(null)
   const handlePointAccepted = React.useCallback(() => {

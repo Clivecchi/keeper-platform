@@ -102,6 +102,20 @@ export type AgentEnvironmentContext = {
    */
   dialogDocument?: AgentDialogDocument;
   /**
+   * Turn-scoped Agency obligations (explicit Point intent, later Keep / consult).
+   * Attached after environment resolve — not loaded from Prisma.
+   */
+  turnObligations?: {
+    point?: {
+      required: boolean;
+      constrained: boolean;
+      dialogId?: string;
+      dialogTitle?: string;
+      manuscriptDraftId?: string;
+      blocker?: 'no_dialog' | 'chatter' | 'no_manuscript';
+    };
+  };
+  /**
    * agentContext — injected by the frontend from the domain frame JSON.
    * Carries: audience role, model, forward destination, available directions,
    * and the kip_context instruction for this specific visitor.

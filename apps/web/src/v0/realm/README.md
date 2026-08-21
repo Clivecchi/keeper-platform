@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-20 — Document refresh after Point writes
+- `DomainRealmStory` invalidates `dialogDocumentCache` and reloads when `draftPresenceRevision` bumps (Dialog `draft.update.propose` already called `bumpDraftPresence`; Chronicle stayed stale for the 45s TTL).
+
 ### 2026-08-19 — Document identity header
 - `DomainRealmStory` mounts `DocumentHeader` for every named Dialog Document (same header job as Draft). Empty Documents no longer use Realm idle copy.
 

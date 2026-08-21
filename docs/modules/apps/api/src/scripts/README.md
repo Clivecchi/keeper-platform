@@ -15,6 +15,7 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `gloss-cursor-to-dialog.ts` — durable Cursor → Gloss writer (default ke3p · Becoming Together); `--file` / `--content` / stdin; does not create Points
 - `ingest-markdown-to-dialog.ts` — durable Cursor → Dialog ingest (`--file` / `--content`; `--dialog` attaches, omit to create); writes Points + session, not Gloss
 - `append-boards-as-lenses-lock.ts` — accepted Presentational-lenses decision Point + Dialog Step tip (dry-run; `--execute`)
+- `append-agency-point-intent-points.ts` — first Agency obligation conclusions onto Becoming Together manuscript (dry-run; `--execute`)
 
 ## 🔄 Data & Behavior
 Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/database` prisma. Destructive or production-writing scripts must default to dry-run and require an explicit `--execute` flag.
@@ -28,6 +29,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 - [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-08-20 — Agency Point-intent conclusions
+- `append-agency-point-intent-points.ts` — appends accepted Points to Becoming Together via `createDraftPoint` / `appendDraftPointToSpec` (same path as `draft.update.propose`). Dry-run default.
 
 ### 2026-08-17 — External writing ingest
 - `ingest-markdown-to-dialog.ts` — Cursor/API path for Task 4. `--dialog` attaches to an existing Dialog; omit to create. Distinct from Gloss runner.

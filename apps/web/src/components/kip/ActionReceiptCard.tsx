@@ -53,7 +53,7 @@ export interface ActionReceiptCardProps {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-function getActionLabel(actionType: string): string {
+function getActionLabel(actionType: string, receipt?: ActionReceipt): string {
   const labels: Record<string, string> = {
     "draft.create": "Created",
     "draft.update": "Updated",
@@ -62,7 +62,8 @@ function getActionLabel(actionType: string): string {
     "draft.list": "Listed",
     "draft.get": "Retrieved",
     "draft.read": "Retrieved",
-    "draft.update.propose": "Proposed update",
+    "draft.update.propose":
+      receipt?.data?.draft?.kind === "document_manuscript" ? "Added Point" : "Proposed Point",
     "draft.point.rewrite": "Rewrote point",
     "draft.point.accept": "Accepted point",
     "moment.create": "Moment captured",
@@ -763,7 +764,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   }
 
   // Default success state — compact receipt
-  const actionLabel = getActionLabel(type)
+  const actionLabel = getActionLabel(type, receipt)
   return (
     <div
       className="rounded-lg border p-3"
@@ -818,6 +819,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
           {draft && (
             <p className="mt-0.5 text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>
               {draft.kind} · {draft.key}
+              {receipt.data?.explicitRequest === true ? " · requested this turn" : ""}
             </p>
           )}
         </div>

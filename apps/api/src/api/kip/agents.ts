@@ -102,6 +102,16 @@ import {
   shouldRunReadActionFollowUp,
 } from '../../services/kip/actionFollowUp.js';
 import {
+  applyManuscriptDraftIdToProposePayload,
+  buildPointObligationBlockedNotice,
+  buildPointObligationFollowUpInput,
+  buildPointObligationSystemPrompt,
+  buildPointObligationUnmetNotice,
+  resolvePointTurnObligation,
+  shouldRunPointObligationFollowUp,
+  type PointTurnObligation,
+} from '../../services/kip/pointIntent.js';
+import {
   buildCastConsultationsSynthesisPrompt,
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
@@ -1113,6 +1123,11 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     'DIALOG DOCUMENT (live Document for this Dialog — same source Chronicle renders):',
     `Dialog id: ${doc.dialogId}${doc.title ? ` — ${doc.title}` : ''}${doc.status ? ` [${doc.status}]` : ''}`,
   ];
+  if (doc.manuscriptDraftId) {
+    lines.push(
+      `Manuscript draft id (draft.update.propose payload.id for new Points): ${doc.manuscriptDraftId}`,
+    );
+  }
   if (doc.forward) {
     lines.push(`Forward — ${doc.forward.title}: ${doc.forward.description}`);
   }
@@ -1148,6 +1163,76 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     'When asked to pick or name one item from a Path, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
   );
   return lines.join('\n');
+}
+
+function attachPointTurnObligation(
+  input: string,
+  environment?: AgentEnvironmentContext | KipEnvironmentContext | null,
+): PointTurnObligation | null {
+  if (!environment || typeof environment !== 'object') return null;
+  const env = environment as AgentEnvironmentContext;
+  const obligation = resolvePointTurnObligation(input, env);
+  env.turnObligations = { ...(env.turnObligations ?? {}), point: obligation };
+  return obligation;
+}
+
+function pointObligationFromEnv(
+  environment?: AgentEnvironmentContext | KipEnvironmentContext | null,
+): PointTurnObligation | undefined {
+  return (environment as AgentEnvironmentContext | undefined)?.turnObligations?.point;
+}
+
+function mergePointSkipActionTypes(
+  base: Set<string> | undefined,
+  obligation?: PointTurnObligation,
+): Set<string> | undefined {
+  const next = new Set(base ?? []);
+  if (obligation?.constrained) {
+    next.add('draft.update.propose');
+    next.add('draft.create');
+    next.add('draft.point.rewrite');
+  }
+  if (obligation?.required && obligation.manuscriptDraftId) {
+    next.add('draft.create');
+  }
+  return next.size ? next : undefined;
+}
+
+function buildExecuteAgentActionsCtx(
+  options: RunAgentOptions | undefined,
+  extras: {
+    userId?: string;
+    agentId: string;
+    allowlist: Set<string>;
+    sessionId?: string | null;
+    requestId: string;
+    skipActionTypes?: Set<string>;
+  },
+) {
+  const env = options?.environment as AgentEnvironmentContext | undefined;
+  const obligation = pointObligationFromEnv(options?.environment);
+  return {
+    domainId: options?.domainId ?? null,
+    domainSlug: options?.domainSlug ?? null,
+    userId: extras.userId,
+    agentId: extras.agentId,
+    allowlist: extras.allowlist,
+    sessionId: extras.sessionId,
+    dialogId:
+      options?.dialogId
+      ?? env?.dialogDocument?.dialogId
+      ?? null,
+    keeperId: options?.activeKeeperId ?? null,
+    requestId: extras.requestId,
+    skipActionTypes: mergePointSkipActionTypes(
+      extras.skipActionTypes ?? options?.skipActionTypes,
+      obligation,
+    ),
+    manuscriptDraftId:
+      obligation?.manuscriptDraftId ?? env?.dialogDocument?.manuscriptDraftId,
+    pointConstraint: obligation?.constrained === true,
+    pointObligationRequired: obligation?.required === true && !obligation.constrained,
+  };
 }
 
 // Domain lead collaboration — role-aware (Lead only; never Cast). See services/kip/buildDomainLeadCollaborationPrompt.ts
@@ -1338,6 +1423,9 @@ export async function executeAgentActions(
     keeperId?: string | null;
     requestId?: string;
     skipActionTypes?: Set<string>;
+    manuscriptDraftId?: string | null;
+    pointConstraint?: boolean;
+    pointObligationRequired?: boolean;
   },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
@@ -1398,7 +1486,10 @@ export async function executeAgentActions(
     ) {
       return {
         type: action.type,
-        payload: normalizeDraftUpdateProposePayload(action.payload as Record<string, unknown>),
+        payload: applyManuscriptDraftIdToProposePayload(
+          normalizeDraftUpdateProposePayload(action.payload as Record<string, unknown>),
+          ctx.manuscriptDraftId,
+        ),
       };
     }
     if (
@@ -1541,13 +1632,18 @@ export async function executeAgentActions(
         }, '[kip.actions] executing');
 
         if (ctx.skipActionTypes?.has(action.type)) {
+          const skipMessage =
+            action.type === 'delegate.consult'
+              ? 'delegate.consult blocked in nested cast run (loop prevention)'
+              : ctx.pointConstraint && action.type.startsWith('draft.')
+                ? 'Skipped — the human asked not to add Points yet'
+                : action.type === 'draft.create' && ctx.manuscriptDraftId
+                  ? 'Skipped draft.create — Point writes go to the active Document manuscript'
+                  : 'Action skipped (handled by draft intent pipeline)';
           results.push({
             type: action.type,
             status: 'skipped',
-            message:
-              action.type === 'delegate.consult'
-                ? 'delegate.consult blocked in nested cast run (loop prevention)'
-                : 'Action skipped (handled by draft intent pipeline)',
+            message: skipMessage,
           });
           continue;
         }
@@ -1875,13 +1971,14 @@ export async function executeAgentActions(
 
             lastProposedPoint = { draftId: draft.id, pointId: point.id };
 
-            const typeLabel = point.type === 'general' ? 'point' : point.type;
+            const typeLabel = point.type === 'general' ? 'Point' : point.type;
+            const targetTitle = draft.title?.trim() || 'the document';
             results.push({
               type: action.type,
               status: 'success',
               message: isDocumentManuscript
-                ? `Added ${typeLabel} to the document`
-                : `Proposed ${typeLabel} — tap Accept to keep it`,
+                ? `Added ${typeLabel} to ${targetTitle}`
+                : `Proposed ${typeLabel} on ${targetTitle} — tap Accept to keep it`,
               data: {
                 draftId: draft.id,
                 draftTitle: draft.title,
@@ -1893,6 +1990,8 @@ export async function executeAgentActions(
                   key: draft.key,
                 },
                 links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
+                explicitRequest: ctx.pointObligationRequired === true,
+                pointCount: 1,
               },
             });
             break;
@@ -5307,6 +5406,18 @@ export class KipAgentService {
           });
         }
 
+        const pointObligation = pointObligationFromEnv(environmentContext);
+        if (pointObligation) {
+          const actor = agent.role === 'Lead' ? 'lead' : 'cast';
+          const pointPrompt = buildPointObligationSystemPrompt(pointObligation, actor);
+          if (pointPrompt) {
+            messages.push({
+              role: 'system',
+              content: pointPrompt,
+            });
+          }
+        }
+
         // --- Domain contract injection (wires contract rules to Kip) ---
         const suppressKipPrompt =
           (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
@@ -5713,6 +5824,8 @@ export class KipAgentService {
 
       // Get agent safely using our helper method
       const agent = await this.getAgentSafely(agentId);
+
+      attachPointTurnObligation(input, options?.environment ?? null);
 
       // Update log to use the actual agent UUID for consistency
       logData.agent_id = agent.id;
@@ -6362,22 +6475,16 @@ export class KipAgentService {
           } else {
             options?.onStatus?.('Taking action…');
             const actionsStartedAt = Date.now();
-            const execution = await executeAgentActions(structured.actions, {
-              domainId: options?.domainId ?? null,
-              domainSlug: options?.domainSlug ?? null,
-              userId,
-              agentId: agent.id,
-              allowlist: allowActions,
-              sessionId: currentSessionId,
-              dialogId:
-                options?.dialogId
-                ?? (options?.environment as AgentEnvironmentContext | null | undefined)
-                  ?.dialogDocument?.dialogId
-                ?? null,
-              keeperId: options?.activeKeeperId ?? null,
-              requestId,
-              skipActionTypes: options?.skipActionTypes,
-            });
+            const execution = await executeAgentActions(
+              structured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+              }),
+            );
             if (options?.timings) {
               options.timings.actionsMs = (options.timings.actionsMs ?? 0) + (Date.now() - actionsStartedAt);
             }
@@ -6484,22 +6591,16 @@ export class KipAgentService {
 
                 if (followUpStructured.actions.length) {
                   const followUpActionsStartedAt = Date.now();
-                  const followUpExecution = await executeAgentActions(followUpStructured.actions, {
-                    domainId: options?.domainId ?? null,
-                    domainSlug: options?.domainSlug ?? null,
-                    userId,
-                    agentId: agent.id,
-                    allowlist: allowActions,
-                    sessionId: currentSessionId,
-                    dialogId:
-                      options?.dialogId
-                      ?? (options?.environment as AgentEnvironmentContext | null | undefined)
-                        ?.dialogDocument?.dialogId
-                      ?? null,
-                    keeperId: options?.activeKeeperId ?? null,
-                    requestId,
-                    skipActionTypes: options?.skipActionTypes,
-                  });
+                  const followUpExecution = await executeAgentActions(
+                    followUpStructured.actions,
+                    buildExecuteAgentActionsCtx(options, {
+                      userId,
+                      agentId: agent.id,
+                      allowlist: allowActions,
+                      sessionId: currentSessionId,
+                      requestId,
+                    }),
+                  );
                   if (options?.timings) {
                     options.timings.actionsMs =
                       (options.timings.actionsMs ?? 0) + (Date.now() - followUpActionsStartedAt);
@@ -6576,22 +6677,16 @@ export class KipAgentService {
 
           if (followUpStructured.actions.length) {
             const mutationActionsStartedAt = Date.now();
-            const followUpExecution = await executeAgentActions(followUpStructured.actions, {
-              domainId: options?.domainId ?? null,
-              domainSlug: options?.domainSlug ?? null,
-              userId,
-              agentId: agent.id,
-              allowlist: allowActions,
-              sessionId: currentSessionId,
-              dialogId:
-                options?.dialogId
-                ?? (options?.environment as AgentEnvironmentContext | null | undefined)
-                  ?.dialogDocument?.dialogId
-                ?? null,
-              keeperId: options?.activeKeeperId ?? null,
-              requestId,
-              skipActionTypes: options?.skipActionTypes,
-            });
+            const followUpExecution = await executeAgentActions(
+              followUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+              }),
+            );
             if (options?.timings) {
               options.timings.actionsMs =
                 (options.timings.actionsMs ?? 0) + (Date.now() - mutationActionsStartedAt);
@@ -6600,6 +6695,106 @@ export class KipAgentService {
             if (followUpExecution.failedMessage) {
               finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
             }
+          }
+        }
+
+        const pointObligation = pointObligationFromEnv(options?.environment);
+        if (
+          pointObligation
+          && shouldRunPointObligationFollowUp({
+            obligation: pointObligation,
+            actionResults,
+            isLead: agent.role === 'Lead',
+          })
+        ) {
+          options?.onStatus?.('Adding Points to the Document…');
+          options?.onReset?.();
+          const pointFollowUpInput = buildPointObligationFollowUpInput({
+            originalInput: input,
+            agentName: agent.name,
+            priorResponseText: finalResponseText,
+            obligation: pointObligation,
+          });
+          const pointFollowUpResult = await this.callAIModel(
+            agent,
+            pointFollowUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: activeMode,
+              modeConfig: activeModeConfig,
+              lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+              debugSummary,
+              maxChars,
+              outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+              includeFixPlan: activeModeConfig.includeFixPlan,
+              autoBrief: activeModeConfig.autoBrief,
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'point_obligation_follow_up',
+              reuseMessages: [
+                ...lastPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastPromptMessages = pointFollowUpResult.messages;
+          const pointFollowUpStructured = await ensureKipAgentOutputEnvelope(pointFollowUpResult.content, {
+            requestId: randomUUID(),
+            userId,
+            allowedActions: Array.from(allowActions),
+          });
+          finalResponseText =
+            pointFollowUpStructured.responseText?.trim()
+            || pointFollowUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !pointFollowUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (pointFollowUpStructured.card) {
+            structured = { ...structured, card: pointFollowUpStructured.card };
+          }
+          if (pointFollowUpStructured.actions.length) {
+            const pointActionsStartedAt = Date.now();
+            const pointFollowUpExecution = await executeAgentActions(
+              pointFollowUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - pointActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...pointFollowUpExecution.results];
+            if (pointFollowUpExecution.failedMessage) {
+              finalResponseText = `${finalResponseText}\n\n${pointFollowUpExecution.failedMessage}`;
+            }
+          }
+        }
+
+        if (pointObligation) {
+          const blockedNotice = buildPointObligationBlockedNotice(pointObligation);
+          if (blockedNotice) {
+            finalResponseText = `${finalResponseText}\n\n${blockedNotice}`;
+          } else if (
+            agent.role === 'Lead'
+            && pointObligation.required
+            && pointObligation.manuscriptDraftId
+            && !actionResults.some(
+              (result) => result.type === 'draft.update.propose' && result.status === 'success',
+            )
+          ) {
+            finalResponseText = `${finalResponseText}\n\n${buildPointObligationUnmetNotice(actionResults)}`;
           }
         }
         
@@ -7073,22 +7268,16 @@ export class KipAgentService {
             }));
           } else {
             const systemActionsStartedAt = Date.now();
-            const execution = await executeAgentActions(structured.actions, {
-              domainId: options?.domainId ?? null,
-              domainSlug: options?.domainSlug ?? null,
-              userId,
-              agentId: agent.id,
-              allowlist: allowActions,
-              sessionId: currentSessionId,
-              dialogId:
-                options?.dialogId
-                ?? (options?.environment as AgentEnvironmentContext | null | undefined)
-                  ?.dialogDocument?.dialogId
-                ?? null,
-              keeperId: options?.activeKeeperId ?? null,
-              requestId: systemRequestId,
-              skipActionTypes: options?.skipActionTypes,
-            });
+            const execution = await executeAgentActions(
+              structured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: systemAllowActions,
+                sessionId: currentSessionId,
+                requestId: systemRequestId,
+              }),
+            );
             if (options?.timings) {
               options.timings.actionsMs =
                 (options.timings.actionsMs ?? 0) + (Date.now() - systemActionsStartedAt);

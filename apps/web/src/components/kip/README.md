@@ -15,6 +15,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-08-20: `ActionReceiptCard` labels manuscript `draft.update.propose` as **Added Point** (working drafts remain **Proposed Point**) and notes when the write was an explicit request.
 - 2026-08-10: `TreatmentProposeCard` always renders the proposal receipt; Apply is optional (designer board). Shows cast attribution when present; outside designer, copy points to Design Board for Apply.
 - 2026-07-14: `LibraryItemReceiptCard` for successful `library.read` by id — image preview when applicable, **Open in Chronicle →** via `onOpenLibraryItem`.
 - 2026-07-03 (pm): `Keep as Moment` passes `libraryItemId` to reuse image.generate row (no duplicate Library entries); receipt copy points to Library list in Nav.

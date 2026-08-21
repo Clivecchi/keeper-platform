@@ -18,6 +18,7 @@ export type AgentDialogDocument = {
   paths: ReturnType<typeof parseDocumentPathDeclarations>;
   points: ReturnType<typeof summarizeDraftPointsForAgent>;
   manuscriptDraftId?: string;
+  titleSource?: string | null;
 };
 
 export type DialogReadHonesty = {
@@ -49,6 +50,7 @@ export async function loadDialogDocumentForAgent(
     select: {
       id: true,
       title: true,
+      title_source: true,
       document_status: true,
       forward_title: true,
       forward_description: true,
@@ -86,6 +88,7 @@ export async function loadDialogDocumentForAgent(
 
   return {
     dialogId: dialog.id,
+    ...(dialog.title_source ? { titleSource: dialog.title_source } : {}),
     ...(dialog.title?.trim() ? { title: dialog.title.trim() } : {}),
     ...(dialog.document_status ? { status: dialog.document_status } : {}),
     ...(forwardTitle && forwardDescription

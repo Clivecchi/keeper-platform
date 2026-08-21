@@ -66,6 +66,7 @@ export type CompactEnvironmentForPrompt = {
     dialogId: string;
     title?: string;
     status?: string;
+    manuscriptDraftId?: string;
   };
   agentContext?: Record<string, unknown>;
   draftPolicy?: {
@@ -248,6 +249,9 @@ export function buildCompactEnvironmentForPrompt(
       dialogId: dialogDocument.dialogId,
       title: typeof dialogDocument.title === 'string' ? dialogDocument.title : undefined,
       status: typeof dialogDocument.status === 'string' ? dialogDocument.status : undefined,
+      ...(typeof dialogDocument.manuscriptDraftId === 'string'
+        ? { manuscriptDraftId: dialogDocument.manuscriptDraftId }
+        : {}),
     };
   }
 
