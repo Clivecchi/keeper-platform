@@ -11,6 +11,7 @@ import {
   parseDocumentPathDeclarations,
   parseGlossThreads,
   resolveChroniclePanelBody,
+  resolveDocumentForward,
 } from "@keeper/shared"
 import {
   DocumentShell,
@@ -23,8 +24,7 @@ import {
   DOCUMENT_SELECT_DIALOG_COPY,
   resolveDocumentHeaderTitle,
 } from "../presence/chronicleDocument/documentHeader"
-import { DialogConfigPresence } from "../presence/integrationChronicle/DialogConfigPresence"
-import type { EntityCoverMode } from "../presence/cover/coverTypes"
+import { useDocumentAuthoring } from "../presence/chronicleDocument/useDocumentAuthoring"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
 import { useRealmNavGrowth } from "./useRealmNavGrowth"
@@ -88,7 +88,7 @@ function entryMatchesSelection(
 /**
  * Domain-scoped Realm Chronicle — thin adapter over DocumentShell.
  * Loads Dialog Document via one `/document` round-trip; expands manuscript
- * DraftPoints into Document cards. No hardcoded placeholder Forward/Step.
+ * DraftPoints into Document cards. Every named Dialog resolves a Forward.
  */
 export function DomainRealmStory({
   domainId,
@@ -155,7 +155,6 @@ export function DomainRealmStory({
     paths: [],
     components: [],
   })
-  const [coverMode, setCoverMode] = React.useState<EntityCoverMode>("cover")
   const [manuscriptEntries, setManuscriptEntries] = React.useState<RealmNavEntry[]>([])
   const [documentLoading, setDocumentLoading] = React.useState(false)
   /** Bumps when Document Gloss rewrites a Point so Chronicle reloads past cache. */
@@ -194,10 +193,6 @@ export function DomainRealmStory({
 
   React.useEffect(() => {
     setAcceptError(null)
-  }, [scope])
-
-  React.useEffect(() => {
-    setCoverMode("cover")
   }, [scope])
 
   const [glossEpoch, setGlossEpoch] = React.useState(0)
@@ -366,7 +361,27 @@ export function DomainRealmStory({
     forwardTitle: documentMeta.forward?.title,
     navTitle: dialogNavTitle,
   })
-  const documentContextSummary = documentMeta.forward?.description?.trim() || ""
+  const resolvedForward =
+    scope.status === "dialog"
+      ? resolveDocumentForward({
+          forwardTitle: documentMeta.forward?.title,
+          forwardDescription: documentMeta.forward?.description,
+          dialogTitle: documentTitle,
+          imageUrl: documentMeta.forward?.imageUrl,
+        })
+      : undefined
+  const storyPointIds = storyEntries.map((entry) => entry.id)
+  const authoring = useDocumentAuthoring({
+    domainId,
+    dialogId: scope.status === "dialog" ? scope.dialogId : null,
+    title: documentTitle,
+    status: documentMeta.status,
+    forwardTitle: documentMeta.forward?.title ?? "",
+    forwardDescription: documentMeta.forward?.description ?? "",
+    paths: documentMeta.paths,
+    pointIds: storyPointIds,
+    onRefresh: refreshDocumentAfterMutation,
+  })
 
   const emptyState = (
     <div className="px-4 py-6">
@@ -430,11 +445,33 @@ export function DomainRealmStory({
     ) : (
       <DocumentShell
         className="domain-realm-story"
-        forward={scope.status === "dialog" ? documentMeta.forward : undefined}
+        forward={resolvedForward}
         step={scope.status === "dialog" ? documentMeta.step : undefined}
+        authoring={
+          scope.status === "dialog"
+            ? {
+                enabled: authoring.editing,
+                busy: authoring.busy,
+                error: authoring.error,
+                sections: documentMeta.paths.map((path) => ({
+                  id: path.id,
+                  title: path.title,
+                })),
+                onSaveForward: authoring.saveForward,
+                onAddSection: authoring.addSection,
+                onRenameSection: authoring.renameSection,
+                onDeleteSection: authoring.deleteSection,
+                onMoveSection: authoring.moveSection,
+                onAddPoint: authoring.addPoint,
+                onUpdatePoint: authoring.updatePoint,
+                onDeletePoint: authoring.deletePoint,
+                onMovePoint: authoring.movePoint,
+              }
+            : undefined
+        }
         paths={paths}
         points={points}
-        pointIds={storyEntries.map((entry) => entry.id)}
+        pointIds={storyPointIds}
         components={
           scope.status === "dialog" && documentComponents.length > 0
             ? documentComponents
@@ -468,21 +505,6 @@ export function DomainRealmStory({
       />
     )
 
-  if (coverMode === "config" && domainId && scope.status === "dialog" && scope.dialogId) {
-    return (
-      <ChronicleTreatmentShell treatment={treatment}>
-        <DialogConfigPresence
-          dialogId={scope.dialogId}
-          domainId={domainId}
-          title={documentTitle}
-          contextSummary={documentContextSummary}
-          onBack={() => setCoverMode("cover")}
-          onRefresh={refreshDocumentAfterMutation}
-        />
-      </ChronicleTreatmentShell>
-    )
-  }
-
   return (
     <ChronicleTreatmentShell treatment={treatment}>
       {scope.status === "dialog" ? (
@@ -491,7 +513,16 @@ export function DomainRealmStory({
           status={documentMeta.status}
           pointCount={points.length}
           componentCount={documentComponents.length}
-          onManage={domainId ? () => setCoverMode("config") : undefined}
+          editing={authoring.editing}
+          onToggleEdit={domainId ? authoring.toggleEdit : undefined}
+          onTitleCommit={authoring.saveTitle}
+          onCycleStatus={authoring.cycleStatus}
+          onFocusSections={() => {
+            document.getElementById("document-linked-sections")?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            })
+          }}
           documentControl={ingestControl}
         />
       ) : null}

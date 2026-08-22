@@ -20,7 +20,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `ServiceBindingConfigPresence.tsx` — infra service binding Config Mode (GitHub repo + branch)
 - `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
 - `JourneyChronicleBlocks.tsx` — Paths + Moments declaration blocks below journey cover
-- `DialogConfigPresence.tsx` — Dialog Config Mode (title) via `useChronicleConfig`
+- `DialogConfigPresence.tsx` — Dialog Config Mode (title + Forward) via `useChronicleConfig`
 - `DialogChronicleBlocks.tsx` — Recent Exchanges + Sessions below dialog cover
 - `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
 - `DraftAddToDocumentControl.tsx` — draft-first **Add to Document** (Dialog picker → `document_components`)
@@ -44,6 +44,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-08-22 — Dialog Forward authoring
+- `DialogConfigPresence` saves Forward title + description (`forward_title` / `forward_description`) — the Dialog’s directional objective.
 
 ### 2026-08-19 — Session ≠ Dialog (locked)
 - `draftNavUtils` hides `document_manuscript` from Drafts Nav (Dialog Document storage).

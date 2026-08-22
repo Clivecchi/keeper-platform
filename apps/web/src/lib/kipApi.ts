@@ -1344,6 +1344,69 @@ export class KipApi {
     };
   }
 
+  static async updateDialogDocument(
+    domainId: string,
+    dialogId: string,
+    payload: {
+      title?: string;
+      document_status?: 'drafts' | 'kept' | 'presented';
+      forward_title?: string | null;
+      forward_description?: string | null;
+      document_paths?: Array<{ id: string; title: string; prelude?: string }>;
+    },
+  ): Promise<void> {
+    await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+    );
+  }
+
+  static async createDocumentPoint(
+    domainId: string,
+    dialogId: string,
+    payload: { title?: string; content?: string; sectionId?: string | null },
+  ): Promise<string | undefined> {
+    const response = await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document/points`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    );
+    return typeof response?.pointId === 'string' ? response.pointId : undefined;
+  }
+
+  static async updateDocumentPoint(
+    domainId: string,
+    dialogId: string,
+    pointId: string,
+    payload: { title?: string; content?: string; sectionId?: string | null },
+  ): Promise<void> {
+    await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document/points/${encodeURIComponent(pointId)}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+    );
+  }
+
+  static async deleteDocumentPoint(
+    domainId: string,
+    dialogId: string,
+    pointId: string,
+  ): Promise<void> {
+    await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document/points/${encodeURIComponent(pointId)}`,
+      { method: 'DELETE' },
+    );
+  }
+
+  static async reorderDocumentPoints(
+    domainId: string,
+    dialogId: string,
+    pointIds: string[],
+  ): Promise<void> {
+    await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document/points/order`,
+      { method: 'PATCH', body: JSON.stringify({ pointIds }) },
+    );
+  }
+
   /**
    * Bring external markdown into a Dialog-backed Document.
    * Pass dialogId to attach; omit to create a new Dialog.

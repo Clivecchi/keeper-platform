@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-22: When Talking in a Dialog and Working on its Document, the Header Bar does not repeat the title. Working on shows **Document**; the name stays on Talking in. Domain remains on the right.
 - 2026-08-22: Dialog Nav opens the Document. Draft Nav opens the Draft and keeps Talking in on the linked Dialog. Agents are grounded in those two coordinates so they do not invent fiction-plot Points from a Dialog title.
 - 2026-08-21: **Header Bar = Talking in / Working on** — larger type; domain name on the right; SOLE badge and repeated title removed. Session id lives behind the chevron.
 - 2026-08-19: `KeeperDialogFrame` imports `IntegratedServicesBar` from `boards/components` (Build Board service bar). Shared conversation shell across Build, Agent, Domain, Realm, and Design.

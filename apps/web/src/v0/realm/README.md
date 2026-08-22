@@ -33,6 +33,12 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-22 — Inline Document authoring
+- `DomainRealmStory` no longer opens Dialog Config for Manage. Pencil + `useDocumentAuthoring` writes title, Forward, stage, Sections, and Points on the Document page.
+
+### 2026-08-22 — Every Document resolves Forward
+- `DomainRealmStory` always resolves a Forward for the focused Dialog Document (authored fields, else Dialog title). Manage writes Forward title + description. Finding the Plot and Becoming Together share the same shell.
+
 ### 2026-08-22 — Linked Drafts as Document Sections
 - `DomainRealmStory` lists working drafts linked to the Dialog (`dialog_id`) with registered `document_components`. Opening a Section is Draft select — Talking in stays on the Dialog.
 

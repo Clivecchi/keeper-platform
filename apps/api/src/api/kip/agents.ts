@@ -1093,7 +1093,7 @@ function buildCastHonestySystemPrompt(environment: unknown): string | null {
     '  - Mechanism B: delegate.consult action results (Lead-initiated consult during the turn).',
     'These are two distinct mechanisms — do not conflate them. If neither produced a reply for an agent, say plainly you got nothing back — do not invent their voice.',
     'To hear from a cast member mid-turn without multi-select, use delegate.consult with { agentSlug, question? } — only for agents in this list with dialog participation Voice (not Silent).',
-    'When the user asks you to name an item from the Dialog Document / a Path (e.g. Cast & Orchestration), quote ONLY titles or previews from the DIALOG DOCUMENT Points block in this prompt. Never invent a title. Never treat a system-rule heading as a Document item.',
+    'When the user asks you to name an item from the Dialog Document / a Section, quote ONLY titles or previews from the DIALOG DOCUMENT Points block in this prompt. Never invent a title. Never treat a system-rule heading as a Document item.',
     supportOnly.length
       ? `Support-only (not Dialog voices): ${supportOnly.join(', ')}. Do not invent first-person Dialog dialogue for them. If asked for their voice, say they are support-only — not a Dialog voice.`
       : null,
@@ -1107,6 +1107,7 @@ function buildCastHonestySystemPrompt(environment: unknown): string | null {
 
 function buildConversationCoordinatesPrompt(environment: unknown): string | null {
   const env = environment as {
+    domainName?: string | null;
     dialogDocument?: {
       dialogId?: string;
       title?: string;
@@ -1127,6 +1128,7 @@ function buildConversationCoordinatesPrompt(environment: unknown): string | null
   return buildTalkingInWorkingOnPrompt({
     talkingIn: coords?.talkingIn,
     workingOn: coords?.workingOn,
+    domainName: env?.domainName,
   });
 }
 
@@ -1138,6 +1140,7 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
         title?: string;
         status?: string;
         forward?: { title: string; description: string };
+        forwardAuthored?: boolean;
         step?: { title: string; body: string };
         paths?: Array<{ id: string; title: string; prelude?: string }>;
         points?: Array<{
@@ -1162,15 +1165,28 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     );
   }
   if (doc.forward) {
-    lines.push(`Forward — ${doc.forward.title}: ${doc.forward.description}`);
+    const unwritten = doc.forwardAuthored === false;
+    lines.push(
+      unwritten
+        ? `Forward (directional objective of this Dialog) — slot present${
+            doc.forward.title ? ` (holding “${doc.forward.title}”)` : ''
+          }; the objective is not written yet.`
+        : `Forward (directional objective of this Dialog) — ${doc.forward.title}: ${doc.forward.description}`,
+    );
+  } else {
+    lines.push(
+      'Forward (directional objective of this Dialog) — not written yet. Every Document can have a Forward.',
+    );
   }
   if (doc.step) {
     lines.push(`Step — ${doc.step.title}: ${doc.step.body}`);
   }
   if (Array.isArray(doc.paths) && doc.paths.length > 0) {
     lines.push(
-      `Paths: ${doc.paths.map((path) => path.title).join('; ')}`,
+      `Sections: ${doc.paths.map((path) => path.title).join('; ')}`,
     );
+  } else {
+    lines.push('Sections: Open (quieter Section for Points that do not yet fit).');
   }
   if (Array.isArray(doc.points) && doc.points.length > 0) {
     lines.push('Points (manuscript summaries):');
@@ -1192,9 +1208,9 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
   }
   lines.push(
-    'This block is Talking in (the Dialog). If Working on is a Draft, do not treat this manuscript as the Point write target.',
-    'When the user asks about this Dialog\'s Document, Forward, Step, or Points, use this block — do not claim the Document is absent when fields above are present.',
-    'When asked to pick or name one item from a Path, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
+    'This Document is the primary conversational background. Stay aware of the Domain. If Working on is a Draft, do not treat this manuscript as the Point write target.',
+    'When the user asks about this Dialog\'s Document, Forward, Sections, or Points, use this block — do not claim the Document is absent when fields above are present.',
+    'When asked to pick or name one item from a Section, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
   );
   return lines.join('\n');
 }

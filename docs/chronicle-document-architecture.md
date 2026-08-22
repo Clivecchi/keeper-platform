@@ -2,6 +2,8 @@
 
 **Status:** Layer 1 shim + Layer 2 registry (Library pilot) + Document/Point reconciliation landed on `cloud` (`Point` atomic / `Document` container; Dialog.document_status; Point→Moment identity keep; DocumentShell; Dialog DELETE; Forward/Step header). Layer 3 unchanged (`resolveChronicleDeclaration.ts`). **2026-07-23:** Becoming Together Document content is real on Dialog (`forward_*` / `step_*` / `document_paths`) + `document_manuscript` Points; Chronicle placeholder Forward/Step removed; Mechanism A (multi-select cast consultation) + Mechanism B (`delegate.consult`) with honest empty fallback shipped. **2026-07-24:** Document fields also load into agent generation context (`resolveAgentEnvironment` → `environment.dialogDocument` → `callAIModel`); standing cast-honesty rules on every Lead turn; `config.dialog_participation` for support-only / silent / voice. Self-organizing Step (Layer 3 Forward tip) remains unbuilt — Step text is hand-authored honesty, Back/Forward stay disabled.
 
+**2026-08-22 lock:** Every current and future named Dialog Document uses the same Chronicle chrome (Forward, Sections, Points), dressed by Domain treatment. Forward is the Dialog’s directional objective — not a Becoming Together exclusive. Open is the quieter Section for unplaced Points. Authored Section names belong to that story; do not copy Becoming Together’s Path titles onto other Documents. User-facing language is Section; storage still uses `document_paths`.
+
 ---
 
 ## Why

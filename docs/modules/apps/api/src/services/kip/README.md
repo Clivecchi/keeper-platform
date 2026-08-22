@@ -35,6 +35,12 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-22 — Author Document CRUD
+- `authorDialogDocument.ts` writes manuscript Points as a full replace (add / update / delete / reorder) so accepted Points can be edited or removed by the author.
+
+### 2026-08-22 — Forward on every named Document
+- Chronicle and agent Document loaders resolve Forward from authored Dialog fields. Title-only Forward is enough — description is no longer required to show the slot. Agent prompt: Document is primary background; Forward is the Dialog’s directional objective; user-facing groups are Sections.
+
 ### 2026-08-21 — Talking in / Working on write target
 - Point obligation writes to the focused Draft (`environment.activeDraft`) when Chronicle is on that Draft. Dialog manuscript is the default only when nothing else is focused. Chatter + Draft writes to the Draft; never invents a Document.
 

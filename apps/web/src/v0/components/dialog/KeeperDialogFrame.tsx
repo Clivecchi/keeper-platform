@@ -675,9 +675,11 @@ export function KeeperDialogFrame({
                               Working on
                               <span className="dialog-coordinate-kind">{bannerContext.workingOn.kindLabel}</span>
                             </span>
-                            <span className="dialog-coordinate-title keeper-treatment-title">
-                              {bannerContext.workingOn.title}
-                            </span>
+                            {bannerContext.workingOn.title ? (
+                              <span className="dialog-coordinate-title keeper-treatment-title">
+                                {bannerContext.workingOn.title}
+                              </span>
+                            ) : null}
                           </div>
                         )}
                       </div>

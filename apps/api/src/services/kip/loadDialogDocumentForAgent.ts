@@ -5,7 +5,9 @@
 
 import { prisma } from '@keeper/database';
 import {
+  isAuthoredDocumentForward,
   parseDocumentPathDeclarations,
+  resolveDocumentForward,
   summarizeDraftPointsForAgent,
 } from '@keeper/shared';
 
@@ -14,6 +16,7 @@ export type AgentDialogDocument = {
   title?: string;
   status?: string;
   forward?: { title: string; description: string };
+  forwardAuthored?: boolean;
   step?: { title: string; body: string };
   paths: ReturnType<typeof parseDocumentPathDeclarations>;
   points: ReturnType<typeof summarizeDraftPointsForAgent>;
@@ -61,10 +64,13 @@ export async function loadDialogDocumentForAgent(
   });
   if (!dialog) return null;
 
-  const forwardTitle = dialog.forward_title?.trim() ?? '';
-  const forwardDescription = dialog.forward_description?.trim() ?? '';
   const stepTitle = dialog.step_title?.trim() ?? '';
   const stepBody = dialog.step_body?.trim() ?? '';
+  const forward = resolveDocumentForward({
+    forwardTitle: dialog.forward_title,
+    forwardDescription: dialog.forward_description,
+    dialogTitle: dialog.title,
+  });
 
   const manuscripts = await prisma.kip_drafts.findMany({
     where: {
@@ -91,9 +97,11 @@ export async function loadDialogDocumentForAgent(
     ...(dialog.title_source ? { titleSource: dialog.title_source } : {}),
     ...(dialog.title?.trim() ? { title: dialog.title.trim() } : {}),
     ...(dialog.document_status ? { status: dialog.document_status } : {}),
-    ...(forwardTitle && forwardDescription
-      ? { forward: { title: forwardTitle, description: forwardDescription } }
-      : {}),
+    forward,
+    forwardAuthored: isAuthoredDocumentForward({
+      forwardTitle: dialog.forward_title,
+      forwardDescription: dialog.forward_description,
+    }),
     ...(stepTitle && stepBody
       ? { step: { title: stepTitle, body: stepBody } }
       : {}),

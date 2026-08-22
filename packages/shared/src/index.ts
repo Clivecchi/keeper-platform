@@ -30,6 +30,7 @@ export * from './realm/feed.js';
 export * from './chronicleEvent.js';
 export * from './chronicleSubject.js';
 export * from './document.js';
+export * from './documentAuthoring.js';
 export * from './dialogParticipation.js';
 export * from './dialogTitleSource.js';
 export * from './talkingInWorkingOn.js';

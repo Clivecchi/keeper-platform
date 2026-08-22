@@ -26,6 +26,17 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-22 — Inline Document authoring
+- Manage bar is gone. A pencil on the Document title opens inline edit: title, Forward, Sections, Points.
+- Author CRUD: add / rename / reorder / delete Sections; add / edit / move / delete Points. No secondary form.
+- Stage chip (`drafts` / `kept` / `presented`) cycles Document lifecycle. Document chip is identity (you are on the Document). Drafts chip scrolls to linked Drafts.
+
+### 2026-08-22 — Same Document chrome · Domain treatment · Forward
+- Every named Dialog Document uses the same Chronicle chrome: Forward, Sections, Points. Treatment tokens dress the page — Section colors are no longer matched to Becoming Together Path titles.
+- Forward is the Dialog’s directional objective. The slot is always present; an empty description is a quiet invite, not a missing product.
+- **Open** is the quieter Section for Points that do not yet fit. Authored Section names belong to that story.
+- User-facing language is Section. Storage still uses `document_paths` / `pathGroupId`.
+
 ### 2026-08-22 — Sections
 - Document component list label is **Sections** — linked Drafts belong on the Document as sections, not as extra Point cards.
 

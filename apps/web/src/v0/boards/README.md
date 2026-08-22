@@ -35,6 +35,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-22 — Document coordinates stay honest
+- Draft select from Nav or cross-nav passes the linked `dialog_id` so Talking in stays on that Dialog. An empty title no longer infers Chatter. Header Working on does not repeat the Document title.
+
 ### 2026-08-22 — Library media browser
 - `LibraryScreen` is a media selector, not a name list: poster cards, kind/category chips, horizontal shelves on All, grid when filtered.
 - Image uploads (and image URLs) show thumbnails via the blob proxy. Other kinds use a Keeper poster (gold mark + title).

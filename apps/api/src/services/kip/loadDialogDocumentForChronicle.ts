@@ -1,5 +1,5 @@
 /**
- * Load Dialog Document for Chronicle UI — Forward/Step/Paths + manuscript drafts
+ * Load Dialog Document for Chronicle UI — Forward/Step/Sections + manuscript drafts
  * with full Points (spec) + registered Document component drafts.
  * One round-trip; no sessions, no domain-wide draft list.
  */
@@ -9,6 +9,7 @@ import {
   normalizeDraftSpecJson,
   parseDocumentComponentDeclarations,
   parseDocumentPathDeclarations,
+  resolveDocumentForward,
   type DocumentComponentDraft,
 } from '@keeper/shared';
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
@@ -74,10 +75,18 @@ export async function loadDialogDocumentForChronicle(
   });
   if (!dialog) return null;
 
-  const forwardTitle = dialog.forward_title?.trim() ?? '';
-  const forwardDescription = dialog.forward_description?.trim() ?? '';
   const stepTitle = dialog.step_title?.trim() ?? '';
   const stepBody = dialog.step_body?.trim() ?? '';
+  const authoredForward = Boolean(
+    dialog.forward_title?.trim() || dialog.forward_description?.trim(),
+  );
+  const forward = authoredForward
+    ? resolveDocumentForward({
+        forwardTitle: dialog.forward_title,
+        forwardDescription: dialog.forward_description,
+        dialogTitle: dialog.title,
+      })
+    : undefined;
   const componentDecls = parseDocumentComponentDeclarations(dialog.document_components);
 
   // Dialog audience already authorized above — do not re-filter manuscripts by owner
@@ -144,9 +153,7 @@ export async function loadDialogDocumentForChronicle(
     dialogId: dialog.id,
     ...(dialog.title?.trim() ? { title: dialog.title.trim() } : {}),
     ...(dialog.document_status ? { status: dialog.document_status } : {}),
-    ...(forwardTitle && forwardDescription
-      ? { forward: { title: forwardTitle, description: forwardDescription } }
-      : {}),
+    ...(forward ? { forward } : {}),
     ...(stepTitle && stepBody
       ? { step: { title: stepTitle, body: stepBody } }
       : {}),

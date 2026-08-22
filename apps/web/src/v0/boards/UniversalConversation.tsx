@@ -53,6 +53,7 @@ import {
   resolveTalkingInWorkingOn,
   talkingInKindLabel,
   workingOnKindLabel,
+  workingOnRepeatsTalkingInTitle,
 } from "@keeper/shared"
 import { useAgentDialog, extractRunAgentPayload, type AgentContext } from "../../hooks/useAgentDialog"
 import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
@@ -2143,7 +2144,12 @@ export function UniversalConversation({
         ...(coordinates.workingOn
           ? {
               workingOn: {
-                title: coordinates.workingOn.title,
+                title: workingOnRepeatsTalkingInTitle(
+                  coordinates.talkingIn,
+                  coordinates.workingOn,
+                )
+                  ? ""
+                  : coordinates.workingOn.title,
                 kindLabel: workingOnKindLabel(coordinates.workingOn.kind),
               },
             }

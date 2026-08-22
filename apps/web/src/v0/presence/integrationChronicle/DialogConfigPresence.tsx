@@ -5,6 +5,8 @@ import { ChronicleConfigShell, useChronicleConfig } from "../chronicleConfig/use
 
 export type DialogMetadataFields = {
   title: string
+  forwardTitle: string
+  forwardDescription: string
 }
 
 const INPUT_CLASS =
@@ -19,6 +21,8 @@ export function DialogConfigPresence({
   dialogId,
   domainId,
   title,
+  forwardTitle = "",
+  forwardDescription = "",
   contextSummary,
   onBack,
   onRefresh,
@@ -27,6 +31,8 @@ export function DialogConfigPresence({
   dialogId: string
   domainId: string
   title: string
+  forwardTitle?: string
+  forwardDescription?: string
   contextSummary?: string | null
   onBack: () => void
   onRefresh?: () => void
@@ -34,16 +40,22 @@ export function DialogConfigPresence({
 }) {
   const baselineRef = React.useRef<DialogMetadataFields>({
     title: title.trim(),
+    forwardTitle: forwardTitle.trim(),
+    forwardDescription: forwardDescription.trim(),
   })
   const [fieldValues, setFieldValues] = React.useState(baselineRef.current)
   const fieldValuesRef = React.useRef(fieldValues)
   fieldValuesRef.current = fieldValues
 
   React.useEffect(() => {
-    const next = { title: title.trim() }
+    const next = {
+      title: title.trim(),
+      forwardTitle: forwardTitle.trim(),
+      forwardDescription: forwardDescription.trim(),
+    }
     baselineRef.current = next
     setFieldValues(next)
-  }, [title, dialogId])
+  }, [title, forwardTitle, forwardDescription, dialogId])
 
   const chronicleConfig = useChronicleConfig({
     entityKind: "dialog",
@@ -52,8 +64,17 @@ export function DialogConfigPresence({
     buildPayload: () => {
       const baseline = baselineRef.current
       const current = fieldValuesRef.current
-      if (current.title.trim() === baseline.title.trim()) return null
-      return { title: current.title.trim() }
+      const payload: Record<string, unknown> = {}
+      if (current.title.trim() !== baseline.title.trim()) {
+        payload.title = current.title.trim()
+      }
+      if (current.forwardTitle.trim() !== baseline.forwardTitle.trim()) {
+        payload.forward_title = current.forwardTitle.trim() || null
+      }
+      if (current.forwardDescription.trim() !== baseline.forwardDescription.trim()) {
+        payload.forward_description = current.forwardDescription.trim() || null
+      }
+      return Object.keys(payload).length > 0 ? payload : null
     },
     validate: () => {
       if (fieldValuesRef.current.title.trim().length < 1) {
@@ -62,18 +83,32 @@ export function DialogConfigPresence({
       return null
     },
     onSaved: (field, value) => {
-      if (typeof value !== "string") return
-      baselineRef.current = { ...baselineRef.current, [field]: value }
-      if (field === "title") {
+      if (typeof value !== "string" && value !== null) return
+      if (field === "title" && typeof value === "string") {
+        baselineRef.current = { ...baselineRef.current, title: value }
         onLabelResolved?.(value)
+        return
+      }
+      if (field === "forward_title") {
+        baselineRef.current = {
+          ...baselineRef.current,
+          forwardTitle: typeof value === "string" ? value : "",
+        }
+        return
+      }
+      if (field === "forward_description") {
+        baselineRef.current = {
+          ...baselineRef.current,
+          forwardDescription: typeof value === "string" ? value : "",
+        }
       }
     },
     onRefresh,
   })
 
-  const handleFieldChange = (value: string) => {
+  const handleFieldChange = (field: keyof DialogMetadataFields, value: string) => {
     chronicleConfig.markEdited()
-    setFieldValues({ title: value })
+    setFieldValues((prev) => ({ ...prev, [field]: value }))
   }
 
   return (
@@ -95,9 +130,33 @@ export function DialogConfigPresence({
           <p className="keeper-presence-field-label mb-1.5">Title</p>
           <input
             value={fieldValues.title}
-            onChange={(e) => handleFieldChange(e.target.value)}
+            onChange={(e) => handleFieldChange("title", e.target.value)}
             className={INPUT_CLASS}
             style={INPUT_STYLE}
+          />
+        </div>
+        <div>
+          <p className="keeper-presence-field-label mb-1.5">Forward</p>
+          <p
+            className="mb-2 text-[12px] leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            The directional objective of this Dialog — where the conversation is going.
+          </p>
+          <input
+            value={fieldValues.forwardTitle}
+            onChange={(e) => handleFieldChange("forwardTitle", e.target.value)}
+            placeholder="Forward title"
+            className={`${INPUT_CLASS} mb-2`}
+            style={INPUT_STYLE}
+          />
+          <textarea
+            value={fieldValues.forwardDescription}
+            onChange={(e) => handleFieldChange("forwardDescription", e.target.value)}
+            placeholder="Write the directional objective"
+            rows={5}
+            className={INPUT_CLASS}
+            style={{ ...INPUT_STYLE, minHeight: 120, resize: "vertical" }}
           />
         </div>
         {contextSummary?.trim() ? (

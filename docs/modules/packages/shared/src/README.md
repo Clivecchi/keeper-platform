@@ -20,6 +20,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-22: `documentAuthoring.ts` — Section add/rename/move/remove, Point placement, Document stage cycle. Author writes do not use the agent merge path.
+- 2026-08-22: `document.ts` — every named Document resolves a Forward (Dialog directional objective). `DOCUMENT_OPEN_SECTION` is the quieter Section for unplaced Points. `talkingInWorkingOn` keeps a linked Dialog when title is still loading, names the Domain, and does not shout the Document title twice.
 - 2026-08-19: `chronicleSubject.ts` — Board Def is Nav context (`selectedBoardDefId`). Design is a lens; URL does not route Chronicle.
 - 2026-08-19: `universalBoardId.ts` + `cloudMcpCeiling.ts` — Build is the Board id; Cloud ceiling is Cloud's list, not an IDE identity.
 - 2026-08-17: `markdownToDraftPoints.ts` — heading/section split for Dialog ingest (truncates at `INGEST_MAX_POINTS`). `dialog.rw` added to `DOMAIN_ACCESS_KEY_SCOPES`.

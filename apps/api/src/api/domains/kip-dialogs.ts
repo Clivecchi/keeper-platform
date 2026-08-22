@@ -9,7 +9,12 @@
  *   POST   /kip/dialogs/:dialogId/ingest — attach markdown Points to an existing Dialog
  *   GET    /kip/dialogs             — list Dialogs for a domain (filtered by scope)
  *   GET    /kip/dialogs/:dialogId   — get a single Dialog with its sessions
- *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Paths + manuscripts + components)
+ *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Sections + manuscripts + components)
+ *   PATCH  /kip/dialogs/:dialogId/document — author title, Forward, stage, Sections
+ *   POST   /kip/dialogs/:dialogId/document/points — author add Point
+ *   PATCH  /kip/dialogs/:dialogId/document/points/order — author reorder Points
+ *   PATCH  /kip/dialogs/:dialogId/document/points/:pointId — author update Point
+ *   DELETE /kip/dialogs/:dialogId/document/points/:pointId — author delete Point
  *   POST   /kip/dialogs/:dialogId/document-components — register a non-manuscript draft as Document component
  *   PATCH  /kip/dialogs/:dialogId   — update title, archive, or document_status
  *   DELETE /kip/dialogs/:dialogId   — hard delete (sessions/drafts SetNull dialog_id)
@@ -30,6 +35,13 @@ import {
   parseDocumentComponentDeclarations,
   parseDocumentPathDeclarations,
 } from '@keeper/shared';
+import {
+  authorClearSectionMembership,
+  authorCreateDocumentPoint,
+  authorDeleteDocumentPoint,
+  authorReorderDocumentPoints,
+  authorUpdateDocumentPoint,
+} from '../../services/kip/authorDialogDocument.js';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import {
@@ -106,6 +118,7 @@ const documentPathDeclarationSchema = z.object({
   id: z.string().min(1).max(80),
   title: z.string().min(1).max(200),
   prelude: z.string().max(2000).optional(),
+  imageUrl: z.string().max(2000).optional(),
 });
 
 const documentComponentDeclarationSchema = z.object({
@@ -117,6 +130,30 @@ const documentComponentDeclarationSchema = z.object({
 const registerDocumentComponentSchema = z.object({
   draftId: z.string().uuid(),
   label: z.string().min(1).max(200).optional(),
+});
+
+const authorDocumentSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  document_status: documentStatusSchema.optional(),
+  forward_title: z.string().min(1).max(300).nullable().optional(),
+  forward_description: z.string().max(8000).nullable().optional(),
+  document_paths: z.array(documentPathDeclarationSchema).max(40).optional(),
+});
+
+const authorPointCreateSchema = z.object({
+  title: z.string().max(300).optional(),
+  content: z.string().max(8000).optional(),
+  sectionId: z.string().max(80).nullable().optional(),
+});
+
+const authorPointUpdateSchema = z.object({
+  title: z.string().max(300).optional(),
+  content: z.string().max(8000).optional(),
+  sectionId: z.string().max(80).nullable().optional(),
+});
+
+const authorPointOrderSchema = z.object({
+  pointIds: z.array(z.string().min(1)).min(1).max(400),
 });
 
 const updateDialogSchema = z.object({
@@ -502,6 +539,200 @@ router.get(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] document failed');
       return res.status(500).json({ error: 'FAILED_TO_GET_DIALOG_DOCUMENT' });
+    }
+  },
+);
+
+// ─── PATCH /…/dialogs/:dialogId/document — author fields (inline Chronicle) ──
+
+router.patch(
+  '/:domainId/kip/dialogs/:dialogId/document',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      }
+      const parsed = authorDocumentSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
+      }
+
+      const existing = await prisma.dialog.findFirst({
+        where: { id: dialogId, domain_id: domainId, is_archived: false },
+        select: { id: true, document_paths: true },
+      });
+      if (!existing) {
+        return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
+      }
+
+      const data: {
+        title?: string;
+        title_source?: string;
+        document_status?: 'drafts' | 'kept' | 'presented';
+        forward_title?: string | null;
+        forward_description?: string | null;
+        document_paths?: object;
+      } = {};
+      if (parsed.data.title !== undefined) {
+        data.title = parsed.data.title;
+        data.title_source = 'user_set';
+      }
+      if (parsed.data.document_status !== undefined) {
+        data.document_status = parsed.data.document_status;
+      }
+      if (parsed.data.forward_title !== undefined) {
+        data.forward_title = parsed.data.forward_title;
+      }
+      if (parsed.data.forward_description !== undefined) {
+        data.forward_description = parsed.data.forward_description?.trim()
+          ? parsed.data.forward_description
+          : null;
+      }
+      if (parsed.data.document_paths !== undefined) {
+        const nextPaths = parseDocumentPathDeclarations(parsed.data.document_paths);
+        data.document_paths = nextPaths;
+        const previous = parseDocumentPathDeclarations(existing.document_paths);
+        const nextIds = new Set(nextPaths.map((path) => path.id));
+        for (const path of previous) {
+          if (!nextIds.has(path.id)) {
+            await authorClearSectionMembership({ domainId, dialogId, sectionId: path.id });
+          }
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        return res.status(400).json({ error: 'NO_CHANGES' });
+      }
+
+      const updated = await prisma.dialog.update({
+        where: { id: dialogId },
+        data,
+      });
+      return res.json({ dialog: updated });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] author document failed');
+      return res.status(500).json({ error: 'FAILED_TO_UPDATE_DOCUMENT' });
+    }
+  },
+);
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/document/points',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      }
+      const parsed = authorPointCreateSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
+      }
+      const result = await authorCreateDocumentPoint({
+        domainId,
+        dialogId,
+        userId: req.user.id,
+        title: parsed.data.title,
+        content: parsed.data.content,
+        sectionId: parsed.data.sectionId,
+      });
+      if (!result.ok) {
+        return res.status(result.status).json({ error: result.error, message: result.message });
+      }
+      return res.json({ ok: true, pointId: result.pointId });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] author point create failed');
+      return res.status(500).json({ error: 'FAILED_TO_CREATE_POINT' });
+    }
+  },
+);
+
+router.patch(
+  '/:domainId/kip/dialogs/:dialogId/document/points/order',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      }
+      const parsed = authorPointOrderSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
+      }
+      const result = await authorReorderDocumentPoints({
+        domainId,
+        dialogId,
+        pointIds: parsed.data.pointIds,
+      });
+      if (!result.ok) {
+        return res.status(result.status).json({ error: result.error, message: result.message });
+      }
+      return res.json({ ok: true });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] author point order failed');
+      return res.status(500).json({ error: 'FAILED_TO_REORDER_POINTS' });
+    }
+  },
+);
+
+router.patch(
+  '/:domainId/kip/dialogs/:dialogId/document/points/:pointId',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId, pointId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      }
+      const parsed = authorPointUpdateSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
+      }
+      const result = await authorUpdateDocumentPoint({
+        domainId,
+        dialogId,
+        pointId,
+        title: parsed.data.title,
+        content: parsed.data.content,
+        sectionId: parsed.data.sectionId,
+      });
+      if (!result.ok) {
+        return res.status(result.status).json({ error: result.error, message: result.message });
+      }
+      return res.json({ ok: true });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId, pointId }, '[kip-dialogs] author point update failed');
+      return res.status(500).json({ error: 'FAILED_TO_UPDATE_POINT' });
+    }
+  },
+);
+
+router.delete(
+  '/:domainId/kip/dialogs/:dialogId/document/points/:pointId',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId, pointId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      }
+      const result = await authorDeleteDocumentPoint({ domainId, dialogId, pointId });
+      if (!result.ok) {
+        return res.status(result.status).json({ error: result.error, message: result.message });
+      }
+      return res.json({ ok: true });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId, pointId }, '[kip-dialogs] author point delete failed');
+      return res.status(500).json({ error: 'FAILED_TO_DELETE_POINT' });
     }
   },
 );

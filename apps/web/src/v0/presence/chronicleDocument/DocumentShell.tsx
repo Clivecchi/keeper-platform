@@ -6,13 +6,38 @@ import type {
   DocumentComponentDraft,
   DocumentForward,
   DocumentPathGroup,
+  DocumentSectionWeight,
   DocumentStep,
   Point,
 } from "@keeper/shared"
-import { buildGlossThreadKey } from "@keeper/shared"
+import {
+  buildGlossThreadKey,
+  DOCUMENT_OPEN_SECTION,
+  resolveDocumentForward,
+} from "@keeper/shared"
 import { PointView } from "./PointView"
 import { DocumentPointGloss } from "./DocumentPointGloss"
 import { scrollToChroniclePoint } from "./chronicleMobile"
+import { AddNamedRow, AddPointRow } from "./DocumentAuthorForms"
+
+export type DocumentAuthoringSurface = {
+  enabled: boolean
+  busy?: boolean
+  error?: string | null
+  sections: Array<{ id: string; title: string }>
+  onSaveForward: (title: string, description: string) => void
+  onAddSection: (title: string) => void
+  onRenameSection: (sectionId: string, title: string) => void
+  onDeleteSection: (sectionId: string) => void
+  onMoveSection: (sectionId: string, direction: "up" | "down") => void
+  onAddPoint: (sectionId: string | null, title: string, body: string) => void
+  onUpdatePoint: (
+    pointId: string,
+    patch: { title?: string; content?: string; sectionId?: string | null },
+  ) => void
+  onDeletePoint: (pointId: string) => void
+  onMovePoint: (sectionPointIds: string[], pointId: string, direction: "up" | "down") => void
+}
 
 /** Per-Point Gloss activity for Chronicle badges (carrier threads keyed by anchor). */
 export type DocumentGlossThreadInfo = {
@@ -41,10 +66,13 @@ export interface DocumentShellProps {
   title?: string
   subtitle?: string
   /**
-   * Authored destination card — not the Document identity header.
+   * Directional objective of the Dialog — not the Document identity header.
    * Named Dialog Documents render `DocumentHeader` (Cdraft pattern) outside this shell.
+   * Every named Document should pass a resolved Forward.
    */
   forward?: DocumentForward
+  /** Inline authoring — pencil on the Document title, not a Manage form. */
+  authoring?: DocumentAuthoringSurface
   /** Live tip of the lineage; always visible when set, regardless of Forward collapse. */
   step?: DocumentStep
   /**
@@ -83,6 +111,7 @@ export interface DocumentShellProps {
   breadcrumb?: string[] | null
   emptyState?: React.ReactNode
   onBringInWriting?: () => void
+  authoring?: DocumentAuthoringSurface
   className?: string
 }
 
@@ -108,39 +137,17 @@ function resolveAcceptTarget(point: Point, pointId?: string): {
   return { draftId, pointId: nodeId }
 }
 
-type PathAccent = "progress" | "issue" | "development" | "cast" | "neutral"
-
-function resolvePathAccent(title?: string): PathAccent {
-  const key = (title ?? "").trim().toLowerCase()
-  if (!key) return "neutral"
-  if (/(known\s*issue|issue|gap|blocker)/.test(key)) return "issue"
-  if (/(develop|build|ship|work)/.test(key)) return "development"
-  if (/(cast|orchestrat|voice|roster)/.test(key)) return "cast"
-  if (/(progress|shipped|done|kept)/.test(key)) return "progress"
-  return "neutral"
+function sectionAccentColor(weight: DocumentSectionWeight): string {
+  if (weight === "open") return "hsl(var(--theme-ink-tertiary))"
+  return "hsl(var(--theme-accent-primary))"
 }
 
-function pathAccentColor(accent: PathAccent): string {
-  switch (accent) {
-    case "progress":
-      return "hsl(var(--theme-status-success))"
-    case "issue":
-      return "hsl(var(--theme-status-warning, 38 70% 48%))"
-    case "development":
-      return "hsl(var(--theme-focus-ring, 210 45% 52%))"
-    case "cast":
-      return "hsl(var(--theme-accent-primary, 42 55% 48%))"
-    default:
-      return "hsl(var(--theme-ink-tertiary))"
-  }
-}
-
-function PathHeader({
+function SectionHeader({
   title,
   prelude,
   imageUrl,
   count,
-  accent,
+  weight,
   expanded,
   onToggle,
 }: {
@@ -148,12 +155,12 @@ function PathHeader({
   prelude?: string
   imageUrl?: string
   count: number
-  accent: PathAccent
+  weight: DocumentSectionWeight
   expanded: boolean
   onToggle: () => void
 }) {
   if (!title && !prelude && !imageUrl) return null
-  const accentColor = pathAccentColor(accent)
+  const accentColor = sectionAccentColor(weight)
   return (
     <header className="document-shell-path__header px-1 pb-2 pt-1">
       {imageUrl?.trim() ? (
@@ -177,8 +184,8 @@ function PathHeader({
           title
             ? `${expanded ? "Collapse" : "Expand"} ${title} (${count} points)`
             : expanded
-              ? "Collapse path"
-              : "Expand path"
+              ? "Collapse section"
+              : "Expand section"
         }
       >
         <div className="flex min-w-0 items-center gap-2.5">
@@ -248,7 +255,7 @@ function PointFrame({
   acceptingPointId?: string | null
   acceptedPointIds?: ReadonlySet<string>
   glossContext?: DocumentGlossContext | null
-  accent: PathAccent
+  accent: DocumentSectionWeight
   glossThread?: DocumentGlossThreadInfo | null
 }) {
   const [glossOpen, setGlossOpen] = React.useState(false)
@@ -315,7 +322,7 @@ function PointFrame({
           flexShrink: 0,
           marginRight: 12,
           borderRadius: 1,
-          background: pathAccentColor(accent),
+          background: sectionAccentColor(accent),
           opacity: glossThread ? 0.95 : 0.55,
         }}
       />
@@ -356,17 +363,30 @@ function PointFrame({
 type ShellGroup = {
   key: string
   path: DocumentPathGroup | null
+  weight: DocumentSectionWeight
   items: Array<{ point: Point; index: number }>
+}
+
+function openSectionGroup(
+  items: Array<{ point: Point; index: number }>,
+): ShellGroup {
+  return {
+    key: DOCUMENT_OPEN_SECTION.id,
+    path: {
+      id: DOCUMENT_OPEN_SECTION.id,
+      title: DOCUMENT_OPEN_SECTION.title,
+      prelude: DOCUMENT_OPEN_SECTION.prelude,
+      pointIds: items.map((row) => String(row.index)),
+    },
+    weight: "open",
+    items,
+  }
 }
 
 function buildGroups(points: Point[], paths?: DocumentPathGroup[]): ShellGroup[] {
   if (!paths || paths.length === 0) {
     return [
-      {
-        key: "flat",
-        path: null,
-        items: points.map((point, index) => ({ point, index })),
-      },
+      openSectionGroup(points.map((point, index) => ({ point, index }))),
     ]
   }
 
@@ -382,15 +402,13 @@ function buildGroups(points: Point[], paths?: DocumentPathGroup[]): ShellGroup[]
       used.add(index)
       items.push({ point: points[index]!, index })
     }
-    groups.push({ key: path.id, path, items })
+    groups.push({ key: path.id, path, weight: "authored", items })
   }
 
   const leftovers = points
     .map((point, index) => ({ point, index }))
     .filter((row) => !used.has(row.index))
-  if (leftovers.length > 0) {
-    groups.push({ key: "ungrouped", path: null, items: leftovers })
-  }
+  groups.push(openSectionGroup(leftovers))
 
   return groups
 }
@@ -400,27 +418,77 @@ function resolveForward(
   title: string | undefined,
   subtitle: string | undefined,
 ): DocumentForward | null {
-  if (forward?.title?.trim()) {
-    return {
-      title: forward.title.trim(),
-      description: forward.description?.trim() ?? "",
-    }
-  }
-  if (title?.trim() || subtitle?.trim()) {
-    return {
-      title: title?.trim() || "Forward",
-      description: subtitle?.trim() || "",
-    }
+  if (forward || title?.trim() || subtitle?.trim()) {
+    return resolveDocumentForward({
+      forwardTitle: forward?.title,
+      forwardDescription: forward?.description ?? subtitle,
+      dialogTitle: title,
+      imageUrl: forward?.imageUrl,
+    })
   }
   return null
+}
+
+function ForwardEditor({
+  title,
+  description,
+  onSave,
+}: {
+  title: string
+  description: string
+  onSave: (title: string, description: string) => void
+}) {
+  const [draftTitle, setDraftTitle] = React.useState(title)
+  const [draftDescription, setDraftDescription] = React.useState(description)
+
+  React.useEffect(() => {
+    setDraftTitle(title)
+    setDraftDescription(description)
+  }, [title, description])
+
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <input
+        value={draftTitle}
+        onChange={(event) => setDraftTitle(event.target.value)}
+        onBlur={() => onSave(draftTitle, draftDescription)}
+        placeholder="Forward title"
+        className="w-full border-0 border-b bg-transparent px-0 py-1 text-[16px] outline-none"
+        style={{
+          borderColor: "hsl(var(--theme-border-soft) / 0.4)",
+          color: "hsl(var(--theme-ink-primary))",
+          fontFamily: "var(--theme-font-display, 'Cormorant Garamond', Georgia, serif)",
+        }}
+      />
+      <textarea
+        value={draftDescription}
+        onChange={(event) => setDraftDescription(event.target.value)}
+        onBlur={() => onSave(draftTitle, draftDescription)}
+        placeholder="Where this Dialog is going"
+        rows={3}
+        className="w-full border-0 border-b bg-transparent px-0 py-1 text-[14px] outline-none"
+        style={{
+          borderColor: "hsl(var(--theme-border-soft) / 0.4)",
+          color: "hsl(var(--theme-ink-secondary))",
+          resize: "vertical",
+        }}
+      />
+    </div>
+  )
 }
 
 function ForwardBlock({
   forward,
   step,
+  showInvite,
+  editing,
+  onSaveForward,
 }: {
   forward: DocumentForward
   step?: DocumentStep
+  showInvite?: boolean
+  editing?: boolean
+  onSaveForward?: (title: string, description: string) => void
 }) {
   const hasStep = Boolean(step?.title?.trim() || step?.body?.trim())
   const [descriptionOpen, setDescriptionOpen] = React.useState(!hasStep)
@@ -514,6 +582,21 @@ function ForwardBlock({
             </p>
           ) : null}
 
+          {editing && onSaveForward ? (
+            <ForwardEditor
+              title={forward.title}
+              description={forward.description}
+              onSave={onSaveForward}
+            />
+          ) : showInvite ? (
+            <p
+              className="mt-2.5 text-[14px] leading-[1.6]"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              The directional objective of this Dialog is not written yet. Use the pencil to write it here.
+            </p>
+          ) : null}
+
           {hasStep && step ? (
             <div
               className="mt-4 rounded-xl px-4 py-3.5"
@@ -564,6 +647,196 @@ function ForwardBlock({
  * Universal Document container shell — cover + Points in, rendered sequence out.
  * Boards supply data; this owns the shared render loop (no Realm-specific fetch).
  */
+function QuietButton({
+  children,
+  onClick,
+  disabled,
+  danger,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  disabled?: boolean
+  danger?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="text-[11px] font-medium"
+      style={{
+        color: danger
+          ? "hsl(var(--theme-status-error))"
+          : "hsl(var(--theme-ink-tertiary))",
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function SectionAuthorControls({
+  title,
+  canMoveUp,
+  canMoveDown,
+  disabled,
+  onRename,
+  onDelete,
+  onMove,
+}: {
+  title: string
+  canMoveUp: boolean
+  canMoveDown: boolean
+  disabled?: boolean
+  onRename: (title: string) => void
+  onDelete: () => void
+  onMove: (direction: "up" | "down") => void
+}) {
+  const [draft, setDraft] = React.useState(title)
+  React.useEffect(() => {
+    setDraft(title)
+  }, [title])
+
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-3 px-1">
+      <input
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (draft.trim() && draft.trim() !== title) onRename(draft.trim())
+        }}
+        aria-label="Section title"
+        className="min-w-[8rem] flex-1 border-0 border-b bg-transparent py-0.5 text-[13px] outline-none"
+        style={{
+          borderColor: "hsl(var(--theme-border-soft) / 0.35)",
+          color: "hsl(var(--theme-ink-primary))",
+        }}
+      />
+      <QuietButton disabled={disabled || !canMoveUp} onClick={() => onMove("up")}>
+        Up
+      </QuietButton>
+      <QuietButton disabled={disabled || !canMoveDown} onClick={() => onMove("down")}>
+        Down
+      </QuietButton>
+      <QuietButton
+        danger
+        disabled={disabled}
+        onClick={() => {
+          if (window.confirm("Delete this Section? Its Points move to Open.")) onDelete()
+        }}
+      >
+        Delete
+      </QuietButton>
+    </div>
+  )
+}
+
+function PointAuthorControls({
+  point,
+  pointId,
+  sectionId,
+  sections,
+  canMoveUp,
+  canMoveDown,
+  disabled,
+  onUpdate,
+  onDelete,
+  onMove,
+}: {
+  point: Point
+  pointId: string
+  sectionId: string | null
+  sections: Array<{ id: string; title: string }>
+  canMoveUp: boolean
+  canMoveDown: boolean
+  disabled?: boolean
+  onUpdate: (
+    pointId: string,
+    patch: { title?: string; content?: string; sectionId?: string | null },
+  ) => void
+  onDelete: () => void
+  onMove: (direction: "up" | "down") => void
+}) {
+  const [title, setTitle] = React.useState(point.title)
+  const [body, setBody] = React.useState(point.body.text)
+
+  React.useEffect(() => {
+    setTitle(point.title)
+    setBody(point.body.text)
+  }, [point.title, point.body.text])
+
+  return (
+    <div className="-mt-1 mb-3 flex flex-col gap-1.5 pl-[14px]">
+      <input
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        onBlur={() => {
+          if (title.trim() !== point.title) onUpdate(pointId, { title: title.trim(), content: body })
+        }}
+        aria-label="Point title"
+        className="border-0 border-b bg-transparent py-0.5 text-[13px] outline-none"
+        style={{
+          borderColor: "hsl(var(--theme-border-soft) / 0.3)",
+          color: "hsl(var(--theme-ink-primary))",
+        }}
+      />
+      <textarea
+        value={body}
+        onChange={(event) => setBody(event.target.value)}
+        onBlur={() => {
+          if (body !== point.body.text) onUpdate(pointId, { title: title.trim(), content: body })
+        }}
+        aria-label="Point body"
+        rows={3}
+        className="border-0 border-b bg-transparent py-0.5 text-[13px] outline-none"
+        style={{
+          borderColor: "hsl(var(--theme-border-soft) / 0.3)",
+          color: "hsl(var(--theme-ink-secondary))",
+          resize: "vertical",
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="text-[11px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Section
+          <select
+            className="ml-1.5 bg-transparent outline-none"
+            value={sectionId ?? DOCUMENT_OPEN_SECTION.id}
+            disabled={disabled}
+            onChange={(event) => {
+              const next = event.target.value
+              onUpdate(pointId, {
+                sectionId: next === DOCUMENT_OPEN_SECTION.id ? null : next,
+              })
+            }}
+          >
+            <option value={DOCUMENT_OPEN_SECTION.id}>{DOCUMENT_OPEN_SECTION.title}</option>
+            {sections.map((section) => (
+              <option key={section.id} value={section.id}>
+                {section.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <QuietButton disabled={disabled || !canMoveUp} onClick={() => onMove("up")}>
+          Up
+        </QuietButton>
+        <QuietButton disabled={disabled || !canMoveDown} onClick={() => onMove("down")}>
+          Down
+        </QuietButton>
+        <QuietButton
+          danger
+          disabled={disabled}
+          onClick={() => {
+            if (window.confirm("Delete this Point from the Document?")) onDelete()
+          }}
+        >
+          Delete
+        </QuietButton>
+      </div>
+    </div>
+  )
+}
+
 export function DocumentShell({
   cover,
   title,
@@ -585,6 +858,7 @@ export function DocumentShell({
   breadcrumb,
   emptyState,
   onBringInWriting,
+  authoring,
   className,
 }: DocumentShellProps) {
   const [query, setQuery] = React.useState("")
@@ -628,24 +902,23 @@ export function DocumentShell({
         ...group,
         items: group.items.filter(({ index }) => allow.has(index)),
       }))
-      .filter((group) => group.items.length > 0)
+      .filter((group) => !filteredIndexes || group.items.length > 0)
   }, [points, paths, filteredIndexes])
 
   const resolvedForward = React.useMemo(
     () => resolveForward(forward, title, subtitle),
     [forward, title, subtitle],
   )
-  /** Named Paths start collapsed for density; Progress expands by default. */
+  const forwardInvite = Boolean(resolvedForward && !resolvedForward.description.trim())
+  /** Open stays expanded. Authored Sections start open; the author may collapse them. */
   const [expandedPaths, setExpandedPaths] = React.useState<Record<string, boolean>>({})
 
   React.useEffect(() => {
     setExpandedPaths((prev) => {
       const next = { ...prev }
       for (const group of groups) {
-        if (!group.path) continue
         if (next[group.key] !== undefined) continue
-        const accent = resolvePathAccent(group.path.title)
-        next[group.key] = accent === "progress" || Boolean(normalizedQuery)
+        next[group.key] = true
       }
       return next
     })
@@ -678,7 +951,13 @@ export function DocumentShell({
         </div>
       ) : null}
       {resolvedForward ? (
-        <ForwardBlock forward={resolvedForward} step={step} />
+        <ForwardBlock
+          forward={resolvedForward}
+          step={step}
+          showInvite={forwardInvite}
+          editing={authoring?.enabled}
+          onSaveForward={authoring?.onSaveForward}
+        />
       ) : null}
       {onBringInWriting ? (
         <div className="px-4 pt-2">
@@ -734,19 +1013,27 @@ export function DocumentShell({
         </div>
       ) : null}
 
-      {points.length === 0 ? emptyState : null}
-
       {acceptError ? (
         <p className="px-4 pb-1 text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
           {acceptError}
         </p>
       ) : null}
 
+      {authoring?.error ? (
+        <p className="px-4 pb-1 text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
+          {authoring.error}
+        </p>
+      ) : null}
+
       <div className="document-shell-paths flex flex-col gap-0 px-4 pb-4 pt-1">
-        {groups.map((group) => {
-          const accent = resolvePathAccent(group.path?.title)
-          const isNamedPath = Boolean(group.path)
-          const expanded = !isNamedPath || expandedPaths[group.key] === true
+        {groups.map((group, groupIndex) => {
+          const accent = group.weight
+          const expanded = expandedPaths[group.key] !== false
+          const sectionId = group.weight === "open" ? null : group.path?.id ?? null
+          const sectionPointIds = group.items
+            .map(({ index }) => pointIds?.[index])
+            .filter((id): id is string => Boolean(id))
+          const authoredSectionCount = groups.filter((row) => row.weight === "authored").length
           return (
             <section
               key={group.key}
@@ -758,12 +1045,12 @@ export function DocumentShell({
               }}
             >
               {group.path ? (
-                <PathHeader
+                <SectionHeader
                   title={group.path.title}
                   prelude={group.path.prelude}
                   imageUrl={group.path.imageUrl}
                   count={group.items.length}
-                  accent={accent}
+                  weight={group.weight}
                   expanded={expanded}
                   onToggle={() =>
                     setExpandedPaths((prev) => ({
@@ -773,8 +1060,20 @@ export function DocumentShell({
                   }
                 />
               ) : null}
+              {authoring?.enabled && group.weight === "authored" && group.path ? (
+                <SectionAuthorControls
+                  title={group.path.title}
+                  canMoveUp={groupIndex > 0}
+                  canMoveDown={groupIndex < authoredSectionCount - 1}
+                  disabled={authoring.busy}
+                  onRename={(title) => authoring.onRenameSection(group.path!.id, title)}
+                  onDelete={() => authoring.onDeleteSection(group.path!.id)}
+                  onMove={(direction) => authoring.onMoveSection(group.path!.id, direction)}
+                />
+              ) : null}
               {expanded ? (
                 <div className="flex flex-col">
+                  {group.weight === "open" && group.items.length === 0 ? emptyState : null}
                   {group.items.map(({ point, index }) => {
                     const threadKey = point.gloss?.anchor
                       ? buildGlossThreadKey(point.gloss.anchor)
@@ -783,11 +1082,12 @@ export function DocumentShell({
                       threadKey && glossContext?.glossThreadsByKey
                         ? glossContext.glossThreadsByKey.get(threadKey) ?? null
                         : null
+                    const pointId = pointIds?.[index] ?? undefined
                     return (
+                    <div key={`${group.key}-${index}`}>
                     <PointFrame
-                      key={`${group.key}-${index}`}
                       point={point}
-                      pointId={pointIds?.[index] ?? undefined}
+                      pointId={pointId}
                       accent={accent}
                       glossContext={glossContext}
                       glossThread={glossThread}
@@ -800,26 +1100,60 @@ export function DocumentShell({
                           : undefined
                       }
                     />
+                    {authoring?.enabled && pointId ? (
+                      <PointAuthorControls
+                        point={point}
+                        pointId={pointId}
+                        sectionId={sectionId}
+                        sections={authoring.sections}
+                        canMoveUp={sectionPointIds[0] !== pointId}
+                        canMoveDown={sectionPointIds[sectionPointIds.length - 1] !== pointId}
+                        disabled={authoring.busy}
+                        onUpdate={authoring.onUpdatePoint}
+                        onDelete={() => authoring.onDeletePoint(pointId)}
+                        onMove={(direction) =>
+                          authoring.onMovePoint(sectionPointIds, pointId, direction)
+                        }
+                      />
+                    ) : null}
+                    </div>
                     )
                   })}
+                  {authoring?.enabled ? (
+                    <AddPointRow
+                      disabled={authoring.busy}
+                      onSubmit={(title, body) => authoring.onAddPoint(sectionId, title, body)}
+                    />
+                  ) : null}
                 </div>
               ) : null}
             </section>
           )
         })}
+        {authoring?.enabled ? (
+          <div className="pt-2">
+            <AddNamedRow
+              label="Add Section"
+              placeholder="Section title"
+              disabled={authoring.busy}
+              onSubmit={authoring.onAddSection}
+            />
+          </div>
+        ) : null}
       </div>
 
       {components && components.length > 0 ? (
         <section
+          id="document-linked-sections"
           className="mx-4 mb-6 mt-2 border-t pt-3"
           style={{ borderColor: "hsl(var(--theme-border-soft) / 0.28)" }}
-          aria-label="Document drafts"
+          aria-label="Linked Drafts on this Document"
         >
           <p
             className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            Sections
+            Linked Drafts
           </p>
           <ul className="space-y-0.5">
             {components.map((component) => {

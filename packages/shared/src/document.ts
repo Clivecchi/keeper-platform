@@ -62,7 +62,22 @@ export interface DocumentPathGroup {
 }
 
 /**
- * Path declaration stored on Dialog.document_paths — titles once per Document.
+ * Quieter Section for Points that do not yet have an authored Section.
+ * Always available on every named Dialog Document.
+ */
+export const DOCUMENT_OPEN_SECTION = {
+  id: 'open',
+  title: 'Open',
+  prelude: 'Points that do not yet have a Section.',
+} as const;
+
+/** Authored Sections use Domain treatment accent. Open is quieter. */
+export type DocumentSectionWeight = 'authored' | 'open';
+
+/**
+ * Section declaration stored on Dialog.document_paths — titles once per Document.
+ * User-facing name is Section. Storage still uses document_paths / pathGroupId
+ * until that column is renamed.
  * Point membership is resolved at read time via DraftPoint.pathGroupId / entry.pathId.
  */
 export interface DocumentPathDeclaration {
@@ -144,14 +159,45 @@ export function parseDocumentComponentDeclarations(
 }
 
 /**
- * Authored destination (Forward Layer 1) — stable North Star for the Document.
- * Distinct from DocumentStep, which is the live tip of the lineage.
+ * Directional objective of the Dialog — where this conversation is going.
+ * Every named Dialog Document can have a Forward. Distinct from DocumentStep
+ * (the live tip) and from the Document’s name.
  */
 export interface DocumentForward {
   title: string;
   description: string;
   /** Optional cover imagery for picture-book Document headers. */
   imageUrl?: string;
+}
+
+export type ResolveDocumentForwardInput = {
+  forwardTitle?: string | null;
+  forwardDescription?: string | null;
+  dialogTitle?: string | null;
+  imageUrl?: string | null;
+};
+
+/**
+ * Every named Document resolves a Forward.
+ * Authored title/description win. Otherwise the Dialog title holds the slot
+ * until the directional objective is written.
+ */
+export function resolveDocumentForward(
+  input: ResolveDocumentForwardInput,
+): DocumentForward {
+  const authoredTitle = input.forwardTitle?.trim() ?? '';
+  const dialogTitle = input.dialogTitle?.trim() ?? '';
+  const description = input.forwardDescription?.trim() ?? '';
+  const imageUrl = input.imageUrl?.trim() ?? '';
+  return {
+    title: authoredTitle || dialogTitle || 'Forward',
+    description,
+    ...(imageUrl ? { imageUrl } : {}),
+  };
+}
+
+export function isAuthoredDocumentForward(input: ResolveDocumentForwardInput): boolean {
+  return Boolean(input.forwardTitle?.trim() || input.forwardDescription?.trim());
 }
 
 /**
@@ -164,7 +210,7 @@ export interface DocumentStep {
 }
 
 /**
- * Document — one per Dialog. Cover + Points (optionally grouped by Path).
+ * Document — one per named Dialog. Forward + Sections + Points.
  * Durable identity is Dialog.id; kip_drafts holds the Point manuscript via dialog_id.
  */
 /** Resolved Document component draft for Chronicle (presentation). */

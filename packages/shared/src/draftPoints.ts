@@ -586,6 +586,29 @@ export function findDraftPoint(spec: unknown, pointId: string): DraftPoint | nul
   return parseDraftPoints(spec).find((point) => point.id === pointId) ?? null;
 }
 
+/** Author replace of the Point list — delete and reorder included. */
+export function setDraftPointsInSpec(spec: unknown, points: DraftPoint[]): DraftSpecJson {
+  return withDraftPointsPreservingExtras(spec, points);
+}
+
+export function removeDraftPointFromSpec(
+  spec: unknown,
+  pointId: string,
+): { spec: DraftSpecJson; removed: DraftPoint | null } {
+  const points = parseDraftPoints(spec);
+  const removed = points.find((point) => point.id === pointId) ?? null;
+  if (!removed) {
+    return { spec: canonicalizeDraftSpecJson(spec), removed: null };
+  }
+  return {
+    spec: setDraftPointsInSpec(
+      spec,
+      points.filter((point) => point.id !== pointId),
+    ),
+    removed,
+  };
+}
+
 /**
  * Merge a partial spec patch into existing spec_json.
  * Preserves `points` when omitted from the patch (common agent/client mistake).

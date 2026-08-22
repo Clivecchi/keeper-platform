@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-08-22 — Dialog Forward in Config
+- `DialogConfigPresence` authors Forward (directional objective) as well as title.
+
 ### 2026-08-11 — Draft promote under Cdraft meta
 - `DraftFocusPresence` passes collapsed `DraftAddToDocumentControl` into `Cdraft` via `documentControl` (title-first cover). Manage/Config still hosts Add open by default.
 
@@ -100,7 +103,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ### 2026-06-19 — Dialog EntityKind migration
 - Added `dialogCoverSchema.ts`, `DialogFocusPresence.tsx` (Cover · Config)
-- `DialogConfigPresence` — title via `PATCH /api/domains/:id/kip/dialogs/:dialogId`; scope read-only
+- `DialogConfigPresence` — title + Forward via `PATCH /api/domains/:id/kip/dialogs/:dialogId`; scope read-only
 - `DialogChronicleBlocks` — Recent Exchanges + Sessions; removed legacy inline `DialogFocusPresence` from `KeeperPresence.tsx`
 
 ### 2026-06-19 — Path EntityKind migration

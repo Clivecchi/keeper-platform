@@ -72,8 +72,16 @@ function trimmed(value: string | null | undefined): string | undefined {
 
 function isNamedDialog(input: ResolveTalkingInWorkingOnInput): boolean {
   if (!trimmed(input.dialogId)) return false;
-  const source = input.dialogTitleSource ?? inferDialogTitleSource(input.dialogTitle);
-  return isDocumentBearingDialogTitleSource(source);
+  if (isDocumentBearingDialogTitleSource(input.dialogTitleSource)) return true;
+  if (input.dialogTitleSource === 'auto_generated' || input.dialogTitleSource === 'system_promoted') {
+    return false;
+  }
+  // Missing title_source: infer only when a title is present.
+  // An empty title is not Chatter — do not drop a linked Dialog to Session.
+  if (trimmed(input.dialogTitle)) {
+    return isDocumentBearingDialogTitleSource(inferDialogTitleSource(input.dialogTitle));
+  }
+  return Boolean(trimmed(input.draftId));
 }
 
 /**
@@ -201,6 +209,18 @@ export function talkingInKindLabel(kind: TalkingInKind): string {
 }
 
 /**
+ * When Talking in a Dialog and Working on its Document, do not shout the title twice.
+ */
+export function workingOnRepeatsTalkingInTitle(
+  talkingIn?: { kind: TalkingInKind; title: string } | null,
+  workingOn?: { kind: WorkingOnKind; title: string } | null,
+): boolean {
+  if (!talkingIn || !workingOn) return false;
+  if (talkingIn.kind !== 'dialog' || workingOn.kind !== 'document') return false;
+  return talkingIn.title.trim() === workingOn.title.trim();
+}
+
+/**
  * Point write target from the two coordinates.
  * Focused Draft wins. Named Dialog Document is the default.
  * Session/Chatter never invents a Document.
@@ -239,6 +259,7 @@ export function resolvePointWriteTarget(input: {
 export function buildTalkingInWorkingOnPrompt(input: {
   talkingIn?: { kind: TalkingInKind; title: string } | null;
   workingOn?: { kind: WorkingOnKind; title: string } | null;
+  domainName?: string | null;
 }): string | null {
   const talking = input.talkingIn;
   const working = input.workingOn;
@@ -247,6 +268,12 @@ export function buildTalkingInWorkingOnPrompt(input: {
   const lines = [
     'TALKING IN / WORKING ON (Keeper coordinates — not optional flavor):',
   ];
+  const domainName = input.domainName?.trim();
+  if (domainName) {
+    lines.push(
+      `Domain: “${domainName}” — always stay aware. A story here may later be promoted out as its own Domain.`,
+    );
+  }
   if (talking) {
     lines.push(
       `Talking in: ${talkingInKindLabel(talking.kind)} “${talking.title}” — conversation context.`,
@@ -263,13 +290,16 @@ export function buildTalkingInWorkingOnPrompt(input: {
     );
   } else if (working?.kind === 'document') {
     lines.push(
-      'Write Points to this Dialog Document. Linked Drafts are sections of the Document, not a substitute for it.',
+      'The Document is the primary conversational background. Write Points here. Linked Drafts are Sections of the Document, not a substitute for it.',
     );
   }
   lines.push(
     'A Dialog title is the conversation’s name — not a fiction-plot outline, and not the name of a Document Section.',
+    'Forward is the directional objective of the Dialog — where this conversation is going — not the Document’s name.',
     'A Draft linked to the Dialog is a Section of that Document. Re-Center or UI Insights, if present, are Sections — not the Dialog.',
+    'Open is the quieter Section for Points that do not yet fit. Authored Section names belong to this story; do not copy another Document’s Section names.',
     'The work is Dialog + Document + Drafts + Points coming together so a story can be made from the Dialog.',
+    'You are driven by governance and by code. Where those two conflict, or lack support for the story to bloom, that lack is itself a Point.',
     'Points are durable findings from the conversation that is actually happening.',
   );
   return lines.join('\n');

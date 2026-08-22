@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Pencil } from "lucide-react"
 import { formatDocumentStatusLabel } from "./documentHeader"
 
 export interface DocumentHeaderProps {
@@ -8,48 +9,126 @@ export interface DocumentHeaderProps {
   status?: string | null
   pointCount: number
   componentCount?: number
-  onManage?: () => void
+  editing?: boolean
+  onToggleEdit?: () => void
+  onTitleCommit?: (title: string) => void
+  onCycleStatus?: () => void
+  onFocusSections?: () => void
   documentControl?: React.ReactNode
 }
 
 /**
- * Universal Document identity header — same Chronicle header pattern as Draft (`Cdraft`).
- * Always rendered for a named Dialog Document, including when there are no Points.
+ * Universal Document identity header — same Chronicle header family as Draft (`Cdraft`).
+ * Pencil on the title opens inline edit. No Manage form.
  */
 export function DocumentHeader({
   title,
   status,
   pointCount,
   componentCount = 0,
-  onManage,
+  editing = false,
+  onToggleEdit,
+  onTitleCommit,
+  onCycleStatus,
+  onFocusSections,
   documentControl,
 }: DocumentHeaderProps) {
+  const [draftTitle, setDraftTitle] = React.useState(title)
+
+  React.useEffect(() => {
+    setDraftTitle(title)
+  }, [title])
+
+  const commitTitle = () => {
+    const next = draftTitle.trim()
+    if (!next || next === title.trim()) {
+      setDraftTitle(title)
+      return
+    }
+    onTitleCommit?.(next)
+  }
+
   return (
     <div className="cdraft shrink-0" data-document-header="">
-      {onManage ? (
-        <div className="cdraft-manage-bar">
-          <button type="button" className="cdraft-manage-btn" onClick={onManage}>
-            <span className="cdraft-manage-glyph" aria-hidden>
-              ⊕
-            </span>
-            Manage
-          </button>
-        </div>
-      ) : null}
-
       <header className="cdraft-header">
-        <h1 className="cdraft-title">{title}</h1>
+        <div className="flex items-start gap-3">
+          {editing && onTitleCommit ? (
+            <input
+              value={draftTitle}
+              onChange={(event) => setDraftTitle(event.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault()
+                  commitTitle()
+                }
+                if (event.key === "Escape") {
+                  setDraftTitle(title)
+                  ;(event.target as HTMLInputElement).blur()
+                }
+              }}
+              aria-label="Document title"
+              className="cdraft-title min-w-0 flex-1 border-0 bg-transparent px-0 py-0 outline-none"
+              style={{
+                borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.45)",
+              }}
+            />
+          ) : (
+            <h1 className="cdraft-title min-w-0 flex-1">{title}</h1>
+          )}
+          {onToggleEdit ? (
+            <button
+              type="button"
+              onClick={onToggleEdit}
+              className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+              style={{
+                color: editing
+                  ? "hsl(var(--theme-accent-primary))"
+                  : "hsl(var(--theme-ink-tertiary))",
+              }}
+              aria-pressed={editing}
+              aria-label={editing ? "Done editing Document" : "Edit Document"}
+              title={editing ? "Done" : "Edit"}
+            >
+              <Pencil className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+          ) : null}
+        </div>
         <p className="cdraft-breadcrumb">Document</p>
         <div className="cdraft-meta-strip">
-          <span className="cdraft-status-pill">{formatDocumentStatusLabel(status)}</span>
-          <span className="cdraft-meta-item">Document</span>
+          {onCycleStatus ? (
+            <button
+              type="button"
+              className="cdraft-status-pill"
+              onClick={onCycleStatus}
+              title="Document stage — drafts, kept, or presented. Click to cycle."
+            >
+              {formatDocumentStatusLabel(status)}
+            </button>
+          ) : (
+            <span className="cdraft-status-pill">{formatDocumentStatusLabel(status)}</span>
+          )}
+          <span className="cdraft-meta-item" title="You are on the Document, not a Draft">
+            Document
+          </span>
           <span className="cdraft-meta-item">
             {pointCount} {pointCount === 1 ? "point" : "points"}
           </span>
           {componentCount > 0 ? (
-            <span className="cdraft-meta-item">
-              {componentCount} {componentCount === 1 ? "draft" : "drafts"}
-            </span>
+            onFocusSections ? (
+              <button
+                type="button"
+                className="cdraft-meta-item"
+                onClick={onFocusSections}
+                title="Linked Drafts on this Document — open the Sections list"
+              >
+                {componentCount} {componentCount === 1 ? "draft" : "drafts"}
+              </button>
+            ) : (
+              <span className="cdraft-meta-item">
+                {componentCount} {componentCount === 1 ? "draft" : "drafts"}
+              </span>
+            )
           ) : null}
         </div>
         {documentControl ? (

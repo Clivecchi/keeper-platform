@@ -671,7 +671,8 @@ export function UniversalNavPanel({
         onDialogSelect?.(item.id)
       } else if (item.kind === "draft") {
         setNavPane("universal")
-        onDraftSelect?.(item.id)
+        const draft = drafts?.find((row) => row.id === item.id)
+        onDraftSelect?.(item.id, { dialogId: draft?.dialog_id })
       } else if (item.kind === "keeper") {
         setNavPane("keepers")
         onKeeperSelect?.(item.id)
@@ -681,7 +682,7 @@ export function UniversalNavPanel({
         onLibraryItemSelect?.(item.id)
       }
     },
-    [boardCtx, onDialogSelect, onDraftSelect, onKeeperSelect, onLibraryItemSelect],
+    [boardCtx, drafts, onDialogSelect, onDraftSelect, onKeeperSelect, onLibraryItemSelect],
   )
 
   const toggleExpanded = React.useCallback((section: SectionKey) => {

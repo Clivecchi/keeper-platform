@@ -3,6 +3,7 @@ import {
   buildTalkingInWorkingOnPrompt,
   resolvePointWriteTarget,
   resolveTalkingInWorkingOn,
+  workingOnRepeatsTalkingInTitle,
 } from './talkingInWorkingOn.js';
 
 describe('resolveTalkingInWorkingOn', () => {
@@ -47,6 +48,20 @@ describe('resolveTalkingInWorkingOn', () => {
     ).toEqual({
       talkingIn: { kind: 'session', id: 'sess-1', title: 'this Session' },
       workingOn: { kind: 'draft', id: 'draft-1', title: 'New draft' },
+    });
+  });
+
+  it('keeps Talking in on a linked Dialog when title_source and title are still loading', () => {
+    expect(
+      resolveTalkingInWorkingOn({
+        dialogId: 'dlg-1',
+        draftId: 'draft-1',
+        draftTitle: 'Keeper UI Insights and Actions',
+        sessionId: 'sess-1',
+      }),
+    ).toEqual({
+      talkingIn: { kind: 'dialog', id: 'dlg-1', title: 'this Dialog' },
+      workingOn: { kind: 'draft', id: 'draft-1', title: 'Keeper UI Insights and Actions' },
     });
   });
 
@@ -107,6 +122,34 @@ describe('buildTalkingInWorkingOnPrompt', () => {
     expect(prompt).toContain('Working on: Document “Finding the plot”');
     expect(prompt).toContain('fiction-plot outline');
     expect(prompt).toContain('Sections — not the Dialog');
+    expect(prompt).toContain('primary conversational background');
+    expect(prompt).toContain('directional objective');
+    expect(prompt).toContain('Open is the quieter Section');
+    expect(prompt).toContain('governance and by code');
+  });
+
+  it('names the Domain when provided', () => {
+    const prompt = buildTalkingInWorkingOnPrompt({
+      talkingIn: { kind: 'dialog', title: 'Finding the plot' },
+      workingOn: { kind: 'document', title: 'Finding the plot' },
+      domainName: 'ke3p',
+    });
+    expect(prompt).toContain('Domain: “ke3p”');
+  });
+
+  it('collapses Working on when it repeats the Dialog Document title', () => {
+    expect(
+      workingOnRepeatsTalkingInTitle(
+        { kind: 'dialog', title: 'Finding the plot' },
+        { kind: 'document', title: 'Finding the plot' },
+      ),
+    ).toBe(true);
+    expect(
+      workingOnRepeatsTalkingInTitle(
+        { kind: 'dialog', title: 'Finding the plot' },
+        { kind: 'draft', title: 'Keeper UI Insights and Actions' },
+      ),
+    ).toBe(false);
   });
 
   it('separates a focused Draft from the Dialog manuscript', () => {
