@@ -18,7 +18,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `schemas/dialogCoverSchema.ts` — Layer 2 Dialog EntityKind fill
 - `DialogFocusPresence.tsx` — Dialog Cover ↔ Config orchestration
 - `schemas/draftCoverSchema.ts` — Layer 2 Draft EntityKind fill
-- `DraftFocusPresence.tsx` — Draft Cover ↔ Config orchestration (`PresentMotionProvider` slide)
+- `DraftFocusPresence.tsx` — Draft Chronicle + inline authoring (`PresentMotionProvider` slide)
 - `PathFocusPresence.tsx` — Path Cover ↔ Config orchestration
 - `schemas/momentCoverSchema.ts` — Layer 2 Moment EntityKind fill
 - `MomentFocusPresence.tsx` — Moment Cover ↔ Config orchestration
@@ -52,6 +52,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-08-22 — Draft inline authoring
+- `DraftFocusPresence` uses `useDraftAuthoring` — pencil on the title, Point Save / Delete. Manage / Config is no longer the write path.
 
 ### 2026-08-22 — Dialog Forward in Config
 - `DialogConfigPresence` authors Forward (directional objective) as well as title.

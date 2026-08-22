@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Pencil } from "lucide-react"
+import { AuthorSaveBar } from "./ChronicleAuthorControls"
 import { formatDocumentStatusLabel } from "./documentHeader"
 
 export interface DocumentHeaderProps {
@@ -11,15 +12,16 @@ export interface DocumentHeaderProps {
   componentCount?: number
   editing?: boolean
   onToggleEdit?: () => void
-  onTitleCommit?: (title: string) => void
+  onTitleSave?: (title: string) => void
   onCycleStatus?: () => void
   onFocusSections?: () => void
   documentControl?: React.ReactNode
+  busy?: boolean
 }
 
 /**
  * Universal Document identity header — same Chronicle header family as Draft (`Cdraft`).
- * Pencil on the title opens inline edit. No Manage form.
+ * Pencil opens author mode. The title itself is the field. Save / Cancel commit it.
  */
 export function DocumentHeader({
   title,
@@ -28,50 +30,39 @@ export function DocumentHeader({
   componentCount = 0,
   editing = false,
   onToggleEdit,
-  onTitleCommit,
+  onTitleSave,
   onCycleStatus,
   onFocusSections,
   documentControl,
+  busy = false,
 }: DocumentHeaderProps) {
   const [draftTitle, setDraftTitle] = React.useState(title)
 
   React.useEffect(() => {
     setDraftTitle(title)
-  }, [title])
+  }, [title, editing])
 
-  const commitTitle = () => {
-    const next = draftTitle.trim()
-    if (!next || next === title.trim()) {
-      setDraftTitle(title)
-      return
-    }
-    onTitleCommit?.(next)
-  }
+  const dirty = draftTitle.trim() !== title.trim() && draftTitle.trim().length > 0
 
   return (
     <div className="cdraft shrink-0" data-document-header="">
       <header className="cdraft-header">
         <div className="flex items-start gap-3">
-          {editing && onTitleCommit ? (
+          {editing && onTitleSave ? (
             <input
               value={draftTitle}
               onChange={(event) => setDraftTitle(event.target.value)}
-              onBlur={commitTitle}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault()
-                  commitTitle()
+                  if (dirty) onTitleSave(draftTitle.trim())
                 }
                 if (event.key === "Escape") {
                   setDraftTitle(title)
-                  ;(event.target as HTMLInputElement).blur()
                 }
               }}
               aria-label="Document title"
               className="cdraft-title min-w-0 flex-1 border-0 bg-transparent px-0 py-0 outline-none"
-              style={{
-                borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.45)",
-              }}
             />
           ) : (
             <h1 className="cdraft-title min-w-0 flex-1">{title}</h1>
@@ -94,6 +85,17 @@ export function DocumentHeader({
             </button>
           ) : null}
         </div>
+        {editing && onTitleSave ? (
+          <AuthorSaveBar
+            saveLabel="Save title"
+            dirty={dirty}
+            busy={busy}
+            onSave={() => {
+              if (dirty) onTitleSave(draftTitle.trim())
+            }}
+            onCancel={() => setDraftTitle(title)}
+          />
+        ) : null}
         <p className="cdraft-breadcrumb">Document</p>
         <div className="cdraft-meta-strip">
           {onCycleStatus ? (

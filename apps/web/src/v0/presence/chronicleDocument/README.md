@@ -7,6 +7,8 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - `PointView.tsx` ? clamped body, status, optional Gloss action (atomic Point)
 - `DocumentShell.tsx` ? cover + Points sequence (universal container; Realm adapter consumes this)
 - `DocumentHeader.tsx` / `documentHeader.ts` — Document identity header (same Chronicle header job as Cdraft)
+- `ChronicleAuthorControls.tsx` — Save / Cancel / Delete bar, auto-grow fields, in-place Point editor
+- `useDocumentAuthoring.ts` / `useDraftAuthoring.ts` — Document and Draft author writes
 - `DocumentPointGloss.tsx` — inline polish panel on a Document Point (Dialog carrier + Kip chat)
 - `ChronicleHistoryPanel.tsx` — Dialog-scoped History quick review (session chapters + Document keeps) with parent/child disclosure
 - `chronicleMobile.ts` ? viewed-state, deep-link scroll, and History grouping helpers
@@ -26,6 +28,11 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-22 — Literally inline authoring
+- The Document title, Forward, and the Point you are editing *are* the fields — same type size, no form under the writing.
+- One Point at a time. The editor grows with the body. Save / Cancel / Delete are required; nothing commits on blur.
+- Draft uses the same family: pencil on the title, Edit expands a Point in place.
+
 ### 2026-08-22 — Inline Document authoring
 - Manage bar is gone. A pencil on the Document title opens inline edit: title, Forward, Sections, Points.
 - Author CRUD: add / rename / reorder / delete Sections; add / edit / move / delete Points. No secondary form.

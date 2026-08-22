@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-22 — Literally inline Document
+- Title save is explicit (`onTitleSave`). Forward and Points edit in place in `DocumentShell`.
+
 ### 2026-08-22 — Inline Document authoring
 - `DomainRealmStory` no longer opens Dialog Config for Manage. Pencil + `useDocumentAuthoring` writes title, Forward, stage, Sections, and Points on the Document page.
 

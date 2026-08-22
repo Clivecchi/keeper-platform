@@ -25,7 +25,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
 - `DraftAddToDocumentControl.tsx` — draft-first **Add to Document** (Dialog picker → `document_components`)
 - `DraftChronicleBlocks.tsx` — Summary, points (Accept + Discuss), versions, linked dialog sessions
-- `cdraft.tsx` — Manuscript Chronicle treatment (header, manage bar, warm charcoal canvas)
+- `cdraft.tsx` — Manuscript Chronicle treatment (header, pencil authoring, warm charcoal canvas)
 - `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering, `parseTargetJourneyIdFromSpec`
 - `draftNavUtils.ts` — Draft nav filter/sort/group + disambiguated labels
 - `DraftVersionStrip.tsx` — Read-only last N versions from `GET .../versions`
@@ -44,6 +44,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-08-22 — Draft pencil authoring
+- `Cdraft` drops Manage. Pencil makes the title the field (Save / Cancel). Points edit in place through `DraftChronicleBlocks`.
 
 ### 2026-08-22 — Dialog Forward authoring
 - `DialogConfigPresence` saves Forward title + description (`forward_title` / `forward_description`) — the Dialog’s directional objective.

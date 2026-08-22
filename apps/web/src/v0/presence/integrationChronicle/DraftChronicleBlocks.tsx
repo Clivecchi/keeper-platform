@@ -90,6 +90,14 @@ export interface DraftChronicleBlocksProps {
   onDialogSelect?: (dialogId: string) => void
   onSessionSelect?: (sessionId: string) => void
   manuscript?: boolean
+  authoring?: DraftPointAuthoring | null
+}
+
+export type DraftPointAuthoring = {
+  busy?: boolean
+  onAddPoint?: (title: string, body: string) => void
+  onUpdatePoint?: (pointId: string, title: string, body: string) => void
+  onDeletePoint?: (pointId: string) => void
 }
 
 export function DraftChronicleBlocks({
@@ -114,6 +122,7 @@ export function DraftChronicleBlocks({
   onDialogSelect,
   onSessionSelect: _onSessionSelect,
   manuscript = false,
+  authoring = null,
 }: DraftChronicleBlocksProps) {
   void _onSessionSelect
   const displaySummary = React.useMemo(() => {
@@ -158,6 +167,7 @@ export function DraftChronicleBlocks({
             promotingPointId={promotingPointId}
             promotedPointIds={promotedPointIds}
             manuscript
+            authoring={authoring}
           />
         </div>
       ) : (
@@ -175,6 +185,7 @@ export function DraftChronicleBlocks({
             acceptedPointIds={acceptedPointIds}
             promotingPointId={promotingPointId}
             promotedPointIds={promotedPointIds}
+            authoring={authoring}
           />
         </BlockSection>
       )}

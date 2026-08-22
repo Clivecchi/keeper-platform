@@ -1,8 +1,10 @@
 "use client"
 
 import * as React from "react"
+import { Pencil } from "lucide-react"
 import { parseDraftPoints } from "@keeper/shared"
 import { draftChronicleTitle } from "../cover/schemas/draftCoverSchema"
+import { AuthorSaveBar } from "../chronicleDocument/ChronicleAuthorControls"
 import { DraftChronicleBlocks } from "./DraftChronicleBlocks"
 import {
   formatDraftKindLabel,
@@ -17,7 +19,14 @@ export interface CdraftProps {
   isSessionActive: boolean
   presenceRefreshKey?: number
   dialogId?: string | null
-  onManage: () => void
+  editing?: boolean
+  busy?: boolean
+  authorError?: string | null
+  onToggleEdit?: () => void
+  onTitleSave?: (title: string) => void
+  onAddPoint?: (title: string, body: string) => void
+  onUpdatePoint?: (pointId: string, title: string, body: string) => void
+  onDeletePoint?: (pointId: string) => void
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
   onRewritePoint?: (draftId: string, pointId: string, preview: string) => void
@@ -63,7 +72,14 @@ export function Cdraft({
   isSessionActive,
   presenceRefreshKey = 0,
   dialogId = null,
-  onManage,
+  editing = false,
+  busy = false,
+  authorError = null,
+  onToggleEdit,
+  onTitleSave,
+  onAddPoint,
+  onUpdatePoint,
+  onDeletePoint,
   onAcceptPoint,
   onDiscussPoint,
   onRewritePoint,
@@ -131,6 +147,7 @@ export function Cdraft({
 
   const [summaryFlashKey, setSummaryFlashKey] = React.useState(0)
   const prevSummary = React.useRef(summary)
+  const [draftTitle, setDraftTitle] = React.useState(title)
 
   React.useEffect(() => {
     if (prevSummary.current !== summary) {
@@ -139,17 +156,55 @@ export function Cdraft({
     }
   }, [summary])
 
+  React.useEffect(() => {
+    setDraftTitle(title)
+  }, [title, editing])
+
+  const titleDirty = draftTitle.trim() !== title.trim() && draftTitle.trim().length > 0
+
   return (
     <div className="cdraft min-h-full">
-      <div className="cdraft-manage-bar">
-        <button type="button" className="cdraft-manage-btn" onClick={onManage}>
-          <span className="cdraft-manage-glyph" aria-hidden>⊕</span>
-          Manage
-        </button>
-      </div>
-
       <header className="cdraft-header">
-        <h1 className="cdraft-title">{title}</h1>
+        <div className="flex items-start gap-3">
+          {editing && onTitleSave ? (
+            <input
+              value={draftTitle}
+              onChange={(event) => setDraftTitle(event.target.value)}
+              aria-label="Draft title"
+              className="cdraft-title min-w-0 flex-1 border-0 bg-transparent px-0 py-0 outline-none"
+            />
+          ) : (
+            <h1 className="cdraft-title min-w-0 flex-1">{title}</h1>
+          )}
+          {onToggleEdit ? (
+            <button
+              type="button"
+              onClick={onToggleEdit}
+              className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+              style={{
+                color: editing
+                  ? "hsl(var(--theme-accent-primary))"
+                  : "hsl(var(--theme-ink-tertiary))",
+              }}
+              aria-pressed={editing}
+              aria-label={editing ? "Done editing Draft" : "Edit Draft"}
+              title={editing ? "Done" : "Edit"}
+            >
+              <Pencil className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+          ) : null}
+        </div>
+        {editing && onTitleSave ? (
+          <AuthorSaveBar
+            saveLabel="Save title"
+            dirty={titleDirty}
+            busy={busy}
+            onSave={() => {
+              if (titleDirty) onTitleSave(draftTitle.trim())
+            }}
+            onCancel={() => setDraftTitle(title)}
+          />
+        ) : null}
 
         {breadcrumbParts.length > 0 ? (
           <p className="cdraft-breadcrumb">
@@ -162,6 +217,11 @@ export function Cdraft({
           </p>
         ) : null}
 
+        {authorError ? (
+          <p className="cdraft-promote-error" role="alert">
+            {authorError}
+          </p>
+        ) : null}
         {promoteError ? (
           <p className="cdraft-promote-error" role="alert">
             {promoteError}
@@ -216,6 +276,16 @@ export function Cdraft({
           onDialogSelect={onDialogSelect}
           onSessionSelect={onSessionSelect}
           manuscript
+          authoring={
+            editing
+              ? {
+                  busy,
+                  onAddPoint,
+                  onUpdatePoint,
+                  onDeletePoint,
+                }
+              : null
+          }
         />
       </div>
     </div>

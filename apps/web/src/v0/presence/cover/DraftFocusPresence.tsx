@@ -9,11 +9,10 @@ import { useDraftPointPromote } from "../../../hooks/useDraftPointPromote"
 import type { PresenceMeta } from "../presenceEnrichment"
 import { Cdraft } from "../integrationChronicle/cdraft"
 import { DraftAddToDocumentControl } from "../integrationChronicle/DraftAddToDocumentControl"
-import { DraftConfigPresence } from "../integrationChronicle/DraftConfigPresence"
+import { useDraftAuthoring } from "../chronicleDocument/useDraftAuthoring"
 import { draftChronicleTitle } from "./schemas/draftCoverSchema"
 import { parseTargetJourneyIdFromSpec } from "../integrationChronicle/draftManuscriptUtils"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
-import type { EntityCoverMode } from "./coverTypes"
 import { PresentMotionProvider } from "../../presents/usePresentMotion"
 
 export interface DraftFocusPresenceProps {
@@ -34,8 +33,6 @@ export function DraftFocusPresence({
   onEngagementSuccess,
 }: DraftFocusPresenceProps) {
   const boardCtx = useUniversalBoardOptional()
-  const [coverMode, setCoverMode] = React.useState<EntityCoverMode>("cover")
-
   const activeSessionId = boardCtx?.selection.activeSessionId ?? null
   const [isSessionActive, setIsSessionActive] = React.useState(false)
 
@@ -67,8 +64,21 @@ export function DraftFocusPresence({
     [record.title],
   )
 
+  const refreshDraft = React.useCallback(() => {
+    onEngagementSuccess?.()
+    boardCtx?.actions.bumpDraftPresence?.()
+    boardCtx?.actions.bumpDraftNav?.({ draftId: objectId })
+  }, [boardCtx, objectId, onEngagementSuccess])
+
   const selectedJourneyId = boardCtx?.selection.selectedJourneyId ?? null
   const draftSpec = record.spec ?? record.spec_json
+  const authoring = useDraftAuthoring({
+    domainId,
+    draftId: objectId,
+    title: fieldValues.title,
+    spec: draftSpec,
+    onRefresh: refreshDraft,
+  })
   const targetJourneyIdFromSpec = React.useMemo(
     () => parseTargetJourneyIdFromSpec(draftSpec),
     [draftSpec],
@@ -129,10 +139,6 @@ export function DraftFocusPresence({
   })
 
   React.useEffect(() => {
-    setCoverMode("cover")
-  }, [objectId])
-
-  React.useEffect(() => {
     const label = draftChronicleTitle({
       title: fieldValues.title,
       id: objectId,
@@ -169,38 +175,6 @@ export function DraftFocusPresence({
 
   const draftKind = typeof record.kind === "string" ? record.kind : null
 
-  if (coverMode === "config") {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="shrink-0 px-4 pt-3">
-          <DraftAddToDocumentControl
-            domainId={domainId}
-            draftId={objectId}
-            draftKind={draftKind}
-            linkedDialogId={dialogId}
-            onOpenDocument={boardCtx?.actions.onDialogSelect}
-            defaultOpen
-          />
-        </div>
-        <div className="min-h-0 flex-1">
-          <DraftConfigPresence
-            draftId={objectId}
-            domainId={domainId}
-            title={fieldValues.title}
-            kind={draftKind}
-            status={typeof record.status === "string" ? record.status : null}
-            onBack={() => {
-              setCoverMode("cover")
-              onEngagementSuccess?.()
-            }}
-            onRefresh={onEngagementSuccess}
-            onLabelResolved={onLabelResolved}
-          />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <PresentMotionProvider present="slide" instanceKey={objectId} enabled>
       <div className="relative flex flex-col h-full min-h-0">
@@ -221,7 +195,14 @@ export function DraftFocusPresence({
               isSessionActive={isSessionActive}
               presenceRefreshKey={boardCtx?.selection.draftPresenceRevision ?? 0}
               dialogId={dialogId}
-              onManage={() => setCoverMode("config")}
+              editing={authoring.editing}
+              busy={authoring.busy}
+              authorError={authoring.error}
+              onToggleEdit={authoring.toggleEdit}
+              onTitleSave={authoring.saveTitle}
+              onAddPoint={authoring.addPoint}
+              onUpdatePoint={authoring.updatePoint}
+              onDeletePoint={authoring.deletePoint}
               onAcceptPoint={acceptDraftPoint}
               onDiscussPoint={handleDiscussPoint}
               onRewritePoint={handleRewritePoint}

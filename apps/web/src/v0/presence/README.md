@@ -63,6 +63,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-22 — Literally inline Draft Points
+- `DraftPointRow` / `DraftPointsSection` expand one Point in place with Save / Cancel / Delete. No cramped form under the card.
+
 ### 2026-08-20 — Nav panes in Board Def presence
 - `BoardDefConfigPresence` lists Universal / Keepers / Config rather than a flat section dump.
 

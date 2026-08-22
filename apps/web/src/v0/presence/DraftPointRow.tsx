@@ -4,6 +4,12 @@ import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import type { DraftPoint } from "@keeper/shared"
 import { buildGlossAnchorDataAttribute, isDraftPointRewritable } from "@keeper/shared"
+import {
+  AuthorSaveBar,
+  InlinePointFields,
+} from "./chronicleDocument/ChronicleAuthorControls"
+import { splitDraftPointForEdit } from "./chronicleDocument/useDraftAuthoring"
+import type { DraftPointAuthoring } from "./integrationChronicle/DraftChronicleBlocks"
 import { resolvePointBeats } from "./integrationChronicle/draftManuscriptUtils"
 
 export interface DraftPointRowProps {
@@ -21,6 +27,7 @@ export interface DraftPointRowProps {
   isPromoting?: boolean
   isPromoted?: boolean
   manuscript?: boolean
+  authoring?: DraftPointAuthoring | null
 }
 
 function pointWeight(status: DraftPoint["status"]): string {
@@ -56,6 +63,7 @@ export function DraftPointRow({
   isPromoting = false,
   isPromoted = false,
   manuscript = false,
+  authoring = null,
 }: DraftPointRowProps) {
   const displayStatus = isAccepted ? "accepted" : point.status
   const canRewrite =
@@ -73,6 +81,24 @@ export function DraftPointRow({
   const prevContent = React.useRef(point.content)
   const prevUpdatedAt = React.useRef(point.updatedAt)
   const [flashKey, setFlashKey] = React.useState(0)
+  const split = splitDraftPointForEdit(point)
+  const [editing, setEditing] = React.useState(false)
+  const [editTitle, setEditTitle] = React.useState(split.title)
+  const [editBody, setEditBody] = React.useState(split.body)
+
+  React.useEffect(() => {
+    if (!authoring) setEditing(false)
+  }, [authoring])
+
+  React.useEffect(() => {
+    if (!editing) {
+      setEditTitle(split.title)
+      setEditBody(split.body)
+    }
+  }, [editing, split.title, split.body])
+
+  const editDirty =
+    editTitle.trim() !== split.title || editBody !== split.body
 
   React.useEffect(() => {
     if (
@@ -118,7 +144,7 @@ export function DraftPointRow({
           <span className="cdraft-accepted-badge">Promoted</span>
         ) : null}
 
-        {beats.prelude ? (
+        {beats.prelude && !editing ? (
           <div className="cdraft-point-prelude">
             <span className="cdraft-beat-label">Prelude</span>
             <p className="cdraft-prelude-text">{beats.prelude}</p>
@@ -129,7 +155,14 @@ export function DraftPointRow({
           <p className="cdraft-path-label">{pathLabel}</p>
         ) : null}
 
-        {(beats.opener || beats.fullContent) && (
+        {editing ? (
+          <InlinePointFields
+            title={editTitle}
+            body={editBody}
+            onTitleChange={setEditTitle}
+            onBodyChange={setEditBody}
+          />
+        ) : (beats.opener || beats.fullContent) && (
           <div className="cdraft-point-opener">
             <p className="cdraft-opener-text">
               {showFull ? beats.fullContent : beats.opener}
@@ -164,8 +197,43 @@ export function DraftPointRow({
           <p className="cdraft-closer-text">{beats.closer}</p>
         ) : null}
 
-        {(canAccept || onDiscussPoint || canRewrite || canPromote) && draftId ? (
+        {editing && authoring?.onUpdatePoint ? (
+          <AuthorSaveBar
+            saveLabel="Save Point"
+            dirty={editDirty}
+            busy={authoring.busy}
+            onSave={() => {
+              authoring.onUpdatePoint?.(point.id, editTitle, editBody)
+              setEditing(false)
+            }}
+            onCancel={() => {
+              setEditTitle(split.title)
+              setEditBody(split.body)
+              setEditing(false)
+            }}
+            onDelete={
+              authoring.onDeletePoint
+                ? () => {
+                    authoring.onDeletePoint?.(point.id)
+                    setEditing(false)
+                  }
+                : undefined
+            }
+            deleteConfirm="Delete this Point from the Draft?"
+          />
+        ) : null}
+
+        {(canAccept || onDiscussPoint || canRewrite || canPromote || authoring?.onUpdatePoint) && draftId ? (
           <div className="cdraft-point-actions">
+            {authoring?.onUpdatePoint && !editing ? (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="cdraft-ghost-btn"
+              >
+                Edit
+              </button>
+            ) : null}
             {canAccept && onAcceptPoint ? (
               <button
                 type="button"
@@ -262,23 +330,34 @@ export function DraftPointRow({
               </span>
             )}
           </div>
-          {beats.prelude ? (
-            <p
-              className="text-[13px] italic mb-1"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              {beats.prelude}
-            </p>
-          ) : null}
-          <p
-            className="text-[14px] leading-relaxed"
-            style={{
-              color: pointWeight(displayStatus),
-              fontWeight: isAccepted ? 500 : 400,
-            }}
-          >
-            {structure.description || point.content}
-          </p>
+          {editing ? (
+            <InlinePointFields
+              title={editTitle}
+              body={editBody}
+              onTitleChange={setEditTitle}
+              onBodyChange={setEditBody}
+            />
+          ) : (
+            <>
+              {beats.prelude ? (
+                <p
+                  className="text-[13px] italic mb-1"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  {beats.prelude}
+                </p>
+              ) : null}
+              <p
+                className="text-[14px] leading-relaxed"
+                style={{
+                  color: pointWeight(displayStatus),
+                  fontWeight: isAccepted ? 500 : 400,
+                }}
+              >
+                {structure.description || point.content}
+              </p>
+            </>
+          )}
         </div>
         {isAccepted && (
           <span
@@ -305,8 +384,46 @@ export function DraftPointRow({
           </span>
         )}
       </div>
-      {(canAccept || onDiscussPoint || canRewrite || canPromote) && draftId ? (
+      {editing && authoring?.onUpdatePoint ? (
+        <AuthorSaveBar
+          saveLabel="Save Point"
+          dirty={editDirty}
+          busy={authoring.busy}
+          onSave={() => {
+            authoring.onUpdatePoint?.(point.id, editTitle, editBody)
+            setEditing(false)
+          }}
+          onCancel={() => {
+            setEditTitle(split.title)
+            setEditBody(split.body)
+            setEditing(false)
+          }}
+          onDelete={
+            authoring.onDeletePoint
+              ? () => {
+                  authoring.onDeletePoint?.(point.id)
+                  setEditing(false)
+                }
+              : undefined
+          }
+          deleteConfirm="Delete this Point from the Draft?"
+        />
+      ) : null}
+      {(canAccept || onDiscussPoint || canRewrite || canPromote || authoring?.onUpdatePoint) && draftId ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
+          {authoring?.onUpdatePoint && !editing ? (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
+              style={{
+                borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+                color: "hsl(var(--theme-ink-secondary))",
+              }}
+            >
+              Edit
+            </button>
+          ) : null}
           {canAccept && onAcceptPoint ? (
             <button
               type="button"

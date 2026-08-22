@@ -514,8 +514,9 @@ export function DomainRealmStory({
           pointCount={points.length}
           componentCount={documentComponents.length}
           editing={authoring.editing}
+          busy={authoring.busy}
           onToggleEdit={domainId ? authoring.toggleEdit : undefined}
-          onTitleCommit={authoring.saveTitle}
+          onTitleSave={authoring.saveTitle}
           onCycleStatus={authoring.cycleStatus}
           onFocusSections={() => {
             document.getElementById("document-linked-sections")?.scrollIntoView({

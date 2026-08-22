@@ -5,7 +5,9 @@ import type { DraftPoint } from "@keeper/shared"
 import { parseDraftPoints } from "@keeper/shared"
 import { AnimatePresence } from "framer-motion"
 import { DraftPointRow } from "./DraftPointRow"
+import { AddPointEditor } from "./chronicleDocument/ChronicleAuthorControls"
 import { DraftFilmStrip } from "./integrationChronicle/DraftFilmStrip"
+import type { DraftPointAuthoring } from "./integrationChronicle/DraftChronicleBlocks"
 import {
   clusterDraftPoints,
   type DraftPathEmergence,
@@ -26,6 +28,7 @@ export interface DraftPointsSectionProps {
   promotingPointId?: string | null
   promotedPointIds?: Set<string>
   manuscript?: boolean
+  authoring?: DraftPointAuthoring | null
 }
 
 export function DraftPointsSection({
@@ -43,7 +46,9 @@ export function DraftPointsSection({
   promotingPointId = null,
   promotedPointIds,
   manuscript = false,
+  authoring = null,
 }: DraftPointsSectionProps) {
+  const [adding, setAdding] = React.useState(false)
   const points = React.useMemo(() => parseDraftPoints(spec), [spec])
   const accepted = points.filter((p) => p.status === "accepted")
   const pending = points.filter((p) => p.status !== "accepted")
@@ -89,6 +94,7 @@ export function DraftPointsSection({
         isPromoting={promotingPointId === point.id}
         isPromoted={isPromoted}
         manuscript={manuscript}
+        authoring={authoring}
       />
     )
   }
@@ -139,6 +145,28 @@ export function DraftPointsSection({
             </AnimatePresence>
           </div>
         )}
+        {authoring?.onAddPoint ? (
+          adding ? (
+            <AddPointEditor
+              disabled={authoring.busy}
+              onSubmit={(title, body) => {
+                authoring.onAddPoint?.(title, body)
+                setAdding(false)
+              }}
+              onCancel={() => setAdding(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              disabled={authoring.busy}
+              onClick={() => setAdding(true)}
+              className="mt-3 text-left text-[13px] font-semibold"
+              style={{ color: "hsl(var(--theme-accent-primary))" }}
+            >
+              Add Point
+            </button>
+          )
+        ) : null}
       </div>
     )
   }
@@ -169,6 +197,28 @@ export function DraftPointsSection({
           </AnimatePresence>
         </div>
       )}
+      {authoring?.onAddPoint ? (
+        adding ? (
+          <AddPointEditor
+            disabled={authoring.busy}
+            onSubmit={(title, body) => {
+              authoring.onAddPoint?.(title, body)
+              setAdding(false)
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            disabled={authoring.busy}
+            onClick={() => setAdding(true)}
+            className="text-left text-[13px] font-semibold"
+            style={{ color: "hsl(var(--theme-accent-primary))" }}
+          >
+            Add Point
+          </button>
+        )
+      ) : null}
     </div>
   )
 }

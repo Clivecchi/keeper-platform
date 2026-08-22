@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { Point, PointCastNote } from "@keeper/shared"
+import { AuthorSaveBar, InlinePointFields } from "./ChronicleAuthorControls"
 
 export interface PointViewProps {
   /** Atomic card to render. */
@@ -31,6 +32,30 @@ export interface PointViewProps {
   hasGlossThread?: boolean
   /** Message count on the existing Gloss thread (optional badge). */
   glossMessageCount?: number
+  /** Author mode — Edit expands this Point in place. */
+  authoring?: PointAuthoringProps | null
+}
+
+export type PointAuthoringProps = {
+  active: boolean
+  title: string
+  body: string
+  busy?: boolean
+  dirty?: boolean
+  onTitleChange: (value: string) => void
+  onBodyChange: (value: string) => void
+  onSave: () => void
+  onCancel: () => void
+  onDelete: () => void
+  onStartEdit: () => void
+  sectionId: string | null
+  sections: Array<{ id: string; title: string }>
+  openSectionId: string
+  openSectionTitle: string
+  onSectionChange: (sectionId: string | null) => void
+  canMoveUp?: boolean
+  canMoveDown?: boolean
+  onMove?: (direction: "up" | "down") => void
 }
 
 function formatRevisedCue(iso: string | undefined): string | null {
@@ -123,6 +148,7 @@ export function PointView({
   glossActive = false,
   hasGlossThread = false,
   glossMessageCount,
+  authoring = null,
 }: PointViewProps) {
   const card = point ?? document
   if (!card) return null
@@ -190,7 +216,8 @@ export function PointView({
     touchStartY.current = null
   }, [clearPressTimer])
 
-  const showBody = expanded && !forceCollapsed
+  const editing = Boolean(authoring?.active)
+  const showBody = (expanded && !forceCollapsed) || editing
 
   return (
     <article
@@ -257,29 +284,38 @@ export function PointView({
             </span>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="document-point-title-btn text-left"
-          onClick={() => {
-            if (forceCollapsed) return
-            setExpanded((open) => !open)
-          }}
-          aria-expanded={showBody}
-          disabled={forceCollapsed}
-        >
-          <h2
-            className="text-[20px] font-semibold leading-snug"
-            style={{
-              color: "hsl(var(--theme-ink-primary))",
-              fontFamily: "var(--theme-font-display, 'Cormorant Garamond', Georgia, serif)",
+        {editing && authoring ? (
+          <InlinePointFields
+            title={authoring.title}
+            body={authoring.body}
+            onTitleChange={authoring.onTitleChange}
+            onBodyChange={authoring.onBodyChange}
+          />
+        ) : (
+          <button
+            type="button"
+            className="document-point-title-btn text-left"
+            onClick={() => {
+              if (forceCollapsed) return
+              setExpanded((open) => !open)
             }}
+            aria-expanded={showBody}
+            disabled={forceCollapsed}
           >
-            {card.title}
-          </h2>
-        </button>
+            <h2
+              className="text-[20px] font-semibold leading-snug"
+              style={{
+                color: "hsl(var(--theme-ink-primary))",
+                fontFamily: "var(--theme-font-display, 'Cormorant Garamond', Georgia, serif)",
+              }}
+            >
+              {card.title}
+            </h2>
+          </button>
+        )}
       </header>
 
-      {!showBody ? (
+      {editing ? null : !showBody ? (
         blurb ? (
           <p
             className="document-point-body text-[15px] leading-[1.65]"
@@ -320,8 +356,78 @@ export function PointView({
 
       {castOpen && castNotes.length > 0 ? <CastNotesPanel notes={castNotes} /> : null}
 
+      {editing && authoring ? (
+        <>
+          <label
+            className="text-[12px]"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Section
+            <select
+              className="ml-1.5 bg-transparent outline-none"
+              value={authoring.sectionId ?? authoring.openSectionId}
+              disabled={authoring.busy}
+              onChange={(event) => {
+                const next = event.target.value
+                authoring.onSectionChange(
+                  next === authoring.openSectionId ? null : next,
+                )
+              }}
+            >
+              <option value={authoring.openSectionId}>{authoring.openSectionTitle}</option>
+              {authoring.sections.map((section) => (
+                <option key={section.id} value={section.id}>
+                  {section.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <AuthorSaveBar
+            saveLabel="Save Point"
+            dirty={authoring.dirty}
+            busy={authoring.busy}
+            onSave={authoring.onSave}
+            onCancel={authoring.onCancel}
+            onDelete={authoring.onDelete}
+            deleteConfirm="Delete this Point from the Document?"
+          />
+        </>
+      ) : null}
+
       {/* Quiet action rail — text controls, no competing pills */}
       <div className="document-point-actions flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+        {authoring && !editing ? (
+          <button
+            type="button"
+            className="text-[12px] font-semibold"
+            style={{ color: "hsl(var(--theme-accent-primary))" }}
+            onClick={authoring.onStartEdit}
+          >
+            Edit
+          </button>
+        ) : null}
+        {editing && authoring?.onMove ? (
+          <>
+            <button
+              type="button"
+              className="text-[12px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              disabled={authoring.busy || !authoring.canMoveUp}
+              onClick={() => authoring.onMove?.("up")}
+            >
+              Up
+            </button>
+            <button
+              type="button"
+              className="text-[12px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              disabled={authoring.busy || !authoring.canMoveDown}
+              onClick={() => authoring.onMove?.("down")}
+            >
+              Down
+            </button>
+          </>
+        ) : null}
         {onAccept ? (
           <button
             type="button"
@@ -334,7 +440,7 @@ export function PointView({
             {isAccepting ? "Accepting…" : "Accept"}
           </button>
         ) : null}
-        {!forceCollapsed ? (
+        {!forceCollapsed && !editing ? (
           <button
             type="button"
             className="text-[12px] font-medium"
