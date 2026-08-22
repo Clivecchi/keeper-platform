@@ -35,6 +35,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-22 — Author result type (Railway tsc)
+- `AuthorDialogDocumentResult` is a clean ok/err union so route handlers narrow. Manuscript `spec_json` writes go through `asJson` so Prisma accepts the authored spec.
+
 ### 2026-08-22 — Author Document CRUD
 - `authorDialogDocument.ts` writes manuscript Points as a full replace (add / update / delete / reorder) so accepted Points can be edited or removed by the author.
 

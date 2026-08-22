@@ -43,6 +43,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-08-22: **Author result narrowing** — Point author routes use `result.ok === false` so `tsc` can read error status (Railway Docker build).
 - 2026-08-22: **Author Document CRUD** — `PATCH …/dialogs/:id/document` (title, Forward, stage, Sections). Point add/update/reorder/delete on `…/document/points`. Human writes replace manuscript Points (not agent merge).
 - 2026-08-17: **External writing ingest** — `POST /:domainId/kip/dialogs/ingest` creates a Dialog + manuscript Points + session; `POST /:domainId/kip/dialogs/:dialogId/ingest` attaches to an existing Dialog. Not a Library upload.
 - 2026-08-03: **OAuth grant scope PATCH** — `PATCH /:domainId/oauth-grants/:id` updates active grant scopes (e.g. add `dialog.ro` + `gloss.rw` for Claude Document → Gloss).

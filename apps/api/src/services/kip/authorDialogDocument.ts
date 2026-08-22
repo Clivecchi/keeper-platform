@@ -17,9 +17,23 @@ import {
 } from '@keeper/shared';
 import { ensureDialogDocumentManuscript } from './ensureDialogDocumentManuscript.js';
 
-export type AuthorDialogDocumentResult =
-  | { ok: true }
-  | { ok: false; status: number; error: string; message: string };
+export type AuthorDialogDocumentOk = {
+  ok: true;
+  pointId?: string;
+};
+
+export type AuthorDialogDocumentErr = {
+  ok: false;
+  status: number;
+  error: string;
+  message: string;
+};
+
+export type AuthorDialogDocumentResult = AuthorDialogDocumentOk | AuthorDialogDocumentErr;
+
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
 
 async function loadDialog(domainId: string, dialogId: string) {
   return prisma.dialog.findFirst({
@@ -43,11 +57,11 @@ async function loadManuscript(domainId: string, dialogId: string) {
 
 async function writeManuscriptPoints(
   manuscriptId: string,
-  spec: Prisma.InputJsonValue,
+  spec: unknown,
 ): Promise<void> {
   await prisma.kip_drafts.update({
     where: { id: manuscriptId },
-    data: { spec_json: spec, updated_at: new Date() },
+    data: { spec_json: asJson(spec), updated_at: new Date() },
   });
 }
 
@@ -59,7 +73,7 @@ export async function authorCreateDocumentPoint(input: {
   content?: string;
   sectionId?: string | null;
   proposedBy?: string;
-}): Promise<AuthorDialogDocumentResult & { pointId?: string }> {
+}): Promise<AuthorDialogDocumentResult> {
   const dialog = await loadDialog(input.domainId, input.dialogId);
   if (!dialog) {
     return { ok: false, status: 404, error: 'DIALOG_NOT_FOUND', message: 'Dialog not found.' };
@@ -102,7 +116,7 @@ export async function authorCreateDocumentPoint(input: {
     status: 'accepted',
   });
   const next = appendDraftPointToSpec(manuscript.spec_json, point);
-  await writeManuscriptPoints(manuscript.id, next as Prisma.InputJsonValue);
+  await writeManuscriptPoints(manuscript.id, next);
   return { ok: true, pointId: point.id };
 }
 
@@ -123,7 +137,7 @@ export async function authorUpdateDocumentPoint(input: {
     return { ok: false, status: 404, error: 'POINT_NOT_FOUND', message: 'Point not found.' };
   }
 
-  let spec = manuscript.spec_json;
+  let spec: unknown = manuscript.spec_json;
   if (input.title !== undefined || input.content !== undefined) {
     const composed = composeAuthoredPoint(
       input.title ?? existing.prelude ?? '',
@@ -141,7 +155,7 @@ export async function authorUpdateDocumentPoint(input: {
       content: composed.content,
       prelude: composed.prelude,
     });
-    spec = rewritten.spec;
+    spec = asJson(rewritten.spec);
   }
 
   if (input.sectionId !== undefined) {
@@ -157,10 +171,10 @@ export async function authorUpdateDocumentPoint(input: {
         updatedAt: new Date().toISOString(),
       };
     });
-    spec = setDraftPointsInSpec(spec, points);
+    spec = asJson(setDraftPointsInSpec(spec, points));
   }
 
-  await writeManuscriptPoints(manuscript.id, spec as Prisma.InputJsonValue);
+  await writeManuscriptPoints(manuscript.id, spec);
   return { ok: true };
 }
 
@@ -177,7 +191,7 @@ export async function authorDeleteDocumentPoint(input: {
   if (!removed) {
     return { ok: false, status: 404, error: 'POINT_NOT_FOUND', message: 'Point not found.' };
   }
-  await writeManuscriptPoints(manuscript.id, spec as Prisma.InputJsonValue);
+  await writeManuscriptPoints(manuscript.id, spec);
   return { ok: true };
 }
 
@@ -200,7 +214,7 @@ export async function authorReorderDocumentPoints(input: {
   }
   await writeManuscriptPoints(
     manuscript.id,
-    setDraftPointsInSpec(manuscript.spec_json, ordered) as Prisma.InputJsonValue,
+    setDraftPointsInSpec(manuscript.spec_json, ordered),
   );
   return { ok: true };
 }
@@ -219,6 +233,6 @@ export async function authorClearSectionMembership(input: {
   });
   await writeManuscriptPoints(
     manuscript.id,
-    setDraftPointsInSpec(manuscript.spec_json, next) as Prisma.InputJsonValue,
+    setDraftPointsInSpec(manuscript.spec_json, next),
   );
 }

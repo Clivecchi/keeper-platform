@@ -641,7 +641,7 @@ router.post(
         content: parsed.data.content,
         sectionId: parsed.data.sectionId,
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         return res.status(result.status).json({ error: result.error, message: result.message });
       }
       return res.json({ ok: true, pointId: result.pointId });
@@ -671,7 +671,7 @@ router.patch(
         dialogId,
         pointIds: parsed.data.pointIds,
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         return res.status(result.status).json({ error: result.error, message: result.message });
       }
       return res.json({ ok: true });
@@ -704,7 +704,7 @@ router.patch(
         content: parsed.data.content,
         sectionId: parsed.data.sectionId,
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         return res.status(result.status).json({ error: result.error, message: result.message });
       }
       return res.json({ ok: true });
@@ -726,7 +726,7 @@ router.delete(
         return res.status(401).json({ error: 'AUTH_REQUIRED' });
       }
       const result = await authorDeleteDocumentPoint({ domainId, dialogId, pointId });
-      if (!result.ok) {
+      if (result.ok === false) {
         return res.status(result.status).json({ error: result.error, message: result.message });
       }
       return res.json({ ok: true });
