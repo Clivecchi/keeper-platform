@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-22: **Story coordinates in the prompt** — every Lead turn gets Talking in / Working on. Dialog Document is conversation context. Points follow Working on. Agents must not invent fiction-plot structure from a Dialog title.
 - 2026-08-21: **Talking in / Working on** — Point writes follow the focused Draft (`activeDraft`) when Chronicle is on that Draft. Dialog manuscript is the default only when nothing else is focused. Session-born Drafts write to the Draft; Chatter never invents a Document.
 - 2026-08-21: **Point contract is content-only** — `draft.update.propose` no longer requires the model to supply a draft UUID. Keeper resolves or creates the Dialog manuscript at write time. Point cards never show schema/Prisma contract text.
 - 2026-08-21: **Point UI on failure** — Point turns attach a keeper-card and Point receipts even when propose fails. Prisma / executor dumps are not appended to the Dialog bubble.

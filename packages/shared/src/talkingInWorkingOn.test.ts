@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildTalkingInWorkingOnPrompt,
   resolvePointWriteTarget,
   resolveTalkingInWorkingOn,
 } from './talkingInWorkingOn.js';
@@ -93,5 +94,27 @@ describe('resolvePointWriteTarget', () => {
         manuscriptDraftId: 'ms-1',
       }),
     ).toEqual({ writeKind: 'document', writeDraftId: 'ms-1' });
+  });
+});
+
+describe('buildTalkingInWorkingOnPrompt', () => {
+  it('tells the agent not to treat the Dialog title as a fiction plot', () => {
+    const prompt = buildTalkingInWorkingOnPrompt({
+      talkingIn: { kind: 'dialog', title: 'Finding the plot' },
+      workingOn: { kind: 'document', title: 'Finding the plot' },
+    });
+    expect(prompt).toContain('Talking in: Dialog “Finding the plot”');
+    expect(prompt).toContain('Working on: Document “Finding the plot”');
+    expect(prompt).toContain('fiction-plot outline');
+    expect(prompt).toContain('Sections — not the Dialog');
+  });
+
+  it('separates a focused Draft from the Dialog manuscript', () => {
+    const prompt = buildTalkingInWorkingOnPrompt({
+      talkingIn: { kind: 'dialog', title: 'Finding the plot' },
+      workingOn: { kind: 'draft', title: 'Keeper UI Insights and Actions' },
+    });
+    expect(prompt).toContain('Working on: Draft “Keeper UI Insights and Actions”');
+    expect(prompt).toContain('Do not write the Dialog manuscript');
   });
 });

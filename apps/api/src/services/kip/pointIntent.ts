@@ -249,7 +249,7 @@ export function buildPointObligationSystemPrompt(
       'This Turn has an explicit Point request. Advise in your specialty so the Lead can draft.update.propose.',
       'UI: two sentences maximum. No reports, no layout essays, no ### headings. Dialog already shows your voice card.',
       'Do not interpret “Point” as spatial ratio, motion, or layout unless they clearly asked about Treatment.',
-      'If DIALOG DOCUMENT is in this prompt, that is the subject — do not ask what the Dialog is about.',
+      'Talking in / Working on in the system prompt is the subject. DIALOG DOCUMENT is conversation context — write Points only where Working on says.',
     ].join('\n');
   }
 

@@ -231,3 +231,46 @@ export function resolvePointWriteTarget(input: {
   }
   return { writeKind: 'none' };
 }
+
+/**
+ * Agent grounding — Talking in is conversation; Working on is the write target.
+ * Dialog titles are names, not fiction-plot outlines.
+ */
+export function buildTalkingInWorkingOnPrompt(input: {
+  talkingIn?: { kind: TalkingInKind; title: string } | null;
+  workingOn?: { kind: WorkingOnKind; title: string } | null;
+}): string | null {
+  const talking = input.talkingIn;
+  const working = input.workingOn;
+  if (!talking && !working) return null;
+
+  const lines = [
+    'TALKING IN / WORKING ON (Keeper coordinates — not optional flavor):',
+  ];
+  if (talking) {
+    lines.push(
+      `Talking in: ${talkingInKindLabel(talking.kind)} “${talking.title}” — conversation context.`,
+    );
+  }
+  if (working) {
+    lines.push(
+      `Working on: ${workingOnKindLabel(working.kind)} “${working.title}” — Chronicle focus and Point write target.`,
+    );
+  }
+  if (working?.kind === 'draft') {
+    lines.push(
+      'Write Points to this Draft. Do not write the Dialog manuscript just because Talking in is still that Dialog.',
+    );
+  } else if (working?.kind === 'document') {
+    lines.push(
+      'Write Points to this Dialog Document. Linked Drafts are sections of the Document, not a substitute for it.',
+    );
+  }
+  lines.push(
+    'A Dialog title is the conversation’s name — not a fiction-plot outline, and not the name of a Document Section.',
+    'A Draft linked to the Dialog is a Section of that Document. Re-Center or UI Insights, if present, are Sections — not the Dialog.',
+    'The work is Dialog + Document + Drafts + Points coming together so a story can be made from the Dialog.',
+    'Points are durable findings from the conversation that is actually happening.',
+  );
+  return lines.join('\n');
+}

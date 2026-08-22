@@ -10,8 +10,9 @@
  * without prop-drilling through the board shell.
  *
  * Selection rules:
- * - Talking in (Dialog / session) and Working on (Chronicle subject) can both be set.
- *   Focusing a Draft does not abandon the Dialog you are talking in.
+ * - Dialog select → Talking in that Dialog and Working on its Document.
+ *   Draft select → Working on that Draft and Talking in its linked Dialog.
+ *   Do not load a Draft when the human asked for the Document.
  * - Other Chronicle subjects (Journey, Glossary, …) remain exclusive work targets.
  * - Session is which thread of Talking in — not a second subject.
  * - Design `?definition=` is idle board-spec only. It must not steal Chronicle
@@ -149,7 +150,7 @@ export interface UniversalBoardActions {
   /** Clears moment focus only — e.g. mobile moment overlay dismiss. */
   onMomentClear: () => void
   onKeeperSelect: (id: string) => void
-  onDraftSelect: (id: string) => void
+  onDraftSelect: (id: string, options?: { dialogId?: string | null }) => void
   onAgentSelect: (id: string) => void
   onServiceOpen: (slug: string) => void
   onKeySelect: (id: string) => void
@@ -341,7 +342,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   React.useEffect(() => {
     if (!urlDraftId || urlDraftId === selectedDraftId) return
-    // Draft URL is Working on. Keep Talking in (selectedDialogId) if set.
+    // Only adopt a Draft when the URL itself changed. Dialog select clears
+    // draftId from the URL; do not put the Draft back because selectedDraftId went null.
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(urlDraftId)
     setSelectedJourneyId(null)
@@ -354,7 +356,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
-  }, [urlDraftId, selectedDraftId])
+  }, [urlDraftId])
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
@@ -496,10 +498,12 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedBoardDefId(null)
   }, [clearDraftIdFromUrl])
 
-  const onDraftSelect = React.useCallback((id: string) => {
+  const onDraftSelect = React.useCallback((id: string, options?: { dialogId?: string | null }) => {
     setLibraryScreenOpen(false)
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(id)
+    const linkedDialogId = options?.dialogId?.trim()
+    if (linkedDialogId) setSelectedDialogId(linkedDialogId)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
     setSelectedMomentId(null)
@@ -938,29 +942,27 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   // ── Value ─────────────────────────────────────────────────────────────────
 
-  const chronicleView = React.useMemo(
-    () =>
-      resolveChronicleView(
-        {
-          selectedDialogId,
-          selectedJourneyId,
-          selectedPathId,
-          selectedMomentId,
-          selectedKeeperId,
-          selectedDraftId,
-          selectedAgentId,
-          selectedServiceSlug,
-          selectedKeyId,
-          selectedCapabilityId,
-          selectedLibraryItemId,
-          selectedSoleMemoryId,
-          selectedBoardDefId,
-          selectedGlossaryId,
-        },
-        chronicleEngagement
-          ? { templateSlug: chronicleEngagement.template.slug }
-          : null,
-      ),
+  /**
+   * Nav + workspace follow selection immediately.
+   * Chronicle follows one paint later so Header/Dialog settle before the right panel swaps.
+   */
+  const liveChronicleIds = React.useMemo(
+    () => ({
+      selectedDialogId,
+      selectedJourneyId,
+      selectedPathId,
+      selectedMomentId,
+      selectedKeeperId,
+      selectedDraftId,
+      selectedAgentId,
+      selectedServiceSlug,
+      selectedKeyId,
+      selectedCapabilityId,
+      selectedLibraryItemId,
+      selectedSoleMemoryId,
+      selectedBoardDefId,
+      selectedGlossaryId,
+    }),
     [
       selectedDialogId,
       selectedJourneyId,
@@ -976,8 +978,33 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedSoleMemoryId,
       selectedBoardDefId,
       selectedGlossaryId,
-      chronicleEngagement,
     ],
+  )
+
+  const [chronicleFollowIds, setChronicleFollowIds] = React.useState(liveChronicleIds)
+
+  React.useEffect(() => {
+    let inner = 0
+    const outer = window.requestAnimationFrame(() => {
+      inner = window.requestAnimationFrame(() => {
+        setChronicleFollowIds(liveChronicleIds)
+      })
+    })
+    return () => {
+      window.cancelAnimationFrame(outer)
+      window.cancelAnimationFrame(inner)
+    }
+  }, [liveChronicleIds])
+
+  const chronicleView = React.useMemo(
+    () =>
+      resolveChronicleView(
+        chronicleFollowIds,
+        chronicleEngagement
+          ? { templateSlug: chronicleEngagement.template.slug }
+          : null,
+      ),
+    [chronicleFollowIds, chronicleEngagement],
   )
 
   const value = React.useMemo<UniversalBoardContextValue>(

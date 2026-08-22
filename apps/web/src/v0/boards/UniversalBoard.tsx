@@ -115,7 +115,7 @@ export interface UniversalBoardCenterProps {
   onJourneySelect: (id: string) => void
   onMomentSelect: (id: string) => void
   onKeeperSelect: (id: string) => void
-  onDraftSelect: (id: string) => void
+  onDraftSelect: (id: string, options?: { dialogId?: string | null }) => void
   onAgentSelect: (id: string) => void
   onServiceOpen: (slug: string) => void
   /** Clears all entity selections — returns the right panel to idle/domain presence. */

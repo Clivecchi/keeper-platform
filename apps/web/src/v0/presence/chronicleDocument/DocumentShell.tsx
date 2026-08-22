@@ -819,7 +819,7 @@ export function DocumentShell({
             className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            Also in this Document
+            Sections
           </p>
           <ul className="space-y-0.5">
             {components.map((component) => {

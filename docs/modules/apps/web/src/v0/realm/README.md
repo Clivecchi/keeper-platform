@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-22 — Linked Drafts as Document Sections
+- `DomainRealmStory` lists working drafts linked to the Dialog (`dialog_id`) with registered `document_components`. Opening a Section is Draft select — Talking in stays on the Dialog.
+
 ### 2026-08-20 — Document refresh after Point writes
 - `DomainRealmStory` invalidates `dialogDocumentCache` and reloads when `draftPresenceRevision` bumps (Dialog `draft.update.propose` already called `bumpDraftPresence`; Chronicle stayed stale for the 45s TTL).
 

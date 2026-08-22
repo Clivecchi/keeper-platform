@@ -231,6 +231,32 @@ export function prefetchBoardNavData(
 
 export { loadDialogs, loadJourneys, loadKeepers, loadDrafts, loadAgents }
 
+/** Sync title from Nav cache — Header Bar must not wait on a second fetch. */
+export function cachedNavDialogTitle(
+  domainId: string | null | undefined,
+  dialogId: string | null | undefined,
+): string | null {
+  if (!domainId || !dialogId) return null
+  const list = getCachedBoardNavData<
+    Array<{ id?: string; title?: string | null; forward_title?: string | null }>
+  >(domainId, "dialogs")
+  const row = list?.find((item) => item.id === dialogId)
+  return row?.title?.trim() || row?.forward_title?.trim() || null
+}
+
+export function cachedNavDraftTitle(
+  domainId: string | null | undefined,
+  draftId: string | null | undefined,
+): string | null {
+  if (!domainId || !draftId) return null
+  const list = getCachedBoardNavData<Array<{ id?: string; title?: string | null }>>(
+    domainId,
+    "drafts",
+  )
+  const row = list?.find((item) => item.id === draftId)
+  return row?.title?.trim() || null
+}
+
 type KeeperNavRow = { id: string; title?: string; display_label?: string | null }
 type JourneyNavRow = { id: string; name?: string }
 

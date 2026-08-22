@@ -31,6 +31,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-22 — Agents named in the story
+- `buildTalkingInWorkingOnPrompt` — Talking in vs Working on. A Dialog title is the conversation’s name. A Draft is a Document Section. The work is making a story from the Dialog — not inventing a fiction outline from the title.
+
 ### 2026-08-21 — Talking in / Working on locked
 - `talkingInWorkingOn.ts` — two coordinates. Focused Draft is Working on; named Dialog stays Talking in. Chronicle `resolveChroniclePrimary` prefers Draft over Dialog when both IDs are set.
 - Point writes use `resolvePointWriteTarget` (Draft wins; Session never invents a Document).

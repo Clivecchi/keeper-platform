@@ -137,7 +137,7 @@ export interface UniversalNavPanelProps {
   onSessionSelect?: (id: string | null) => void
   onJourneySelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
-  onDraftSelect?: (id: string) => void
+  onDraftSelect?: (id: string, options?: { dialogId?: string | null }) => void
   onAgentSelect?: (id: string) => void
   onServiceOpen?: (slug: string) => void
   onKeySelect?: (id: string) => void
@@ -906,7 +906,7 @@ export function UniversalNavPanel({
         id: draft.id,
         label: draftNavLabel(draft, draftNavTitleCounts),
         isSelected: draft.id === selectedDraftId,
-        onClick: () => onDraftSelect?.(draft.id),
+        onClick: () => onDraftSelect?.(draft.id, { dialogId: draft.dialog_id }),
         onRequestDelete: () => setConfirmingDeleteDraftId(draft.id),
         deleteConfirming: confirmingDeleteDraftId === draft.id,
         onConfirmDelete: () => handleConfirmDeleteDraft(draft.id),
@@ -1117,7 +1117,7 @@ export function UniversalNavPanel({
           label: `↳ ${draft.title?.trim() || "Untitled draft"}`,
           description: "draft",
           isSelected: draft.id === selectedDraftId,
-          onClick: () => onDraftSelect?.(draft.id),
+          onClick: () => onDraftSelect?.(draft.id, { dialogId: dialog.id }),
           onRequestDelete: () => setConfirmingDeleteDraftId(draft.id),
           deleteConfirming: confirmingDeleteDraftId === draft.id,
           onConfirmDelete: () => handleConfirmDeleteDraft(draft.id),

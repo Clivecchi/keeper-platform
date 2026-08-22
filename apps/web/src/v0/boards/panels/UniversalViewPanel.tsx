@@ -504,8 +504,9 @@ export function UniversalViewPanel({
   const handleSessionSelect = boardCtx?.actions.onSessionSelect
   const chronicleEngagement = boardCtx?.chronicleEngagement ?? null
 
-  // Universal priority — same on every board. viewStates does not gate routing.
-  const chronicleView = resolveChronicleView(
+  // Follow the board's deferred Chronicle view (workspace paints first).
+  // Fallback resolve is only for boards without UniversalBoardContext.
+  const chronicleView = boardCtx?.chronicleView ?? resolveChronicleView(
     {
       selectedDialogId: resolved.selectedDialogId,
       selectedJourneyId: resolved.selectedJourneyId,

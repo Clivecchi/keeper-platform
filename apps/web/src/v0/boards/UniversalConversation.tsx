@@ -30,7 +30,13 @@ import type { KipDraftStatus, KipMessage } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
 import { fetchDomainKeptMoments } from "../data/domainMomentsCache"
-import { fetchBoardNavSlice, loadAgents, loadJourneyNavRows } from "./boardNavDataCache"
+import {
+  cachedNavDialogTitle,
+  cachedNavDraftTitle,
+  fetchBoardNavSlice,
+  loadAgents,
+  loadJourneyNavRows,
+} from "./boardNavDataCache"
 import {
   resolveJourneyDisplayName,
   resolveKeeperDisplayTitle,
@@ -1065,11 +1071,28 @@ export function UniversalConversation({
 
   const [keeperName, setKeeperName] = React.useState<string | null>(null)
   const [journeyName, setJourneyName] = React.useState<string | null>(null)
-  const [dialogTitle, setDialogTitle] = React.useState<string | null>(null)
-  const [draftTitle, setDraftTitle] = React.useState<string | null>(null)
+  const [fetchedDialogTitle, setFetchedDialogTitle] = React.useState<{
+    id: string
+    title: string
+  } | null>(null)
+  const [fetchedDraftTitle, setFetchedDraftTitle] = React.useState<{
+    id: string
+    title: string
+  } | null>(null)
+
+  const dialogTitle =
+    (selectedDialogId && fetchedDialogTitle?.id === selectedDialogId
+      ? fetchedDialogTitle.title
+      : null)
+    ?? cachedNavDialogTitle(domainId, selectedDialogId)
+  const draftTitle =
+    (selectedDraftId && fetchedDraftTitle?.id === selectedDraftId
+      ? fetchedDraftTitle.title
+      : null)
+    ?? cachedNavDraftTitle(domainId, selectedDraftId)
 
   React.useEffect(() => {
-    if (!selectedDialogId || !domainId) { setDialogTitle(null); return }
+    if (!selectedDialogId || !domainId) { setFetchedDialogTitle(null); return }
     let cancelled = false
     apiFetch(
       `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}`,
@@ -1077,18 +1100,23 @@ export function UniversalConversation({
       .then((res: unknown) => {
         if (cancelled) return
         const title = (res as { dialog?: { title?: string } })?.dialog?.title?.trim()
-        setDialogTitle(title || null)
+        setFetchedDialogTitle(title ? { id: selectedDialogId, title } : null)
       })
-      .catch(() => { if (!cancelled) setDialogTitle(null) })
+      .catch(() => { if (!cancelled) setFetchedDialogTitle(null) })
     return () => { cancelled = true }
   }, [selectedDialogId, domainId])
 
   React.useEffect(() => {
-    if (!selectedDraftId || !domainId) { setDraftTitle(null); return }
+    if (!selectedDraftId || !domainId) { setFetchedDraftTitle(null); return }
     let cancelled = false
     KipApi.getDraft(domainId, selectedDraftId)
-      .then((d) => { if (!cancelled) setDraftTitle(d.title?.trim() || null) })
-      .catch(() => { if (!cancelled) setDraftTitle(null) })
+      .then((d) => {
+        if (!cancelled) {
+          const title = d.title?.trim()
+          setFetchedDraftTitle(title ? { id: selectedDraftId, title } : null)
+        }
+      })
+      .catch(() => { if (!cancelled) setFetchedDraftTitle(null) })
     return () => { cancelled = true }
   }, [selectedDraftId, domainId])
 

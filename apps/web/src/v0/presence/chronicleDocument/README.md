@@ -26,6 +26,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-22 — Sections
+- Document component list label is **Sections** — linked Drafts belong on the Document as sections, not as extra Point cards.
+
 ### 2026-08-19 — Document identity header (Universal Render)
 - Named Dialog Documents always render `DocumentHeader` — same Chronicle header job as Draft (`Cdraft`): title, Document kind, status pill, point count, Manage.
 - Empty Documents say **No Points yet.** Realm idle copy ("Realm is breathing") is gone.

@@ -33,6 +33,8 @@ import {
   type DraftDiscussContext,
   shapeRecordTitle,
   isGlossAnchor,
+  buildTalkingInWorkingOnPrompt,
+  resolveTalkingInWorkingOn,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { openSse, startSseHeartbeat, writeSseEvent } from '../../lib/sse.js';
@@ -1103,6 +1105,31 @@ function buildCastHonestySystemPrompt(environment: unknown): string | null {
     .join('\n');
 }
 
+function buildConversationCoordinatesPrompt(environment: unknown): string | null {
+  const env = environment as {
+    dialogDocument?: {
+      dialogId?: string;
+      title?: string;
+      titleSource?: string | null;
+    };
+    activeDraft?: {
+      id?: string;
+      title?: string;
+    };
+  } | null;
+  const coords = resolveTalkingInWorkingOn({
+    dialogId: env?.dialogDocument?.dialogId,
+    dialogTitle: env?.dialogDocument?.title,
+    dialogTitleSource: env?.dialogDocument?.titleSource,
+    draftId: env?.activeDraft?.id,
+    draftTitle: env?.activeDraft?.title,
+  });
+  return buildTalkingInWorkingOnPrompt({
+    talkingIn: coords?.talkingIn,
+    workingOn: coords?.workingOn,
+  });
+}
+
 function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
   const doc = (
     environment as {
@@ -1165,6 +1192,7 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
   }
   lines.push(
+    'This block is Talking in (the Dialog). If Working on is a Draft, do not treat this manuscript as the Point write target.',
     'When the user asks about this Dialog\'s Document, Forward, Step, or Points, use this block — do not claim the Document is absent when fields above are present.',
     'When asked to pick or name one item from a Path, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
   );
@@ -5091,6 +5119,10 @@ export class KipAgentService {
       if (castHonestyPreview) {
         systemParts.push(castHonestyPreview);
       }
+      const conversationCoordinates = buildConversationCoordinatesPrompt(environment);
+      if (conversationCoordinates) {
+        systemParts.push(conversationCoordinates);
+      }
       const dialogDocumentPreview = buildDialogDocumentSystemPrompt(environment);
       if (dialogDocumentPreview) {
         systemParts.push(dialogDocumentPreview);
@@ -5552,7 +5584,14 @@ export class KipAgentService {
           });
         }
 
-        // Dialog Document — same Forward/Step/Points Chronicle renders for this Dialog.
+        // Talking in / Working on, then Dialog Document (conversation context).
+        const conversationCoordinates = buildConversationCoordinatesPrompt(environmentContext);
+        if (conversationCoordinates) {
+          messages.push({
+            role: 'system',
+            content: conversationCoordinates,
+          });
+        }
         const dialogDocumentPrompt = buildDialogDocumentSystemPrompt(environmentContext);
         if (dialogDocumentPrompt) {
           messages.push({

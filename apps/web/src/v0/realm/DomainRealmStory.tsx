@@ -106,10 +106,15 @@ export function DomainRealmStory({
   const panelMode = boardCtx?.selection.chroniclePanelMode ?? "document"
   const pointTarget = boardCtx?.selection.chroniclePointTarget
   const draftPresenceRevision = boardCtx?.selection.draftPresenceRevision ?? 0
+  const chronicleDialogId =
+    boardCtx?.chronicleView.effective.kind === "dialog"
+      ? boardCtx.chronicleView.effective.id
+      : null
 
   const scope = React.useMemo((): DialogDocumentScope => {
-    if (selectedDialogId) {
-      return { status: "dialog", dialogId: selectedDialogId }
+    // Follow Chronicle after workspace — do not fetch the Document from live Nav.
+    if (chronicleDialogId) {
+      return { status: "dialog", dialogId: chronicleDialogId }
     }
 
     if (!selectedDraftId && !selectedMomentId && !selectedLibraryItemId) {
@@ -140,7 +145,7 @@ export function DomainRealmStory({
     return { status: "none" }
   }, [
     byDialog,
-    selectedDialogId,
+    chronicleDialogId,
     selectedDraftId,
     selectedMomentId,
     selectedLibraryItemId,
@@ -327,11 +332,29 @@ export function DomainRealmStory({
     [boardCtx, storyEntries, selectedDialogId],
   )
 
+  const documentComponents = React.useMemo(() => {
+    if (scope.status !== "dialog") return [] as DialogDocumentMeta["components"]
+    const registered = documentMeta.components
+    const group = byDialog.find((row) => row.dialogId === scope.dialogId)
+    const linked = (group?.byStage.drafts ?? []).map((entry) => ({
+      draftId: entry.id,
+      title: entry.label,
+      kind: entry.description?.trim() || "draft",
+      status: entry.point.status?.label || "active",
+      summary: entry.point.lede ?? null,
+      label: entry.label,
+    }))
+    const seen = new Set(registered.map((row) => row.draftId))
+    return [...registered, ...linked.filter((row) => !seen.has(row.draftId))]
+  }, [scope, documentMeta.components, byDialog])
+
   const handleOpenComponentDraft = React.useCallback(
     (draftId: string) => {
-      boardCtx?.actions.onDraftSelect(draftId)
+      boardCtx?.actions.onDraftSelect(draftId, {
+        dialogId: scope.status === "dialog" ? scope.dialogId : null,
+      })
     },
-    [boardCtx],
+    [boardCtx, scope],
   )
 
   const dialogNavTitle =
@@ -413,8 +436,8 @@ export function DomainRealmStory({
         points={points}
         pointIds={storyEntries.map((entry) => entry.id)}
         components={
-          scope.status === "dialog" && documentMeta.components.length > 0
-            ? documentMeta.components
+          scope.status === "dialog" && documentComponents.length > 0
+            ? documentComponents
             : undefined
         }
         onOpenComponentDraft={
@@ -467,7 +490,7 @@ export function DomainRealmStory({
           title={documentTitle}
           status={documentMeta.status}
           pointCount={points.length}
-          componentCount={documentMeta.components.length}
+          componentCount={documentComponents.length}
           onManage={domainId ? () => setCoverMode("config") : undefined}
           documentControl={ingestControl}
         />

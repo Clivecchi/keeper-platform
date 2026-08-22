@@ -33,6 +33,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-22 — Nav loads workspace, then Chronicle
+- Selection highlights Nav and paints the Header Bar from Nav cache on the same turn.
+- Chronicle follows one paint later (`chronicleFollowIds`) so the Document does not start loading while the Header is still catching up.
+
+### 2026-08-22 — Dialog loads Document; Draft loads with its Dialog
+- Dialog select clears the Draft and stays on the Document. A leftover `?draftId=` must not put the Draft back.
+- Draft select sets Talking in from `dialog_id` and Working on that Draft.
+- Linked working drafts appear as Document Sections. Agents get Talking in / Working on grounding so they do not invent fiction-plot Points from a Dialog title.
+
 ### 2026-08-21 — Talking in / Working on
 - `onDraftSelect` keeps `selectedDialogId` (Talking in). Chronicle and Point writes follow the Draft (Working on). Header Bar names both coordinates plus the domain.
 - `?draftId=` sets Working on without abandoning the Dialog.
