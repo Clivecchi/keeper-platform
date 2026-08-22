@@ -7,7 +7,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle)
 - `UniversalNavPanel.tsx` — Left nav with Universal / Keepers / Config panes; default for every board
 - `navPanes.ts` — Pane membership (Universal · Keepers · Config) and Config block order
-- `LibraryScreen.tsx` — Library list overlay that sits on Dialog; selected item renders in Chronicle
+- `LibraryScreen.tsx` — Library media browser over Dialog (poster cards, shelves, search); selected item renders in Chronicle
+- `libraryBrowse.ts` — Library kind / category / rail grouping for the media browser
+- `LibraryMediaCard.tsx` / `LibraryBrowseRail.tsx` — poster card and horizontal shelf
 - `boardNavDataCache.ts` — In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
 - `domain/domainShellCache.ts` � Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` � Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
@@ -32,6 +34,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-22 — Library media browser
+- `LibraryScreen` is a media selector, not a name list: poster cards, kind/category chips, horizontal shelves on All, grid when filtered.
+- Image uploads (and image URLs) show thumbnails via the blob proxy. Other kinds use a Keeper poster (gold mark + title).
+- `libraryBrowse.ts` infers shelves from source (Images, Video, Documents, Links, Writing, GitHub) and `LibraryItem.category` tags. Archive is its own shelf and stays off the live kind rails.
+- Browse fetch uses `includeArchived=true` so Archive is findable without polluting Nav cache.
 
 ### 2026-08-22 — Nav loads workspace, then Chronicle
 - Selection highlights Nav and paints the Header Bar from Nav cache on the same turn.

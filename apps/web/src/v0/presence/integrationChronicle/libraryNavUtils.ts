@@ -8,6 +8,9 @@ export type LibraryNavRow = {
   source_type: string
   source_ref: string
   display_label: string | null
+  description?: string | null
+  category?: string[]
+  created_at?: string
 }
 
 export type LibraryNavRowPatch = {
@@ -119,6 +122,15 @@ export function resolveLibraryHeroAvatar(
 
 export async function fetchDomainLibraryNavRows(domainId: string): Promise<LibraryNavRow[]> {
   const rows = await loadLibraryNavRows(domainId)
+  if (!Array.isArray(rows)) return []
+  return rows as LibraryNavRow[]
+}
+
+/** Full Library browse list — includes archived items so Archive can be its own shelf. */
+export async function fetchDomainLibraryBrowseRows(domainId: string): Promise<LibraryNavRow[]> {
+  const rows = await apiFetch(
+    `/api/library-items?domainId=${encodeURIComponent(domainId)}&includeArchived=true`,
+  )
   if (!Array.isArray(rows)) return []
   return rows as LibraryNavRow[]
 }

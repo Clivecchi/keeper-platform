@@ -10,6 +10,7 @@ export type LibraryItemDto = {
   source_ref: string
   display_label: string | null
   description: string | null
+  category?: string[]
   agent_perspective: string | null
   assigned_keeper_id: string | null
   assigned_agent_id: string | null

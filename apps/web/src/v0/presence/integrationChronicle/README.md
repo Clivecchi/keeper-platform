@@ -14,6 +14,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `ExternalAccessKeyPresence.tsx` — Domain MCP access key manage surface (label, revoke, overview)
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
+- `libraryNavUtils.ts` — Library titles, image hero, nav cache fetch, browse fetch (`includeArchived`)
 - `agentNavUtils.ts` — optimistic Agents nav row patch after agent Config save
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
 - `ServiceBindingConfigPresence.tsx` — infra service binding Config Mode (GitHub repo + branch)
@@ -154,6 +155,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - Cover + Config pattern documented: declaration blocks always; `chroniclePatch` for metadata; credentials separate
 
 ## 📆 Update Log
+
+### 2026-08-22 — Library browse fetch
+- `LibraryNavRow` now carries `description`, `category`, and `created_at` for the media browser.
+- `fetchDomainLibraryBrowseRows` lists with `includeArchived=true` so Archive is a shelf. Nav cache still excludes archive.
+- `LibraryItemDto` includes optional `category`.
 
 ### 2026-07-02 — P3.1 + P3.2 draft nav / journey link
 - **`draftNavUtils.ts`**: filter promoted/archived, group by kind, sort selected-first + recency, disambiguated labels.
