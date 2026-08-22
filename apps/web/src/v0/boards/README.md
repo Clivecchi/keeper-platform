@@ -33,6 +33,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-21 — Talking in / Working on
+- `onDraftSelect` keeps `selectedDialogId` (Talking in). Chronicle and Point writes follow the Draft (Working on). Header Bar names both coordinates plus the domain.
+- `?draftId=` sets Working on without abandoning the Dialog.
+
 ### 2026-08-20 — Universal / Keepers / Config Nav panes
 - Nav is three panes on every board. **Universal** (default): Dialogs, Drafts, Chatter, Library link. **Keepers:** Keeper, Journeys, Moment. **Config:** board-specific (Build integrations/keys/capabilities, Domain glossary/external access, Agent agents/access, Design glossary/board defs).
 - Dialogs and Drafts no longer disappear on Build/Agent/Realm. Library is a Nav link that opens `LibraryScreen` over Dialog; Chronicle shows the selected item; **X** closes the overlay.

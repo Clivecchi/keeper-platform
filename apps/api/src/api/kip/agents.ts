@@ -1204,6 +1204,9 @@ async function resolvePointObligationForRun(params: {
   }
 
   const obligation = attachPointTurnObligation(params.input, params.environment ?? null);
+  if (obligation?.writeKind === 'draft' && obligation.manuscriptDraftId) {
+    return obligation;
+  }
   if (
     obligation?.blocker !== 'no_manuscript'
     || !obligation.dialogId
@@ -7028,6 +7031,8 @@ export class KipAgentService {
         const pointCard = buildPointTurnCard({
           results: actionResults,
           dialogTitle: dialogTitleForChronicle,
+          workingOnTitle: pointObligation?.workingOnTitle,
+          writeKind: pointObligation?.writeKind,
         });
         if (pointCard) {
           structured = { ...structured, card: pointCard };

@@ -18,7 +18,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
-- `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → target manuscript → prompt + follow-up)
+- `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up)
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
 - `modeConfig.ts` — Kip mode configuration helpers
@@ -34,6 +34,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-21 — Talking in / Working on write target
+- Point obligation writes to the focused Draft (`environment.activeDraft`) when Chronicle is on that Draft. Dialog manuscript is the default only when nothing else is focused. Chatter + Draft writes to the Draft; never invents a Document.
 
 ### 2026-08-21 — Point contract is content-only
 - Model emits `payload.content`. Keeper owns the manuscript id (ensure + fill at execute). Point grounding forbids Domain Contract / schema / Prisma in Point wording.

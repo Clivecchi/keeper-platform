@@ -6,7 +6,11 @@
  * Follow-up + prompt builders reuse the draft-deferral pattern without a new framework.
  */
 
-import { isDocumentBearingDialogTitleSource } from '@keeper/shared';
+import {
+  isDocumentBearingDialogTitleSource,
+  resolvePointWriteTarget,
+  resolveTalkingInWorkingOn,
+} from '@keeper/shared';
 
 export type PointIntentKind = 'none' | 'required' | 'constrained';
 
@@ -16,6 +20,8 @@ export type PointIntent = {
 
 export type PointObligationBlocker = 'no_dialog' | 'chatter' | 'no_manuscript';
 
+export type PointWriteKind = 'document' | 'draft';
+
 export type PointTurnObligation = {
   /** User asked to capture/add/propose Points. */
   required: boolean;
@@ -23,7 +29,10 @@ export type PointTurnObligation = {
   constrained: boolean;
   dialogId?: string;
   dialogTitle?: string;
+  /** Write-target draft id — Dialog manuscript or the focused working Draft. */
   manuscriptDraftId?: string;
+  writeKind?: PointWriteKind;
+  workingOnTitle?: string;
   blocker?: PointObligationBlocker;
 };
 
@@ -33,6 +42,10 @@ export type PointObligationEnv = {
     title?: string;
     titleSource?: string | null;
     manuscriptDraftId?: string;
+  };
+  activeDraft?: {
+    id?: string;
+    title?: string;
   };
 };
 
@@ -121,13 +134,46 @@ export function resolvePointTurnObligation(
     typeof doc?.manuscriptDraftId === 'string' && doc.manuscriptDraftId.trim()
       ? doc.manuscriptDraftId.trim()
       : undefined;
+  const activeDraftId =
+    typeof environment?.activeDraft?.id === 'string' && environment.activeDraft.id.trim()
+      ? environment.activeDraft.id.trim()
+      : undefined;
+  const activeDraftTitle =
+    typeof environment?.activeDraft?.title === 'string' && environment.activeDraft.title.trim()
+      ? environment.activeDraft.title.trim()
+      : undefined;
+
+  const coords = resolveTalkingInWorkingOn({
+    dialogId,
+    dialogTitle,
+    dialogTitleSource: doc?.titleSource,
+    draftId: activeDraftId,
+    draftTitle: activeDraftTitle,
+  });
+  const writeTarget = resolvePointWriteTarget({
+    talkingInWorkingOn: coords,
+    manuscriptDraftId,
+    activeDraftId,
+  });
+
+  // Working on a Draft — write there. Chatter + Draft is allowed. Do not invent a Document.
+  if (writeTarget.writeKind === 'draft') {
+    return {
+      required: true,
+      constrained: false,
+      dialogId,
+      dialogTitle,
+      manuscriptDraftId: writeTarget.writeDraftId,
+      writeKind: 'draft',
+      workingOnTitle: activeDraftTitle ?? coords?.workingOn?.title ?? dialogTitle,
+    };
+  }
 
   if (!dialogId) {
     return { required: true, constrained: false, blocker: 'no_dialog' };
   }
 
-  // Only treat explicit Chatter as blocked. Missing titleSource + a manuscript
-  // still means a Document target. Named Dialogs are user_set.
+  // Only treat explicit Chatter as blocked when there is no working Draft.
   if (doc?.titleSource && !isDocumentBearingDialogTitleSource(doc.titleSource)) {
     return {
       required: true,
@@ -138,12 +184,14 @@ export function resolvePointTurnObligation(
     };
   }
 
-  if (!manuscriptDraftId) {
+  if (writeTarget.writeKind === 'none' || !manuscriptDraftId) {
     return {
       required: true,
       constrained: false,
       dialogId,
       dialogTitle,
+      writeKind: 'document',
+      workingOnTitle: dialogTitle,
       blocker: 'no_manuscript',
     };
   }
@@ -153,17 +201,21 @@ export function resolvePointTurnObligation(
     constrained: false,
     dialogId,
     dialogTitle,
-    manuscriptDraftId,
+    manuscriptDraftId: writeTarget.writeDraftId,
+    writeKind: 'document',
+    workingOnTitle: dialogTitle,
   };
 }
 
 const KEEPER_POINT_GROUNDING = [
   'KEEPER POINT (platform object — not layout, not a spatial/design point):',
-  'A Point is a durable Document/Draft beat stored in kip_drafts.spec_json.points on the Dialog manuscript (kind document_manuscript).',
-  'Chronicle renders those Points. Gloss threads are not Points. Working drafts are not the Dialog Document.',
+  'A Point is a durable Document/Draft beat stored in kip_drafts.spec_json.points.',
+  'Write target is Working on: the focused Draft if Chronicle is on a Draft; otherwise the Dialog Document manuscript.',
+  'Talking in (the Dialog/session) is conversation context — do not write the Dialog manuscript just because the session still belongs to that Dialog.',
+  'Chronicle renders those Points. Gloss threads are not Points.',
   'When the human asks to propose/add/capture Points, they mean this object.',
   'Point content is the beat only — never Domain Contract, action-schema rules, draft UUIDs, Prisma, or executor errors.',
-  'Keeper fills the manuscript id. Emit draft.update.propose with payload.content only.',
+  'Keeper fills the write-target id. Emit draft.update.propose with payload.content only.',
 ].join('\n');
 
 export function buildPointObligationSystemPrompt(
@@ -182,8 +234,10 @@ export function buildPointObligationSystemPrompt(
 
   const targetLines = obligation.manuscriptDraftId
     ? [
-        `Active Dialog: ${obligation.dialogTitle ?? 'this Dialog'} (${obligation.dialogId}).`,
-        'Keeper already has the manuscript id — do not invent payload.id / payload.draftId.',
+        obligation.writeKind === 'draft'
+          ? `Working on Draft: ${obligation.workingOnTitle ?? 'this Draft'}. Talking in: ${obligation.dialogTitle ?? 'this conversation'}.`
+          : `Working on Document: ${obligation.workingOnTitle ?? obligation.dialogTitle ?? 'this Document'}. Talking in: ${obligation.dialogTitle ?? 'this Dialog'}.`,
+        'Keeper already has the write-target id — do not invent payload.id / payload.draftId.',
         'Do not create a new Draft. Do not use draft.create. Do not write Gloss instead of Points.',
       ]
     : [];
@@ -399,6 +453,8 @@ export function buildPointContributionCard(params: {
     data?: Record<string, unknown>;
   }>;
   dialogTitle?: string;
+  workingOnTitle?: string;
+  writeKind?: PointWriteKind;
 }): PointContributionCard | null {
   const successful = params.results.filter(
     (result) => result.type === 'draft.update.propose' && result.status === 'success',
@@ -409,11 +465,13 @@ export function buildPointContributionCard(params: {
     .filter((item): item is string => Boolean(item));
   if (!items.length) return null;
   const noun = successful.length === 1 ? 'Point' : 'Points';
-  const where = params.dialogTitle?.trim() ? ` · ${params.dialogTitle.trim()}` : '';
+  const whereTitle = (params.workingOnTitle ?? params.dialogTitle)?.trim();
+  const where = whereTitle ? ` · ${whereTitle}` : '';
+  const onWhat = params.writeKind === 'draft' ? 'On the working Draft' : 'On the Dialog Document';
   return {
     type: 'summary',
     title: `Added ${successful.length} ${noun}${where}`,
-    body: 'On the Dialog Document — open Chronicle to read the full beats.',
+    body: `${onWhat} — open Chronicle to read the full beats.`,
     items,
   };
 }
@@ -426,6 +484,8 @@ export function buildPointTurnFailureCard(params: {
     data?: Record<string, unknown>;
   }>;
   dialogTitle?: string;
+  workingOnTitle?: string;
+  writeKind?: PointWriteKind;
 }): PointContributionCard | null {
   const failed = params.results.filter(
     (result) => result.type === 'draft.update.propose' && result.status === 'error',
@@ -438,11 +498,15 @@ export function buildPointTurnFailureCard(params: {
         .filter(Boolean),
     ),
   ];
-  const where = params.dialogTitle?.trim() ? ` · ${params.dialogTitle.trim()}` : '';
+  const whereTitle = (params.workingOnTitle ?? params.dialogTitle)?.trim();
+  const where = whereTitle ? ` · ${whereTitle}` : '';
+  const notUpdated = params.writeKind === 'draft'
+    ? 'The working Draft was not updated.'
+    : 'The Dialog Document was not updated.';
   return {
     type: 'error',
     title: `Points were not added${where}`,
-    body: 'The Dialog Document was not updated.',
+    body: notUpdated,
     items: items.slice(0, 6),
   };
 }
@@ -455,6 +519,8 @@ export function buildPointTurnCard(params: {
     data?: Record<string, unknown>;
   }>;
   dialogTitle?: string;
+  workingOnTitle?: string;
+  writeKind?: PointWriteKind;
 }): PointContributionCard | null {
   return buildPointContributionCard(params) ?? buildPointTurnFailureCard(params);
 }

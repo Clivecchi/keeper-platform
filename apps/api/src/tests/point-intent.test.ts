@@ -64,6 +64,46 @@ describe('resolvePointTurnObligation', () => {
       dialogId: 'dlg-1',
       dialogTitle: 'Re-Center',
       manuscriptDraftId: 'ms-1',
+      writeKind: 'document',
+      workingOnTitle: 'Re-Center',
+    });
+  });
+
+  it('writes to the focused Draft, not the Dialog manuscript', () => {
+    expect(
+      resolvePointTurnObligation('Add that as a Point.', {
+        ...manuscriptEnv,
+        activeDraft: { id: 'draft-insights', title: 'Keeper UI Insights' },
+      }),
+    ).toEqual({
+      required: true,
+      constrained: false,
+      dialogId: 'dlg-1',
+      dialogTitle: 'Re-Center',
+      manuscriptDraftId: 'draft-insights',
+      writeKind: 'draft',
+      workingOnTitle: 'Keeper UI Insights',
+    });
+  });
+
+  it('writes to a Session-born Draft without inventing a Document', () => {
+    expect(
+      resolvePointTurnObligation('Add that as a Point.', {
+        dialogDocument: {
+          dialogId: 'dlg-chatter',
+          title: 'Domain · conversation · Aug 21',
+          titleSource: 'auto_generated',
+        },
+        activeDraft: { id: 'draft-session', title: 'New draft' },
+      }),
+    ).toEqual({
+      required: true,
+      constrained: false,
+      dialogId: 'dlg-chatter',
+      dialogTitle: 'Domain · conversation · Aug 21',
+      manuscriptDraftId: 'draft-session',
+      writeKind: 'draft',
+      workingOnTitle: 'New draft',
     });
   });
 

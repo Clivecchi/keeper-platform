@@ -10,9 +10,10 @@
  * without prop-drilling through the board shell.
  *
  * Selection rules:
- * - Nav selects one subject. Dialog, Draft, Journey, Glossary, Board Definition, …
- *   are mutually exclusive. That subject loads into Dialog, then Chronicle.
- * - Session is which thread of the selected Dialog — not a second subject.
+ * - Talking in (Dialog / session) and Working on (Chronicle subject) can both be set.
+ *   Focusing a Draft does not abandon the Dialog you are talking in.
+ * - Other Chronicle subjects (Journey, Glossary, …) remain exclusive work targets.
+ * - Session is which thread of Talking in — not a second subject.
  * - Design `?definition=` is idle board-spec only. It must not steal Chronicle
  *   from a Dialog or Draft.
  * - Collapsed nav panel state lives here — the board owns collapse, not the panel.
@@ -340,11 +341,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   React.useEffect(() => {
     if (!urlDraftId || urlDraftId === selectedDraftId) return
-    // Explicit Dialog nav wins over stale ?draftId= in the URL.
-    if (selectedDialogId) return
+    // Draft URL is Working on. Keep Talking in (selectedDialogId) if set.
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(urlDraftId)
-    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
     setSelectedMomentId(null)
@@ -355,7 +354,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
-  }, [urlDraftId, selectedDraftId, selectedDialogId])
+  }, [urlDraftId, selectedDraftId])
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
@@ -370,8 +369,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  // Domain entity selections are mutually exclusive.
-  // Selecting any one clears all others — the right panel shifts to show the new presence.
+  // Working-on subjects are exclusive with each other. Talking in (Dialog)
+  // survives Draft focus so conversation context and Chronicle can differ.
 
   const onSessionSelect = React.useCallback((id: string | null) => {
     setActiveSessionId(id)
@@ -501,7 +500,6 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setLibraryScreenOpen(false)
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(id)
-    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
     setSelectedMomentId(null)

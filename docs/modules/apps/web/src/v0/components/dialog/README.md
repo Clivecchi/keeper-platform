@@ -20,7 +20,7 @@ Shared conversation shell used across Build Board, Agent Board, Domain Board, Re
 
 | Product name | Role | CSS / attribute |
 |---|---|---|
-| **Header Bar** | Expandable breadcrumb + session meta; director cast identity below | `.dialog-header-banner` / `.dialog-header-cast` |
+| **Header Bar** | Talking in / Working on + domain; session details behind chevron; director cast identity below | `.dialog-header-banner` / `.dialog-coordinates` / `.dialog-header-cast` |
 | **Dialog Space** | Messages scroll here, above the dissolve | `.dialog-message-zone` / `.dialog-message-surface` |
 | **Horizon dissolve** | Gradient fade at Dialog Space floor (no live text) | `.dialog-horizon-band`, `.dialog-fade-overlay` |
 | **Broadcast Strip** | Unified working surface — live beat + ticker; upload previews when staging | `.dialog-broadcast-strip` |
@@ -41,7 +41,7 @@ While sending: one Broadcast Strip carries the live beat and prior story beats. 
 Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:relative, overflow:hidden`) so an absolute-positioned gradient dissolve div can overlay the bottom 80px of the scroll area without scrolling with the content.
 
 ### Surface behaviour
-- **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
+- **Header Bar**: Talking in (Dialog or Session) and Working on (Document, Draft, or other Chronicle subject), plus the domain name. Hidden in `mode === 'feed'`. Chevron expands session id / Configure — not SOLE. Domain idle still uses the wordmark + live pulse.
 - **Dialog Space**: Scrollable messages above the dissolve. Top + bottom **mask fade** softens edges. Messages dim slightly while working. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Broadcast Strip (working)**: CRT lower third — phosphor live line (`▶` marker + cursor) + prior beats as ellipsis ticker. Collapses after reply.
 - **Broadcast Strip (uploads)**: Staged attachment tiles and **Pasted** supporting-document tiles while composing.
@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-21: **Header Bar = Talking in / Working on** — larger type; domain name on the right; SOLE badge and repeated title removed. Session id lives behind the chevron.
 - 2026-08-19: `KeeperDialogFrame` imports `IntegratedServicesBar` from `boards/components` (Build Board service bar). Shared conversation shell across Build, Agent, Domain, Realm, and Design.
 - 2026-08-09: **Mobile composer bubble** — Adaptive Domain/Realm idle/thinking stages use a pinned chat bubble (`composerSize="mobile-compact"`); tap/focus expands to ~2/3 screen (`mobile-expanded`). Composer footer (Cast / Agents) hidden while bubbled. Blur/send collapse unchanged.
 - 2026-08-09: **Dialog markdown export** — `KeeperDialogFrame` passes loaded `messages` (+ `userName`) into `AgentComposer` as `dialogueMessages` so the markdown toolbar control exports the current session transcript.

@@ -68,17 +68,21 @@ type ServiceStatus = "connected" | "warning" | "disconnected"
  * Structured replacement for the five individual banner props:
  * keeperName, journeyName, pathName, pathPrelude, sessionTitle.
  *
- * The Banner renders: primary · secondary · tertiary
- *                     prelude (italic, below)
- * The expanded meta row renders: primary (read-only) + sessionLabel (editable)
+ * The Header Bar renders Talking in / Working on when those coordinates
+ * are provided. Otherwise: primary · secondary · tertiary + prelude.
+ * Domain idle still uses the livePulse wordmark layout.
  *
- * Callers assemble this from whatever semantic labels their board uses —
- * keeper name, domain wordmark, agent eyebrow, session title, path prelude.
- * KeeperDialogFrame renders the shape; callers own the meaning.
+ * Callers assemble this from board selection. KeeperDialogFrame renders the shape.
  */
 export interface BannerContext {
-  /** Lead label — was keeperName / wordmark / agent eyebrow. Required when BannerContext is provided. */
-  primary: string
+  /** Conversation you are in — Dialog or Session. */
+  talkingIn?: { title: string; kindLabel: string }
+  /** Chronicle / action target — Document, Draft, or other work subject. */
+  workingOn?: { title: string; kindLabel: string }
+  /** Domain name — belongs on the Header Bar (not SOLE, not a repeated title). */
+  domainLabel?: string
+  /** Lead label — wordmark / agent eyebrow when Talking in / Working on is not set. */
+  primary?: string
   /** Second breadcrumb segment — was journeyName / session name / dialog title. */
   secondary?: string
   /** Third breadcrumb segment — was pathName. */
@@ -267,7 +271,7 @@ export function KeeperDialogFrame({
   bannerContext,
   // Session context
   sessionId,
-  soleActive,
+  soleActive: _soleActive,
   modelProvider,
   onOpenCockpit,
   onSaveTitle,
@@ -497,10 +501,11 @@ export function KeeperDialogFrame({
     requestAnimationFrame(run)
   }, [messages, isSending, dialogContent, mode, measureDialogScrollInset])
 
+  const hasCoordinates = Boolean(bannerContext?.talkingIn || bannerContext?.workingOn)
   const hasBreadcrumb = bannerContext?.primary || bannerContext?.secondary || bannerContext?.tertiary
-  const hasSessionMeta = sessionId !== undefined
+  const hasSessionMeta = Boolean(sessionId || onOpenCockpit || modelProvider)
   // Banner renders in dialog mode when there is context to show
-  const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!bannerContext?.prelude || !!onReturnToFeed || hasSessionMeta)
+  const showBanner = mode !== 'feed' && (!!hasCoordinates || !!hasBreadcrumb || !!bannerContext?.prelude || !!onReturnToFeed || hasSessionMeta)
   const showBannerEffective = showBanner && !hideDomainIdentityBanner
 
   const isMobileStaged = dialogLayout === "mobile-staged" && mode !== "feed"
@@ -642,7 +647,7 @@ export function KeeperDialogFrame({
               </>
             )
             : (
-              /* Standard breadcrumb banner */
+              /* Header Bar — Talking in / Working on, or breadcrumb fallback */
               <>
                 <div className="dialog-banner-main-row">
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -651,7 +656,32 @@ export function KeeperDialogFrame({
                         ← Commons
                       </button>
                     )}
-                    {hasBreadcrumb && (
+                    {hasCoordinates ? (
+                      <div className="dialog-coordinates" aria-label="Talking in and Working on">
+                        {bannerContext?.talkingIn && (
+                          <div className="dialog-coordinate">
+                            <span className="dialog-coordinate-label">
+                              Talking in
+                              <span className="dialog-coordinate-kind">{bannerContext.talkingIn.kindLabel}</span>
+                            </span>
+                            <span className="dialog-coordinate-title keeper-treatment-title">
+                              {bannerContext.talkingIn.title}
+                            </span>
+                          </div>
+                        )}
+                        {bannerContext?.workingOn && (
+                          <div className="dialog-coordinate">
+                            <span className="dialog-coordinate-label">
+                              Working on
+                              <span className="dialog-coordinate-kind">{bannerContext.workingOn.kindLabel}</span>
+                            </span>
+                            <span className="dialog-coordinate-title keeper-treatment-title">
+                              {bannerContext.workingOn.title}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : hasBreadcrumb ? (
                       <div className="dialog-breadcrumb">
                         {bannerContext?.primary && (
                           <span className="keeper-treatment-title">{bannerContext.primary}</span>
@@ -669,7 +699,7 @@ export function KeeperDialogFrame({
                           </>
                         )}
                       </div>
-                    )}
+                    ) : null}
                     {bannerContext?.prelude && bannerContext.onPreludeClick ? (
                       <button
                         type="button"
@@ -686,40 +716,37 @@ export function KeeperDialogFrame({
                     ) : null}
                   </div>
 
-                  {hasSessionMeta && (
-                    <div className="dialog-session-meta">
-                      {soleActive !== undefined && (
-                        <span className={`sole-badge ${soleActive ? 'active' : 'inactive'}`}>
-                          SOLE
-                        </span>
-                      )}
-                      {sessionId && (
-                        <span className="session-id-short">
-                          {sessionId.slice(0, 6)}
-                        </span>
-                      )}
+                  <div className="dialog-session-meta">
+                    {bannerContext?.domainLabel && (
+                      <span className="dialog-domain-label">{bannerContext.domainLabel}</span>
+                    )}
+                    {hasSessionMeta && (
                       <button
                         type="button"
                         className={`banner-chevron${bannerExpanded ? ' open' : ''}`}
                         onClick={() => setBannerExpanded((v) => !v)}
-                        aria-label="Expand session details"
+                        aria-expanded={bannerExpanded}
+                        aria-label={bannerExpanded ? "Collapse session details" : "Expand session details"}
                       >
                         ›
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
-                {/* Expanded session details — visible on chevron tap */}
                 {bannerExpanded && hasSessionMeta && (
                   <div className="dialog-banner-expanded">
-                    {bannerContext?.primary && <span className="meta-item">{bannerContext.primary}</span>}
-                    {bannerContext?.sessionLabel && (
+                    {sessionId && (
+                      <span className="meta-item session-id-short" title="Session">
+                        Session {sessionId.slice(0, 8)}
+                      </span>
+                    )}
+                    {bannerContext?.sessionLabel && onSaveTitle && (
                       <span
                         className="meta-item session-title"
                         contentEditable
                         suppressContentEditableWarning
-                        onBlur={(e) => onSaveTitle?.(e.currentTarget.textContent?.trim() ?? '')}
+                        onBlur={(e) => onSaveTitle(e.currentTarget.textContent?.trim() ?? '')}
                       >
                         {bannerContext.sessionLabel}
                       </span>

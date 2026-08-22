@@ -11,7 +11,9 @@
  * This file:
  *   - Computes agentContext once from useV0Shell()
  *   - Calls useAgentDialog with parameters from def.conversation
- *   - Branches on def.conversation.kipMode only for banner props
+ *   - Header Bar: Talking in / Working on when a Dialog or Draft is in play;
+ *     domain idle still uses the wordmark + live pulse
+ *   - Branches on def.conversation.kipMode for remaining banner fallbacks
  *     and Build-session callbacks
  *   - Calls useDraftContext for build and agent modes
  *   - Renders KeeperDialogFrame once
@@ -38,7 +40,14 @@ import { useFrameContextOptional } from "../shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
 import { extractLinkedCard } from "../../components/agent/helpers"
 import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
-import { glossAnchorToDraftDiscuss, ensureGlossThreadCarrier, parseGlossThreads } from "@keeper/shared"
+import {
+  glossAnchorToDraftDiscuss,
+  ensureGlossThreadCarrier,
+  parseGlossThreads,
+  resolveTalkingInWorkingOn,
+  talkingInKindLabel,
+  workingOnKindLabel,
+} from "@keeper/shared"
 import { useAgentDialog, extractRunAgentPayload, type AgentContext } from "../../hooks/useAgentDialog"
 import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
 import type { AgentBoardMessaging } from "../data/domain-frame.types"
@@ -2068,34 +2077,54 @@ export function UniversalConversation({
   const hasDraftSpec = designerDraftCtx ? designerDraftCtx.draftSpecJson !== null : false
 
   const bannerContext = React.useMemo(() => {
-    if (selectedDialogId) {
+    const coordinates = resolveTalkingInWorkingOn({
+      dialogId: selectedDialogId,
+      dialogTitle,
+      dialogTitleSource: selectedDialogId
+        ? selection.dialogTitleSourceById[selectedDialogId]
+        : undefined,
+      sessionId: dialogSessionId,
+      draftId: selectedDraftId,
+      draftTitle,
+      journeyId: selectedJourneyId,
+      journeyTitle: journeyName,
+      pathId: selection.selectedPathId,
+      momentId: selection.selectedMomentId,
+      keeperId: selectedKeeperId,
+      keeperTitle: keeperName,
+      agentId: kipMode === "agent" ? null : selectedAgentId,
+      agentTitle: selectedAgentRecord?.name ?? def.conversation.agentName,
+    })
+
+    const showCoordinates = Boolean(
+      coordinates &&
+        (coordinates.talkingIn?.kind === "dialog" ||
+          (coordinates.workingOn && coordinates.workingOn.kind !== "session")),
+    )
+
+    if (showCoordinates && coordinates) {
       return {
-        primary: dialogTitle ?? "Dialog",
-        secondary: domainName || undefined,
-        sessionLabel: "Session" as const,
+        ...(coordinates.talkingIn
+          ? {
+              talkingIn: {
+                title: coordinates.talkingIn.title,
+                kindLabel: talkingInKindLabel(coordinates.talkingIn.kind),
+              },
+            }
+          : {}),
+        ...(coordinates.workingOn
+          ? {
+              workingOn: {
+                title: coordinates.workingOn.title,
+                kindLabel: workingOnKindLabel(coordinates.workingOn.kind),
+              },
+            }
+          : {}),
+        ...(domainName?.trim() ? { domainLabel: domainName.trim() } : {}),
+        sessionLabel: coordinates.talkingIn?.kind === "session" ? ("Session" as const) : undefined,
       }
     }
-    if (selectedJourneyId) {
-      return {
-        primary: journeyName ?? "Journey",
-        secondary: keeperName ?? domainName ?? undefined,
-        sessionLabel: "Session" as const,
-      }
-    }
-    if (selectedKeeperId) {
-      return {
-        primary: keeperName ?? "Keeper",
-        secondary: domainName || undefined,
-        sessionLabel: "Session" as const,
-      }
-    }
-    if (selectedDraftId) {
-      return {
-        primary: draftTitle ?? "Draft",
-        secondary: domainName || undefined,
-        sessionLabel: "Session" as const,
-      }
-    }
+
     if (selectedAgentId && kipMode !== "agent") {
       return {
         primary: selectedAgentRecord?.name ?? def.conversation.agentName,
@@ -2217,6 +2246,10 @@ export function UniversalConversation({
     momentCount,
     selection.trainingMode,
     selection.activeTrainingFrame,
+    selection.dialogTitleSourceById,
+    selection.selectedPathId,
+    selection.selectedMomentId,
+    dialogSessionId,
     actions,
   ])
 
@@ -2558,7 +2591,6 @@ export function UniversalConversation({
       <KeeperDialogFrame
         bannerContext={bannerContext}
         sessionId={dialogSessionId}
-        soleActive={false}
         modelProvider={modelProvider}
         onSaveTitle={kipMode === "build" ? handleSaveTitle : undefined}
         dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}

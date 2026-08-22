@@ -16,6 +16,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
 - `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
 - `src/dialogTitleSource.ts` — Chatter vs named Dialog vs Document-bearing (`user_set` only)
+- `src/talkingInWorkingOn.ts` — Talking in (Dialog/session) vs Working on (Document/Draft) + Point write-target helper
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -29,6 +30,10 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-08-21 — Talking in / Working on locked
+- `talkingInWorkingOn.ts` — two coordinates. Focused Draft is Working on; named Dialog stays Talking in. Chronicle `resolveChroniclePrimary` prefers Draft over Dialog when both IDs are set.
+- Point writes use `resolvePointWriteTarget` (Draft wins; Session never invents a Document).
 
 ### 2026-08-19 — Universal Nav subject
 - `resolveChroniclePrimary` uses `selectedBoardDefId` only. Design URL / `isDesignerBoard` do not route Chronicle.

@@ -158,7 +158,7 @@ html[data-density="comfortable"] {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 8px 16px;
+  padding: 12px 20px 10px;
   background: hsl(var(--theme-surface-paper) / 0.55);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -166,7 +166,7 @@ html[data-density="comfortable"] {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  min-height: 40px;
+  min-height: 52px;
 }
 
 .dialog-header-banner::after {
@@ -188,10 +188,63 @@ html[data-density="comfortable"] {
 
 .dialog-banner-main-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 16px;
+  min-height: 28px;
+}
+
+.dialog-coordinates {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dialog-coordinate {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 14px;
+  min-width: 0;
+}
+
+.dialog-coordinate-label {
+  display: inline-flex;
+  align-items: baseline;
   gap: 8px;
-  min-height: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: hsl(var(--theme-ink-secondary));
+  white-space: nowrap;
+}
+
+.dialog-coordinate-kind {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.dialog-coordinate-title {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
+  color: hsl(var(--theme-ink-primary));
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-domain-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: hsl(var(--theme-ink-secondary));
+  white-space: nowrap;
 }
 
 .dialog-breadcrumb {
@@ -1678,6 +1731,26 @@ button.dialog-prelude:hover {
  */
 .keeper-board-scope .dialog-header-banner {
   background: hsl(var(--theme-surface-paper) / 0.55);
+  padding: 14px 22px 12px;
+}
+
+.keeper-board-scope .dialog-coordinate-label {
+  font-size: 14px;
+  color: hsl(var(--theme-ink-secondary));
+}
+
+.keeper-board-scope .dialog-coordinate-kind {
+  font-size: 13px;
+}
+
+.keeper-board-scope .dialog-coordinate-title {
+  font-size: 22px;
+  color: hsl(var(--theme-ink-primary));
+}
+
+.keeper-board-scope .dialog-domain-label {
+  font-size: 16px;
+  color: hsl(var(--theme-ink-secondary));
 }
 
 .keeper-board-scope .dialog-composer-horizon-summary {
