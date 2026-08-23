@@ -1166,7 +1166,9 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
           id?: string;
           type?: string;
           preview?: string;
+          prelude?: string;
           status?: string;
+          referencesPointId?: string;
         }>;
         manuscriptDraftId?: string;
       };
@@ -1208,21 +1210,16 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     lines.push('Sections: Open (quieter Section for Points that do not yet fit).');
   }
   if (Array.isArray(doc.points) && doc.points.length > 0) {
-    lines.push('Points (manuscript summaries):');
-    for (const point of doc.points.slice(0, 24)) {
-      const typeLabel = typeof point.type === 'string' && point.type.trim()
-        ? point.type.trim()
-        : 'point';
+    const hosts = doc.points.filter((point) => !point.referencesPointId);
+    lines.push(
+      `Points (${hosts.length} — refer to existing ones by number or title; Keeper owns ids):`,
+    );
+    hosts.slice(0, 80).forEach((point, index) => {
+      const title = typeof point.prelude === 'string' ? point.prelude.trim() : '';
       const preview = typeof point.preview === 'string' ? point.preview.trim() : '';
-      const status = typeof point.status === 'string' && point.status.trim()
-        ? ` [${point.status.trim()}]`
-        : '';
-      lines.push(
-        preview
-          ? `- (${typeLabel})${status}: ${preview}`
-          : `- (${typeLabel})${status}`,
-      );
-    }
+      const body = title && preview ? `${title} — ${preview}` : title || preview;
+      lines.push(body ? `${index + 1}. ${body}` : `${index + 1}.`);
+    });
   } else {
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
   }
@@ -5417,7 +5414,7 @@ export class KipAgentService {
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrites one point in place. Payload: { id, pointId, content, type? }. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead. Cast agents should draft.update.propose with optional referencesPointId instead of overwriting.',
-        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition. Does not change accepted work. Chronicle shows Current vs Proposed. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Use real Point ids. Omit unchanged Points — Keeper fills them in. Never silently rewrite the Document with draft.point.rewrite when the human asked to review or reorganize.',
+        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition. Does not change accepted work. Chronicle shows Current vs Proposed. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -5882,7 +5879,7 @@ export class KipAgentService {
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
             'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
-            'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Use real Point ids. Omit unchanged Points.',
+            'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',

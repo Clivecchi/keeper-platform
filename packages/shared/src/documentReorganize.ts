@@ -86,6 +86,100 @@ function sectionTitle(
   return sections.find((section) => section.id === sectionId)?.title ?? sectionId;
 }
 
+function isUuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
+function slugId(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || newId();
+}
+
+function documentHostPoints(points: DraftPoint[]): DraftPoint[] {
+  return points.filter((point) => !point.referencesPointId?.trim());
+}
+
+function normalizeKey(value: string | undefined): string {
+  return value?.trim().toLowerCase() ?? '';
+}
+
+function oneBasedIndex(ref: string): number | null {
+  const match = ref.trim().match(/^(?:point\s+|p)?(\d+)$/i);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/**
+ * Keeper owns identities. The Lead may refer to a Point by UUID, 1-based
+ * number, or title. Title wins over number when both are present.
+ */
+export function resolveReorganizePointRef(
+  ref: string | undefined,
+  currentPoints: DraftPoint[],
+  used: ReadonlySet<string>,
+  hints?: { prelude?: string; content?: string },
+): string | null {
+  const hosts = documentHostPoints(currentPoints);
+  const byId = new Map(currentPoints.map((point) => [point.id, point]));
+  const available = (point: DraftPoint | undefined): point is DraftPoint =>
+    Boolean(point && !used.has(point.id));
+
+  const exact = ref ? byId.get(ref) : undefined;
+  if (available(exact)) return exact.id;
+
+  const preludeHint = normalizeKey(hints?.prelude);
+  if (preludeHint) {
+    const byPrelude = hosts.find(
+      (point) => available(point) && normalizeKey(point.prelude) === preludeHint,
+    );
+    if (byPrelude) return byPrelude.id;
+  }
+
+  const contentHint = hints?.content?.trim();
+  if (contentHint && contentHint.length >= 24) {
+    const needle = contentHint.slice(0, 48).toLowerCase();
+    const byContent = hosts.find(
+      (point) =>
+        available(point) && point.content.trim().toLowerCase().startsWith(needle),
+    );
+    if (byContent) return byContent.id;
+  }
+
+  const titleRef = normalizeKey(ref);
+  if (titleRef && !oneBasedIndex(ref ?? '') && !isUuidLike(ref ?? '')) {
+    const byTitle = hosts.find(
+      (point) => available(point) && normalizeKey(point.prelude) === titleRef,
+    );
+    if (byTitle) return byTitle.id;
+  }
+
+  const index = ref ? oneBasedIndex(ref) : null;
+  if (index != null) {
+    const byIndex = hosts[index - 1];
+    if (available(byIndex)) return byIndex.id;
+  }
+
+  return null;
+}
+
+export function resolveReorganizeSectionId(
+  ref: string | null | undefined,
+  sections: DocumentPathDeclaration[],
+): string | null {
+  if (!ref || ref === 'open') return null;
+  if (sections.some((section) => section.id === ref)) return ref;
+  const byTitle = sections.find(
+    (section) => normalizeKey(section.title) === normalizeKey(ref),
+  );
+  return byTitle?.id ?? ref;
+}
+
 export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganizeProposal | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const rec = raw as Record<string, unknown>;
@@ -97,7 +191,10 @@ export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganiz
     if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
     const row = item as Record<string, unknown>;
     const change = isChangeKind(row.change) ? row.change : 'unchanged';
-    const id = trimmed(row.id) ?? (change === 'new' || change === 'merge' ? newId() : null);
+    const id =
+      trimmed(row.id)
+      ?? trimmed(row.prelude)
+      ?? (change === 'new' || change === 'merge' ? newId() : null);
     const content = typeof row.content === 'string' ? row.content : '';
     if (!id) continue;
     if (change !== 'retire' && !content.trim() && !trimmed(row.prelude)) continue;
@@ -123,9 +220,10 @@ export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganiz
   for (const item of sectionsIn) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
     const row = item as Record<string, unknown>;
-    const id = trimmed(row.id);
     const title = trimmed(row.title);
-    if (!id || !title || id === 'open') continue;
+    if (!title || title.toLowerCase() === 'open') continue;
+    const id = trimmed(row.id) && trimmed(row.id) !== 'open' ? trimmed(row.id)! : slugId(title);
+    if (id === 'open') continue;
     sections.push({
       id,
       title,
@@ -162,44 +260,81 @@ export function normalizeDocumentReorganizeProposal(input: {
   const listed = new Set<string>();
   const replaced = new Set<string>();
   const points: ReorganizePointOp[] = [];
+  const sections = parsed.sections.length > 0 ? parsed.sections : input.currentSections;
+
+  const takeRef = (ref: string | undefined, hints?: { prelude?: string; content?: string }) =>
+    resolveReorganizePointRef(ref, input.currentPoints, listed, hints);
 
   for (const op of parsed.points) {
+    const sectionId =
+      op.sectionId === undefined ? undefined : resolveReorganizeSectionId(op.sectionId, sections);
+    const fromSectionId =
+      op.fromSectionId === undefined
+        ? undefined
+        : resolveReorganizeSectionId(op.fromSectionId, input.currentSections);
+
     if (op.change === 'new') {
-      const id = currentById.has(op.id) ? newId() : op.id;
-      points.push({ ...op, id, change: 'new' });
+      const id = currentById.has(op.id) || listed.has(op.id) ? newId() : op.id;
+      points.push({ ...op, id, change: 'new', sectionId });
       listed.add(id);
       continue;
     }
 
     if (op.change === 'merge') {
-      const replaces = (op.replacesPointIds ?? []).filter((id) => currentById.has(id));
+      const replaces = (op.replacesPointIds ?? [])
+        .map((ref) => takeRef(ref))
+        .filter((id): id is string => Boolean(id));
+      const resolved = takeRef(op.id, { prelude: op.prelude, content: op.content });
+      const id = resolved && !replaces.includes(resolved) ? resolved : newId();
       if (replaces.length === 0) {
-        return { ok: false, error: 'A merge must name the Points it replaces.' };
+        points.push({
+          ...op,
+          id,
+          change: 'new',
+          sectionId,
+          fromSectionId,
+        });
+        listed.add(id);
+        continue;
       }
-      replaces.forEach((id) => replaced.add(id));
-      const id = currentById.has(op.id) && !replaces.includes(op.id) ? newId() : op.id;
+      replaces.forEach((replaceId) => replaced.add(replaceId));
       points.push({
         ...op,
         id,
         change: 'merge',
-        replacesPointIds: replaces.length > 0 ? replaces : op.replacesPointIds,
+        sectionId,
+        fromSectionId,
+        replacesPointIds: replaces,
       });
       listed.add(id);
       continue;
     }
 
-    const current = currentById.get(op.id);
-    if (!current) {
-      return { ok: false, error: `Unknown Point ${op.id} — Review can refine existing Points, not invent ids.` };
+    const resolved = takeRef(op.id, { prelude: op.prelude, content: op.content });
+    if (!resolved) {
+      const id = newId();
+      points.push({
+        ...op,
+        id,
+        change: 'new',
+        sectionId,
+        fromSectionId,
+      });
+      listed.add(id);
+      continue;
     }
-    listed.add(op.id);
+
+    listed.add(resolved);
+    const current = currentById.get(resolved);
+    if (!current) continue;
     const currentSection = current.pathGroupId ?? null;
     points.push({
       ...op,
+      id: resolved,
       prelude: op.prelude ?? current.prelude,
       content: op.content.trim() ? op.content : current.content,
-      sectionId: op.sectionId === undefined ? currentSection : op.sectionId,
-      fromSectionId: op.fromSectionId ?? currentSection,
+      sectionId: sectionId === undefined ? currentSection : sectionId,
+      fromSectionId: fromSectionId ?? currentSection,
       originalPrelude: op.originalPrelude ?? current.prelude,
       originalContent: op.originalContent ?? current.content,
     });
@@ -224,7 +359,7 @@ export function normalizeDocumentReorganizeProposal(input: {
     proposal: {
       ...parsed,
       proposedBy: input.proposedBy?.trim() || parsed.proposedBy,
-      sections: parsed.sections.length > 0 ? parsed.sections : input.currentSections,
+      sections,
       points,
     },
   };

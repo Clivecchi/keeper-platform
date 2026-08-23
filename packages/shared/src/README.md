@@ -21,6 +21,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-22: `documentReorganize.ts` — Keeper resolves Point numbers and titles to real ids. Unknown refs become New instead of failing the proposal.
 - 2026-08-22: `documentReorganize.ts` — Review & Reorganize proposal contract. Lead proposes a future Document; Keeper fills omitted Points as unchanged so Proposed is always complete. Apply is a separate human action.
 - 2026-08-22: `keeperStage.ts` — Stage composition contract (references + contextual Agency). `chronicleSubject` Working on (agent/journey/…) now wins over Talking in Dialog when both IDs are set.
 - 2026-08-22: `documentAuthoring.ts` — Section add/rename/move/remove, Point placement, Document stage cycle. Author writes do not use the agent merge path.

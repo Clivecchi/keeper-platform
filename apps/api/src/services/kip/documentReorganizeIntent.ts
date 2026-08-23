@@ -30,8 +30,8 @@ export function buildReorganizeProposeSystemPrompt(dialogTitle?: string): string
     'Do not essay a mutation list. Chronicle will show the proposed Document.',
     'Payload: { rationale?, sections: [{ id, title, prelude? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalPrelude?, originalContent?, replacesPointIds? }] }.',
     'change is one of: unchanged | new | refine | move | merge | retire.',
-    'Use real Point ids from the current Document. You may omit unchanged Points — Keeper fills them in.',
-    'A merge names replacesPointIds. A new Point uses change "new" (no existing id).',
+    'Refer to existing Points by their number or title from DIALOG DOCUMENT. Keeper resolves identities — do not invent UUIDs.',
+    'You may omit unchanged Points — Keeper fills them in. A new Point uses change "new".',
     'Open is the quieter Section — use sectionId "open" or omit for unplaced Points.',
   ].join('\n');
 }

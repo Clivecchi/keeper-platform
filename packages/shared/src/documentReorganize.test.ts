@@ -52,15 +52,63 @@ describe('normalizeDocumentReorganizeProposal', () => {
     expect(result.proposal.points.find((p) => p.id === 'p1')?.change).toBe('move');
   });
 
-  it('rejects unknown Point ids', () => {
+  it('resolves 1-based Point numbers to real ids', () => {
     const result = normalizeDocumentReorganizeProposal({
       raw: {
-        points: [{ id: 'ghost', change: 'refine', content: 'nope', prelude: 'Ghost' }],
+        sections: [{ id: 'plot', title: 'The Plot' }],
+        points: [
+          {
+            id: '1',
+            change: 'move',
+            sectionId: 'The Plot',
+            content: 'First finding about the plot.',
+            prelude: 'The plot',
+          },
+        ],
       },
       currentPoints,
       currentSections: [],
     });
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.change).toBe('move');
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.sectionId).toBe('plot');
+  });
+
+  it('prefers a title match over a Point number', () => {
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        points: [
+          {
+            id: '1',
+            change: 'refine',
+            prelude: 'UI notes',
+            content: 'UI notes, tightened.',
+          },
+        ],
+      },
+      currentPoints,
+      currentSections: [],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.points.find((p) => p.id === 'p2')?.change).toBe('refine');
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.change).toBe('unchanged');
+  });
+
+  it('treats unknown ids as New instead of failing the proposal', () => {
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        points: [{ id: 'ghost', change: 'refine', content: 'A new beat.', prelude: 'Ghost' }],
+      },
+      currentPoints,
+      currentSections: [],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const created = result.proposal.points.find((p) => p.change === 'new');
+    expect(created?.prelude).toBe('Ghost');
+    expect(result.proposal.points.some((p) => p.id === 'p1')).toBe(true);
   });
 });
 
