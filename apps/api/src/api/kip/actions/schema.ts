@@ -258,14 +258,18 @@ const documentReorganizeProposePayloadSchema = z.object({
   sections: z
     .array(
       z.object({
-        id: z.string().min(1),
-        title: z.string().min(1),
+        id: z.string().min(1).optional(),
+        title: z.string().min(1).optional(),
+        name: z.string().min(1).optional(),
         prelude: z.string().optional(),
+        points: z.array(z.unknown()).optional(),
       }),
     )
     .optional()
     .default([]),
-  points: z.array(documentReorganizePointSchema).min(1),
+  points: z.array(documentReorganizePointSchema.partial().extend({
+    change: z.enum(['unchanged', 'new', 'refine', 'move', 'merge', 'retire']).optional(),
+  })).optional().default([]),
 });
 
 export type DocumentReorganizeProposeAction = z.infer<

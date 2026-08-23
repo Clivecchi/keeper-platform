@@ -96,6 +96,65 @@ describe('normalizeDocumentReorganizeProposal', () => {
     expect(result.proposal.points.find((p) => p.id === 'p1')?.change).toBe('unchanged');
   });
 
+  it('accepts a Sections-only proposal and keeps every current Point', () => {
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        rationale: 'Give the plot a spine.',
+        sections: [
+          { title: 'Introduction to the Plot' },
+          { title: 'Keeper Stage' },
+        ],
+      },
+      currentPoints,
+      currentSections: [],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.sections.map((section) => section.title)).toEqual([
+      'Introduction to the Plot',
+      'Keeper Stage',
+    ]);
+    expect(result.proposal.points).toHaveLength(2);
+    expect(result.proposal.points.every((point) => point.change === 'unchanged')).toBe(true);
+  });
+
+  it('lifts Points nested under Sections by title', () => {
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [
+          {
+            title: 'The Plot',
+            points: ['The plot', { title: 'UI notes' }],
+          },
+        ],
+      },
+      currentPoints,
+      currentSections: [],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.change).toBe('move');
+    expect(result.proposal.points.find((p) => p.id === 'p2')?.change).toBe('move');
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.sectionId).toBe('the-plot');
+  });
+
+  it('keeps a move that names a Point number and Section without repeating the body', () => {
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [{ title: 'The Plot' }],
+        points: [{ id: '1', sectionId: 'The Plot' }],
+      },
+      currentPoints,
+      currentSections: [],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.change).toBe('move');
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.content).toBe(
+      'First finding about the plot.',
+    );
+  });
+
   it('treats unknown ids as New instead of failing the proposal', () => {
     const result = normalizeDocumentReorganizeProposal({
       raw: {

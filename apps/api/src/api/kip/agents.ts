@@ -37,6 +37,7 @@ import {
   buildKeeperStagePrompt,
   resolveTalkingInWorkingOn,
   parseKeeperStage,
+  coerceDocumentReorganizePayload,
   type KeeperStageComposition,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
@@ -2256,10 +2257,11 @@ export async function executeAgentActions(
             break;
           }
           case 'document.reorganize.propose': {
-            const payload =
+            const payload = coerceDocumentReorganizePayload(
               action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
-                ? (action.payload as Record<string, unknown>)
-                : {};
+                ? action.payload
+                : {},
+            );
             if (!ctx.domainId || !ctx.userId) {
               results.push({
                 type: action.type,

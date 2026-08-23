@@ -32,6 +32,7 @@ export function buildReorganizeProposeSystemPrompt(dialogTitle?: string): string
     'change is one of: unchanged | new | refine | move | merge | retire.',
     'Refer to existing Points by their number or title from DIALOG DOCUMENT. Keeper resolves identities — do not invent UUIDs.',
     'You may omit unchanged Points — Keeper fills them in. A new Point uses change "new".',
+    'A Sections-only payload is accepted. Better: put Points under each Section (title or number) so Proposed is a real Document, not empty headers.',
     'Open is the quieter Section — use sectionId "open" or omit for unplaced Points.',
   ].join('\n');
 }

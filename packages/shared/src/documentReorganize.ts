@@ -180,9 +180,100 @@ export function resolveReorganizeSectionId(
   return byTitle?.id ?? ref;
 }
 
-export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganizeProposal | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+function pickString(row: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = trimmed(row[key]);
+    if (value) return value;
+  }
+  return null;
+}
+
+function coercePointRow(item: unknown, fallbackSectionId?: string | null): Record<string, unknown> | null {
+  if (typeof item === 'string' && item.trim()) {
+    return {
+      prelude: item.trim(),
+      change: fallbackSectionId ? 'move' : 'unchanged',
+      ...(fallbackSectionId ? { sectionId: fallbackSectionId } : {}),
+    };
+  }
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+  const row = item as Record<string, unknown>;
+  const prelude = pickString(row, ['prelude', 'title', 'name', 'label']);
+  const content = pickString(row, ['content', 'body', 'text', 'narrative']) ?? '';
+  const sectionId =
+    pickString(row, ['sectionId', 'section', 'path', 'pathId', 'pathGroupId'])
+    ?? fallbackSectionId
+    ?? null;
+  const id = pickString(row, ['id', 'pointId', 'point']);
+  const change = isChangeKind(row.change) ? row.change : sectionId ? 'move' : 'unchanged';
+  return {
+    ...row,
+    ...(id ? { id } : {}),
+    ...(prelude ? { prelude } : {}),
+    content,
+    ...(sectionId ? { sectionId } : {}),
+    change,
+  };
+}
+
+/**
+ * Accept the shapes the Lead actually emits: nested proposal, string Sections,
+ * Points nested under Sections, title/body synonyms, missing change.
+ */
+export function coerceDocumentReorganizePayload(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
   const rec = raw as Record<string, unknown>;
+  const nested =
+    rec.proposal && typeof rec.proposal === 'object' && !Array.isArray(rec.proposal)
+      ? (rec.proposal as Record<string, unknown>)
+      : rec;
+  const sectionsIn = Array.isArray(nested.sections)
+    ? nested.sections
+    : Array.isArray(nested.paths)
+      ? nested.paths
+      : [];
+  let pointsIn = Array.isArray(nested.points)
+    ? [...nested.points]
+    : Array.isArray(nested.items)
+      ? [...nested.items]
+      : [];
+
+  const sections: Array<Record<string, unknown>> = [];
+  for (const item of sectionsIn) {
+    if (typeof item === 'string' && item.trim() && item.trim().toLowerCase() !== 'open') {
+      const title = item.trim();
+      sections.push({ id: slugId(title), title });
+      continue;
+    }
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const row = item as Record<string, unknown>;
+    const title = pickString(row, ['title', 'name', 'label']);
+    if (!title || title.toLowerCase() === 'open') continue;
+    const id = pickString(row, ['id']) ?? slugId(title);
+    sections.push({ ...row, id, title });
+    const nestedPoints = row.points ?? row.items;
+    if (Array.isArray(nestedPoints)) {
+      for (const point of nestedPoints) {
+        const coerced = coercePointRow(point, id);
+        if (coerced) pointsIn.push(coerced);
+      }
+    }
+  }
+
+  const points = pointsIn
+    .map((item) => coercePointRow(item))
+    .filter((row): row is Record<string, unknown> => Boolean(row));
+
+  return {
+    ...nested,
+    rationale: pickString(nested, ['rationale', 'summary']) ?? pickString(rec, ['rationale', 'summary']) ?? undefined,
+    sections,
+    points,
+  };
+}
+
+export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganizeProposal | null {
+  const rec = coerceDocumentReorganizePayload(raw);
   const pointsIn = Array.isArray(rec.points) ? rec.points : [];
   const sectionsIn = Array.isArray(rec.sections) ? rec.sections : [];
   const points: ReorganizePointOp[] = [];
@@ -197,7 +288,6 @@ export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganiz
       ?? (change === 'new' || change === 'merge' ? newId() : null);
     const content = typeof row.content === 'string' ? row.content : '';
     if (!id) continue;
-    if (change !== 'retire' && !content.trim() && !trimmed(row.prelude)) continue;
     const replaces = Array.isArray(row.replacesPointIds)
       ? row.replacesPointIds.filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
       : undefined;
@@ -214,8 +304,6 @@ export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganiz
     });
   }
 
-  if (points.length === 0) return null;
-
   const sections: DocumentPathDeclaration[] = [];
   for (const item of sectionsIn) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
@@ -230,6 +318,8 @@ export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganiz
       ...(trimmed(row.prelude) ? { prelude: trimmed(row.prelude)! } : {}),
     });
   }
+
+  if (points.length === 0 && sections.length === 0) return null;
 
   return {
     version: DOCUMENT_REORGANIZE_VERSION,
@@ -253,7 +343,10 @@ export function normalizeDocumentReorganizeProposal(input: {
 }): { ok: true; proposal: DocumentReorganizeProposal } | { ok: false; error: string } {
   const parsed = parseDocumentReorganizeProposal(input.raw);
   if (!parsed) {
-    return { ok: false, error: 'A reorganize proposal needs at least one Point.' };
+    return {
+      ok: false,
+      error: 'A reorganize proposal needs Sections or Points — Keeper will keep the rest of the Document.',
+    };
   }
 
   const currentById = new Map(input.currentPoints.map((point) => [point.id, point]));
