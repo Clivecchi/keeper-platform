@@ -37,6 +37,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-22 — Railway tsc: reorganize follow-up
+- Placement follow-up reads `spineOnly` from unknown action `data` so it assigns from `ActionExecutionResult[]`.
+
 ### 2026-08-22 — Review & Reorganize identities
 - Keeper resolves Point numbers and titles from the live Document. Unknown refs become New. The proposal no longer fails because the Lead used `1` instead of a UUID.
 

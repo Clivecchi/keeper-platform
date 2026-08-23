@@ -21,22 +21,33 @@ export function detectReorganizeIntent(userInput: string): ReorganizeIntentKind 
   return REORGANIZE_PATTERNS.some((pattern) => pattern.test(text)) ? 'required' : 'none';
 }
 
-export function isSpineOnlyReorganizeResult(results: Array<{
+type ActionResultLite = {
   type?: string;
   status?: string;
-  data?: { spineOnly?: boolean };
-}>): boolean {
+  data?: unknown;
+};
+
+function resultSpineOnly(data: unknown): boolean {
+  return Boolean(
+    data
+    && typeof data === 'object'
+    && !Array.isArray(data)
+    && (data as { spineOnly?: unknown }).spineOnly === true,
+  );
+}
+
+export function isSpineOnlyReorganizeResult(results: ActionResultLite[]): boolean {
   return results.some(
     (result) =>
       result.type === 'document.reorganize.propose'
       && result.status === 'success'
-      && result.data?.spineOnly === true,
+      && resultSpineOnly(result.data),
   );
 }
 
 export function shouldRunReorganizePlacementFollowUp(params: {
   isLead: boolean;
-  actionResults: Array<{ type?: string; status?: string; data?: { spineOnly?: boolean } }>;
+  actionResults: ActionResultLite[];
 }): boolean {
   return params.isLead && isSpineOnlyReorganizeResult(params.actionResults);
 }
