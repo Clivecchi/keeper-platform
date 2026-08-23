@@ -38,6 +38,7 @@ import {
   resolveTalkingInWorkingOn,
   parseKeeperStage,
   coerceDocumentReorganizePayload,
+  isDocumentReorganizeSpineOnly,
   type KeeperStageComposition,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
@@ -124,8 +125,10 @@ import {
 } from '../../services/kip/pointIntent.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
 import {
+  buildReorganizePlacementFollowUpInput,
   buildReorganizeProposeSystemPrompt,
   detectReorganizeIntent,
+  shouldRunReorganizePlacementFollowUp,
 } from '../../services/kip/documentReorganizeIntent.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import {
@@ -2312,15 +2315,21 @@ export async function executeAgentActions(
               });
               break;
             }
+            const spineOnly = isDocumentReorganizeSpineOnly(stored.proposal);
+            const placedCount = stored.proposal.points.filter((point) => point.change !== 'unchanged').length;
             results.push({
               type: action.type,
               status: 'success',
-              message: 'Proposed Document — open Proposed in Chronicle. Apply when you want it to become truth.',
+              message: spineOnly
+                ? 'Named Sections — Points are still in Open. Chronicle will ask the Lead to place them.'
+                : 'Proposed Document — open Proposed in Chronicle. Apply when you want it to become truth.',
               data: {
                 rationale: stored.proposal.rationale,
                 summary: stored.proposal.rationale || 'Proposed a better form of the Document',
                 proposal: stored.proposal,
                 dialogId: ctx.dialogId,
+                spineOnly,
+                placedCount,
               },
             });
             break;
@@ -7120,6 +7129,87 @@ export class KipAgentService {
               && !(pointObligation?.required === true && !pointObligation.constrained)
             ) {
               finalResponseText = `${finalResponseText}\n\n${pointFollowUpExecution.failedMessage}`;
+            }
+          }
+        }
+
+        if (
+          shouldRunReorganizePlacementFollowUp({
+            isLead: agent.role === 'Lead',
+            actionResults,
+          })
+        ) {
+          options?.onStatus?.('Placing Points into the proposed Document…');
+          options?.onReset?.();
+          const dialogTitle =
+            (options?.environment as { dialogDocument?: { title?: string } } | undefined)
+              ?.dialogDocument?.title;
+          const placeFollowUpInput = buildReorganizePlacementFollowUpInput({
+            agentName: agent.name,
+            dialogTitle,
+            priorResponseText: finalResponseText,
+          });
+          const placeFollowUpResult = await this.callAIModel(
+            agent,
+            placeFollowUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: activeMode,
+              modeConfig: activeModeConfig,
+              lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+              debugSummary,
+              maxChars,
+              outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+              includeFixPlan: activeModeConfig.includeFixPlan,
+              autoBrief: activeModeConfig.autoBrief,
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'reorganize_placement_follow_up',
+              reuseMessages: [
+                ...lastPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastPromptMessages = placeFollowUpResult.messages;
+          const placeFollowUpStructured = await ensureKipAgentOutputEnvelope(placeFollowUpResult.content, {
+            requestId: randomUUID(),
+            userId,
+            allowedActions: Array.from(allowActions),
+          });
+          finalResponseText =
+            placeFollowUpStructured.responseText?.trim()
+            || placeFollowUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !placeFollowUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (placeFollowUpStructured.actions.length) {
+            const placeActionsStartedAt = Date.now();
+            const placeFollowUpExecution = await executeAgentActions(
+              placeFollowUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+                actor: 'lead',
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - placeActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...placeFollowUpExecution.results];
+            if (placeFollowUpExecution.failedMessage) {
+              finalResponseText = `${finalResponseText}\n\n${placeFollowUpExecution.failedMessage}`;
             }
           }
         }

@@ -28,6 +28,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-22 — Empty Sections do not hide the Document
+- When named Sections have no Points and Open still holds the writing, Open renders first and empty Sections start collapsed.
+
 ### 2026-08-22 — Review & Reorganize marks
 - `DocumentShell` / `PointView` can show in-place proposal marks (New, Refined, Moved from…, Merged, Retire) with original wording on refine/merge. Not a mutation-list UI.
 

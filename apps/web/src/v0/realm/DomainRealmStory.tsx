@@ -10,6 +10,7 @@ import type {
 import {
   buildGlossThreadKey,
   composeProposedDocument,
+  isDocumentReorganizeSpineOnly,
   parseDocumentPathDeclarations,
   parseDraftPoints,
   parseGlossThreads,
@@ -717,6 +718,24 @@ export function DomainRealmStory({
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {reorganizeProposal.rationale}
+        </p>
+      ) : null}
+      {panelMode === "document"
+      && (
+        (reorganizeProposal && isDocumentReorganizeSpineOnly(reorganizeProposal))
+        || (
+          documentMeta.paths.length > 0
+          && storyEntries.length > 0
+          && paths.every((path) => path.pointIds.length === 0)
+        )
+      ) ? (
+        <p
+          className="px-4 pt-3 text-[13px] leading-[1.55]"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
+        >
+          {reorganizeProposal
+            ? "These Sections are a spine. The Points are still in Open — they have not been placed yet. Ask Kip to place the existing Points into the Sections."
+            : "These Sections are empty. The writing is in Open below. Ask Kip to review and place the existing Points into the Sections."}
         </p>
       ) : null}
       {body}

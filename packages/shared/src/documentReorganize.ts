@@ -535,6 +535,14 @@ export function reorganizeChangeLabel(kind: ReorganizeChangeKind): string {
   }
 }
 
+/** True when the Lead named Sections but did not place, refine, or retire any Point. */
+export function isDocumentReorganizeSpineOnly(proposal: DocumentReorganizeProposal): boolean {
+  return (
+    proposal.sections.length > 0
+    && proposal.points.every((point) => point.change === 'unchanged')
+  );
+}
+
 export function readReorganizeProposalFromSpec(spec: unknown): DocumentReorganizeProposal | null {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return null;
   return parseDocumentReorganizeProposal(

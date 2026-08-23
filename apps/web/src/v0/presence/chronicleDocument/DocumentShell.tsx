@@ -424,6 +424,16 @@ function buildGroups(points: Point[], paths?: DocumentPathGroup[]): ShellGroup[]
     .filter((row) => !used.has(row.index))
   groups.push(openSectionGroup(leftovers))
 
+  const authored = groups.filter((group) => group.weight === "authored")
+  const open = groups.filter((group) => group.weight === "open")
+  if (
+    authored.length > 0
+    && authored.every((group) => group.items.length === 0)
+    && open.some((group) => group.items.length > 0)
+  ) {
+    return [...open, ...authored]
+  }
+
   return groups
 }
 
@@ -844,7 +854,7 @@ export function DocumentShell({
       const next = { ...prev }
       for (const group of groups) {
         if (next[group.key] !== undefined) continue
-        next[group.key] = true
+        next[group.key] = group.items.length > 0
       }
       return next
     })
@@ -955,7 +965,9 @@ export function DocumentShell({
       <div className="document-shell-paths flex flex-col gap-0 px-4 pb-4 pt-1">
         {groups.map((group, groupIndex) => {
           const accent = group.weight
-          const expanded = expandedPaths[group.key] !== false
+          const expanded = group.items.length > 0
+            ? expandedPaths[group.key] !== false
+            : expandedPaths[group.key] === true
           const sectionId = group.weight === "open" ? null : group.path?.id ?? null
           const sectionPointIds = group.items
             .map(({ index }) => pointIds?.[index])

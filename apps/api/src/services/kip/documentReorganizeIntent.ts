@@ -21,6 +21,46 @@ export function detectReorganizeIntent(userInput: string): ReorganizeIntentKind 
   return REORGANIZE_PATTERNS.some((pattern) => pattern.test(text)) ? 'required' : 'none';
 }
 
+export function isSpineOnlyReorganizeResult(results: Array<{
+  type?: string;
+  status?: string;
+  data?: { spineOnly?: boolean };
+}>): boolean {
+  return results.some(
+    (result) =>
+      result.type === 'document.reorganize.propose'
+      && result.status === 'success'
+      && result.data?.spineOnly === true,
+  );
+}
+
+export function shouldRunReorganizePlacementFollowUp(params: {
+  isLead: boolean;
+  actionResults: Array<{ type?: string; status?: string; data?: { spineOnly?: boolean } }>;
+}): boolean {
+  return params.isLead && isSpineOnlyReorganizeResult(params.actionResults);
+}
+
+export function buildReorganizePlacementFollowUpInput(params: {
+  agentName: string;
+  dialogTitle?: string;
+  priorResponseText: string;
+}): string {
+  const named = params.dialogTitle?.trim() ? ` "${params.dialogTitle.trim()}"` : '';
+  return [
+    `[Review & Reorganize incomplete — reply as ${params.agentName}.]`,
+    '',
+    `You named Sections for${named} but did not place any Points. Chronicle cannot show a better Document from headers alone.`,
+    'Emit document.reorganize.propose again now.',
+    'Keep the same Sections.',
+    'Place every existing Point that belongs in a named Section: { id: "<number or title from DIALOG DOCUMENT>", sectionId: "<Section title>", change: "move" }.',
+    'You may refine wording (change: refine) or retire a Point (change: retire).',
+    'Do not invent UUIDs. Do not only send Sections. Do not essay a mutation list.',
+    '',
+    `Your prior message: "${params.priorResponseText.trim().slice(0, 600)}"`,
+  ].join('\n');
+}
+
 export function buildReorganizeProposeSystemPrompt(dialogTitle?: string): string {
   const named = dialogTitle?.trim() ? ` "${dialogTitle.trim()}"` : '';
   return [

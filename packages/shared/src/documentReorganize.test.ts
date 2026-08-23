@@ -3,6 +3,7 @@ import { createDraftPoint } from './draftPoints.js';
 import {
   applyReorganizeToPoints,
   composeProposedDocument,
+  isDocumentReorganizeSpineOnly,
   normalizeDocumentReorganizeProposal,
   parseDocumentReorganizeProposal,
 } from './documentReorganize.js';
@@ -116,6 +117,7 @@ describe('normalizeDocumentReorganizeProposal', () => {
     ]);
     expect(result.proposal.points).toHaveLength(2);
     expect(result.proposal.points.every((point) => point.change === 'unchanged')).toBe(true);
+    expect(isDocumentReorganizeSpineOnly(result.proposal)).toBe(true);
   });
 
   it('lifts Points nested under Sections by title', () => {
