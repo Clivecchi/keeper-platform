@@ -266,3 +266,61 @@ export function buildLibraryGlossAnchor(libraryItemId: string): GlossAnchor {
     nodeId: 'card',
   };
 }
+
+const SECTION_INTRO_MAX_CHARS = 160;
+
+/**
+ * High-level Section intro. Authored prelude wins.
+ * Otherwise Keeper derives a short spine from Point titles — not a mutation list.
+ */
+export function resolveSectionIntro(input: {
+  prelude?: string | null;
+  pointTitles: string[];
+  maxChars?: number;
+}): string | null {
+  const authored = input.prelude?.trim();
+  if (authored) return authored;
+
+  const titles = input.pointTitles
+    .map((title) => title.trim())
+    .filter((title) => title.length > 0);
+  if (titles.length === 0) return null;
+
+  const max = input.maxChars ?? SECTION_INTRO_MAX_CHARS;
+  let out = titles[0] ?? '';
+  for (let i = 1; i < titles.length; i += 1) {
+    const next = `${out} · ${titles[i]}`;
+    if (next.length > max) break;
+    out = next;
+  }
+  if (out.length > max) {
+    return `${out.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
+  }
+  return out;
+}
+
+export type SectionChangeCue = {
+  kind: 'new' | 'refine' | 'move' | 'merge' | 'retire';
+  count: number;
+};
+
+/** Compact Proposed-view cues for a Section — counts only, not a change manager. */
+export function resolveSectionChangeCues(
+  kinds: Array<'unchanged' | 'new' | 'refine' | 'move' | 'merge' | 'retire' | undefined>,
+): SectionChangeCue[] {
+  const counts: Record<SectionChangeCue['kind'], number> = {
+    new: 0,
+    refine: 0,
+    move: 0,
+    merge: 0,
+    retire: 0,
+  };
+  for (const kind of kinds) {
+    if (!kind || kind === 'unchanged') continue;
+    counts[kind] += 1;
+  }
+  const order: SectionChangeCue['kind'][] = ['new', 'refine', 'move', 'merge', 'retire'];
+  return order
+    .filter((kind) => counts[kind] > 0)
+    .map((kind) => ({ kind, count: counts[kind] }));
+}

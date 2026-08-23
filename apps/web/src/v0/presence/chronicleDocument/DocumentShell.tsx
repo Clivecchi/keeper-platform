@@ -14,7 +14,11 @@ import type {
 import {
   buildGlossThreadKey,
   DOCUMENT_OPEN_SECTION,
+  reorganizeChangeLabel,
   resolveDocumentForward,
+  resolveSectionChangeCues,
+  resolveSectionIntro,
+  type SectionChangeCue,
 } from "@keeper/shared"
 import { PointView, type PointAuthoringProps } from "./PointView"
 import { DocumentPointGloss } from "./DocumentPointGloss"
@@ -150,25 +154,38 @@ function sectionAccentColor(weight: DocumentSectionWeight): string {
   return "hsl(var(--theme-accent-primary))"
 }
 
+function sectionCueLabel(cue: SectionChangeCue): string {
+  const label = reorganizeChangeLabel(cue.kind)
+  if (!label) return `${cue.count}`
+  return cue.count === 1 ? label : `${cue.count} ${label}`
+}
+
 function SectionHeader({
   title,
   prelude,
+  intro,
   imageUrl,
   count,
+  cues,
   weight,
   expanded,
   onToggle,
 }: {
   title?: string
   prelude?: string
+  /** Derived spine when there is no authored prelude. Shown while collapsed. */
+  intro?: string | null
   imageUrl?: string
   count: number
+  cues?: SectionChangeCue[]
   weight: DocumentSectionWeight
   expanded: boolean
   onToggle: () => void
 }) {
-  if (!title && !prelude && !imageUrl && count === 0) return null
+  if (!title && !prelude && !intro && !imageUrl && count === 0) return null
   const accentColor = sectionAccentColor(weight)
+  const collapsedIntro = !expanded ? (prelude?.trim() || intro?.trim() || null) : null
+  const expandedPrelude = expanded ? prelude?.trim() || null : null
   return (
     <header className="document-shell-path__header px-1 pb-2 pt-1">
       {imageUrl?.trim() ? (
@@ -210,7 +227,7 @@ function SectionHeader({
           />
           {title ? (
             <h3
-              className="truncate text-[14px] font-semibold tracking-[0.04em]"
+              className="truncate text-[18px] font-semibold tracking-[0.02em]"
               style={{
                 color: accentColor,
                 fontFamily: "var(--theme-font-display, 'Cormorant Garamond', Georgia, serif)",
@@ -220,17 +237,38 @@ function SectionHeader({
             </h3>
           ) : null}
         </div>
-        {count > 0 ? (
-          <span
-            className="shrink-0 text-[13px] font-medium tabular-nums"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            aria-label={`${count} points`}
-          >
-            {count}
-          </span>
-        ) : null}
+        <div className="flex shrink-0 items-baseline gap-2">
+          {count > 0 ? (
+            <span
+              className="text-[13px] font-medium tabular-nums"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              aria-label={`${count} points`}
+            >
+              {count} {count === 1 ? "Point" : "Points"}
+            </span>
+          ) : null}
+        </div>
       </button>
-      {expanded && prelude ? (
+      {cues && cues.length > 0 ? (
+        <p
+          className="mt-1 pl-7 text-[12px] font-medium"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          {cues.map((cue) => sectionCueLabel(cue)).join(" · ")}
+        </p>
+      ) : null}
+      {collapsedIntro ? (
+        <p
+          className="mt-1 pl-7 text-[14px] leading-[1.55]"
+          style={{
+            color: "hsl(var(--theme-ink-secondary))",
+            fontFamily: "var(--theme-font-ui, inherit)",
+          }}
+        >
+          {collapsedIntro}
+        </p>
+      ) : null}
+      {expandedPrelude ? (
         <p
           className="mt-1.5 pl-7 text-[15px] leading-[1.65]"
           style={{
@@ -238,7 +276,7 @@ function SectionHeader({
             fontFamily: "var(--theme-font-ui, inherit)",
           }}
         >
-          {prelude}
+          {expandedPrelude}
         </p>
       ) : null}
     </header>
@@ -991,6 +1029,13 @@ export function DocumentShell({
                       : group.path.title
                   }
                   prelude={group.path.prelude}
+                  intro={resolveSectionIntro({
+                    prelude: group.path.prelude,
+                    pointTitles: group.items.map(({ point }) => point.title),
+                  })}
+                  cues={resolveSectionChangeCues(
+                    sectionPointIds.map((id) => proposalMarks?.[id]?.kind),
+                  )}
                   imageUrl={group.path.imageUrl}
                   count={group.items.length}
                   weight={group.weight}
