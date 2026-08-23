@@ -241,6 +241,37 @@ const treatmentProposePayloadSchema = z.object({
 
 export type TreatmentProposeAction = z.infer<typeof treatmentProposePayloadSchema> & { type: 'treatment.propose' };
 
+const documentReorganizePointSchema = z.object({
+  id: z.string().min(1).optional(),
+  prelude: z.string().optional(),
+  content: z.string().optional().default(''),
+  sectionId: z.string().nullable().optional(),
+  change: z.enum(['unchanged', 'new', 'refine', 'move', 'merge', 'retire']),
+  fromSectionId: z.string().nullable().optional(),
+  originalPrelude: z.string().optional(),
+  originalContent: z.string().optional(),
+  replacesPointIds: z.array(z.string().min(1)).optional(),
+});
+
+const documentReorganizeProposePayloadSchema = z.object({
+  rationale: z.string().optional(),
+  sections: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        title: z.string().min(1),
+        prelude: z.string().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
+  points: z.array(documentReorganizePointSchema).min(1),
+});
+
+export type DocumentReorganizeProposeAction = z.infer<
+  typeof documentReorganizeProposePayloadSchema
+> & { type: 'document.reorganize.propose' };
+
 /**
  * Web search action payload schema
  */
@@ -293,6 +324,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'keeper.read': keeperReadPayloadSchema,
   'image.generate': imageGeneratePayloadSchema,
   'treatment.propose': treatmentProposePayloadSchema,
+  'document.reorganize.propose': documentReorganizeProposePayloadSchema,
   'web.search': webSearchPayloadSchema,
   'mcp.call': mcpCallPayloadSchema,
   'delegate.consult': delegateConsultPayloadSchema,

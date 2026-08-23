@@ -11,6 +11,8 @@
  *   GET    /kip/dialogs/:dialogId   — get a single Dialog with its sessions
  *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Sections + manuscripts + components)
  *   PATCH  /kip/dialogs/:dialogId/document — author title, Forward, stage, Sections
+ *   POST   /kip/dialogs/:dialogId/document/reorganize/apply — Apply a stored Review & Reorganize proposal
+ *   POST   /kip/dialogs/:dialogId/document/reorganize/dismiss — drop a stored proposal without writing the Document
  *   POST   /kip/dialogs/:dialogId/document/points — author add Point
  *   PATCH  /kip/dialogs/:dialogId/document/points/order — author reorder Points
  *   PATCH  /kip/dialogs/:dialogId/document/points/:pointId — author update Point
@@ -52,6 +54,10 @@ import {
 } from '../../services/domains/dialogCastMembership.js';
 import { listChronicleEventsForDialog } from '../../services/kip/chronicleEvents.js';
 import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDocumentForChronicle.js';
+import {
+  applyDocumentReorganizeProposal,
+  dismissDocumentReorganizeProposal,
+} from '../../services/kip/documentReorganizeStore.js';
 import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
 import { buildDomainNavIndex } from '../../services/kip/buildDomainNavIndex.js';
 import { registerDialogDocumentComponent } from '../../services/kip/registerDialogDocumentComponent.js';
@@ -615,6 +621,50 @@ router.patch(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] author document failed');
       return res.status(500).json({ error: 'FAILED_TO_UPDATE_DOCUMENT' });
+    }
+  },
+);
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/document/reorganize/apply',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      }
+      const result = await applyDocumentReorganizeProposal({ domainId, dialogId });
+      if (result.ok === false) {
+        return res.status(result.status).json({ error: result.error, message: result.message });
+      }
+      return res.json({ ok: true, applied: true });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] reorganize apply failed');
+      return res.status(500).json({ error: 'FAILED_TO_APPLY_REORGANIZE' });
+    }
+  },
+);
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/document/reorganize/dismiss',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED' });
+      }
+      const result = await dismissDocumentReorganizeProposal({ domainId, dialogId });
+      if (result.ok === false) {
+        return res.status(result.status).json({ error: result.error, message: result.message });
+      }
+      return res.json({ ok: true, dismissed: true });
+    } catch (error) {
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] reorganize dismiss failed');
+      return res.status(500).json({ error: 'FAILED_TO_DISMISS_REORGANIZE' });
     }
   },
 );

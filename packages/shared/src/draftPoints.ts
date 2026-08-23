@@ -81,6 +81,8 @@ export interface DraftSpecJson {
   /** @deprecated Present only on read when legacy rows not yet backfilled. */
   sections?: DraftSection[];
   points?: DraftPoint[];
+  /** Lead Review & Reorganize — stored, never applied until the human Applies. */
+  reorganizeProposal?: unknown;
 }
 
 const DEFAULT_DRAFT_POINT_TYPE: DraftPointType = 'general';
@@ -319,6 +321,10 @@ export function normalizeDraftSpecJson(spec: unknown): DraftSpecJson {
   // Read compat: expose deprecated sections until backfill completes everywhere.
   if (legacySections.length > 0) {
     result.sections = legacySections;
+  }
+
+  if (spec.reorganizeProposal !== undefined) {
+    result.reorganizeProposal = spec.reorganizeProposal;
   }
 
   return result;

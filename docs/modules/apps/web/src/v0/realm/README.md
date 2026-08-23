@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-22 — Review & Reorganize in Chronicle
+- When a Lead proposal exists, Chronicle tabs become Current · Proposed · Changes · History. Proposed is the Document as it could become. Changes hides unchanged Points. Apply writes the stored proposal; Dismiss drops it.
+
 ### 2026-08-22 — Literally inline Document
 - Title save is explicit (`onTitleSave`). Forward and Points edit in place in `DocumentShell`.
 

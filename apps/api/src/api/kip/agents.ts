@@ -121,6 +121,11 @@ import {
   shouldRunPointObligationFollowUp,
   type PointTurnObligation,
 } from '../../services/kip/pointIntent.js';
+import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
+import {
+  buildReorganizeProposeSystemPrompt,
+  detectReorganizeIntent,
+} from '../../services/kip/documentReorganizeIntent.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import {
   buildCastConsultationsSynthesisPrompt,
@@ -297,10 +302,14 @@ function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unk
     '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
   const acceptPoints =
     '- Do not emit draft.point.accept yourself unless you have exact draftId + pointId from a prior success receipt. Journey Accept is a human UI action. document_manuscript adds are already accepted by draft.update.propose.';
+  const reorganizeDocument =
+    agent.role === 'Lead' || agent.role === 'System'
+      ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Do not silently rewrite accepted Points with draft.point.rewrite. Chronicle shows Current vs Proposed; the human Applies.'
+      : '';
   if (isOperationalDraftAgent(agent)) {
-    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
+    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
   }
-  return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}`;
+  return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}`.trim();
 }
 
 /**
@@ -2245,6 +2254,74 @@ export async function executeAgentActions(
                 rationale: rationale || summary,
                 summary,
                 proposal,
+              },
+            });
+            break;
+          }
+          case 'document.reorganize.propose': {
+            const payload =
+              action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+                ? (action.payload as Record<string, unknown>)
+                : {};
+            if (!ctx.domainId || !ctx.userId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Review & Reorganize needs a domain session.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (!ctx.dialogId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Talk in a Dialog first — Review & Reorganize proposes a Document, not a mutation list.',
+                errorCode: 'NO_DIALOG',
+              });
+              break;
+            }
+            const agentRow = ctx.agentId
+              ? await tx.kip_agents.findUnique({
+                  where: { id: ctx.agentId },
+                  select: { role: true, name: true },
+                })
+              : null;
+            if (agentRow && agentRow.role !== 'Lead' && agentRow.role !== 'System') {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Review & Reorganize belongs to the Lead. Cast may advise; the Lead proposes.',
+                errorCode: 'LEAD_ONLY',
+              });
+              break;
+            }
+            const stored = await storeDocumentReorganizeProposal({
+              domainId: ctx.domainId,
+              dialogId: ctx.dialogId,
+              userId: ctx.userId,
+              raw: payload,
+              proposedBy: agentRow?.name?.trim() || 'Lead',
+              db: tx,
+            });
+            if (stored.ok === false) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: stored.message,
+                errorCode: stored.error,
+              });
+              break;
+            }
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: 'Proposed Document — open Proposed in Chronicle. Apply when you want it to become truth.',
+              data: {
+                rationale: stored.proposal.rationale,
+                summary: stored.proposal.rationale || 'Proposed a better form of the Document',
+                proposal: stored.proposal,
+                dialogId: ctx.dialogId,
               },
             });
             break;
@@ -5340,6 +5417,7 @@ export class KipAgentService {
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrites one point in place. Payload: { id, pointId, content, type? }. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead. Cast agents should draft.update.propose with optional referencesPointId instead of overwriting.',
+        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition. Does not change accepted work. Chronicle shows Current vs Proposed. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Use real Point ids. Omit unchanged Points — Keeper fills them in. Never silently rewrite the Document with draft.point.rewrite when the human asked to review or reorganize.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -5649,6 +5727,16 @@ export class KipAgentService {
           }
         }
 
+        if (agent.role === 'Lead' && detectReorganizeIntent(input) === 'required') {
+          const dialogTitle =
+            (environmentContext as { dialogDocument?: { title?: string } } | undefined)
+              ?.dialogDocument?.title;
+          messages.push({
+            role: 'system',
+            content: buildReorganizeProposeSystemPrompt(dialogTitle),
+          });
+        }
+
         // --- Domain contract injection (wires contract rules to Kip) ---
         const suppressKipPrompt =
           (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
@@ -5794,6 +5882,7 @@ export class KipAgentService {
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
             'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
+            'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Use real Point ids. Omit unchanged Points.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',

@@ -15,9 +15,11 @@ export const DEFAULT_KEEPER_DENSITY: KeeperDensity = "comfortable"
 const listeners = new Set<() => void>()
 
 export function parseKeeperDensity(value: string | null | undefined): KeeperDensity {
-  if (value === "compact" || value === "default" || value === "comfortable") {
-    return value
-  }
+  if (value === "compact") return "compact"
+  if (value === "comfortable") return "comfortable"
+  /* Explicit Larger-type Off. Old leftover "default" is not this. */
+  if (value === "standard") return "default"
+  /* Stored "default" was the old implicit Design Board value — treat as Readable. */
   return DEFAULT_KEEPER_DENSITY
 }
 
@@ -37,7 +39,8 @@ export function readKeeperDensity(): KeeperDensity {
 
 export function writeKeeperDensity(density: KeeperDensity): void {
   try {
-    window.localStorage.setItem(KEEPER_DENSITY_KEY, density)
+    const stored = density === "default" ? "standard" : density
+    window.localStorage.setItem(KEEPER_DENSITY_KEY, stored)
   } catch {
     /* private mode / quota — still apply for this session */
   }

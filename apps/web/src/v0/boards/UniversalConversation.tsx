@@ -1411,6 +1411,10 @@ export function UniversalConversation({
             actions.bumpDraftPresence()
             return
           }
+          if (receipt.type === "document.reorganize.propose") {
+            actions.bumpDraftPresence()
+            return
+          }
 
           const moment = receipt.data?.moment as { id?: string } | undefined
           if (
@@ -1461,6 +1465,10 @@ export function UniversalConversation({
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
+            actions.bumpDraftPresence()
+            return
+          }
+          if (receipt.type === "document.reorganize.propose") {
             actions.bumpDraftPresence()
             return
           }
@@ -1733,6 +1741,7 @@ export function UniversalConversation({
             "draft.update",
             "draft.update.propose",
             "draft.point.rewrite",
+            "document.reorganize.propose",
             "draft.point.accept",
             "draft.delete",
             "draft.setActive",

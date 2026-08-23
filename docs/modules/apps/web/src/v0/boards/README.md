@@ -40,7 +40,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-08-22 — Aging-eyes readability (Readable default)
 - Comfortable density is now the board default (`keeperDensity.ts`). Avatar menu: **Larger type** On/Off.
-- `board-readability.css` enlarges Nav, Dialog, Chronicle Document, and trail chrome; more padding; older messages no longer shrink away.
+- `board-readability.css` is always-on (not gated on density): Dialog/Chronicle body 20px, Nav rows 18px, titles 26px. Old stored `default` upgrades to Readable.
 - Document header drops the redundant "Document" breadcrumb/chip so the title and points can breathe.
 
 ### 2026-08-22 — Composer reach + Keeper Stage

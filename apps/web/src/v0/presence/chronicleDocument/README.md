@@ -28,6 +28,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-22 — Review & Reorganize marks
+- `DocumentShell` / `PointView` can show in-place proposal marks (New, Refined, Moved from…, Merged, Retire) with original wording on refine/merge. Not a mutation-list UI.
+
 ### 2026-08-22 — Aging-eyes Document chrome
 - Document header keeps stage + point/draft counts; drops the repeated "Document" breadcrumb and identity chip.
 - Board readability CSS enlarges title, body, meta, and Point actions.

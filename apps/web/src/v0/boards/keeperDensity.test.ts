@@ -14,9 +14,10 @@ describe("keeperDensity", () => {
     expect(parseKeeperDensity("roomy")).toBe(DEFAULT_KEEPER_DENSITY)
   })
 
-  it("keeps an explicit stored choice", () => {
+  it("keeps compact or comfortable; upgrades leftover default; standard is Off", () => {
     expect(parseKeeperDensity("compact")).toBe("compact")
-    expect(parseKeeperDensity("default")).toBe("default")
+    expect(parseKeeperDensity("default")).toBe("comfortable")
+    expect(parseKeeperDensity("standard")).toBe("default")
     expect(parseKeeperDensity("comfortable")).toBe("comfortable")
   })
 

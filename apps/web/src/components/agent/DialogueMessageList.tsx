@@ -610,6 +610,8 @@ function MessageAttachments({
             const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
             const isTreatmentPropose =
               receipt.type === "treatment.propose" && receipt.status === "success"
+            const isReorganizePropose =
+              receipt.type === "document.reorganize.propose" && receipt.status === "success"
             const proposeData = receipt.data as {
               draftId?: string
               draftTitle?: string
@@ -655,6 +657,26 @@ function MessageAttachments({
                   failed={isProposeError}
                   failureReason={isProposeError ? sanitizeReceiptMessage(receipt.message) : undefined}
                   onOpenDraft={onOpenDraft}
+                />
+              )
+            }
+            if (isReorganizePropose) {
+              const rationale =
+                typeof receipt.data?.rationale === "string" ? receipt.data.rationale : ""
+              return (
+                <ActionReceiptCard
+                  key={idx}
+                  receipt={{
+                    ...receipt,
+                    message:
+                      rationale.trim()
+                      || receipt.message
+                      || "Proposed Document — open Proposed in Chronicle",
+                  }}
+                  glossMessageId={message.id}
+                  glossReceiptIndex={idx}
+                  glossThreads={message.glossThreads}
+                  contextNarrative={message.role === "agent" ? message.content : undefined}
                 />
               )
             }

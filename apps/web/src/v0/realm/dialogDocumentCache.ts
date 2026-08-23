@@ -3,6 +3,7 @@
  */
 
 import type { KipDraft } from "../../lib/kipApi"
+import type { DocumentReorganizeProposal } from "@keeper/shared"
 
 export type CachedDialogDocument = {
   dialogId: string
@@ -12,6 +13,7 @@ export type CachedDialogDocument = {
   step?: { title: string; body: string }
   paths: Array<{ id: string; title: string; prelude?: string }>
   manuscripts: KipDraft[]
+  reorganizeProposal?: DocumentReorganizeProposal
   components?: Array<{
     draftId: string
     title: string

@@ -44,6 +44,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-08-22: **Review & Reorganize Apply** — `POST …/dialogs/:id/document/reorganize/apply` writes the stored Lead proposal. `…/dismiss` drops it. The accepted Document is unchanged until Apply.
 - 2026-08-22: **Keeper Stage** — `GET/PATCH /:domainId/keeper-stage` persists composition on `Domain.settings.keeperStage` (references, not clones).
 - 2026-08-22: **Author result narrowing** — Point author routes use `result.ok === false` so `tsc` can read error status (Railway Docker build).
 - 2026-08-22: **Author Document CRUD** — `PATCH …/dialogs/:id/document` (title, Forward, stage, Sections). Point add/update/reorder/delete on `…/document/points`. Human writes replace manuscript Points (not agent merge).

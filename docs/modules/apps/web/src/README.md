@@ -19,7 +19,7 @@ Defines the root application shell, routing, and shared providers for the Keeper
 
 ## 📆 Update Log
 ### 2026-08-22 - Aging-eyes readability
-- Base `html` font-size 19px → 20px. `board-readability.css` loads after `index.css` from `main.tsx`. Comfortable density is the default (`index.html` bootstrap).
+- Base `html` font-size 19px → 22px. `board-readability.css` loads after `index.css` from `main.tsx`. Reading sizes are always-on (20px body). Comfortable density is the default (`index.html` bootstrap).
 ### 2026-05-26 - Dialog glass + global type scale
 - Base `html` font-size increased from **17px to 19px** (~12%) in `index.css`
 - Dialog panel frosted glass: warm semi-transparent surfaces + backdrop blur on frame, message zone, banner, composer

@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import type { Point, PointCastNote } from "@keeper/shared"
+import type { Point, PointCastNote, PointProposalMark } from "@keeper/shared"
+import { reorganizeChangeLabel } from "@keeper/shared"
 import { AuthorSaveBar, InlinePointFields } from "./ChronicleAuthorControls"
 
 export interface PointViewProps {
@@ -34,6 +35,8 @@ export interface PointViewProps {
   glossMessageCount?: number
   /** Author mode — Edit expands this Point in place. */
   authoring?: PointAuthoringProps | null
+  /** In-place Review & Reorganize mark — explains itself where the Point lives. */
+  proposalMark?: PointProposalMark
 }
 
 export type PointAuthoringProps = {
@@ -149,6 +152,7 @@ export function PointView({
   hasGlossThread = false,
   glossMessageCount,
   authoring = null,
+  proposalMark,
 }: PointViewProps) {
   const card = point ?? document
   if (!card) return null
@@ -218,12 +222,16 @@ export function PointView({
 
   const editing = Boolean(authoring?.active)
   const showBody = (expanded && !forceCollapsed) || editing
+  const [showOriginal, setShowOriginal] = React.useState(false)
+  const markLabel = proposalMark ? reorganizeChangeLabel(proposalMark.kind) : ""
+  const retire = proposalMark?.kind === "retire"
 
   return (
     <article
       className={[
         "keeper-chronicle-document document-point flex flex-col gap-2.5",
         pressing ? "opacity-90" : "",
+        retire ? "opacity-70" : "",
       ].join(" ")}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -269,6 +277,29 @@ export function PointView({
               title={card.revisedAt}
             >
               {revisedCue}
+            </span>
+          ) : null}
+          {markLabel ? (
+            <span
+              className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+              style={{
+                color: retire
+                  ? "hsl(var(--theme-status-error))"
+                  : "hsl(var(--theme-accent-primary))",
+                background: retire
+                  ? "hsl(var(--theme-status-error) / 0.12)"
+                  : "hsl(var(--theme-accent-primary) / 0.12)",
+              }}
+            >
+              {markLabel}
+            </span>
+          ) : null}
+          {proposalMark?.kind === "move" && proposalMark.fromSectionTitle ? (
+            <span
+              className="text-[11px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Moved from {proposalMark.fromSectionTitle}
             </span>
           ) : null}
           {hasGlossThread ? (
@@ -353,6 +384,33 @@ export function PointView({
           ) : null}
         </>
       )}
+
+      {proposalMark?.replacesTitles && proposalMark.replacesTitles.length > 0 ? (
+        <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Merges {proposalMark.replacesTitles.join(" · ")}
+        </p>
+      ) : null}
+      {proposalMark && (proposalMark.originalBody || proposalMark.originalTitle) &&
+      (proposalMark.kind === "refine" || proposalMark.kind === "merge") ? (
+        <div>
+          <button
+            type="button"
+            className="text-[12px] font-medium underline-offset-2 hover:underline"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            onClick={() => setShowOriginal((open) => !open)}
+          >
+            {showOriginal ? "Hide original" : "Show original"}
+          </button>
+          {showOriginal ? (
+            <p
+              className="mt-1.5 text-[14px] leading-[1.6] whitespace-pre-wrap"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              {[proposalMark.originalTitle, proposalMark.originalBody].filter(Boolean).join("\n\n")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {castOpen && castNotes.length > 0 ? <CastNotesPanel notes={castNotes} /> : null}
 

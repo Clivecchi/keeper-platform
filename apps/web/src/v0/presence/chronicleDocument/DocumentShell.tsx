@@ -9,6 +9,7 @@ import type {
   DocumentSectionWeight,
   DocumentStep,
   Point,
+  PointProposalMark,
 } from "@keeper/shared"
 import {
   buildGlossThreadKey,
@@ -118,6 +119,8 @@ export interface DocumentShellProps {
   emptyState?: React.ReactNode
   onBringInWriting?: () => void
   className?: string
+  /** In-place Review & Reorganize marks (Proposed / Changes). */
+  proposalMarks?: Record<string, PointProposalMark>
 }
 
 function isPointAccepted(
@@ -253,6 +256,7 @@ function PointFrame({
   accent,
   glossThread,
   authoring,
+  proposalMark,
 }: {
   point: Point
   pointId?: string
@@ -264,6 +268,7 @@ function PointFrame({
   accent: DocumentSectionWeight
   glossThread?: DocumentGlossThreadInfo | null
   authoring?: PointAuthoringProps | null
+  proposalMark?: PointProposalMark
 }) {
   const [glossOpen, setGlossOpen] = React.useState(false)
   const canInlineGloss = Boolean(glossContext && point.gloss?.anchor)
@@ -343,12 +348,13 @@ function PointFrame({
               : undefined
           }
           isAccepting={isAccepting}
-          defaultExpanded={false}
+          defaultExpanded={Boolean(proposalMark)}
           forceCollapsed={glossOpen}
           glossActive={glossOpen}
           hasGlossThread={Boolean(glossThread && glossThread.messageCount > 0)}
           glossMessageCount={glossThread?.messageCount}
           authoring={authoring}
+          proposalMark={proposalMark}
         />
         {glossOpen && glossContext && point.gloss?.anchor ? (
           <DocumentPointGloss
@@ -763,6 +769,7 @@ export function DocumentShell({
   onBringInWriting,
   authoring,
   className,
+  proposalMarks,
 }: DocumentShellProps) {
   const [query, setQuery] = React.useState("")
   const [searchOpen, setSearchOpen] = React.useState(false)
@@ -1078,6 +1085,7 @@ export function DocumentShell({
                       acceptingPointId={acceptingPointId}
                       acceptedPointIds={acceptedPointIds}
                       authoring={pointAuthoring}
+                      proposalMark={pointId ? proposalMarks?.[pointId] : undefined}
                       onGloss={
                         onGlossPoint && point.gloss?.anchor
                           ? () => onGlossPoint(point, index)

@@ -15,6 +15,7 @@ import {
   type DraftPointType,
   type DraftSpecJson,
   type ChronicleEventListResponse,
+  type DocumentReorganizeProposal,
 } from '@keeper/shared';
 
 export type {
@@ -1286,6 +1287,7 @@ export class KipApi {
     step?: { title: string; body: string };
     paths: Array<{ id: string; title: string; prelude?: string }>;
     manuscripts: KipDraft[];
+    reorganizeProposal?: DocumentReorganizeProposal;
     components: Array<{
       draftId: string;
       title: string;
@@ -1325,6 +1327,11 @@ export class KipApi {
           spec: normalizeDraftSpecJson(draft.spec),
         };
       }),
+      ...(document.reorganizeProposal && typeof document.reorganizeProposal === 'object'
+        ? {
+            reorganizeProposal: document.reorganizeProposal as DocumentReorganizeProposal,
+          }
+        : {}),
       components: componentsRaw
         .filter((row): row is Record<string, unknown> =>
           Boolean(row) && typeof row === 'object' && !Array.isArray(row),
@@ -1342,6 +1349,20 @@ export class KipApi {
         }))
         .filter((row) => row.draftId.length > 0),
     };
+  }
+
+  static async applyDocumentReorganize(domainId: string, dialogId: string): Promise<void> {
+    await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document/reorganize/apply`,
+      { method: 'POST', body: JSON.stringify({}) },
+    );
+  }
+
+  static async dismissDocumentReorganize(domainId: string, dialogId: string): Promise<void> {
+    await apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}/document/reorganize/dismiss`,
+      { method: 'POST', body: JSON.stringify({}) },
+    );
   }
 
   static async updateDialogDocument(

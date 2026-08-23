@@ -4,12 +4,16 @@ import * as React from "react"
 import type {
   DocumentForward,
   DocumentPathDeclaration,
+  DocumentReorganizeProposal,
   DocumentStep,
 } from "@keeper/shared"
 import {
   buildGlossThreadKey,
+  composeProposedDocument,
   parseDocumentPathDeclarations,
+  parseDraftPoints,
   parseGlossThreads,
+  readReorganizeProposalFromSpec,
   resolveChroniclePanelBody,
   resolveDocumentForward,
 } from "@keeper/shared"
@@ -38,7 +42,7 @@ import {
   loadDialogDocumentCached,
 } from "./dialogDocumentCache"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
-import { KipApi } from "../../lib/kipApi"
+import { KipApi, type KipDraft } from "../../lib/kipApi"
 import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
 import { ChronicleHistoryPanel } from "../presence/chronicleDocument/ChronicleHistoryPanel"
 
@@ -159,6 +163,14 @@ export function DomainRealmStory({
   const [documentLoading, setDocumentLoading] = React.useState(false)
   /** Bumps when Document Gloss rewrites a Point so Chronicle reloads past cache. */
   const [documentEpoch, setDocumentEpoch] = React.useState(0)
+  const [reorganizeProposal, setReorganizeProposal] =
+    React.useState<DocumentReorganizeProposal | null>(null)
+  const [manuscriptDraft, setManuscriptDraft] = React.useState<KipDraft | null>(null)
+  const [documentView, setDocumentView] = React.useState<"current" | "proposed" | "changes">(
+    "proposed",
+  )
+  const [reorganizeBusy, setReorganizeBusy] = React.useState(false)
+  const [reorganizeError, setReorganizeError] = React.useState<string | null>(null)
   const [glossThreadsByKey, setGlossThreadsByKey] = React.useState<
     ReadonlyMap<string, DocumentGlossThreadInfo>
   >(() => new Map())
@@ -236,6 +248,8 @@ export function DomainRealmStory({
     if (scope.status !== "dialog" || !scope.dialogId || !domainId) {
       setDocumentMeta({ paths: [], components: [] })
       setManuscriptEntries([])
+      setReorganizeProposal(null)
+      setManuscriptDraft(null)
       setDocumentLoading(false)
       return
     }
@@ -268,10 +282,21 @@ export function DomainRealmStory({
           manuscriptPointsToRealmNavEntries(manuscript, dialogId, pathTitles),
         )
         setManuscriptEntries(expanded)
+        const firstManuscript = document.manuscripts[0] ?? null
+        setManuscriptDraft(firstManuscript)
+        const proposal =
+          document.reorganizeProposal
+          ?? readReorganizeProposalFromSpec(firstManuscript?.spec)
+          ?? null
+        setReorganizeProposal(proposal)
+        if (proposal) setDocumentView((view) => (view === "current" ? view : "proposed"))
+        setReorganizeError(null)
       } catch {
         if (!cancelled) {
           setDocumentMeta({ paths: [], components: [] })
           setManuscriptEntries([])
+          setReorganizeProposal(null)
+          setManuscriptDraft(null)
         }
       } finally {
         if (!cancelled) setDocumentLoading(false)
@@ -296,12 +321,46 @@ export function DomainRealmStory({
     ].filter((entry) => entry.kind !== "draft")
   }, [byDialog, scope])
 
-  const storyEntries = React.useMemo(() => {
+  const composedProposal = React.useMemo(() => {
+    if (!reorganizeProposal || !manuscriptDraft) return null
+    return composeProposedDocument({
+      currentPoints: parseDraftPoints(manuscriptDraft.spec),
+      currentSections: documentMeta.paths,
+      proposal: reorganizeProposal,
+    })
+  }, [reorganizeProposal, manuscriptDraft, documentMeta.paths])
+
+  const proposedEntries = React.useMemo(() => {
+    if (!composedProposal || !manuscriptDraft || scope.status !== "dialog") {
+      return [] as RealmNavEntry[]
+    }
+    const pathTitles = new Map(
+      composedProposal.sections.map((path) => [path.id, path.title] as const),
+    )
+    return manuscriptPointsToRealmNavEntries(
+      { ...manuscriptDraft, spec: { points: composedProposal.points } },
+      scope.dialogId,
+      pathTitles,
+    )
+  }, [composedProposal, manuscriptDraft, scope])
+
+  const currentStoryEntries = React.useMemo(() => {
     if (manuscriptEntries.length > 0) {
       return [...manuscriptEntries, ...legacyEntries]
     }
     return legacyEntries
   }, [manuscriptEntries, legacyEntries])
+
+  const showingProposal =
+    Boolean(composedProposal) && (documentView === "proposed" || documentView === "changes")
+
+  const storyEntries = React.useMemo(() => {
+    if (!showingProposal) return currentStoryEntries
+    if (documentView === "changes") {
+      return proposedEntries.filter((entry) => Boolean(composedProposal?.marks[entry.id]))
+    }
+    return proposedEntries
+  }, [showingProposal, currentStoryEntries, proposedEntries, documentView, composedProposal])
 
   const points = React.useMemo(
     () => storyEntries.map((entry) => entry.point),
@@ -309,8 +368,12 @@ export function DomainRealmStory({
   )
 
   const paths = React.useMemo(
-    () => buildDocumentPaths(documentMeta.paths, storyEntries),
-    [documentMeta.paths, storyEntries],
+    () =>
+      buildDocumentPaths(
+        showingProposal && composedProposal ? composedProposal.sections : documentMeta.paths,
+        storyEntries,
+      ),
+    [documentMeta.paths, storyEntries, showingProposal, composedProposal],
   )
 
   const handleGlossPoint = React.useCallback(
@@ -447,8 +510,9 @@ export function DomainRealmStory({
         className="domain-realm-story"
         forward={resolvedForward}
         step={scope.status === "dialog" ? documentMeta.step : undefined}
+        proposalMarks={showingProposal ? composedProposal?.marks : undefined}
         authoring={
-          scope.status === "dialog"
+          scope.status === "dialog" && !showingProposal
             ? {
                 enabled: authoring.editing,
                 busy: authoring.busy,
@@ -511,11 +575,11 @@ export function DomainRealmStory({
         <DocumentHeader
           title={documentTitle}
           status={documentMeta.status}
-          pointCount={points.length}
+          pointCount={showingProposal ? proposedEntries.length : currentStoryEntries.length}
           componentCount={documentComponents.length}
           editing={authoring.editing}
           busy={authoring.busy}
-          onToggleEdit={domainId ? authoring.toggleEdit : undefined}
+          onToggleEdit={domainId && !showingProposal ? authoring.toggleEdit : undefined}
           onTitleSave={authoring.saveTitle}
           onCycleStatus={authoring.cycleStatus}
           onFocusSections={() => {
@@ -529,36 +593,131 @@ export function DomainRealmStory({
       ) : null}
       {scope.status === "dialog" ? (
         <div
-          className="flex shrink-0 gap-4 px-4 pt-3"
-          role="tablist"
-          aria-label="Chronicle view"
+          className="flex shrink-0 flex-wrap items-end justify-between gap-3 px-4 pt-3"
           style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.25)" }}
         >
-          {(["document", "history"] as const).map((mode) => {
-            const selected = panelMode === mode
-            return (
+          <div className="flex gap-4" role="tablist" aria-label="Chronicle view">
+            {(reorganizeProposal
+              ? (["current", "proposed", "changes", "history"] as const)
+              : (["document", "history"] as const)
+            ).map((mode) => {
+              const selected =
+                mode === "history"
+                  ? panelMode === "history"
+                  : panelMode === "document" &&
+                    (mode === "document" ||
+                      mode === documentView ||
+                      (mode === "current" && documentView === "current"))
+              const label =
+                mode === "document"
+                  ? "Document"
+                  : mode === "current"
+                    ? "Current"
+                    : mode === "proposed"
+                      ? "Proposed"
+                      : mode === "changes"
+                        ? "Changes"
+                        : "History"
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => {
+                    if (mode === "history") {
+                      boardCtx?.actions.setChroniclePanelMode("history")
+                      return
+                    }
+                    boardCtx?.actions.setChroniclePanelMode("document")
+                    if (mode === "current" || mode === "proposed" || mode === "changes") {
+                      setDocumentView(mode)
+                    }
+                  }}
+                  className="pb-2 text-[12px] font-semibold capitalize"
+                  style={{
+                    color: selected
+                      ? "hsl(var(--theme-ink-primary))"
+                      : "hsl(var(--theme-ink-tertiary))",
+                    borderBottom: selected
+                      ? "2px solid hsl(var(--theme-ink-primary) / 0.7)"
+                      : "2px solid transparent",
+                    marginBottom: -1,
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          {reorganizeProposal && panelMode === "document" && domainId && scope.dialogId ? (
+            <div className="flex items-center gap-2 pb-2">
               <button
-                key={mode}
                 type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => boardCtx?.actions.setChroniclePanelMode(mode)}
-                className="pb-2 text-[12px] font-semibold capitalize"
-                style={{
-                  color: selected
-                    ? "hsl(var(--theme-ink-primary))"
-                    : "hsl(var(--theme-ink-tertiary))",
-                  borderBottom: selected
-                    ? "2px solid hsl(var(--theme-ink-primary) / 0.7)"
-                    : "2px solid transparent",
-                  marginBottom: -1,
+                disabled={reorganizeBusy}
+                onClick={() => {
+                  const dialogId = scope.dialogId
+                  if (!dialogId) return
+                  setReorganizeBusy(true)
+                  setReorganizeError(null)
+                  void KipApi.applyDocumentReorganize(domainId, dialogId)
+                    .then(() => {
+                      boardCtx?.actions.bumpDraftPresence?.()
+                      refreshDocumentAfterMutation()
+                    })
+                    .catch((error: unknown) => {
+                      setReorganizeError(
+                        error instanceof Error ? error.message : "Could not apply the proposal.",
+                      )
+                    })
+                    .finally(() => setReorganizeBusy(false))
                 }}
+                className="text-[12px] font-semibold"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
               >
-                {mode}
+                {reorganizeBusy ? "Applying…" : "Apply proposal"}
               </button>
-            )
-          })}
+              <button
+                type="button"
+                disabled={reorganizeBusy}
+                onClick={() => {
+                  const dialogId = scope.dialogId
+                  if (!dialogId) return
+                  setReorganizeBusy(true)
+                  setReorganizeError(null)
+                  void KipApi.dismissDocumentReorganize(domainId, dialogId)
+                    .then(() => {
+                      boardCtx?.actions.bumpDraftPresence?.()
+                      refreshDocumentAfterMutation()
+                    })
+                    .catch((error: unknown) => {
+                      setReorganizeError(
+                        error instanceof Error ? error.message : "Could not dismiss the proposal.",
+                      )
+                    })
+                    .finally(() => setReorganizeBusy(false))
+                }}
+                className="text-[12px]"
+                style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : null}
         </div>
+      ) : null}
+      {reorganizeError ? (
+        <p className="px-4 pt-2 text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
+          {reorganizeError}
+        </p>
+      ) : null}
+      {reorganizeProposal?.rationale && panelMode === "document" && showingProposal ? (
+        <p
+          className="px-4 pt-3 text-[13px] leading-[1.55]"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
+        >
+          {reorganizeProposal.rationale}
+        </p>
       ) : null}
       {body}
     </ChronicleTreatmentShell>

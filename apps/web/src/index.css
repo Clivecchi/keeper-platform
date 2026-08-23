@@ -43,8 +43,8 @@ body {
 
 /* Display density — `keeper-density` in localStorage; `data-density` on <html> (see index.html + Design Board banner) */
 html {
-  /* Base body scale — 17 → 19 (May 2026) → 20 (Aug 2026 aging-eyes) */
-  font-size: 20px;
+  /* Base body scale — 17 → 19 (May 2026) → 22 (Aug 2026 aging-eyes) */
+  font-size: 22px;
   --density-scale: 1;
 }
 html[data-density="compact"] {

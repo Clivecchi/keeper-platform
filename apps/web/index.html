@@ -5,7 +5,7 @@
       (function () {
         try {
           var v = localStorage.getItem("keeper-density");
-          var d = v === "compact" || v === "default" || v === "comfortable" ? v : "comfortable";
+          var d = v === "compact" ? "compact" : v === "standard" ? "default" : "comfortable";
           document.documentElement.setAttribute("data-density", d);
         } catch (e) {
           document.documentElement.setAttribute("data-density", "comfortable");

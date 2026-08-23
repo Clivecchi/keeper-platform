@@ -9,8 +9,10 @@ import {
   normalizeDraftSpecJson,
   parseDocumentComponentDeclarations,
   parseDocumentPathDeclarations,
+  readReorganizeProposalFromSpec,
   resolveDocumentForward,
   type DocumentComponentDraft,
+  type DocumentReorganizeProposal,
 } from '@keeper/shared';
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
 
@@ -37,6 +39,8 @@ export type ChronicleDialogDocument = {
   manuscripts: ChronicleManuscriptDraft[];
   /** Non-manuscript drafts explicitly registered on Dialog.document_components. */
   components: DocumentComponentDraft[];
+  /** Lead Review & Reorganize — stored, not yet Applied. */
+  reorganizeProposal?: DocumentReorganizeProposal;
 };
 
 export async function loadDialogDocumentForChronicle(
@@ -171,5 +175,9 @@ export async function loadDialogDocumentForChronicle(
       spec: normalizeDraftSpecJson(row.spec_json),
     })),
     components,
+    ...((): { reorganizeProposal?: DocumentReorganizeProposal } => {
+      const proposal = readReorganizeProposalFromSpec(manuscripts[0]?.spec_json);
+      return proposal ? { reorganizeProposal: proposal } : {};
+    })(),
   };
 }

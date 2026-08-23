@@ -1,176 +1,149 @@
 /*
- * Board readability — aging-eyes default
- * --------------------------------------
- * Comfortable (`data-density="comfortable"`) is the member default.
- * Goal: bigger type, more air, quieter chrome. Fixed px sizes in the
- * board (Tailwind `text-[10px]` etc.) do not follow html font-size,
- * so this file overrides the reading surfaces directly.
+ * Board readability — aging-eyes, always on
+ * -----------------------------------------
+ * These sizes are not gated on data-density. Old Design Board storage of
+ * `keeper-density=default` must not hide the reading scale.
+ * !important beats Tailwind text-[10px] / text-[15px] on the same nodes.
  */
 
-html[data-density="comfortable"] {
-  --density-scale: 1.2;
-}
-
 .keeper-board-scope {
-  --board-read-body: 17px;
-  --board-read-title: 22px;
-  --board-read-meta: 13px;
-  --board-read-label: 12px;
-  --board-read-gap: 10px;
+  --board-read-body: 20px;
+  --board-read-title: 26px;
+  --board-read-meta: 15px;
+  --board-read-label: 14px;
 }
 
-html[data-density="comfortable"] .keeper-board-scope {
-  --board-read-body: 18px;
-  --board-read-title: 24px;
-  --board-read-meta: 14px;
-  --board-read-label: 13px;
-  --board-read-gap: 12px;
-}
-
-/* ─── Nav — scan, don't squint ───────────────────────────────────────────── */
+/* ─── Nav ────────────────────────────────────────────────────────────────── */
 
 .keeper-board-scope .keeper-nav-pane-tabs {
-  gap: 6px;
-  padding: 4px 12px 10px;
+  gap: 8px;
+  padding: 6px 12px 12px;
 }
 
 .keeper-board-scope .keeper-nav-pane-tab {
-  font-size: var(--board-read-label);
+  font-size: 14px !important;
   letter-spacing: 0.04em;
-  padding: 8px 6px 9px;
+  padding: 10px 8px 11px;
 }
 
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card h3,
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card button.text-xl,
 .keeper-board-scope .keeper-nav-panel .keeper-nav-section-title {
-  font-size: 15px !important;
-  letter-spacing: 0.06em;
+  font-size: 16px !important;
+  letter-spacing: 0.05em;
 }
 
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul {
-  margin-top: 0.9rem;
+  margin-top: 1rem;
 }
 
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul li {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul li > button,
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul li > span:not([class*="rounded-full"]) {
-  padding: 11px 12px;
+  padding: 12px 14px;
 }
 
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul button,
 .keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul span:not([class*="rounded-full"]) {
-  font-size: 16px !important;
+  font-size: 18px !important;
   line-height: 1.45;
   font-weight: 500 !important;
 }
 
-/* ─── Dialog — conversation is the reading surface ───────────────────────── */
+/* ─── Dialog ─────────────────────────────────────────────────────────────── */
 
 .keeper-board-scope .kip-message-content {
-  font-size: var(--board-read-body);
-  line-height: 1.7;
-  font-weight: 450;
+  font-size: 20px !important;
+  line-height: 1.7 !important;
+  font-weight: 500;
 }
 
 .keeper-board-scope .kip-message-content .kip-md-h1 {
-  font-size: 24px;
-  margin: 16px 0 8px;
+  font-size: 26px !important;
+  margin: 18px 0 10px;
 }
 
 .keeper-board-scope .kip-message-content .kip-md-h2 {
-  font-size: 20px;
-  margin: 14px 0 6px;
+  font-size: 22px !important;
+  margin: 16px 0 8px;
 }
 
 .keeper-board-scope .kip-message-content .kip-md-h3 {
-  font-size: 15px;
+  font-size: 16px !important;
   letter-spacing: 0.04em;
 }
 
 .keeper-board-scope .kip-message-content .kip-md-p {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
 }
 
 .keeper-board-scope .kip-message-content .kip-md-li {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .keeper-board-scope .dialog-sender-label {
-  font-size: 12px;
-  padding: 0.28rem 0.7rem;
+  font-size: 13px !important;
+  padding: 0.32rem 0.75rem;
 }
 
 .keeper-board-scope .dialog-voice-card__content {
-  font-size: var(--board-read-body);
-  line-height: 1.7;
+  font-size: 20px !important;
+  line-height: 1.7 !important;
 }
 
-.keeper-board-scope .dialog-message-bubble {
-  padding: 4px 0;
+.keeper-board-scope .dialog-coordinate-title {
+  font-size: 24px !important;
 }
 
 .keeper-board-scope .dialog-bottom-zone .keeper-composer-input {
-  font-size: var(--board-read-body);
-  line-height: 1.6;
-  min-height: 116px;
+  font-size: 20px !important;
+  line-height: 1.6 !important;
+  min-height: 124px;
   padding: 16px 18px;
 }
 
-/* Older messages stay readable — atmosphere may recede, type must not vanish */
-html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(3),
-html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(4) {
-  transform: scale(1);
+.keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(3),
+.keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(4),
+.keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(5),
+.keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(6),
+.keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(n+7) {
+  transform: none;
 }
 
-html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(5),
-html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(6) {
-  transform: scale(0.99);
-}
-
-html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(n+7) {
-  transform: scale(0.98);
-}
-
-/* ─── Chronicle Document — title + body first, chrome second ─────────────── */
+/* ─── Chronicle Document ─────────────────────────────────────────────────── */
 
 .keeper-board-scope .cdraft {
-  padding: 0 1.15rem 2rem;
+  padding: 0 1.25rem 2rem;
 }
 
 .keeper-board-scope .cdraft-header {
-  padding: 1.5rem 0 1.25rem;
+  padding: 1.6rem 0 1.35rem;
 }
 
 .keeper-board-scope .cdraft-title {
-  font-size: clamp(1.85rem, 3.4vw, 2.35rem);
+  font-size: clamp(2rem, 3.6vw, 2.5rem) !important;
   line-height: 1.18;
   font-weight: 700;
 }
 
 .keeper-board-scope .cdraft-meta-strip {
-  font-size: var(--board-read-meta);
-  gap: 0.65rem 1rem;
-  margin-top: 1.1rem;
+  font-size: 15px !important;
+  gap: 0.7rem 1.1rem;
+  margin-top: 1.15rem;
 }
 
-.keeper-board-scope .cdraft-status-pill {
-  padding: 0.28rem 0.7rem;
-  font-size: var(--board-read-label);
-  letter-spacing: 0.02em;
-}
-
+.keeper-board-scope .cdraft-status-pill,
 .keeper-board-scope .cdraft-meta-item {
-  font-size: var(--board-read-meta);
-  opacity: 0.92;
+  font-size: 15px !important;
 }
 
 .keeper-board-scope .cdraft-summary-prose,
 .keeper-board-scope .cdraft-opener-text,
 .keeper-board-scope .cdraft-film-focus-body {
-  font-size: 1.08rem;
+  font-size: 1.15rem !important;
   line-height: 1.75;
 }
 
@@ -180,113 +153,103 @@ html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .ke
 .keeper-board-scope .cdraft-film-frame-index,
 .keeper-board-scope .cdraft-moment-frame-index,
 .keeper-board-scope .cdraft-story-arc-index {
-  font-size: var(--board-read-label);
-  letter-spacing: 0.08em;
+  font-size: 14px !important;
+  letter-spacing: 0.06em;
 }
 
 .keeper-board-scope .cdraft-ghost-btn,
 .keeper-board-scope .cdraft-ghost-link,
 .keeper-board-scope .cdraft-manage-btn {
-  font-size: var(--board-read-meta);
-  padding: 0.3rem 0.45rem;
-  opacity: 0.78;
+  font-size: 15px !important;
+  padding: 0.35rem 0.5rem;
 }
 
 .keeper-board-scope .cdraft-point-card {
-  padding: 1.15rem 1.1rem 1.05rem;
+  padding: 1.25rem 1.15rem 1.1rem;
 }
 
 .keeper-board-scope .cdraft-points-stack {
-  gap: 1.65rem;
+  gap: 1.85rem;
 }
 
 .keeper-board-scope .document-shell .document-point-body,
 .keeper-board-scope .document-shell .kip-message-content,
 .keeper-board-scope .document-point-body {
-  font-size: var(--board-read-body);
-  line-height: 1.72;
-  font-weight: 450;
+  font-size: 20px !important;
+  line-height: 1.72 !important;
+  font-weight: 500;
 }
 
 .keeper-board-scope .document-point {
-  gap: 0.85rem;
+  gap: 0.95rem;
 }
 
 .keeper-board-scope .document-point header p,
 .keeper-board-scope .document-point header span {
-  font-size: var(--board-read-meta);
-  letter-spacing: 0.03em;
+  font-size: 15px !important;
+  letter-spacing: 0.02em;
 }
 
 .keeper-board-scope .document-point h2 {
-  font-size: var(--board-read-title);
+  font-size: 26px !important;
   line-height: 1.28;
 }
 
-.keeper-board-scope .document-point-actions {
-  gap: 0.85rem 1rem;
-  padding-top: 0.45rem;
-}
-
 .keeper-board-scope .document-point-actions button {
-  font-size: var(--board-read-meta);
+  font-size: 15px !important;
 }
 
 .keeper-board-scope .document-shell-forward,
 .keeper-board-scope .document-shell-path__header {
-  padding-top: 1.1rem;
-  padding-bottom: 0.7rem;
+  padding-top: 1.2rem;
+  padding-bottom: 0.8rem;
 }
 
 .keeper-board-scope .document-shell-paths {
-  gap: 0.35rem;
-  padding-left: 1.15rem;
-  padding-right: 1.15rem;
-  padding-bottom: 1.35rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  padding-bottom: 1.5rem;
 }
 
 .keeper-board-scope .keeper-chronicle-trail-bar {
-  min-height: 46px;
+  min-height: 48px;
   padding: 10px 14px;
-  gap: 6px;
 }
 
 .keeper-board-scope .keeper-chronicle-trail-bar button {
-  font-size: var(--board-read-meta);
-  letter-spacing: 0.03em;
+  font-size: 15px !important;
 }
 
 .keeper-board-scope .keeper-presence-field-label {
-  font-size: var(--board-read-label);
-  letter-spacing: 0.04em;
+  font-size: 14px !important;
 }
 
 .keeper-board-scope .keeper-presence-field-value {
-  font-size: var(--board-read-body);
+  font-size: 20px !important;
   line-height: 1.6;
 }
 
 .keeper-board-scope .keeper-presence-field-value-quiet {
-  font-size: var(--board-read-meta);
+  font-size: 15px !important;
 }
 
-/* ─── Top bar — fewer 13px chips ─────────────────────────────────────────── */
+/* ─── Top bar ────────────────────────────────────────────────────────────── */
 
 .keeper-board-scope .keeper-platform-top-bar .keeper-topbar-nav-row button,
 .keeper-board-scope .keeper-platform-top-bar .keeper-topbar-nav-row span {
-  font-size: 15px;
+  font-size: 16px !important;
 }
 
 .keeper-board-scope .keeper-platform-top-bar .keeper-topbar-user-name {
-  font-size: 0.9rem;
+  font-size: 1rem !important;
 }
 
 .keeper-board-scope .keeper-platform-top-bar .keeper-topbar-popover {
-  width: 216px;
+  width: 220px;
 }
 
 .keeper-board-scope .keeper-platform-top-bar .keeper-topbar-popover-item {
-  font-size: 14px;
+  font-size: 15px;
   padding: 10px 14px;
 }
 
@@ -298,7 +261,7 @@ html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .ke
   width: 100%;
   text-align: left;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 15px;
   border: none;
   cursor: pointer;
   color: hsl(var(--theme-header-text-primary));
@@ -312,7 +275,7 @@ html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .ke
 }
 
 .keeper-topbar-readable-mark {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   color: hsl(var(--theme-header-text-secondary));
 }

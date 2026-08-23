@@ -19,6 +19,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up)
+- `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
+- `documentReorganizeIntent.ts` — detect review/reorganize language and prompt the Lead to propose, not rewrite
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
 - `modeConfig.ts` — Kip mode configuration helpers
@@ -34,6 +36,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-22 — Review & Reorganize
+- Lead action `document.reorganize.propose` stores a proposed Document on the manuscript. Apply writes Sections + Points atomically and clears the proposal. The accepted Document is unchanged until Apply.
 
 ### 2026-08-22 — Keeper Stage on the turn
 - `resolveAgentEnvironment` loads `Domain.settings.keeperStage`. Compact env + Lead prompts include Stage composition and contextual Agency.

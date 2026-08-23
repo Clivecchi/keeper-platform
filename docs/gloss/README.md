@@ -9,6 +9,7 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-08-22-cast-honesty-kip-question.md`
 - `2026-08-22-agency-ui-trace-behavior.md`
 - `2026-08-22-composer-stage-vertical-slice.md`
+- `2026-08-22-review-reorganize.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -17,6 +18,9 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-08-22 — Review & Reorganize
+- Added `2026-08-22-review-reorganize.md` — Lead proposes a better Document; Chronicle shows Current vs Proposed; human Applies.
+
 ### 2026-08-22 — Composer + Stage slice
 - Added `2026-08-22-composer-stage-vertical-slice.md` — reach Composer vs Dialog Composer; Keeper Stage as workspace surface; Stage references + contextual Agency.
 
