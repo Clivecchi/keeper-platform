@@ -11,6 +11,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `repairDomainLeadBindings.ts` — mirror sync via `syncDomainLeadAuthority` (no canonical map).
 - `resolveDomainLeadAgent.ts` — DB-first read (`primaryAgentId` → mirror row lookup); `syncDomainLeadAuthority` one write path.
 - `dialogCastMembership.ts` — Phase 1 cross-domain cast enablement (candidates / members / enable / disable); Admin checked at request time via direct Prisma.
+- `keeperStageStore.ts` — load/save `Domain.settings.keeperStage` without wiping sibling settings.
 - `../scripts/repair-domain-frame.ts` — CLI repair for unseeded personal domains.
 
 ## 🔄 Data & Behavior
@@ -39,6 +40,9 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+
+### 2026-08-22 — Keeper Stage store
+- `keeperStageStore.ts` reads/writes `settings.keeperStage` as a merge so primaryAgentId and other settings stay put.
 
 ### 2026-07-22 — kip-roster-dialog-cast-sync
 - `listDialogCastMembers` reused by `resolveAgentEnvironment` to add enabled cast leads into Kip's prompt roster (additive; no delegation).

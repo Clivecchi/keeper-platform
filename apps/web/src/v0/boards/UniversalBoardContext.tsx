@@ -24,7 +24,7 @@ import * as React from "react"
 import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
-import type { GlossAnchor, GlossContentSnapshot, ChroniclePanelMode, ChronicleView } from "@keeper/shared"
+import type { GlossAnchor, GlossContentSnapshot, ChroniclePanelMode, ChronicleView, StagePresenceKind, WorkspaceSurface } from "@keeper/shared"
 import { glossAnchorToDraftDiscuss, hasChronicleEntitySubject, OBJECT_GLOSSARY_SUBJECT_ID, resolveChronicleView } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
@@ -214,6 +214,16 @@ export interface UniversalBoardActions {
   onSetCuedCastMembers: (slugs: ReadonlyArray<CastMemberSlug>) => void
   openChronicleDocument: (options: { dialogId: string; pointId?: string | null; breadcrumb?: string[] | null }) => void
   setChroniclePanelMode: (mode: ChroniclePanelMode) => void
+  /** Center workspace: Dialog (time) or Stage (space). Survives board switches. */
+  setWorkspaceSurface: (surface: WorkspaceSurface) => void
+  openComposerReach: () => void
+  closeComposerReach: () => void
+  toggleComposerReach: () => void
+  /**
+   * Stage / Composer selection — set Working on without changing Talking in
+   * (except Dialog, which is the conversation object).
+   */
+  onWorkTargetFromStage: (target: { kind: StagePresenceKind; objectId: string }) => void
 }
 
 export interface UniversalBoardContextValue {
@@ -230,6 +240,10 @@ export interface UniversalBoardContextValue {
   onToggleNavCollapsed: () => void
   /** Library list overlay sitting on the Dialog (center) panel. */
   libraryScreenOpen: boolean
+  /** Dialog (temporal) or Stage (spatial) in the center workspace. */
+  workspaceSurface: WorkspaceSurface
+  /** Composer reach sheet — not a fourth column; not the Dialog input floor. */
+  composerReachOpen: boolean
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -368,6 +382,29 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const closeLibraryScreen = React.useCallback(() => {
     setLibraryScreenOpen(false)
+  }, [])
+
+  const [workspaceSurface, setWorkspaceSurfaceState] = React.useState<WorkspaceSurface>("dialog")
+  const [composerReachOpen, setComposerReachOpen] = React.useState(false)
+
+  const setWorkspaceSurface = React.useCallback((surface: WorkspaceSurface) => {
+    setWorkspaceSurfaceState(surface)
+  }, [])
+
+  const openComposerReach = React.useCallback(() => {
+    setLibraryScreenOpen(false)
+    setComposerReachOpen(true)
+  }, [])
+
+  const closeComposerReach = React.useCallback(() => {
+    setComposerReachOpen(false)
+  }, [])
+
+  const toggleComposerReach = React.useCallback(() => {
+    setComposerReachOpen((open) => {
+      if (!open) setLibraryScreenOpen(false)
+      return !open
+    })
   }, [])
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -613,6 +650,62 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
   }, [])
+
+  const onWorkTargetFromStage = React.useCallback((target: { kind: StagePresenceKind; objectId: string }) => {
+    const talkingIn = selectedDialogId
+    setComposerReachOpen(false)
+    if (target.kind === "dialog") {
+      onDialogSelect(target.objectId)
+      return
+    }
+    if (target.kind === "draft") {
+      onDraftSelect(target.objectId, { dialogId: talkingIn })
+      return
+    }
+    if (target.kind === "library") {
+      onLibraryItemSelect(target.objectId)
+      return
+    }
+
+    setLibraryScreenOpen(false)
+    clearDraftIdFromUrl()
+    setSelectedJourneyId(null)
+    setSelectedPathId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
+    setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
+    setSelectedDialogId(talkingIn)
+
+    if (target.kind === "agent") {
+      setTrainingMode(false)
+      setSelectedAgentId(target.objectId)
+      return
+    }
+    if (target.kind === "journey") {
+      setSelectedJourneyId(target.objectId)
+      return
+    }
+    if (target.kind === "keeper") {
+      setSelectedKeeperId(target.objectId)
+      return
+    }
+    if (target.kind === "moment") {
+      setSelectedMomentId(target.objectId)
+    }
+  }, [
+    selectedDialogId,
+    onDialogSelect,
+    onDraftSelect,
+    onLibraryItemSelect,
+    clearDraftIdFromUrl,
+  ])
 
   const onGlossarySelect = React.useCallback(() => {
     setLibraryScreenOpen(false)
@@ -906,6 +999,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setDraftComposeHint(null)
     setTrainingMode(false)
     setActiveCastMember(null)
+    setComposerReachOpen(false)
+    setWorkspaceSurfaceState("dialog")
     shell?.clearBoardDefinition()
   }, [shell?.domainSlug, shell, clearSelection, closeChronicleEngagement, closeDialogIngest])
 
@@ -1103,10 +1198,17 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onSetCuedCastMembers,
         openChronicleDocument,
         setChroniclePanelMode,
+        setWorkspaceSurface,
+        openComposerReach,
+        closeComposerReach,
+        toggleComposerReach,
+        onWorkTargetFromStage,
       },
       navCollapsed,
       onToggleNavCollapsed,
       libraryScreenOpen,
+      workspaceSurface,
+      composerReachOpen,
       chronicleEngagement,
       dialogIngest,
       chronicleView,
@@ -1203,9 +1305,16 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onSetCuedCastMembers,
       openChronicleDocument,
       setChroniclePanelMode,
+      setWorkspaceSurface,
+      openComposerReach,
+      closeComposerReach,
+      toggleComposerReach,
+      onWorkTargetFromStage,
       navCollapsed,
       onToggleNavCollapsed,
       libraryScreenOpen,
+      workspaceSurface,
+      composerReachOpen,
       chronicleEngagement,
       dialogIngest,
       chronicleView,

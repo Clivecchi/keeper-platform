@@ -50,6 +50,7 @@ import { UniversalNavPanel } from "./UniversalNavPanel"
 import { LibraryScreen } from "./LibraryScreen"
 import { UniversalViewPanel } from "./panels/UniversalViewPanel"
 import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardContext"
+import { useKeeperDensity } from "./keeperDensity"
 import { DesignerDraftProvider } from "./DesignerDraftContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { UniversalConversation } from "./UniversalConversation"
@@ -74,6 +75,8 @@ import { BoardMobileNavDrawer } from "./components/BoardMobileNavDrawer"
 import { getCachedBoardNavData } from "./boardNavDataCache"
 import { PwaInstallPrompt } from "../../mobile/pwa"
 import { hasUnreadChronicle, markChronicleViewed } from "../presence/chronicleDocument/chronicleMobile"
+import { KeeperStageProvider } from "../composer/useKeeperStage"
+import { KeeperComposerSheet } from "../composer/KeeperComposerSheet"
 import "./board-mobile.css"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
@@ -417,25 +420,8 @@ function UniversalBoardShell({
     if (name) setDomainName(name)
   }, [domainFrame, domainData, slug])
 
-  // ── Density — applied when def.access.requiresDensity is true ─────────────
-  const DENSITY_KEY = "keeper-density"
-  type KeeperDensity = "compact" | "default" | "comfortable"
-
-  const [density] = React.useState<KeeperDensity>(() => {
-    if (!def.access.requiresDensity) return "default"
-    if (typeof window === "undefined") return "default"
-    try {
-      const v = localStorage.getItem(DENSITY_KEY)
-      if (v === "compact" || v === "comfortable") return v
-    } catch { /* ignore */ }
-    return "default"
-  })
-
-  React.useEffect(() => {
-    if (!def.access.requiresDensity) return
-    document.documentElement.setAttribute("data-density", density)
-    try { localStorage.setItem(DENSITY_KEY, density) } catch { /* ignore */ }
-  }, [def.access.requiresDensity, density])
+  // ── Density — Readable (comfortable) is the member default on every board
+  useKeeperDensity()
 
   // ── Background ─────────────────────────────────────────────────────────────
   // Atmosphere is domain-shell only. Cast / instrument selection must never change it.
@@ -674,6 +660,7 @@ function UniversalBoardShell({
             onClose={actions.closeLibraryScreen}
           />
         ) : null}
+        {domainId ? <KeeperComposerSheet domainId={domainId} /> : null}
       </div>
     </PanelErrorBoundary>
   )
@@ -685,6 +672,7 @@ function UniversalBoardShell({
       : undefined
 
   return (
+    <KeeperStageProvider domainId={domainId}>
     <StyleScope
       key={`board-theme-${slug || "none"}-${themeSlug ?? "none"}-${themeApply}`}
       styleId={styleId}
@@ -763,6 +751,7 @@ function UniversalBoardShell({
         </div>
       </div>
     </StyleScope>
+    </KeeperStageProvider>
   )
 }
 

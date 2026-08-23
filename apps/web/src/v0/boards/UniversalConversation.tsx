@@ -91,6 +91,7 @@ import type { DirectorDelegationStatus } from "../../components/agent/types"
 import { createDraftMoment, keepMoment } from "../api/v0Moments"
 import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
 import type { GlossThread } from "@keeper/shared"
+import { KeeperStageCanvas } from "../composer/KeeperStageCanvas"
 import {
   CAST_MEMBER_LABELS,
   extractAgentReplyFromRunResult,
@@ -345,7 +346,7 @@ export function UniversalConversation({
   const defaultAgentName = def.conversation.agentName ?? "Kip"
 
   // ── designer mode: frame key + draft context ───────────────────────────────
-  const { selection, actions } = useUniversalBoard()
+  const { selection, actions, workspaceSurface } = useUniversalBoard()
   const boardSelectedAgentId = selection.selectedAgentId ?? selectedAgentId ?? null
   const selectedBoardDefId =
     kipMode === "designer" ? selection.selectedBoardDefId : null
@@ -2627,6 +2628,7 @@ export function UniversalConversation({
         sessionId={dialogSessionId}
         modelProvider={modelProvider}
         onSaveTitle={kipMode === "build" ? handleSaveTitle : undefined}
+        dialogContent={workspaceSurface === "stage" ? <KeeperStageCanvas domainId={domainId} /> : undefined}
         dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}
         mobileDialogStage={useMobileStagedComposer ? mobileDialogStage : undefined}
         onComposerFocusChange={useMobileStagedComposer ? handleComposerFocusChange : undefined}

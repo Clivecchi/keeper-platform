@@ -11,6 +11,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `kip-drafts.ts` – Domain-scoped Kip draft directory and session active-draft pointer routes.
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
 - `kip-dialogs.ts` – Dialog CRUD routes: create, ingest, list, get-with-sessions, Chronicle Document read + author writes (`PATCH …/document`, Point add/update/reorder/delete), update/archive/document_status, delete, resolve-active; cast membership.
+- `keeper-stage-routes.ts` – `GET/PATCH /:domainId/keeper-stage` (domain Stage composition).
 - `domain-access-key-routes.ts` – Domain external access keys (MCP): list, create (secret once), revoke, PATCH label.
 - `domain-oauth-grant-routes.ts` – MCP OAuth grants: list + revoke + PATCH scopes (External Access).
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
@@ -43,6 +44,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-08-22: **Keeper Stage** — `GET/PATCH /:domainId/keeper-stage` persists composition on `Domain.settings.keeperStage` (references, not clones).
 - 2026-08-22: **Author result narrowing** — Point author routes use `result.ok === false` so `tsc` can read error status (Railway Docker build).
 - 2026-08-22: **Author Document CRUD** — `PATCH …/dialogs/:id/document` (title, Forward, stage, Sections). Point add/update/reorder/delete on `…/document/points`. Human writes replace manuscript Points (not agent merge).
 - 2026-08-17: **External writing ingest** — `POST /:domainId/kip/dialogs/ingest` creates a Dialog + manuscript Points + session; `POST /:domainId/kip/dialogs/:dialogId/ingest` attaches to an existing Dialog. Not a Library upload.

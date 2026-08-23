@@ -34,7 +34,10 @@ import {
   shapeRecordTitle,
   isGlossAnchor,
   buildTalkingInWorkingOnPrompt,
+  buildKeeperStagePrompt,
   resolveTalkingInWorkingOn,
+  parseKeeperStage,
+  type KeeperStageComposition,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { openSse, startSseHeartbeat, writeSseEvent } from '../../lib/sse.js';
@@ -1130,6 +1133,13 @@ function buildConversationCoordinatesPrompt(environment: unknown): string | null
     workingOn: coords?.workingOn,
     domainName: env?.domainName,
   });
+}
+
+function keeperStageFromEnvironment(environment: unknown): KeeperStageComposition | null {
+  const env = environment as { keeperStage?: unknown } | null;
+  if (!env?.keeperStage) return null;
+  const parsed = parseKeeperStage(env.keeperStage);
+  return parsed.presences.length > 0 ? parsed : null;
 }
 
 function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
@@ -5139,6 +5149,10 @@ export class KipAgentService {
       if (conversationCoordinates) {
         systemParts.push(conversationCoordinates);
       }
+      const stagePreview = buildKeeperStagePrompt(keeperStageFromEnvironment(environment));
+      if (stagePreview) {
+        systemParts.push(stagePreview);
+      }
       const dialogDocumentPreview = buildDialogDocumentSystemPrompt(environment);
       if (dialogDocumentPreview) {
         systemParts.push(dialogDocumentPreview);
@@ -5606,6 +5620,13 @@ export class KipAgentService {
           messages.push({
             role: 'system',
             content: conversationCoordinates,
+          });
+        }
+        const stagePrompt = buildKeeperStagePrompt(keeperStageFromEnvironment(environmentContext));
+        if (stagePrompt) {
+          messages.push({
+            role: 'system',
+            content: stagePrompt,
           });
         }
         const dialogDocumentPrompt = buildDialogDocumentSystemPrompt(environmentContext);

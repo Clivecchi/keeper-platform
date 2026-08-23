@@ -49,7 +49,7 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 - **Composer**: `AgentComposer` input + toolbar; footer row with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode). Large paste renders as **Pasted** tiles in Broadcast Strip (Thinking Space), not in the user bubble.
 
 ### Readability
-Board scope (`.keeper-board-scope`) bumps message body to 17px and composer input to match. Global `data-density` on `<html>` (`compact` | `default` | `comfortable`) exists for Design Board; a user-facing **Readable** setting for all boards is TODO.
+Board scope (`.keeper-board-scope` + `board-readability.css`) bumps message body and composer to 18px when Larger type is On. `keeper-density` / `data-density` defaults to **comfortable** on every board. Toggle lives in the avatar menu (**Larger type**).
 
 ### Message Depth Cascade
 CSS `nth-last-child` selectors in `index.css` fade and scale messages by age:
@@ -68,13 +68,15 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 
 ## ⚠️ Notes & ToDo
 - [x] Upload flow: files in Broadcast Strip; Library item at pick; attach on send.
-- [ ] User-facing **Readable** density toggle on boards (wire `keeper-density` beyond Design Board).
+- [x] User-facing **Readable** density toggle on boards (`keeper-density` + avatar **Larger type**).
 - [ ] Additional Broadcast Strip streams beyond Debug (live server-side phase events).
 - [ ] `dialogContent` replaces the full Dialog Space content — separate slot if messages needed alongside.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-22: Readable type is the board default. Dialog body/composer follow `board-readability.css`; older messages keep readable scale.
+- 2026-08-22: `dialogContent` can host Keeper Stage. Product **Composer** in the top bar is reach (`KeeperComposerSheet`), not this Dialog input floor (`AgentComposer`).
 - 2026-08-22: When Talking in a Dialog and Working on its Document, the Header Bar does not repeat the title. Working on shows **Document**; the name stays on Talking in. Domain remains on the right.
 - 2026-08-22: Dialog Nav opens the Document. Draft Nav opens the Draft and keeps Talking in on the linked Dialog. Agents are grounded in those two coordinates so they do not invent fiction-plot Points from a Dialog title.
 - 2026-08-21: **Header Bar = Talking in / Working on** — larger type; domain name on the right; SOLE badge and repeated title removed. Session id lives behind the chevron.

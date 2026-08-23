@@ -66,6 +66,15 @@ describe('resolveChroniclePrimary', () => {
     expect(primary).toEqual({ kind: 'dialog', id: 'dialog-touchdown' });
   });
 
+  it('Working on Agent wins over Talking in Dialog', () => {
+    const primary = resolveChroniclePrimary({
+      ...emptySelection,
+      selectedDialogId: 'dialog-plot',
+      selectedAgentId: 'kip-id',
+    });
+    expect(primary).toEqual({ kind: 'agent', id: 'kip-id' });
+  });
+
   it('Working on Draft wins over Talking in Dialog', () => {
     const primary = resolveChroniclePrimary({
       ...emptySelection,

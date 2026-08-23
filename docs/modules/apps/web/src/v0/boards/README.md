@@ -5,6 +5,8 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Key Files
 - `UniversalBoard.tsx` — Master orchestrator shell (Nav · Dialog · Chronicle)
+- `keeperDensity.ts` — Readable type density (`keeper-density` / `data-density`); comfortable is the member default
+- `board-readability.css` — Aging-eyes type, spacing, and quieter Chronicle chrome
 - `UniversalNavPanel.tsx` — Left nav with Universal / Keepers / Config panes; default for every board
 - `navPanes.ts` — Pane membership (Universal · Keepers · Config) and Config block order
 - `LibraryScreen.tsx` — Library media browser over Dialog (poster cards, shelves, search); selected item renders in Chronicle
@@ -25,6 +27,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Boards call `useV0Shell()` to access `domainSlug`, `domainFrame`, `resolvedAudience`, etc.
 - `?board=` takes precedence over `?frame=` when both are present in the URL
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
+- **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
 
 ## ?? Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace � they share `/d/:slug/board`
@@ -34,6 +37,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-22 — Aging-eyes readability (Readable default)
+- Comfortable density is now the board default (`keeperDensity.ts`). Avatar menu: **Larger type** On/Off.
+- `board-readability.css` enlarges Nav, Dialog, Chronicle Document, and trail chrome; more padding; older messages no longer shrink away.
+- Document header drops the redundant "Document" breadcrumb/chip so the title and points can breathe.
+
+### 2026-08-22 — Composer reach + Keeper Stage
+- Center workspace can be Dialog or Stage (`workspaceSurface`). Composer is a reach sheet, not a fourth column and not `AgentComposer`.
+- Stage select uses `onWorkTargetFromStage` so Talking in (Dialog) survives Working on (Agent / Draft / Journey / …).
 
 ### 2026-08-22 — Document coordinates stay honest
 - Draft select from Nav or cross-nav passes the linked `dialog_id` so Talking in stays on that Dialog. An empty title no longer infers Chatter. Header Working on does not repeat the Document title.

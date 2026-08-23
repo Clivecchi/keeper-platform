@@ -12,6 +12,7 @@ import App from './App'
 import { AppProviders } from './providers/AppProviders'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './index.css'
+import './v0/boards/board-readability.css'
 import './worlds/shared/world-mode.css'
 
 // AppProviders wraps all global providers (AuthGate, Router, Auth, Theme, etc.)

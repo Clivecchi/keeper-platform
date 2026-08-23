@@ -68,6 +68,18 @@ export type CompactEnvironmentForPrompt = {
     status?: string;
     manuscriptDraftId?: string;
   };
+  keeperStage?: {
+    slug: string;
+    title: string;
+    selectedPresenceId: string | null;
+    objects: Array<{
+      kind: string;
+      objectId: string;
+      title: string;
+      contextualRole?: string | null;
+      direction?: string | null;
+    }>;
+  };
   agentContext?: Record<string, unknown>;
   draftPolicy?: {
     autoDraft?: unknown;
@@ -252,6 +264,30 @@ export function buildCompactEnvironmentForPrompt(
       ...(typeof dialogDocument.manuscriptDraftId === 'string'
         ? { manuscriptDraftId: dialogDocument.manuscriptDraftId }
         : {}),
+    };
+  }
+
+  const keeperStage = asRecord(env.keeperStage);
+  const stagePresences = Array.isArray(keeperStage?.presences) ? keeperStage.presences : [];
+  if (keeperStage && stagePresences.length > 0) {
+    compact.keeperStage = {
+      slug: typeof keeperStage.slug === 'string' ? keeperStage.slug : 'keeper',
+      title: typeof keeperStage.title === 'string' ? keeperStage.title : 'Keeper',
+      selectedPresenceId:
+        typeof keeperStage.selectedPresenceId === 'string' ? keeperStage.selectedPresenceId : null,
+      objects: stagePresences
+        .map((entry) => {
+          const row = asRecord(entry);
+          if (!row || typeof row.kind !== 'string' || typeof row.objectId !== 'string') return null;
+          return {
+            kind: row.kind,
+            objectId: row.objectId,
+            title: typeof row.title === 'string' ? row.title : row.kind,
+            contextualRole: typeof row.contextualRole === 'string' ? row.contextualRole : null,
+            direction: typeof row.direction === 'string' ? row.direction : null,
+          };
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
     };
   }
 

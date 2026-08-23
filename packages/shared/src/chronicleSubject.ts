@@ -125,9 +125,8 @@ export function resolveChroniclePrimary(input: ResolveChronicleViewInput): Chron
   if (input.selectedCapabilityId) return { kind: 'capability', id: input.selectedCapabilityId };
   if (input.selectedLibraryItemId) return { kind: 'library', id: input.selectedLibraryItemId };
   if (input.selectedServiceSlug) return { kind: 'service', slug: input.selectedServiceSlug };
-  // Working on (Draft) wins over Talking in (Dialog). Both IDs may be set.
+  // Working on wins over Talking in (Dialog). Both IDs may be set from Stage.
   if (input.selectedDraftId) return { kind: 'draft', id: input.selectedDraftId };
-  if (input.selectedDialogId) return { kind: 'dialog', id: input.selectedDialogId };
   if (input.selectedAgentId) return { kind: 'agent', id: input.selectedAgentId };
   if (input.selectedMomentId) {
     return {
@@ -142,6 +141,7 @@ export function resolveChroniclePrimary(input: ResolveChronicleViewInput): Chron
   }
   if (input.selectedJourneyId) return { kind: 'journey', id: input.selectedJourneyId };
   if (input.selectedKeeperId) return { kind: 'keeper', id: input.selectedKeeperId };
+  if (input.selectedDialogId) return { kind: 'dialog', id: input.selectedDialogId };
   if (input.selectedBoardDefId) return { kind: 'boardDef', id: input.selectedBoardDefId };
   return DOMAIN_SUBJECT;
 }

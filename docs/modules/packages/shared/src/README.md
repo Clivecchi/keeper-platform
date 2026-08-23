@@ -10,6 +10,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `canonicalBoards.ts` – Canonical logged-in experience board slugs & helpers
 - `universalBoardId.ts` – `build` Board id; `ide` is a URL/frame-JSON alias only
 - `cloudMcpCeiling.ts` – Cloud MCP capability ceiling (shared by API + Build Board def)
+- `keeperStage.ts` – Stage composition (references + contextual Agency)
 
 ## 🔄 Data & Behavior
 - All exports are side-effect free utilities or type helpers.
@@ -20,6 +21,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-22: `keeperStage.ts` — Stage composition contract (references + contextual Agency). `chronicleSubject` Working on (agent/journey/…) now wins over Talking in Dialog when both IDs are set.
 - 2026-08-22: `documentAuthoring.ts` — Section add/rename/move/remove, Point placement, Document stage cycle. Author writes do not use the agent merge path.
 - 2026-08-22: `document.ts` — every named Document resolves a Forward (Dialog directional objective). `DOCUMENT_OPEN_SECTION` is the quieter Section for unplaced Points. `talkingInWorkingOn` keeps a linked Dialog when title is still loading, names the Domain, and does not shout the Document title twice.
 - 2026-08-19: `chronicleSubject.ts` — Board Def is Nav context (`selectedBoardDefId`). Design is a lens; URL does not route Chronicle.

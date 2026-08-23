@@ -96,7 +96,6 @@ export function DocumentHeader({
             onCancel={() => setDraftTitle(title)}
           />
         ) : null}
-        <p className="cdraft-breadcrumb">Document</p>
         <div className="cdraft-meta-strip">
           {onCycleStatus ? (
             <button
@@ -110,9 +109,6 @@ export function DocumentHeader({
           ) : (
             <span className="cdraft-status-pill">{formatDocumentStatusLabel(status)}</span>
           )}
-          <span className="cdraft-meta-item" title="You are on the Document, not a Draft">
-            Document
-          </span>
           <span className="cdraft-meta-item">
             {pointCount} {pointCount === 1 ? "point" : "points"}
           </span>

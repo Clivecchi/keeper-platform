@@ -35,6 +35,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-22 — Keeper Stage on the turn
+- `resolveAgentEnvironment` loads `Domain.settings.keeperStage`. Compact env + Lead prompts include Stage composition and contextual Agency.
+
 ### 2026-08-22 — Author result type (Railway tsc)
 - `AuthorDialogDocumentResult` is a clean ok/err union so route handlers narrow. Manuscript `spec_json` writes go through `asJson` so Prisma accepts the authored spec.
 

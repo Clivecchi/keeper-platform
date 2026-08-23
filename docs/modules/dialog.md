@@ -1,7 +1,7 @@
 # Dialog Components
 
 ## 📌 Purpose
-Shared conversation shell used across IDE Board, Agent Board, and Domain Board. Product surfaces: **Header Bar** → **Dialog Space** → **Broadcast Strip** (when working) → **Composer**.
+Shared conversation shell used across Build Board, Agent Board, Domain Board, Realm, and Design. Product surfaces: **Header Bar** → **Dialog Space** → **Broadcast Strip** (when working) → **Composer**.
 
 ## 🧱 Key Files
 - `KeeperDialogFrame.tsx` — Main shell. Assembles Header Bar, Dialog Space, Broadcast Strip, and Composer input floor.
@@ -20,7 +20,7 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 
 | Product name | Role | CSS / attribute |
 |---|---|---|
-| **Header Bar** | Expandable breadcrumb + session meta | `.dialog-header-banner` |
+| **Header Bar** | Talking in / Working on + domain; session details behind chevron; director cast identity below | `.dialog-header-banner` / `.dialog-coordinates` / `.dialog-header-cast` |
 | **Dialog Space** | Messages scroll here, above the dissolve | `.dialog-message-zone` / `.dialog-message-surface` |
 | **Horizon dissolve** | Gradient fade at Dialog Space floor (no live text) | `.dialog-horizon-band`, `.dialog-fade-overlay` |
 | **Broadcast Strip** | Unified working surface — live beat + ticker; upload previews when staging | `.dialog-broadcast-strip` |
@@ -41,15 +41,15 @@ While sending: one Broadcast Strip carries the live beat and prior story beats. 
 Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:relative, overflow:hidden`) so an absolute-positioned gradient dissolve div can overlay the bottom 80px of the scroll area without scrolling with the content.
 
 ### Surface behaviour
-- **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
+- **Header Bar**: Talking in (Dialog or Session) and Working on (Document, Draft, or other Chronicle subject), plus the domain name. Hidden in `mode === 'feed'`. Chevron expands session id / Configure — not SOLE. Domain idle still uses the wordmark + live pulse.
 - **Dialog Space**: Scrollable messages above the dissolve. Top + bottom **mask fade** softens edges. Messages dim slightly while working. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Broadcast Strip (working)**: CRT lower third — phosphor live line (`▶` marker + cursor) + prior beats as ellipsis ticker. Collapses after reply.
-- **Broadcast Strip (uploads)**: Staged attachment tiles while composing.
+- **Broadcast Strip (uploads)**: Staged attachment tiles and **Pasted** supporting-document tiles while composing.
 - **Post-run summary**: One-line dialogic bridge (`.dialog-composer-horizon`) atop Composer — ends with `…` via `dialogicRunSummary()`.
-- **Composer**: `AgentComposer` input + toolbar; ephemeral **Pasted** supporting-document tiles above the input; footer row with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode).
+- **Composer**: `AgentComposer` input + toolbar; footer row with Tools/Services (left, IDE Board) and **Debug** icon (right, always visible in dialog mode). Large paste renders as **Pasted** tiles in Broadcast Strip (Thinking Space), not in the user bubble.
 
 ### Readability
-Board scope (`.keeper-board-scope`) bumps message body to 17px and composer input to match. Global `data-density` on `<html>` (`compact` | `default` | `comfortable`) exists for Design Board; a user-facing **Readable** setting for all boards is TODO.
+Board scope (`.keeper-board-scope` + `board-readability.css`) bumps message body and composer to 18px when Larger type is On. `keeper-density` / `data-density` defaults to **comfortable** on every board. Toggle lives in the avatar menu (**Larger type**).
 
 ### Message Depth Cascade
 CSS `nth-last-child` selectors in `index.css` fade and scale messages by age:
@@ -68,13 +68,33 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 
 ## ⚠️ Notes & ToDo
 - [x] Upload flow: files in Broadcast Strip; Library item at pick; attach on send.
-- [ ] User-facing **Readable** density toggle on boards (wire `keeper-density` beyond Design Board).
+- [x] User-facing **Readable** density toggle on boards (`keeper-density` + avatar **Larger type**).
 - [ ] Additional Broadcast Strip streams beyond Debug (live server-side phase events).
 - [ ] `dialogContent` replaces the full Dialog Space content — separate slot if messages needed alongside.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-22: Readable type is the board default. Dialog body/composer follow `board-readability.css`; older messages keep readable scale.
+- 2026-08-22: `dialogContent` can host Keeper Stage. Product **Composer** in the top bar is reach (`KeeperComposerSheet`), not this Dialog input floor (`AgentComposer`).
+- 2026-08-22: When Talking in a Dialog and Working on its Document, the Header Bar does not repeat the title. Working on shows **Document**; the name stays on Talking in. Domain remains on the right.
+- 2026-08-22: Dialog Nav opens the Document. Draft Nav opens the Draft and keeps Talking in on the linked Dialog. Agents are grounded in those two coordinates so they do not invent fiction-plot Points from a Dialog title.
+- 2026-08-21: **Header Bar = Talking in / Working on** — larger type; domain name on the right; SOLE badge and repeated title removed. Session id lives behind the chevron.
+- 2026-08-19: `KeeperDialogFrame` imports `IntegratedServicesBar` from `boards/components` (Build Board service bar). Shared conversation shell across Build, Agent, Domain, Realm, and Design.
+- 2026-08-09: **Mobile composer bubble** — Adaptive Domain/Realm idle/thinking stages use a pinned chat bubble (`composerSize="mobile-compact"`); tap/focus expands to ~2/3 screen (`mobile-expanded`). Composer footer (Cast / Agents) hidden while bubbled. Blur/send collapse unchanged.
+- 2026-08-09: **Dialog markdown export** — `KeeperDialogFrame` passes loaded `messages` (+ `userName`) into `AgentComposer` as `dialogueMessages` so the markdown toolbar control exports the current session transcript.
+- 2026-08-04: **Mobile Dialog frost + single inset** — `.dialogue-message-list` uses panel frost (`/ 0.38`, blur 16px) instead of opaque fill; ≤767px drops list horizontal `px-4` so `.dialog-column` clamp is the only side inset. Message-row `min-w-0` / `overflow-x: hidden` containment lives with Prompt 2 in `DialogueMessageList` + `.dialog-message-surface`.
+- 2026-08-04: **Removed `aboveComposer`** — Chronicle strip above Composer retired; mobile Chronicle opens from Top Bar icon → `BoardMobileChronicleOverlay`. `suppressMobileDomainBanner` retained.
+- 2026-08-03: **Treatment accent titles** — domain wordmark / breadcrumb primary use `.keeper-treatment-title` for accent-tier Treatment font from parent `TreatmentAccentShell`.
+- 2026-08-03: **dialogCueing rename (Pass 1)** — `KeeperDialogFrame` Cast props renamed: `boardInstruments`→`boardCast`, `boardInstrumentsEyebrow`→`castEyebrow`, `instrumentSelectionMode`→`castCueSelectionMode`, `boardInstrumentsLeadLocked`→`castLeadLocked`, `boardInstrumentsCollaborationMode`→`castCollaborationMode`, `activeBoardInstrumentSlug`→`activeCastMemberSlug`, `activeBoardInstrumentSlugs`→`cuedCastMemberSlugs`, `onBoardInstrumentInvoke`→`onCastCueToggle`. Composer footer now renders `CastCueBar` (was `BoardInstrumentsBar`). See `docs/dialog-cueing-plan.md`.
+- 2026-07-28: **`aboveComposer` + suppress mobile identity banner** — Slot for Chronicle strip above Composer; `suppressMobileDomainBanner` hides Dialog header banners on adaptive mobile (Playbill is sole identity bar).
+- 2026-07-27: **Mobile Dialog chrome reclaim** — On ≤767px, domain banner defaults to wordmark + LIVE; tagline/stats + Invite/Get key/Manage expand via chevron. Cast header Invite trail hidden in compact mode (moved into expand). Mobile-staged `response` stage hides Cast header entirely so messages reclaim height. Desktop banner unchanged.
+- 2026-07-22: **Cross-domain cast Add** — `KeeperDialogFrame` passes `castCandidates` / `onEnableCastCandidate` / `enablingCast` / `castAddEnabled` into `DirectorCastHeader`.
+- 2026-07-22: **Header cast + composer invoke** — Every director board shows `DirectorCastHeader` (identity) under the banner; composer `BoardInstrumentsBar` is the invoke control. Realm access actions trail the header cast. Domain/Realm multi-select at composer; IDE/Designer single-swap unchanged.
+- 2026-07-20: **Director-mode unification** — Realm agent roster leaves the header cast slot; all director boards (`realm` / `domain` / `ide` / `designer`) render Agents chips via shared `BoardInstrumentsBar` in the composer footer. Realm Invite / Get key / Manage remain as trailing actions (`castAccessActions`). Header `.dialog-header-cast` removed. *(Header identity restored 2026-07-22; invoke stays at composer.)*
+- 2026-07-19: **Cast bar header slot** — Realm `DialogCastBar` renders in `.dialog-header-cast` under the breadcrumb banner; removed from composer footer (breadcrumb banner unchanged). *(Superseded 2026-07-20.)*
+- 2026-07-11: **Attachment send fix** — `handleComposerSubmit` awaits agent send; `isSubmittingMessage` blocks double-submit during Library commit. `DialogUploadStream` hints that Enter/Send ships image + prompt together. Attachment thinking beats no longer surface as post-run Horizon summary.
+- 2026-07-02: **P4.1 paste in Thinking Space** — `DialogUploadStream` renders `SupportingDocumentTile` for pasted context; Broadcast Strip shows paste + file uploads; composer textarea stays clean on Dialog boards.
 - 2026-06-29: **Post-run Horizon** — `Consulting …` and other in-flight beats are meta steps; composer summary no longer sticks on "Consulting vecch.io…" after a text-only reply with no action receipts.
 - 2026-06-28: **Broadcast Strip** — merged Horizon live status + Thinking Space into `.dialog-broadcast-strip` (phosphor live line, ticker, CRT scanlines). Horizon band is dissolve-only; post-run summary unchanged on composer.
 - 2026-06-27: **Debug overlay** — bug icon opens `DialogDebugOverlay` over Horizon/Thinking/Composer (Copy + X). Logs no longer cleared on send; capture re-wraps console after HMR and includes window errors.

@@ -20,7 +20,7 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - Adapters produce `Point` from `@keeper/shared`
 - `Document` (shared) is the Dialog-scoped container shape; Realm mounts `DocumentHeader` + `DocumentShell`
 - `DocumentShell` accepts optional Path groups (`pointIds` as indexes into `points`)
-- Identity header is always present for a named Dialog Document (title, Document kind, point count) — including empty Documents. Authored `forward` + `step` are destination content below the header, not a substitute for it.
+- Identity header is always present for a named Dialog Document (title, stage, point count) — including empty Documents. Authored `forward` + `step` are destination content below the header, not a substitute for it.
 - Gloss: library items use `buildLibraryGlossAnchor`; manuscript Points use draft+nodeId anchors + body snapshot. With `glossContext` (Dialog scope), Gloss opens `DocumentPointGloss` inline on the Point — not Dialog sprawl.
 
 ## ?? Notes & ToDo
@@ -28,6 +28,10 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-22 — Aging-eyes Document chrome
+- Document header keeps stage + point/draft counts; drops the repeated "Document" breadcrumb and identity chip.
+- Board readability CSS enlarges title, body, meta, and Point actions.
+
 ### 2026-08-22 — Literally inline authoring
 - The Document title, Forward, and the Point you are editing *are* the fields — same type size, no form under the writing.
 - One Point at a time. The editor grows with the body. Save / Cancel / Delete are required; nothing commits on blur.
@@ -36,7 +40,7 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 ### 2026-08-22 — Inline Document authoring
 - Manage bar is gone. A pencil on the Document title opens inline edit: title, Forward, Sections, Points.
 - Author CRUD: add / rename / reorder / delete Sections; add / edit / move / delete Points. No secondary form.
-- Stage chip (`drafts` / `kept` / `presented`) cycles Document lifecycle. Document chip is identity (you are on the Document). Drafts chip scrolls to linked Drafts.
+- Stage chip (`drafts` / `kept` / `presented`) cycles Document lifecycle. Drafts chip scrolls to linked Drafts. The repeated "Document" identity chip is gone — the title is enough.
 
 ### 2026-08-22 — Same Document chrome · Domain treatment · Forward
 - Every named Dialog Document uses the same Chronicle chrome: Forward, Sections, Points. Treatment tokens dress the page — Section colors are no longer matched to Becoming Together Path titles.

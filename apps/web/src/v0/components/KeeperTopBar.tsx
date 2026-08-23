@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import clsx from "clsx"
-import { BookOpen, FileText } from "lucide-react"
+import { BookOpen, FileText, Layers, Sparkles } from "lucide-react"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
@@ -21,6 +21,12 @@ import {
 import { extractDomainThemeCover } from "@keeper/shared"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { resolveDomainCoverUrl } from "../boards/domain/domainShellCache"
+import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
+import {
+  isReadableDensity,
+  toggleReadableDensity,
+  useKeeperDensity,
+} from "../boards/keeperDensity"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
 
@@ -34,6 +40,8 @@ interface ProfilePopoverProps {
 
 function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef }: ProfilePopoverProps) {
   const popoverRef = React.useRef<HTMLDivElement>(null)
+  const [density, setDensity] = useKeeperDensity()
+  const readableOn = isReadableDensity(density)
 
   React.useEffect(() => {
     function handleMouseDown(e: MouseEvent) {
@@ -67,6 +75,21 @@ function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef 
       </div>
       <div className="keeper-topbar-popover-divider" aria-hidden />
       <ul role="none" style={{ margin: 0, padding: "4px 0", listStyle: "none" }}>
+        <li role="none">
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={readableOn}
+            aria-pressed={readableOn}
+            onClick={() => setDensity(toggleReadableDensity(density))}
+            className="keeper-topbar-readable-row"
+          >
+            <span>Larger type</span>
+            <span className="keeper-topbar-readable-mark" aria-hidden>
+              {readableOn ? "On" : "Off"}
+            </span>
+          </button>
+        </li>
         <li role="none">
           <button
             type="button"
@@ -232,6 +255,8 @@ export function KeeperTopBar({
   const roleLabel = getRoleLabel(resolvedAudience)
   const avatarUrl = user?.avatar_url?.trim() ? getBlobProxyUrl(user.avatar_url.trim()) : null
   const isGuest = resolvedAudience === "guest"
+  const board = useUniversalBoardOptional()
+  const showComposerChrome = Boolean(board && !isGuest)
 
   // Keep Realm · Domain · Agent (etc.) on `/home` so members can reach
   // domain/agent config without memorizing `/d/:slug?board=` URLs.
@@ -324,25 +349,61 @@ export function KeeperTopBar({
         </div>
 
         {showMobileChronicle ? (
-          <button
-            type="button"
-            onClick={onOpenChronicle}
-            className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
-            aria-label={dialogUnread ? "Open Chronicle — updates available" : "Open Chronicle"}
-            style={{
-              color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
-              background: "hsl(var(--theme-surface-panel) / 0.35)",
-            }}
-          >
-            <BookOpen width={18} height={18} strokeWidth={1.75} aria-hidden />
-            {dialogUnread ? (
-              <span
-                className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
-                style={{ background: "hsl(var(--theme-accent-primary))" }}
-                aria-hidden
-              />
+          <div className="flex items-center gap-1">
+            {showComposerChrome ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => board?.actions.setWorkspaceSurface(board.workspaceSurface === "stage" ? "dialog" : "stage")}
+                  className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
+                  aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Keeper Stage"}
+                  aria-pressed={board?.workspaceSurface === "stage"}
+                  style={{
+                    color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
+                    background: board?.workspaceSurface === "stage"
+                      ? "hsl(var(--theme-accent-primary) / 0.22)"
+                      : "hsl(var(--theme-surface-panel) / 0.35)",
+                  }}
+                >
+                  <Layers width={18} height={18} strokeWidth={1.75} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => board?.actions.toggleComposerReach()}
+                  className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
+                  aria-label="Open Composer"
+                  aria-pressed={board?.composerReachOpen === true}
+                  style={{
+                    color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
+                    background: board?.composerReachOpen
+                      ? "hsl(var(--theme-accent-primary) / 0.22)"
+                      : "hsl(var(--theme-surface-panel) / 0.35)",
+                  }}
+                >
+                  <Sparkles width={18} height={18} strokeWidth={1.75} aria-hidden />
+                </button>
+              </>
             ) : null}
-          </button>
+            <button
+              type="button"
+              onClick={onOpenChronicle}
+              className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
+              aria-label={dialogUnread ? "Open Chronicle — updates available" : "Open Chronicle"}
+              style={{
+                color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
+                background: "hsl(var(--theme-surface-panel) / 0.35)",
+              }}
+            >
+              <BookOpen width={18} height={18} strokeWidth={1.75} aria-hidden />
+              {dialogUnread ? (
+                <span
+                  className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+                  style={{ background: "hsl(var(--theme-accent-primary))" }}
+                  aria-hidden
+                />
+              ) : null}
+            </button>
+          </div>
         ) : (
           <div className="keeper-topbar-user">
             {!isGuest && !isMobile ? (
@@ -419,19 +480,52 @@ export function KeeperTopBar({
           })}
         </nav>
 
-        <button
-          type="button"
-          onClick={onBriefClick}
-          className={clsx(
-            "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
-            isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
-          )}
-          aria-label="Open domain brief"
-          aria-pressed={isBriefOpen}
-        >
-          <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
-          <span className="text-[13px]">Brief</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {showComposerChrome ? (
+            <>
+              <button
+                type="button"
+                onClick={() => board?.actions.setWorkspaceSurface(board.workspaceSurface === "stage" ? "dialog" : "stage")}
+                className={clsx(
+                  "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
+                  board?.workspaceSurface === "stage" ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+                )}
+                aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Keeper Stage"}
+                aria-pressed={board?.workspaceSurface === "stage"}
+              >
+                <Layers className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={1.75} aria-hidden />
+                <span className="text-[13px]">Stage</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => board?.actions.toggleComposerReach()}
+                className={clsx(
+                  "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
+                  board?.composerReachOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+                )}
+                aria-label="Open Composer"
+                aria-pressed={board?.composerReachOpen === true}
+              >
+                <Sparkles className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={1.75} aria-hidden />
+                <span className="text-[13px]">Composer</span>
+              </button>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onBriefClick}
+            className={clsx(
+              "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
+              isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+            )}
+            aria-label="Open domain brief"
+            aria-pressed={isBriefOpen}
+          >
+            <FileText className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
+            <span className="text-[13px]">Brief</span>
+          </button>
+        </div>
       </div>
       ) : null}
     </div>

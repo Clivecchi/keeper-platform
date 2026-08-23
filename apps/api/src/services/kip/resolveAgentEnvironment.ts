@@ -6,7 +6,9 @@ import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type
 import {
   resolveDialogParticipation,
   summarizeDraftPointsForAgent,
+  readKeeperStageFromDomainSettings,
   type DialogParticipation,
+  type KeeperStageComposition,
 } from '@keeper/shared';
 import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
@@ -115,6 +117,11 @@ export type AgentEnvironmentContext = {
       blocker?: 'no_dialog' | 'chatter' | 'no_manuscript';
     };
   };
+  /**
+   * Domain Keeper Stage composition — references to real objects + contextual Agency.
+   * Loaded from Domain.settings.keeperStage. Empty when nothing has been brought.
+   */
+  keeperStage?: KeeperStageComposition;
   /**
    * agentContext — injected by the frontend from the domain frame JSON.
    * Carries: audience role, model, forward destination, available directions,
@@ -400,6 +407,10 @@ export async function resolveAgentEnvironment(args: {
         visibility,
         ...(registry ? { registry } : {}),
       });
+
+      if (hasReadAccess) {
+        environment.keeperStage = readKeeperStageFromDomainSettings(domain?.settings);
+      }
 
       const perms = accessibleMap.get(primaryDomainId)?.permissions || [];
       environment.capabilities.canDraft = hasReadAccess && perms.includes('write');

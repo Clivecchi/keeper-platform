@@ -1,0 +1,322 @@
+/*
+ * Board readability — aging-eyes default
+ * --------------------------------------
+ * Comfortable (`data-density="comfortable"`) is the member default.
+ * Goal: bigger type, more air, quieter chrome. Fixed px sizes in the
+ * board (Tailwind `text-[10px]` etc.) do not follow html font-size,
+ * so this file overrides the reading surfaces directly.
+ */
+
+html[data-density="comfortable"] {
+  --density-scale: 1.2;
+}
+
+.keeper-board-scope {
+  --board-read-body: 17px;
+  --board-read-title: 22px;
+  --board-read-meta: 13px;
+  --board-read-label: 12px;
+  --board-read-gap: 10px;
+}
+
+html[data-density="comfortable"] .keeper-board-scope {
+  --board-read-body: 18px;
+  --board-read-title: 24px;
+  --board-read-meta: 14px;
+  --board-read-label: 13px;
+  --board-read-gap: 12px;
+}
+
+/* ─── Nav — scan, don't squint ───────────────────────────────────────────── */
+
+.keeper-board-scope .keeper-nav-pane-tabs {
+  gap: 6px;
+  padding: 4px 12px 10px;
+}
+
+.keeper-board-scope .keeper-nav-pane-tab {
+  font-size: var(--board-read-label);
+  letter-spacing: 0.04em;
+  padding: 8px 6px 9px;
+}
+
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card h3,
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card button.text-xl,
+.keeper-board-scope .keeper-nav-panel .keeper-nav-section-title {
+  font-size: 15px !important;
+  letter-spacing: 0.06em;
+}
+
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul {
+  margin-top: 0.9rem;
+}
+
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul li {
+  margin-bottom: 8px;
+}
+
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul li > button,
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul li > span:not([class*="rounded-full"]) {
+  padding: 11px 12px;
+}
+
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul button,
+.keeper-board-scope .keeper-nav-panel .keeper-sidebar-card ul span:not([class*="rounded-full"]) {
+  font-size: 16px !important;
+  line-height: 1.45;
+  font-weight: 500 !important;
+}
+
+/* ─── Dialog — conversation is the reading surface ───────────────────────── */
+
+.keeper-board-scope .kip-message-content {
+  font-size: var(--board-read-body);
+  line-height: 1.7;
+  font-weight: 450;
+}
+
+.keeper-board-scope .kip-message-content .kip-md-h1 {
+  font-size: 24px;
+  margin: 16px 0 8px;
+}
+
+.keeper-board-scope .kip-message-content .kip-md-h2 {
+  font-size: 20px;
+  margin: 14px 0 6px;
+}
+
+.keeper-board-scope .kip-message-content .kip-md-h3 {
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+.keeper-board-scope .kip-message-content .kip-md-p {
+  margin: 0 0 12px;
+}
+
+.keeper-board-scope .kip-message-content .kip-md-li {
+  margin-bottom: 8px;
+}
+
+.keeper-board-scope .dialog-sender-label {
+  font-size: 12px;
+  padding: 0.28rem 0.7rem;
+}
+
+.keeper-board-scope .dialog-voice-card__content {
+  font-size: var(--board-read-body);
+  line-height: 1.7;
+}
+
+.keeper-board-scope .dialog-message-bubble {
+  padding: 4px 0;
+}
+
+.keeper-board-scope .dialog-bottom-zone .keeper-composer-input {
+  font-size: var(--board-read-body);
+  line-height: 1.6;
+  min-height: 116px;
+  padding: 16px 18px;
+}
+
+/* Older messages stay readable — atmosphere may recede, type must not vanish */
+html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(3),
+html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(4) {
+  transform: scale(1);
+}
+
+html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(5),
+html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(6) {
+  transform: scale(0.99);
+}
+
+html[data-density="comfortable"] .keeper-board-scope .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(n+7) {
+  transform: scale(0.98);
+}
+
+/* ─── Chronicle Document — title + body first, chrome second ─────────────── */
+
+.keeper-board-scope .cdraft {
+  padding: 0 1.15rem 2rem;
+}
+
+.keeper-board-scope .cdraft-header {
+  padding: 1.5rem 0 1.25rem;
+}
+
+.keeper-board-scope .cdraft-title {
+  font-size: clamp(1.85rem, 3.4vw, 2.35rem);
+  line-height: 1.18;
+  font-weight: 700;
+}
+
+.keeper-board-scope .cdraft-meta-strip {
+  font-size: var(--board-read-meta);
+  gap: 0.65rem 1rem;
+  margin-top: 1.1rem;
+}
+
+.keeper-board-scope .cdraft-status-pill {
+  padding: 0.28rem 0.7rem;
+  font-size: var(--board-read-label);
+  letter-spacing: 0.02em;
+}
+
+.keeper-board-scope .cdraft-meta-item {
+  font-size: var(--board-read-meta);
+  opacity: 0.92;
+}
+
+.keeper-board-scope .cdraft-summary-prose,
+.keeper-board-scope .cdraft-opener-text,
+.keeper-board-scope .cdraft-film-focus-body {
+  font-size: 1.08rem;
+  line-height: 1.75;
+}
+
+.keeper-board-scope .cdraft-section-label,
+.keeper-board-scope .cdraft-beat-label,
+.keeper-board-scope .cdraft-accepted-badge,
+.keeper-board-scope .cdraft-film-frame-index,
+.keeper-board-scope .cdraft-moment-frame-index,
+.keeper-board-scope .cdraft-story-arc-index {
+  font-size: var(--board-read-label);
+  letter-spacing: 0.08em;
+}
+
+.keeper-board-scope .cdraft-ghost-btn,
+.keeper-board-scope .cdraft-ghost-link,
+.keeper-board-scope .cdraft-manage-btn {
+  font-size: var(--board-read-meta);
+  padding: 0.3rem 0.45rem;
+  opacity: 0.78;
+}
+
+.keeper-board-scope .cdraft-point-card {
+  padding: 1.15rem 1.1rem 1.05rem;
+}
+
+.keeper-board-scope .cdraft-points-stack {
+  gap: 1.65rem;
+}
+
+.keeper-board-scope .document-shell .document-point-body,
+.keeper-board-scope .document-shell .kip-message-content,
+.keeper-board-scope .document-point-body {
+  font-size: var(--board-read-body);
+  line-height: 1.72;
+  font-weight: 450;
+}
+
+.keeper-board-scope .document-point {
+  gap: 0.85rem;
+}
+
+.keeper-board-scope .document-point header p,
+.keeper-board-scope .document-point header span {
+  font-size: var(--board-read-meta);
+  letter-spacing: 0.03em;
+}
+
+.keeper-board-scope .document-point h2 {
+  font-size: var(--board-read-title);
+  line-height: 1.28;
+}
+
+.keeper-board-scope .document-point-actions {
+  gap: 0.85rem 1rem;
+  padding-top: 0.45rem;
+}
+
+.keeper-board-scope .document-point-actions button {
+  font-size: var(--board-read-meta);
+}
+
+.keeper-board-scope .document-shell-forward,
+.keeper-board-scope .document-shell-path__header {
+  padding-top: 1.1rem;
+  padding-bottom: 0.7rem;
+}
+
+.keeper-board-scope .document-shell-paths {
+  gap: 0.35rem;
+  padding-left: 1.15rem;
+  padding-right: 1.15rem;
+  padding-bottom: 1.35rem;
+}
+
+.keeper-board-scope .keeper-chronicle-trail-bar {
+  min-height: 46px;
+  padding: 10px 14px;
+  gap: 6px;
+}
+
+.keeper-board-scope .keeper-chronicle-trail-bar button {
+  font-size: var(--board-read-meta);
+  letter-spacing: 0.03em;
+}
+
+.keeper-board-scope .keeper-presence-field-label {
+  font-size: var(--board-read-label);
+  letter-spacing: 0.04em;
+}
+
+.keeper-board-scope .keeper-presence-field-value {
+  font-size: var(--board-read-body);
+  line-height: 1.6;
+}
+
+.keeper-board-scope .keeper-presence-field-value-quiet {
+  font-size: var(--board-read-meta);
+}
+
+/* ─── Top bar — fewer 13px chips ─────────────────────────────────────────── */
+
+.keeper-board-scope .keeper-platform-top-bar .keeper-topbar-nav-row button,
+.keeper-board-scope .keeper-platform-top-bar .keeper-topbar-nav-row span {
+  font-size: 15px;
+}
+
+.keeper-board-scope .keeper-platform-top-bar .keeper-topbar-user-name {
+  font-size: 0.9rem;
+}
+
+.keeper-board-scope .keeper-platform-top-bar .keeper-topbar-popover {
+  width: 216px;
+}
+
+.keeper-board-scope .keeper-platform-top-bar .keeper-topbar-popover-item {
+  font-size: 14px;
+  padding: 10px 14px;
+}
+
+.keeper-topbar-readable-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  color: hsl(var(--theme-header-text-primary));
+  background-color: transparent;
+}
+
+.keeper-topbar-readable-row:hover,
+.keeper-topbar-readable-row:focus-visible {
+  background-color: hsla(35, 12%, 18%, 0.85);
+  outline: none;
+}
+
+.keeper-topbar-readable-mark {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: hsl(var(--theme-header-text-secondary));
+}
+
+.keeper-topbar-readable-row[aria-pressed="true"] .keeper-topbar-readable-mark {
+  color: hsl(var(--theme-header-text-primary));
+}
