@@ -92,6 +92,11 @@ const POINT_REQUIRED_PATTERNS = [
   /\bsave (that|this|it|these) as (a )?points?\b/i,
   /\bcan you (create and )?add points?\b/i,
   /\bso propose a? points?\b/i,
+  /\bweren['’]?t able to propose\b/i,
+  /\bdidn['’]?t (actually )?(propose|add) (the )?points?\b/i,
+  /\bwhat document or draft did you propose\b/i,
+  /^(and )?(again,? )?(still nothing|same behavior)\b/i,
+  /\bjust (do it|fire (the )?action|propose)\b/i,
 ];
 
 const POINT_FALSE_POSITIVES = [
@@ -223,6 +228,8 @@ const KEEPER_POINT_GROUNDING = [
   'A Point is a durable Document/Draft beat stored in kip_drafts.spec_json.points.',
   'Write target is Working on: the focused Draft if Chronicle is on a Draft; otherwise the Dialog Document manuscript.',
   'Talking in (the Dialog/session) is conversation context — do not write the Dialog manuscript just because the session still belongs to that Dialog.',
+  'Never pick a different Dialog or Draft from draftsDirectory, session history, or memory. Working on is the only write target.',
+  'Do not announce that you will read or propose. Emit draft.update.propose in this turn. A read without a propose is not completion.',
   'Chronicle renders those Points. Gloss threads are not Points.',
   'When the human asks to propose/add/capture Points, they mean this object.',
   'Point content is the beat only — never Domain Contract, action-schema rules, draft UUIDs, Prisma, or executor errors.',
@@ -302,12 +309,31 @@ export function hasSuccessfulPointPropose(
   );
 }
 
+const NESTED_CAST_PROMPT_PATTERN =
+  /^\[(?:Director delegation|Agent Echo —|Platform collaboration —)/i;
+
+/**
+ * Who owns Point writes this run.
+ * The addressed agent (including Rendr/Cloud as composer) is the turn owner.
+ * Nested consults, director-delegation prompts, and Kip Echo only advise.
+ */
+export function resolvePointTurnActor(params: {
+  input?: string | null;
+  supportEcho?: boolean;
+  nestedCastRun?: boolean;
+}): 'lead' | 'cast' {
+  if (params.supportEcho || params.nestedCastRun) return 'cast';
+  const input = params.input?.trim() ?? '';
+  if (input && NESTED_CAST_PROMPT_PATTERN.test(input)) return 'cast';
+  return 'lead';
+}
+
 export function shouldRunPointObligationFollowUp(params: {
   obligation: PointTurnObligation;
   actionResults: Array<{ type: string; status: string }>;
-  isLead: boolean;
+  isTurnOwner: boolean;
 }): boolean {
-  if (!params.isLead) return false;
+  if (!params.isTurnOwner) return false;
   if (!params.obligation.required || params.obligation.constrained) return false;
   if (!params.obligation.manuscriptDraftId) return false;
   return !hasSuccessfulPointPropose(params.actionResults);
@@ -331,6 +357,7 @@ export function buildPointObligationFollowUpInput(params: {
     `Original user message: "${params.originalInput}"`,
     'Emit draft.update.propose now. payload.content is the Point beat. Do not invent a draft id.',
     'One action per Point. payload.content is required. Do not draft.create. Do not defer.',
+    'Do not read another Dialog first. Working on is already in the system prompt.',
     'Keep "response" to 1–3 short sentences. Do not paste Cast replies.',
   ].join('\n');
 }

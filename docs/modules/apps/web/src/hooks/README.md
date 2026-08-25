@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-25 — Chronicle Draft focus is explicit
+- `useAgentDialog` sends `activeDraftId: null` when Chronicle is on the Document so the API does not reuse a leftover session draft.
+
 ### 2026-08-19 — Streamed Dialog replies
 - `useAgentDialog` — Lead runs use `KipApi.runAgentStream` and paint tokens onto a live agent bubble. Transcript refetch no longer blocks the first visible reply (runs in the background for IDs / Echo).
 

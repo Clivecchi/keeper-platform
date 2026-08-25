@@ -35,6 +35,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-08-25 — Preserve Chronicle `activeDraftId: null`
+- `kipApi.runAgent` / `runAgentStream` send `null` instead of dropping the field, so Working on stays the Document on screen.
+
 ### 2026-08-19 — Streamed Kip runs
 - `kipApi.runAgentStream` — POST `action=run` with `stream: true`, consumes SSE `delta`/`reset`/`status`/`done`. Cast consults still use blocking `runAgent`.
 - Vite `/api` proxy timeouts disabled so local SSE is not cut off. PWA runtime cache is GET-only so streamed POSTs are not intercepted.

@@ -71,15 +71,18 @@ const draftPointMomentSchema = z.object({
 const draftPointRewritePayloadSchema = z.object({
   draftId: z.string().uuid().optional(),
   id: z.string().uuid().optional(),
-  pointId: z.string().uuid(),
-  content: z.string().min(1, 'content is required'),
+  /** UUID, 1-based number from DIALOG DOCUMENT, or current Point title. */
+  pointId: z.string().min(1, 'pointId is required'),
+  content: z.string().optional(),
   type: z.enum(['moment', 'decision', 'context', 'general']).optional(),
   prelude: z.string().optional(),
+  /** Alias for prelude — the Point title. */
+  title: z.string().optional(),
   closer: z.string().optional(),
   moments: z.array(draftPointMomentSchema).optional(),
 }).refine(
-  (data) => Boolean(data.draftId || data.id),
-  { message: 'Must provide draftId or id' },
+  (data) => Boolean(data.content?.trim() || data.prelude?.trim() || data.title?.trim()),
+  { message: 'Provide content, prelude, or title' },
 );
 
 const draftUpdateProposePayloadSchema = z.object({
@@ -95,6 +98,8 @@ const draftUpdateProposePayloadSchema = z.object({
   closer: z.string().optional(),
   moments: z.array(draftPointMomentSchema).optional(),
   referencesPointId: z.string().uuid().optional(),
+  /** Point title — short story-label. Alias for prelude. */
+  title: z.string().min(1).optional(),
   /** Document Section id (pathGroupId). Prefer `section` title when creating. */
   sectionId: z.string().min(1).nullable().optional(),
   /** Document Section title — Keeper creates the Section if missing. */

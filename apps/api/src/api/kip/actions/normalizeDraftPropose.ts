@@ -128,6 +128,16 @@ export function normalizeDraftUpdateProposePayload(
     if (!out.proposedBy) out.proposedBy = author;
   }
 
+  const title = firstNonEmptyString(
+    payload.prelude,
+    payload.title,
+    payload.pointTitle,
+    payload.point_title,
+    isRecord(payload.point) ? payload.point.prelude : undefined,
+    isRecord(payload.point) ? payload.point.title : undefined,
+  );
+  if (title) out.prelude = title;
+
   return out;
 }
 
@@ -139,5 +149,13 @@ export function normalizeDraftPointIdPayload(
   if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
   if (!out.draftId && typeof out.id === 'string') out.draftId = out.id;
   if (!out.pointId && typeof out.point_id === 'string') out.pointId = out.point_id;
+  if (!out.pointId && typeof out.point === 'string' && out.point.trim()) {
+    out.pointId = out.point.trim();
+  }
+  if (!out.pointId && typeof out.point === 'number' && Number.isFinite(out.point)) {
+    out.pointId = String(out.point);
+  }
+  const title = firstNonEmptyString(out.prelude, out.title);
+  if (title) out.prelude = title;
   return out;
 }

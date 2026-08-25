@@ -853,7 +853,7 @@ export function useAgentDialog({
         mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
-        activeDraftId: activeDraftId ?? undefined,
+        activeDraftId: activeDraftId ?? null,
         agentContext: mode === "designer" && frameKey
           ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
           : agentContext,

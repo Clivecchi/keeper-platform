@@ -42,6 +42,20 @@ describe('draft point rewrite', () => {
     expect(result).toEqual({ ok: false, code: 'POINT_ANCHORED' });
   });
 
+  it('renames a Point title without requiring a new body', () => {
+    const result = rewriteDraftPointInSpec(
+      spec,
+      'point-proposed',
+      '',
+      undefined,
+      { prelude: 'Draft Trigger Misfire' },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.point.prelude).toBe('Draft Trigger Misfire');
+    expect(result.point.content).toBe('Original proposed text');
+  });
+
   it('allows rewrite of accepted points when allowAnchored (document manuscript)', () => {
     const result = rewriteDraftPointInSpec(
       spec,

@@ -210,6 +210,23 @@ describe('actionFollowUp', () => {
     expect(input).toContain('Cite the most relevant sources');
   });
 
+  it('treats propose-points as draft work and "let me read" as deferral', () => {
+    expect(
+      shouldRunMutationDeferralFollowUp({
+        userInput: 'Propose the points to the Document.',
+        responseText: 'Let me read the Touchdown dialog now.',
+        actions: [],
+      }),
+    ).toBe(true);
+    expect(
+      shouldRunMutationDeferralFollowUp({
+        userInput: "You weren't able to propose the points.",
+        responseText: "You're right. Let me actually fire the read now.",
+        actions: [],
+      }),
+    ).toBe(true);
+  });
+
   it('runs mutation deferral follow-up when user asked for draft work and model deferred', () => {
     expect(
       shouldRunMutationDeferralFollowUp({

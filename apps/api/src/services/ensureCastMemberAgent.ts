@@ -90,7 +90,8 @@ async function ensureRendrAgent(): Promise<CastMemberAgent | null> {
     const config = (existing.config ?? {}) as Record<string, unknown>;
     const voicePrompt =
       typeof config.voice_prompt === 'string' ? config.voice_prompt.trim() : '';
-    if (!voicePrompt || existing.purpose !== RENDR_AGENT_PURPOSE) {
+    const needsPointWriteLock = !voicePrompt.includes('Working on is the only write target');
+    if (!voicePrompt || existing.purpose !== RENDR_AGENT_PURPOSE || needsPointWriteLock) {
       return prisma.kip_agents.update({
         where: { slug: 'rendr' },
         data: {

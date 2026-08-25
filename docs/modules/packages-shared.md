@@ -15,7 +15,9 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
 - `src/domainTier.ts` – domain pricing tier flags (`free` / `keeper` / `studio`) and key access policy
 - `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
-- `src/recordNaming.ts` – `shapeRecordTitle` / `shapeRecordDescription` for short labels vs long body text
+- `src/dialogTitleSource.ts` — Chatter vs named Dialog vs Document-bearing (`user_set` only)
+- `src/talkingInWorkingOn.ts` — Talking in (Dialog/session) vs Working on (Document/Draft) + Point write-target helper
+- `src/keeperStage.ts` — Stage composition (object references + contextual Agency); not Theatre-as-database
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -29,6 +31,38 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-08-25 — Chronicle is Working on
+- `resolveChronicleActiveDraftId` — leftover session drafts and other Dialog manuscripts do not steal Point writes.
+
+### 2026-08-25 — Point identity
+- `resolveDraftPointRef` — UUID, 1-based number, or title. Same rules as Review & Reorganize.
+- `rewriteDraftPointInSpec` — title-only updates may omit content.
+
+### 2026-08-22 — Keeper Stage contract
+- `keeperStage.ts` — Stage owns presence/placement/contextual Agency. Objects stay themselves. Chronicle Working on (agent/journey/…) now wins over Talking in Dialog when both IDs are set.
+
+### 2026-08-22 — Agents named in the story
+- `buildTalkingInWorkingOnPrompt` — Talking in vs Working on. A Dialog title is the conversation’s name. A Draft is a Document Section. The work is making a story from the Dialog — not inventing a fiction outline from the title.
+
+### 2026-08-21 — Talking in / Working on locked
+- `talkingInWorkingOn.ts` — two coordinates. Focused Draft is Working on; named Dialog stays Talking in. Chronicle `resolveChroniclePrimary` prefers Draft over Dialog when both IDs are set.
+- Point writes use `resolvePointWriteTarget` (Draft wins; Session never invents a Document).
+
+### 2026-08-19 — Universal Nav subject
+- `resolveChroniclePrimary` uses `selectedBoardDefId` only. Design URL / `isDesignerBoard` do not route Chronicle.
+
+### 2026-08-19 — One Nav subject
+- `resolveChroniclePrimary` — Design `boardDefinitionId` is idle spec only. Dialog, Draft, and other Nav entities win Chronicle. `hasChronicleEntitySubject` is the shared gate so URL `?definition=` cannot wipe a Dialog.
+
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `isDocumentBearingDialogTitleSource` — Chronicle Document is `user_set` only. `system_promoted` stays a conversation.
+
+### 2026-08-17 — Glossary Chronicle subject
+- `chronicleSubject.ts` — `glossary` kind, `OBJECT_GLOSSARY_SUBJECT_ID`, priority over Design `boardDef`.
+
+### 2026-08-03 — MCP OAuth grant type
+- Added `mcpOauthGrant.ts` — `McpOAuthGrantRecord` for External Access OAuth grant list/revoke.
 
 ### 2026-06-19 — GlossThread helpers
 - Added `glossThread.ts` — thread keys, parse/upsert helpers, `ensureGlossThreadCarrier` for MCP/dialog gloss anchor seeding.

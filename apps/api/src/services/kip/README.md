@@ -37,6 +37,17 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-25 — Chronicle is the write target
+- `resolveAgentEnvironment` does not treat a leftover session draft or another Dialog's manuscript as Working on. `document_manuscript` rows stay out of `draftsDirectory`.
+- `talkingInWorkingOn.resolveChronicleActiveDraftId` — client Chronicle Draft wins; `null` means the Document.
+
+### 2026-08-25 — Turn owner writes Points
+- `pointIntent.ts` — `resolvePointTurnActor` treats the addressed agent as the writer. Nested `[Director delegation]` and Kip Echo stay advise-only. Follow-up gate is `isTurnOwner`, not `role === Lead`.
+- `actionFollowUp.ts` — "let me read" / "I'll actually" counts as deferral; "propose points" counts as requested draft work.
+
+### 2026-08-25 — Point titles + rewrite identity
+- `draft.point.rewrite` uses `resolveDraftPointRef` (number / title / UUID). Title-only rewrite keeps the body.
+
 ### 2026-08-24 — PDF body on library.read
 - `actionFollowUp.ts` — `library.read { id }` follow-up includes `extracted_text` (document body). `agent_perspective` is labeled as a summary only.
 

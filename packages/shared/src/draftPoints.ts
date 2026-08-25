@@ -512,30 +512,31 @@ export type RewriteDraftPointOptions = {
   allowAnchored?: boolean;
 };
 
-/** Rewrite draft point content in place. Accepted (kept) points cannot be rewritten unless allowAnchored. */
+/** Rewrite a Point in place. Title-only updates may omit content (body is kept). */
 export function rewriteDraftPointInSpec(
   spec: unknown,
   pointId: string,
-  content: string,
+  content?: string,
   type?: DraftPointType,
   extras?: Partial<Pick<DraftPoint, 'prelude' | 'closer' | 'moments'>>,
   options?: RewriteDraftPointOptions,
 ): RewriteDraftPointResult {
-  const trimmed = content.trim();
-  if (!trimmed) {
-    return { ok: false, code: 'VALIDATION_ERROR' };
-  }
+  const trimmed = content?.trim() ?? '';
+  const titleOnly = Boolean(extras?.prelude?.trim()) && !trimmed;
 
   const existing = findDraftPoint(spec, pointId);
   if (!existing) {
     return { ok: false, code: 'POINT_NOT_FOUND' };
+  }
+  if (!trimmed && !titleOnly) {
+    return { ok: false, code: 'VALIDATION_ERROR' };
   }
   if (!isDraftPointRewritable(existing.status) && !options?.allowAnchored) {
     return { ok: false, code: 'POINT_ANCHORED' };
   }
 
   const { spec: nextSpec, point } = updateDraftPointInSpec(spec, pointId, {
-    content: trimmed,
+    content: trimmed || existing.content,
     ...(type ? { type } : {}),
     ...(extras ?? {}),
   });

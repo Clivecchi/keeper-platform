@@ -21,7 +21,9 @@ import {
   findDraftPoint,
   mergeDraftPointCastNotes,
   mergeDraftSpecPatch,
+  parseDraftPoints,
   resolveDialogParticipation,
+  resolveDraftPointRef,
   rewriteDraftPointInSpec,
   summarizeDraftPointsForAgent,
   updateDraftPointInSpec,
@@ -129,6 +131,7 @@ import {
   buildPointObligationUnmetNotice,
   clampCastAdviceForPointTurn,
   humanTurnTextForIntent,
+  resolvePointTurnActor,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
   type PointTurnObligation,
@@ -312,16 +315,16 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW draft content, use draft.update.propose with payload.content (string body — required). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy (attribution label when the user names an author, e.g. "Claude"), optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), optional payload.section (Section title — Keeper creates the Section if missing and places the Point there), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
+    '- When adding NEW Points, use draft.update.propose with payload.content (body) and payload.prelude or payload.title (short story-label — not a cut of the body). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy, optional payload.closer, optional payload.moments ([{ title, narrative? }]), optional payload.referencesPointId, optional payload.section (Section title — Keeper creates it if missing), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
   const rewritePoints =
-    '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), payload.content, and optional payload.prelude, payload.closer, payload.moments. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place (the Document is a living work tool; the human still publishes/keeps). Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
+    '- When REWRITING or RETITLING existing Points, use draft.point.rewrite. payload.pointId may be the 1-based number from DIALOG DOCUMENT, the current title, or an exact UUID — do not invent ids and do not call draft.read first. payload.prelude or payload.title is the Point title (a short label that tells the story). payload.content is the body; omit content to keep the body and only change the title. Optional payload.closer, payload.moments. Omit payload.id on a Dialog Document — Keeper fills the manuscript. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place. Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
     '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
   const acceptPoints =
     '- Do not emit draft.point.accept yourself unless you have exact draftId + pointId from a prior success receipt. Journey Accept is a human UI action. document_manuscript adds are already accepted by draft.update.propose.';
   const reorganizeDocument =
     agent.role === 'Lead' || agent.role === 'System'
-      ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Do not silently rewrite accepted Points with draft.point.rewrite. Chronicle shows Current vs Proposed; the human Applies.'
+      ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Do not silently rewrite accepted Points with draft.point.rewrite. Chronicle shows Current vs Proposed; the human Applies. When they ask to rename or retitle Points on the live Document, that is draft.point.rewrite (prelude/title) — not a second reorganize.'
       : '';
   if (isOperationalDraftAgent(agent)) {
     return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
@@ -1066,7 +1069,8 @@ function buildRendrDesignBoardPrompt(
     'Include every field you intend to change; server merges with current Treatment and normalizes hex colors.',
     'Do NOT write Treatment directly — propose only. The human taps Apply in the dialog.',
     'Do NOT use draft.create for Treatment on Design Board.',
-    'When the human asks for a working draft or Points (not Treatment): draft.create with kind "draft" and payload.content for the first Point. Never kind document_manuscript.',
+    'When the human asks to add or propose Points: emit draft.update.propose this turn. Omit payload.id — Keeper writes Working on (the Chronicle Document or focused Draft). Do not draft.create. Do not pick a different Draft from draftsDirectory or session history. Narration or "let me read" without the action is not completion.',
+    'When the human asks for a NEW working Draft (not Points on Working on): draft.create with kind "draft" and payload.content for the first Point. Never kind document_manuscript.',
     RENDR_IDENTITY_LOCK,
   ].join('\n');
 }
@@ -1234,13 +1238,16 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     hosts.slice(0, 80).forEach((point, index) => {
       const title = typeof point.prelude === 'string' ? point.prelude.trim() : '';
       const preview = typeof point.preview === 'string' ? point.preview.trim() : '';
-      const body = title && preview ? `${title} — ${preview}` : title || preview;
+      const body = title && preview && title !== preview
+        ? `${title} — ${preview}`
+        : title || preview;
       lines.push(body ? `${index + 1}. ${body}` : `${index + 1}.`);
     });
   } else {
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
   }
   lines.push(
+    'Point title is prelude — a short label that tells the story of the Point (e.g. "Agent Narrates, Doesn\'t Act"), not a cut of the body. Always set prelude/title on new Points. To rename: draft.point.rewrite with pointId 1..N from this list and prelude; omit content to keep the body.',
     'This Document is the primary conversational background. Stay aware of the Domain. If Working on is a Draft, do not treat this manuscript as the Point write target.',
     'When the user asks about this Dialog\'s Document, Forward, Sections, or Points, use this block — do not claim the Document is absent when fields above are present.',
     'When asked to pick or name one item from a Section, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
@@ -1319,6 +1326,14 @@ function pointObligationFromEnv(
   environment?: AgentEnvironmentContext | KipEnvironmentContext | null,
 ): PointTurnObligation | undefined {
   return (environment as AgentEnvironmentContext | undefined)?.turnObligations?.point;
+}
+
+/** Addressed composer owns Point writes. Nested consults and Kip Echo only advise. */
+function pointTurnActorForRun(input: string, options?: RunAgentOptions | null): 'lead' | 'cast' {
+  return resolvePointTurnActor({
+    input,
+    supportEcho: options?.supportEcho === true || isSupportEchoPrompt(input),
+  });
 }
 
 function mergePointSkipActionTypes(
@@ -1699,7 +1714,10 @@ export async function executeAgentActions(
       && typeof action.payload === 'object'
     ) {
       const p = action.payload as Record<string, unknown>;
-      const out = normalizeDraftPointIdPayload(p);
+      const out = applyManuscriptDraftIdToProposePayload(
+        normalizeDraftPointIdPayload(p),
+        ctx.manuscriptDraftId,
+      );
       if (!out.content && typeof p.text === 'string') out.content = p.text;
       if (!out.content && typeof p.body === 'string') out.content = p.body;
       return { type: action.type, payload: out };
@@ -1724,7 +1742,7 @@ export async function executeAgentActions(
         payload: applyManuscriptDraftIdToProposePayload(
           normalizeDraftUpdateProposePayload(action.payload as Record<string, unknown>),
           ctx.manuscriptDraftId,
-          { forceManuscript: ctx.pointObligationRequired === true },
+          { forceManuscript: isKipDraftUuid(ctx.manuscriptDraftId) },
         ),
       };
     }
@@ -1877,7 +1895,7 @@ export async function executeAgentActions(
               : ctx.pointConstraint && action.type.startsWith('draft.')
                 ? 'Skipped — the human asked not to add Points yet'
                 : action.type === 'draft.update.propose' && ctx.pointObligationRequired
-                  ? 'Lead writes Document Points this turn — Cast advises'
+                  ? 'Skipped — nested/support turns advise; the addressed agent writes Points'
                 : action.type === 'draft.create' && ctx.manuscriptDraftId
                   ? 'Skipped draft.create — Point writes go to the active Document manuscript'
                   : 'Action skipped (handled by draft intent pipeline)';
@@ -2116,10 +2134,8 @@ export async function executeAgentActions(
               || (typeof payload.id === 'string' && payload.id.trim())
               || '';
             let draftId =
-              (isKipDraftUuid(rawDraftId) && !ctx.pointObligationRequired
-                ? rawDraftId.trim()
-                : '')
-              || (isKipDraftUuid(ctx.manuscriptDraftId) ? ctx.manuscriptDraftId.trim() : '');
+              (isKipDraftUuid(ctx.manuscriptDraftId) ? ctx.manuscriptDraftId.trim() : '')
+              || (isKipDraftUuid(rawDraftId) ? rawDraftId.trim() : '');
             if (!draftId) {
               draftId = (await resolveManuscriptDraftIdForPropose(ctx)) ?? '';
             }
@@ -2136,7 +2152,19 @@ export async function executeAgentActions(
               results.push(pointProposeFailure(payload, 'Point content is required', 'VALIDATION_ERROR'));
               break;
             }
-            const draft = await findDraftForPointMutation(tx, draftId, ctx);
+            let draft = await findDraftForPointMutation(tx, draftId, ctx);
+            if (
+              draft?.kind === 'document_manuscript'
+              && ctx.dialogId
+              && draft.dialog_id
+              && draft.dialog_id !== ctx.dialogId
+            ) {
+              const retargetId = await resolveManuscriptDraftIdForPropose(ctx);
+              if (retargetId && retargetId !== draft.id) {
+                const retargeted = await findDraftForPointMutation(tx, retargetId, ctx);
+                if (retargeted) draft = retargeted;
+              }
+            }
             if (!draft) {
               results.push(pointProposeFailure(payload, 'Draft not found', 'DRAFT_NOT_FOUND'));
               break;
@@ -2574,24 +2602,43 @@ export async function executeAgentActions(
           }
           case 'draft.point.rewrite': {
             const payload = action.payload ?? {};
-            const draftId = payload.draftId || payload.id;
-            const pointId = typeof payload.pointId === 'string' ? payload.pointId.trim() : '';
+            let draftId =
+              (typeof payload.draftId === 'string' && payload.draftId) ||
+              (typeof payload.id === 'string' && payload.id) ||
+              '';
+            if (!isKipDraftUuid(draftId)) {
+              draftId = (await resolveManuscriptDraftIdForPropose(ctx)) ?? '';
+            }
+            const pointRef = typeof payload.pointId === 'string' ? payload.pointId.trim() : '';
             const content = typeof payload.content === 'string' ? payload.content.trim() : '';
+            const title =
+              (typeof payload.prelude === 'string' && payload.prelude.trim())
+              || (typeof payload.title === 'string' && payload.title.trim())
+              || '';
 
-            if (!draftId || !pointId) {
+            if (!draftId) {
               results.push({
                 type: action.type,
                 status: 'error',
-                message: 'Draft id and point id required for rewrite',
+                message: 'Draft id required for rewrite — omit it on a Dialog Document and Keeper fills the manuscript.',
                 errorCode: 'VALIDATION_ERROR',
               });
               break;
             }
-            if (!content) {
+            if (!pointRef) {
               results.push({
                 type: action.type,
                 status: 'error',
-                message: 'Point content is required for rewrite',
+                message: 'Point id required for rewrite — use 1–N from DIALOG DOCUMENT, the current title, or an exact id.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (!content && !title) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Provide a new title (prelude) and/or new content.',
                 errorCode: 'VALIDATION_ERROR',
               });
               break;
@@ -2603,13 +2650,33 @@ export async function executeAgentActions(
               break;
             }
 
+            const resolvedPointId = resolveDraftPointRef(pointRef, parseDraftPoints(draft.spec_json), {
+              prelude: title || undefined,
+              content: content || undefined,
+            });
+            if (!resolvedPointId) {
+              const hostCount = parseDraftPoints(draft.spec_json).filter(
+                (point) => !point.referencesPointId?.trim(),
+              ).length;
+              results.push({
+                type: action.type,
+                status: 'error',
+                message:
+                  hostCount > 0
+                    ? `Point not found. Use 1–${hostCount} from DIALOG DOCUMENT, the current Point title, or an exact id.`
+                    : 'Point not found — this Document has no Points to rewrite.',
+                errorCode: 'POINT_NOT_FOUND',
+              });
+              break;
+            }
+
             const pointType = typeof payload.type === 'string'
               ? payload.type as DraftPointType
               : undefined;
 
             const rewriteExtras: Partial<Pick<DraftPoint, 'prelude' | 'closer' | 'moments'>> = {};
-            if (typeof payload.prelude === 'string' && payload.prelude.trim()) {
-              rewriteExtras.prelude = payload.prelude.trim();
+            if (title) {
+              rewriteExtras.prelude = title;
             }
             if (typeof payload.closer === 'string' && payload.closer.trim()) {
               rewriteExtras.closer = payload.closer.trim();
@@ -2623,7 +2690,7 @@ export async function executeAgentActions(
             const isDocumentManuscript = draft.kind === 'document_manuscript';
             const rewriteResult = rewriteDraftPointInSpec(
               draft.spec_json,
-              pointId,
+              resolvedPointId,
               content,
               pointType,
               rewriteExtras,
@@ -2636,8 +2703,8 @@ export async function executeAgentActions(
                     ? 'Cannot rewrite this point.'
                     : 'Cannot rewrite an accepted (kept) point — it is an anchor. On journey drafts, propose a revision with draft.update.propose (optional referencesPointId). On the Dialog Document (document_manuscript), Lead may rewrite accepted Points — check draft.kind.'
                   : rewriteResult.code === 'POINT_NOT_FOUND'
-                    ? 'Point not found — call draft.read first and use an exact pointId from spec.points'
-                    : 'Point content is required';
+                    ? 'Point not found. Use 1–N from DIALOG DOCUMENT, the current Point title, or an exact id.'
+                    : 'Provide a new title (prelude) and/or new content.';
               results.push({
                 type: action.type,
                 status: 'error',
@@ -5422,7 +5489,7 @@ export class KipAgentService {
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
-          'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
+          'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
           'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
           'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
@@ -5518,8 +5585,8 @@ export class KipAgentService {
         'Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
-        'draft.point.rewrite — rewrites one point in place. Payload: { id, pointId, content, type? }. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead. Cast agents should draft.update.propose with optional referencesPointId instead of overwriting.',
-        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition. Does not change accepted work. Chronicle shows Current vs Proposed. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize.',
+        'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
+        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition. Does not change accepted work. Chronicle shows Current vs Proposed. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle on the live Document is draft.point.rewrite.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -5821,7 +5888,13 @@ export class KipAgentService {
 
         const pointObligation = pointObligationFromEnv(environmentContext);
         if (pointObligation) {
-          const actor = agent.role === 'Lead' ? 'lead' : 'cast';
+          const envSupportEcho =
+            (environmentContext as { agentContext?: { supportEcho?: boolean } } | null | undefined)
+              ?.agentContext?.supportEcho === true;
+          const actor = resolvePointTurnActor({
+            input,
+            supportEcho: isSupportEchoPrompt(input) || envSupportEcho,
+          });
           const pointPrompt = buildPointObligationSystemPrompt(pointObligation, actor);
           if (pointPrompt) {
             messages.push({
@@ -5987,7 +6060,7 @@ export class KipAgentService {
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
-            'draft.point.rewrite payload schema: id (required, draft UUID), pointId (required, exact UUID from spec.points), content (required), type (optional).',
+            'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
             'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
@@ -6286,6 +6359,8 @@ export class KipAgentService {
           options.skipActionTypes = skipped;
         }
       }
+
+      const pointTurnActor = pointTurnActorForRun(input, options);
 
       if (!supportEcho) {
         await resolvePointObligationForRun({
@@ -6956,7 +7031,7 @@ export class KipAgentService {
                 allowlist: allowActions,
                 sessionId: currentSessionId,
                 requestId,
-                actor: agent.role === 'Lead' ? 'lead' : 'cast',
+                actor: pointTurnActor,
               }),
             );
             if (options?.timings) {
@@ -7076,7 +7151,7 @@ export class KipAgentService {
                       allowlist: allowActions,
                       sessionId: currentSessionId,
                       requestId,
-                      actor: agent.role === 'Lead' ? 'lead' : 'cast',
+                      actor: pointTurnActor,
                     }),
                   );
                   if (options?.timings) {
@@ -7166,7 +7241,7 @@ export class KipAgentService {
                 allowlist: allowActions,
                 sessionId: currentSessionId,
                 requestId,
-                actor: agent.role === 'Lead' ? 'lead' : 'cast',
+                actor: pointTurnActor,
               }),
             );
             if (options?.timings) {
@@ -7188,7 +7263,7 @@ export class KipAgentService {
           && shouldRunPointObligationFollowUp({
             obligation: pointObligation,
             actionResults,
-            isLead: agent.role === 'Lead',
+            isTurnOwner: pointTurnActor === 'lead',
           })
         ) {
           options?.onStatus?.('Adding Points to the Document…');
@@ -7253,7 +7328,7 @@ export class KipAgentService {
                 allowlist: allowActions,
                 sessionId: currentSessionId,
                 requestId,
-                actor: agent.role === 'Lead' ? 'lead' : 'cast',
+                actor: pointTurnActor,
               }),
             );
             if (options?.timings) {
@@ -7356,7 +7431,7 @@ export class KipAgentService {
           if (blockedNotice) {
             finalResponseText = `${finalResponseText}\n\n${blockedNotice}`;
           } else if (
-            agent.role === 'Lead'
+            pointTurnActor === 'lead'
             && pointObligation.required
             && pointObligation.manuscriptDraftId
             && !actionResults.some((result) => result.type === 'draft.update.propose')
@@ -7865,7 +7940,7 @@ export class KipAgentService {
                 allowlist: systemAllowActions,
                 sessionId: currentSessionId,
                 requestId: systemRequestId,
-                actor: 'cast',
+                actor: pointTurnActor,
               }),
             );
             if (options?.timings) {
@@ -7938,12 +8013,217 @@ export class KipAgentService {
         }
 
         const systemPointObligation = pointObligationFromEnv(options?.environment);
-        if (systemPointObligation?.required && !systemPointObligation.constrained) {
+
+        if (
+          shouldRunMutationDeferralFollowUp({
+            userInput: input || '',
+            responseText: finalResponseText,
+            actions: structured.actions,
+            actionResults,
+          })
+        ) {
+          options?.onStatus?.('Finishing draft work…');
+          options?.onReset?.();
+          const followUpInput = buildMutationDeferralFollowUpInput({
+            originalInput: input || '',
+            agentName: agent.name,
+            priorResponseText: finalResponseText,
+          });
+          const followUpResult = await this.callAIModel(
+            agent,
+            followUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: 'domain',
+              modeConfig: systemModeConfig,
+              lens: { systemPrompt: agentVoicePrompt || null },
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'mutation_deferral_follow_up',
+              reuseMessages: [
+                ...lastSystemPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastSystemPromptMessages = followUpResult.messages;
+          const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
+            requestId: randomUUID(),
+            userId,
+            allowedActions: Array.from(systemAllowActions),
+          });
+          finalResponseText =
+            followUpStructured.responseText?.trim()
+            || followUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !followUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (followUpStructured.card) {
+            structured = { ...structured, card: followUpStructured.card };
+          }
+          if (followUpStructured.actions.length) {
+            const mutationActionsStartedAt = Date.now();
+            const followUpExecution = await executeAgentActions(
+              followUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: systemAllowActions,
+                sessionId: currentSessionId,
+                requestId: systemRequestId,
+                actor: pointTurnActor,
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - mutationActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...followUpExecution.results];
+            if (
+              followUpExecution.failedMessage
+              && !(systemPointObligation?.required === true && !systemPointObligation.constrained)
+            ) {
+              finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
+            }
+          }
+        }
+
+        if (
+          systemPointObligation
+          && shouldRunPointObligationFollowUp({
+            obligation: systemPointObligation,
+            actionResults,
+            isTurnOwner: pointTurnActor === 'lead',
+          })
+        ) {
+          options?.onStatus?.('Adding Points to the Document…');
+          options?.onReset?.();
+          const pointFollowUpInput = buildPointObligationFollowUpInput({
+            originalInput: input || '',
+            agentName: agent.name,
+            priorResponseText: finalResponseText,
+            obligation: systemPointObligation,
+          });
+          const pointFollowUpResult = await this.callAIModel(
+            agent,
+            pointFollowUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: 'domain',
+              modeConfig: systemModeConfig,
+              lens: { systemPrompt: agentVoicePrompt || null },
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'point_obligation_follow_up',
+              reuseMessages: [
+                ...lastSystemPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastSystemPromptMessages = pointFollowUpResult.messages;
+          const pointFollowUpStructured = await ensureKipAgentOutputEnvelope(pointFollowUpResult.content, {
+            requestId: randomUUID(),
+            userId,
+            allowedActions: Array.from(systemAllowActions),
+          });
+          finalResponseText =
+            pointFollowUpStructured.responseText?.trim()
+            || pointFollowUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !pointFollowUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (pointFollowUpStructured.card) {
+            structured = { ...structured, card: pointFollowUpStructured.card };
+          }
+          if (pointFollowUpStructured.actions.length) {
+            const pointActionsStartedAt = Date.now();
+            const pointFollowUpExecution = await executeAgentActions(
+              pointFollowUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: systemAllowActions,
+                sessionId: currentSessionId,
+                requestId: systemRequestId,
+                actor: pointTurnActor,
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - pointActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...pointFollowUpExecution.results];
+            if (
+              pointFollowUpExecution.failedMessage
+              && !(systemPointObligation.required === true && !systemPointObligation.constrained)
+            ) {
+              finalResponseText = `${finalResponseText}\n\n${pointFollowUpExecution.failedMessage}`;
+            }
+          }
+        }
+
+        if (systemPointObligation) {
+          const blockedNotice = buildPointObligationBlockedNotice(systemPointObligation);
+          if (blockedNotice) {
+            finalResponseText = `${finalResponseText}\n\n${blockedNotice}`;
+          } else if (
+            pointTurnActor === 'lead'
+            && systemPointObligation.required
+            && systemPointObligation.manuscriptDraftId
+            && !actionResults.some((result) => result.type === 'draft.update.propose')
+          ) {
+            finalResponseText = `${finalResponseText}\n\n${buildPointObligationUnmetNotice(actionResults)}`;
+          }
+        }
+
+        if (
+          systemPointObligation?.required
+          && !systemPointObligation.constrained
+          && pointTurnActor === 'cast'
+        ) {
           const clamped = clampCastAdviceForPointTurn(finalResponseText);
           if (clamped !== finalResponseText.trim()) {
             finalResponseText = clamped;
             options?.onReset?.();
             if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
+          }
+        }
+
+        if (systemPointObligation) {
+          const pointCard = buildPointTurnCard({
+            results: actionResults,
+            dialogTitle: systemPointObligation.dialogTitle,
+            workingOnTitle: systemPointObligation.workingOnTitle,
+            writeKind: systemPointObligation.writeKind,
+          });
+          if (pointCard) {
+            structured = { ...structured, card: pointCard };
+            const presented = applyPointTurnDialogCopy({
+              responseText: finalResponseText,
+              results: actionResults,
+              dialogTitle: systemPointObligation.dialogTitle,
+              obligationRequired: systemPointObligation.required === true && !systemPointObligation.constrained,
+            });
+            if (presented !== finalResponseText.trim()) {
+              finalResponseText = presented;
+              options?.onReset?.();
+              if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
+            }
           }
         }
 
@@ -8633,6 +8913,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               domainId: validation.data.domainId ?? resolvedDomain.domainId ?? undefined,
               sessionId,
               dialogId: validation.data.dialogId ?? undefined,
+              chronicleDraftId: validation.data.activeDraftId,
               intent: 'interactive',
             });
             runTimings.envResolveMs = Date.now() - envStartedAt;
@@ -8714,13 +8995,21 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           }
 
           if (environment) {
+            if (validation.data.activeDraftId === null) {
+              environment.activeDraft = undefined;
+            }
             let draftIdToEnrich =
               validation.data.activeDraftId
               ?? draftIntentResult?.draft?.id
               ?? environment.activeDraft?.id
               ?? null;
 
-            if (!draftIdToEnrich && sessionId) {
+            if (
+              !draftIdToEnrich
+              && validation.data.activeDraftId !== null
+              && !validation.data.dialogId
+              && sessionId
+            ) {
               try {
                 const sessionRow = await prisma.kip_sessions.findUnique({
                   where: { id: sessionId },

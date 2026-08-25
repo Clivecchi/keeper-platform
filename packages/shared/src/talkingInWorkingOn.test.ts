@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildTalkingInWorkingOnPrompt,
+  resolveChronicleActiveDraftId,
   resolvePointWriteTarget,
   resolveTalkingInWorkingOn,
   workingOnRepeatsTalkingInTitle,
@@ -109,6 +110,49 @@ describe('resolvePointWriteTarget', () => {
         manuscriptDraftId: 'ms-1',
       }),
     ).toEqual({ writeKind: 'document', writeDraftId: 'ms-1' });
+  });
+});
+
+describe('resolveChronicleActiveDraftId', () => {
+  it('uses the Chronicle Draft when the client sent one', () => {
+    expect(
+      resolveChronicleActiveDraftId({
+        requestActiveDraftId: 'draft-ui',
+        requestDialogId: 'touchdown',
+        sessionActiveDraft: {
+          id: 'bt-manuscript',
+          kind: 'document_manuscript',
+          dialogId: 'becoming-together',
+        },
+      }),
+    ).toBe('draft-ui');
+  });
+
+  it('ignores session leftovers when Chronicle is on the Document', () => {
+    expect(
+      resolveChronicleActiveDraftId({
+        requestActiveDraftId: null,
+        requestDialogId: 'touchdown',
+        sessionActiveDraft: {
+          id: 'bt-manuscript',
+          kind: 'document_manuscript',
+          dialogId: 'becoming-together',
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it('does not treat another Dialog manuscript as the focused Draft', () => {
+    expect(
+      resolveChronicleActiveDraftId({
+        requestDialogId: 'touchdown',
+        sessionActiveDraft: {
+          id: 'bt-manuscript',
+          kind: 'document_manuscript',
+          dialogId: 'becoming-together',
+        },
+      }),
+    ).toBeNull();
   });
 });
 

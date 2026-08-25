@@ -230,4 +230,14 @@ describe("sanitizeAgentMessageContent", () => {
     })
     expect(sanitizeAgentMessageContent(raw)).toBe("This is the Community Commerce model from 2019.")
   })
+
+  it("unwraps agent_output JSON pasted under a Cast heading", () => {
+    const raw = `### Cloud\n${JSON.stringify({
+      type: "agent_output",
+      response: "Reading the thread: Rendr described actions instead of executing them.",
+    })}`
+    expect(sanitizeAgentMessageContent(raw)).toBe(
+      "### Cloud\nReading the thread: Rendr described actions instead of executing them.",
+    )
+  })
 })

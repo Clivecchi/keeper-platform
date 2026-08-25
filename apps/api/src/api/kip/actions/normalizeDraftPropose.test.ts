@@ -60,6 +60,15 @@ describe('normalizeDraftUpdateProposePayload', () => {
     expect(out.author).toBe('Claude');
     expect(out.proposedBy).toBe('Claude');
   });
+
+  it('maps title onto prelude', () => {
+    const out = normalizeDraftUpdateProposePayload({
+      content: 'The write landed in Open.',
+      title: 'Points Dump Into Open',
+    });
+    expect(out.prelude).toBe('Points Dump Into Open');
+    expect(out.content).toBe('The write landed in Open.');
+  });
 });
 
 describe('normalizeDraftPointIdPayload', () => {
@@ -70,5 +79,14 @@ describe('normalizeDraftPointIdPayload', () => {
     });
     expect(out.id).toBe('draft-1');
     expect(out.pointId).toBe('point-1');
+  });
+
+  it('accepts a Point number and title alias', () => {
+    const out = normalizeDraftPointIdPayload({
+      point: 3,
+      title: 'Agent Narrates, Doesn\'t Act',
+    });
+    expect(out.pointId).toBe('3');
+    expect(out.prelude).toBe('Agent Narrates, Doesn\'t Act');
   });
 });

@@ -432,6 +432,9 @@ const USER_DRAFT_WORK_PATTERNS: RegExp[] = [
   /\bcreate a draft\b/i,
   /\bsave (this|it) (as )?(a )?draft\b/i,
   /\bwork (on|in) (the )?draft\b/i,
+  /\bpropose .{0,40}points?\b/i,
+  /\badd .{0,40}points?\b/i,
+  /\bweren['’]?t able to propose\b/i,
 ];
 
 const RESPONSE_DEFERRAL_PATTERNS: RegExp[] = [
@@ -440,8 +443,11 @@ const RESPONSE_DEFERRAL_PATTERNS: RegExp[] = [
   /\bhold on\b/i,
   /\bstay with me\b/i,
   /\b(i'm|i am) (pulling|creating|updating|moving|splitting|working on|about to)\b/i,
-  /\b(i'll|i will) (create|update|move|pull|split|separate)\b/i,
-  /\blet me (create|update|move|pull|split|separate|work)\b/i,
+  /\b(i'll|i will) (create|update|move|pull|split|separate|read|fire|do it|do that)\b/i,
+  /\blet me (create|update|move|pull|split|separate|work|read|actually|fire|do it|do that)\b/i,
+  /\bi need to read\b/i,
+  /\breading .{0,80} now\b/i,
+  /\bno description, just the action\b/i,
 ];
 
 const READ_ONLY_ESCAPE_PATTERNS = [

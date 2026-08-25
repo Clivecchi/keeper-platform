@@ -168,6 +168,15 @@ export function resolveReorganizePointRef(
   return null;
 }
 
+/** Same identity rules as Review & Reorganize — one Point, no used-set. */
+export function resolveDraftPointRef(
+  ref: string | undefined,
+  currentPoints: DraftPoint[],
+  hints?: { prelude?: string; content?: string },
+): string | null {
+  return resolveReorganizePointRef(ref, currentPoints, new Set(), hints);
+}
+
 export function resolveReorganizeSectionId(
   ref: string | null | undefined,
   sections: DocumentPathDeclaration[],

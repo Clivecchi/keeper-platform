@@ -11,6 +11,7 @@ import {
   detectPointIntent,
   humanTurnTextForIntent,
   preferShortPointTurnResponse,
+  resolvePointTurnActor,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
 } from '../services/kip/pointIntent.js';
@@ -32,6 +33,12 @@ describe('detectPointIntent', () => {
     expect(
       detectPointIntent('Capture the three major conclusions from this discussion as Points.').kind,
     ).toBe('required');
+    expect(detectPointIntent("hmmmm... doesnt look like you were able to propose the points.").kind).toBe(
+      'required',
+    );
+    expect(detectPointIntent('And still nothing').kind).toBe('required');
+    expect(detectPointIntent('And again, same behavior').kind).toBe('required');
+    expect(detectPointIntent('What document or draft did you propose them to?').kind).toBe('required');
   });
 
   it('does not fire on ordinary-language point', () => {
@@ -154,6 +161,36 @@ describe('resolvePointTurnObligation', () => {
   });
 });
 
+describe('resolvePointTurnActor', () => {
+  it('treats the addressed composer as the turn owner', () => {
+    expect(resolvePointTurnActor({ input: 'Propose those Points.' })).toBe('lead');
+    expect(resolvePointTurnActor({ input: 'Propose those Points.', supportEcho: true })).toBe('cast');
+  });
+
+  it('keeps nested consults and Echo advise-only', () => {
+    expect(
+      resolvePointTurnActor({
+        input: '[Director delegation — Rendr on the Design board]\nThe user asked: "propose points"',
+      }),
+    ).toBe('cast');
+    expect(
+      resolvePointTurnActor({
+        input: '[Platform collaboration — Kip]\nThe user asked: "propose points"',
+      }),
+    ).toBe('cast');
+    expect(
+      resolvePointTurnActor({
+        input: '[Director synthesis — Rendr]\nCast replies above. Propose the Points.',
+      }),
+    ).toBe('lead');
+    expect(
+      resolvePointTurnActor({
+        input: '[Agent Echo — Kip]\nHelp Rendr.',
+      }),
+    ).toBe('cast');
+  });
+});
+
 describe('point obligation follow-up', () => {
   const obligation = {
     required: true,
@@ -168,7 +205,7 @@ describe('point obligation follow-up', () => {
       shouldRunPointObligationFollowUp({
         obligation,
         actionResults: [],
-        isLead: true,
+        isTurnOwner: true,
       }),
     ).toBe(true);
   });
@@ -178,17 +215,17 @@ describe('point obligation follow-up', () => {
       shouldRunPointObligationFollowUp({
         obligation,
         actionResults: [{ type: 'draft.update.propose', status: 'success' }],
-        isLead: true,
+        isTurnOwner: true,
       }),
     ).toBe(false);
   });
 
-  it('does not force Cast to write', () => {
+  it('does not force nested Cast or Echo to write', () => {
     expect(
       shouldRunPointObligationFollowUp({
         obligation,
         actionResults: [],
-        isLead: false,
+        isTurnOwner: false,
       }),
     ).toBe(false);
   });

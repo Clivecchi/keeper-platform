@@ -15,7 +15,7 @@ Seeds the first full KeeperType implementation for AI memory:
   - `identity_logbook` - Identity Logbook (timeline)
 
 ### Other Seeds
-- `kip-agents.sql` - KIP agents with model integration
+- `rendr-agent.seed.ts` - Rendr platform agent (Treatment + Points on Working on)
 - `kip-sessions.sql` - KIP session data
 - `lead-agents.sql` - Lead agent configurations
 - `coordinator-agent.sql` - Coordinator agent setup

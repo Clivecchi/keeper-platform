@@ -27,6 +27,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-25: **Point titles + rewrite identity** — `draft.point.rewrite` resolves Points by number or title. Title-only updates keep the body. New Points accept `title` as the story-label.
 - 2026-08-24: **PDF body + envelope save** — `library.read { id }` returns extracted document text. Agent replies persist as visible text, not `agent_output` JSON. Private Google Docs are not fetched — upload a PDF or paste.
 - 2026-08-24: **Agent conversation continuity** — Point intent reads the visible human prompt, not pasted supporting context or Echo scaffolds. Kip Echo cannot write Document Points. Session history is last 40 messages. Short replies get a continuity cue. `draft.update.propose` accepts a named Section.
 - 2026-05-25: **System agents (Cloud) interactive dialog** — `role === 'System'` now runs `callAIModel`, persists user/agent messages to the session, and returns `system_interaction` (was stub `generic_processing` with no session writes). Respects `config.suppress_kip_system_prompt` in `callAIModel` domain contract injection. Seed sets `memory_enabled: true` for new Cloud records. **Fix:** `callAIModel` merges default settings with `agent.model` — empty `model_settings: {}` no longer drops the model field (Anthropic `model: Field required`).

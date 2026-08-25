@@ -4,6 +4,7 @@ import { getRedis, isNoOpRedis, type RedisClientOrNoOp } from '../../lib/redis.j
 import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
 import {
+  resolveChronicleActiveDraftId,
   resolveDialogParticipation,
   summarizeDraftPointsForAgent,
   readKeeperStageFromDomainSettings,
@@ -272,9 +273,14 @@ export async function resolveAgentEnvironment(args: {
   sessionId?: string;
   /** When omitted, resolved from kip_sessions.dialog_id when sessionId is present. */
   dialogId?: string;
+  /**
+   * Chronicle Draft focus from the client.
+   * `null` = Document on screen, not a Draft. `undefined` = omitted (legacy session fallback).
+   */
+  chronicleDraftId?: string | null;
   intent: 'interactive';
 }): Promise<AgentEnvironmentContext> {
-  const { agentId, userId, domainId, sessionId, dialogId } = args;
+  const { agentId, userId, domainId, sessionId, dialogId, chronicleDraftId } = args;
 
   const resolvedAt = new Date().toISOString();
   const environment: AgentEnvironmentContext = {
@@ -569,7 +575,11 @@ export async function resolveAgentEnvironment(args: {
       if (hasReadAccess && userId) {
         try {
           const drafts = await prisma.kip_drafts.findMany({
-            where: { domain_id: primaryDomainId, owner_id: userId },
+            where: {
+              domain_id: primaryDomainId,
+              owner_id: userId,
+              kind: { not: 'document_manuscript' },
+            },
             select: {
               id: true,
               kind: true,
@@ -615,11 +625,22 @@ export async function resolveAgentEnvironment(args: {
   if (sessionId && sessionRow) {
     try {
       const ownsSession = !sessionRow.user_id || (userId ? sessionRow.user_id === userId : false);
+      const requestedDraftId =
+        typeof chronicleDraftId === 'string' && chronicleDraftId.trim()
+          ? chronicleDraftId.trim()
+          : null;
+      const candidateId =
+        requestedDraftId
+        ?? (chronicleDraftId === null
+          ? null
+          : ownsSession
+            ? sessionRow.active_draft_id
+            : null);
 
-      if (sessionRow.active_draft_id && ownsSession) {
+      if (candidateId && (requestedDraftId || ownsSession)) {
         const draft = await prisma.kip_drafts.findFirst({
           where: {
-            id: sessionRow.active_draft_id,
+            id: candidateId,
             ...(domainId ? { domain_id: domainId } : {}),
             ...(userId ? { owner_id: userId } : {}),
           },
@@ -631,10 +652,19 @@ export async function resolveAgentEnvironment(args: {
             status: true,
             updated_at: true,
             spec_json: true,
+            dialog_id: true,
           },
         });
 
-        if (draft) {
+        const focusedId = resolveChronicleActiveDraftId({
+          requestActiveDraftId: chronicleDraftId === undefined ? undefined : requestedDraftId,
+          requestDialogId: effectiveDialogId,
+          sessionActiveDraft: draft
+            ? { id: draft.id, kind: draft.kind, dialogId: draft.dialog_id }
+            : null,
+        });
+
+        if (draft && focusedId === draft.id && draft.kind !== 'document_manuscript') {
           environment.activeDraft = {
             id: draft.id,
             kind: draft.kind,

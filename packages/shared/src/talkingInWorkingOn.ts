@@ -221,10 +221,33 @@ export function workingOnRepeatsTalkingInTitle(
 }
 
 /**
- * Point write target from the two coordinates.
- * Focused Draft wins. Named Dialog Document is the default.
- * Session/Chatter never invents a Document.
+ * Chronicle focus is the only Draft that may steal Point writes from the Dialog Document.
+ * Session.active_draft_id is leftover from the last Draft you opened — not Working on.
+ * A document_manuscript is the Dialog Document, not a focused working Draft.
  */
+export function resolveChronicleActiveDraftId(input: {
+  requestActiveDraftId?: string | null;
+  requestDialogId?: string | null;
+  sessionActiveDraft?: {
+    id?: string | null;
+    kind?: string | null;
+    dialogId?: string | null;
+  } | null;
+}): string | null {
+  const requested = trimmed(input.requestActiveDraftId);
+  if (requested) return requested;
+  if (input.requestActiveDraftId === null) return null;
+
+  const sessionId = trimmed(input.sessionActiveDraft?.id);
+  if (!sessionId) return null;
+  if (input.sessionActiveDraft?.kind === 'document_manuscript') return null;
+
+  const requestDialog = trimmed(input.requestDialogId);
+  const sessionDialog = trimmed(input.sessionActiveDraft?.dialogId);
+  if (requestDialog && sessionDialog && sessionDialog !== requestDialog) return null;
+  if (requestDialog && !sessionDialog) return null;
+  return sessionId;
+}
 export function resolvePointWriteTarget(input: {
   talkingInWorkingOn?: TalkingInWorkingOn | null;
   manuscriptDraftId?: string | null;

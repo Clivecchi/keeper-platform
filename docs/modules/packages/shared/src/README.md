@@ -21,8 +21,9 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
-- 2026-08-24: `directorContinuity.ts` — Lead short-reply continuity (`Yes` / `propose`) and `isSupportEchoPrompt`.
-- 2026-08-22: `document.ts` — `resolveSectionIntro` / `resolveSectionChangeCues`. Authored Section prelude wins; otherwise a short spine from Point titles.
+- 2026-08-25: `resolveChronicleActiveDraftId` — Chronicle Document focus (`null`) and foreign manuscripts do not become Working on.
+- 2026-08-25: `resolveDraftPointRef` — UUID / 1-based number / title. `rewriteDraftPointInSpec` may omit content for title-only updates.
+- 2026-08-24: `directorContinuity.ts` — Lead short-reply continuity (`Yes` / `propose`) and `isSupportEchoPrompt` so Echo scaffolds are not treated as the human's words.
 - 2026-08-22: `documentReorganize.ts` — Coerces Lead payload shapes (string Sections, nested Points, title/body synonyms). Sections-only is a valid proposal; Keeper keeps every current Point.
 - 2026-08-22: `documentReorganize.ts` — Keeper resolves Point numbers and titles to real ids. Unknown refs become New instead of failing the proposal.
 - 2026-08-22: `documentReorganize.ts` — Review & Reorganize proposal contract. Lead proposes a future Document; Keeper fills omitted Points as unchanged so Proposed is always complete. Apply is a separate human action.
@@ -38,17 +39,3 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - 2026-07-16: Renamed `chronicleDocument.ts` → `document.ts`; exported type `Document` (+ `Point` alias) replaces `ChronicleDocument`.
 - 2026-07-13: Added `chronicleSubject.ts` — Layer-1 ChronicleSubject/ChronicleOverlay types, `resolveChronicleView`, and legacy ID compat helpers (see `docs/chronicle-document-architecture.md`).
 - 2025-11-22: Added canonical board slug helpers to coordinate logged-in experience rendering.
-
-
-
-
-
-
-
-
-
-
-
-
-
-

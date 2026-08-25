@@ -284,7 +284,40 @@ export function sanitizeAgentMessageContent(content: string): string {
       /* not JSON — show as-is */
     }
   }
-  return content
+  const embedded = unwrapEmbeddedAgentOutput(trimmed)
+  return embedded !== trimmed ? embedded : content
+}
+
+function unwrapEmbeddedAgentOutput(content: string): string {
+  const markerMatch = content.match(/"type"\s*:\s*"agent_output"/)
+  if (!markerMatch || markerMatch.index == null) return content
+  const idx = markerMatch.index
+  if (idx < 0) return content
+  const start = content.lastIndexOf("{", idx)
+  if (start < 0) return content
+  let depth = 0
+  let end = -1
+  for (let i = start; i < content.length; i++) {
+    const ch = content[i]
+    if (ch === "{") depth += 1
+    else if (ch === "}") {
+      depth -= 1
+      if (depth === 0) {
+        end = i
+        break
+      }
+    }
+  }
+  if (end < 0) return content
+  try {
+    const parsed = JSON.parse(content.slice(start, end + 1)) as Record<string, unknown>
+    if (parsed?.type !== "agent_output") return content
+    const response = typeof parsed.response === "string" ? parsed.response.trim() : ""
+    if (!response) return content
+    return `${content.slice(0, start)}${response}${content.slice(end + 1)}`.trim()
+  } catch {
+    return content
+  }
 }
 
 export function buildInstrumentUnavailableDelegationBeat(params: {
@@ -311,13 +344,14 @@ export function extractAgentReplyFromRunResult(result: unknown): string | null {
     const layer2 = l1.data
     if (layer2 && typeof layer2 === "object") {
       const nested = readResponseString((layer2 as Record<string, unknown>).response)
-      if (nested) return nested
+      if (nested) return sanitizeAgentMessageContent(nested)
     }
     const direct = readResponseString(l1.response)
-    if (direct) return direct
+    if (direct) return sanitizeAgentMessageContent(direct)
   }
 
-  return readResponseString(root.response)
+  const rootResponse = readResponseString(root.response)
+  return rootResponse ? sanitizeAgentMessageContent(rootResponse) : null
 }
 
 /**

@@ -6,6 +6,7 @@ import {
   isDocumentReorganizeSpineOnly,
   normalizeDocumentReorganizeProposal,
   parseDocumentReorganizeProposal,
+  resolveDraftPointRef,
 } from './documentReorganize.js';
 
 const currentPoints = [
@@ -26,6 +27,14 @@ const currentPoints = [
     pathGroupId: 'open',
   }),
 ];
+
+describe('resolveDraftPointRef', () => {
+  it('resolves UUID, 1-based number, and title', () => {
+    expect(resolveDraftPointRef('p1', currentPoints)).toBe('p1');
+    expect(resolveDraftPointRef('2', currentPoints)).toBe('p2');
+    expect(resolveDraftPointRef('The plot', currentPoints)).toBe('p1');
+  });
+});
 
 describe('normalizeDocumentReorganizeProposal', () => {
   it('fills unlisted Points as unchanged so Proposed is a full Document', () => {

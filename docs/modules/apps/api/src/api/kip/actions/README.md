@@ -11,14 +11,15 @@ Normalize and validate structured Kip agent actions before `executeAgentActions`
 
 ## 🔄 Data & Behavior
 - Models often send point body as `text`/`body`/`narrative` or nest `{ content: { text, author } }`.
-- `normalizeDraftUpdateProposePayload` maps those shapes to flat `content` + optional `author`/`proposedBy`.
-- Point id actions accept `draftId`/`id` and `pointId`/`point_id` aliases.
+- `normalizeDraftUpdateProposePayload` maps those shapes to flat `content` + optional `author`/`proposedBy`, and `title` → `prelude` (Point story-label).
+- Point id actions accept `draftId`/`id` and `pointId`/`point_id` / number aliases. Rewrite does not require a UUID.
 
 ## ⚠️ Notes & ToDo
 - [ ] Wire Zod `actionPayloadSchemas` into `parseActionsOrThrow` (currently documented but unused)
 - [ ] Confirm with Chuck: cast agents proposing on journey drafts should stay `proposed` (human Accept)
 
 ## 📆 Update Log
+- 2026-08-25: `draft.point.rewrite` accepts Point number/title (same identity rules as Review & Reorganize). Title-only updates use `prelude`/`title` and may omit `content`. `draft.update.propose` maps `title` → `prelude`.
 - 2026-08-21: `draft.update.propose` no longer requires the model to send `id` / `draftId`. `content` is the contract. Keeper fills the Dialog manuscript UUID at execute time.
 - 2026-08-21: Point propose ids that are not UUIDs (`none`, `manuscript-…` keys) are replaced with the Dialog manuscript UUID before execution.
 - 2026-08-19: `normalizeDraftCreate.ts` — reject `document_manuscript` as a working-draft kind; persist `content` as proposed Points.
