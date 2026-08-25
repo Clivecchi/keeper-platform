@@ -1622,7 +1622,10 @@ export function UniversalConversation({
             domainId: domainId || undefined,
             dialogId: selectedDialogId || undefined,
             mode: "domain",
-            agentContext,
+            agentContext: {
+              ...(agentContext ?? {}),
+              supportEcho: true,
+            },
           },
         )
         const echoContent = extractAgentReplyFromRunResult(echoResult)?.trim() ?? ""

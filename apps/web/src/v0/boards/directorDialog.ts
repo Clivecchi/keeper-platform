@@ -180,12 +180,13 @@ export function buildDomainCollaborationPrompt(params: {
     `${params.leadName} (domain lead) responded: "${params.leadReply}"`,
     ``,
     `You are Keeper platform support — not the lead voice.`,
-    `Defer relationship and strategy voice to ${params.leadName}. Do NOT defer platform construction.`,
-    `If the user asked to launch, build, or present a surface and the lead only asked questions or promised later work, use your tools in this turn (draft.create, journey.create, moment.create).`,
+    `Defer relationship and strategy voice to ${params.leadName}.`,
+    `Default: return empty. Stay silent.`,
+    `Only speak if you have a brief platform fact ${params.leadName} missed — one or two sentences, no Document writes.`,
+    `Do NOT create drafts, Points, or reorganize the Document. Lead owns those writes.`,
     `Do NOT re-answer the user's question or correct the lead.`,
-    `Do not offer help you are not delivering now. Do not say you are available later.`,
-    `If the lead already completed the platform work, return empty.`,
-    `Maximum five sentences. Empty is valid only when no platform work remains.`,
+    `Never create a draft because the lead described an empty Document or said there are no Points yet.`,
+    `Empty is valid and preferred.`,
   ].join("\n")
 }
 
@@ -268,10 +269,14 @@ export function sanitizeAgentMessageContent(content: string): string {
   if (withoutExecutorLeak !== trimmed) {
     return withoutExecutorLeak
   }
-  if (trimmed.startsWith("{") && trimmed.includes('"type"') && trimmed.includes('"payload"')) {
+  if (trimmed.startsWith("{") && trimmed.includes('"type"')) {
     try {
       const parsed = JSON.parse(trimmed) as Record<string, unknown>
       const type = typeof parsed.type === "string" ? parsed.type : ""
+      if (type === "agent_output") {
+        const response = typeof parsed.response === "string" ? parsed.response.trim() : ""
+        return response
+      }
       if (type && type !== "agent_output" && !("response" in parsed)) {
         return ""
       }

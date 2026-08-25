@@ -57,8 +57,9 @@ const POINT_CONSTRAINT_PATTERNS = [
   /\bdon['’]?t (write|capture|propose|save)\b/i,
   /\bdo not (write|capture|propose|save)\b/i,
   /\bnothing yet\b/i,
-  /\bnot yet\b/i,
-  /\bno points yet\b/i,
+  /\bdon['’]?t add (any )?points yet\b/i,
+  /\bdo not add (any )?points yet\b/i,
+  /\bno points yet[,.]?\s*(don['’]?t|do not|without)\b/i,
   /\bdon['’]?t add anything\b/i,
   /\bdo not add anything\b/i,
   /\bdiscuss possible points\b/i,
@@ -66,6 +67,16 @@ const POINT_CONSTRAINT_PATTERNS = [
   /\bwithout (adding|creating|writing|capturing|proposing)\b/i,
   /\bbut don['’]?t add\b/i,
 ];
+
+/** Human-visible turn text — never Point-intent on pasted supporting context or Echo scaffolds. */
+export function humanTurnTextForIntent(
+  input: string,
+  displayContent?: string | null,
+): string {
+  const visible = displayContent?.trim();
+  if (visible) return visible;
+  return input?.trim() ?? '';
+}
 
 const POINT_REQUIRED_PATTERNS = [
   /\bpropose (a |the |some |these |those )?points?\b/i,

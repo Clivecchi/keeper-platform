@@ -21,6 +21,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-24: `directorContinuity.ts` — Lead short-reply continuity (`Yes` / `propose`) and `isSupportEchoPrompt`.
 - 2026-08-22: `document.ts` — `resolveSectionIntro` / `resolveSectionChangeCues`. Authored Section prelude wins; otherwise a short spine from Point titles.
 - 2026-08-22: `documentReorganize.ts` — Coerces Lead payload shapes (string Sections, nested Points, title/body synonyms). Sections-only is a valid proposal; Keeper keeps every current Point.
 - 2026-08-22: `documentReorganize.ts` — Keeper resolves Point numbers and titles to real ids. Unknown refs become New instead of failing the proposal.

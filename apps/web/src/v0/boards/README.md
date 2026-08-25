@@ -38,6 +38,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-24 — Agent conversation continuity
+- Kip Echo / platform collaboration defaults to silence and does not write Document Points. `agentContext.supportEcho` marks those runs. Leaked `agent_output` JSON extracts the `response` field for Dialog display.
+
 ### 2026-08-22 — Aging-eyes readability (Readable default)
 - Comfortable density is now the board default (`keeperDensity.ts`). Avatar menu: **Larger type** On/Off.
 - `board-readability.css` is always-on (not gated on density): Dialog/Chronicle body 20px, Nav rows 18px, titles 26px. Old stored `default` upgrades to Readable.

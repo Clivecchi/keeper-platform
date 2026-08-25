@@ -9,6 +9,7 @@ import {
   buildPointObligationSystemPrompt,
   clampCastAdviceForPointTurn,
   detectPointIntent,
+  humanTurnTextForIntent,
   preferShortPointTurnResponse,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
@@ -44,6 +45,21 @@ describe('detectPointIntent', () => {
       detectPointIntent("Let's discuss possible Points, but don't add anything yet.").kind,
     ).toBe('constrained');
     expect(detectPointIntent('discuss possible points without adding').kind).toBe('constrained');
+    expect(detectPointIntent("don't add Points yet").kind).toBe('constrained');
+  });
+
+  it('does not treat Document status language as a human constraint', () => {
+    expect(detectPointIntent('The Document has no Points yet — meaning we are at the beginning.').kind).toBe('none');
+    expect(detectPointIntent('Tell me the purpose of this dialog.').kind).toBe('none');
+  });
+
+  it('uses the visible prompt, not pasted supporting context', () => {
+    expect(
+      humanTurnTextForIntent(
+        'see attached\n\n---\nSupporting context:\n\nThe Document has no Points yet',
+        'see attached',
+      ),
+    ).toBe('see attached');
   });
 });
 

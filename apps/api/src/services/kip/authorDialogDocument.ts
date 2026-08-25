@@ -7,9 +7,11 @@ import { prisma, type Prisma } from '@keeper/database';
 import {
   appendDraftPointToSpec,
   composeAuthoredPoint,
+  createDocumentSection,
   createDraftPoint,
   findDraftPoint,
   isOpenSectionId,
+  parseDocumentPathDeclarations,
   parseDraftPoints,
   removeDraftPointFromSpec,
   setDraftPointsInSpec,
@@ -235,4 +237,47 @@ export async function authorClearSectionMembership(input: {
     manuscript.id,
     setDraftPointsInSpec(manuscript.spec_json, next),
   );
+}
+
+/**
+ * Resolve a named Section on a Dialog Document, creating it when the title is new.
+ * Returns pathGroupId, or undefined for Open / missing Dialog.
+ */
+export async function ensureDialogDocumentSection(
+  tx: Prisma.TransactionClient,
+  input: {
+    domainId: string;
+    dialogId: string;
+    sectionId?: string | null;
+    sectionTitle?: string | null;
+  },
+): Promise<string | undefined> {
+  const sectionId = input.sectionId?.trim() || undefined;
+  const sectionTitle = input.sectionTitle?.trim() || undefined;
+  if (isOpenSectionId(sectionId) && !sectionTitle) return undefined;
+
+  const dialog = await tx.dialog.findFirst({
+    where: { id: input.dialogId, domain_id: input.domainId, is_archived: false },
+    select: { id: true, document_paths: true },
+  });
+  if (!dialog) return undefined;
+
+  const paths = parseDocumentPathDeclarations(dialog.document_paths);
+  if (sectionId && !isOpenSectionId(sectionId)) {
+    const byId = paths.find((path) => path.id === sectionId);
+    if (byId) return byId.id;
+  }
+  if (sectionTitle) {
+    const byTitle = paths.find(
+      (path) => path.title.toLowerCase() === sectionTitle.toLowerCase(),
+    );
+    if (byTitle) return byTitle.id;
+    const created = createDocumentSection(paths, sectionTitle);
+    await tx.dialog.update({
+      where: { id: dialog.id },
+      data: { document_paths: asJson(created.paths) },
+    });
+    return created.section.id;
+  }
+  return undefined;
 }

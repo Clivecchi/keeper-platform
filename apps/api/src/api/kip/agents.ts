@@ -30,6 +30,9 @@ import {
   type DraftPointType,
   type DirectorContinuityMessage,
   resolveDirectorDelegationMessage,
+  resolveLeadThreadReply,
+  buildLeadContinuitySystemPrompt,
+  isSupportEchoPrompt,
   type DraftDiscussContext,
   shapeRecordTitle,
   isGlossAnchor,
@@ -119,6 +122,7 @@ import {
   buildPointObligationSystemPrompt,
   buildPointObligationUnmetNotice,
   clampCastAdviceForPointTurn,
+  humanTurnTextForIntent,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
   type PointTurnObligation,
@@ -131,6 +135,7 @@ import {
   shouldRunReorganizePlacementFollowUp,
 } from '../../services/kip/documentReorganizeIntent.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
+import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocument.js';
 import {
   buildCastConsultationsSynthesisPrompt,
   buildDirectorFallbackSynthesisPrompt,
@@ -278,6 +283,8 @@ type RunAgentOptions = {
    * Cast consults use this so Realm feed is not flooded with orphan delegation sessions.
    */
   ephemeral?: boolean;
+  /** Kip Echo / platform-collaboration sub-run — must not write Document Points. */
+  supportEcho?: boolean;
   /** Mutable per-turn timing bag (filled by handler + runAgent + callAIModel). */
   timings?: AgentRunPhaseTimings;
   /** Visible Dialog tokens (extracted `response` field). */
@@ -299,7 +306,7 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW draft content, use draft.update.propose with payload.content (string body — required). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy (attribution label when the user names an author, e.g. "Claude"), optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), and optional payload.type (moment | decision | context | general — default general). Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
+    '- When adding NEW draft content, use draft.update.propose with payload.content (string body — required). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy (attribution label when the user names an author, e.g. "Claude"), optional payload.prelude (high-level beat — for journey_spec this becomes Path.prelude on promote), optional payload.closer, optional payload.moments ([{ title, narrative? }] — each title becomes Moment.title on promote), optional payload.referencesPointId (UUID of an existing Point this contribution responds to), optional payload.section (Section title — Keeper creates the Section if missing and places the Point there), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
   const rewritePoints =
     '- When REWRITING existing draft content, use draft.point.rewrite with payload.id (draft UUID), payload.pointId (exact UUID from draft.read or activeDraft.points), payload.content, and optional payload.prelude, payload.closer, payload.moments. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place (the Document is a living work tool; the human still publishes/keeps). Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
@@ -1340,6 +1347,7 @@ function buildExecuteAgentActionsCtx(
     requestId: string;
     skipActionTypes?: Set<string>;
     actor?: 'lead' | 'cast';
+    supportEcho?: boolean;
   },
 ) {
   const env = options?.environment as AgentEnvironmentContext | undefined;
@@ -1367,6 +1375,7 @@ function buildExecuteAgentActionsCtx(
       obligation?.manuscriptDraftId ?? env?.dialogDocument?.manuscriptDraftId,
     pointConstraint: obligation?.constrained === true,
     pointObligationRequired: obligation?.required === true && !obligation.constrained,
+    supportEcho: extras.supportEcho === true || options?.supportEcho === true,
   };
 }
 
@@ -1619,6 +1628,7 @@ export async function executeAgentActions(
     manuscriptDraftId?: string | null;
     pointConstraint?: boolean;
     pointObligationRequired?: boolean;
+    supportEcho?: boolean;
   },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
@@ -1829,6 +1839,9 @@ export async function executeAgentActions(
           const skipMessage =
             action.type === 'delegate.consult'
               ? 'delegate.consult blocked in nested cast run (loop prevention)'
+              : ctx.supportEcho
+                && (action.type.startsWith('draft.') || action.type === 'document.reorganize.propose')
+                ? 'Skipped — Kip support does not write the Document; Lead owns those writes'
               : ctx.pointConstraint && action.type.startsWith('draft.')
                 ? 'Skipped — the human asked not to add Points yet'
                 : action.type === 'draft.update.propose' && ctx.pointObligationRequired
@@ -2127,6 +2140,25 @@ export async function executeAgentActions(
                   ? payload.references_point_id.trim()
                   : undefined;
 
+            const sectionTitle =
+              (typeof payload.section === 'string' && payload.section.trim())
+              || (typeof payload.sectionTitle === 'string' && payload.sectionTitle.trim())
+              || undefined;
+            const sectionIdRaw =
+              typeof payload.sectionId === 'string' && payload.sectionId.trim()
+                ? payload.sectionId.trim()
+                : undefined;
+            const dialogIdForSection = ctx.dialogId || draft.dialog_id || null;
+            let pathGroupId: string | undefined;
+            if (ctx.domainId && dialogIdForSection && (sectionTitle || sectionIdRaw)) {
+              pathGroupId = await ensureDialogDocumentSection(tx, {
+                domainId: ctx.domainId,
+                dialogId: dialogIdForSection,
+                sectionId: sectionIdRaw,
+                sectionTitle,
+              });
+            }
+
             // Dialog Documents are living work — adding a point lands it as accepted.
             const isDocumentManuscript = draft.kind === 'document_manuscript';
             const pointStatus = isDocumentManuscript ? 'accepted' : 'proposed';
@@ -2146,6 +2178,7 @@ export async function executeAgentActions(
                 ? { moments: payload.moments }
                 : {}),
               ...(referencesPointId ? { referencesPointId } : {}),
+              ...(pathGroupId ? { pathGroupId } : {}),
             });
 
             const nextSpec = appendDraftPointToSpec(draft.spec_json, point);
@@ -4714,6 +4747,26 @@ const normalizeSessionMetadataUpdates = (
   return { updates };
 };
 
+/** How many prior session messages to load for the model. */
+const SESSION_HISTORY_LIMIT = 40;
+/** Most recent messages keep full text; older ones are clipped. */
+const SESSION_HISTORY_FULL_RECENT = 8;
+const SESSION_HISTORY_OLDER_MAX_CHARS = 1500;
+
+const SUPPORT_ECHO_SKIP_ACTIONS = [
+  'draft.create',
+  'draft.update',
+  'draft.update.propose',
+  'draft.point.rewrite',
+  'document.reorganize.propose',
+] as const;
+
+function clipSessionHistoryContent(content: string, indexFromEnd: number): string {
+  if (indexFromEnd < SESSION_HISTORY_FULL_RECENT) return content;
+  if (content.length <= SESSION_HISTORY_OLDER_MAX_CHARS) return content;
+  return `${content.slice(0, SESSION_HISTORY_OLDER_MAX_CHARS)}\n…`;
+}
+
 /**
  * KipAgentService - Core agent management functions
  */
@@ -5016,17 +5069,16 @@ export class KipAgentService {
         throw new Error(`Session with ID '${sessionId}' not found`);
       }
       if (session.agent_id !== agentId) {
-        console.warn('[kip/agents] session agent mismatch — ignoring prior transcript', {
+        console.warn('[kip/agents] session agent mismatch — still loading transcript (Dialog is the thread)', {
           sessionId,
           expectedAgentId: agentId,
           sessionAgentId: session.agent_id,
         });
-        return [];
       }
       const recent = await prisma.kip_messages.findMany({
         where: { session_id: sessionId },
         orderBy: { created_at: 'desc' },
-        take: 10,
+        take: SESSION_HISTORY_LIMIT,
       });
       return recent.reverse() as KipMessageWithRelations[];
     } catch (error) {
@@ -5541,6 +5593,8 @@ export class KipAgentService {
       activeKeeperId?: string | null;
       domainId?: string | null;
       attachments?: { url: string; name: string; type: 'image' | 'file' }[];
+      /** Visible composer text — Point/reorganize intent must not scan pasted supporting docs. */
+      displayContent?: string | null;
       /** Optional mutable timing bag from the parent run. */
       timings?: AgentRunPhaseTimings;
       /** Label for this model call in timings.modelCalls (default: model). */
@@ -5684,7 +5738,7 @@ export class KipAgentService {
         }
 
         const domainLeadPrompt = buildDomainLeadCollaborationPrompt(agent, environmentContext);
-        if (domainLeadPrompt) {
+        if (domainLeadPrompt && !isSupportEchoPrompt(input)) {
           messages.push({
             role: 'system',
             content: domainLeadPrompt,
@@ -5735,7 +5789,7 @@ export class KipAgentService {
           }
         }
 
-        if (agent.role === 'Lead' && detectReorganizeIntent(input) === 'required') {
+        if (agent.role === 'Lead' && detectReorganizeIntent(humanTurnTextForIntent(input, promptOptions?.displayContent)) === 'required') {
           const dialogTitle =
             (environmentContext as { dialogDocument?: { title?: string } } | undefined)
               ?.dialogDocument?.title;
@@ -6028,12 +6082,29 @@ export class KipAgentService {
         }
       }
 
-      // Add conversation history (last 10 messages to avoid token limits)
-      const recentMessages = previousMessages.slice(-10);
-      for (const msg of recentMessages) {
+      // Add conversation history
+      const recentMessages = previousMessages.slice(-SESSION_HISTORY_LIMIT);
+      const historyCount = recentMessages.length;
+      for (let i = 0; i < recentMessages.length; i += 1) {
+        const msg = recentMessages[i];
+        const indexFromEnd = historyCount - 1 - i;
         messages.push({
           role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.content
+          content: clipSessionHistoryContent(msg.content, indexFromEnd),
+        });
+      }
+
+      const continuity = resolveLeadThreadReply({
+        userMessage: humanTurnTextForIntent(input, promptOptions?.displayContent),
+        priorMessages: recentMessages.map((msg) => ({
+          role: msg.sender === 'user' || msg.role === 'user' ? 'user' as const : 'agent' as const,
+          content: typeof msg.content === 'string' ? msg.content : '',
+        })),
+      });
+      if (continuity.resolvedFromPrior && continuity.priorAgentMessage) {
+        messages.push({
+          role: 'system',
+          content: buildLeadContinuitySystemPrompt(continuity.priorAgentMessage),
         });
       }
       } // !reusingPrompt
@@ -6153,14 +6224,28 @@ export class KipAgentService {
       // Get agent safely using our helper method
       const agent = await this.getAgentSafely(agentId);
 
-      await resolvePointObligationForRun({
-        input,
-        environment: options?.environment ?? null,
-        domainId: options?.domainId ?? null,
-        userId,
-        agentId: agent.id,
-        dialogId: options?.dialogId ?? null,
-      });
+      const supportEcho =
+        isSupportEchoPrompt(input)
+        || options?.agentContext?.supportEcho === true;
+      if (options) {
+        options.supportEcho = supportEcho;
+        if (supportEcho) {
+          const skipped = new Set(options.skipActionTypes ?? []);
+          for (const actionType of SUPPORT_ECHO_SKIP_ACTIONS) skipped.add(actionType);
+          options.skipActionTypes = skipped;
+        }
+      }
+
+      if (!supportEcho) {
+        await resolvePointObligationForRun({
+          input: humanTurnTextForIntent(input, options?.displayContent),
+          environment: options?.environment ?? null,
+          domainId: options?.domainId ?? null,
+          userId,
+          agentId: agent.id,
+          dialogId: options?.dialogId ?? null,
+        });
+      }
 
       // Update log to use the actual agent UUID for consistency
       logData.agent_id = agent.id;
@@ -6650,6 +6735,7 @@ export class KipAgentService {
           activeKeeperId: options?.activeKeeperId ?? null,
           domainId: options?.domainId ?? null,
           attachments: options?.attachments ?? undefined,
+          displayContent: options?.displayContent ?? null,
           timings: options?.timings,
           timingLabel: 'lead_main',
           onDelta: options?.onDelta,
@@ -7679,6 +7765,7 @@ export class KipAgentService {
           activeKeeperId: options?.activeKeeperId ?? null,
           domainId: options?.domainId ?? null,
           attachments: options?.attachments ?? undefined,
+          displayContent: options?.displayContent ?? null,
           timings: options?.timings,
           timingLabel: 'system_main',
           onDelta: options?.onDelta,

@@ -19,6 +19,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-24 — Agent conversation continuity
+- `pointIntent.ts` / `authorDialogDocument.ts` — visible-prompt Point intent; named Section on propose. See `apps/api/src/services/kip/README.md`.
+
 ### 2026-08-03 — Chronicle History chapters + keeps
 - `kip/chronicleEvents.ts` — History is session chapters + Document keeps (not per-turn activity). See `kip/README.md` for writer rules.
 

@@ -30,6 +30,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-24 — Agent conversation continuity
+- Kip Echo / platform collaboration defaults to silence and does not write Document Points.
+
 ### 2026-08-02 — Nav Untitled noise + reveal not blocked by portraits
 - Domain Nav Dialog labels prefer `forward_title` / `step_title`; empty untitled shells (no title, no sessions) are hidden.
 - `prepareDomainBoardReveal` no longer awaits portrait decode before Nav warm / curtain reveal.

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   isDirectorContinuityPhrase,
+  isLeadThreadReply,
+  isSupportEchoPrompt,
   resolveDirectorDelegationMessage,
+  resolveLeadThreadReply,
 } from '@keeper/shared';
 
 describe('directorContinuity @smoke', () => {
@@ -40,5 +43,24 @@ describe('directorContinuity @smoke', () => {
     });
     expect(result.resolvedFromPrior).toBe(false);
     expect(result.delegationMessage).toBe(msg);
+  });
+});
+
+describe('lead thread continuity', () => {
+  it('treats Yes as a reply to the last agent turn', () => {
+    expect(isLeadThreadReply('Yes.')).toBe(true);
+    expect(isLeadThreadReply('propose')).toBe(true);
+    expect(isLeadThreadReply('Make Community Commerce a section')).toBe(false);
+    expect(isSupportEchoPrompt('[Platform collaboration — Kip]\nThe user asked: "Hi"')).toBe(true);
+
+    const result = resolveLeadThreadReply({
+      userMessage: 'Yes.',
+      priorMessages: [
+        { role: 'user', content: 'Want to fix that now?' },
+        { role: 'agent', content: 'Want to fix that now?' },
+      ],
+    });
+    expect(result.resolvedFromPrior).toBe(true);
+    expect(result.priorAgentMessage).toContain('Want to fix that now?');
   });
 });

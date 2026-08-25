@@ -7,6 +7,7 @@ import {
   isEchoInternalPrompt,
   mergeCastAndLeadActionResults,
   sanitizeUserMessageContent,
+  sanitizeAgentMessageContent,
   shouldAttachEcho,
 } from "./directorDialog"
 
@@ -207,14 +208,26 @@ describe("shouldAttachEcho", () => {
 })
 
 describe("buildDomainCollaborationPrompt", () => {
-  it("keeps the Platform collaboration scaffold and forbids hanging promises", () => {
+  it("defaults to silence and forbids Document writes", () => {
     const prompt = buildDomainCollaborationPrompt({
       userMessage: "Let's launch a new surface.",
       leadName: "Ceox",
       leadReply: "What's the occasion?",
     })
     expect(isEchoInternalPrompt(prompt)).toBe(true)
-    expect(prompt).toContain("Do not offer help you are not delivering now")
-    expect(prompt).toContain("draft.create")
+    expect(prompt).toContain("Default: return empty")
+    expect(prompt).toContain("Do NOT create drafts")
+    expect(prompt).not.toContain("draft.create")
+  })
+})
+
+describe("sanitizeAgentMessageContent", () => {
+  it("extracts the response from a leaked agent_output envelope", () => {
+    const raw = JSON.stringify({
+      type: "agent_output",
+      response: "This is the Community Commerce model from 2019.",
+      card: { type: "info", title: "Community Commerce" },
+    })
+    expect(sanitizeAgentMessageContent(raw)).toBe("This is the Community Commerce model from 2019.")
   })
 })

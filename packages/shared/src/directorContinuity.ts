@@ -90,3 +90,74 @@ export function resolveDirectorDelegationMessage(params: {
     resolvedFromPrior: true,
   };
 }
+
+/** Kip Echo / platform-collaboration composed prompts — not the human's words. */
+export function isSupportEchoPrompt(content: string): boolean {
+  const trimmed = content.trim();
+  return (
+    trimmed.startsWith('[Agent Echo —')
+    || trimmed.startsWith('[Platform collaboration —')
+  );
+}
+
+const SHORT_THREAD_REPLY_PATTERN =
+  /^(?:yes|yeah|yep|yup|sure|ok|okay|please|do it|go(?: ahead)?|proceed|continue|propose|that|this|right|correct|exactly|do that|make it so)[.!?]*$/i;
+
+/** Short follow-up that continues the last Lead turn ("Yes", "propose", "do it"). */
+export function isLeadThreadReply(message: string): boolean {
+  const trimmed = message.trim();
+  if (!trimmed) return false;
+  if (isDirectorContinuityPhrase(trimmed)) return true;
+  if (SHORT_THREAD_REPLY_PATTERN.test(trimmed)) return true;
+  if (trimmed.length <= 24 && !/[?]/.test(trimmed) && !isDelegatableUserMessage(trimmed)) {
+    return true;
+  }
+  return false;
+}
+
+export function findLastAgentMessage(
+  messages: readonly DirectorContinuityMessage[],
+): string | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    if (msg.role !== 'agent') continue;
+    const content = msg.content.trim();
+    if (!content) continue;
+    if (isSupportEchoPrompt(content)) continue;
+    return content;
+  }
+  return null;
+}
+
+export type ResolveLeadThreadReplyResult = {
+  displayMessage: string;
+  priorAgentMessage: string | null;
+  resolvedFromPrior: boolean;
+};
+
+export function resolveLeadThreadReply(params: {
+  userMessage: string;
+  priorMessages: readonly DirectorContinuityMessage[];
+}): ResolveLeadThreadReplyResult {
+  const displayMessage = params.userMessage.trim();
+  if (!isLeadThreadReply(displayMessage)) {
+    return { displayMessage, priorAgentMessage: null, resolvedFromPrior: false };
+  }
+  const priorAgentMessage = findLastAgentMessage(params.priorMessages);
+  if (!priorAgentMessage) {
+    return { displayMessage, priorAgentMessage: null, resolvedFromPrior: false };
+  }
+  return { displayMessage, priorAgentMessage, resolvedFromPrior: true };
+}
+
+export function buildLeadContinuitySystemPrompt(priorAgentMessage: string): string {
+  const prior = priorAgentMessage.trim().slice(0, 1200);
+  return [
+    'CONTINUITY — this user message is a short reply to your previous turn in this Dialog.',
+    'Your previous turn:',
+    `"${prior}"`,
+    'Treat the current user message as answering or continuing that turn.',
+    'Do not claim you are coming in fresh, mid-thread, or without prior context.',
+    'If they said yes / proceed / propose, do the work they already asked for in that previous turn — emit the actions now.',
+  ].join('\n');
+}

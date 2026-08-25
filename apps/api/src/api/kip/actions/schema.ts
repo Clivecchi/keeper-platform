@@ -95,6 +95,11 @@ const draftUpdateProposePayloadSchema = z.object({
   closer: z.string().optional(),
   moments: z.array(draftPointMomentSchema).optional(),
   referencesPointId: z.string().uuid().optional(),
+  /** Document Section id (pathGroupId). Prefer `section` title when creating. */
+  sectionId: z.string().min(1).nullable().optional(),
+  /** Document Section title — Keeper creates the Section if missing. */
+  section: z.string().min(1).optional(),
+  sectionTitle: z.string().min(1).optional(),
 });
 
 /**
