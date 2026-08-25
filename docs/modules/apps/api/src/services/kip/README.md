@@ -37,7 +37,14 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
-### 2026-08-22 — Railway tsc: reorganize follow-up
+### 2026-08-24 — PDF body on library.read
+- `actionFollowUp.ts` — `library.read { id }` follow-up includes `extracted_text` (document body). `agent_perspective` is labeled as a summary only.
+
+### 2026-08-24 — Agent conversation continuity
+- `pointIntent.ts` — Point intent uses the visible human prompt, not pasted supporting context. "No Points yet" as Document status is not a write constraint.
+- `authorDialogDocument.ts` — `ensureDialogDocumentSection` creates or resolves a named Section for `draft.update.propose`.
+- Lead short replies ("Yes", "propose") get a continuity system cue from the prior turn (`directorContinuity.ts`).
+- Kip Echo skips Document writes. Session history window is 40 messages.
 - Placement follow-up reads `spineOnly` from unknown action `data` so it assigns from `ActionExecutionResult[]`.
 
 ### 2026-08-22 — Review & Reorganize identities

@@ -4,6 +4,7 @@ import {
   buildDraftMutationFailureNotice,
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
+  formatReadActionResultsForFollowUp,
   formatReadActionResultsForUserFallback,
   responseAlreadyUsesReadResults,
   shouldRunMutationDeferralFollowUp,
@@ -270,5 +271,26 @@ describe('actionFollowUp', () => {
     });
     expect(input).toContain('Do NOT defer again');
     expect(input).toContain('draft.create');
+  });
+
+  it('includes extracted_text from library.read { id } in the follow-up', () => {
+    const formatted = formatReadActionResultsForFollowUp([
+      {
+        type: 'library.read',
+        status: 'success',
+        message: 'Library item "Community Commerce" retrieved',
+        data: {
+          item: {
+            id: 'lib1',
+            display_label: 'Community Commerce',
+            agent_perspective: 'A short summary only.',
+          },
+          extracted_text: 'Community Commerce is the public marketplace layer. No Udicci references.',
+        },
+      },
+    ]);
+    expect(formatted).toContain('Extracted document text');
+    expect(formatted).toContain('public marketplace layer');
+    expect(formatted).not.toContain('"source_ref"');
   });
 });

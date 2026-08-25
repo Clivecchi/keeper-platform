@@ -77,6 +77,10 @@ function collectReadResultNeedles(results: ActionResultLike[]): string[] {
     if (typeof data.query === 'string' && data.query.trim().length >= 4) {
       needles.push(data.query.trim());
     }
+    const libraryItem = data.item as { display_label?: unknown } | undefined;
+    if (typeof libraryItem?.display_label === 'string' && libraryItem.display_label.trim().length >= 4) {
+      needles.push(libraryItem.display_label.trim());
+    }
     const searchResults = data.results;
     if (Array.isArray(searchResults)) {
       for (const row of searchResults.slice(0, 3)) {
@@ -172,6 +176,27 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
               );
             }
           }
+        } else if (result.type === 'library.read' && data.item && typeof data.item === 'object') {
+          const item = data.item as {
+            display_label?: string;
+            id?: string;
+            agent_perspective?: string;
+          };
+          lines.push(`Library item: ${item.display_label ?? item.id ?? '?'}`);
+          if (item.agent_perspective) {
+            lines.push(`Perspective (summary only): ${String(item.agent_perspective)}`);
+          }
+          const extracted = typeof data.extracted_text === 'string' ? data.extracted_text.trim() : '';
+          if (extracted) {
+            lines.push('Extracted document text (this is the source body):');
+            lines.push(extracted.slice(0, 24_000));
+          } else if (typeof data.extract_note === 'string' && data.extract_note.trim()) {
+            lines.push(`Extract note: ${data.extract_note.trim()}`);
+          } else {
+            lines.push(
+              'No extracted document text. agent_perspective is not the body. Private Google Docs cannot be read via web.search — the human must upload a file or paste the text.',
+            );
+          }
         } else if (Array.isArray(data.results)) {
           if (result.type === 'web.search') {
             lines.push(`Web results: ${data.results.length}`);
@@ -214,6 +239,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           && !Array.isArray(data.drafts)
           && !(result.type === 'dialog.read' && (data.document || Array.isArray(data.results)))
           && result.type !== 'glossary.read'
+          && result.type !== 'library.read'
         ) {
           lines.push(`Data: ${JSON.stringify(data, null, 2).slice(0, 4000)}`);
         }
@@ -271,6 +297,20 @@ export function formatReadActionResultsForUserFallback(results: ActionResultLike
         lines.push(
           `- ${item.display_label ?? item.id ?? 'Item'}${item.description ? `: ${String(item.description).slice(0, 120)}` : ''}`,
         );
+      }
+      continue;
+    }
+
+    if (result.type === 'library.read' && data.item && typeof data.item === 'object') {
+      const item = data.item as { display_label?: string; agent_perspective?: string };
+      lines.push(`Library: ${item.display_label ?? 'item'}`);
+      const extracted = typeof data.extracted_text === 'string' ? data.extracted_text.trim() : '';
+      if (extracted) {
+        lines.push(extracted.slice(0, 1200));
+      } else if (typeof data.extract_note === 'string' && data.extract_note.trim()) {
+        lines.push(data.extract_note.trim());
+      } else if (item.agent_perspective) {
+        lines.push(String(item.agent_perspective).slice(0, 400));
       }
       continue;
     }

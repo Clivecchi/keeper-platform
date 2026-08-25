@@ -9,7 +9,8 @@ Central location for API service-layer modules used by route handlers.
 - `SoleMemoryService.ts`
 - `VercelDomainManagerService.ts`
 - `customDomainVerificationSync.ts`
-- `boards/domainManagement.ts`
+- `LibraryItemIngestionService.ts`
+- `pdfTextExtract.ts`
 
 ## 🔄 Data & Behavior
 Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
@@ -19,8 +20,38 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
-### 2026-08-24 — Agent conversation continuity
-- `pointIntent.ts` / `authorDialogDocument.ts` — visible-prompt Point intent; named Section on propose. See `apps/api/src/services/kip/README.md`.
+### 2026-08-24 — PDF body on library.read
+- `pdfTextExtract.ts` — FlateDecode + Tj/TJ text extract (no schema migration).
+- `LibraryItemIngestionService` — ingest no longer UTF-8-decodes PDFs; `library.read { id }` hydrates `extracted_text` after the action transaction. Private Google Docs return a clear note instead of a login page.
+
+### 2026-08-20 — Cloud GitHub folder reads
+- `GitHubService.ts` — `github_repo_read` encodes nested Contents paths, returns directory listings, and falls back to the git tree with nearby-path hints when a folder 404s (fixes Cloud `apps/web/src/components` / `.../board` EXECUTION_ERROR).
+- `mcpAgentBridge.ts` — Cloud prompt notes folder paths are valid for `github_repo_read`.
+
+### 2026-08-19 — Streamed model completions
+- `ModelProviderService.ts` — optional `onDelta` streams OpenAI / Anthropic / Together chat tokens. Non-stream path unchanged.
+
+### 2026-08-19 — Cloud does not invent a Board id
+- `mcpAgentBridge.ts` — `resolveMcpToolsForAgent` no longer defaults Cloud/Rendr to `boardId: ide`. Agent record capabilities are the source.
+
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `kip/linkDraftToSessionDialog.ts` — working drafts do not promote Chatter into Document-bearing Dialogs.
+
+### 2026-08-18 — dialog.read + glossary.read
+- `kip/loadDialogDocumentForAgent.ts` — `buildDialogReadHonesty`; empty Points = unbuilt. Agent `dialog.read { id }` uses this loader (same source Chronicle renders).
+- `kip/loadObjectGlossary.ts` — Chronicle Object Glossary for `glossary.read`. Not a draft.
+
+### 2026-08-17 — GitHub MCP errors name the real failure
+- `GitHubService.ts` — Nango/Axios `Request failed with status code 404` is mapped: dead connection → reconnect GitHub; GitHub REST 404 → file/branch/repo not found. `writeFile` no longer treats a dead connection as a missing file.
+
+### 2026-08-11 — SOLE vs DRAFT distinction in SoleMemoryService
+- `SoleMemoryService.getSoleMemoryLoopInstruction` — sole.save is agent memory only; must not substitute for draft.create on shaped work / ambiguous "hold onto" language.
+
+### 2026-08-05 — AI provider chat timeouts raised
+- `ModelProviderService.ts` — OpenAI/Anthropic/Together chat AbortController budgets raised (90s / 110s / 90s, env-overridable) so long Sonnet turns stop failing at 30–60s; abort detection covers SDK-wrapped abort errors; Anthropic clears timeout in `finally`.
+
+### 2026-08-04 — Web search for Kip agents
+- `WebSearchService.ts` — Brave Search API client for the `web.search` Kip action (`BRAVE_SEARCH_API_KEY`). Returns titled URL + snippet results; clear errors when the key is missing.
 
 ### 2026-08-03 — Chronicle History chapters + keeps
 - `kip/chronicleEvents.ts` — History is session chapters + Document keeps (not per-turn activity). See `kip/README.md` for writer rules.

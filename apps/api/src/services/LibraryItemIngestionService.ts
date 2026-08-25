@@ -6,11 +6,28 @@ import { prisma } from '@keeper/database';
 import { ModelProviderService } from './ModelProviderService.js';
 import type { ModelContentPart } from './ModelProviderService.js';
 import { embedLibraryItemPerspective } from './LibraryItemEmbeddingService.js';
+import {
+  extractPdfText,
+  isGoogleDocUrl,
+  isPdfBuffer,
+  PDF_MAX_BYTES,
+  PDF_MAX_EXTRACT_CHARS,
+} from './pdfTextExtract.js';
 
 const IMAGE_MIME_PREFIXES = ['image/'];
 const TEXT_MIME_PREFIXES = ['text/', 'application/json', 'application/xml', 'application/javascript'];
 const MAX_FETCH_BYTES = 512_000;
 const MAX_TEXT_CHARS = 12_000;
+const LIBRARY_READ_MAX_CHARS = PDF_MAX_EXTRACT_CHARS;
+
+export type LibraryReadableKind = 'pdf' | 'text' | 'html' | 'image' | 'binary' | 'google-doc' | 'empty';
+
+export type LibraryReadableText = {
+  text: string;
+  mime: string | null;
+  kind: LibraryReadableKind;
+  note?: string;
+};
 
 function isImageMime(mime: string | null | undefined): boolean {
   if (!mime) return false;
@@ -26,7 +43,7 @@ function guessMimeFromRef(sourceRef: string): string | null {
   return null;
 }
 
-async function fetchBlobWithAuth(url: string): Promise<Response> {
+export async function fetchBlobWithAuth(url: string): Promise<Response> {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   const isPrivate = url.includes('.private.') && url.includes('blob.vercel-storage.com');
   let res = await fetch(url, {
@@ -38,12 +55,19 @@ async function fetchBlobWithAuth(url: string): Promise<Response> {
   return res;
 }
 
-async function loadUploadContent(sourceRef: string): Promise<{
+async function loadUploadContent(
+  sourceRef: string,
+  options?: { maxTextChars?: number; maxFetchBytes?: number },
+): Promise<{
   mime: string | null;
   text: string | null;
+  kind: LibraryReadableKind;
+  note?: string;
   imageBase64: string | null;
   imageMediaType: string | null;
 }> {
+  const maxTextChars = options?.maxTextChars ?? MAX_TEXT_CHARS;
+  const maxFetchBytes = options?.maxFetchBytes ?? MAX_FETCH_BYTES;
   const res = await fetchBlobWithAuth(sourceRef);
   if (!res.ok) {
     throw new Error(`Failed to fetch upload (${res.status})`);
@@ -56,16 +80,41 @@ async function loadUploadContent(sourceRef: string): Promise<{
     return {
       mime,
       text: null,
+      kind: 'image',
       imageBase64: buffer.toString('base64'),
       imageMediaType: mediaType,
     };
   }
 
   const buffer = Buffer.from(await res.arrayBuffer());
-  if (buffer.length > MAX_FETCH_BYTES) {
+  const pdf = mime === 'application/pdf' || isPdfBuffer(buffer);
+  if (pdf) {
+    const slice = buffer.length > PDF_MAX_BYTES ? buffer.subarray(0, PDF_MAX_BYTES) : buffer;
+    const extracted = extractPdfText(slice, maxTextChars);
+    if (extracted.text.trim()) {
+      return {
+        mime: mime || 'application/pdf',
+        text: extracted.text,
+        kind: 'pdf',
+        imageBase64: null,
+        imageMediaType: null,
+      };
+    }
+    return {
+      mime: mime || 'application/pdf',
+      text: null,
+      kind: 'pdf',
+      note: `PDF has no extractable text (${Math.round(buffer.length / 1024)}KB). It may be scanned images.`,
+      imageBase64: null,
+      imageMediaType: null,
+    };
+  }
+
+  if (buffer.length > maxFetchBytes) {
     return {
       mime,
       text: `[Binary upload — ${Math.round(buffer.length / 1024)}KB, type ${mime ?? 'unknown'}]`,
+      kind: 'binary',
       imageBase64: null,
       imageMediaType: null,
     };
@@ -73,13 +122,12 @@ async function loadUploadContent(sourceRef: string): Promise<{
 
   if (
     mime &&
-    (TEXT_MIME_PREFIXES.some((p) => mime.startsWith(p)) ||
-      mime === 'application/pdf' ||
-      mime.includes('markdown'))
+    (TEXT_MIME_PREFIXES.some((p) => mime.startsWith(p)) || mime.includes('markdown'))
   ) {
     return {
       mime,
-      text: buffer.toString('utf8').slice(0, MAX_TEXT_CHARS),
+      text: buffer.toString('utf8').slice(0, maxTextChars),
+      kind: 'text',
       imageBase64: null,
       imageMediaType: null,
     };
@@ -88,12 +136,94 @@ async function loadUploadContent(sourceRef: string): Promise<{
   return {
     mime,
     text: `[Uploaded file — ${Math.round(buffer.length / 1024)}KB, type ${mime ?? 'unknown'}]`,
+    kind: 'binary',
     imageBase64: null,
     imageMediaType: null,
   };
 }
 
-async function loadUrlContent(sourceRef: string): Promise<{ text: string; title: string | null }> {
+export async function loadLibraryItemReadableText(params: {
+  sourceRef: string;
+  sourceType: string;
+  maxChars?: number;
+}): Promise<LibraryReadableText> {
+  const maxChars = params.maxChars ?? LIBRARY_READ_MAX_CHARS;
+  const ref = params.sourceRef.trim();
+  if (!ref) {
+    return { text: '', mime: null, kind: 'empty', note: 'Library item has no source.' };
+  }
+
+  if (params.sourceType === 'url') {
+    if (isGoogleDocUrl(ref)) {
+      return {
+        text: '',
+        mime: 'text/html',
+        kind: 'google-doc',
+        note:
+          'Private Google Docs cannot be read from Keeper. Export a PDF, upload the file to Library, or paste the text.',
+      };
+    }
+    const loaded = await loadUrlContent(ref, maxChars);
+    return {
+      text: loaded.text.slice(0, maxChars),
+      mime: null,
+      kind: 'html',
+    };
+  }
+
+  const loaded = await loadUploadContent(ref, {
+    maxTextChars: maxChars,
+    maxFetchBytes: Math.max(MAX_FETCH_BYTES, PDF_MAX_BYTES),
+  });
+  return {
+    text: (loaded.text ?? '').slice(0, maxChars),
+    mime: loaded.mime,
+    kind: loaded.kind,
+    note: loaded.note,
+  };
+}
+
+export async function attachLibraryItemExtractedText(
+  results: Array<{ type: string; status: string; data?: Record<string, unknown> }>,
+): Promise<void> {
+  for (const result of results) {
+    if (result.type !== 'library.read' || result.status !== 'success' || !result.data) continue;
+    const item = result.data.item;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const record = item as { source_ref?: unknown; source_type?: unknown };
+    const sourceRef = typeof record.source_ref === 'string' ? record.source_ref.trim() : '';
+    const sourceType = typeof record.source_type === 'string' ? record.source_type : 'upload';
+    if (!sourceRef) {
+      result.data.extract_note = 'Library item has no source to read.';
+      continue;
+    }
+    try {
+      const loaded = await loadLibraryItemReadableText({
+        sourceRef,
+        sourceType,
+        maxChars: LIBRARY_READ_MAX_CHARS,
+      });
+      if (loaded.text.trim()) {
+        result.data.extracted_text = loaded.text.trim();
+        result.data.content_kind = loaded.kind;
+      } else {
+        result.data.extract_note =
+          loaded.note
+          || 'No extractable document text. agent_perspective is a short summary, not the body.';
+        result.data.content_kind = loaded.kind;
+      }
+    } catch (err) {
+      result.data.extract_note = `Could not fetch library file: ${
+        err instanceof Error ? err.message : 'unknown error'
+      }`;
+    }
+  }
+}
+
+async function loadUrlContent(
+  sourceRef: string,
+  maxChars: number = MAX_TEXT_CHARS,
+): Promise<{ text: string; title: string | null }> {
   const res = await fetch(sourceRef, {
     redirect: 'follow',
     headers: { 'User-Agent': 'Keeper-LibraryBot/1.0' },
@@ -102,7 +232,13 @@ async function loadUrlContent(sourceRef: string): Promise<{ text: string; title:
     throw new Error(`Failed to fetch URL (${res.status})`);
   }
   const contentType = res.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
-  const raw = await res.text();
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (contentType === 'application/pdf' || isPdfBuffer(buffer) || /\.pdf(\?|$)/i.test(sourceRef)) {
+    const extracted = extractPdfText(buffer, maxChars);
+    return { text: extracted.text, title: null };
+  }
+
+  const raw = buffer.toString('utf8');
   const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i);
   const title = titleMatch?.[1]?.trim() ?? null;
 
@@ -113,10 +249,10 @@ async function loadUrlContent(sourceRef: string): Promise<{ text: string; title:
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    return { text: stripped.slice(0, MAX_TEXT_CHARS), title };
+    return { text: stripped.slice(0, maxChars), title };
   }
 
-  return { text: raw.slice(0, MAX_TEXT_CHARS), title };
+  return { text: raw.slice(0, maxChars), title };
 }
 
 async function resolveAgentForPerspective(agentId: string | null | undefined) {

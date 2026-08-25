@@ -8,7 +8,9 @@ Central location for API service-layer modules used by route handlers.
 - `PlatformApiKeyService.ts`
 - `SoleMemoryService.ts`
 - `VercelDomainManagerService.ts`
-- `boards/domainManagement.ts`
+- `customDomainVerificationSync.ts`
+- `LibraryItemIngestionService.ts`
+- `pdfTextExtract.ts`
 
 ## 🔄 Data & Behavior
 Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
@@ -18,8 +20,71 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
-- 2026-06-28: **Together AI image generation hardened** — `TogetherProvider.generateImage()` uses official `together-ai` SDK with 3 automatic retries + 120s timeout (fixes transient 500 `server_error` from raw fetch). Added `resolveImageModel()` / `DEFAULT_IMAGE_MODEL` exports; rejects free-tier FLUX Schnell model id.
+### 2026-08-24 — PDF body on library.read
+- `pdfTextExtract.ts` — FlateDecode + Tj/TJ text extract (no schema migration).
+- `LibraryItemIngestionService` — ingest no longer UTF-8-decodes PDFs; `library.read { id }` hydrates `extracted_text` after the action transaction. Private Google Docs return a clear note instead of a login page.
+
+### 2026-08-20 — Cloud GitHub folder reads
+- `GitHubService.ts` — `github_repo_read` encodes nested Contents paths, returns directory listings, and falls back to the git tree with nearby-path hints when a folder 404s (fixes Cloud `apps/web/src/components` / `.../board` EXECUTION_ERROR).
+- `mcpAgentBridge.ts` — Cloud prompt notes folder paths are valid for `github_repo_read`.
+
+### 2026-08-19 — Streamed model completions
+- `ModelProviderService.ts` — optional `onDelta` streams OpenAI / Anthropic / Together chat tokens. Non-stream path unchanged.
+
+### 2026-08-19 — Cloud does not invent a Board id
+- `mcpAgentBridge.ts` — `resolveMcpToolsForAgent` no longer defaults Cloud/Rendr to `boardId: ide`. Agent record capabilities are the source.
+
+### 2026-08-19 — Session ≠ Dialog (locked)
+- `kip/linkDraftToSessionDialog.ts` — working drafts do not promote Chatter into Document-bearing Dialogs.
+
+### 2026-08-18 — dialog.read + glossary.read
+- `kip/loadDialogDocumentForAgent.ts` — `buildDialogReadHonesty`; empty Points = unbuilt. Agent `dialog.read { id }` uses this loader (same source Chronicle renders).
+- `kip/loadObjectGlossary.ts` — Chronicle Object Glossary for `glossary.read`. Not a draft.
+
+### 2026-08-17 — GitHub MCP errors name the real failure
+- `GitHubService.ts` — Nango/Axios `Request failed with status code 404` is mapped: dead connection → reconnect GitHub; GitHub REST 404 → file/branch/repo not found. `writeFile` no longer treats a dead connection as a missing file.
+
+### 2026-08-11 — SOLE vs DRAFT distinction in SoleMemoryService
+- `SoleMemoryService.getSoleMemoryLoopInstruction` — sole.save is agent memory only; must not substitute for draft.create on shaped work / ambiguous "hold onto" language.
+
+### 2026-08-05 — AI provider chat timeouts raised
+- `ModelProviderService.ts` — OpenAI/Anthropic/Together chat AbortController budgets raised (90s / 110s / 90s, env-overridable) so long Sonnet turns stop failing at 30–60s; abort detection covers SDK-wrapped abort errors; Anthropic clears timeout in `finally`.
+
+### 2026-08-04 — Web search for Kip agents
+- `WebSearchService.ts` — Brave Search API client for the `web.search` Kip action (`BRAVE_SEARCH_API_KEY`). Returns titled URL + snippet results; clear errors when the key is missing.
+
+### 2026-08-03 — Chronicle History chapters + keeps
+- `kip/chronicleEvents.ts` — History is session chapters + Document keeps (not per-turn activity). See `kip/README.md` for writer rules.
+
+### 2026-08-03 — Dialog Cueing vocabulary rename (Cast / Cueing)
+- `directorDialog.ts` — renamed instrument-oriented helpers to Cast vocabulary: `BoardInstrumentSlug` → `CastMemberSlug`, `resolveInstrumentLabel` → `resolveCastMemberLabel`, `instrumentLabelSync` → `castMemberLabelSync`, `buildInstrumentDelegationPrompt` → `buildCastMemberDelegationPrompt` (param `instrumentLabel` → `castMemberLabel`). `DirectorDelegationRequest`'s wire-shaped fields (`instrumentSlug` / `instrumentReply` / `instrumentRanClientSide`) kept as-is — internal contract, see `agents.ts` note below. Runtime behavior unchanged.
+- `ensureBoardInstrumentAgent.ts` renamed to **`ensureCastMemberAgent.ts`** — export renamed `ensureBoardInstrumentAgent` → `ensureCastMemberAgent`; old name kept as a deprecated alias export during rollout. All API imports updated (`kip/agents.ts`, `kip/ensureKnownLeadAgent.ts`).
+- `kip/agents.ts` — `POST /api/kip/agents/run` `directorDelegation` payload now also accepts `castMemberSlug` / `castMemberReply` / `castMemberRanClientSide` (preferred, per `docs/dialog-cueing-plan.md`); legacy `instrumentSlug` / `instrumentReply` / `instrumentRanClientSide` still accepted and mapped onto the same internal fields (cast* wins when both sent). Log lines and thrown/user-adjacent copy that said "instrument" now say "Cast member".
+- `rendr/rendrAgentConfig.ts` — comment + Rendr voice-prompt copy updated from "instrument" to "Cast member".
+- See `docs/dialog-cueing-plan.md` for the full product vocabulary + rename map (web-side rename is a separate pass).
+
+### 2026-07-28 — RailwayService log auth
+- `RailwayService` uses shared `railwayGraphql` (`.com` host + correct token headers) so `railway_get_logs` / deploymentLogs can authorize.
+
+### 2026-07-22 — kip-roster-dialog-cast-sync
+- `resolveAgentEnvironment` — optional `dialogId` / session `dialog_id`; merges `listDialogCastMembers` into `domainAgents` (additive to domain baseline). Awareness only — not turn delegation.
+
+### 2026-07-22 — stop-eager-dialog-creation
+- `kipDialogLifecycle.findOrCreateKipDialog` — documented that board UIs must call via createSession on first send, not mount.
+
+### 2026-07-15 — Gloss MCP write (thread only)
+- `GlossWriteService.ts` — `appendGlossTurn()` writes `kip_messages.metadata.glossThreads` only; read-only anchor entity checks; no LibraryItem/Draft/Moment mutation.
+
+### 2026-07-07 — Railway build: Rendr instrument agent imports
+- `ensureBoardInstrumentAgent.ts` — fixed `rendrAgentConfig` import path (`./rendr/…`); Prisma `config` cast for Rendr update.
+
+### 2026-07-06 — Custom domain DB sync when Vercel already verified
+- `customDomainVerificationSync.ts` — persist `customDomainVerified` when Vercel DNS is verified but Keeper DB flag was false (fixes livecchi.us → ke3p fallback).
+- `resolve-host` and custom-domain status routes call sync; Chronicle Addresses auto-calls verify when Vercel reports verified.
+
+### 2026-06-28 - Together AI image generation hardened — `TogetherProvider.generateImage()` uses official `together-ai` SDK with 3 automatic retries + 120s timeout (fixes transient 500 `server_error` from raw fetch). Added `resolveImageModel()` / `DEFAULT_IMAGE_MODEL` exports; rejects free-tier FLUX Schnell model id.
 - 2026-06-26: **Cloud MCP timeouts** — `fetchWithTimeout` helper; Railway/Vercel HTTP clients and `executeMcpCallAction` fail fast (25–30s) instead of hanging mid-run when infra APIs stall.
+- 2026-07-18: `DirectorDelegationRequest` — optional `instrumentRanClientSide` / `instrumentReply` so client-split director turns skip nested instrument runs on the API.
 - 2026-06-20: **Director continuity** — `directorDialog.ts` + `@keeper/shared/directorContinuity` resolve "try again" / refer-back into prior delegatable tasks; Kip synthesis forbids "session starts cold" copy.
 - 2026-06-18: Added `IntegrationMcpService.ts` and `ResendService.ts` — platform integration/Nango status and Resend read-only MCP helpers for Cloud.
 - 2026-06-18: **MCP agent bridge** — Cloud/Rendr invoke Railway/Vercel/GitHub MCP tools via `mcp.call` action; capability-gated tool execution + follow-up synthesis with live data.
@@ -92,6 +157,11 @@ Services are stateless classes instantiated on demand by route handlers or other
   - Error messages now include key source information
   - **Impact**: Agents will now use Railway environment keys by default, with DB as fallback
   - **Benefits**: Aligns with 12-factor app principles, avoids stale key issues, better DevOps
+
+## 📆 Update Log
+
+### 2026-06-28
+- Added `imageArchiveService.ts` — archives Together/external image URLs to Vercel Blob + `LibraryItem`; used by `POST /v0/moments/:id/keep` and `POST /api/uploads/import-url`.
 
 ### 2025-07-31
 - Reverted Vercel request body to `{ name }` per API spec.

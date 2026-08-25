@@ -197,6 +197,35 @@ export function parseKipAgentOutput(raw: string, requestId?: string): ParsedAgen
   }
 }
 
+/**
+ * Persist and replay the visible reply, not the `agent_output` envelope.
+ * History that still holds raw JSON (pre-fix sessions) is unwrapped on read.
+ */
+export function visibleAgentMessageText(content: string): string {
+  const trimmed = content.trim();
+  if (!trimmed) return content;
+  if (!(trimmed.startsWith('{') && trimmed.includes('"type"'))) return content;
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    if (parsed?.type === ACTION_ENVELOPE_TYPE && typeof parsed.response === 'string') {
+      const response = parsed.response.trim();
+      return response || content;
+    }
+  } catch {
+    /* keep original */
+  }
+  const parsed = parseKipAgentOutput(trimmed);
+  if (
+    typeof parsed.responseText === 'string'
+    && parsed.responseText.trim()
+    && parsed.responseText.trim() !== trimmed
+    && !parsed.ignoredReason
+  ) {
+    return parsed.responseText.trim();
+  }
+  return content;
+}
+
 export function wrapProseAsAgentOutput(prose: string): ParsedAgentOutput {
   const text = prose.trim();
   return {

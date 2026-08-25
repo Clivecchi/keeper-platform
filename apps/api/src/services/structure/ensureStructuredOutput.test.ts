@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   looksLikeJsonAttempt,
   parseKipAgentOutput,
+  visibleAgentMessageText,
   wrapProseAsAgentOutput,
 } from './parseKipAgentOutput.js';
 import { ensureStructuredOutput } from './ensureStructuredOutput.js';
@@ -68,6 +69,16 @@ describe('parseKipAgentOutput', () => {
   it('marks broken json as invalid_json', () => {
     const result = parseKipAgentOutput('{not json');
     expect(result.ignoredReason).toBe('invalid_json');
+  });
+
+  it('unwraps agent_output JSON for session history', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'The Forward is public presentation of the work.',
+      actions: [],
+    });
+    expect(visibleAgentMessageText(raw)).toBe('The Forward is public presentation of the work.');
+    expect(visibleAgentMessageText('Plain Lead reply.')).toBe('Plain Lead reply.');
   });
 });
 

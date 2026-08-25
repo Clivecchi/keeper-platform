@@ -9,7 +9,8 @@ Central location for API service-layer modules used by route handlers.
 - `SoleMemoryService.ts`
 - `VercelDomainManagerService.ts`
 - `customDomainVerificationSync.ts`
-- `boards/domainManagement.ts`
+- `LibraryItemIngestionService.ts`
+- `pdfTextExtract.ts`
 
 ## 🔄 Data & Behavior
 Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
@@ -19,6 +20,10 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-24 — PDF body on library.read
+- `pdfTextExtract.ts` — FlateDecode + Tj/TJ text extract (no schema migration).
+- `LibraryItemIngestionService` — ingest no longer UTF-8-decodes PDFs; `library.read { id }` hydrates `extracted_text` after the action transaction. Private Google Docs return a clear note instead of a login page.
+
 ### 2026-08-20 — Cloud GitHub folder reads
 - `GitHubService.ts` — `github_repo_read` encodes nested Contents paths, returns directory listings, and falls back to the git tree with nearby-path hints when a folder 404s (fixes Cloud `apps/web/src/components` / `.../board` EXECUTION_ERROR).
 - `mcpAgentBridge.ts` — Cloud prompt notes folder paths are valid for `github_repo_read`.

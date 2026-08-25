@@ -65,6 +65,12 @@ import { resolveAgentCapabilities } from '../../capabilities/resolveCapabilities
 import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import { searchLibraryItems } from '../../services/LibraryItemSearchService.js';
 import {
+  attachLibraryItemExtractedText,
+  fetchBlobWithAuth,
+} from '../../services/LibraryItemIngestionService.js';
+import { extractPdfText, isPdfBuffer } from '../../services/pdfTextExtract.js';
+import { visibleAgentMessageText } from '../../services/structure/parseKipAgentOutput.js';
+import {
   buildDialogReadHonesty,
   loadDialogDocumentForAgent,
 } from '../../services/kip/loadDialogDocumentForAgent.js';
@@ -1448,6 +1454,7 @@ async function buildCastMemberRunEnvironment(params: {
 }
 
 const TEXT_ATTACHMENT_EXT = /\.(txt|md|markdown|json|csv)$/i;
+const PDF_ATTACHMENT_EXT = /\.pdf$/i;
 const MAX_ATTACHMENT_TEXT_CHARS = 80_000;
 
 /** Inline text/markdown/json/csv file bodies; otherwise name + URL for the model. */
@@ -1462,7 +1469,7 @@ async function resolveFileAttachmentContext(
     const url = file.url.trim();
     if (TEXT_ATTACHMENT_EXT.test(file.name)) {
       try {
-        const res = await fetch(url);
+        const res = await fetchBlobWithAuth(url);
         if (res.ok) {
           const text = await res.text();
           const trimmed = text.trim().slice(0, MAX_ATTACHMENT_TEXT_CHARS);
@@ -1475,10 +1482,35 @@ async function resolveFileAttachmentContext(
         console.warn('[kip/agents] Failed to fetch attachment text:', file.name, err);
       }
     }
+    if (PDF_ATTACHMENT_EXT.test(file.name) || isPdfUrl(url)) {
+      try {
+        const res = await fetchBlobWithAuth(url);
+        if (res.ok) {
+          const buffer = Buffer.from(await res.arrayBuffer());
+          if (isPdfBuffer(buffer) || PDF_ATTACHMENT_EXT.test(file.name)) {
+            const extracted = extractPdfText(buffer, MAX_ATTACHMENT_TEXT_CHARS);
+            if (extracted.text.trim()) {
+              blocks.push(`[Attached file: ${file.name}]\n${extracted.text.trim()}`);
+              continue;
+            }
+            blocks.push(
+              `[Attached file: ${file.name}]\nPDF has no extractable text. It may be scanned images.`,
+            );
+            continue;
+          }
+        }
+      } catch (err) {
+        console.warn('[kip/agents] Failed to extract attached PDF:', file.name, err);
+      }
+    }
     blocks.push(`[Attached file: ${file.name}]\nURL: ${url}`);
   }
 
   return blocks.join('\n\n');
+}
+
+function isPdfUrl(url: string): boolean {
+  return /\.pdf(\?|$)/i.test(url);
 }
 
 function slugifyKey(input: string) {
@@ -4266,6 +4298,8 @@ export async function executeAgentActions(
     logger.info(summary, '[kip.actions] execution completed');
   }
 
+  await attachLibraryItemExtractedText(results);
+
   return { results, failedMessage: failed?.message || null };
 }
 
@@ -5102,10 +5136,13 @@ export class KipAgentService {
         throw new Error('Session ID, sender, content, and role are required');
       }
 
+      const storedContent =
+        sender === 'agent' ? (visibleAgentMessageText(content).trim() || content) : content;
+
       const messageData: KipMessageInput = {
         session_id: sessionId,
         sender,
-        content,
+        content: storedContent,
         role,
         metadata: metadata || {}
       };
@@ -5378,6 +5415,8 @@ export class KipAgentService {
           'WEB SEARCH — web.search action:',
           '- Use web.search for current public information on the open web. Payload: { query (required), count? (1–10, default 5) }.',
           '- Prefer library.read for domain Library material; use web.search for the internet.',
+          '- library.read { id } returns extracted_text as the file body. agent_perspective is a short summary, not the document.',
+          '- Private Google Docs cannot be fetched; ask for a PDF upload or a paste. Do not retry them via web.search.',
           '- Cite returned titles and URLs; never invent links.',
           '- Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
           '',
@@ -5426,8 +5465,10 @@ export class KipAgentService {
         '',
         'For keeper.read: report the Keeper title, purpose, and associated Journey count.',
         '',
-        'For library.read: when presenting a library pick, call library.read with { id } for the chosen',
-        'item (renders a tappable Library receipt) and include envelope "card": {"type":"summary","title":"<item title>","body":"<rationale>","meta":"<item id>"}.',
+        'For library.read { id }: use extracted_text as the document body. agent_perspective is a 2–4 sentence summary, not the file.',
+        'If extract_note says the item is a private Google Doc, do not retry via web.search — ask the human to upload a PDF or paste the text.',
+        'When presenting a library pick, call library.read with { id } for the chosen item (renders a tappable Library receipt)',
+        'and include envelope "card": {"type":"summary","title":"<item title>","body":"<rationale>","meta":"<item id>"}.',
         'Nested ```keeper-card fences remain accepted for backward compatibility.',
         '',
         'For dialog.read { id }: report Forward, Step, and Points from the returned Document.',
@@ -5456,8 +5497,9 @@ export class KipAgentService {
         'Use when a user asks about a specific Keeper. Payload: { keeperId }',
         '',
         'library.read — list recent library items ({ limit? }), semantic search ({ query, limit? }),',
-        'or fetch one item ({ id }). When the user asks to browse or pick from the library, call library.read',
-        'with { limit: 20 } first, then { id } for full detail on your choice.',
+        'or fetch one item ({ id }). { id } returns extracted_text (document body) plus agent_perspective (short summary).',
+        'When the user asks to browse or pick from the library, call library.read',
+        'with { limit: 20 } first, then { id } for the file text on your choice.',
         '',
         'dialog.read — list recent Dialogs ({ limit? }), search by title ({ query, limit? }),',
         'or fetch one Dialog ({ id }). { id } returns the same Document Chronicle shows (Forward, Step, Paths, Points).',
@@ -5938,6 +5980,8 @@ export class KipAgentService {
             'WEB SEARCH — web.search action:',
             '- Use web.search for current public information on the open web. Payload: { query (required), count? (1–10, default 5) }.',
             '- Prefer library.read for domain Library material; use web.search for the internet.',
+            '- library.read { id } returns extracted_text as the file body. agent_perspective is a short summary, not the document.',
+            '- Private Google Docs cannot be fetched; ask for a PDF upload or a paste. Do not retry them via web.search.',
             '- Cite returned titles and URLs; never invent links.',
             '- Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
             '',
@@ -6088,18 +6132,25 @@ export class KipAgentService {
       for (let i = 0; i < recentMessages.length; i += 1) {
         const msg = recentMessages[i];
         const indexFromEnd = historyCount - 1 - i;
+        const rawContent = typeof msg.content === 'string' ? msg.content : '';
+        const visible =
+          msg.sender === 'user' ? rawContent : visibleAgentMessageText(rawContent);
         messages.push({
           role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: clipSessionHistoryContent(msg.content, indexFromEnd),
+          content: clipSessionHistoryContent(visible, indexFromEnd),
         });
       }
 
       const continuity = resolveLeadThreadReply({
         userMessage: humanTurnTextForIntent(input, promptOptions?.displayContent),
-        priorMessages: recentMessages.map((msg) => ({
-          role: msg.sender === 'user' || msg.role === 'user' ? 'user' as const : 'agent' as const,
-          content: typeof msg.content === 'string' ? msg.content : '',
-        })),
+        priorMessages: recentMessages.map((msg) => {
+          const rawContent = typeof msg.content === 'string' ? msg.content : '';
+          const isUser = msg.sender === 'user' || msg.role === 'user';
+          return {
+            role: isUser ? 'user' as const : 'agent' as const,
+            content: isUser ? rawContent : visibleAgentMessageText(rawContent),
+          };
+        }),
       });
       if (continuity.resolvedFromPrior && continuity.priorAgentMessage) {
         messages.push({
