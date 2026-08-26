@@ -12,10 +12,13 @@ export interface DraftPointProposeCardProps {
   point: DraftPoint
   onAccept?: (draftId: string, pointId: string) => void
   onOpenDraft?: (draftId: string) => void
+  onOpenPoint?: (draftId: string, pointId: string) => void
   isAccepting?: boolean
   accepted?: boolean
   failed?: boolean
   failureReason?: string
+  /** Document vs working Draft — drives "Open in Document" copy. */
+  hostKind?: "document" | "draft"
 }
 
 const TYPE_LABELS: Record<DraftPointType, string> = {
@@ -31,19 +34,28 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
   point,
   onAccept,
   onOpenDraft,
+  onOpenPoint,
   isAccepting = false,
   accepted = false,
   failed = false,
   failureReason,
+  hostKind = "draft",
 }) => {
   const typeLabel = TYPE_LABELS[point.type] ?? "Point"
+  const hostLabel = hostKind === "document" ? "Document" : "Draft"
   const heading = failed
     ? `Not added · ${typeLabel.toLowerCase()}`
     : `${accepted ? "Added" : "Proposed"} ${typeLabel.toLowerCase()}`
+  const handleOpen = onOpenPoint
+    ? () => onOpenPoint(draftId, point.id)
+    : onOpenDraft
+      ? () => onOpenDraft(draftId)
+      : undefined
 
   return (
     <div
       className="rounded-lg border p-3"
+      onClick={handleOpen && !failed ? handleOpen : undefined}
       style={{
         borderColor: failed
           ? "hsl(14 50% 70%)"
@@ -51,6 +63,7 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
         backgroundColor: failed
           ? "hsl(14 40% 96%)"
           : "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))",
+        cursor: handleOpen && !failed ? "pointer" : "default",
       }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -102,27 +115,33 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
         )}
       </div>
 
-      {!accepted && !failed && (
+      {!failed && handleOpen && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onAccept?.(draftId, point.id)}
-            disabled={isAccepting || !onAccept}
-            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
-          >
-            {isAccepting ? "Accepting…" : "Accept"}
-          </button>
-          {onOpenDraft && (
+          {!accepted && (
             <button
               type="button"
-              onClick={() => onOpenDraft(draftId)}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold underline transition-colors hover:opacity-80"
-              style={{ color: "var(--theme-ink-secondary-color)" }}
+              onClick={(event) => {
+                event.stopPropagation()
+                onAccept?.(draftId, point.id)
+              }}
+              disabled={isAccepting || !onAccept}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
             >
-              View Draft →
+              {isAccepting ? "Accepting…" : "Accept"}
             </button>
           )}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              handleOpen()
+            }}
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold underline transition-colors hover:opacity-80"
+            style={{ color: "var(--theme-ink-secondary-color)" }}
+          >
+            Open in {draftTitle || hostLabel} →
+          </button>
         </div>
       )}
     </div>

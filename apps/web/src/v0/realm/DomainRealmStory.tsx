@@ -293,12 +293,7 @@ export function DomainRealmStory({
         if (proposal) setDocumentView((view) => (view === "current" ? view : "proposed"))
         setReorganizeError(null)
       } catch {
-        if (!cancelled) {
-          setDocumentMeta({ paths: [], components: [] })
-          setManuscriptEntries([])
-          setReorganizeProposal(null)
-          setManuscriptDraft(null)
-        }
+        // Keep the last good Document on refresh failure — do not flash Untitled.
       } finally {
         if (!cancelled) setDocumentLoading(false)
       }
@@ -420,16 +415,20 @@ export function DomainRealmStory({
     scope.status === "dialog" && scope.dialogId
       ? byDialog.find((group) => group.dialogId === scope.dialogId)?.title
       : undefined
+  const proposedTitle = showingProposal ? composedProposal?.title?.trim() : ""
+  const proposedForward = showingProposal ? composedProposal?.forward : undefined
   const documentTitle = resolveDocumentHeaderTitle({
-    dialogTitle: documentMeta.title,
-    forwardTitle: documentMeta.forward?.title,
+    dialogTitle: proposedTitle || documentMeta.title,
+    forwardTitle: proposedForward?.title || documentMeta.forward?.title,
     navTitle: dialogNavTitle,
   })
   const resolvedForward =
     scope.status === "dialog"
       ? resolveDocumentForward({
-          forwardTitle: documentMeta.forward?.title,
-          forwardDescription: documentMeta.forward?.description,
+          forwardTitle: proposedForward?.title || documentMeta.forward?.title,
+          forwardDescription:
+            proposedForward?.description
+            ?? documentMeta.forward?.description,
           dialogTitle: documentTitle,
           imageUrl: documentMeta.forward?.imageUrl,
         })
@@ -544,6 +543,21 @@ export function DomainRealmStory({
         }
         onOpenComponentDraft={
           scope.status === "dialog" ? handleOpenComponentDraft : undefined
+        }
+        now={
+          scope.status === "dialog"
+          && boardCtx?.selection.dialogNow
+          && boardCtx.selection.dialogNow.dialogId === scope.dialogId
+            ? {
+                name: boardCtx.selection.dialogNow.name,
+                previewUrl: boardCtx.selection.dialogNow.previewUrl,
+                onOpen: () => {
+                  const cue = boardCtx?.selection.dialogNow
+                  if (!cue) return
+                  boardCtx.actions.openLibraryWorkspaceOverlay(cue.libraryItemId)
+                },
+              }
+            : undefined
         }
         onGlossPoint={handleGlossPoint}
         onAcceptPoint={

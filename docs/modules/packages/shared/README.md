@@ -32,6 +32,19 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-25 — Document title and Forward
+- `documentReorganize.ts` — Lead may propose Document name (`title`) and Forward. Identity-only proposals are valid. Apply writes Dialog identity.
+
+### 2026-08-25 — Document vs Draft host title
+- `displayDraftHostTitle` — Point receipts name the Dialog, not `· manuscript`.
+
+### 2026-08-25 — Chronicle is Working on
+- `resolveChronicleActiveDraftId` — leftover session drafts and other Dialog manuscripts do not steal Point writes.
+
+### 2026-08-25 — Point identity
+- `resolveDraftPointRef` — UUID, 1-based number, or title. Same rules as Review & Reorganize.
+- `rewriteDraftPointInSpec` — title-only updates may omit content.
+
 ### 2026-08-22 — Keeper Stage contract
 - `keeperStage.ts` — Stage owns presence/placement/contextual Agency. Objects stay themselves. Chronicle Working on (agent/journey/…) now wins over Talking in Dialog when both IDs are set.
 

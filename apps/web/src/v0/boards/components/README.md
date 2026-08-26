@@ -8,6 +8,7 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 - `DirectorCastHeader.tsx` — Header cast identity (Lead + available Cast); not click-to-invoke. Optional `cueingLabel` shows the Dialog cueing mode next to the eyebrow (e.g. "Cueing: Directed").
 - `CastCueBar.tsx` — Composer invoke bar: lead locked-on; Cast members single-swap (IDE/Designer) or multi-select (Domain/Realm). `BoardInstrumentsBar.tsx` is now a deprecated thin re-export shim for untouched call sites.
 - `BoardMobileChronicleOverlay.tsx` — Full Chronicle as overlay (replaces Chronicle tab).
+- `LibraryItemWorkspaceOverlay.tsx` — Library item inspect over Workspace/Dialog (X dismiss; Document stays in Chronicle).
 - `BoardMobileNavDrawer.tsx` — Nav as left drawer (replaces Nav tab); account footer via `BoardMobileNavAccount`.
 - `BoardMobileNavAccount.tsx` — Avatar / profile / sign-out at bottom of Nav drawer (relocated from Top Bar).
 - `BoardMobilePanelBar.tsx` — **Deprecated for adaptive Domain/Realm** — three-tab bar retained in repo but no longer mounted by `UniversalBoard`.
@@ -19,6 +20,9 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 - **Adaptive mobile (≤767px Domain/Realm):** Dialog always primary; Nav = hamburger → drawer (account at bottom); Chronicle = Top Bar right icon → overlay. No bottom tab bar; Composer strip removed.
 
 ## 📆 Update Log
+
+### 2026-08-25 — Library inspect overlay
+- `LibraryItemWorkspaceOverlay` covers Workspace/Dialog. Chronicle Forward **Now** opens it. Escape / X closes.
 
 ### 2026-08-19 — IntegratedServicesBar
 - Moved from retired `ide/components` into this shared folder. `KeeperDialogFrame` imports from here.

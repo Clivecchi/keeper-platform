@@ -28,6 +28,13 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-25 — Proposed identity
+- `DocumentHeader` / Forward in Chronicle Proposed view can show a Lead-proposed title and Forward before Apply.
+
+### 2026-08-25 — Forward as Now
+- Optional `now` cue in the Forward slot (upload thumbnail). Click opens inspect overlay over Workspace. Document is not replaced.
+- Clicking a Point card scrolls that Point into focus.
+
 ### 2026-08-22 — Productive Section headers
 - Section headers show Point count as words, Proposed change cues (Moved / Refined), and a one-line intro: authored prelude, or titles of the Points in that Section.
 

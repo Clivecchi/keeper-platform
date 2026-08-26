@@ -33,6 +33,12 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-25 — Proposed title and Forward
+- Chronicle Proposed view shows a Lead-proposed Document name and Forward. A failed Document refresh no longer flashes **Untitled document**.
+
+### 2026-08-25 — Forward Now
+- Dialog uploads appear in Document Forward as **Now**. Click opens the Library overlay over Workspace.
+
 ### 2026-08-22 — Spine-only proposal
 - A Lead proposal that only names Sections keeps every Point in Open. Chronicle says so, and the next Lead turn is asked to place Points by number or title.
 

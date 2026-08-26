@@ -129,6 +129,32 @@ describe('normalizeDocumentReorganizeProposal', () => {
     expect(isDocumentReorganizeSpineOnly(result.proposal)).toBe(true);
   });
 
+  it('accepts a title and Forward without treating them as Points or spine-only', () => {
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        title: 'The Founding Realm',
+        forward: {
+          title: 'A family seed',
+          description: 'Planted for generations.',
+        },
+      },
+      currentPoints,
+      currentSections: [{ id: 'plot', title: 'The Plot' }],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.title).toBe('The Founding Realm');
+    expect(result.proposal.forward?.title).toBe('A family seed');
+    expect(result.proposal.forward?.description).toBe('Planted for generations.');
+    expect(result.proposal.leadNamedSections).toBe(false);
+    expect(result.proposal.points.every((point) => point.change === 'unchanged')).toBe(true);
+    expect(isDocumentReorganizeSpineOnly(result.proposal)).toBe(false);
+
+    const stored = parseDocumentReorganizeProposal(result.proposal);
+    expect(stored?.leadNamedSections).toBe(false);
+    expect(isDocumentReorganizeSpineOnly(stored!)).toBe(false);
+  });
+
   it('lifts Points nested under Sections by title', () => {
     const result = normalizeDocumentReorganizeProposal({
       raw: {
@@ -213,6 +239,25 @@ describe('composeProposedDocument', () => {
     expect(composed.marks.p1?.fromSectionTitle).toBe('Open');
     expect(composed.points[0]?.pathGroupId).toBe('plot');
     expect(composed.marks.p2).toBeUndefined();
+  });
+
+  it('carries proposed Document title and Forward into the composed Document', () => {
+    const parsed = parseDocumentReorganizeProposal({
+      title: 'The Founding Realm',
+      forward: {
+        title: 'A family seed, planted for generations',
+        description: 'For those whose faces we may never see.',
+      },
+    });
+    expect(parsed).not.toBeNull();
+    const composed = composeProposedDocument({
+      currentPoints,
+      currentSections: [],
+      proposal: parsed!,
+    });
+    expect(composed.title).toBe('The Founding Realm');
+    expect(composed.forward?.title).toBe('A family seed, planted for generations');
+    expect(composed.forward?.description).toBe('For those whose faces we may never see.');
   });
 });
 

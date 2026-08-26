@@ -71,6 +71,7 @@ import {
 import { extractDomainThemeCover } from "@keeper/shared"
 import { DOMAIN_THEME_SLUG } from "../themes/constants"
 import { BoardMobileChronicleOverlay } from "./components/BoardMobileChronicleOverlay"
+import { LibraryItemWorkspaceOverlay } from "./components/LibraryItemWorkspaceOverlay"
 import { BoardMobileNavDrawer } from "./components/BoardMobileNavDrawer"
 import { getCachedBoardNavData } from "./boardNavDataCache"
 import { PwaInstallPrompt } from "../../mobile/pwa"
@@ -658,6 +659,14 @@ function UniversalBoardShell({
               if (useMobilePanelLayout) closeNavDrawer()
             }}
             onClose={actions.closeLibraryScreen}
+          />
+        ) : null}
+        {domainId && selection.libraryWorkspaceOverlayId ? (
+          <LibraryItemWorkspaceOverlay
+            open
+            domainId={domainId}
+            libraryItemId={selection.libraryWorkspaceOverlayId}
+            onClose={actions.closeLibraryWorkspaceOverlay}
           />
         ) : null}
         {domainId ? <KeeperComposerSheet domainId={domainId} /> : null}

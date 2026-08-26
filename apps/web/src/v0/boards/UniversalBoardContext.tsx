@@ -58,6 +58,14 @@ export type AgentNavRowPatch = {
   model?: string | null
 }
 
+/** Live Library cue on the focused Dialog Document (Forward / Now). Not Chronicle subject. */
+export type DialogNowLibraryItem = {
+  libraryItemId: string
+  dialogId: string
+  name: string
+  previewUrl?: string | null
+}
+
 export interface UniversalBoardSelection {
   activeSessionId: string | null
   /** Domain-level active journey — persisted via FrameContext; used by Set as Active in Chronicle. */
@@ -137,6 +145,13 @@ export interface UniversalBoardSelection {
   chroniclePointTarget: { pointId: string | null; breadcrumb: string[] | null }
   /** Bumped when a deep-link requests the mobile Chronicle overlay open. */
   chronicleOpenRequestId: number
+  /**
+   * Session cue for a Dialog upload — shown in Chronicle Forward as Now.
+   * Does not replace the Document subject.
+   */
+  dialogNow: DialogNowLibraryItem | null
+  /** Library item inspect overlay over Workspace/Dialog — not Chronicle subject. */
+  libraryWorkspaceOverlayId: string | null
 }
 
 export interface UniversalBoardActions {
@@ -156,6 +171,13 @@ export interface UniversalBoardActions {
   onKeySelect: (id: string) => void
   onCapabilitySelect: (id: string) => void
   onLibraryItemSelect: (id: string) => void
+  /** Cue an upload on the Dialog Document Forward (Now) without stealing Chronicle. */
+  presentDialogNow: (item: DialogNowLibraryItem) => void
+  /** Inspect a Library item over Workspace/Dialog; Document stays in Chronicle. */
+  openLibraryWorkspaceOverlay: (libraryItemId: string) => void
+  closeLibraryWorkspaceOverlay: () => void
+  /** Drop Library Chronicle focus so the talking Dialog Document returns. */
+  returnChronicleToDocument: () => void
   /** Opens the Library screen over Dialog. Selected item still renders in Chronicle. */
   openLibraryScreen: () => void
   /** Closes the Library screen. Chronicle keeps the selected library item. */
@@ -338,6 +360,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     breadcrumb: null,
   })
   const [chronicleOpenRequestId, setChronicleOpenRequestId] = React.useState(0)
+  const [dialogNow, setDialogNow] = React.useState<DialogNowLibraryItem | null>(null)
+  const [libraryWorkspaceOverlayId, setLibraryWorkspaceOverlayId] = React.useState<string | null>(null)
 
   const urlDraftId = shell?.draftId ?? searchParams.get("draftId")
 
@@ -443,6 +467,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     shell?.clearBoardDefinition()
     setChroniclePanelMode("document")
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
+    setLibraryWorkspaceOverlayId(null)
+    setDialogNow((prev) => (prev && prev.dialogId !== id ? null : prev))
   }, [clearDraftIdFromUrl, shell])
 
   const openChronicleDocument = React.useCallback((options: {
@@ -649,6 +675,32 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
+    setLibraryWorkspaceOverlayId(null)
+  }, [])
+
+  const presentDialogNow = React.useCallback((item: DialogNowLibraryItem) => {
+    setDialogNow(item)
+    setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
+    setLibraryWorkspaceOverlayId(null)
+    setChroniclePanelMode("document")
+  }, [])
+
+  const openLibraryWorkspaceOverlay = React.useCallback((libraryItemId: string) => {
+    const id = libraryItemId.trim()
+    if (!id) return
+    setLibraryWorkspaceOverlayId(id)
+    setLibraryScreenOpen(false)
+  }, [])
+
+  const closeLibraryWorkspaceOverlay = React.useCallback(() => {
+    setLibraryWorkspaceOverlayId(null)
+  }, [])
+
+  const returnChronicleToDocument = React.useCallback(() => {
+    setSelectedLibraryItemId(null)
+    setLibraryWorkspaceOverlayId(null)
+    setChroniclePanelMode("document")
   }, [])
 
   const onWorkTargetFromStage = React.useCallback((target: { kind: StagePresenceKind; objectId: string }) => {
@@ -1148,6 +1200,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         chroniclePanelMode,
         chroniclePointTarget,
         chronicleOpenRequestId,
+        dialogNow,
+        libraryWorkspaceOverlayId,
       },
       actions: {
         onSessionSelect,
@@ -1164,6 +1218,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onKeySelect,
         onCapabilitySelect,
         onLibraryItemSelect,
+        presentDialogNow,
+        openLibraryWorkspaceOverlay,
+        closeLibraryWorkspaceOverlay,
+        returnChronicleToDocument,
         openLibraryScreen,
         closeLibraryScreen,
         onGlossarySelect,
@@ -1258,6 +1316,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       chroniclePanelMode,
       chroniclePointTarget,
       chronicleOpenRequestId,
+      dialogNow,
+      libraryWorkspaceOverlayId,
       onSessionSelect,
       onSetActiveJourney,
       onDialogSelect,
@@ -1272,6 +1332,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onKeySelect,
       onCapabilitySelect,
       onLibraryItemSelect,
+      presentDialogNow,
+      openLibraryWorkspaceOverlay,
+      closeLibraryWorkspaceOverlay,
+      returnChronicleToDocument,
       openLibraryScreen,
       closeLibraryScreen,
       onGlossarySelect,

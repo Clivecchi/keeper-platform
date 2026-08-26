@@ -62,6 +62,18 @@ export function LibraryItemFocusPresence({
     setCoverMode("config")
   }, [])
 
+  const talkingDialogId = boardCtx?.selection.selectedDialogId ?? null
+  const showingAsChronicleSubject = boardCtx?.chronicleView.effective.kind === "library"
+  const canReturnToDocument = Boolean(talkingDialogId && showingAsChronicleSubject)
+
+  const handleReturnToDocument = React.useCallback(() => {
+    if (!talkingDialogId) {
+      boardCtx?.actions.returnChronicleToDocument()
+      return
+    }
+    boardCtx?.actions.openChronicleDocument({ dialogId: talkingDialogId })
+  }, [boardCtx, talkingDialogId])
+
   const handleDiscussLibraryDocument = React.useCallback(() => {
     if (!feed?.item) return
     const doc = libraryItemToDocument(feed.item)
@@ -115,6 +127,21 @@ export function LibraryItemFocusPresence({
 
     return (
       <div className="relative flex flex-col h-full min-h-0">
+        {canReturnToDocument ? (
+          <div className="flex shrink-0 items-center justify-end px-4 pt-3">
+            <button
+              type="button"
+              onClick={handleReturnToDocument}
+              className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
+              style={{
+                color: "hsl(var(--theme-ink-primary))",
+                background: "hsl(var(--theme-surface-panel) / 0.7)",
+              }}
+            >
+              Back to Document
+            </button>
+          </div>
+        ) : null}
         <AnimatePresence mode="wait">
           <motion.div
             key="config"
@@ -143,6 +170,21 @@ export function LibraryItemFocusPresence({
 
   return (
     <div className="relative flex flex-col h-full min-h-0">
+      {canReturnToDocument ? (
+        <div className="flex shrink-0 items-center justify-end px-4 pt-3">
+          <button
+            type="button"
+            onClick={handleReturnToDocument}
+            className="rounded-full px-3 py-1.5 text-[12px] font-semibold"
+            style={{
+              color: "hsl(var(--theme-ink-primary))",
+              background: "hsl(var(--theme-surface-panel) / 0.7)",
+            }}
+          >
+            Back to Document
+          </button>
+        </div>
+      ) : null}
       <AnimatePresence mode="wait">
         <motion.div
           key="cover"

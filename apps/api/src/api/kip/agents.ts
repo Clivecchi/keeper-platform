@@ -36,6 +36,7 @@ import {
   buildLeadContinuitySystemPrompt,
   isSupportEchoPrompt,
   type DraftDiscussContext,
+  displayDraftHostTitle,
   shapeRecordTitle,
   isGlossAnchor,
   buildTalkingInWorkingOnPrompt,
@@ -43,6 +44,7 @@ import {
   resolveTalkingInWorkingOn,
   parseKeeperStage,
   coerceDocumentReorganizePayload,
+  hasDocumentIdentityProposal,
   isDocumentReorganizeSpineOnly,
   type KeeperStageComposition,
 } from '@keeper/shared';
@@ -349,12 +351,12 @@ function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unk
     '- Do not emit draft.point.accept yourself unless you have exact draftId + pointId from a prior success receipt. Journey Accept is a human UI action. document_manuscript adds are already accepted by draft.update.propose.';
   const reorganizeDocument =
     agent.role === 'Lead' || agent.role === 'System'
-      ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Do not silently rewrite accepted Points with draft.point.rewrite. Chronicle shows Current vs Proposed; the human Applies. When they ask to rename or retitle Points on the live Document, that is draft.point.rewrite (prelude/title) — not a second reorganize.'
+      ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Include payload.title (Document name) and payload.forward: { title, description } when those should change. Do not silently rewrite accepted Points with draft.point.rewrite. Do not draft.update.propose a Point that is actually the Forward or the Document name. Chronicle shows Current vs Proposed; the human Applies. When they ask to rename or retitle Points on the live Document, that is draft.point.rewrite (prelude/title) — not a second reorganize.'
       : '';
   const glossPoints =
     '- When the human asks to Gloss a Point — depth beside the Point, not a rewrite of the body — use gloss.append. payload.pointId is 1–N from DIALOG DOCUMENT or the current title (omit it to Gloss the latest Point). payload.content is the Gloss. Do not draft.point.rewrite. Do not weave Gloss into the Point body. Do not draft.create or draft.setActive. Include a keeper-card when the Gloss lands.';
   if (isOperationalDraftAgent(agent)) {
-    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
+    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}\n- For a working Draft's METADATA (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Document name and Forward are not draft metadata — use document.reorganize.propose. Never invent action types like add_point or edit — only use actions from the allowlist.`;
   }
   return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}`.trim();
 }
@@ -1452,6 +1454,7 @@ function buildExecuteAgentActionsCtx(
       options?.dialogId
       ?? env?.dialogDocument?.dialogId
       ?? null,
+    dialogTitle: env?.dialogDocument?.title ?? null,
     keeperId: options?.activeKeeperId ?? null,
     requestId: extras.requestId,
     skipActionTypes: mergePointSkipActionTypes(
@@ -1738,6 +1741,7 @@ export async function executeAgentActions(
     allowlist: Set<string>;
     sessionId?: string | null;
     dialogId?: string | null;
+    dialogTitle?: string | null;
     keeperId?: string | null;
     requestId?: string;
     skipActionTypes?: Set<string>;
@@ -2385,16 +2389,23 @@ export async function executeAgentActions(
             lastProposedPoint = { draftId: draft.id, pointId: point.id };
 
             const typeLabel = point.type === 'general' ? 'Point' : point.type;
-            const targetTitle = draft.title?.trim() || 'the document';
+            const hostTitle = displayDraftHostTitle({
+              kind: draft.kind,
+              draftTitle: draft.title,
+              dialogTitle: ctx.dialogTitle,
+            });
             results.push({
               type: action.type,
               status: 'success',
               message: isDocumentManuscript
-                ? `Added ${typeLabel} to ${targetTitle}`
-                : `Proposed ${typeLabel} on ${targetTitle} — tap Accept to keep it`,
+                ? `Added ${typeLabel} to ${hostTitle}`
+                : `Proposed ${typeLabel} on ${hostTitle} — tap Accept to keep it`,
               data: {
                 draftId: draft.id,
-                draftTitle: draft.title,
+                draftTitle: hostTitle,
+                dialogId: ctx.dialogId ?? undefined,
+                dialogTitle: ctx.dialogTitle ?? undefined,
+                hostTitle,
                 point,
                 draft: {
                   id: draft.id,
@@ -2519,19 +2530,31 @@ export async function executeAgentActions(
             }
             const spineOnly = isDocumentReorganizeSpineOnly(stored.proposal);
             const placedCount = stored.proposal.points.filter((point) => point.change !== 'unchanged').length;
+            const identityOnly =
+              hasDocumentIdentityProposal(stored.proposal) && placedCount === 0 && !spineOnly;
+            const identityBits = [
+              stored.proposal.title?.trim() ? 'title' : null,
+              stored.proposal.forward ? 'Forward' : null,
+            ].filter((bit): bit is string => Boolean(bit));
             results.push({
               type: action.type,
               status: 'success',
               message: spineOnly
                 ? 'Named Sections — Points are still in Open. Chronicle will ask the Lead to place them.'
+                : identityOnly
+                  ? `Proposed ${identityBits.join(' and ') || 'Document identity'} — open Proposed in Chronicle. Apply when you want it to become truth.`
                 : 'Proposed Document — open Proposed in Chronicle. Apply when you want it to become truth.',
               data: {
                 rationale: stored.proposal.rationale,
-                summary: stored.proposal.rationale || 'Proposed a better form of the Document',
+                summary: stored.proposal.rationale
+                  || (identityOnly
+                    ? `Proposed ${identityBits.join(' and ') || 'Document identity'}`
+                    : 'Proposed a better form of the Document'),
                 proposal: stored.proposal,
                 dialogId: ctx.dialogId,
                 spineOnly,
                 placedCount,
+                identityOnly,
               },
             });
             break;
@@ -2857,10 +2880,20 @@ export async function executeAgentActions(
             results.push({
               type: action.type,
               status: 'success',
-              message: 'Point rewritten',
+              message: `Point rewritten in ${displayDraftHostTitle({
+                kind: draft.kind,
+                draftTitle: draft.title,
+                dialogTitle: ctx.dialogTitle,
+              })}`,
               data: {
                 draftId: draft.id,
-                draftTitle: draft.title,
+                draftTitle: displayDraftHostTitle({
+                  kind: draft.kind,
+                  draftTitle: draft.title,
+                  dialogTitle: ctx.dialogTitle,
+                }),
+                dialogId: ctx.dialogId ?? undefined,
+                dialogTitle: ctx.dialogTitle ?? undefined,
                 point: rewriteResult.point,
                 draft: { id: draft.id, title: draft.title, kind: draft.kind, key: draft.key },
                 links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
@@ -5868,7 +5901,7 @@ export class KipAgentService {
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
         'gloss.append — Gloss an existing Point (depth beside it). Payload: { pointId (1–N or title; omit for the latest Point), content }. Not a rewrite. Not a new Draft. Chronicle shows Gloss on the Point. Include a keeper-card.',
-        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition. Does not change accepted work. Chronicle shows Current vs Proposed. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle on the live Document is draft.point.rewrite.',
+        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition — including Document name (payload.title) and Forward (payload.forward: { title, description }). Those are not Points. Does not change accepted work until Apply. Chronicle shows Current vs Proposed. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Identity-only (title/Forward) is valid. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle Points on the live Document is draft.point.rewrite.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -6363,7 +6396,7 @@ export class KipAgentService {
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
             'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
             'gloss.append payload schema: pointId (1–N or current title; omit to Gloss the latest Point), content (the Gloss — depth beside the Point). Do not rewrite. Do not create a Draft. Include a card.',
-            'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points.',
+            'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',

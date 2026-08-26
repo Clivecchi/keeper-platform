@@ -167,6 +167,14 @@ export interface KeeperDialogFrameProps {
   isSending: boolean
   error: string | null
   onOpenDraft?: (draftId: string) => void
+  onOpenPoint?: (input: {
+    draftId: string
+    pointId: string
+    kind?: string
+    dialogId?: string | null
+  }) => void
+  conversationDialogTitle?: string | null
+  talkingDialogId?: string | null
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
   onOpenLibraryItem?: (libraryItemId: string) => void
@@ -305,6 +313,9 @@ export function KeeperDialogFrame({
   isSending,
   error,
   onOpenDraft,
+  onOpenPoint,
+  conversationDialogTitle,
+  talkingDialogId,
   onOpenMoment,
   onOpenJourney,
   onOpenLibraryItem,
@@ -825,6 +836,9 @@ export function KeeperDialogFrame({
                         userName={userName}
                         echoAgentName={echoAgentName}
                         onOpenDraft={onOpenDraft}
+                        onOpenPoint={onOpenPoint}
+                        conversationDialogTitle={conversationDialogTitle}
+                        talkingDialogId={talkingDialogId}
                         onOpenMoment={onOpenMoment}
                         onOpenJourney={onOpenJourney}
                         onOpenLibraryItem={onOpenLibraryItem}
@@ -854,6 +868,9 @@ export function KeeperDialogFrame({
                     userName={userName}
                     echoAgentName={echoAgentName}
                     onOpenDraft={onOpenDraft}
+                    onOpenPoint={onOpenPoint}
+                    conversationDialogTitle={conversationDialogTitle}
+                    talkingDialogId={talkingDialogId}
                     onOpenMoment={onOpenMoment}
                     onOpenJourney={onOpenJourney}
                     onOpenChronicleChip={onOpenChronicleChip}

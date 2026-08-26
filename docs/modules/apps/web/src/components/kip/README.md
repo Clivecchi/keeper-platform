@@ -15,6 +15,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-08-25: `DraftPointProposeCard` names the Dialog/Draft and is clickable — opens that Point in Chronicle.
 - 2026-08-25: `gloss.append` labels as **Added Gloss**.
 - 2026-08-21: `DraftPointProposeCard` can render a **Not added** state so failed Point writes stay on the Point card, not a generic Failed receipt. Prisma text is not shown.
 - 2026-08-21: `DraftPointProposeCard` labels accepted/manuscript writes as **Added Point**. `DialogueMessageList` now mounts it for Point receipts.

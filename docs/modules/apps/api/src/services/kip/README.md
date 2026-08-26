@@ -38,6 +38,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-25 — Document title and Forward are proposable
+- `document.reorganize.propose` may include `title` and `forward: { title, description }`. Identity-only is valid. Apply writes Dialog identity. "Update the Forward" / "rename the document" is Review & Reorganize, not a Point.
+
 ### 2026-08-25 — Cast promised a Point; Lead writes
 - `pointIntent.ts` — "a Point worth capturing" and "create a new Section" are writes. Named Section is `payload.section`, not reorganize and not Accept. If Cast says they will create it, Lead follow-up emits `draft.update.propose`. Skipped Cast proposes no longer look like success or generic pipeline skips. Lead replies drop `### Cloud` roll-call.
 

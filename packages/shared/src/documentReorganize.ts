@@ -36,11 +36,22 @@ export type ReorganizePointOp = {
   replacesPointIds?: string[];
 };
 
+export type DocumentForwardProposal = {
+  title?: string;
+  description?: string;
+};
+
 export type DocumentReorganizeProposal = {
   version: typeof DOCUMENT_REORGANIZE_VERSION;
   rationale?: string;
   proposedBy: string;
   createdAt: string;
+  /** Proposed Dialog / Document name. Applied on human Apply. */
+  title?: string;
+  /** Proposed Forward (directional objective). Applied on human Apply. */
+  forward?: DocumentForwardProposal;
+  /** True when the Lead named Sections in this payload (not copied from Current). */
+  leadNamedSections?: boolean;
   sections: DocumentPathDeclaration[];
   points: ReorganizePointOp[];
 };
@@ -57,6 +68,8 @@ export type ComposedProposedDocument = {
   sections: DocumentPathDeclaration[];
   points: DraftPoint[];
   marks: Record<string, PointProposalMark>;
+  title?: string;
+  forward?: DocumentForwardProposal;
 };
 
 const KIND_SET = new Set<string>(REORGANIZE_CHANGE_KINDS);
@@ -197,6 +210,54 @@ function pickString(row: Record<string, unknown>, keys: string[]): string | null
   return null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function coerceDocumentForwardProposal(raw: unknown): DocumentForwardProposal | undefined {
+  if (typeof raw === 'string' && raw.trim()) {
+    return { description: raw.trim() };
+  }
+  if (!isRecord(raw)) return undefined;
+  const nested = isRecord(raw.forward) ? raw.forward : null;
+  const title =
+    (nested ? pickString(nested, ['title', 'name', 'label']) : null)
+    ?? pickString(raw, ['forwardTitle', 'forward_title']);
+  const description =
+    (nested
+      ? pickString(nested, ['description', 'body', 'text', 'content', 'objective'])
+      : null)
+    ?? pickString(raw, [
+      'forwardDescription',
+      'forward_description',
+      'objective',
+      'forwardBody',
+    ]);
+  const fromString = typeof raw.forward === 'string' ? trimmed(raw.forward) : null;
+  const nextDescription = description ?? fromString;
+  if (!title && !nextDescription) return undefined;
+  return {
+    ...(title ? { title } : {}),
+    ...(nextDescription ? { description: nextDescription } : {}),
+  };
+}
+
+export function coerceDocumentTitleProposal(raw: unknown): string | null {
+  if (!isRecord(raw)) return null;
+  return pickString(raw, ['documentTitle', 'dialogTitle', 'document_title', 'dialog_title', 'title']);
+}
+
+export function hasDocumentIdentityProposal(proposal: {
+  title?: string | null;
+  forward?: DocumentForwardProposal | null;
+}): boolean {
+  return Boolean(
+    proposal.title?.trim()
+    || proposal.forward?.title?.trim()
+    || proposal.forward?.description?.trim(),
+  );
+}
+
 function coercePointRow(item: unknown, fallbackSectionId?: string | null): Record<string, unknown> | null {
   if (typeof item === 'string' && item.trim()) {
     return {
@@ -273,9 +334,14 @@ export function coerceDocumentReorganizePayload(raw: unknown): Record<string, un
     .map((item) => coercePointRow(item))
     .filter((row): row is Record<string, unknown> => Boolean(row));
 
+  const title = coerceDocumentTitleProposal(nested) ?? coerceDocumentTitleProposal(rec);
+  const forward = coerceDocumentForwardProposal(nested) ?? coerceDocumentForwardProposal(rec);
+
   return {
     ...nested,
     rationale: pickString(nested, ['rationale', 'summary']) ?? pickString(rec, ['rationale', 'summary']) ?? undefined,
+    ...(title ? { title } : {}),
+    ...(forward ? { forward } : {}),
     sections,
     points,
   };
@@ -328,13 +394,25 @@ export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganiz
     });
   }
 
-  if (points.length === 0 && sections.length === 0) return null;
+  const title = coerceDocumentTitleProposal(rec);
+  const forward = coerceDocumentForwardProposal(rec);
+  const leadNamedSections =
+    rec.leadNamedSections === true
+      ? true
+      : rec.leadNamedSections === false
+        ? false
+        : sections.length > 0;
+
+  if (points.length === 0 && sections.length === 0 && !title && !forward) return null;
 
   return {
     version: DOCUMENT_REORGANIZE_VERSION,
     rationale: trimmed(rec.rationale) ?? undefined,
     proposedBy: trimmed(rec.proposedBy) ?? 'Lead',
     createdAt: trimmed(rec.createdAt) ?? new Date().toISOString(),
+    ...(title ? { title } : {}),
+    ...(forward ? { forward } : {}),
+    leadNamedSections,
     sections,
     points,
   };
@@ -461,6 +539,7 @@ export function normalizeDocumentReorganizeProposal(input: {
     proposal: {
       ...parsed,
       proposedBy: input.proposedBy?.trim() || parsed.proposedBy,
+      leadNamedSections: parsed.leadNamedSections === true,
       sections,
       points,
     },
@@ -520,7 +599,13 @@ export function composeProposedDocument(input: {
     }
   }
 
-  return { sections, points, marks };
+  return {
+    sections,
+    points,
+    marks,
+    ...(input.proposal.title?.trim() ? { title: input.proposal.title.trim() } : {}),
+    ...(input.proposal.forward ? { forward: input.proposal.forward } : {}),
+  };
 }
 
 export function reorganizeChangeLabel(kind: ReorganizeChangeKind): string {
@@ -546,10 +631,13 @@ export function reorganizeChangeLabel(kind: ReorganizeChangeKind): string {
 
 /** True when the Lead named Sections but did not place, refine, or retire any Point. */
 export function isDocumentReorganizeSpineOnly(proposal: DocumentReorganizeProposal): boolean {
-  return (
-    proposal.sections.length > 0
-    && proposal.points.every((point) => point.change === 'unchanged')
-  );
+  const noPointChanges = proposal.points.every((point) => point.change === 'unchanged');
+  if (!noPointChanges) return false;
+  if (hasDocumentIdentityProposal(proposal) && proposal.leadNamedSections !== true) {
+    return false;
+  }
+  const namedSections = proposal.leadNamedSections ?? proposal.sections.length > 0;
+  return namedSections;
 }
 
 export function readReorganizeProposalFromSpec(spec: unknown): DocumentReorganizeProposal | null {

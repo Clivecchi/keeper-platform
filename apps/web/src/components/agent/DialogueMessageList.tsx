@@ -19,7 +19,7 @@ import { getAgentErrorPresentation } from "./errorPresentation"
 import { isDirectorDelegationFailureContent, sanitizeAgentMessageContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
-import { buildMessageGlossAnchor, type DraftPoint } from "@keeper/shared"
+import { buildMessageGlossAnchor, displayDraftHostTitle, type DraftPoint } from "@keeper/shared"
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
@@ -352,6 +352,9 @@ function AgentMessageTurn({
   applyingTreatmentProposal,
   onArrivalInvitation,
   onOpenChronicleChip,
+  onOpenPoint,
+  conversationDialogTitle,
+  talkingDialogId,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -366,6 +369,9 @@ function AgentMessageTurn({
   applyingTreatmentProposal?: boolean
   onArrivalInvitation?: (id: RealmInvitationId) => void
   onOpenChronicleChip?: (chip: NonNullable<AgentDialogueMessage["chronicleChip"]>) => void
+  onOpenPoint?: DialogueMessageListProps["onOpenPoint"]
+  conversationDialogTitle?: string | null
+  talkingDialogId?: string | null
 }) {
   const castVoices = (message.castVoices ?? []).filter((voice) => {
     const content = voice.content?.trim()
@@ -403,6 +409,9 @@ function AgentMessageTurn({
           onConfirmDraftUpdate={onConfirmDraftUpdate}
           onApplyTreatmentProposal={onApplyTreatmentProposal}
           applyingTreatmentProposal={applyingTreatmentProposal}
+          onOpenPoint={onOpenPoint}
+          conversationDialogTitle={conversationDialogTitle}
+          talkingDialogId={talkingDialogId}
         />
       )
     }
@@ -447,6 +456,9 @@ function AgentMessageTurn({
           onConfirmDraftUpdate={onConfirmDraftUpdate}
           onApplyTreatmentProposal={onApplyTreatmentProposal}
           applyingTreatmentProposal={applyingTreatmentProposal}
+          onOpenPoint={onOpenPoint}
+          conversationDialogTitle={conversationDialogTitle}
+          talkingDialogId={talkingDialogId}
         />
         <MessageSenderFooter
           name={resolvedAgentName}
@@ -551,6 +563,9 @@ function AgentMessageTurn({
         onConfirmDraftUpdate={onConfirmDraftUpdate}
         onApplyTreatmentProposal={onApplyTreatmentProposal}
         applyingTreatmentProposal={applyingTreatmentProposal}
+        onOpenPoint={onOpenPoint}
+        conversationDialogTitle={conversationDialogTitle}
+        talkingDialogId={talkingDialogId}
       />
       <MessageSenderFooter
         name={resolvedAgentName}
@@ -573,6 +588,9 @@ function MessageAttachments({
   onConfirmDraftUpdate,
   onApplyTreatmentProposal,
   applyingTreatmentProposal,
+  onOpenPoint,
+  conversationDialogTitle,
+  talkingDialogId,
 }: {
   message: AgentDialogueMessage
   onOpenDraft?: (draftId: string) => void
@@ -583,6 +601,9 @@ function MessageAttachments({
   onConfirmDraftUpdate?: DialogueMessageListProps["onConfirmDraftUpdate"]
   onApplyTreatmentProposal?: DialogueMessageListProps["onApplyTreatmentProposal"]
   applyingTreatmentProposal?: boolean
+  onOpenPoint?: DialogueMessageListProps["onOpenPoint"]
+  conversationDialogTitle?: string | null
+  talkingDialogId?: string | null
 }) {
   return (
     <>
@@ -644,19 +665,43 @@ function MessageAttachments({
               || "document"
             if ((isPropose || isProposeError) && point) {
               const manuscript = receipt.data?.draft?.kind === "document_manuscript"
+              const hostTitle = displayDraftHostTitle({
+                kind: receipt.data?.draft?.kind,
+                draftTitle:
+                  receipt.data?.draft?.title
+                  || (typeof receipt.data?.draftTitle === "string" ? receipt.data.draftTitle : null),
+                dialogTitle:
+                  (typeof receipt.data?.dialogTitle === "string" ? receipt.data.dialogTitle : null)
+                  || conversationDialogTitle,
+              })
+              const receiptDialogId =
+                (typeof receipt.data?.dialogId === "string" ? receipt.data.dialogId : null)
+                || talkingDialogId
+                || null
               return (
                 <DraftPointProposeCard
                   key={idx}
                   draftId={pointDraftId}
-                  draftTitle={
-                    receipt.data?.draft?.title
-                    || (typeof receipt.data?.draftTitle === "string" ? receipt.data.draftTitle : "Document")
-                  }
+                  draftTitle={hostTitle}
+                  hostKind={manuscript ? "document" : "draft"}
                   point={point}
                   accepted={!isProposeError && (manuscript || point.status === "accepted")}
                   failed={isProposeError}
                   failureReason={isProposeError ? sanitizeReceiptMessage(receipt.message) : undefined}
                   onOpenDraft={onOpenDraft}
+                  onOpenPoint={
+                    onOpenPoint
+                      ? (draftId, pointId) =>
+                          onOpenPoint({
+                            draftId,
+                            pointId,
+                            kind: typeof receipt.data?.draft?.kind === "string"
+                              ? receipt.data.draft.kind
+                              : undefined,
+                            dialogId: receiptDialogId,
+                          })
+                      : undefined
+                  }
                 />
               )
             }
@@ -761,6 +806,16 @@ export interface DialogueMessageListProps {
   error: string | null
   /** Callback when a draft link is clicked */
   onOpenDraft?: (draftId: string) => void
+  /** Open a Point on its Document or Draft host. */
+  onOpenPoint?: (input: {
+    draftId: string
+    pointId: string
+    kind?: string
+    dialogId?: string | null
+  }) => void
+  /** Talking-in Dialog title — used when a manuscript receipt still says "· manuscript". */
+  conversationDialogTitle?: string | null
+  talkingDialogId?: string | null
   /** Callback when a moment link is clicked (e.g. in action receipts) */
   onOpenMoment?: (momentId: string) => void
   /** Callback when a journey link is clicked */
@@ -820,6 +875,9 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   horizonThinking = false,
   onArrivalInvitation,
   onOpenChronicleChip,
+  onOpenPoint,
+  conversationDialogTitle,
+  talkingDialogId,
 }) => (
   <div className="dialogue-message-list min-h-[24rem] space-y-4 overflow-x-hidden overflow-y-auto rounded-2xl px-4 py-4">
     {isLoading ? (
@@ -903,6 +961,9 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               applyingTreatmentProposal={applyingTreatmentProposal}
               onArrivalInvitation={onArrivalInvitation}
               onOpenChronicleChip={onOpenChronicleChip}
+              onOpenPoint={onOpenPoint}
+              conversationDialogTitle={conversationDialogTitle}
+              talkingDialogId={talkingDialogId}
             />
           </div>
         )

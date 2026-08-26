@@ -80,4 +80,10 @@ describe('detectReorganizeIntent', () => {
     expect(detectReorganizeIntent('add a point about the plot')).toBe('none');
     expect(detectReorganizeIntent('what is the point of this')).toBe('none');
   });
+
+  it('hears Forward and Document name asks', () => {
+    expect(detectReorganizeIntent('Try updating the forward specifically')).toBe('required');
+    expect(detectReorganizeIntent('Let me rewrite the Forward now')).toBe('required');
+    expect(detectReorganizeIntent('Should we rename the document?')).toBe('required');
+  });
 });

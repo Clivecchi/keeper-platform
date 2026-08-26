@@ -4,6 +4,7 @@ export * from './canonicalBoards.js';
 export * from './universalBoardId.js';
 export * from './cloudMcpCeiling.js';
 export * from './draftPoints.js';
+export * from './draftHostTitle.js';
 export * from './markdownToDraftPoints.js';
 export * from './draftPointStructure.js';
 export * from './draftPointPromotion.js';

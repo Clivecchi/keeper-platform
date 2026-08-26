@@ -15,6 +15,10 @@ const REORGANIZE_PATTERNS = [
   /\borgani[sz]e (the |these |our )(document|points?|sections?)\b/i,
   /\bbetter version of (the |this )document\b/i,
   /\bsuggest (a )?new title\b/i,
+  /\b(update|updating|rewrite|rewriting|write|writing|revise|revising|change|changing|set) (the |this )?(forward|title)\b/i,
+  /\brename (the |this )?(document|dialog|title)\b/i,
+  /\b(document|dialog) (name|title)\b/i,
+  /\bforward (field|title|specifically)\b/i,
 ];
 
 export function detectReorganizeIntent(userInput: string): ReorganizeIntentKind {
@@ -71,7 +75,8 @@ export function buildReorganizeProposeFollowUpInput(params: {
     `The human asked you to review and reorganize${named}. Narration is not a proposal.`,
     'Emit document.reorganize.propose in this turn.',
     'Do not draft.update.propose. Do not delegate.consult. You are the Lead — do the Document work.',
-    'If they asked for a new title, put the candidate in rationale and in your short response.',
+    'If they asked to rename the Document or write the Forward, put those on the payload: title, forward: { title, description }.',
+    'Do not draft.update.propose a Point that is actually the Forward or the Document name.',
     'Refer to existing Points by number or title from DIALOG DOCUMENT.',
     '',
     `Your prior message did not land a proposal: "${params.priorResponseText.trim().slice(0, 800)}"`,
@@ -115,11 +120,12 @@ export function buildReorganizeProposeSystemPrompt(dialogTitle?: string): string
     'Emit document.reorganize.propose in this turn. Do not rewrite accepted Points with draft.point.rewrite.',
     'Do not draft.update.propose. Review & Reorganize is not a Point write.',
     'Do not essay a mutation list. Chronicle will show the proposed Document.',
-    'Payload: { rationale?, sections: [{ id, title, prelude? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalPrelude?, originalContent?, replacesPointIds? }] }.',
+    'Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, prelude? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalPrelude?, originalContent?, replacesPointIds? }] }.',
     'change is one of: unchanged | new | refine | move | merge | retire.',
     'Refer to existing Points by their number or title from DIALOG DOCUMENT. Keeper resolves identities — do not invent UUIDs.',
     'You may omit unchanged Points — Keeper fills them in. A new Point uses change "new".',
-    'If they asked for a new title, put the candidate in rationale and in your short response. Title is not a Point.',
+    'Document name is payload.title (or documentTitle). Forward is payload.forward: { title, description }. Those are not Points. Identity-only payloads are valid — Keeper keeps current Sections and Points.',
+    'Do not draft.update.propose to change the Forward or the Document name.',
     'A Sections-only payload is accepted. Better: put Points under each Section (title or number) so Proposed is a real Document, not empty headers.',
     'Open is the quieter Section — use sectionId "open" or omit for unplaced Points.',
   ].join('\n');

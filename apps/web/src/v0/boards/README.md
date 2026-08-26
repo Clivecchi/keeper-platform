@@ -38,6 +38,14 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-25 — Manuscript stays off Chronicle
+- Successful `draft.update` / `draft.create` on `document_manuscript` refreshes the Dialog Document instead of selecting the hidden manuscript Draft (the **Untitled document** flash).
+
+### 2026-08-25 — Dialog upload stays on the Document
+- Composer attach cues Forward as **Now** (`presentDialogNow`) instead of selecting Library as Chronicle subject.
+- `LibraryItemWorkspaceOverlay` inspects the upload over Workspace/Dialog with an **X**. Document stays in Chronicle.
+- Point cards open the named Document/Draft and scroll that Point into focus.
+
 ### 2026-08-25 — Gloss receipts refresh Chronicle
 - `UniversalConversation` treats `gloss.append` like a Document write: bump Chronicle so Glossed badges appear without leaving the Dialog.
 

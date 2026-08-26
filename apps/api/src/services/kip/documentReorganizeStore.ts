@@ -12,7 +12,10 @@ type ReorganizeDb = {
 import {
   applyReorganizeToPoints,
   canonicalizeDraftSpecJson,
+  coerceDocumentForwardProposal,
+  coerceDocumentTitleProposal,
   DOCUMENT_REORGANIZE_SPEC_KEY,
+  hasDocumentIdentityProposal,
   normalizeDocumentReorganizeProposal,
   parseDocumentPathDeclarations,
   parseDraftPoints,
@@ -98,12 +101,19 @@ export async function storeDocumentReorganizeProposal(input: {
   }
 
   const currentPoints = parseDraftPoints(manuscript.spec_json);
-  if (currentPoints.filter((point) => !point.referencesPointId?.trim()).length === 0) {
+  const identityOnly = hasDocumentIdentityProposal({
+    title: coerceDocumentTitleProposal(input.raw),
+    forward: coerceDocumentForwardProposal(input.raw),
+  });
+  if (
+    currentPoints.filter((point) => !point.referencesPointId?.trim()).length === 0
+    && !identityOnly
+  ) {
     return {
       ok: false,
       status: 400,
       error: 'DOCUMENT_EMPTY',
-      message: 'Review & Reorganize needs an existing Document with Points.',
+      message: 'Review & Reorganize needs an existing Document with Points — or a title / Forward to propose.',
     };
   }
 
@@ -169,10 +179,31 @@ export async function applyDocumentReorganizeProposal(input: {
   const cleared = canonicalizeDraftSpecJson(setDraftPointsInSpec(manuscript.spec_json, nextPoints));
   const { [DOCUMENT_REORGANIZE_SPEC_KEY]: _drop, ...rest } = cleared as Record<string, unknown>;
 
+  const dialogData: {
+    document_paths: Prisma.InputJsonValue;
+    title?: string;
+    title_source?: string;
+    forward_title?: string | null;
+    forward_description?: string | null;
+  } = { document_paths: asJson(stored.sections) };
+  const proposedTitle = stored.title?.trim();
+  if (proposedTitle) {
+    dialogData.title = proposedTitle;
+    dialogData.title_source = 'user_set';
+  }
+  if (stored.forward) {
+    if (stored.forward.title !== undefined) {
+      dialogData.forward_title = stored.forward.title.trim() || null;
+    }
+    if (stored.forward.description !== undefined) {
+      dialogData.forward_description = stored.forward.description.trim() || null;
+    }
+  }
+
   await prisma.$transaction([
     prisma.dialog.update({
       where: { id: dialog.id },
-      data: { document_paths: asJson(stored.sections) },
+      data: dialogData,
     }),
     prisma.kip_drafts.update({
       where: { id: manuscript.id },

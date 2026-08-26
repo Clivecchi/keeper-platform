@@ -125,6 +125,15 @@ export interface DocumentShellProps {
   className?: string
   /** In-place Review & Reorganize marks (Proposed / Changes). */
   proposalMarks?: Record<string, PointProposalMark>
+  /**
+   * Live cue in the Forward slot (uploads, etc.). Click opens inspect overlay
+   * over Workspace — does not replace the Document.
+   */
+  now?: {
+    name: string
+    previewUrl?: string | null
+    onOpen?: () => void
+  } | null
 }
 
 function isPointAccepted(
@@ -295,6 +304,7 @@ function PointFrame({
   glossThread,
   authoring,
   proposalMark,
+  focused,
 }: {
   point: Point
   pointId?: string
@@ -307,6 +317,7 @@ function PointFrame({
   glossThread?: DocumentGlossThreadInfo | null
   authoring?: PointAuthoringProps | null
   proposalMark?: PointProposalMark
+  focused?: boolean
 }) {
   const [glossOpen, setGlossOpen] = React.useState(false)
   const canInlineGloss = Boolean(glossContext && point.gloss?.anchor)
@@ -347,16 +358,20 @@ function PointFrame({
       style={{
         display: "flex",
         alignItems: "stretch",
-        borderRadius: glossOpen ? 10 : 0,
+        borderRadius: glossOpen || focused ? 10 : 0,
         overflow: "visible",
         background: glossOpen
           ? "hsl(var(--theme-surface-elevated) / 0.72)"
-          : "transparent",
+          : focused
+            ? "hsl(var(--theme-accent-primary, 42 55% 48%) / 0.08)"
+            : "transparent",
         border: glossOpen
           ? glossThread
             ? "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.35)"
             : "1px solid hsl(var(--theme-border-soft) / 0.35)"
-          : "none",
+          : focused
+            ? "1px solid hsl(var(--theme-accent-primary, 42 55% 48%) / 0.45)"
+            : "none",
         borderBottom: glossOpen
           ? undefined
           : "1px solid hsl(var(--theme-border-soft) / 0.22)",
@@ -491,6 +506,11 @@ function resolveForward(
   return null
 }
 
+function isNowPreviewImage(url?: string | null, name?: string | null): boolean {
+  const src = `${url ?? ""} ${name ?? ""}`
+  return /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(src)
+}
+
 function ForwardBlock({
   forward,
   step,
@@ -498,6 +518,7 @@ function ForwardBlock({
   editing,
   onSaveForward,
   busy,
+  now,
 }: {
   forward: DocumentForward
   step?: DocumentStep
@@ -505,12 +526,18 @@ function ForwardBlock({
   editing?: boolean
   onSaveForward?: (title: string, description: string) => void
   busy?: boolean
+  now?: DocumentShellProps["now"]
 }) {
   const hasStep = Boolean(step?.title?.trim() || step?.body?.trim())
   const [descriptionOpen, setDescriptionOpen] = React.useState(!hasStep)
   const [draftTitle, setDraftTitle] = React.useState(forward.title)
   const [draftDescription, setDraftDescription] = React.useState(forward.description)
-  const mediaUrl = forward.imageUrl?.trim()
+  const authoredMediaUrl = forward.imageUrl?.trim()
+  const nowPreview = now?.previewUrl?.trim() || null
+  const nowIsImage = Boolean(now && isNowPreviewImage(nowPreview, now.name))
+  const mediaUrl = nowIsImage ? nowPreview : authoredMediaUrl
+  const eyebrow = now ? "Now" : "Forward"
+  const nowOpens = Boolean(now?.onOpen) && !editing
 
   React.useEffect(() => {
     setDescriptionOpen(!hasStep)
@@ -541,16 +568,53 @@ function ForwardBlock({
         }}
       >
         {mediaUrl ? (
-          <div
-            className="w-full"
+          nowOpens ? (
+            <button
+              type="button"
+              onClick={now?.onOpen}
+              className="block w-full text-left"
+              aria-label={`Open ${now?.name ?? "upload"}`}
+            >
+              <div
+                className="w-full"
+                style={{
+                  aspectRatio: "2.4 / 1",
+                  maxHeight: 168,
+                  background: `linear-gradient(180deg, transparent 35%, hsl(var(--theme-surface-paper) / 0.92) 100%), url(${JSON.stringify(mediaUrl)}) center/cover no-repeat`,
+                }}
+                role="img"
+                aria-hidden
+              />
+            </button>
+          ) : (
+            <div
+              className="w-full"
+              style={{
+                aspectRatio: "2.4 / 1",
+                maxHeight: 168,
+                background: `linear-gradient(180deg, transparent 35%, hsl(var(--theme-surface-paper) / 0.92) 100%), url(${JSON.stringify(mediaUrl)}) center/cover no-repeat`,
+              }}
+              role="img"
+              aria-label={now ? now.name : "Document cover"}
+            />
+          )
+        ) : now && nowOpens ? (
+          <button
+            type="button"
+            onClick={now.onOpen}
+            className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left"
             style={{
-              aspectRatio: "2.4 / 1",
-              maxHeight: 168,
-              background: `linear-gradient(180deg, transparent 35%, hsl(var(--theme-surface-paper) / 0.92) 100%), url(${JSON.stringify(mediaUrl)}) center/cover no-repeat`,
+              borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.35)",
+              background: "hsl(var(--theme-surface-elevated) / 0.55)",
             }}
-            role="img"
-            aria-label="Document cover"
-          />
+          >
+            <span className="min-w-0 truncate text-[13px] font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+              {now.name}
+            </span>
+            <span className="shrink-0 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              Open →
+            </span>
+          </button>
         ) : (
           <div
             aria-hidden
@@ -566,7 +630,7 @@ function ForwardBlock({
             className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em]"
             style={{ color: "hsl(var(--theme-accent-primary, 42 55% 48%))" }}
           >
-            Forward
+            {eyebrow}
           </p>
           {editing && onSaveForward ? (
             <>
@@ -818,6 +882,7 @@ export function DocumentShell({
   authoring,
   className,
   proposalMarks,
+  now,
 }: DocumentShellProps) {
   const [query, setQuery] = React.useState("")
   const [searchOpen, setSearchOpen] = React.useState(false)
@@ -932,6 +997,7 @@ export function DocumentShell({
           editing={authoring?.enabled}
           busy={authoring?.busy}
           onSaveForward={authoring?.onSaveForward}
+          now={now}
         />
       ) : null}
       {onBringInWriting ? (
@@ -1143,6 +1209,7 @@ export function DocumentShell({
                       acceptedPointIds={acceptedPointIds}
                       authoring={pointAuthoring}
                       proposalMark={pointId ? proposalMarks?.[pointId] : undefined}
+                      focused={Boolean(pointId && scrollToPointId && pointId === scrollToPointId)}
                       onGloss={
                         onGlossPoint && point.gloss?.anchor
                           ? () => onGlossPoint(point, index)

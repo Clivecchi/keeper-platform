@@ -155,6 +155,13 @@ function isThinkingPlaceholder(content: string, agentDisplayName: string): boole
   return trimmed === `${agentDisplayName} is thinking…` || trimmed.endsWith(" is thinking…")
 }
 
+/** Hidden Dialog storage — keep Chronicle on the Document, not the manuscript Draft. */
+function isDocumentManuscriptReceipt(receipt: {
+  data?: { draft?: { kind?: string } }
+}): boolean {
+  return receipt.data?.draft?.kind === "document_manuscript"
+}
+
 function resolvedCastMemberLabel(
   slug: string,
   agents: ReadonlyArray<DomainScopedAgent>,
@@ -1396,9 +1403,11 @@ export function UniversalConversation({
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
-            onDraftSelect(
-              (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
-            )
+            if (!isDocumentManuscriptReceipt(receipt)) {
+              onDraftSelect(
+                (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
+              )
+            }
             actions.bumpDraftPresence()
             return
           }
@@ -1454,9 +1463,11 @@ export function UniversalConversation({
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
-            onDraftSelect(
-              (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
-            )
+            if (!isDocumentManuscriptReceipt(receipt)) {
+              onDraftSelect(
+                (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
+              )
+            }
             actions.bumpDraftPresence()
             return
           }
@@ -2393,7 +2404,16 @@ export function UniversalConversation({
       })
       const last = committed[committed.length - 1]
       if (last?.libraryItemId) {
-        actions.onLibraryItemSelect(last.libraryItemId)
+        if (selection.selectedDialogId) {
+          actions.presentDialogNow({
+            libraryItemId: last.libraryItemId,
+            dialogId: selection.selectedDialogId,
+            name: last.name,
+            previewUrl: last.url,
+          })
+        } else {
+          actions.onLibraryItemSelect(last.libraryItemId)
+        }
       }
       actions.bumpLibraryNav()
     },
@@ -2402,6 +2422,7 @@ export function UniversalConversation({
       user?.id,
       selection.selectedKeeperId,
       selection.selectedAgentId,
+      selection.selectedDialogId,
       selectedKeeperId,
       selectedAgentId,
       actions,
@@ -2716,6 +2737,19 @@ export function UniversalConversation({
         echoAgentName={isLeadLedDomain ? KIP_FALLBACK_DISPLAY_NAME : defaultAgentName}
         agentBoardMessaging={agentBoardMessaging}
         onOpenDraft={onDraftSelect}
+        onOpenPoint={(input) => {
+          const dialogId = input.dialogId || selection.selectedDialogId
+          if (input.kind === "document_manuscript" && dialogId) {
+            actions.openChronicleDocument({
+              dialogId,
+              pointId: input.pointId,
+            })
+            return
+          }
+          onDraftSelect(input.draftId)
+        }}
+        conversationDialogTitle={dialogTitle}
+        talkingDialogId={selectedDialogId}
         onOpenMoment={onMomentSelect}
         onOpenJourney={(id) => onJourneySelect(id)}
         onOpenLibraryItem={(id) => actions.onLibraryItemSelect(id)}

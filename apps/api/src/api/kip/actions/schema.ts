@@ -270,8 +270,21 @@ const documentReorganizePointSchema = z.object({
   replacesPointIds: z.array(z.string().min(1)).optional(),
 });
 
+const documentForwardProposalSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  body: z.string().optional(),
+  text: z.string().optional(),
+});
+
 const documentReorganizeProposePayloadSchema = z.object({
   rationale: z.string().optional(),
+  title: z.string().optional(),
+  documentTitle: z.string().optional(),
+  dialogTitle: z.string().optional(),
+  forward: z.union([z.string(), documentForwardProposalSchema]).optional(),
+  forwardTitle: z.string().optional(),
+  forwardDescription: z.string().optional(),
   sections: z
     .array(
       z.object({
