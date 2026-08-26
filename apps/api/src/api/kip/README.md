@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-25: **Gloss is a Lead action** — `gloss.append` writes Chronicle Gloss on a Document Point (same carrier as the Gloss panel). Not a Point rewrite, not a new Draft. Follow-up when the Lead narrates instead. Keeper attaches a Gloss card.
 - 2026-08-25: **Rewrite uses Chronicle identity** — `draft.point.rewrite` accepts Point 1–N, the current title, numeric `pointId`, or `payload.id` when that value is the Point (not the Draft). `payload.points[]` expands to one rewrite each. Dialog manuscript is the rewrite host.
 - 2026-08-25: **Composer chips own the stage; Review & Reorganize is Lead-only** — nested Cast cannot `draft.update.propose` / `document.reorganize.propose`. Reorganize execute is Lead, not System. Hyphenated `re-organize` triggers a propose follow-up when Kip narrates instead of emitting the action. `skipDelegateConsult` blocks Mechanism B when the composer already decided who is on stage.
 - 2026-08-25: **Chronicle is the write target** — session leftover drafts (including Becoming Together's manuscript) cannot steal Points. `draft.update.propose` always uses Working on (the Dialog on screen, or the focused Draft). Foreign manuscripts are retargeted.

@@ -85,6 +85,13 @@ const draftPointRewritePayloadSchema = z.object({
   { message: 'Provide content, prelude, or title' },
 );
 
+const glossAppendPayloadSchema = z.object({
+  pointId: z.union([z.string().min(1), z.number()]).optional(),
+  content: z.string().min(1, 'content is required'),
+  text: z.string().optional(),
+  body: z.string().optional(),
+});
+
 const draftUpdateProposePayloadSchema = z.object({
   id: z.string().uuid().optional(),
   draftId: z.string().uuid().optional(),
@@ -322,6 +329,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'draft.point.accept': draftPointAcceptPayloadSchema,
   'draft.point.promote': draftPointPromotePayloadSchema,
   'draft.point.rewrite': draftPointRewritePayloadSchema,
+  'gloss.append': glossAppendPayloadSchema,
   'draft.delete': draftDeletePayloadSchema,
   'draft.list': draftListPayloadSchema,
   'draft.get': draftGetPayloadSchema,

@@ -65,6 +65,7 @@ function getActionLabel(actionType: string, receipt?: ActionReceipt): string {
     "draft.update.propose":
       receipt?.data?.draft?.kind === "document_manuscript" ? "Added Point" : "Proposed Point",
     "draft.point.rewrite": "Rewrote point",
+    "gloss.append": "Added Gloss",
     "draft.point.accept": "Accepted point",
     "moment.create": "Moment captured",
     "moment.keep": "Moment captured",

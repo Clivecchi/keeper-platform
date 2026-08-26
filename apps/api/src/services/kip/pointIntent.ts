@@ -560,6 +560,22 @@ export function buildPointTurnCard(params: {
   workingOnTitle?: string;
   writeKind?: PointWriteKind;
 }): PointContributionCard | null {
+  const rewritten = params.results.filter(
+    (result) => result.type === 'draft.point.rewrite' && result.status === 'success',
+  );
+  if (rewritten.length) {
+    const items = rewritten
+      .map((result) => pointPreviewFromResult(result))
+      .filter((item): item is string => Boolean(item));
+    const whereTitle = (params.workingOnTitle ?? params.dialogTitle)?.trim();
+    const where = whereTitle ? ` · ${whereTitle}` : '';
+    return {
+      type: 'summary',
+      title: `Rewrote ${rewritten.length === 1 ? 'Point' : 'Points'}${where}`,
+      body: 'On the Dialog Document — open Chronicle to read it.',
+      items: items.slice(0, 6),
+    };
+  }
   return buildPointContributionCard(params) ?? buildPointTurnFailureCard(params);
 }
 

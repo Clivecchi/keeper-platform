@@ -12,6 +12,8 @@ export function buildKeeperCardRenderingPrompt(): string {
     '',
     'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it, or lock a Document tip — include "card". Pure relational speaking stays prose-only.',
     '',
+    'POINT AND GLOSS TURNS: when you add a Point or Gloss, include a card. type "summary". Title like "Point added" or "Gloss added". Keep "response" to 1–3 short sentences. The card is the operational confirmation — do not only say you added it in prose.',
+    '',
     'BALANCE (terra firma): operational Turns are short prose + UI, not essays.',
     '- Default "response" to 1–3 short sentences when actions or a card are present.',
     '- Do not paste Cast member replies as ### Cloud / ### Rendr headings — Dialog already shows their voice cards.',

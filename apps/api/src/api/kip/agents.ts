@@ -141,6 +141,15 @@ import {
   type PointTurnObligation,
 } from '../../services/kip/pointIntent.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
+import { appendGlossTurn } from '../../services/GlossWriteService.js';
+import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
+import {
+  buildGlossAppendFollowUpInput,
+  buildGlossAppendSystemPrompt,
+  buildGlossTurnCard,
+  detectGlossIntent,
+  shouldRunGlossFollowUp,
+} from '../../services/kip/glossIntent.js';
 import {
   buildReorganizePlacementFollowUpInput,
   buildReorganizeProposeFollowUpInput,
@@ -211,6 +220,7 @@ import {
 import {
   assignMissingRewritePointIndexes,
   coercePointRewriteRef,
+  coerceProposePointContent,
   expandDraftPointRewriteActions,
   normalizeDraftPointIdPayload,
   normalizeDraftPointRewritePayload,
@@ -304,6 +314,8 @@ type RunAgentOptions = {
   ephemeral?: boolean;
   /** Kip Echo / platform-collaboration sub-run — must not write Document Points. */
   supportEcho?: boolean;
+  /** Human asked to Gloss a Point — skip rewrite / new Draft substitutes. */
+  glossRequired?: boolean;
   /** Mutable per-turn timing bag (filled by handler + runAgent + callAIModel). */
   timings?: AgentRunPhaseTimings;
   /** Visible Dialog tokens (extracted `response` field). */
@@ -336,10 +348,12 @@ function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unk
     agent.role === 'Lead' || agent.role === 'System'
       ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Do not silently rewrite accepted Points with draft.point.rewrite. Chronicle shows Current vs Proposed; the human Applies. When they ask to rename or retitle Points on the live Document, that is draft.point.rewrite (prelude/title) — not a second reorganize.'
       : '';
+  const glossPoints =
+    '- When the human asks to Gloss a Point — depth beside the Point, not a rewrite of the body — use gloss.append. payload.pointId is 1–N from DIALOG DOCUMENT or the current title (omit it to Gloss the latest Point). payload.content is the Gloss. Do not draft.point.rewrite. Do not weave Gloss into the Point body. Do not draft.create or draft.setActive. Include a keeper-card when the Gloss lands.';
   if (isOperationalDraftAgent(agent)) {
-    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
+    return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point or edit — only use actions from the allowlist.`;
   }
-  return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}`.trim();
+  return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}`.trim();
 }
 
 /**
@@ -764,6 +778,7 @@ function buildChronicleActionChip(input: {
         result.type === 'draft.update'
         || result.type === 'draft.update.propose'
         || result.type === 'draft.point.rewrite'
+        || result.type === 'gloss.append'
         || result.type === 'draft.point.accept'
         || result.type === 'draft.point.promote'
       ),
@@ -1269,7 +1284,7 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
   }
   lines.push(
-    'Point title is prelude — a short label that tells the story of the Point (e.g. "Agent Narrates, Doesn\'t Act"), not a cut of the body. Always set prelude/title on new Points. To rename: draft.point.rewrite with pointId set to the number (1, 2, 3…) or the current title; prelude is the new title; omit content to keep the body. The Dialog id above is not a Point id.',
+    'Point title is prelude — a short label that tells the story of the Point (e.g. "Agent Narrates, Doesn\'t Act"), not a cut of the body. Always set prelude/title on new Points. To rename: draft.point.rewrite with pointId set to the number (1, 2, 3…) or the current title; prelude is the new title; omit content to keep the body. To Gloss a Point (depth beside it, not a rewrite): gloss.append with pointId 1–N or the current title, and content. Do not weave Gloss into the Point body. The Dialog id above is not a Point id.',
     'This Document is the primary conversational background. Stay aware of the Domain. If Working on is a Draft, do not treat this manuscript as the Point write target.',
     'When the user asks about this Dialog\'s Document, Forward, Sections, or Points, use this block — do not claim the Document is absent when fields above are present.',
     'When asked to pick or name one item from a Section, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
@@ -1369,18 +1384,42 @@ function mergePointSkipActionTypes(
     next.add('draft.create');
     next.add('draft.point.rewrite');
     next.add('document.reorganize.propose');
+    next.add('gloss.append');
   }
   if (actor === 'cast') {
     next.add('draft.update.propose');
     next.add('draft.create');
     next.add('draft.point.rewrite');
     next.add('document.reorganize.propose');
+    next.add('gloss.append');
   }
   if (obligation?.required && obligation.manuscriptDraftId) {
     next.add('draft.create');
   }
   return next.size ? next : undefined;
 }
+
+function lastVisibleAgentMessage(
+  messages: Array<{ sender?: string; role?: string | null; content?: string | null }> | undefined,
+): string | null {
+  if (!messages?.length) return null;
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const msg = messages[i];
+    const isUser = msg.sender === 'user' || msg.role === 'user';
+    if (isUser) continue;
+    const raw = typeof msg.content === 'string' ? msg.content : '';
+    const visible = visibleAgentMessageText(raw).trim();
+    if (visible) return visible;
+  }
+  return null;
+}
+
+const GLOSS_SKIP_SUBSTITUTES = [
+  'draft.create',
+  'draft.setActive',
+  'draft.point.rewrite',
+  'document.reorganize.propose',
+] as const;
 
 function buildExecuteAgentActionsCtx(
   options: RunAgentOptions | undefined,
@@ -1393,6 +1432,7 @@ function buildExecuteAgentActionsCtx(
     skipActionTypes?: Set<string>;
     actor?: 'lead' | 'cast';
     supportEcho?: boolean;
+    glossRequired?: boolean;
   },
 ) {
   const env = options?.environment as AgentEnvironmentContext | undefined;
@@ -1421,6 +1461,7 @@ function buildExecuteAgentActionsCtx(
     pointConstraint: obligation?.constrained === true,
     pointObligationRequired: obligation?.required === true && !obligation.constrained,
     supportEcho: extras.supportEcho === true || options?.supportEcho === true,
+    glossRequired: extras.glossRequired === true || options?.glossRequired === true,
   };
 }
 
@@ -1700,6 +1741,7 @@ export async function executeAgentActions(
     pointConstraint?: boolean;
     pointObligationRequired?: boolean;
     supportEcho?: boolean;
+    glossRequired?: boolean;
   },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
@@ -1757,6 +1799,20 @@ export async function executeAgentActions(
         type: action.type,
         payload: normalizeDraftPointIdPayload(action.payload as Record<string, unknown>),
       };
+    }
+    if (
+      action.type === 'gloss.append'
+      && action.payload
+      && typeof action.payload === 'object'
+    ) {
+      const p = action.payload as Record<string, unknown>;
+      const content = coerceProposePointContent(p);
+      const pointId = coercePointRewriteRef(p);
+      const out: Record<string, unknown> = { ...p };
+      if (content) out.content = content;
+      if (pointId) out.pointId = pointId;
+      delete out.id;
+      return { type: action.type, payload: out };
     }
     if (
       action.type === 'draft.update.propose'
@@ -1916,8 +1972,20 @@ export async function executeAgentActions(
             action.type === 'delegate.consult'
               ? 'delegate.consult blocked in nested cast run (loop prevention)'
               : ctx.supportEcho
-                && (action.type.startsWith('draft.') || action.type === 'document.reorganize.propose')
+                && (
+                  action.type.startsWith('draft.')
+                  || action.type === 'document.reorganize.propose'
+                  || action.type === 'gloss.append'
+                )
                 ? 'Skipped — Kip support does not write the Document; Lead owns those writes'
+              : ctx.glossRequired
+                && (
+                  action.type === 'draft.point.rewrite'
+                  || action.type === 'draft.create'
+                  || action.type === 'draft.setActive'
+                  || action.type === 'document.reorganize.propose'
+                )
+                ? 'Skipped — Gloss is depth on a Point. Use gloss.append; do not rewrite, create a Draft, or switch Working on.'
               : ctx.pointConstraint && action.type.startsWith('draft.')
                 ? 'Skipped — the human asked not to add Points yet'
                 : action.type === 'draft.update.propose' && ctx.pointObligationRequired
@@ -2783,6 +2851,168 @@ export async function executeAgentActions(
                 links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
               },
             });
+            break;
+          }
+          case 'gloss.append': {
+            const payload = action.payload ?? {};
+            const dialogId = typeof ctx.dialogId === 'string' ? ctx.dialogId.trim() : '';
+            const domainId = typeof ctx.domainId === 'string' ? ctx.domainId.trim() : '';
+            const userId = typeof ctx.userId === 'string' ? ctx.userId.trim() : '';
+            const content = coerceProposePointContent(
+              payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {},
+            );
+
+            if (!dialogId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Gloss needs a Dialog in focus — open the Document in Chronicle.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (!domainId || !userId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Gloss needs domain and user context.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (!content) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Gloss content is required — that is the depth beside the Point, not a rewrite of the body.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            let draftId =
+              (typeof payload.draftId === 'string' && payload.draftId) ||
+              (typeof payload.id === 'string' && isKipDraftUuid(payload.id) && payload.id) ||
+              '';
+            if (!isKipDraftUuid(draftId)) {
+              draftId = (await resolveManuscriptDraftIdForPropose(ctx)) ?? '';
+            }
+            if (!draftId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'No Dialog Document to Gloss — Working on must be this Dialog.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            const draft = await findDraftForPointMutation(tx, draftId, ctx);
+            if (!draft) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Draft not found',
+                errorCode: 'DRAFT_NOT_FOUND',
+              });
+              break;
+            }
+
+            const hosts = parseDraftPoints(draft.spec_json).filter(
+              (point) => !point.referencesPointId?.trim(),
+            );
+            let pointRef =
+              coercePointRewriteRef(payload && typeof payload === 'object'
+                ? (payload as Record<string, unknown>)
+                : {})
+              ?? '';
+            if (!pointRef && hosts.length > 0) {
+              pointRef = hosts[hosts.length - 1]?.id ?? '';
+            }
+            if (!pointRef) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Point id required for Gloss — use 1–N from DIALOG DOCUMENT, the current title, or an exact id.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            const resolvedPointId = resolveDraftPointRef(pointRef, parseDraftPoints(draft.spec_json));
+            if (!resolvedPointId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message:
+                  hosts.length > 0
+                    ? `Point not found. Use 1–${hosts.length} from DIALOG DOCUMENT, the current Point title, or an exact id.`
+                    : 'Point not found — this Document has no Points to Gloss.',
+                errorCode: 'POINT_NOT_FOUND',
+              });
+              break;
+            }
+
+            const glossedPoint = hosts.find((point) => point.id === resolvedPointId)
+              ?? parseDraftPoints(draft.spec_json).find((point) => point.id === resolvedPointId);
+            const pointNumber = hosts.findIndex((point) => point.id === resolvedPointId) + 1;
+
+            try {
+              const carrier = await ensureDialogGlossCarrier({
+                domainId,
+                dialogId,
+                userId,
+                agentId: ctx.agentId ?? null,
+              });
+              const gloss = await appendGlossTurn({
+                domainId,
+                messageId: carrier.messageId,
+                anchor: {
+                  entityKind: 'draft',
+                  entityId: draft.id,
+                  nodeId: resolvedPointId,
+                },
+                content,
+                role: 'agent',
+              });
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: 'Gloss added',
+                data: {
+                  draftId: draft.id,
+                  draftTitle: draft.title,
+                  preview: content.slice(0, 220),
+                  threadId: gloss.thread.id,
+                  messageId: gloss.messageId,
+                  point: {
+                    id: resolvedPointId,
+                    prelude: glossedPoint?.prelude ?? '',
+                    number: pointNumber > 0 ? pointNumber : undefined,
+                  },
+                  draft: { id: draft.id, title: draft.title, kind: draft.kind, key: draft.key },
+                },
+              });
+            } catch (error) {
+              const code =
+                error && typeof error === 'object' && 'code' in error
+                  ? String((error as { code?: string }).code)
+                  : undefined;
+              const message =
+                code === 'DIALOG_NOT_FOUND'
+                  ? 'Gloss needs a Dialog in focus — open the Document in Chronicle.'
+                  : code === 'AGENT_REQUIRED_FOR_GLOSS_CARRIER'
+                    ? 'Gloss needs an agent on this Dialog before a carrier can be created.'
+                    : error instanceof Error
+                      ? error.message
+                      : 'Gloss did not land.';
+              results.push({
+                type: action.type,
+                status: 'error',
+                message,
+                errorCode: code || 'EXECUTION_ERROR',
+              });
+            }
             break;
           }
           case 'draft.update': {
@@ -4892,6 +5122,7 @@ const SUPPORT_ECHO_SKIP_ACTIONS = [
   'draft.update.propose',
   'draft.point.rewrite',
   'document.reorganize.propose',
+  'gloss.append',
 ] as const;
 
 function clipSessionHistoryContent(content: string, indexFromEnd: number): string {
@@ -5524,6 +5755,7 @@ export class KipAgentService {
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
           'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
+          'gloss.append payload schema: pointId (1–N or current title; omit to Gloss the latest Point), content (the Gloss — depth beside the Point). Do not rewrite. Do not create a Draft. Include a card.',
           'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
           'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
@@ -5620,6 +5852,7 @@ export class KipAgentService {
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
+        'gloss.append — Gloss an existing Point (depth beside it). Payload: { pointId (1–N or title; omit for the latest Point), content }. Not a rewrite. Not a new Draft. Chronicle shows Gloss on the Point. Include a keeper-card.',
         'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition. Does not change accepted work. Chronicle shows Current vs Proposed. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle on the live Document is draft.point.rewrite.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
@@ -5948,7 +6181,17 @@ export class KipAgentService {
           });
         }
 
-        if (detectPointRewriteIntent(humanTurnTextForIntent(input, promptOptions?.displayContent)) === 'required') {
+        const glossHumanTurn = humanTurnTextForIntent(input, promptOptions?.displayContent);
+        const glossIntentForPrompt = detectGlossIntent(
+          glossHumanTurn,
+          lastVisibleAgentMessage(previousMessages),
+        );
+        if (glossIntentForPrompt === 'required') {
+          messages.push({
+            role: 'system',
+            content: buildGlossAppendSystemPrompt(),
+          });
+        } else if (detectPointRewriteIntent(glossHumanTurn) === 'required') {
           messages.push({
             role: 'system',
             content: buildPointRewriteSystemPrompt(),
@@ -6104,6 +6347,7 @@ export class KipAgentService {
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
             'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
+            'gloss.append payload schema: pointId (1–N or current title; omit to Gloss the latest Point), content (the Gloss — depth beside the Point). Do not rewrite. Do not create a Draft. Include a card.',
             'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
@@ -7062,6 +7306,13 @@ export class KipAgentService {
         const humanTurn = humanTurnTextForIntent(input, options?.displayContent);
         const reorganizeIntent = detectReorganizeIntent(humanTurn);
         const rewriteIntent = detectPointRewriteIntent(humanTurn);
+        const glossIntent = detectGlossIntent(humanTurn, lastVisibleAgentMessage(previousMessages));
+        if (glossIntent === 'required' && options) {
+          options.glossRequired = true;
+          const skipped = new Set(options.skipActionTypes ?? []);
+          for (const actionType of GLOSS_SKIP_SUBSTITUTES) skipped.add(actionType);
+          options.skipActionTypes = skipped;
+        }
         if (structured.actions.length) {
           if (options?.forceSkipActions) {
             actionResults = structured.actions.map((action) => ({
@@ -7221,7 +7472,8 @@ export class KipAgentService {
         }
 
         if (
-          reorganizeIntent !== 'required'
+          glossIntent !== 'required'
+          && reorganizeIntent !== 'required'
           && shouldRunMutationDeferralFollowUp({
             userInput: input,
             responseText: finalResponseText,
@@ -7309,7 +7561,8 @@ export class KipAgentService {
         }
 
         if (
-          reorganizeIntent !== 'required'
+          glossIntent !== 'required'
+          && reorganizeIntent !== 'required'
           && pointObligation
           && shouldRunPointObligationFollowUp({
             obligation: pointObligation,
@@ -7397,7 +7650,8 @@ export class KipAgentService {
         }
 
         if (
-          reorganizeIntent !== 'required'
+          glossIntent !== 'required'
+          && reorganizeIntent !== 'required'
           && shouldRunPointRewriteFollowUp({
             intent: rewriteIntent,
             isTurnOwner: pointTurnActor === 'lead',
@@ -7484,7 +7738,99 @@ export class KipAgentService {
         }
 
         if (
-          shouldRunReorganizeProposeFollowUp({
+          reorganizeIntent !== 'required'
+          && shouldRunGlossFollowUp({
+            intent: glossIntent,
+            isTurnOwner: pointTurnActor === 'lead',
+            actionResults,
+          })
+        ) {
+          options?.onStatus?.('Adding Gloss…');
+          options?.onReset?.();
+          const dialogTitle =
+            (options?.environment as { dialogDocument?: { title?: string } } | undefined)
+              ?.dialogDocument?.title;
+          const glossFollowUpInput = buildGlossAppendFollowUpInput({
+            originalInput: input,
+            agentName: agent.name,
+            dialogTitle,
+            priorResponseText: finalResponseText,
+          });
+          const glossFollowUpResult = await this.callAIModel(
+            agent,
+            glossFollowUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: activeMode,
+              modeConfig: activeModeConfig,
+              lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+              debugSummary,
+              maxChars,
+              outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+              includeFixPlan: activeModeConfig.includeFixPlan,
+              autoBrief: activeModeConfig.autoBrief,
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'gloss_append_follow_up',
+              reuseMessages: [
+                ...lastPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastPromptMessages = glossFollowUpResult.messages;
+          const glossFollowUpStructured = await ensureKipAgentOutputEnvelope(
+            glossFollowUpResult.content,
+            {
+              requestId: randomUUID(),
+              userId,
+              allowedActions: Array.from(allowActions),
+            },
+          );
+          finalResponseText =
+            glossFollowUpStructured.responseText?.trim()
+            || glossFollowUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !glossFollowUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (glossFollowUpStructured.card) {
+            structured = { ...structured, card: glossFollowUpStructured.card };
+          }
+          if (glossFollowUpStructured.actions.length) {
+            const glossActionsStartedAt = Date.now();
+            const glossFollowUpExecution = await executeAgentActions(
+              glossFollowUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+                actor: pointTurnActor,
+                glossRequired: true,
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - glossActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...glossFollowUpExecution.results];
+            if (glossFollowUpExecution.failedMessage) {
+              finalResponseText = `${finalResponseText}\n\n${glossFollowUpExecution.failedMessage}`;
+            }
+          }
+        }
+
+        if (
+          glossIntent !== 'required'
+          && shouldRunReorganizeProposeFollowUp({
             intent: reorganizeIntent,
             isTurnOwner: pointTurnActor === 'lead',
             actionResults,
@@ -7718,6 +8064,13 @@ export class KipAgentService {
           };
         }
 
+        const glossCard = buildGlossTurnCard({
+          results: actionResults,
+          dialogTitle: dialogTitleForChronicle,
+        });
+        if (glossCard) {
+          structured = { ...structured, card: glossCard };
+        } else {
         const pointCard = buildPointTurnCard({
           results: actionResults,
           dialogTitle: dialogTitleForChronicle,
@@ -7737,6 +8090,7 @@ export class KipAgentService {
             options?.onReset?.();
             if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
           }
+        }
         }
 
         try {
@@ -8429,6 +8783,13 @@ export class KipAgentService {
         }
 
         if (systemPointObligation) {
+          const glossCard = buildGlossTurnCard({
+            results: actionResults,
+            dialogTitle: systemPointObligation.dialogTitle,
+          });
+          if (glossCard) {
+            structured = { ...structured, card: glossCard };
+          } else {
           const pointCard = buildPointTurnCard({
             results: actionResults,
             dialogTitle: systemPointObligation.dialogTitle,
@@ -8448,6 +8809,7 @@ export class KipAgentService {
               options?.onReset?.();
               if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
             }
+          }
           }
         }
 

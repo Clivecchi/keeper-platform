@@ -1404,7 +1404,8 @@ export function UniversalConversation({
           }
           if (
             (receipt.type === "draft.update.propose"
-              || receipt.type === "draft.point.rewrite")
+              || receipt.type === "draft.point.rewrite"
+              || receipt.type === "gloss.append")
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
@@ -1461,7 +1462,8 @@ export function UniversalConversation({
           }
           if (
             (receipt.type === "draft.update.propose"
-              || receipt.type === "draft.point.rewrite")
+              || receipt.type === "draft.point.rewrite"
+              || receipt.type === "gloss.append")
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
@@ -1744,6 +1746,7 @@ export function UniversalConversation({
             "draft.update",
             "draft.update.propose",
             "draft.point.rewrite",
+            "gloss.append",
             "document.reorganize.propose",
             "draft.point.accept",
             "draft.delete",

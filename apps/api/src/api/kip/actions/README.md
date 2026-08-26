@@ -19,6 +19,7 @@ Normalize and validate structured Kip agent actions before `executeAgentActions`
 - [ ] Confirm with Chuck: cast agents proposing on journey drafts should stay `proposed` (human Accept)
 
 ## 📆 Update Log
+- 2026-08-25: Actions README — `gloss.append` payload schema (pointId + content).
 - 2026-08-25: Rewrite identity is Chronicle-facing — numeric `pointId`, `id` as Point 1–N, `points[]` batch, and title aliases. `payload.id` is not the Draft when it is a Point number or Point UUID.
 - 2026-08-21: `draft.update.propose` no longer requires the model to send `id` / `draftId`. `content` is the contract. Keeper fills the Dialog manuscript UUID at execute time.
 - 2026-08-21: Point propose ids that are not UUIDs (`none`, `manuscript-…` keys) are replaced with the Dialog manuscript UUID before execution.

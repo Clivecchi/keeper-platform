@@ -38,6 +38,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-25 — Gloss receipts refresh Chronicle
+- `UniversalConversation` treats `gloss.append` like a Document write: bump Chronicle so Glossed badges appear without leaving the Dialog.
+
 ### 2026-08-25 — Vibe Style seeds Cast once
 - `UniversalConversation` Vibe auto-cue applies the roster once per Dialog. Deselecting Cloud/Rendr in the composer is no longer overwritten on the next render.
 

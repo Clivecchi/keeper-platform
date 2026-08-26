@@ -18,6 +18,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
+- `glossIntent.ts` — Gloss is depth on a Point (`gloss.append`). Follow-up when the Lead narrates instead of writing Gloss.
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up)
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — detect review/reorganize language and prompt the Lead to propose, not rewrite
@@ -36,6 +37,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-25 — Gloss is a Lead Dialog action
+- `glossIntent.ts` — "Gloss that Point" / "Yes" after the Lead offered a Gloss is `gloss.append`. Not a rewrite. Not a new Draft. Keeper attaches a card.
 
 ### 2026-08-25 — Point rewrite uses Chronicle identity
 - `pointIntent.ts` — rename/retitle is a rewrite obligation. Follow-up emits `draft.point.rewrite` with Point 1–N from DIALOG DOCUMENT, not a new Point and not the Dialog id.
