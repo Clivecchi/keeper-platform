@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-25: **Named Section is a Point write** — "create a new section and call it X" is `draft.update.propose` with `payload.section`. Cast skips say so honestly. Lead follow-up writes on Touchdown! (Working on), not Becoming Together leftovers.
 - 2026-08-25: **Cast promised a Point; Lead writes** — Cloud/Rendr consults cannot `draft.update.propose`. If they say they will capture a Point, Lead writes it (Section included). Synthesis is conversation, not committee minutes.
 - 2026-08-25: **Gloss is a Lead action** — `gloss.append` writes Chronicle Gloss on a Document Point (same carrier as the Gloss panel). Not a Point rewrite, not a new Draft. Follow-up when the Lead narrates instead. Keeper attaches a Gloss card.
 - 2026-08-25: **Rewrite uses Chronicle identity** — `draft.point.rewrite` accepts Point 1–N, the current title, numeric `pointId`, or `payload.id` when that value is the Point (not the Draft). `payload.points[]` expands to one rewrite each. Dialog manuscript is the rewrite host.

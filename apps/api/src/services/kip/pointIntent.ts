@@ -101,6 +101,11 @@ const POINT_REQUIRED_PATTERNS = [
   /\bpoints? worth captur/i,
   /\bthat is (most certainly )?a points?\b/i,
   /\bcapture (it|that|this) (now|as (a )?points?)\b/i,
+  /\bcreate (a |the )?new section\b/i,
+  /\bnew section (called|named|and call it)\b/i,
+  /\bsection and call it\b/i,
+  /\bi don['’]?t see the (new )?section\b/i,
+  /\bskipped .{0,40}actions?\b/i,
 ];
 
 const POINT_FALSE_POSITIVES = [
@@ -299,10 +304,26 @@ export function buildPointObligationSystemPrompt(
     'TURN OBLIGATION (Keeper-owned, not optional): the human explicitly asked to add/propose Points.',
     ...targetLines,
     'Before this Turn is complete, emit one or more draft.update.propose actions with payload.content for each Point.',
+    'When the human named a Section, set payload.section to that exact title. Keeper creates the Section. Do not document.reorganize.propose. Do not draft.point.accept — Accept is a human Chronicle action.',
     'UI: "response" is 1–3 short sentences. Do not paste Cast replies or ### Cloud / ### Rendr roll-calls — Dialog already shows their voice cards. Points appear as cards from the actions, not as a markdown essay.',
     'You still choose the wording and how many Points are useful. Keeper requires that the write happens.',
     'Never claim Points were added unless those actions are in this response.',
   ].join('\n');
+}
+
+export function detectNamedSectionTitle(userInput: string): string | undefined {
+  const text = userInput?.trim() ?? '';
+  if (!text) return undefined;
+  const patterns = [
+    /\bsection(?:\s+and)?\s+call(?:ed)? it[,:]?\s*[“”"']?([^“”"'\n.]{2,80})/i,
+    /\bnew section\s+(?:called|named)\s+[“”"']?([^“”"'\n.]{2,80})/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const title = match?.[1]?.replace(/^[“”"']|[“”"']$/g, '').trim();
+    if (title) return title.replace(/[.]+$/, '').trim();
+  }
+  return undefined;
 }
 
 export function hasSuccessfulPointPropose(
@@ -322,6 +343,11 @@ export function detectCastPromisedPointWrite(
     /\bcaptur(?:e|ing) it now\b/i,
     /\bi(?:['’]ll| will) (?:add|write|propose) (?:a |the |this |that )?points?\b/i,
     /\bi(?:['’]ll| will) (?:add|write) it\b/i,
+    /\bi(?:['’]m| am) creat(?:e|ing)\b/i,
+    /\bi(?:['’]ll| will) creat(?:e|ing)\b/i,
+    /\bcreating the .{0,60}section now\b/i,
+    /\bcreate a new section\b/i,
+    /\bsetting up a new section\b/i,
   ];
   return replies.some((reply) => {
     const text = reply?.trim() ?? '';
@@ -331,7 +357,7 @@ export function detectCastPromisedPointWrite(
 
 const CAST_ROLL_CALL = /^#{1,3}\s+(Cloud|Rendr|Kip|Ceox|Ceos)\b/im;
 const CAST_MINUTES =
-  /\b(Cloud and Rendr|both agree|have identified|key areas to address)\b/i;
+  /\b(Cloud and Rendr|both agree|have identified|key areas to address|here['’]?s the synthesis)\b/i;
 
 /** Lead synthesis must not paste Cast voice cards or committee minutes. */
 export function stripLeadCastRollCall(text: string): string {
@@ -401,6 +427,7 @@ export function buildPointObligationFollowUpInput(params: {
   priorResponseText: string;
   obligation: PointTurnObligation;
 }): string {
+  const section = detectNamedSectionTitle(params.originalInput);
   return [
     `[Point obligation unmet — reply as ${params.agentName}. Complete the Point writes now.]`,
     '',
@@ -413,6 +440,9 @@ export function buildPointObligationFollowUpInput(params: {
     `Original user message: "${params.originalInput}"`,
     'Emit draft.update.propose now. payload.content is the Point beat. Do not invent a draft id.',
     'One action per Point. payload.content is required. Do not draft.create. Do not defer.',
+    section
+      ? `payload.section is "${section}". Keeper creates that Section. Do not document.reorganize.propose. Do not draft.point.accept.`
+      : 'If they named a Section, payload.section is that title. Do not document.reorganize.propose. Do not draft.point.accept.',
     'Do not read another Dialog first. Working on is already in the system prompt.',
     'Keep "response" to 1–3 short sentences. Do not paste Cast replies.',
   ].join('\n');

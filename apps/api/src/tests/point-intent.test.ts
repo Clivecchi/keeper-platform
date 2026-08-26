@@ -9,6 +9,7 @@ import {
   buildPointObligationSystemPrompt,
   clampCastAdviceForPointTurn,
   detectCastPromisedPointWrite,
+  detectNamedSectionTitle,
   detectPointIntent,
   detectPointRewriteIntent,
   humanTurnTextForIntent,
@@ -48,6 +49,15 @@ describe('detectPointIntent', () => {
       ).kind,
     ).toBe('required');
     expect(detectPointIntent("I love what Rendr said — that's a point worth capturing").kind).toBe(
+      'required',
+    );
+    expect(
+      detectPointIntent(
+        'continue with Touchdown! and let\'s create a new section and call it, "Domain Stage"',
+      ).kind,
+    ).toBe('required');
+    expect(detectPointIntent("I dont see the new section.")).toEqual({ kind: 'required' });
+    expect(detectPointIntent('you skipped two actions. Okay, but why twice and why generic?').kind).toBe(
       'required',
     );
   });
@@ -446,7 +456,27 @@ describe('detectCastPromisedPointWrite', () => {
         "Rendr's line is a Point. I'll capture it now under the 'Keeper Stage' section.",
       ]),
     ).toBe(true);
+    expect(
+      detectCastPromisedPointWrite([
+        "I'm creating the 'Domain Stage' section now to capture what that milestone means.",
+      ]),
+    ).toBe(true);
+    expect(
+      detectCastPromisedPointWrite([
+        'I\'ll create a new Section called "Domain Stage" in the Touchdown! manuscript.',
+      ]),
+    ).toBe(true);
     expect(detectCastPromisedPointWrite(['The stage should feel inevitable.'])).toBe(false);
+  });
+});
+
+describe('detectNamedSectionTitle', () => {
+  it('reads a quoted Section name', () => {
+    expect(
+      detectNamedSectionTitle(
+        'let\'s create a new section and call it, "Domain Stage" - That is, when we reach this point',
+      ),
+    ).toBe('Domain Stage');
   });
 });
 

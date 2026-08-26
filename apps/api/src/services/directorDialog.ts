@@ -207,7 +207,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     '- Never invent, paraphrase-as-quote, or fabricate another agent\'s words.',
     '- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.',
     '- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
-    '- A Lock / Open / Next Step card ONLY if the user asked to lock a decision. Suggestions and "just talk" stay conversation — not a form.',
+    '- A named Section is draft.update.propose with payload.section. Never document.reorganize.propose to add a Section. Never draft.point.accept — Accept is a human Chronicle action.',
   );
 
   if (params.castPromisedPointWrite) {

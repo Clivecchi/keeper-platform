@@ -39,7 +39,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ## 📆 Update Log
 
 ### 2026-08-25 — Cast promised a Point; Lead writes
-- `pointIntent.ts` — "a Point worth capturing" is a write. If Cast says "I'll capture it now," Lead follow-up emits `draft.update.propose`. Skipped Cast proposes no longer look like success. Lead replies drop `### Cloud` roll-call.
+- `pointIntent.ts` — "a Point worth capturing" and "create a new Section" are writes. Named Section is `payload.section`, not reorganize and not Accept. If Cast says they will create it, Lead follow-up emits `draft.update.propose`. Skipped Cast proposes no longer look like success or generic pipeline skips. Lead replies drop `### Cloud` roll-call.
 
 ### 2026-08-25 — Gloss is a Lead Dialog action
 - `glossIntent.ts` — "Gloss that Point" / "Yes" after the Lead offered a Gloss is `gloss.append`. Not a rewrite. Not a new Draft. Keeper attaches a card.

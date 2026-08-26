@@ -1465,6 +1465,7 @@ function buildExecuteAgentActionsCtx(
     pointObligationRequired: obligation?.required === true && !obligation.constrained,
     supportEcho: extras.supportEcho === true || options?.supportEcho === true,
     glossRequired: extras.glossRequired === true || options?.glossRequired === true,
+    castAdviseOnly: actor === 'cast',
   };
 }
 
@@ -1745,6 +1746,7 @@ export async function executeAgentActions(
     pointObligationRequired?: boolean;
     supportEcho?: boolean;
     glossRequired?: boolean;
+    castAdviseOnly?: boolean;
   },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
@@ -1989,6 +1991,16 @@ export async function executeAgentActions(
                   || action.type === 'document.reorganize.propose'
                 )
                 ? 'Skipped — Gloss is depth on a Point. Use gloss.append; do not rewrite, create a Draft, or switch Working on.'
+              : ctx.castAdviseOnly
+                && (
+                  action.type === 'draft.update.propose'
+                  || action.type === 'draft.create'
+                  || action.type === 'draft.point.rewrite'
+                  || action.type === 'document.reorganize.propose'
+                  || action.type === 'gloss.append'
+                  || action.type === 'draft.point.accept'
+                )
+                ? 'Skipped — Cast advises only. The Lead writes Points with draft.update.propose (payload.section when they named a Section). Not reorganize. Not Accept.'
               : ctx.pointConstraint && action.type.startsWith('draft.')
                 ? 'Skipped — the human asked not to add Points yet'
                 : action.type === 'draft.update.propose' && ctx.pointObligationRequired
@@ -8012,6 +8024,13 @@ export class KipAgentService {
               finalResponseText = `${finalResponseText}\n\n${placeFollowUpExecution.failedMessage}`;
             }
           }
+        }
+
+        if (hasSuccessfulPointPropose(actionResults)) {
+          actionResults = actionResults.filter(
+            (result) =>
+              !(result.status === 'skipped' && /Cast advises only/.test(result.message ?? '')),
+          );
         }
 
         if (pointObligation && reorganizeIntent !== 'required') {

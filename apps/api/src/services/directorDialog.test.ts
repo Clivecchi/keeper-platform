@@ -33,6 +33,7 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).toMatch(/committee report/i);
     expect(prompt).toMatch(/draft\.update\.propose/);
     expect(prompt).toMatch(/cannot write the Document/i);
+    expect(prompt).toMatch(/Never document\.reorganize\.propose/);
     expect(prompt).not.toMatch(/REQUIRED when the user asked for lock/i);
   });
 });
