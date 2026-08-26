@@ -6,13 +6,15 @@
 export type ReorganizeIntentKind = 'none' | 'required';
 
 const REORGANIZE_PATTERNS = [
-  /\breview (and|&) reorgani[sz]e\b/i,
-  /\breorgani[sz]e (the |this |our )?(document|points?|sections?)\b/i,
+  /\brevieww?\b.{0,80}re-?organi[sz]e\b/i,
+  /\bre-?organi[sz]e (the |this |our )?(document|points?|sections?|manuscript)\b/i,
+  /\bre-?organi[sz]ation\b/i,
   /\breview (the |this |our )document\b/i,
   /\bpropose (a )better (document|structure|organization|organisation)\b/i,
   /\bclean up (the |this )document\b/i,
   /\borgani[sz]e (the |these |our )(document|points?|sections?)\b/i,
   /\bbetter version of (the |this )document\b/i,
+  /\bsuggest (a )?new title\b/i,
 ];
 
 export function detectReorganizeIntent(userInput: string): ReorganizeIntentKind {
@@ -43,6 +45,39 @@ export function isSpineOnlyReorganizeResult(results: ActionResultLite[]): boolea
       && result.status === 'success'
       && resultSpineOnly(result.data),
   );
+}
+
+export function shouldRunReorganizeProposeFollowUp(params: {
+  intent: ReorganizeIntentKind;
+  isTurnOwner: boolean;
+  actionResults: ActionResultLite[];
+}): boolean {
+  if (!params.isTurnOwner || params.intent !== 'required') return false;
+  return !params.actionResults.some(
+    (result) => result.type === 'document.reorganize.propose' && result.status === 'success',
+  );
+}
+
+export function buildReorganizeProposeFollowUpInput(params: {
+  originalInput: string;
+  agentName: string;
+  dialogTitle?: string;
+  priorResponseText: string;
+}): string {
+  const named = params.dialogTitle?.trim() ? ` "${params.dialogTitle.trim()}"` : '';
+  return [
+    `[Review & Reorganize unmet — reply as ${params.agentName}. Propose the Document now.]`,
+    '',
+    `The human asked you to review and reorganize${named}. Narration is not a proposal.`,
+    'Emit document.reorganize.propose in this turn.',
+    'Do not draft.update.propose. Do not delegate.consult. You are the Lead — do the Document work.',
+    'If they asked for a new title, put the candidate in rationale and in your short response.',
+    'Refer to existing Points by number or title from DIALOG DOCUMENT.',
+    '',
+    `Your prior message did not land a proposal: "${params.priorResponseText.trim().slice(0, 800)}"`,
+    '',
+    `Original user message: "${params.originalInput}"`,
+  ].join('\n');
 }
 
 export function shouldRunReorganizePlacementFollowUp(params: {
@@ -78,11 +113,13 @@ export function buildReorganizeProposeSystemPrompt(dialogTitle?: string): string
     `REVIEW & REORGANIZE — the human asked you to review the current Dialog Document${named}.`,
     'You may review → understand → propose. You must not silently restructure accepted work.',
     'Emit document.reorganize.propose in this turn. Do not rewrite accepted Points with draft.point.rewrite.',
+    'Do not draft.update.propose. Review & Reorganize is not a Point write.',
     'Do not essay a mutation list. Chronicle will show the proposed Document.',
     'Payload: { rationale?, sections: [{ id, title, prelude? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalPrelude?, originalContent?, replacesPointIds? }] }.',
     'change is one of: unchanged | new | refine | move | merge | retire.',
     'Refer to existing Points by their number or title from DIALOG DOCUMENT. Keeper resolves identities — do not invent UUIDs.',
     'You may omit unchanged Points — Keeper fills them in. A new Point uses change "new".',
+    'If they asked for a new title, put the candidate in rationale and in your short response. Title is not a Point.',
     'A Sections-only payload is accepted. Better: put Points under each Section (title or number) so Proposed is a real Document, not empty headers.',
     'Open is the quieter Section — use sectionId "open" or omit for unplaced Points.',
   ].join('\n');

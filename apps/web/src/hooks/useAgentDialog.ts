@@ -846,6 +846,11 @@ export function useAgentDialog({
       }
 
       const activeDialogId = dialogIdRef.current ?? undefined
+      const liveDirectorConfig = directorConfigRef.current
+      const baseAgentContext =
+        mode === "designer" && frameKey
+          ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
+          : agentContext
       const runOpts = {
         domainSlug: domainSlug || undefined,
         domainId: resolvedDomainId || domainId || undefined,
@@ -854,15 +859,14 @@ export function useAgentDialog({
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
         activeDraftId: activeDraftId ?? null,
-        agentContext: mode === "designer" && frameKey
-          ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
-          : agentContext,
+        agentContext: liveDirectorConfig
+          ? { ...(baseAgentContext ?? {}), skipDelegateConsult: true }
+          : baseAgentContext,
         attachments: attachments?.length ? attachments : undefined,
         displayContent: displayContent?.trim() || undefined,
         supportingDocs: supportingDocs?.length ? [...supportingDocs] : undefined,
       }
 
-      const liveDirectorConfig = directorConfigRef.current
       const directorSlugNorm = liveDirectorConfig?.directorAgentSlug?.trim().toLowerCase() || ""
       // Exclude director from cast consults — Lead run is the director's turn.
       const consultSlugs = Array.from(

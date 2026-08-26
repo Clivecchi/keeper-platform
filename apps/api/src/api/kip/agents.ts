@@ -139,9 +139,11 @@ import {
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
 import {
   buildReorganizePlacementFollowUpInput,
+  buildReorganizeProposeFollowUpInput,
   buildReorganizeProposeSystemPrompt,
   detectReorganizeIntent,
   shouldRunReorganizePlacementFollowUp,
+  shouldRunReorganizeProposeFollowUp,
 } from '../../services/kip/documentReorganizeIntent.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocument.js';
@@ -1092,6 +1094,16 @@ type DomainAgentRosterEntry = {
  * Standing cast-honesty rules for every Lead Dialog turn (live callAIModel path).
  * Applies whether or not multi-select consult / delegate.consult ran this turn.
  */
+function skipDelegateConsultFromEnv(environment: unknown): boolean {
+  return (
+    (environment as { agentContext?: { skipDelegateConsult?: unknown } } | null | undefined)
+      ?.agentContext?.skipDelegateConsult === true
+  );
+}
+
+const COMPOSER_STAGE_NO_CONSULT_PROMPT =
+  'Composer Cast chips decide who is on stage this turn. Do not emit delegate.consult. If Cloud or Rendr are not in this turn\'s consultation results, they are offstage — do not invent their voice and do not consult them. Cue Cloud on the composer when live Railway/Vercel/GitHub is needed.';
+
 function buildCastHonestySystemPrompt(environment: unknown): string | null {
   const domainAgents = (environment as { domainAgents?: DomainAgentRosterEntry[] })?.domainAgents;
   if (!Array.isArray(domainAgents) || domainAgents.length === 0) return null;
@@ -1125,7 +1137,9 @@ function buildCastHonestySystemPrompt(environment: unknown): string | null {
     '  - Mechanism A: multi-select cast consultation results (client ran each engaged Cast member, then Lead synthesizes), or',
     '  - Mechanism B: delegate.consult action results (Lead-initiated consult during the turn).',
     'These are two distinct mechanisms — do not conflate them. If neither produced a reply for an agent, say plainly you got nothing back — do not invent their voice.',
-    'To hear from a cast member mid-turn without multi-select, use delegate.consult with { agentSlug, question? } — only for agents in this list with dialog participation Voice (not Silent).',
+    skipDelegateConsultFromEnv(environment)
+      ? COMPOSER_STAGE_NO_CONSULT_PROMPT
+      : 'To hear from a cast member mid-turn without multi-select, use delegate.consult with { agentSlug, question? } — only for agents in this list with dialog participation Voice (not Silent).',
     'When the user asks you to name an item from the Dialog Document / a Section, quote ONLY titles or previews from the DIALOG DOCUMENT Points block in this prompt. Never invent a title. Never treat a system-rule heading as a Document item.',
     supportOnly.length
       ? `Support-only (not Dialog voices): ${supportOnly.join(', ')}. Do not invent first-person Dialog dialogue for them. If asked for their voice, say they are support-only — not a Dialog voice.`
@@ -1346,11 +1360,13 @@ function mergePointSkipActionTypes(
     next.add('draft.update.propose');
     next.add('draft.create');
     next.add('draft.point.rewrite');
+    next.add('document.reorganize.propose');
   }
-  if (obligation?.required && actor === 'cast') {
+  if (actor === 'cast') {
     next.add('draft.update.propose');
     next.add('draft.create');
     next.add('draft.point.rewrite');
+    next.add('document.reorganize.propose');
   }
   if (obligation?.required && obligation.manuscriptDraftId) {
     next.add('draft.create');
@@ -2382,7 +2398,7 @@ export async function executeAgentActions(
                   select: { role: true, name: true },
                 })
               : null;
-            if (agentRow && agentRow.role !== 'Lead' && agentRow.role !== 'System') {
+            if (agentRow && agentRow.role !== 'Lead') {
               results.push({
                 type: action.type,
                 status: 'error',
@@ -5451,7 +5467,9 @@ export class KipAgentService {
           'Each action must include a "type" and optional "payload".',
           'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
           'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
-          'INFRA / MCP OWNERSHIP: mcp.call is NOT in Lead Allowed actions. Never emit mcp.call. For Railway/Vercel/GitHub live data, use delegate.consult with agentSlug "cloud" (or cast-consult Cloud). Cloud owns mcp.call.',
+          skipDelegateConsultFromEnv(environment)
+            ? COMPOSER_STAGE_NO_CONSULT_PROMPT
+            : 'INFRA / MCP OWNERSHIP: mcp.call is NOT in Lead Allowed actions. Never emit mcp.call. For Railway/Vercel/GitHub live data, use delegate.consult with agentSlug "cloud" (or cast-consult Cloud). Cloud owns mcp.call.',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
           'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
@@ -6024,7 +6042,9 @@ export class KipAgentService {
                     : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed.',
                 ]
               : [
-            'INFRA / MCP OWNERSHIP: mcp.call is NOT in your Allowed actions. Never emit mcp.call. For Railway, Vercel, GitHub, or live infrastructure data, use delegate.consult with { "agentSlug": "cloud" } (Mechanism B), or rely on cast consultation of Cloud (Mechanism A). Cloud owns mcp.call and executes Railway/Vercel/GitHub tools.',
+            skipDelegateConsultFromEnv(environmentContext)
+              ? COMPOSER_STAGE_NO_CONSULT_PROMPT
+              : 'INFRA / MCP OWNERSHIP: mcp.call is NOT in your Allowed actions. Never emit mcp.call. For Railway, Vercel, GitHub, or live infrastructure data, use delegate.consult with { "agentSlug": "cloud" } (Mechanism B), or rely on cast consultation of Cloud (Mechanism A). Cloud owns mcp.call and executes Railway/Vercel/GitHub tools.',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
@@ -6353,11 +6373,14 @@ export class KipAgentService {
         || options?.agentContext?.supportEcho === true;
       if (options) {
         options.supportEcho = supportEcho;
+        const skipped = new Set(options.skipActionTypes ?? []);
         if (supportEcho) {
-          const skipped = new Set(options.skipActionTypes ?? []);
           for (const actionType of SUPPORT_ECHO_SKIP_ACTIONS) skipped.add(actionType);
-          options.skipActionTypes = skipped;
         }
+        if (options.agentContext?.skipDelegateConsult === true) {
+          skipped.add('delegate.consult');
+        }
+        if (skipped.size) options.skipActionTypes = skipped;
       }
 
       const pointTurnActor = pointTurnActorForRun(input, options);
@@ -7013,6 +7036,9 @@ export class KipAgentService {
         }
 
         const pointObligation = pointObligationFromEnv(options?.environment);
+        const reorganizeIntent = detectReorganizeIntent(
+          humanTurnTextForIntent(input, options?.displayContent),
+        );
         if (structured.actions.length) {
           if (options?.forceSkipActions) {
             actionResults = structured.actions.map((action) => ({
@@ -7172,7 +7198,8 @@ export class KipAgentService {
         }
 
         if (
-          shouldRunMutationDeferralFollowUp({
+          reorganizeIntent !== 'required'
+          && shouldRunMutationDeferralFollowUp({
             userInput: input,
             responseText: finalResponseText,
             actions: structured.actions,
@@ -7259,7 +7286,8 @@ export class KipAgentService {
         }
 
         if (
-          pointObligation
+          reorganizeIntent !== 'required'
+          && pointObligation
           && shouldRunPointObligationFollowUp({
             obligation: pointObligation,
             actionResults,
@@ -7346,6 +7374,92 @@ export class KipAgentService {
         }
 
         if (
+          shouldRunReorganizeProposeFollowUp({
+            intent: reorganizeIntent,
+            isTurnOwner: pointTurnActor === 'lead',
+            actionResults,
+          })
+        ) {
+          options?.onStatus?.('Proposing the Document…');
+          options?.onReset?.();
+          const dialogTitle =
+            (options?.environment as { dialogDocument?: { title?: string } } | undefined)
+              ?.dialogDocument?.title;
+          const reorganizeFollowUpInput = buildReorganizeProposeFollowUpInput({
+            originalInput: input,
+            agentName: agent.name,
+            dialogTitle,
+            priorResponseText: finalResponseText,
+          });
+          const reorganizeFollowUpResult = await this.callAIModel(
+            agent,
+            reorganizeFollowUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: activeMode,
+              modeConfig: activeModeConfig,
+              lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+              debugSummary,
+              maxChars,
+              outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+              includeFixPlan: activeModeConfig.includeFixPlan,
+              autoBrief: activeModeConfig.autoBrief,
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'reorganize_propose_follow_up',
+              reuseMessages: [
+                ...lastPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastPromptMessages = reorganizeFollowUpResult.messages;
+          const reorganizeFollowUpStructured = await ensureKipAgentOutputEnvelope(
+            reorganizeFollowUpResult.content,
+            {
+              requestId: randomUUID(),
+              userId,
+              allowedActions: Array.from(allowActions),
+            },
+          );
+          finalResponseText =
+            reorganizeFollowUpStructured.responseText?.trim()
+            || reorganizeFollowUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !reorganizeFollowUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (reorganizeFollowUpStructured.actions.length) {
+            const reorganizeActionsStartedAt = Date.now();
+            const reorganizeFollowUpExecution = await executeAgentActions(
+              reorganizeFollowUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+                actor: 'lead',
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - reorganizeActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...reorganizeFollowUpExecution.results];
+            if (reorganizeFollowUpExecution.failedMessage) {
+              finalResponseText = `${finalResponseText}\n\n${reorganizeFollowUpExecution.failedMessage}`;
+            }
+          }
+        }
+
+        if (
           shouldRunReorganizePlacementFollowUp({
             isLead: agent.role === 'Lead',
             actionResults,
@@ -7426,7 +7540,7 @@ export class KipAgentService {
           }
         }
 
-        if (pointObligation) {
+        if (pointObligation && reorganizeIntent !== 'required') {
           const blockedNotice = buildPointObligationBlockedNotice(pointObligation);
           if (blockedNotice) {
             finalResponseText = `${finalResponseText}\n\n${blockedNotice}`;

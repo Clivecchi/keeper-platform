@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-25 — Composer Cast chips own the stage
+- `useAgentDialog` sets `skipDelegateConsult` on Directed/Vibe boards so Kip does not `delegate.consult` Cloud/Rendr after the composer already decided who is on stage (including an empty cue list = Lead only).
+
 ### 2026-08-25 — Chronicle Draft focus is explicit
 - `useAgentDialog` sends `activeDraftId: null` when Chronicle is on the Document so the API does not reuse a leftover session draft.
 

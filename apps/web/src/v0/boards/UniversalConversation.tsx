@@ -2587,9 +2587,13 @@ export function UniversalConversation({
     domainCollaborationCast,
   ])
 
-  /** Vibe Style: all Cast hear — auto-cue roster. Cueing mechanics stay Directed. */
+  /** Vibe Style: seed the full Cast once. After that, composer toggles own the stage. */
+  const vibeCueSeedKeyRef = React.useRef<string | null>(null)
   React.useEffect(() => {
-    if (!isVibeStyle || !castMultiSelect) return
+    if (!isVibeStyle || !castMultiSelect) {
+      vibeCueSeedKeyRef.current = null
+      return
+    }
     const directorSlug = directorAgentSlug?.trim().toLowerCase() || null
     // Never auto-cue the director — they synthesize as Lead. Cueing them as cast
     // caused Kip-sole Domain turns to consult Kip then run Kip again (duplicate bubbles).
@@ -2598,9 +2602,14 @@ export function UniversalConversation({
       .filter((slug): slug is string => Boolean(slug))
       .filter((slug) => !directorSlug || slug.toLowerCase() !== directorSlug)
     if (roster.length === 0) {
-      if (cuedCastMembers.length > 0) actions.onSetCuedCastMembers([])
+      if (cuedCastMembers.length > 0 && vibeCueSeedKeyRef.current === null) {
+        actions.onSetCuedCastMembers([])
+      }
       return
     }
+    const seedKey = `${kipMode}:${selectedDialogId ?? ""}`
+    if (vibeCueSeedKeyRef.current === seedKey) return
+    vibeCueSeedKeyRef.current = seedKey
     const same =
       roster.length === cuedCastMembers.length
       && roster.every((slug) => cuedCastMembers.includes(slug))
@@ -2609,6 +2618,8 @@ export function UniversalConversation({
   }, [
     isVibeStyle,
     castMultiSelect,
+    kipMode,
+    selectedDialogId,
     resolvedBoardCast,
     directorAgentSlug,
     cuedCastMembers,

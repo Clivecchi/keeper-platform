@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-25: **Composer chips own the stage; Review & Reorganize is Lead-only** — nested Cast cannot `draft.update.propose` / `document.reorganize.propose`. Reorganize execute is Lead, not System. Hyphenated `re-organize` triggers a propose follow-up when Kip narrates instead of emitting the action. `skipDelegateConsult` blocks Mechanism B when the composer already decided who is on stage.
 - 2026-08-25: **Chronicle is the write target** — session leftover drafts (including Becoming Together's manuscript) cannot steal Points. `draft.update.propose` always uses Working on (the Dialog on screen, or the focused Draft). Foreign manuscripts are retargeted.
 - 2026-08-25: **Turn owner writes Points** — addressed composer (Rendr/Cloud/Lead) owns `draft.update.propose`. Nested Director-delegation and Kip Echo still advise only. System-agent path (Design Board Rendr) now runs Point and draft-deferral follow-up. Working on is the only write target.
 - 2026-08-25: **Point titles + rewrite identity** — `draft.point.rewrite` resolves Points by 1–N / title / UUID (same as Review & Reorganize). Title-only updates use `prelude`/`title`. New Points accept `title` as the story-label.

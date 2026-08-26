@@ -37,6 +37,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-25 — Review & Reorganize omit-follow-up
+- `documentReorganizeIntent.ts` hears `re-organize` / `re-organization` / `revieww`. If the Lead does not emit `document.reorganize.propose`, a second turn asks for the proposal (not Points). Nested Cast cannot write the Document.
+
 ### 2026-08-25 — Chronicle is the write target
 - `resolveAgentEnvironment` does not treat a leftover session draft or another Dialog's manuscript as Working on. `document_manuscript` rows stay out of `draftsDirectory`.
 - `talkingInWorkingOn.resolveChronicleActiveDraftId` — client Chronicle Draft wins; `null` means the Document.
