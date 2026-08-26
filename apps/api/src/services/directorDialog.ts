@@ -100,6 +100,8 @@ export function buildCastMemberDelegationPrompt(params: {
   }
 
   lines.push(
+    `You cannot write the Document. Do not say "I'll capture it now" or "I'll add a Point" as if the write already happened.`,
+    `If a Point belongs on the Document, name the title, the Section (if you have one), and the body in one breath so ${params.directorName} can draft.update.propose.`,
     `If they ask you to name an item from the Dialog Document / a Path, quote ONLY a title or preview from the DIALOG DOCUMENT Points block in your system prompt. Never invent a title. Never treat a system-rule heading as a Document item. If you cannot find a matching Point, say you cannot name one.`,
   );
 
@@ -127,8 +129,10 @@ export function buildDirectorSynthesisPrompt(params: {
     `${params.castMemberLabel} (Cast member) responded:`,
     `"${params.castMemberReply}"`,
     '',
-    `Reply to the user as Lead (${params.directorName}).`,
+    `Reply to the user as Lead (${params.directorName}). Talk like a person — 1–3 short sentences.`,
     `- Integrate ${params.castMemberLabel}'s input; do not repeat it verbatim.`,
+    `- Do NOT paste ### ${params.castMemberLabel} headings — Dialog already shows their voice card.`,
+    `- If ${params.castMemberLabel} said they would capture or add a Point, they cannot write the Document. You emit draft.update.propose this turn. Use payload.section when they named a Section.`,
     `- Do NOT correct the user about who they addressed.`,
     `- Do NOT tell the user to "try ${params.castMemberLabel} again" or to flag routing issues.`,
     `- Do NOT claim this session starts cold or that earlier thread turns are unavailable — they are in context.`,
@@ -174,6 +178,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     reply: string | null;
     status: 'ok' | 'empty' | 'failed' | 'error';
   }>;
+  castPromisedPointWrite?: boolean;
 }): string {
   const lines = [
     `[Cast consultation synthesis — ${params.directorName}]`,
@@ -193,17 +198,25 @@ export function buildCastConsultationsSynthesisPrompt(params: {
 
   lines.push(
     '',
-    `Reply as Lead (${params.directorName}).`,
+    `Reply as Lead (${params.directorName}). Talk like a person in the room.`,
     '- The Dialog UI already shows each cast member\'s real reply as their own voice card.',
-    '- Your reply is Lead synthesis only — do NOT re-quote or roll-call their full answers.',
-    '- Attribute a stance to a cast member ONLY when a real reply is listed above.',
+    '- Your reply is 1–3 short sentences in your own voice. Not a committee report.',
+    '- Do NOT use ### Cloud / ### Rendr headings. Do NOT write "Cloud and Rendr have identified…" or "both agree…".',
+    '- Attribute a stance to a cast member ONLY when a real reply is listed above — and then in a clause, not a roll-call.',
     '- If a cast member returned nothing, say plainly you got nothing back from them.',
     '- Never invent, paraphrase-as-quote, or fabricate another agent\'s words.',
     '- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.',
     '- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
-    '- Stay brief. REQUIRED when the user asked for lock / open questions / next Step (or any Document recommendation): short synthesis prose PLUS a keeper-card summary with items labeled "Lock:", "Open:", and "Next Step:".',
-    '- Do not re-list full cast essays — the Dialog already shows their voice cards. Your card is the terra firma tip.',
+    '- A Lock / Open / Next Step card ONLY if the user asked to lock a decision. Suggestions and "just talk" stay conversation — not a form.',
   );
+
+  if (params.castPromisedPointWrite) {
+    lines.push(
+      '- A cast member said they would capture/add a Point. They cannot write the Document. You must emit draft.update.propose this turn.',
+      '- Use payload.section when they named a Section (e.g. Keeper Stage). payload.prelude is the short title. payload.content is the Point body (Rendr\'s line, the design principle — whatever they offered).',
+      '- Short prose + the action. Do not sit silent after they promised a write. If the write fails, say so.',
+    );
+  }
 
   return lines.join('\n');
 }

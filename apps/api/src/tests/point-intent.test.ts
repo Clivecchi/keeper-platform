@@ -8,6 +8,7 @@ import {
   buildPointObligationFollowUpInput,
   buildPointObligationSystemPrompt,
   clampCastAdviceForPointTurn,
+  detectCastPromisedPointWrite,
   detectPointIntent,
   detectPointRewriteIntent,
   humanTurnTextForIntent,
@@ -15,6 +16,7 @@ import {
   resolvePointTurnActor,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
+  stripLeadCastRollCall,
 } from '../services/kip/pointIntent.js';
 
 describe('detectPointIntent', () => {
@@ -40,6 +42,14 @@ describe('detectPointIntent', () => {
     expect(detectPointIntent('And still nothing').kind).toBe('required');
     expect(detectPointIntent('And again, same behavior').kind).toBe('required');
     expect(detectPointIntent('What document or draft did you propose them to?').kind).toBe('required');
+    expect(
+      detectPointIntent(
+        'that is most certainly a point worth capturing. Because while I currently feel like the stage is inevitable',
+      ).kind,
+    ).toBe('required');
+    expect(detectPointIntent("I love what Rendr said — that's a point worth capturing").kind).toBe(
+      'required',
+    );
   });
 
   it('does not fire on ordinary-language point', () => {
@@ -426,5 +436,34 @@ describe('Point UI over essays', () => {
     const clamped = clampCastAdviceForPointTurn(long);
     expect(clamped.length).toBeLessThan(long.length);
     expect(clamped.length).toBeLessThanOrEqual(360);
+  });
+});
+
+describe('detectCastPromisedPointWrite', () => {
+  it('hears Cast claiming they will write a Point', () => {
+    expect(
+      detectCastPromisedPointWrite([
+        "Rendr's line is a Point. I'll capture it now under the 'Keeper Stage' section.",
+      ]),
+    ).toBe(true);
+    expect(detectCastPromisedPointWrite(['The stage should feel inevitable.'])).toBe(false);
+  });
+});
+
+describe('stripLeadCastRollCall', () => {
+  it('drops ### Cloud / ### Rendr and committee minutes', () => {
+    const stripped = stripLeadCastRollCall(
+      [
+        '### Cloud',
+        "I'll capture it now.",
+        '',
+        '### Rendr',
+        'The stage has to feel inevitable.',
+        '',
+        'Cloud and Rendr both agree that the phrase should be captured as a new Point.',
+      ].join('\n'),
+    );
+    expect(stripped).not.toMatch(/^### /m);
+    expect(stripped.length).toBeLessThan(200);
   });
 });

@@ -131,11 +131,14 @@ import {
   buildPointObligationUnmetNotice,
   clampCastAdviceForPointTurn,
   detectPointRewriteIntent,
+  detectCastPromisedPointWrite,
   humanTurnTextForIntent,
+  hasSuccessfulPointPropose,
   resolvePointTurnActor,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
   shouldRunPointRewriteFollowUp,
+  stripLeadCastRollCall,
   buildPointRewriteFollowUpInput,
   buildPointRewriteSystemPrompt,
   type PointTurnObligation,
@@ -6848,10 +6851,17 @@ export class KipAgentService {
               serverCastActionResults.push(...row.castReceipts);
             }
           }
+          const castPromisedPointWrite = detectCastPromisedPointWrite(
+            labeled.map((row) => row.reply),
+          );
+          if (castPromisedPointWrite) {
+            attachPointTurnObligation('add a point', options?.environment ?? null);
+          }
           leadModelInput = buildCastConsultationsSynthesisPrompt({
             userMessage: cc.userMessage,
             directorName: cc.directorDisplayName,
             consultations: labeled,
+            castPromisedPointWrite,
           });
           castVoicesForPersist = labeled.map((row) => {
             const status: 'ok' | 'empty' | 'failed' =
@@ -7046,6 +7056,9 @@ export class KipAgentService {
           }
 
           if (castMemberReply) {
+            if (detectCastPromisedPointWrite([castMemberReply])) {
+              attachPointTurnObligation('add a point', options?.environment ?? null);
+            }
             directorDelegationResult = {
               attributedTo: castMemberLabel,
               content: castMemberReply,
@@ -7469,6 +7482,11 @@ export class KipAgentService {
               }
             }
           }
+        }
+
+        if (serverCastActionResults.length) {
+          actionResults = [...serverCastActionResults, ...actionResults];
+          serverCastActionResults = [];
         }
 
         if (
@@ -8004,16 +8022,19 @@ export class KipAgentService {
             pointTurnActor === 'lead'
             && pointObligation.required
             && pointObligation.manuscriptDraftId
-            && !actionResults.some((result) => result.type === 'draft.update.propose')
+            && !hasSuccessfulPointPropose(actionResults)
           ) {
             finalResponseText = `${finalResponseText}\n\n${buildPointObligationUnmetNotice(actionResults)}`;
           }
         }
-        
-        if (serverCastActionResults.length) {
-          actionResults = [...serverCastActionResults, ...actionResults];
-        }
 
+        if (
+          orchestrationMechanism === 'cast_consultation_a'
+          || orchestrationMechanism === 'director_instrument'
+        ) {
+          finalResponseText = stripLeadCastRollCall(finalResponseText);
+        }
+        
         const dialogIdForChronicle =
           options?.dialogId
           ?? (options?.environment as AgentEnvironmentContext | null | undefined)
@@ -8763,7 +8784,7 @@ export class KipAgentService {
             pointTurnActor === 'lead'
             && systemPointObligation.required
             && systemPointObligation.manuscriptDraftId
-            && !actionResults.some((result) => result.type === 'draft.update.propose')
+            && !hasSuccessfulPointPropose(actionResults)
           ) {
             finalResponseText = `${finalResponseText}\n\n${buildPointObligationUnmetNotice(actionResults)}`;
           }

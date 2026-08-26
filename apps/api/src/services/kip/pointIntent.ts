@@ -97,6 +97,10 @@ const POINT_REQUIRED_PATTERNS = [
   /\bwhat document or draft did you propose\b/i,
   /^(and )?(again,? )?(still nothing|same behavior)\b/i,
   /\bjust (do it|fire (the )?action|propose)\b/i,
+  /\ba points? worth captur/i,
+  /\bpoints? worth captur/i,
+  /\bthat is (most certainly )?a points?\b/i,
+  /\bcapture (it|that|this) (now|as (a )?points?)\b/i,
 ];
 
 const POINT_FALSE_POSITIVES = [
@@ -307,6 +311,58 @@ export function hasSuccessfulPointPropose(
   return results.some(
     (result) => result.type === 'draft.update.propose' && result.status === 'success',
   );
+}
+
+/** Cast promised a Document write they cannot perform — Lead must write. */
+export function detectCastPromisedPointWrite(
+  replies: Array<string | null | undefined>,
+): boolean {
+  const promised = [
+    /\bi(?:['’]ll| will) capture\b/i,
+    /\bcaptur(?:e|ing) it now\b/i,
+    /\bi(?:['’]ll| will) (?:add|write|propose) (?:a |the |this |that )?points?\b/i,
+    /\bi(?:['’]ll| will) (?:add|write) it\b/i,
+  ];
+  return replies.some((reply) => {
+    const text = reply?.trim() ?? '';
+    return Boolean(text) && promised.some((pattern) => pattern.test(text));
+  });
+}
+
+const CAST_ROLL_CALL = /^#{1,3}\s+(Cloud|Rendr|Kip|Ceox|Ceos)\b/im;
+const CAST_MINUTES =
+  /\b(Cloud and Rendr|both agree|have identified|key areas to address)\b/i;
+
+/** Lead synthesis must not paste Cast voice cards or committee minutes. */
+export function stripLeadCastRollCall(text: string): string {
+  const raw = text.trim();
+  if (!raw) return raw;
+
+  const heading = /^#{1,3}\s+(Cloud|Rendr|Kip|Ceox|Ceos)\b/i;
+  const lines = raw.split('\n');
+  const kept: string[] = [];
+  let skippingHeadingBlock = false;
+  for (const line of lines) {
+    if (heading.test(line)) {
+      skippingHeadingBlock = true;
+      continue;
+    }
+    if (skippingHeadingBlock) {
+      if (!line.trim()) {
+        skippingHeadingBlock = false;
+      }
+      continue;
+    }
+    kept.push(line);
+  }
+
+  const candidate = kept.join('\n').replace(/\n{3,}/g, '\n\n').trim() || raw;
+  if (CAST_ROLL_CALL.test(candidate) || CAST_MINUTES.test(candidate)) {
+    const sentences = candidate.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const clipped = sentences.slice(0, 2).join(' ').trim();
+    if (clipped && clipped.length <= 360 && !heading.test(clipped)) return clipped;
+  }
+  return candidate;
 }
 
 const NESTED_CAST_PROMPT_PATTERN =
@@ -587,7 +643,7 @@ export function applyPointTurnDialogCopy(params: {
   dialogTitle?: string;
   obligationRequired?: boolean;
 }): string {
-  const cleaned = stripExecutorLeakFromDialogText(params.responseText);
+  const cleaned = stripLeadCastRollCall(stripExecutorLeakFromDialogText(params.responseText));
   const successCount = countSuccessfulPointProposes(params.results);
   if (successCount > 0) {
     return preferShortPointTurnResponse({

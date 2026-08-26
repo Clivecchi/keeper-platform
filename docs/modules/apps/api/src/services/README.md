@@ -20,6 +20,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-08-25 — Cast cannot write; Lead talks
+- `directorDialog.ts` — Cast must not say "I'll capture it now." Lead synthesis is 1–3 sentences, not Cloud/Rendr minutes. If Cast promised a Point, Lead emits `draft.update.propose`.
+
 ### 2026-08-25 — Rendr Point writes
 - `ensureCastMemberAgent.ts` — refreshes Rendr voice prompt when it still teaches `draft.create` as the Point path.
 
