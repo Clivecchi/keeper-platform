@@ -130,10 +130,14 @@ import {
   buildPointObligationSystemPrompt,
   buildPointObligationUnmetNotice,
   clampCastAdviceForPointTurn,
+  detectPointRewriteIntent,
   humanTurnTextForIntent,
   resolvePointTurnActor,
   resolvePointTurnObligation,
   shouldRunPointObligationFollowUp,
+  shouldRunPointRewriteFollowUp,
+  buildPointRewriteFollowUpInput,
+  buildPointRewriteSystemPrompt,
   type PointTurnObligation,
 } from '../../services/kip/pointIntent.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
@@ -205,7 +209,11 @@ import {
   type ImageGenerateAction,
 } from './actions/schema.js';
 import {
+  assignMissingRewritePointIndexes,
+  coercePointRewriteRef,
+  expandDraftPointRewriteActions,
   normalizeDraftPointIdPayload,
+  normalizeDraftPointRewritePayload,
   normalizeDraftUpdateProposePayload,
 } from './actions/normalizeDraftPropose.js';
 import {
@@ -319,7 +327,7 @@ function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unk
   const proposePoints =
     '- When adding NEW Points, use draft.update.propose with payload.content (body) and payload.prelude or payload.title (short story-label — not a cut of the body). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy, optional payload.closer, optional payload.moments ([{ title, narrative? }]), optional payload.referencesPointId, optional payload.section (Section title — Keeper creates it if missing), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
   const rewritePoints =
-    '- When REWRITING or RETITLING existing Points, use draft.point.rewrite. payload.pointId may be the 1-based number from DIALOG DOCUMENT, the current title, or an exact UUID — do not invent ids and do not call draft.read first. payload.prelude or payload.title is the Point title (a short label that tells the story). payload.content is the body; omit content to keep the body and only change the title. Optional payload.closer, payload.moments. Omit payload.id on a Dialog Document — Keeper fills the manuscript. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place. Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
+    '- When REWRITING or RETITLING existing Points, use draft.point.rewrite. payload.pointId is the Chronicle number (1, 2, 3… from DIALOG DOCUMENT), the current title, or the Point UUID. Do not put that identity in payload.id — payload.id is the Draft, and Keeper fills it on a Dialog Document. payload.prelude or payload.title is the new Point title (a short label that tells the story). payload.content is the body; omit content to keep the body and only change the title. To retitle many Points, emit one rewrite per Point or payload.points: [{ pointId, title }]. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place. Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
     '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
   const acceptPoints =
@@ -889,7 +897,7 @@ function buildDraftDiscussPrompt(
       'DRAFT POINT REWRITE (immediate action required when user confirms):',
       `- Target draft id: ${draftDiscuss.draftId}`,
       `- Target pointId: ${draftDiscuss.pointId} (exact UUID — do not invent or truncate)`,
-      '- Use draft.point.rewrite with payload { id, pointId, content }. On journey drafts, accepted points are anchors. On document_manuscript, Lead may rewrite accepted Points.',
+      '- Use draft.point.rewrite with payload { pointId, prelude?, content? }. On journey drafts, accepted points are anchors. On document_manuscript, Lead may rewrite accepted Points. Omit payload.id on a Dialog Document.',
       '- If the user asked to revise this point, call draft.point.rewrite in this turn — do not use edit, add_point, or draft.update with spec.points.',
     ].join('\n');
   }
@@ -1024,7 +1032,7 @@ function buildGlossDiscussPrompt(
   if (anchorRaw.entityKind === 'draft' && anchorRaw.nodeId) {
     parts.push(
       `- Draft point: draft ${anchorRaw.entityId}, pointId ${anchorRaw.nodeId}.`,
-      '- To revise this Point, call draft.point.rewrite in THIS turn with payload { id, pointId, content } using the exact pointId above.',
+      '- To revise this Point, call draft.point.rewrite in THIS turn with payload { pointId, prelude?, content? } using the exact pointId above.',
       '- Never promise a later revise ("I\'ll update…") without emitting draft.point.rewrite in the same turn.',
       '- If you cannot rewrite (permission, missing id, or unclear new text), say so in one plain sentence — do not claim the Document changed.',
       '- After a successful rewrite, confirm in one short sentence what changed; do not paste the whole Point back.',
@@ -1261,7 +1269,7 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
   }
   lines.push(
-    'Point title is prelude — a short label that tells the story of the Point (e.g. "Agent Narrates, Doesn\'t Act"), not a cut of the body. Always set prelude/title on new Points. To rename: draft.point.rewrite with pointId 1..N from this list and prelude; omit content to keep the body.',
+    'Point title is prelude — a short label that tells the story of the Point (e.g. "Agent Narrates, Doesn\'t Act"), not a cut of the body. Always set prelude/title on new Points. To rename: draft.point.rewrite with pointId set to the number (1, 2, 3…) or the current title; prelude is the new title; omit content to keep the body. The Dialog id above is not a Point id.',
     'This Document is the primary conversational background. Stay aware of the Domain. If Working on is a Draft, do not treat this manuscript as the Point write target.',
     'When the user asks about this Dialog\'s Document, Forward, Sections, or Points, use this block — do not claim the Document is absent when fields above are present.',
     'When asked to pick or name one item from a Section, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
@@ -1723,7 +1731,8 @@ export async function executeAgentActions(
 
   // Normalize draft.create payloads (map common model mistakes to schema)
   const VALID_KINDS = ['journey_spec', 'keeper_type_proposal', 'vehicle_template', 'checklist_spec', 'development_journey', 'conversation_review', 'domain_json'];
-  const normalizedActions = actions.map((action) => {
+  const expandedActions = actions.flatMap((action) => expandDraftPointRewriteActions(action));
+  const normalizedActions = assignMissingRewritePointIndexes(expandedActions.map((action) => {
     if (
       action.type === 'draft.point.rewrite'
       && action.payload
@@ -1731,8 +1740,9 @@ export async function executeAgentActions(
     ) {
       const p = action.payload as Record<string, unknown>;
       const out = applyManuscriptDraftIdToProposePayload(
-        normalizeDraftPointIdPayload(p),
+        normalizeDraftPointRewritePayload(p, ctx.manuscriptDraftId),
         ctx.manuscriptDraftId,
+        { forceManuscript: Boolean(ctx.manuscriptDraftId) },
       );
       if (!out.content && typeof p.text === 'string') out.content = p.text;
       if (!out.content && typeof p.body === 'string') out.content = p.body;
@@ -1805,7 +1815,7 @@ export async function executeAgentActions(
     if (out.type && !VALID_KINDS.includes(out.type as string)) delete out.type;
     if (typeof p.keeperId === 'string' && p.keeperId.trim()) out.keeperId = p.keeperId.trim();
     return { type: action.type, payload: out };
-  });
+  }));
 
   // Validate actions using canonical schema - FAIL FAST on validation errors
   let validatedActions: StructuredAgentAction[] = [];
@@ -2620,12 +2630,18 @@ export async function executeAgentActions(
             const payload = action.payload ?? {};
             let draftId =
               (typeof payload.draftId === 'string' && payload.draftId) ||
-              (typeof payload.id === 'string' && payload.id) ||
+              (typeof payload.id === 'string' && isKipDraftUuid(payload.id) && payload.id) ||
               '';
             if (!isKipDraftUuid(draftId)) {
               draftId = (await resolveManuscriptDraftIdForPropose(ctx)) ?? '';
             }
-            const pointRef = typeof payload.pointId === 'string' ? payload.pointId.trim() : '';
+            const pointRef =
+              coercePointRewriteRef(payload)
+              ?? (typeof payload.id === 'string'
+                && payload.id.trim()
+                && payload.id.trim() !== draftId
+                ? payload.id.trim()
+                : '');
             const content = typeof payload.content === 'string' ? payload.content.trim() : '';
             const title =
               (typeof payload.prelude === 'string' && payload.prelude.trim())
@@ -5932,6 +5948,13 @@ export class KipAgentService {
           });
         }
 
+        if (detectPointRewriteIntent(humanTurnTextForIntent(input, promptOptions?.displayContent)) === 'required') {
+          messages.push({
+            role: 'system',
+            content: buildPointRewriteSystemPrompt(),
+          });
+        }
+
         // --- Domain contract injection (wires contract rules to Kip) ---
         const suppressKipPrompt =
           (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
@@ -7036,9 +7059,9 @@ export class KipAgentService {
         }
 
         const pointObligation = pointObligationFromEnv(options?.environment);
-        const reorganizeIntent = detectReorganizeIntent(
-          humanTurnTextForIntent(input, options?.displayContent),
-        );
+        const humanTurn = humanTurnTextForIntent(input, options?.displayContent);
+        const reorganizeIntent = detectReorganizeIntent(humanTurn);
+        const rewriteIntent = detectPointRewriteIntent(humanTurn);
         if (structured.actions.length) {
           if (options?.forceSkipActions) {
             actionResults = structured.actions.map((action) => ({
@@ -7369,6 +7392,93 @@ export class KipAgentService {
               && !(pointObligation?.required === true && !pointObligation.constrained)
             ) {
               finalResponseText = `${finalResponseText}\n\n${pointFollowUpExecution.failedMessage}`;
+            }
+          }
+        }
+
+        if (
+          reorganizeIntent !== 'required'
+          && shouldRunPointRewriteFollowUp({
+            intent: rewriteIntent,
+            isTurnOwner: pointTurnActor === 'lead',
+            actionResults,
+          })
+        ) {
+          options?.onStatus?.('Rewriting Point titles…');
+          options?.onReset?.();
+          const dialogTitle =
+            (options?.environment as { dialogDocument?: { title?: string } } | undefined)
+              ?.dialogDocument?.title;
+          const rewriteFollowUpInput = buildPointRewriteFollowUpInput({
+            originalInput: input,
+            agentName: agent.name,
+            dialogTitle,
+            priorResponseText: finalResponseText,
+          });
+          const rewriteFollowUpResult = await this.callAIModel(
+            agent,
+            rewriteFollowUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: activeMode,
+              modeConfig: activeModeConfig,
+              lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+              debugSummary,
+              maxChars,
+              outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+              includeFixPlan: activeModeConfig.includeFixPlan,
+              autoBrief: activeModeConfig.autoBrief,
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'point_rewrite_follow_up',
+              reuseMessages: [
+                ...lastPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastPromptMessages = rewriteFollowUpResult.messages;
+          const rewriteFollowUpStructured = await ensureKipAgentOutputEnvelope(
+            rewriteFollowUpResult.content,
+            {
+              requestId: randomUUID(),
+              userId,
+              allowedActions: Array.from(allowActions),
+            },
+          );
+          finalResponseText =
+            rewriteFollowUpStructured.responseText?.trim()
+            || rewriteFollowUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !rewriteFollowUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (rewriteFollowUpStructured.actions.length) {
+            const rewriteActionsStartedAt = Date.now();
+            const rewriteFollowUpExecution = await executeAgentActions(
+              rewriteFollowUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+                actor: 'lead',
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - rewriteActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...rewriteFollowUpExecution.results];
+            if (rewriteFollowUpExecution.failedMessage) {
+              finalResponseText = `${finalResponseText}\n\n${rewriteFollowUpExecution.failedMessage}`;
             }
           }
         }

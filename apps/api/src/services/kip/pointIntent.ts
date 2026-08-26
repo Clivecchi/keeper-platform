@@ -615,3 +615,60 @@ export function clampCastAdviceForPointTurn(text: string): string {
   return `${trimmed.slice(0, 277).trim()}…`;
 }
 
+const POINT_REWRITE_PATTERNS = [
+  /\brename .{0,80}points?\b/i,
+  /\brename the point\b/i,
+  /\bretitle\b/i,
+  /\brewrite .{0,80}(titles?|points?)\b/i,
+];
+
+export function detectPointRewriteIntent(userInput: string): 'none' | 'required' {
+  const text = userInput?.trim() ?? '';
+  if (!text) return 'none';
+  return POINT_REWRITE_PATTERNS.some((pattern) => pattern.test(text)) ? 'required' : 'none';
+}
+
+export function shouldRunPointRewriteFollowUp(params: {
+  intent: 'none' | 'required';
+  isTurnOwner: boolean;
+  actionResults: Array<{ type: string; status: string }>;
+}): boolean {
+  if (!params.isTurnOwner || params.intent !== 'required') return false;
+  return !params.actionResults.some(
+    (result) => result.type === 'draft.point.rewrite' && result.status === 'success',
+  );
+}
+
+export function buildPointRewriteFollowUpInput(params: {
+  originalInput: string;
+  agentName: string;
+  dialogTitle?: string;
+  priorResponseText: string;
+}): string {
+  const named = params.dialogTitle?.trim() ? ` "${params.dialogTitle.trim()}"` : '';
+  return [
+    `[Point rewrite unmet — reply as ${params.agentName}. Rewrite the Point titles now.]`,
+    '',
+    `The human asked to rename Points on${named}. Narration is not a rewrite.`,
+    'Emit draft.point.rewrite now. payload.pointId is 1, 2, 3… from DIALOG DOCUMENT (or the current title).',
+    'Do not put that number in payload.id. Omit payload.id on a Dialog Document.',
+    'payload.prelude or payload.title is the new short story-label. Omit content to keep the body.',
+    'One action per Point, or payload.points: [{ pointId, title }].',
+    '',
+    `Your prior message did not land a rewrite: "${params.priorResponseText.trim().slice(0, 800)}"`,
+    '',
+    `Original user message: "${params.originalInput}"`,
+  ].join('\n');
+}
+
+export function buildPointRewriteSystemPrompt(): string {
+  return [
+    'RENAME / REWRITE POINTS — the human asked to change existing Point titles or bodies.',
+    'Emit draft.point.rewrite in this turn. Do not only describe the titles.',
+    'payload.pointId is 1, 2, 3… from DIALOG DOCUMENT, or the current title. That is the same identity Chronicle shows.',
+    'The Dialog id is not a Point id. Do not put Point numbers in payload.id.',
+    'payload.prelude or payload.title is the new short story-label. Omit content to keep the body.',
+    'To rename every Point: one rewrite per Point, or payload.points: [{ pointId: 1, title }, { pointId: 2, title }, …].',
+  ].join('\n');
+}
+

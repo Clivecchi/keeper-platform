@@ -37,6 +37,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-25 — Point rewrite uses Chronicle identity
+- `pointIntent.ts` — rename/retitle is a rewrite obligation. Follow-up emits `draft.point.rewrite` with Point 1–N from DIALOG DOCUMENT, not a new Point and not the Dialog id.
+
 ### 2026-08-25 — Review & Reorganize omit-follow-up
 - `documentReorganizeIntent.ts` hears `re-organize` / `re-organization` / `revieww`. If the Lead does not emit `document.reorganize.propose`, a second turn asks for the proposal (not Points). Nested Cast cannot write the Document.
 

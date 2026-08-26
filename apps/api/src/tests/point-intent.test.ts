@@ -9,6 +9,7 @@ import {
   buildPointObligationSystemPrompt,
   clampCastAdviceForPointTurn,
   detectPointIntent,
+  detectPointRewriteIntent,
   humanTurnTextForIntent,
   preferShortPointTurnResponse,
   resolvePointTurnActor,
@@ -67,6 +68,16 @@ describe('detectPointIntent', () => {
         'see attached',
       ),
     ).toBe('see attached');
+  });
+});
+
+describe('detectPointRewriteIntent', () => {
+  it('hears rename / retitle as rewrite, not a new Point', () => {
+    expect(
+      detectPointRewriteIntent('So.. looks like you were nott able to rename the point previkosuly. So let\'s try again'),
+    ).toBe('required');
+    expect(detectPointRewriteIntent('retitle every point')).toBe('required');
+    expect(detectPointIntent('rename the point').kind).toBe('none');
   });
 });
 

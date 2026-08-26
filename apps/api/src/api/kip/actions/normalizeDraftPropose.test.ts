@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   coerceProposePointAuthor,
   coerceProposePointContent,
+  coercePointRewriteRef,
+  expandDraftPointRewriteActions,
+  assignMissingRewritePointIndexes,
   normalizeDraftPointIdPayload,
+  normalizeDraftPointRewritePayload,
   normalizeDraftUpdateProposePayload,
 } from './normalizeDraftPropose.js';
 
@@ -88,5 +92,67 @@ describe('normalizeDraftPointIdPayload', () => {
     });
     expect(out.pointId).toBe('3');
     expect(out.prelude).toBe('Agent Narrates, Doesn\'t Act');
+  });
+
+  it('stringifies numeric pointId', () => {
+    const out = normalizeDraftPointIdPayload({ pointId: 2 });
+    expect(out.pointId).toBe('2');
+  });
+});
+
+describe('normalizeDraftPointRewritePayload', () => {
+  it('treats payload.id "1" as the Point, not the Draft', () => {
+    const out = normalizeDraftPointRewritePayload(
+      { id: '1', title: 'Platform Issues' },
+      'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    );
+    expect(out.pointId).toBe('1');
+    expect(out.id).toBeUndefined();
+    expect(out.prelude).toBe('Platform Issues');
+  });
+
+  it('reads numeric pointId and nested points[]', () => {
+    expect(coercePointRewriteRef({ pointId: 4 })).toBe('4');
+    expect(
+      coercePointRewriteRef({
+        points: [{ id: '2', title: 'Trust & Execution' }],
+      }),
+    ).toBe('2');
+  });
+});
+
+describe('expandDraftPointRewriteActions', () => {
+  it('splits payload.points into one rewrite per Point', () => {
+    const expanded = expandDraftPointRewriteActions({
+      type: 'draft.point.rewrite',
+      payload: {
+        points: [
+          { pointId: 1, title: 'First' },
+          { pointId: 2, title: 'Second' },
+        ],
+      },
+    });
+    expect(expanded).toHaveLength(2);
+    expect((expanded[0].payload as { pointId: number }).pointId).toBe(1);
+    expect((expanded[1].payload as { title: string }).title).toBe('Second');
+  });
+});
+
+describe('assignMissingRewritePointIndexes', () => {
+  it('zips a batch of untitled rewrites to 1–N', () => {
+    const numbered = assignMissingRewritePointIndexes([
+      { type: 'draft.point.rewrite', payload: { title: 'A' } },
+      { type: 'draft.point.rewrite', payload: { title: 'B' } },
+    ]);
+    expect((numbered[0].payload as { pointId: string }).pointId).toBe('1');
+    expect((numbered[1].payload as { pointId: string }).pointId).toBe('2');
+  });
+
+  it('does not guess when some rewrites already have identity', () => {
+    const numbered = assignMissingRewritePointIndexes([
+      { type: 'draft.point.rewrite', payload: { pointId: '7', title: 'A' } },
+      { type: 'draft.point.rewrite', payload: { title: 'B' } },
+    ]);
+    expect((numbered[1].payload as { pointId?: string }).pointId).toBeUndefined();
   });
 });
