@@ -21,6 +21,12 @@ describe('detectGlossIntent', () => {
       ),
     ).toBe('required');
     expect(detectGlossIntent('Yes.', 'Want me to add a Point?')).toBe('none');
+    expect(
+      detectGlossIntent(
+        'Yes.',
+        'Want me to add it as a Gloss to Point 14? I can also capture it as a Point.',
+      ),
+    ).toBe('required');
   });
 
   it('does not treat ordinary talk as Gloss', () => {

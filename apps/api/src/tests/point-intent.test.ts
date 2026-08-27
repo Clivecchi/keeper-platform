@@ -16,6 +16,7 @@ import {
   preferShortPointTurnResponse,
   resolvePointTurnActor,
   resolvePointTurnObligation,
+  shouldRunPointAskFollowUp,
   shouldRunPointObligationFollowUp,
   stripLeadCastRollCall,
 } from '../services/kip/pointIntent.js';
@@ -495,5 +496,37 @@ describe('stripLeadCastRollCall', () => {
     );
     expect(stripped).not.toMatch(/^### /m);
     expect(stripped.length).toBeLessThan(200);
+  });
+});
+
+describe('shouldRunPointAskFollowUp', () => {
+  it('runs when the Lead asked instead of proposing', () => {
+    expect(
+      shouldRunPointAskFollowUp({
+        isTurnOwner: true,
+        actionResults: [],
+        responseText: 'Want me to add that as a Point — and flag it as a capability gap?',
+        manuscriptDraftId: 'draft-1',
+      }),
+    ).toBe(true);
+  });
+
+  it('does not run when they already proposed, or when they offered Gloss', () => {
+    expect(
+      shouldRunPointAskFollowUp({
+        isTurnOwner: true,
+        actionResults: [{ type: 'draft.update.propose', status: 'success' }],
+        responseText: 'Want me to add that as a Point?',
+        manuscriptDraftId: 'draft-1',
+      }),
+    ).toBe(false);
+    expect(
+      shouldRunPointAskFollowUp({
+        isTurnOwner: true,
+        actionResults: [],
+        responseText: 'Want me to add it as a Gloss to Point 14?',
+        manuscriptDraftId: 'draft-1',
+      }),
+    ).toBe(false);
   });
 });

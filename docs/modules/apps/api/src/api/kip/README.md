@@ -32,7 +32,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
-- 2026-08-25: **Title and Forward are proposable** — `document.reorganize.propose` accepts `title` and `forward: { title, description }`. Those are Document identity, not Points. "Update the Forward" follows Review & Reorganize, not `draft.update.propose`.
+- 2026-08-26: **Propose as UI** — `draft.update.propose` lands as proposed. Keeper shows a card. The human Accepts. Agents must not ask "want me to add that as a Point?" Session action log (receipts + UTC time) is injected into the Lead prompt.
+- 2026-08-26: **Same Point twice** — collapse duplicate `draft.update.propose` in one turn; if that Point is already on the host, Keeper returns success without appending. Gloss "yes" after a Gloss offer is Gloss.
 - 2026-08-25: Point receipts include Dialog title + `dialogId` so the card says **Added point in Finding the plot**, not `Document — manuscript`.
 - 2026-08-25: **Named Section is a Point write** — "create a new section and call it X" is `draft.update.propose` with `payload.section`. Cast skips say so honestly. Lead follow-up writes on Touchdown! (Working on), not Becoming Together leftovers.
 - 2026-08-25: **Cast promised a Point; Lead writes** — Cloud/Rendr consults cannot `draft.update.propose`. If they say they will capture a Point, Lead writes it (Section included). Synthesis is conversation, not committee minutes.

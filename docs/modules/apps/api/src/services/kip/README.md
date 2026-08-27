@@ -38,6 +38,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-26 — Propose as UI; Gloss yes is Gloss
+- `pointIntent.ts` — never ask to add a Point. If the Lead asks anyway, a follow-up emits `draft.update.propose`. Accept is a human card action.
+- `glossIntent.ts` — "Yes" after the Lead offered a **Gloss** is Gloss, even if they also mentioned a Point.
+
 ### 2026-08-25 — Document title and Forward are proposable
 - `document.reorganize.propose` may include `title` and `forward: { title, description }`. Identity-only is valid. Apply writes Dialog identity. "Update the Forward" / "rename the document" is Review & Reorganize, not a Point.
 

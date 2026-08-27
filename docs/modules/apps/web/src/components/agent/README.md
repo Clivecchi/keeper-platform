@@ -34,6 +34,8 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-08-26: Proposed Point cards show **Accept** in Dialog. Manuscript Points are no longer auto-accepted. Duplicate receipts still fold; **Already on this document** has no Accept.
+- 2026-08-26: `DialogueMessageList` folds a second `draft.update.propose` receipt when Keeper already has that Point (`data.duplicate`). Card copy is **Already on this document**, not a second Added.
 - 2026-08-25: Point receipts use the Dialog name and open that Point in Chronicle (`onOpenPoint`).
 - 2026-08-21: Point turns use `DraftPointProposeCard` on **failure** as well as success — Prisma dumps are stripped from the bubble and folded into one Point-shaped miss card. Success still shows Added/Accepted cards.
 - 2026-08-21: `DialogueMessageList` renders `DraftPointProposeCard` for `draft.update.propose` so Points appear as UI, not only compact receipts. Pipeline skip receipts for Cast Point writes are hidden.

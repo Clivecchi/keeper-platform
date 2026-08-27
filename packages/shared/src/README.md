@@ -12,6 +12,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `cloudMcpCeiling.ts` – Cloud MCP capability ceiling (shared by API + Build Board def)
 - `keeperStage.ts` – Stage composition (references + contextual Agency)
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
+- `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
+- `sessionActionLog.ts` — Session action receipts for the Lead prompt
 
 ## 🔄 Data & Behavior
 - All exports are side-effect free utilities or type helpers.
@@ -22,6 +24,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-26: `sessionActionLog.ts` — session action receipts (time / type / status) for the Lead prompt. Narration is not evidence.
+- 2026-08-26: `pointProposeIdentity.ts` — same-Point identity for propose (identical body, or distinctive title + same opening). Cast Notes are not hosts.
 - 2026-08-25: `documentReorganize.ts` — Lead may propose Document **title** and **Forward** (`payload.title`, `payload.forward`). Identity-only proposals are valid; they are not spine-only. Chronicle Proposed shows those fields; Apply writes Dialog `title` / `forward_title` / `forward_description`.
 - 2026-08-25: `resolveChronicleActiveDraftId` — Chronicle Document focus (`null`) and foreign manuscripts do not become Working on.
 - 2026-08-25: `resolveDraftPointRef` — UUID / 1-based number / title. `rewriteDraftPointInSpec` may omit content for title-only updates.

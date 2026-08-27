@@ -2370,7 +2370,7 @@ export function UniversalConversation({
   } = useDraftPointAccept({
     domainId,
     onDraftListRefresh,
-    onDraftSelect,
+    // Stay on Document — do not switch Nav to the manuscript draft.
     bumpDraftPresence: actions.bumpDraftPresence,
     bumpDraftNav: actions.bumpDraftNav,
     setMessages,

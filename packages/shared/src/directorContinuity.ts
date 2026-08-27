@@ -159,5 +159,7 @@ export function buildLeadContinuitySystemPrompt(priorAgentMessage: string): stri
     'Treat the current user message as answering or continuing that turn.',
     'Do not claim you are coming in fresh, mid-thread, or without prior context.',
     'If they said yes / proceed / propose, do the work they already asked for in that previous turn — emit the actions now.',
+    'If that previous turn offered a Gloss, emit gloss.append. Do not add a Point.',
+    'Never ask "want me to add that as a Point?" Propose it as draft.update.propose. Keeper shows a card. The human Accepts.',
   ].join('\n');
 }

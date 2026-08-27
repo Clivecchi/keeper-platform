@@ -239,6 +239,7 @@ const KEEPER_POINT_GROUNDING = [
   'Talking in (the Dialog/session) is conversation context — do not write the Dialog manuscript just because the session still belongs to that Dialog.',
   'Never pick a different Dialog or Draft from draftsDirectory, session history, or memory. Working on is the only write target.',
   'Do not announce that you will read or propose. Emit draft.update.propose in this turn. A read without a propose is not completion.',
+  'Never ask "want me to add that as a Point?" The card is the proposal. The human Accepts in Dialog. Asking is not completion.',
   'Chronicle renders those Points. Gloss threads are not Points.',
   'When the human asks to propose/add/capture Points, they mean this object.',
   'Point content is the beat only — never Domain Contract, action-schema rules, draft UUIDs, Prisma, or executor errors.',
@@ -307,7 +308,7 @@ export function buildPointObligationSystemPrompt(
     'When the human named a Section, set payload.section to that exact title. Keeper creates the Section. Do not document.reorganize.propose. Do not draft.point.accept — Accept is a human Chronicle action.',
     'UI: "response" is 1–3 short sentences. Do not paste Cast replies or ### Cloud / ### Rendr roll-calls — Dialog already shows their voice cards. Points appear as cards from the actions, not as a markdown essay.',
     'You still choose the wording and how many Points are useful. Keeper requires that the write happens.',
-    'Never claim Points were added unless those actions are in this response.',
+    'Never claim Points were kept unless those actions ran and the human Accepted.',
   ].join('\n');
 }
 
@@ -419,6 +420,57 @@ export function shouldRunPointObligationFollowUp(params: {
   if (!params.obligation.required || params.obligation.constrained) return false;
   if (!params.obligation.manuscriptDraftId) return false;
   return !hasSuccessfulPointPropose(params.actionResults);
+}
+
+const OFFERED_POINT_ASK =
+  /\b(?:want me to add (?:that |it |this )?(?:as )?a points?|shall i (?:add|propose) (?:that |it |this )?(?:as )?a points?|should i (?:add|propose) (?:that |it )?(?:as )?a points?|add that as a points?\?)\b/i;
+const OFFERED_GLOSS_ASK =
+  /\b(?:want me to (?:add (?:it |that )?(?:as )?(?:a )?)?gloss|as a gloss|shall i gloss)\b/i;
+
+export function agentAskedToAddPointInsteadOfProposing(responseText: string): boolean {
+  const text = responseText?.trim() ?? '';
+  if (!text) return false;
+  if (OFFERED_GLOSS_ASK.test(text)) return false;
+  return OFFERED_POINT_ASK.test(text);
+}
+
+export function shouldRunPointAskFollowUp(params: {
+  isTurnOwner: boolean;
+  glossRequired?: boolean;
+  actionResults: Array<{ type: string; status: string }>;
+  responseText: string;
+  manuscriptDraftId?: string;
+}): boolean {
+  if (!params.isTurnOwner || params.glossRequired) return false;
+  if (!params.manuscriptDraftId) return false;
+  if (hasSuccessfulPointPropose(params.actionResults)) return false;
+  return agentAskedToAddPointInsteadOfProposing(params.responseText);
+}
+
+export function buildPointAskFollowUpInput(params: {
+  originalInput: string;
+  agentName: string;
+  priorResponseText: string;
+  manuscriptDraftId: string;
+  dialogTitle?: string;
+  dialogId?: string;
+}): string {
+  return [
+    `[Point ask — reply as ${params.agentName}. Do not ask. Propose the Point as UI now.]`,
+    '',
+    KEEPER_POINT_GROUNDING,
+    `Manuscript draft id: ${params.manuscriptDraftId}`,
+    params.dialogId
+      ? `Dialog: ${params.dialogTitle ?? 'this Dialog'} (${params.dialogId})`
+      : `Dialog: ${params.dialogTitle ?? 'this Dialog'}`,
+    '',
+    `You asked the human whether to add a Point: "${params.priorResponseText.trim().slice(0, 800)}"`,
+    '',
+    `Original user message: "${params.originalInput}"`,
+    'Emit draft.update.propose now. payload.content is the Point beat. Do not invent a draft id.',
+    'Do not ask again. Keeper shows a card. The human Accepts. Do not draft.point.accept.',
+    'Keep "response" to 1–3 short sentences.',
+  ].join('\n');
 }
 
 export function buildPointObligationFollowUpInput(params: {

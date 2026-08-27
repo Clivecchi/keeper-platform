@@ -355,6 +355,9 @@ function AgentMessageTurn({
   onOpenPoint,
   conversationDialogTitle,
   talkingDialogId,
+  onAcceptDraftPoint,
+  acceptedDraftPointIds,
+  acceptingDraftPointId,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -372,6 +375,9 @@ function AgentMessageTurn({
   onOpenPoint?: DialogueMessageListProps["onOpenPoint"]
   conversationDialogTitle?: string | null
   talkingDialogId?: string | null
+  onAcceptDraftPoint?: DialogueMessageListProps["onAcceptDraftPoint"]
+  acceptedDraftPointIds?: ReadonlySet<string>
+  acceptingDraftPointId?: string | null
 }) {
   const castVoices = (message.castVoices ?? []).filter((voice) => {
     const content = voice.content?.trim()
@@ -412,6 +418,9 @@ function AgentMessageTurn({
           onOpenPoint={onOpenPoint}
           conversationDialogTitle={conversationDialogTitle}
           talkingDialogId={talkingDialogId}
+          onAcceptDraftPoint={onAcceptDraftPoint}
+          acceptedDraftPointIds={acceptedDraftPointIds}
+          acceptingDraftPointId={acceptingDraftPointId}
         />
       )
     }
@@ -459,6 +468,9 @@ function AgentMessageTurn({
           onOpenPoint={onOpenPoint}
           conversationDialogTitle={conversationDialogTitle}
           talkingDialogId={talkingDialogId}
+          onAcceptDraftPoint={onAcceptDraftPoint}
+          acceptedDraftPointIds={acceptedDraftPointIds}
+          acceptingDraftPointId={acceptingDraftPointId}
         />
         <MessageSenderFooter
           name={resolvedAgentName}
@@ -566,6 +578,9 @@ function AgentMessageTurn({
         onOpenPoint={onOpenPoint}
         conversationDialogTitle={conversationDialogTitle}
         talkingDialogId={talkingDialogId}
+        onAcceptDraftPoint={onAcceptDraftPoint}
+        acceptedDraftPointIds={acceptedDraftPointIds}
+        acceptingDraftPointId={acceptingDraftPointId}
       />
       <MessageSenderFooter
         name={resolvedAgentName}
@@ -591,6 +606,9 @@ function MessageAttachments({
   onOpenPoint,
   conversationDialogTitle,
   talkingDialogId,
+  onAcceptDraftPoint,
+  acceptedDraftPointIds,
+  acceptingDraftPointId,
 }: {
   message: AgentDialogueMessage
   onOpenDraft?: (draftId: string) => void
@@ -604,6 +622,9 @@ function MessageAttachments({
   onOpenPoint?: DialogueMessageListProps["onOpenPoint"]
   conversationDialogTitle?: string | null
   talkingDialogId?: string | null
+  onAcceptDraftPoint?: DialogueMessageListProps["onAcceptDraftPoint"]
+  acceptedDraftPointIds?: ReadonlySet<string>
+  acceptingDraftPointId?: string | null
 }) {
   return (
     <>
@@ -678,6 +699,14 @@ function MessageAttachments({
                 (typeof receipt.data?.dialogId === "string" ? receipt.data.dialogId : null)
                 || talkingDialogId
                 || null
+              const alreadyPresent = receipt.data?.duplicate === true
+              const acceptedOnDocument =
+                !isProposeError
+                && (
+                  alreadyPresent
+                  || point.status === "accepted"
+                  || acceptedDraftPointIds?.has(point.id) === true
+                )
               return (
                 <DraftPointProposeCard
                   key={idx}
@@ -685,9 +714,12 @@ function MessageAttachments({
                   draftTitle={hostTitle}
                   hostKind={manuscript ? "document" : "draft"}
                   point={point}
-                  accepted={!isProposeError && (manuscript || point.status === "accepted")}
+                  accepted={acceptedOnDocument}
+                  alreadyPresent={alreadyPresent}
                   failed={isProposeError}
                   failureReason={isProposeError ? sanitizeReceiptMessage(receipt.message) : undefined}
+                  onAccept={onAcceptDraftPoint}
+                  isAccepting={acceptingDraftPointId === point.id}
                   onOpenDraft={onOpenDraft}
                   onOpenPoint={
                     onOpenPoint
@@ -844,7 +876,7 @@ export interface DialogueMessageListProps {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>
   /** When true, suppress the in-list “is thinking…” line — Horizon owns working status. */
   horizonThinking?: boolean
-  /** @deprecated Legacy draft point accept — retained for KeeperDialogFrame pass-through */
+  /** Human Accept on a proposed Point card in this Dialog. */
   onAcceptDraftPoint?: (draftId: string, pointId: string) => void
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
@@ -878,6 +910,9 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenPoint,
   conversationDialogTitle,
   talkingDialogId,
+  onAcceptDraftPoint,
+  acceptedDraftPointIds,
+  acceptingDraftPointId,
 }) => (
   <div className="dialogue-message-list min-h-[24rem] space-y-4 overflow-x-hidden overflow-y-auto rounded-2xl px-4 py-4">
     {isLoading ? (
@@ -964,6 +999,9 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               onOpenPoint={onOpenPoint}
               conversationDialogTitle={conversationDialogTitle}
               talkingDialogId={talkingDialogId}
+              onAcceptDraftPoint={onAcceptDraftPoint}
+              acceptedDraftPointIds={acceptedDraftPointIds}
+              acceptingDraftPointId={acceptingDraftPointId}
             />
           </div>
         )
@@ -1061,6 +1099,7 @@ function foldVisibleActionResults(
   const visible = results.filter(isVisibleActionResult)
   const folded: NonNullable<AgentDialogueMessage["actionResults"]> = []
   let sawBareProposeError = false
+  const seenPointIds = new Set<string>()
   for (const actionResult of visible) {
     const receipt = normalizeActionReceipt(actionResult)
     if (receipt.type === "draft.update.propose" && receipt.status === "error") {
@@ -1070,6 +1109,16 @@ function foldVisibleActionResults(
       if (!hasBody) {
         if (sawBareProposeError) continue
         sawBareProposeError = true
+      }
+    }
+    if (receipt.type === "draft.update.propose" && receipt.status === "success") {
+      const pointId = receiptDraftPoint(receipt.data)?.id
+      if (receipt.data?.duplicate === true && seenPointIds.size > 0) {
+        continue
+      }
+      if (pointId) {
+        if (seenPointIds.has(pointId)) continue
+        seenPointIds.add(pointId)
       }
     }
     folded.push(actionResult)

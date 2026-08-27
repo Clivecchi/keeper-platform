@@ -37,6 +37,10 @@ import {
   isSupportEchoPrompt,
   type DraftDiscussContext,
   displayDraftHostTitle,
+  collapseDuplicateDraftProposeActions,
+  findDuplicateHostPoint,
+  pointProposeIdentityFrom,
+  buildSessionActionLogPrompt,
   shapeRecordTitle,
   isGlossAnchor,
   buildTalkingInWorkingOnPrompt,
@@ -138,9 +142,11 @@ import {
   hasSuccessfulPointPropose,
   resolvePointTurnActor,
   resolvePointTurnObligation,
+  shouldRunPointAskFollowUp,
   shouldRunPointObligationFollowUp,
   shouldRunPointRewriteFollowUp,
   stripLeadCastRollCall,
+  buildPointAskFollowUpInput,
   buildPointRewriteFollowUpInput,
   buildPointRewriteSystemPrompt,
   type PointTurnObligation,
@@ -342,13 +348,13 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW Points, use draft.update.propose with payload.content (body) and payload.prelude or payload.title (short story-label — not a cut of the body). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy, optional payload.closer, optional payload.moments ([{ title, narrative? }]), optional payload.referencesPointId, optional payload.section (Section title — Keeper creates it if missing), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. On journey drafts, each call appends a proposed point and the human must Accept in the UI. On document_manuscript Dialog Documents, propose lands as accepted (added) immediately — do not also call draft.point.accept.';
+    '- When adding NEW Points, use draft.update.propose with payload.content (body) and payload.prelude or payload.title (short story-label — not a cut of the body). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy, optional payload.closer, optional payload.moments ([{ title, narrative? }]), optional payload.referencesPointId, optional payload.section (Section title — Keeper creates it if missing), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. Each propose appends a proposed Point. Keeper shows a card in Dialog. The human taps Accept. Never ask "want me to add that as a Point?" — emit the action. Asking is not completion.';
   const rewritePoints =
     '- When REWRITING or RETITLING existing Points, use draft.point.rewrite. payload.pointId is the Chronicle number (1, 2, 3… from DIALOG DOCUMENT), the current title, or the Point UUID. Do not put that identity in payload.id — payload.id is the Draft, and Keeper fills it on a Dialog Document. payload.prelude or payload.title is the new Point title (a short label that tells the story). payload.content is the body; omit content to keep the body and only change the title. To retitle many Points, emit one rewrite per Point or payload.points: [{ pointId, title }]. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place. Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
-    '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id), draft.point.rewrite, or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
+    '- Never emit the same Point twice in one turn. If that Point is already on the Document, do not draft.update.propose again — Gloss it or draft.point.rewrite it. To retire a mistaken Point, document.reorganize.propose with change: retire.';
   const acceptPoints =
-    '- Do not emit draft.point.accept yourself unless you have exact draftId + pointId from a prior success receipt. Journey Accept is a human UI action. document_manuscript adds are already accepted by draft.update.propose.';
+    '- Do not emit draft.point.accept yourself unless you have exact draftId + pointId from a prior success receipt. Accept is a human UI action on the Point card.';
   const reorganizeDocument =
     agent.role === 'Lead' || agent.role === 'System'
       ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Include payload.title (Document name) and payload.forward: { title, description } when those should change. Do not silently rewrite accepted Points with draft.point.rewrite. Do not draft.update.propose a Point that is actually the Forward or the Document name. Chronicle shows Current vs Proposed; the human Applies. When they ask to rename or retitle Points on the live Document, that is draft.point.rewrite (prelude/title) — not a second reorganize.'
@@ -1099,7 +1105,7 @@ function buildRendrDesignBoardPrompt(
     'Include every field you intend to change; server merges with current Treatment and normalizes hex colors.',
     'Do NOT write Treatment directly — propose only. The human taps Apply in the dialog.',
     'Do NOT use draft.create for Treatment on Design Board.',
-    'When the human asks to add or propose Points: emit draft.update.propose this turn. Omit payload.id — Keeper writes Working on (the Chronicle Document or focused Draft). Do not draft.create. Do not pick a different Draft from draftsDirectory or session history. Narration or "let me read" without the action is not completion.',
+    'When the human asks to add or propose Points: emit draft.update.propose this turn. Omit payload.id — Keeper writes Working on (the Chronicle Document or focused Draft). Do not draft.create. Do not pick a different Draft from draftsDirectory or session history. Do not ask whether to add a Point — the card is the proposal; the human Accepts. Narration or "let me read" without the action is not completion.',
     'When the human asks for a NEW working Draft (not Points on Working on): draft.create with kind "draft" and payload.content for the first Point. Never kind document_manuscript.',
     RENDR_IDENTITY_LOCK,
   ].join('\n');
@@ -1283,7 +1289,8 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
       const body = title && preview && title !== preview
         ? `${title} — ${preview}`
         : title || preview;
-      lines.push(body ? `${index + 1}. ${body}` : `${index + 1}.`);
+      const waiting = point.status === 'proposed' ? '[proposed] ' : '';
+      lines.push(body ? `${index + 1}. ${waiting}${body}` : `${index + 1}.`);
     });
   } else {
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
@@ -1306,6 +1313,23 @@ function attachPointTurnObligation(
   const obligation = resolvePointTurnObligation(input, env);
   env.turnObligations = { ...(env.turnObligations ?? {}), point: obligation };
   return obligation;
+}
+
+function dialogDocumentWriteTarget(environment: unknown): {
+  dialogId?: string;
+  title?: string;
+  manuscriptDraftId?: string;
+} {
+  const doc = (
+    environment as {
+      dialogDocument?: { dialogId?: string; title?: string; manuscriptDraftId?: string };
+    } | null | undefined
+  )?.dialogDocument;
+  return {
+    dialogId: doc?.dialogId,
+    title: doc?.title,
+    manuscriptDraftId: doc?.manuscriptDraftId,
+  };
 }
 
 async function resolvePointObligationForRun(params: {
@@ -1423,6 +1447,7 @@ const GLOSS_SKIP_SUBSTITUTES = [
   'draft.create',
   'draft.setActive',
   'draft.point.rewrite',
+  'draft.update.propose',
   'document.reorganize.propose',
 ] as const;
 
@@ -1882,10 +1907,12 @@ export async function executeAgentActions(
     return { type: action.type, payload: out };
   }));
 
+  const collapsedActions = collapseDuplicateDraftProposeActions(normalizedActions);
+
   // Validate actions using canonical schema - FAIL FAST on validation errors
   let validatedActions: StructuredAgentAction[] = [];
   try {
-    const validationResult = safeParseActions({ type: ACTION_ENVELOPE_TYPE, actions: normalizedActions });
+    const validationResult = safeParseActions({ type: ACTION_ENVELOPE_TYPE, actions: collapsedActions });
     if (isActionParseSuccess(validationResult)) {
       validatedActions = validationResult.actions;
       logger.info({
@@ -1992,9 +2019,10 @@ export async function executeAgentActions(
                   action.type === 'draft.point.rewrite'
                   || action.type === 'draft.create'
                   || action.type === 'draft.setActive'
+                  || action.type === 'draft.update.propose'
                   || action.type === 'document.reorganize.propose'
                 )
-                ? 'Skipped — Gloss is depth on a Point. Use gloss.append; do not rewrite, create a Draft, or switch Working on.'
+                ? 'Skipped — Gloss is depth on a Point. Use gloss.append; do not rewrite, add a Point, create a Draft, or switch Working on.'
               : ctx.castAdviseOnly
                 && (
                   action.type === 'draft.update.propose'
@@ -2283,6 +2311,48 @@ export async function executeAgentActions(
               break;
             }
 
+            const proposeIdentity = pointProposeIdentityFrom({
+              prelude: typeof payload.prelude === 'string' ? payload.prelude : null,
+              title: typeof payload.title === 'string' ? payload.title : null,
+              content,
+            });
+            const duplicate = findDuplicateHostPoint(
+              parseDraftPoints(draft.spec_json),
+              proposeIdentity,
+            );
+            if (duplicate) {
+              const hostTitle = displayDraftHostTitle({
+                kind: draft.kind,
+                draftTitle: draft.title,
+                dialogTitle: ctx.dialogTitle,
+              });
+              lastProposedPoint = { draftId: draft.id, pointId: duplicate.id };
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Already on ${hostTitle} — did not add the same Point twice`,
+                data: {
+                  draftId: draft.id,
+                  draftTitle: hostTitle,
+                  dialogId: ctx.dialogId ?? undefined,
+                  dialogTitle: ctx.dialogTitle ?? undefined,
+                  hostTitle,
+                  point: duplicate,
+                  duplicate: true,
+                  draft: {
+                    id: draft.id,
+                    title: draft.title,
+                    kind: draft.kind,
+                    key: draft.key,
+                  },
+                  links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
+                  explicitRequest: ctx.pointObligationRequired === true,
+                  pointCount: 0,
+                },
+              });
+              break;
+            }
+
             const authorOverride =
               typeof payload.author === 'string' && payload.author.trim()
                 ? payload.author.trim()
@@ -2332,9 +2402,9 @@ export async function executeAgentActions(
               });
             }
 
-            // Dialog Documents are living work — adding a point lands it as accepted.
+            // Propose is the card. The human Accepts in Dialog.
             const isDocumentManuscript = draft.kind === 'document_manuscript';
-            const pointStatus = isDocumentManuscript ? 'accepted' : 'proposed';
+            const pointStatus = 'proposed';
 
             const point = createDraftPoint({
               content,
@@ -2397,9 +2467,7 @@ export async function executeAgentActions(
             results.push({
               type: action.type,
               status: 'success',
-              message: isDocumentManuscript
-                ? `Added ${typeLabel} to ${hostTitle}`
-                : `Proposed ${typeLabel} on ${hostTitle} — tap Accept to keep it`,
+              message: `Proposed ${typeLabel} on ${hostTitle} — tap Accept to keep it`,
               data: {
                 draftId: draft.id,
                 draftTitle: hostTitle,
@@ -5767,6 +5835,7 @@ export class KipAgentService {
             : 'INFRA / MCP OWNERSHIP: mcp.call is NOT in Lead Allowed actions. Never emit mcp.call. For Railway/Vercel/GitHub live data, use delegate.consult with agentSlug "cloud" (or cast-consult Cloud). Cloud owns mcp.call.',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
           'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
+          'Never ask "want me to add that as a Point?" Emit draft.update.propose. Keeper shows a card. The human Accepts.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
           '',
           buildSoleVsDraftDistinctionPrompt(),
@@ -6361,6 +6430,8 @@ export class KipAgentService {
               : 'INFRA / MCP OWNERSHIP: mcp.call is NOT in your Allowed actions. Never emit mcp.call. For Railway, Vercel, GitHub, or live infrastructure data, use delegate.consult with { "agentSlug": "cloud" } (Mechanism B), or rely on cast consultation of Cloud (Mechanism A). Cloud owns mcp.call and executes Railway/Vercel/GitHub tools.',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
+            'Never ask "want me to add that as a Point?" Emit draft.update.propose. Keeper shows a card. The human Accepts.',
+          'Never ask "want me to add that as a Point?" Emit draft.update.propose. Keeper shows a card. The human Accepts.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             '',
             buildSoleVsDraftDistinctionPrompt(),
@@ -6548,6 +6619,17 @@ export class KipAgentService {
           content: clipSessionHistoryContent(visible, indexFromEnd),
         });
       }
+
+      messages.push({
+        role: 'system',
+        content: buildSessionActionLogPrompt(
+          recentMessages.map((msg) => ({
+            sender: msg.sender,
+            created_at: msg.created_at,
+            metadata: msg.metadata,
+          })),
+        ),
+      });
 
       const continuity = resolveLeadThreadReply({
         userMessage: humanTurnTextForIntent(input, promptOptions?.displayContent),
@@ -7623,24 +7705,45 @@ export class KipAgentService {
           }
         }
 
-        if (
-          glossIntent !== 'required'
-          && reorganizeIntent !== 'required'
-          && pointObligation
+        const writeTarget = dialogDocumentWriteTarget(options?.environment);
+        const pointAskFollowUp = shouldRunPointAskFollowUp({
+          isTurnOwner: pointTurnActor === 'lead',
+          glossRequired: glossIntent === 'required',
+          actionResults,
+          responseText: finalResponseText,
+          manuscriptDraftId: pointObligation?.manuscriptDraftId ?? writeTarget.manuscriptDraftId,
+        });
+        const pointObligationFollowUp = Boolean(
+          pointObligation
           && shouldRunPointObligationFollowUp({
             obligation: pointObligation,
             actionResults,
             isTurnOwner: pointTurnActor === 'lead',
-          })
+          }),
+        );
+        if (
+          glossIntent !== 'required'
+          && reorganizeIntent !== 'required'
+          && (pointObligationFollowUp || pointAskFollowUp)
         ) {
           options?.onStatus?.('Adding Points to the Document…');
           options?.onReset?.();
-          const pointFollowUpInput = buildPointObligationFollowUpInput({
-            originalInput: input,
-            agentName: agent.name,
-            priorResponseText: finalResponseText,
-            obligation: pointObligation,
-          });
+          const pointFollowUpInput = pointObligationFollowUp && pointObligation
+            ? buildPointObligationFollowUpInput({
+                originalInput: input,
+                agentName: agent.name,
+                priorResponseText: finalResponseText,
+                obligation: pointObligation,
+              })
+            : buildPointAskFollowUpInput({
+                originalInput: input,
+                agentName: agent.name,
+                priorResponseText: finalResponseText,
+                manuscriptDraftId:
+                  pointObligation?.manuscriptDraftId ?? writeTarget.manuscriptDraftId ?? '',
+                dialogTitle: pointObligation?.dialogTitle ?? writeTarget.title,
+                dialogId: pointObligation?.dialogId ?? writeTarget.dialogId,
+              });
           const pointFollowUpResult = await this.callAIModel(
             agent,
             pointFollowUpInput,
@@ -8746,22 +8849,44 @@ export class KipAgentService {
           }
         }
 
-        if (
+        const systemWriteTarget = dialogDocumentWriteTarget(options?.environment);
+        const systemPointAskFollowUp = shouldRunPointAskFollowUp({
+          isTurnOwner: pointTurnActor === 'lead',
+          glossRequired: false,
+          actionResults,
+          responseText: finalResponseText,
+          manuscriptDraftId:
+            systemPointObligation?.manuscriptDraftId ?? systemWriteTarget.manuscriptDraftId,
+        });
+        const systemObligationFollowUp = Boolean(
           systemPointObligation
           && shouldRunPointObligationFollowUp({
             obligation: systemPointObligation,
             actionResults,
             isTurnOwner: pointTurnActor === 'lead',
-          })
-        ) {
+          }),
+        );
+        if (systemObligationFollowUp || systemPointAskFollowUp) {
           options?.onStatus?.('Adding Points to the Document…');
           options?.onReset?.();
-          const pointFollowUpInput = buildPointObligationFollowUpInput({
-            originalInput: input || '',
-            agentName: agent.name,
-            priorResponseText: finalResponseText,
-            obligation: systemPointObligation,
-          });
+          const pointFollowUpInput = systemObligationFollowUp && systemPointObligation
+            ? buildPointObligationFollowUpInput({
+                originalInput: input || '',
+                agentName: agent.name,
+                priorResponseText: finalResponseText,
+                obligation: systemPointObligation,
+              })
+            : buildPointAskFollowUpInput({
+                originalInput: input || '',
+                agentName: agent.name,
+                priorResponseText: finalResponseText,
+                manuscriptDraftId:
+                  systemPointObligation?.manuscriptDraftId
+                  ?? systemWriteTarget.manuscriptDraftId
+                  ?? '',
+                dialogTitle: systemPointObligation?.dialogTitle ?? systemWriteTarget.title,
+                dialogId: systemPointObligation?.dialogId ?? systemWriteTarget.dialogId,
+              });
           const pointFollowUpResult = await this.callAIModel(
             agent,
             pointFollowUpInput,

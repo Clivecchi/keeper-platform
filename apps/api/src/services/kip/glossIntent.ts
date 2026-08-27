@@ -19,7 +19,8 @@ const GLOSS_PATTERNS = [
   /\bweave .{0,40}into the (point )?body\b/i,
 ];
 
-const PRIOR_OFFERED_GLOSS = /\bgloss\b/i;
+const PRIOR_OFFERED_GLOSS =
+  /\b(?:want me to (?:add (?:it |that )?(?:as )?(?:a )?)?gloss|add it as a gloss|as a gloss|shall i gloss|gloss (?:that|this|it))\b/i;
 
 export function detectGlossIntent(
   userInput: string,

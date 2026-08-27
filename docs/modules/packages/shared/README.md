@@ -9,6 +9,9 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/index.ts` – public exports
 - `src/logger.ts` – simple console logger
 - `src/draftPoints.ts` – Draft Point types and `spec_json.points` helpers
+- `src/pointProposeIdentity.ts` – Same-Point identity / collapse duplicate `draft.update.propose`
+- `src/sessionActionLog.ts` – Session action receipts for the Lead prompt
+- `src/draftHostTitle.ts` – Document vs Draft name on Point receipts
 - `src/draftPointPromotion.ts` – `buildDraftPointPromotionPlan` for journey_spec point → Path/Moment mapping
 - `src/glossAnchor.ts` – `GlossAnchor` type + DOM attribute helpers
 - `src/glossThread.ts` – `GlossThread` types, thread keys, metadata upsert helpers
@@ -31,6 +34,12 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-08-26 — Session action log
+- `sessionActionLog.ts` — compact receipt list from `kip_messages.metadata.actionResults` (time, type, status, Point title). Narration is not evidence.
+
+### 2026-08-26 — Same Point twice
+- `pointProposeIdentity.ts` — Keeper owns Point dedupe. Identical body, or a distinctive title with the same opening body, is one Point. Cast Notes are ignored. Same-turn duplicate `draft.update.propose` actions collapse to the first.
 
 ### 2026-08-25 — Document title and Forward
 - `documentReorganize.ts` — Lead may propose Document name (`title`) and Forward. Identity-only proposals are valid. Apply writes Dialog identity.

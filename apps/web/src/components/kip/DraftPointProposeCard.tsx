@@ -17,6 +17,8 @@ export interface DraftPointProposeCardProps {
   accepted?: boolean
   failed?: boolean
   failureReason?: string
+  /** True when Keeper refused a second copy of a Point already on the host. */
+  alreadyPresent?: boolean
   /** Document vs working Draft — drives "Open in Document" copy. */
   hostKind?: "document" | "draft"
 }
@@ -39,13 +41,16 @@ export const DraftPointProposeCard: React.FC<DraftPointProposeCardProps> = ({
   accepted = false,
   failed = false,
   failureReason,
+  alreadyPresent = false,
   hostKind = "draft",
 }) => {
   const typeLabel = TYPE_LABELS[point.type] ?? "Point"
   const hostLabel = hostKind === "document" ? "Document" : "Draft"
   const heading = failed
     ? `Not added · ${typeLabel.toLowerCase()}`
-    : `${accepted ? "Added" : "Proposed"} ${typeLabel.toLowerCase()}`
+    : alreadyPresent
+      ? `Already on this ${hostLabel.toLowerCase()}`
+      : `${accepted ? "Added" : "Proposed"} ${typeLabel.toLowerCase()}`
   const handleOpen = onOpenPoint
     ? () => onOpenPoint(draftId, point.id)
     : onOpenDraft
