@@ -38,6 +38,7 @@ import { parseEngagementTemplateResponse } from "./engagement/parseEngagementTem
 import { apiFetch } from "../../lib/api"
 import { GuidedArrivalProvider } from "../guidedArrival/GuidedArrivalContext"
 import { clearPrefetchedDialogSession } from "./domain/dialogSessionPrefetch"
+import { nextWorkspaceSurface } from "./workspaceSurface"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -236,10 +237,14 @@ export interface UniversalBoardActions {
   onSetCuedCastMembers: (slugs: ReadonlyArray<CastMemberSlug>) => void
   openChronicleDocument: (options: { dialogId: string; pointId?: string | null; breadcrumb?: string[] | null }) => void
   setChroniclePanelMode: (mode: ChroniclePanelMode) => void
-  /** Center workspace: Dialog (time) or Stage (space). Survives board switches. */
+  /** Center workspace: Dialog (time) or Stage (space). Board switch leaves Stage. */
   setWorkspaceSurface: (surface: WorkspaceSurface) => void
   /** Realm Nav launch — enter Stage room, close Library overlay. Does not change ?board=. */
   openStageRoom: () => void
+  /** Leave Stage and close Reach. Used by Nav, board switch, and the Stage toggle. */
+  leaveStageRoom: () => void
+  /** Open Stage if in Dialog; leave Stage if already there. */
+  toggleStageRoom: () => void
   openComposerReach: () => void
   closeComposerReach: () => void
   toggleComposerReach: () => void
@@ -401,26 +406,47 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
   const [libraryScreenOpen, setLibraryScreenOpen] = React.useState(false)
+  const [workspaceSurface, setWorkspaceSurfaceState] = React.useState<WorkspaceSurface>("dialog")
+  const [composerReachOpen, setComposerReachOpen] = React.useState(false)
+  const stayOnStageRef = React.useRef(false)
+
+  const leaveStageRoom = React.useCallback(() => {
+    setWorkspaceSurfaceState(nextWorkspaceSurface("leave-stage"))
+    setComposerReachOpen(false)
+  }, [])
+
+  const leaveStageOnPlatformNav = React.useCallback(() => {
+    if (stayOnStageRef.current) return
+    setWorkspaceSurfaceState(nextWorkspaceSurface("platform-nav"))
+    setComposerReachOpen(false)
+  }, [])
 
   const openLibraryScreen = React.useCallback(() => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(true)
-  }, [])
+  }, [leaveStageOnPlatformNav])
 
   const closeLibraryScreen = React.useCallback(() => {
     setLibraryScreenOpen(false)
   }, [])
 
-  const [workspaceSurface, setWorkspaceSurfaceState] = React.useState<WorkspaceSurface>("dialog")
-  const [composerReachOpen, setComposerReachOpen] = React.useState(false)
-
   const setWorkspaceSurface = React.useCallback((surface: WorkspaceSurface) => {
     setWorkspaceSurfaceState(surface)
+    if (surface === "dialog") setComposerReachOpen(false)
   }, [])
 
   const openStageRoom = React.useCallback(() => {
     setLibraryScreenOpen(false)
-    setWorkspaceSurfaceState("stage")
+    setWorkspaceSurfaceState(nextWorkspaceSurface("open-stage"))
   }, [])
+
+  const toggleStageRoom = React.useCallback(() => {
+    if (workspaceSurface === "stage") {
+      leaveStageRoom()
+      return
+    }
+    openStageRoom()
+  }, [leaveStageRoom, openStageRoom, workspaceSurface])
 
   const openComposerReach = React.useCallback(() => {
     setLibraryScreenOpen(false)
@@ -456,6 +482,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   )
 
   const onDialogSelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedDialogId(id)
@@ -476,7 +503,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
     setLibraryWorkspaceOverlayId(null)
     setDialogNow((prev) => (prev && prev.dialogId !== id ? null : prev))
-  }, [clearDraftIdFromUrl, shell])
+  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav, shell])
 
   const openChronicleDocument = React.useCallback((options: {
     dialogId: string
@@ -494,6 +521,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [onDialogSelect])
 
   const onJourneySelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedJourneyId(id)
@@ -509,9 +537,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl])
+  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
 
   const onPathSelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedPathId(id)
@@ -526,9 +555,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl])
+  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
 
   const onMomentSelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedMomentId(id)
@@ -544,13 +574,14 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl])
+  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
 
   const onMomentClear = React.useCallback(() => {
     setSelectedMomentId(null)
   }, [])
 
   const onKeeperSelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedKeeperId(id)
@@ -566,9 +597,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl])
+  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
 
   const onDraftSelect = React.useCallback((id: string, options?: { dialogId?: string | null }) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(id)
@@ -593,9 +625,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       },
       { replace: true },
     )
-  }, [setSearchParams])
+  }, [leaveStageOnPlatformNav, setSearchParams])
 
   const onAgentSelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setTrainingMode(false)
@@ -612,9 +645,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl])
+  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
 
   const onServiceOpen = React.useCallback((slug: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedServiceSlug(slug)
     setSelectedDialogId(null)
@@ -629,9 +663,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [])
+  }, [leaveStageOnPlatformNav])
 
   const onKeySelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedKeyId(id)
     setSelectedCapabilityId(null)
@@ -647,9 +682,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
-  }, [])
+  }, [leaveStageOnPlatformNav])
 
   const onCapabilitySelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedCapabilityId(id)
     setSelectedKeyId(null)
@@ -665,9 +701,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
-  }, [])
+  }, [leaveStageOnPlatformNav])
 
   const onLibraryItemSelect = React.useCallback((id: string) => {
+    leaveStageOnPlatformNav()
     // Library sits over Dialog — keep the conversation, show the item in Chronicle.
     setSelectedLibraryItemId(id)
     setSelectedGlossaryId(null)
@@ -683,7 +720,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
     setLibraryWorkspaceOverlayId(null)
-  }, [])
+  }, [leaveStageOnPlatformNav])
 
   const presentDialogNow = React.useCallback((item: DialogNowLibraryItem) => {
     setDialogNow(item)
@@ -711,52 +748,57 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onWorkTargetFromStage = React.useCallback((target: { kind: StagePresenceKind; objectId: string }) => {
-    const talkingIn = selectedDialogId
-    setComposerReachOpen(false)
-    if (target.kind === "dialog") {
-      onDialogSelect(target.objectId)
-      return
-    }
-    if (target.kind === "draft") {
-      onDraftSelect(target.objectId, { dialogId: talkingIn })
-      return
-    }
-    if (target.kind === "library") {
-      onLibraryItemSelect(target.objectId)
-      return
-    }
+    stayOnStageRef.current = true
+    try {
+      const talkingIn = selectedDialogId
+      setComposerReachOpen(false)
+      if (target.kind === "dialog") {
+        onDialogSelect(target.objectId)
+        return
+      }
+      if (target.kind === "draft") {
+        onDraftSelect(target.objectId, { dialogId: talkingIn })
+        return
+      }
+      if (target.kind === "library") {
+        onLibraryItemSelect(target.objectId)
+        return
+      }
 
-    setLibraryScreenOpen(false)
-    clearDraftIdFromUrl()
-    setSelectedJourneyId(null)
-    setSelectedPathId(null)
-    setSelectedMomentId(null)
-    setSelectedKeeperId(null)
-    setSelectedDraftId(null)
-    setSelectedAgentId(null)
-    setSelectedServiceSlug(null)
-    setSelectedKeyId(null)
-    setSelectedCapabilityId(null)
-    setSelectedLibraryItemId(null)
-    setSelectedGlossaryId(null)
-    setSelectedBoardDefId(null)
-    setSelectedDialogId(talkingIn)
+      setLibraryScreenOpen(false)
+      clearDraftIdFromUrl()
+      setSelectedJourneyId(null)
+      setSelectedPathId(null)
+      setSelectedMomentId(null)
+      setSelectedKeeperId(null)
+      setSelectedDraftId(null)
+      setSelectedAgentId(null)
+      setSelectedServiceSlug(null)
+      setSelectedKeyId(null)
+      setSelectedCapabilityId(null)
+      setSelectedLibraryItemId(null)
+      setSelectedGlossaryId(null)
+      setSelectedBoardDefId(null)
+      setSelectedDialogId(talkingIn)
 
-    if (target.kind === "agent") {
-      setTrainingMode(false)
-      setSelectedAgentId(target.objectId)
-      return
-    }
-    if (target.kind === "journey") {
-      setSelectedJourneyId(target.objectId)
-      return
-    }
-    if (target.kind === "keeper") {
-      setSelectedKeeperId(target.objectId)
-      return
-    }
-    if (target.kind === "moment") {
-      setSelectedMomentId(target.objectId)
+      if (target.kind === "agent") {
+        setTrainingMode(false)
+        setSelectedAgentId(target.objectId)
+        return
+      }
+      if (target.kind === "journey") {
+        setSelectedJourneyId(target.objectId)
+        return
+      }
+      if (target.kind === "keeper") {
+        setSelectedKeeperId(target.objectId)
+        return
+      }
+      if (target.kind === "moment") {
+        setSelectedMomentId(target.objectId)
+      }
+    } finally {
+      stayOnStageRef.current = false
     }
   }, [
     selectedDialogId,
@@ -767,6 +809,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   ])
 
   const onGlossarySelect = React.useCallback(() => {
+    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedGlossaryId(OBJECT_GLOSSARY_SUBJECT_ID)
     setSelectedLibraryItemId(null)
@@ -783,7 +826,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedCapabilityId(null)
     setSelectedBoardDefId(null)
     shell?.clearBoardDefinition()
-  }, [shell])
+  }, [leaveStageOnPlatformNav, shell])
 
   const onSoleMemorySelect = React.useCallback((id: string | null) => {
     setSelectedSoleMemoryId(id)
@@ -845,6 +888,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onBoardDefSelect = React.useCallback((id: string | null) => {
+    if (id) leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedBoardDefId(id)
     if (id) {
@@ -862,7 +906,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setSelectedLibraryItemId(null)
       setSelectedGlossaryId(null)
     }
-  }, [])
+  }, [leaveStageOnPlatformNav])
 
   // Design deep-link: read `?definition=` once into Nav context. Context is the
   // subject after that — URL must not override Dialog/Draft/Glossary.
@@ -1059,9 +1103,19 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setTrainingMode(false)
     setActiveCastMember(null)
     setComposerReachOpen(false)
-    setWorkspaceSurfaceState("dialog")
+    setWorkspaceSurfaceState(nextWorkspaceSurface("domain-change"))
     shell?.clearBoardDefinition()
   }, [shell?.domainSlug, shell, clearSelection, closeChronicleEngagement, closeDialogIngest])
+
+  const prevWorkspaceBoardIdRef = React.useRef(shell?.workspaceBoardId ?? null)
+  React.useEffect(() => {
+    const nextBoardId = shell?.workspaceBoardId ?? null
+    const prevBoardId = prevWorkspaceBoardIdRef.current
+    prevWorkspaceBoardIdRef.current = nextBoardId
+    if (!prevBoardId || !nextBoardId || prevBoardId === nextBoardId) return
+    setWorkspaceSurfaceState(nextWorkspaceSurface("board-change"))
+    setComposerReachOpen(false)
+  }, [shell?.workspaceBoardId])
 
   const requestChronicleEngagement = React.useCallback(
     async (slug: string, context: EngagementContext) => {
@@ -1265,6 +1319,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         setChroniclePanelMode,
         setWorkspaceSurface,
         openStageRoom,
+        leaveStageRoom,
+        toggleStageRoom,
         openComposerReach,
         closeComposerReach,
         toggleComposerReach,
@@ -1379,6 +1435,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setChroniclePanelMode,
       setWorkspaceSurface,
       openStageRoom,
+      leaveStageRoom,
+      toggleStageRoom,
       openComposerReach,
       closeComposerReach,
       toggleComposerReach,

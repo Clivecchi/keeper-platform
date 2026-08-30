@@ -80,9 +80,11 @@ type DialogCueingMode =
 
 | Doc | Covers |
 |---|---|
-| `docs/dialog-cueing-plan.md` | Rename + behavior plan |
+| `docs/dialog-cueing-plan.md` | Rename + behavior plan; Cast Management follow-up (2026-08-30) |
 | `docs/universal-board-dialog-orchestration.md` | Legacy name — see stub |
 | `apps/web/src/v0/boards/UniversalBoardDefinition.ts` | Board def source of truth |
+
+**Style vs Cueing:** they are separate fields. Style must not auto-cue Cast. See the Cast Management follow-up on the plan — unique voice per agent is planned there, not as a second room Style.
 
 ---
 
@@ -90,4 +92,5 @@ type DialogCueingMode =
 
 | Date | Change |
 |---|---|
+| 2026-08-30 | Domain/Realm Style → Directed. Cast Management follow-up: Style/Cueing contract + unique agent voice. |
 | 2026-08-03 | Renamed Orchestration/Instruments → Cueing/Cast; empty cues = Lead only; header Cueing label |

@@ -95,9 +95,49 @@
 
 ## Success criteria
 
-- [ ] No user-facing “orchestration” / “instrument” on Dialog chrome
-- [ ] Code identifiers use Cue/Cast (grep-clean for old board-def fields)
-- [ ] Realm does not auto-cue full Cast
-- [ ] Empty cues → plain Lead turn
-- [ ] Header shows Cueing mode
-- [ ] Production deploy live
+- [x] No user-facing “orchestration” / “instrument” on Dialog chrome
+- [x] Code identifiers use Cue/Cast (grep-clean for old board-def fields)
+- [x] Realm does not auto-cue full Cast *(Directed Style, 2026-08-30 — Vibe still auto-cues when that Style is chosen)*
+- [x] Empty cues → plain Lead turn
+- [x] Header shows Cueing mode
+- [x] Production deploy live
+
+---
+
+## Follow-up — Cast Management (2026-08-30)
+
+> Chuck, after the Directed Style deploy. Not a build lock. Do not start this as the next slice.
+
+The Style / Cueing split is real in the header (`Style: Directed · Cueing: Directed`) and still weak as a contract. **Vibe + Directed Cueing fought:** Vibe auto-cued Cloud and Rendr on every turn, then the Lead prompt told Kip not to direct the Document. Kip reported Cast instead of directing. That is a Cast Management problem, not a one-off prompt bug.
+
+### Three things that must stay distinct
+
+| Term | Means | Must not secretly do |
+|---|---|---|
+| **Cueing** | Who is on stage this turn | Change how anyone speaks |
+| **Dialog Style** | Room rhythm (Directed vs Vibe) | Auto-cue Cast, or forbid the Director from directing |
+| **Voice** | How *this* agent speaks | A second room Style, or a shared Cast essay voice |
+
+Vibe may remain a Style. It must not override Cueing. Directed Cueing means: Director only until the human cues Cast.
+
+### What to build (later)
+
+**Cast Management** — a real Config surface for who is in the room and how they behave. Not a new board. Chronicle Config / existing Agent Manage family. Review what already exists before inventing primitives: `boardCast`, `DialogCastMember`, Agent Config (`kip_agents`), SOLE, Agency control plane.
+
+Config that belongs here:
+
+1. **Roster** — who may be Cast on this Dialog / Domain / Board
+2. **Style vs Cueing contract** — Style cannot silently change who is cued
+3. **Per-agent voice** — each Cast member should have a unique voice style (Kip, Cloud, Rendr are not the same speaker). Room Style is shared; voice is personal
+4. **Director obligation** — when asked to review / rearrange the Document, Lead proposes; Cast is evidence, not the answer — even if they are already cued
+
+### What we will not do in this chapter
+
+- Invent Stage/Cast contract primitives before Cloud reviews existing Agent governance (same hold as Stage Slice 5)
+- Treat Vibe as broken and delete it — it is a Style; it needs a contract
+- Start Cast Management before Stage Slice 2–4 unless Chuck switches tracks
+
+### Parked with this chapter
+
+- Elevate offstage Cast into the UI (already out of scope on the 2026-08-03 pass)
+- Unique voice as data on the agent (not a hardcoded prompt branch per slug)

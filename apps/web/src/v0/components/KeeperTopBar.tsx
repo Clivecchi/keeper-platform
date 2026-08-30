@@ -266,6 +266,7 @@ export function KeeperTopBar({
   )
 
   const handleBoardClick = (id: WorkspaceBoardId) => {
+    board?.actions.leaveStageRoom()
     switchWorkspace(id)
   }
 
@@ -354,7 +355,7 @@ export function KeeperTopBar({
               <>
                 <button
                   type="button"
-                  onClick={() => board?.actions.setWorkspaceSurface(board.workspaceSurface === "stage" ? "dialog" : "stage")}
+                  onClick={() => board?.actions.toggleStageRoom()}
                   className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
                   aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Keeper Stage"}
                   aria-pressed={board?.workspaceSurface === "stage"}
@@ -485,7 +486,7 @@ export function KeeperTopBar({
             <>
               <button
                 type="button"
-                onClick={() => board?.actions.setWorkspaceSurface(board.workspaceSurface === "stage" ? "dialog" : "stage")}
+                onClick={() => board?.actions.toggleStageRoom()}
                 className={clsx(
                   "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
                   board?.workspaceSurface === "stage" ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",

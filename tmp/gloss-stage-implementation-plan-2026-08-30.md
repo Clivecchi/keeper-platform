@@ -30,24 +30,29 @@ At rest, Chronicle is a tight cue-card reading that can live in 15%.
 Click a card: that pane widens while working the card, then returns to 15%.
 Nav stays 15% unless Chuck later asks it to widen the same way.
 
-Slice 3 — New Composer on this path
-Replace KeeperComposerSheet on Realm Stage only.
-Composer opens above the Stage surface (desktop-first instrument).
-First job: reach — WHO / WHAT / WITH — bring real Keeper objects onto Stage.
-Then direction: contextual role, intent, output toward Keeper-native results.
-AgentComposer stays the Dialog Turn floor until Stage use shows whether Turns belong inside Composer.
+Slice 3 — Elevate Composer above Stage (Chuck locked, 2026-08-30)
+Composer is the Turn box: “Share your thoughts…”, attach, send, Agents. When Chuck says Composer, he means that.
+
+Elevate Composer above the Stage so it can hold Agency, Stage context, and tools. Composer does not live in Chronicle.
+
+Composer works with Chronicle: Chronicle renders Composer tools such as Reach.
+
+Stage Chat (whole table) and object focus (one presence → Chronicle) still belong in this slice. Auto-bind the Dialog already on Stage so speaking does not require a card click.
 
 Slice 4 — Presence that belongs in the room
-Replace KeeperStageCanvas look and interaction so presence is legible at 70% width.
-Keep the composition contract (references, not clones; selected ≠ working on).
-Close the coordinate gap: inspect without silently retargeting work.
-First proof still: Kip + Finding the Plot, send a Turn, Dialog ↔ Stage continuity.
+Replace KeeperStageCanvas look so presence is the screenplay, not a picker.
+Agency (Role / Direction) leaves the Stage floor; it belongs in Composer/Chronicle.
+Keep references, not clones. Selected ≠ silently retargeting Stage Chat.
+First proof: enter Stage with Finding the Plot already on it → speak immediately → Chronicle still shows the story.
 
 Slice 5 — Later, not now
 Domain Stage as a public/member Domain experience.
 Invitation + permanent inviting-Domain.
 Cloud review of Agent governance before Stage/Cast contract primitives.
 Rendr / Theatre.js as full Stage presentation.
+
+Cast Management (Chuck, 2026-08-30 — parked here, specified in `docs/dialog-cueing-plan.md`)
+Style and Cueing can fight (Vibe auto-cued Cast while Cueing said Directed). Build Cast Management and the config around it: roster, Style/Cueing contract, and unique voice style per agent. Not the next Stage slice.
 
 What we will not do
 Do not create a Stage board or `?board=stage`.

@@ -34,6 +34,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-08-30: `KeeperTopBar` Realm · Domain · Build · Design · Agent leave Stage. Stage control toggles the room.
 - 2026-08-22: `KeeperTopBar` profile menu — **Larger type** On/Off (comfortable density). Default is On.
 - 2026-08-30: `KeeperTopBar` Stage + **Reach** (was mislabeled Composer). Reach is a Composer feature.
 - 2026-08-22: `KeeperTopBar` — Stage + Reach controls on desktop and adaptive mobile (not a fourth column).

@@ -1686,13 +1686,13 @@ export function UniversalNavPanel({
           <SidebarCard
             className="keeper-sidebar-card"
             title="Stage"
-            description="Opens the Stage room"
+            description="Opens the Stage room — click again to leave"
             items={[
               {
                 id: "stage-open",
                 label: boardCtx?.workspaceSurface === "stage" ? "On Stage" : "Open Stage",
                 isSelected: boardCtx?.workspaceSurface === "stage",
-                onClick: () => boardCtx?.actions.openStageRoom(),
+                onClick: () => boardCtx?.actions.toggleStageRoom(),
               },
             ]}
           />

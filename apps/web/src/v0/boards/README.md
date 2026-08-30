@@ -9,6 +9,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `board-readability.css` — Aging-eyes type, spacing, and quieter Chronicle chrome
 - `UniversalNavPanel.tsx` — Left nav with Universal / Keepers / Config panes; default for every board
 - `navPanes.ts` — Pane membership (Universal · Keepers · Config) and Config block order
+- `workspaceSurface.ts` — Dialog vs Stage room; platform navigation leaves Stage
 - `LibraryScreen.tsx` — Library media browser over Dialog (poster cards, shelves, search); selected item renders in Chronicle
 - `libraryBrowse.ts` — Library kind / category / rail grouping for the media browser
 - `LibraryMediaCard.tsx` / `LibraryBrowseRail.tsx` — poster card and horizontal shelf
@@ -37,6 +38,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-30 — Stage no longer traps navigation
+- Stage is a room on the current Board, not a board switch. Realm · Domain · Build · Design · Agent, and Nav subjects (Dialog, Draft, Library, …), leave Stage.
+- Clicking a presence on Stage stays on Stage (Chronicle inspect). Stage Nav item toggles Open / On Stage.
+- Composer is the Turn box (`AgentComposer`), elevated above Stage later. It does not live in Chronicle. Chronicle renders Composer tools such as Reach.
 
 ### 2026-08-30 — Directed Style: Kip directs the Document
 - Domain and Realm `dialogStyle` is **directed** (was vibe). Cast is not auto-cued. Document-review turns skip Cast consult so Lead proposes instead of reporting Cloud/Rendr.
