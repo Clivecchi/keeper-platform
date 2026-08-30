@@ -1,7 +1,7 @@
 # Reach + Stage
 
 ## 📌 Purpose
-Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument). On Stage, Composer is elevated above the table. **Reach** is a Composer tool that Chronicle renders.
+Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument) at the bottom. On Stage it is a lectern over the table — same place, more function (Agency, Reach in Chronicle).
 
 ## 🧱 Key Files
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
@@ -27,8 +27,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 
 ## 📆 Update Log
 
-### 2026-08-30 — Composer above Stage
-- Composer is elevated above the Stage table. Agency moved into Composer. Reach moved into Chronicle. Overlay sheet removed.
+### 2026-08-30 — Composer lectern on Stage
+- Composer stays at the bottom and stands over the Stage (orchestra pit). Agency is in Composer. Reach is in Chronicle. Elevation is function, not a move to the top.
 
 ### 2026-08-30 — Reach is not Composer
 - Sheet, Stage empty state, and top-bar control are labeled **Reach**. Composer is `AgentComposer`; Reach opens from Composer and as a shortcut.

@@ -789,14 +789,20 @@ button.dialog-prelude:hover {
   position: relative;
 }
 
-.keeper-dialog-frame[data-composer-placement="above"] .dialog-bottom-zone {
-  padding-top: 6px;
-  padding-bottom: 10px;
+/* Stage lectern — Composer stays at the bottom and stands over the Stage, like an orchestra pit. */
+.keeper-dialog-frame[data-composer-placement="pit"] .dialog-bottom-zone {
+  z-index: 6;
+  margin: -36px var(--dialog-column-pad) 10px;
+  padding: 10px 12px 12px;
+  border-radius: 16px 16px 12px 12px;
+  background: hsl(var(--theme-surface-panel) / 0.9);
+  box-shadow:
+    0 -12px 40px hsl(var(--theme-ink-primary) / 0.2),
+    0 4px 18px hsl(var(--theme-ink-primary) / 0.1);
 }
 
-.keeper-dialog-frame[data-composer-placement="above"] .dialog-bottom-zone::before {
-  top: auto;
-  bottom: 0;
+.keeper-dialog-frame[data-composer-placement="pit"] .dialog-bottom-zone::before {
+  display: none;
 }
 
 .dialog-bottom-zone::before {

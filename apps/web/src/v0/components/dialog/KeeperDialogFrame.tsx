@@ -8,10 +8,12 @@
  * Canonical surfaces (product language):
  *   Header Bar   — expandable breadcrumb / session meta (`.dialog-header-banner`)
  *   Dialog Space — scrollable messages above the Horizon (`.dialog-message-zone`)
- *   Composer        — user input; below Dialog Space, above Stage.
+ *   Composer        — user input at the bottom (`.dialog-bottom-zone`).
  *     composing    — input only; optional post-run summary atop composer
  *     working      — Broadcast Strip (live + ticker) + input
- *     Stage        — `data-composer-placement="above"`; Agency sits in Composer. Reach opens in Chronicle.
+ *     Stage        — same bottom place; lectern/pit over the Stage
+ *                    (`data-composer-placement="pit"`). Agency in Composer.
+ *                    Reach opens in Chronicle. Elevation is function, not a move to the top.
  *
  * While sending: Broadcast Strip expands with live beat + prior story beats.
  * After the reply lands: strip collapses; a one-line dialogic summary sits atop
@@ -535,12 +537,12 @@ export function KeeperDialogFrame({
     isMobileStaged
     && (mobileDialogStage === "response" || mobileDialogStage === "thinking")
 
-  const composerAbove = Boolean(dialogContent) && mode !== "feed"
+  const composerOnStage = Boolean(dialogContent) && mode !== "feed"
 
   const composerZone = mode === "feed" ? null : (
       <div className="dialog-bottom-zone">
         <div className="dialog-column dialog-bottom-stack">
-          {composerAbove && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
+          {composerOnStage && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
           {postRunSummary && (
             <div className="dialog-composer-horizon" aria-live="polite">
               <p className="dialog-composer-horizon-summary">{postRunSummary}</p>
@@ -623,7 +625,7 @@ export function KeeperDialogFrame({
     <div
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
-      data-composer-placement={composerAbove ? "above" : "below"}
+      data-composer-placement={composerOnStage ? "pit" : "floor"}
       data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
       data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
@@ -893,40 +895,7 @@ export function KeeperDialogFrame({
         />
       ) : null}
 
-      {composerAbove ? composerZone : null}
-
-      {composerAbove && showBroadcastStrip ? (
-      <div
-        ref={broadcastStripRef}
-        className={[
-          "dialog-broadcast-strip",
-          isWorking ? " dialog-broadcast-strip--working" : "",
-          hasUploads && !isWorking ? " dialog-broadcast-strip--uploads" : "",
-          isMobileStaged && mobileDialogStage === "composing" && hasUploads
-            ? " dialog-broadcast-strip--mobile-composing"
-            : "",
-        ].join("")}
-      >
-        <div className="dialog-broadcast-scanlines" aria-hidden="true" />
-        <div className="dialog-column dialog-broadcast-inner">
-          {isWorking ? (
-            <DialogBroadcastStrip
-              liveLabel={broadcastLiveLabel}
-              steps={thinkingSteps}
-              agentName={agentName}
-              isActive={isWorking}
-            />
-          ) : (
-            <DialogUploadStream
-              attachments={pendingAttachments}
-              onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
-            />
-          )}
-        </div>
-      </div>
-      ) : null}
-
-      {/* ── Dialog Space — messages scroll above the Horizon; Stage when elevated Composer ── */}
+      {/* ── Dialog Space — messages, or the Stage table. Composer stays at the bottom. ── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
         <div ref={scrollRef} className="dialog-message-surface">
@@ -1019,8 +988,8 @@ export function KeeperDialogFrame({
         <DialogScrollRail scrollRef={scrollRef} />
         <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
 
-        {/* Horizon dissolve — Dialog only. Stage has Composer above, so no floor fade. */}
-        {mode !== "feed" && !composerAbove && (
+        {/* Horizon dissolve — Dialog floor. Stage uses the lectern instead. */}
+        {mode !== "feed" && !composerOnStage && (
           <div
             className={[
               "dialog-horizon-band",
@@ -1034,7 +1003,7 @@ export function KeeperDialogFrame({
 
       {isMobileStaged && mobileDialogStage === "response" ? mobileResponseToolbar : null}
 
-      {!composerAbove && showBroadcastStrip ? (
+      {showBroadcastStrip ? (
         <div
           ref={broadcastStripRef}
           className={[
@@ -1065,7 +1034,7 @@ export function KeeperDialogFrame({
         </div>
       ) : null}
 
-      {!composerAbove ? composerZone : null}
+      {composerZone}
 
       <DialogDebugOverlay open={debugPanelOpen} onClose={() => setDebugPanelOpen(false)} />
 

@@ -53,7 +53,7 @@ export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | 
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col" style={{ paddingBottom: 8 }}>
       <div className="flex items-center justify-between gap-3 px-3 py-2">
         <div>
           <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>

@@ -39,8 +39,8 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
-### 2026-08-30 — Composer above Stage; Reach in Chronicle
-- On Stage, Composer sits above the table. Agency is in Composer. Reach renders in Chronicle (`ReachChroniclePresence`), not a sheet over the Stage.
+### 2026-08-30 — Composer lectern on Stage; Reach in Chronicle
+- On Stage, Composer stays at the bottom and stands over the table (lectern / orchestra pit). Agency is in Composer. Reach renders in Chronicle. Elevation is function, not a move to the top.
 
 ### 2026-08-30 — Stage no longer traps navigation
 - Stage is a room on the current Board, not a board switch. Realm · Domain · Build · Design · Agent, and Nav subjects (Dialog, Draft, Library, …), leave Stage.
