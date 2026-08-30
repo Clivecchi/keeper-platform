@@ -43,6 +43,10 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-08-30 — Agent name save was blaming empty Purpose
+- `buildAgentChroniclePatchBody` omits blank optional fields so renaming an agent (e.g. `liv`) is not rejected.
+- `parseChroniclePatchFieldErrors` maps Zod `details[].path` onto the real field instead of pinning “Validation error” on Name.
+
 ### 2026-08-30 — Config header name is the name
 - `ChronicleConfigShell` accepts `onNameChange` so Agent and Domain names edit in the identity header.
 

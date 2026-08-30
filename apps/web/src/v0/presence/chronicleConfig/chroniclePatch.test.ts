@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest"
 import {
+  buildAgentChroniclePatchBody,
   handleChronicleSave,
+  parseChroniclePatchFieldErrors,
   resolveChronicleFramePatchEndpoint,
   resolveChroniclePatchEndpoint,
 } from "./chroniclePatch"
@@ -23,6 +25,50 @@ describe("resolveChroniclePatchEndpoint", () => {
 
   it("does not invent a boardDef persistence route (code-defined)", () => {
     expect(resolveChroniclePatchEndpoint("boardDef", "domain", "dom-uuid")).toBe("")
+  })
+})
+
+describe("buildAgentChroniclePatchBody", () => {
+  it("keeps a short name and omits blank optional fields", () => {
+    const body = buildAgentChroniclePatchBody(
+      {
+        name: "liv",
+        purpose: "",
+        tagline: "   ",
+        model_provider: "",
+        visibility: "",
+        lensSystemPrompt: "short",
+        memory_enabled: "true",
+      },
+      "dom-1",
+    )
+    expect(body).toEqual({
+      domainId: "dom-1",
+      name: "liv",
+      memory_enabled: true,
+    })
+  })
+})
+
+describe("parseChroniclePatchFieldErrors", () => {
+  it("maps Zod purpose failure onto purpose, not name", () => {
+    const errors = parseChroniclePatchFieldErrors(
+      {
+        status: 400,
+        data: {
+          error: "Validation error",
+          details: [
+            {
+              path: ["purpose"],
+              message: "String must contain at least 1 character(s)",
+            },
+          ],
+        },
+      },
+      ["name", "purpose", "tagline"],
+    )
+    expect(errors.purpose).toBe("Purpose cannot be empty.")
+    expect(errors.name).toBeUndefined()
   })
 })
 

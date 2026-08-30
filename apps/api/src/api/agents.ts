@@ -174,14 +174,22 @@ function shouldAppendAvatarThemeBit(body: {
   return false;
 }
 
+/** Empty optional strings mean "leave unchanged" — Chronicle Save sends every field. */
+function blankToUndefined(value: unknown): unknown {
+  return typeof value === 'string' && value.trim() === '' ? undefined : value;
+}
+
 const patchAgentSchema = z
   .object({
     name: z.string().min(1).max(100).optional(),
-    purpose: z.string().min(1).max(500).optional(),
-    model: z.string().min(1).max(100).optional(),
-    model_provider: z.enum(['openai', 'anthropic', 'together-ai', 'elevenlabs']).optional(),
+    purpose: z.preprocess(blankToUndefined, z.string().min(1).max(500).optional()),
+    model: z.preprocess(blankToUndefined, z.string().min(1).max(100).optional()),
+    model_provider: z.preprocess(
+      blankToUndefined,
+      z.enum(['openai', 'anthropic', 'together-ai', 'elevenlabs']).optional(),
+    ),
     memory_enabled: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
-    visibility: z.enum(['private', 'public', 'shared']).optional(),
+    visibility: z.preprocess(blankToUndefined, z.enum(['private', 'public', 'shared']).optional()),
     tools: z.union([z.array(z.string()), z.string()]).optional(),
     config: z.record(z.any()).optional(),
     tagline: z.string().max(500).optional(),
@@ -190,11 +198,17 @@ const patchAgentSchema = z
     avatarKey: z.string().nullable().optional(),
     theme_color: z.string().max(100).optional(),
     /** Declared Dialog-voice mode: voice | support_only | silent */
-    dialog_participation: z.enum(['voice', 'support_only', 'silent']).optional(),
+    dialog_participation: z.preprocess(
+      blankToUndefined,
+      z.enum(['voice', 'support_only', 'silent']).optional(),
+    ),
     model_settings: z.record(z.any()).optional(),
     temperature: z.number().min(0).max(1).optional(),
     max_tokens: z.number().int().min(1).max(128000).optional(),
-    lensSystemPrompt: z.string().min(10).max(50000).optional(),
+    lensSystemPrompt: z.preprocess(
+      blankToUndefined,
+      z.string().min(10).max(50000).optional(),
+    ),
     domainId: z.string().optional(),
   })
   .strict();

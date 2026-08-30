@@ -164,6 +164,7 @@ When adding new board types:
 *Last updated: January 2025 - Live Data Integration Complete*
 
 ## 📆 Update Log
+- 2026-08-30: Agent PATCH treats empty optional strings (purpose, model, provider, visibility, prompt) as omitted so a name-only Chronicle save is not a validation error.
 - 2026-07-23: `GET /api/agents/:id` accepts optional `domainId` and scopes `recent_sessions` via `dialog.domain_id` (excludes archived + dialog-less orphans).
 - 2026-06-19: Added `PATCH /api/journeys/:id` for Chronicle Config saves (name, forward) — Journey EntityKind migration.
 - 2026-06-16: Removed legacy `/api/agents/:id/drafts` router (`agents/drafts.ts`) and `Draft` Prisma model; live drafts use `kip_drafts` via `/api/domains/:domainId/kip/drafts` and Kip actions.

@@ -149,7 +149,9 @@ function buildAgentFieldPatch(
       continue
     }
     if (fieldValues[key] !== undefined) {
-      patch[key] = fieldValues[key]
+      const value = fieldValues[key]
+      if (key !== "name" && value.trim() === "") continue
+      patch[key] = value
     }
   }
   return patch

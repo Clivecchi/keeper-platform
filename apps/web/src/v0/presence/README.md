@@ -64,6 +64,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-30 — Agent name save was blaming empty Purpose
+- `buildAgentFieldPatch` omits blank optional fields so Chronicle Save can rename an agent without sending empty Purpose / Role / provider.
+
 ### 2026-08-30 — Reach in Chronicle
 - `ReachChroniclePresence` is the Composer Reach tool in Chronicle. Back closes Reach. Composer stays the Turn box.
 

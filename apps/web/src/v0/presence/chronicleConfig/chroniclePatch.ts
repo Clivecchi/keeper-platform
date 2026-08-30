@@ -6,6 +6,23 @@ import { apiFetch } from "../../../lib/api"
 import { normalizeTreatmentHexColor } from "../../treatment/resolveDomainTreatment"
 import type { ChronicleEntityKind, ChronicleSaveResult } from "./types"
 
+function humanizeChroniclePatchFieldError(field: string, raw: string): string {
+  if (field === "lensSystemPrompt" || field === "systemPrompt") {
+    return "System prompt must be at least 10 characters."
+  }
+  if (field === "name" && /at least 1|required/i.test(raw)) {
+    return "Name cannot be empty."
+  }
+  if (field === "purpose" && /at least 1|required/i.test(raw)) {
+    return "Purpose cannot be empty."
+  }
+  if (field === "model_provider" && /invalid|enum/i.test(raw)) {
+    return "Choose openai, anthropic, together-ai, or elevenlabs."
+  }
+  if (raw && raw !== "Validation error") return raw
+  return `Check ${field} and try again.`
+}
+
 export function parseChroniclePatchFieldErrors(
   err: unknown,
   patchKeys: string[],
@@ -25,16 +42,14 @@ export function parseChroniclePatchFieldErrors(
         ? (err as { message: string }).message
         : "Save failed"
 
-  if (patchKeys.includes("lensSystemPrompt")) {
-    const zodLensErr = data?.details?.find((d) =>
-      d.path?.some(
-        (segment) =>
-          String(segment) === "lensSystemPrompt" || String(segment) === "systemPrompt",
-      ),
-    )
-    if (zodLensErr || status === 400) {
-      errors.lensSystemPrompt = "System prompt must be at least 10 characters."
-    }
+  const details = Array.isArray(data?.details) ? data.details : []
+  for (const detail of details) {
+    const pathKey = detail.path
+      ?.map((segment) => String(segment))
+      .find((segment) => patchKeys.includes(segment) || segment === "systemPrompt")
+    if (!pathKey) continue
+    const field = pathKey === "systemPrompt" ? "lensSystemPrompt" : pathKey
+    errors[field] = humanizeChroniclePatchFieldError(field, detail.message ?? message)
   }
 
   if (
@@ -45,7 +60,10 @@ export function parseChroniclePatchFieldErrors(
   }
 
   if (Object.keys(errors).length === 0 && patchKeys.length > 0) {
-    errors[patchKeys[0]] = message
+    errors[patchKeys[0]] =
+      message === "Validation error"
+        ? "Check the fields below and try again."
+        : message
   }
 
   return errors
@@ -159,7 +177,7 @@ export interface ChronicleSaveContext {
   domainSlug?: string
 }
 
-/** Agent PATCH body — includes domainId for lens resolution. */
+/** Agent PATCH body — includes domainId for lens resolution. Omits blank optionals so a name-only save is not rejected. */
 export function buildAgentChroniclePatchBody(
   patch: Record<string, unknown>,
   domainId: string,
@@ -168,6 +186,17 @@ export function buildAgentChroniclePatchBody(
   for (const [key, value] of Object.entries(patch)) {
     if (key === "memory_enabled") {
       body.memory_enabled = value === "true" || value === true
+      continue
+    }
+    if (key === "lensSystemPrompt") {
+      const trimmed = typeof value === "string" ? value.trim() : ""
+      if (trimmed.length >= 10) body[key] = trimmed
+      continue
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim()
+      if (trimmed === "" && key !== "name") continue
+      body[key] = trimmed
       continue
     }
     body[key] = value
