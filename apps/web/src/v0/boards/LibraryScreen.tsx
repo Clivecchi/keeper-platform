@@ -21,7 +21,10 @@ import {
 import {
   addLibraryUploadFromFile,
   createLibraryItem,
+  isLibraryImageFile,
 } from "../presence/integrationChronicle/libraryNavCreate"
+import { applyDomainVisualFromImage } from "../themes/applyDomainVisualFromImage"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { LibraryBrowseRail } from "./LibraryBrowseRail"
 import { LibraryMediaCard } from "./LibraryMediaCard"
 import {
@@ -54,6 +57,7 @@ export function LibraryScreen({
 }: LibraryScreenProps) {
   const { user } = useAuth()
   const boardCtx = useUniversalBoardOptional()
+  const v0Shell = useV0ShellOptional()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const searchRef = React.useRef<HTMLInputElement>(null)
   const [rows, setRows] = React.useState<LibraryNavRow[] | null>(null)
@@ -133,13 +137,29 @@ export function LibraryScreen({
         })
         onSelect(created.id)
         boardCtx?.actions.bumpLibraryNav()
+        const domainSlug = v0Shell?.domainSlug?.trim()
+        if (isLibraryImageFile(file) && domainSlug) {
+          try {
+            await applyDomainVisualFromImage({
+              domainId,
+              domainSlug,
+              existingTheme: (v0Shell?.domainData?.theme as Record<string, unknown> | undefined) ?? undefined,
+              imageUrl: created.url,
+              file,
+              displayLabel: file.name,
+            })
+            await v0Shell?.reloadDomainFrame()
+          } catch (visualError) {
+            console.warn("[LibraryScreen] domain look from upload skipped:", visualError)
+          }
+        }
       } catch (err: unknown) {
         alert(err instanceof Error ? err.message : "Failed to add upload to library")
       } finally {
         setCreating(false)
       }
     },
-    [activeAgentId, activeKeeperId, boardCtx, domainId, onSelect, user?.id],
+    [activeAgentId, activeKeeperId, boardCtx, domainId, onSelect, user?.id, v0Shell],
   )
 
   const handleAddUrl = React.useCallback(async () => {

@@ -1,6 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { extractDomainThemeCover } from "@keeper/shared"
+import { getBlobProxyUrl } from "../../lib/blobProxy"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 import type { ResolvedDomainTreatment } from "./resolveDomainTreatment"
 import { treatmentShellStyle } from "./treatmentCss"
 
@@ -14,12 +17,19 @@ export function ChronicleTreatmentShell({
   treatment,
   children,
 }: ChronicleTreatmentShellProps) {
+  const shell = useV0ShellOptional()
+  const atmosphereUrl = React.useMemo(() => {
+    const cover = extractDomainThemeCover(shell?.domainData?.theme).coverImage?.trim()
+    return cover ? getBlobProxyUrl(cover) : null
+  }, [shell?.domainData?.theme])
+
   return (
     <div
       className="flex flex-col h-full min-h-0 keeper-chronicle-treatment"
       data-treatment-name={treatment.name}
       data-treatment-tier="full"
-      style={treatmentShellStyle(treatment)}
+      data-atmosphere={atmosphereUrl ? "image" : "color"}
+      style={treatmentShellStyle(treatment, { atmosphereUrl })}
     >
       {children}
     </div>

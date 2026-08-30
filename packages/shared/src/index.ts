@@ -20,6 +20,7 @@ export * from './guidedArrival.js';
 export * from './structure/index.js';
 export * from './presenceCover.js';
 export * from './objectTheme.js';
+export * from './imagePalette.js';
 export * from './domains/domainFrameIdentity.js';
 export * from './domains/domainLeadBindings.js';
 export * from './domains/domainLeadMirror.js';

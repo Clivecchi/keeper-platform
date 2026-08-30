@@ -1,3 +1,5 @@
+import { displayKeeperStageTitle } from "@keeper/shared"
+
 export type StageNowLine = {
   name: string
   text: string
@@ -70,8 +72,6 @@ export function resolveStageNowBeat(
   return { you, answer }
 }
 
-export function displayStageTitle(title: string): string {
-  const trimmed = title.trim()
-  if (!trimmed || trimmed.toLowerCase() === "keeper") return "Keeper Stage"
-  return trimmed
+export function displayStageTitle(title: string, domainLabel?: string | null): string {
+  return displayKeeperStageTitle(title, domainLabel)
 }

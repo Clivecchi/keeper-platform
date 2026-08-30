@@ -20,7 +20,8 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
 - `src/dialogTitleSource.ts` — Chatter vs named Dialog vs Document-bearing (`user_set` only)
 - `src/talkingInWorkingOn.ts` — Talking in (Dialog/session) vs Working on (Document/Draft) + Point write-target helper
-- `src/keeperStage.ts` — Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle`; not Theatre-as-database
+- `src/keeperStage.ts` — Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle(title, domainLabel?)`; not Theatre-as-database
+- `src/imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -34,6 +35,10 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-08-30 — Image palette + domain Stage name
+- `imagePalette.ts` derives background / accent from sampled pixels.
+- `displayKeeperStageTitle` uses the domain label when the stored title is still the platform default.
 
 ### 2026-08-30 — Realm feed session domain
 - `resolveRealmFeedSessionDomain` — a session is attributed only when its Dialog domain is in the viewer's reach. No anchor fallback.

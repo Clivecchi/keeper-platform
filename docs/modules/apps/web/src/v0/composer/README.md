@@ -35,13 +35,16 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 
 ## 📆 Update Log
 
+### 2026-08-30 — Default Stage belongs to the domain
+- `displayStageTitle` / `displayKeeperStageTitle` take an optional domain label. Empty or `Keeper` becomes `{domain} Stage`.
+
 ### 2026-08-30 — Stage story is Frames, not Points
 - Chuck locked the destination: Workspace-on-Stage is a Frame-driven story wrapped in Config. Objects are assets. Agents pull the story together the way they Review & Reorganize a Document. Points stay Chronicle discussion. Now remains the first beat until that workshop is designed.
 - Agent Stage prompt now names assets, wide/narrow context, and Frames vs Points. No new action.
 
 ### 2026-08-30 — Now beat on Stage
 - Stage is not Dialog (no chat bubbles) and not objects only. Center card **Now** shows the last Turn and the room’s reply. Objects stay around it. Empty: “The story is not on yet. Speak from the lectern.” Waiting: “The room is answering…”
-- First named Stage displays as **Keeper Stage**. Header Bar: Stage · Talking in · Working on.
+- Default Stage displays as **{domain} Stage** when the stored title is still the platform default. Header Bar: Stage · Talking in · Working on.
 
 ### 2026-08-30 — Composer lectern on Stage
 - Composer stays at the bottom and stands over the Stage (orchestra pit). Agency is in Composer. Reach is in Chronicle. Elevation is function, not a move to the top.

@@ -10,7 +10,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `canonicalBoards.ts` – Canonical logged-in experience board slugs & helpers
 - `universalBoardId.ts` – `build` Board id; `ide` is a URL/frame-JSON alias only
 - `cloudMcpCeiling.ts` – Cloud MCP capability ceiling (shared by API + Build Board def)
-- `keeperStage.ts` – Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle`, `buildKeeperStagePrompt`
+- `keeperStage.ts` – Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle(title, domainLabel?)`, `buildKeeperStagePrompt`
+- `imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
 - `sessionActionLog.ts` — Session action receipts for the Lead prompt
@@ -25,6 +26,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-30: `imagePalette.ts` — derive a domain palette from image samples. `displayKeeperStageTitle` names the default Stage after the domain.
 - 2026-08-30: `realm/feed.ts` — `resolveRealmFeedSessionDomain` refuses to stamp orphan sessions onto the Realm anchor.
 - 2026-08-30: `keeperStage.ts` — Stage objects are assets for a Frame-driven story. Prompt asks where the story is going. Points stay Document discussion. `displayKeeperStageTitle` names the first Stage **Keeper Stage**.
 - 2026-08-29: `markdownToDraftPoints` + `planIngestHeadingSections` — heading level is kept; `##` (or later `#`) establishes Document Sections; child headings become Points in that Section.

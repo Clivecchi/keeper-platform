@@ -29,7 +29,8 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `?board=` takes precedence over `?frame=` when both are present in the URL
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 - **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
-- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. On Stage the center is a Frame-driven story workshop (assets on the table → presentation). Chronicle stays the Document. First named Stage is Keeper Stage.
+- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. On Stage the center is a Frame-driven story workshop (assets on the table → presentation). Chronicle stays the Document. The default Stage is named after the current domain (`{domain} Stage`).
+- **Library image upload:** `LibraryScreen` + creates a Library item and applies the image as domain cover + extracted Treatment.
 
 ## ?? Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace � they share `/d/:slug/board`
@@ -39,6 +40,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-30 — Domain look from Library; Stage belongs to the domain
+- Library `+` on an image also sets domain cover and extracts Treatment. Cover Configure writes a Library row the same way.
+- Default Stage title displays as `{domain} Stage` instead of Keeper Stage.
 
 ### 2026-08-30 — Stage story is Frames, not Points
 - Workspace-on-Stage is a Frame-driven story wrapped in Config. Objects are assets. Chronicle Points stay discussion. Now is the first beat, not the finished workshop.

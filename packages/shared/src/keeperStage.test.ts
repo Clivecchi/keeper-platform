@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bringOntoStage,
   buildKeeperStagePrompt,
+  displayKeeperStageTitle,
   emptyKeeperStage,
   parseKeeperStage,
   readKeeperStageFromDomainSettings,
@@ -74,6 +75,7 @@ describe('buildKeeperStagePrompt', () => {
     });
     const prompt = buildKeeperStagePrompt(stage);
     expect(prompt).toContain('Stage: “Keeper Stage”');
+    expect(buildKeeperStagePrompt(stage, 'livecchi.biz')).toContain('Stage: “livecchi.biz Stage”');
     expect(prompt).toContain('assets for the story in development');
     expect(prompt).toContain('Frames for presentation');
     expect(prompt).toContain('Agent “Kip”');
@@ -83,6 +85,14 @@ describe('buildKeeperStagePrompt', () => {
 
   it('is silent when the Stage is empty', () => {
     expect(buildKeeperStagePrompt(emptyKeeperStage())).toBeNull();
+  });
+});
+
+describe('displayKeeperStageTitle', () => {
+  it('belongs to the domain when the stored title is the platform default', () => {
+    expect(displayKeeperStageTitle('Keeper', 'Livecchi.biz')).toBe('Livecchi.biz Stage');
+    expect(displayKeeperStageTitle('Keeper Stage', 'livecchi.biz')).toBe('livecchi.biz Stage');
+    expect(displayKeeperStageTitle('Workshop', 'livecchi.biz')).toBe('Workshop');
   });
 });
 

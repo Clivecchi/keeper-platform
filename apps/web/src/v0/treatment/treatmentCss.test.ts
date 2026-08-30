@@ -16,6 +16,17 @@ describe("treatmentShellStyle", () => {
     expect(style.borderLeft).toBe("3px solid #2d6a7f")
     expect((style as Record<string, string>)["--treatment-font-family"]).toBe("Georgia, serif")
     expect((style as Record<string, string>)["--treatment-color"]).toMatch(/\d+/)
+    expect((style as Record<string, string>)["--theme-ink-primary"]).toBe("30 22% 18%")
+  })
+
+  it("flips ink and paints atmosphere when the background is dark", () => {
+    const style = treatmentShellStyle(
+      { ...sample, palette: { background: "#1f1d18", accent: "#2eb1a7" } },
+      { atmosphereUrl: "https://cdn.example/cover.png" },
+    )
+    expect((style as Record<string, string>)["--theme-ink-primary"]).toBe("40 14% 94%")
+    expect(style.color).toBe("hsl(40 14% 94%)")
+    expect(style.backgroundImage).toContain("url(https://cdn.example/cover.png)")
   })
 })
 

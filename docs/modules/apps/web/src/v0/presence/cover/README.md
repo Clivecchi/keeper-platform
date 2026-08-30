@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-08-30 — Cover upload is the domain look
+- `DomainConfigPresence` cover image writes a Library item, sets cover, and extracts Treatment colors from the image.
+
 ### 2026-08-25 — Library Back to Document
 - `LibraryItemFocusPresence` shows **Back to Document** when a Dialog is still talking-in and Library took Chronicle (Nav / `library.read`). Dialog uploads no longer take Chronicle.
 

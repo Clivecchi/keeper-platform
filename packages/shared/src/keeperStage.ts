@@ -245,22 +245,32 @@ export function stagePresenceKindLabel(kind: StagePresenceKind): string {
   }
 }
 
-/** First named Stage displays as Keeper Stage. */
-export function displayKeeperStageTitle(title: string): string {
+function isPlatformDefaultStageTitle(title: string): boolean {
+  const normalized = title.trim().toLowerCase();
+  return !normalized || normalized === 'keeper' || normalized === 'keeper stage';
+}
+
+/** Default Stage belongs to the current domain. Platform fallback is Keeper Stage. */
+export function displayKeeperStageTitle(title: string, domainLabel?: string | null): string {
   const trimmed = title.trim();
-  if (!trimmed || trimmed.toLowerCase() === 'keeper') return 'Keeper Stage';
-  return trimmed;
+  if (!isPlatformDefaultStageTitle(trimmed)) return trimmed;
+  const label = domainLabel?.trim();
+  if (!label) return 'Keeper Stage';
+  return /\bstage\b/i.test(label) ? label : `${label} Stage`;
 }
 
 /**
  * Compact Stage summary for agent turns — assets for a Frame story, not Theatre layout.
  */
-export function buildKeeperStagePrompt(stage: KeeperStageComposition | null | undefined): string | null {
+export function buildKeeperStagePrompt(
+  stage: KeeperStageComposition | null | undefined,
+  domainLabel?: string | null,
+): string | null {
   if (!stage || stage.presences.length === 0) return null;
   const selected = stage.presences.find((p) => p.id === stage.selectedPresenceId) ?? null;
   const lines = [
     'KEEPER STAGE (assets for an emerging story — references, not clones):',
-    `Stage: “${displayKeeperStageTitle(stage.title)}” (${stage.slug}). Objects below are real Keeper objects on this table.`,
+    `Stage: “${displayKeeperStageTitle(stage.title, domainLabel)}” (${stage.slug}). Objects below are real Keeper objects on this table.`,
     'They are assets for the story in development: Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed.',
     'Wide context is everything placed. Narrow context is the selected object plus what you have just been told.',
     'Ask: where is this story going, based on what is here and what has been said?',

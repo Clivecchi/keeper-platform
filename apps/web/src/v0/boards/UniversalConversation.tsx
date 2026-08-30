@@ -2192,7 +2192,7 @@ export function UniversalConversation({
 
     if (workspaceSurface === "stage") {
       return {
-        stage: { title: displayStageTitle(keeperStage?.stage.title ?? "Keeper") },
+        stage: { title: displayStageTitle(keeperStage?.stage.title ?? "Keeper", domainName) },
         ...talkingWorking,
         ...(domainName?.trim() ? { domainLabel: domainName.trim() } : {}),
       }

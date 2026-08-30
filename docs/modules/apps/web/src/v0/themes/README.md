@@ -12,6 +12,8 @@ Houses the theme resolution pipeline for the V0 frame layer. This folder convert
 - `useBoardThemeRegistration.ts` ? Hook used by `UniversalBoard` to re-register tokens when board selection changes.
 - `presets/grayEarth.tokens.ts` ? Canonical gray earth tone token set (platform default).
 - `ThemeSwitcher.tsx` ? Developer UI component; updates `?theme=` URL param. Remains a developer preview tool.
+- `extractImagePalette.ts` — canvas sample of a File or image URL.
+- `applyDomainVisualFromImage.ts` — one upload → cover + extracted Treatment + theme colors (optional Library row).
 
 ## ?? Data & Behavior
 
@@ -44,12 +46,17 @@ StyleScope: effectiveStyleId = gray-earth when domain-resolved (Warm Dark via ?s
 `domainTheme.fonts.display` and `domainTheme.fonts.ui` are present in domain JSON but are not wired to any `--theme-*` CSS variable. `ThemeTokens` has no font-family keys and `tokensToCSSVars` does not emit font vars. Font wiring is deferred to Pass 2.
 
 ## ?? Notes & ToDo
-- [ ] Pass 2: Image upload ? palette extraction ? `themes.source_image` + frame_json sync.
+- [x] Image upload → palette extraction → `frame_json.treatment` + `theme.colors` (client canvas; `themes.source_image` table still unused).
+- [ ] Persist extracted palette onto `themes.source_image` when Theme records are wired.
 - [ ] Pass 2: Add font-family token keys to ThemeTokens and wire domain fonts.display / fonts.ui.
 - [ ] Pass 2: Add dark mode base theme to themeRegistry for `neutral-dark` instead of computed inversion.
 - [ ] Consider adding `clearRuntimeTheme('domain-resolved')` on domain unmount (not needed until multi-domain per session).
 
 ## ?? Update Log
+
+### 2026-08-30 — Image upload extracts the domain look
+- `extractImagePalette` / `applyDomainVisualFromImage` sample the upload, write cover + Treatment + theme colors.
+- `domainThemeResolver` flips ink from the domain surface luminance so a dark extracted atmosphere is readable in a light OS scheme.
 
 ### 2026-07-24 ? cast-select-must-not-change-atmosphere
 - `useBoardThemeRegistration` no longer depends on the full board `selection` object (instruments/cast). Hierarchy walk uses `BoardThemeHierarchySelection` only.

@@ -1228,6 +1228,12 @@ function keeperStageFromEnvironment(environment: unknown): KeeperStageCompositio
   return parsed.presences.length > 0 ? parsed : null;
 }
 
+function domainLabelFromEnvironment(environment: unknown): string | null {
+  const env = environment as { domainName?: string | null } | null;
+  const label = env?.domainName?.trim();
+  return label || null;
+}
+
 function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
   const doc = (
     environment as {
@@ -5738,7 +5744,10 @@ export class KipAgentService {
       if (conversationCoordinates) {
         systemParts.push(conversationCoordinates);
       }
-      const stagePreview = buildKeeperStagePrompt(keeperStageFromEnvironment(environment));
+      const stagePreview = buildKeeperStagePrompt(
+        keeperStageFromEnvironment(environment),
+        domainLabelFromEnvironment(environment),
+      );
       if (stagePreview) {
         systemParts.push(stagePreview);
       }
@@ -6224,7 +6233,10 @@ export class KipAgentService {
             content: conversationCoordinates,
           });
         }
-        const stagePrompt = buildKeeperStagePrompt(keeperStageFromEnvironment(environmentContext));
+        const stagePrompt = buildKeeperStagePrompt(
+          keeperStageFromEnvironment(environmentContext),
+          domainLabelFromEnvironment(environmentContext),
+        );
         if (stagePrompt) {
           messages.push({
             role: 'system',

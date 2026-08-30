@@ -2394,6 +2394,13 @@ button.dialog-prelude:hover {
   transition: box-shadow 0.25s ease;
 }
 
+/* Treatment owns Chronicle atmosphere — do not stack glass over the extracted look. */
+.keeper-chronicle-panel:has(.keeper-chronicle-treatment) {
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* Chronicle inner glow when a record is active — green halo behind trail banner */
 .keeper-chronicle-panel.keeper-chronicle-panel--focused .keeper-chronicle-trail-bar {
   background: hsl(var(--theme-status-success) / 0.08);

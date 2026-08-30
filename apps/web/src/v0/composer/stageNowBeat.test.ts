@@ -46,8 +46,10 @@ describe("resolveStageNowBeat", () => {
 })
 
 describe("displayStageTitle", () => {
-  it("names the first Stage Keeper Stage", () => {
+  it("names the first Stage after the domain when a label is known", () => {
     expect(displayStageTitle("Keeper")).toBe("Keeper Stage")
     expect(displayStageTitle("")).toBe("Keeper Stage")
+    expect(displayStageTitle("Keeper", "livecchi.biz")).toBe("livecchi.biz Stage")
+    expect(displayStageTitle("Workshop", "livecchi.biz")).toBe("Workshop")
   })
 })

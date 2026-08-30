@@ -22,6 +22,7 @@ import { extractDomainThemeCover } from "@keeper/shared"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { resolveDomainCoverUrl } from "../boards/domain/domainShellCache"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
+import { InviteCollaboratorDialog } from "../boards/components/InviteCollaboratorDialog"
 import {
   isReadableDensity,
   toggleReadableDensity,
@@ -35,10 +36,11 @@ interface ProfilePopoverProps {
   roleLabel: string
   onSignOut: () => void
   onClose: () => void
+  onInvite?: () => void
   anchorRef: React.RefObject<HTMLButtonElement | null>
 }
 
-function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef }: ProfilePopoverProps) {
+function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, onInvite, anchorRef }: ProfilePopoverProps) {
   const popoverRef = React.useRef<HTMLDivElement>(null)
   const [density, setDensity] = useKeeperDensity()
   const readableOn = isReadableDensity(density)
@@ -75,6 +77,21 @@ function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef 
       </div>
       <div className="keeper-topbar-popover-divider" aria-hidden />
       <ul role="none" style={{ margin: 0, padding: "4px 0", listStyle: "none" }}>
+        {onInvite ? (
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onClose()
+                onInvite()
+              }}
+              className="keeper-topbar-popover-item"
+            >
+              Invite
+            </button>
+          </li>
+        ) : null}
         <li role="none">
           <button
             type="button"
@@ -230,9 +247,14 @@ export function KeeperTopBar({
   const { user, logout } = useAuth()
   const isMobile = useIsMobile()
   const [profileOpen, setProfileOpen] = React.useState(false)
+  const [inviteOpen, setInviteOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
-  const domainId = useDomainIdForSlug(domainSlug)
+  const resolvedDomainId = useDomainIdForSlug(domainSlug)
+  const domainId =
+    typeof domainData?.id === "string" && !String(domainData.id).startsWith("fallback-")
+      ? String(domainData.id)
+      : resolvedDomainId
   const domainName =
     domainFrame?.theme?.wordmark?.trim() ||
     (typeof domainData?.name === "string" ? domainData.name.trim() : "") ||
@@ -357,7 +379,7 @@ export function KeeperTopBar({
                   type="button"
                   onClick={() => board?.actions.toggleStageRoom()}
                   className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
-                  aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Keeper Stage"}
+                  aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Stage"}
                   aria-pressed={board?.workspaceSurface === "stage"}
                   style={{
                     color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
@@ -441,6 +463,7 @@ export function KeeperTopBar({
                 displayName={displayName}
                 roleLabel={roleLabel}
                 onSignOut={handleSignOut}
+                onInvite={domainId ? () => setInviteOpen(true) : undefined}
                 onClose={() => setProfileOpen(false)}
                 anchorRef={avatarButtonRef}
               />
@@ -491,7 +514,7 @@ export function KeeperTopBar({
                   "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
                   board?.workspaceSurface === "stage" ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
                 )}
-                aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Keeper Stage"}
+                aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Stage"}
                 aria-pressed={board?.workspaceSurface === "stage"}
               >
                 <Layers className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={1.75} aria-hidden />
@@ -528,6 +551,14 @@ export function KeeperTopBar({
           </button>
         </div>
       </div>
+      ) : null}
+
+      {domainId ? (
+        <InviteCollaboratorDialog
+          domainId={domainId}
+          open={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+        />
       ) : null}
     </div>
   )

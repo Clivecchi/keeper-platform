@@ -72,14 +72,36 @@ function applyTreatmentColorVars(
     `hsl(${accentComponents} / 0.20)`
 }
 
+export type TreatmentShellOptions = {
+  /** Domain cover — painted under a Treatment wash so Chronicle reads as the upload. */
+  atmosphereUrl?: string | null
+}
+
+function applyTreatmentInkVars(style: CSSProperties, darkBackground: boolean): void {
+  const vars = style as Record<string, string>
+  if (darkBackground) {
+    vars["--theme-ink-primary"] = "40 14% 94%"
+    vars["--theme-ink-secondary"] = "38 10% 78%"
+    vars["--theme-ink-tertiary"] = "36 8% 64%"
+    vars["--theme-ink-placeholder"] = "36 6% 50%"
+    style.color = "hsl(40 14% 94%)"
+    return
+  }
+  vars["--theme-ink-primary"] = "30 22% 18%"
+  vars["--theme-ink-secondary"] = "30 14% 32%"
+  vars["--theme-ink-tertiary"] = "30 10% 42%"
+}
+
 /** Full Treatment — Chronicle + Presents (background, accent, font). */
 export function treatmentShellStyle(
   treatment: ResolvedDomainTreatment,
+  options: TreatmentShellOptions = {},
 ): CSSProperties {
   const background = HEX_COLOR.test(treatment.palette.background)
     ? treatment.palette.background
     : "#f5f0e8"
   const darkBackground = relativeLuminance(background) < 0.35
+  const atmosphereUrl = options.atmosphereUrl?.trim() || null
 
   const style: CSSProperties = {
     backgroundColor: background,
@@ -87,10 +109,15 @@ export function treatmentShellStyle(
     borderLeft: `3px solid ${treatment.palette.accent}`,
   }
 
-  if (darkBackground) {
-    style.color = "hsl(40 18% 92%)"
+  if (atmosphereUrl) {
+    const wash = darkBackground ? `${background}d6` : `${background}c4`
+    style.backgroundImage = `linear-gradient(180deg, ${wash}, ${background}ee), url(${atmosphereUrl})`
+    style.backgroundSize = "cover"
+    style.backgroundPosition = "center"
+    style.backgroundRepeat = "no-repeat"
   }
 
+  applyTreatmentInkVars(style, darkBackground)
   applyTreatmentColorVars(style, treatment.palette.accent)
   ;(style as Record<string, string>)["--treatment-font-family"] =
     treatment.font.family

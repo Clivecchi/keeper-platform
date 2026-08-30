@@ -43,6 +43,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-08-30 — Cover is also Library + Treatment
+- Domain cover save still uses `ChronicleCoverField`; Domain Configure now also creates a Library row and extracts Treatment via `applyDomainVisualFromImage`.
+
 ### 2026-08-18 — Frame / boardDef Chronicle PATCH
 - `handleChronicleSave("frame")` writes `frame_json` via `PATCH /api/domains/:slug/frame`
 - `handleChronicleSave("boardDef")` returns an explicit code-defined error (no silent fall-through)

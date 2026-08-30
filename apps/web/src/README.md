@@ -18,6 +18,8 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - [ ] Consolidate legacy and public routes once domain routing is stabilized.
 
 ## 📆 Update Log
+### 2026-08-30 — Chronicle Treatment is not glass
+- `.keeper-chronicle-panel:has(.keeper-chronicle-treatment)` drops the frosted overlay so extracted Treatment / cover atmosphere can show.
 ### 2026-08-22 - Aging-eyes readability
 - Base `html` font-size 19px → 22px. `board-readability.css` loads after `index.css` from `main.tsx`. Reading sizes are always-on (20px body). Comfortable density is the default (`index.html` bootstrap).
 ### 2026-05-26 - Dialog glass + global type scale

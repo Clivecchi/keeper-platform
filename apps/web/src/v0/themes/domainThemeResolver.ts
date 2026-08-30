@@ -240,7 +240,12 @@ export function resolveDomainThemeSync(
   const accent  = hexToHSL(colors.accent  ?? '#b8963e') ?? { h: 38,  s: 50, l: 48 }
   const surface = hexToHSL(colors.surface ?? '#fdfaf4') ?? { h: 42,  s: 50, l: 97 }
 
-  return colorScheme === 'dark'
+  // An explicit surface color is the domain's atmosphere — flip ink when it is dark
+  // even if the OS/user color scheme is still light (Treatment vs Theme mismatch).
+  const surfaceDrivesScheme = Boolean(colors.surface?.trim())
+  const useDark = surfaceDrivesScheme ? surface.l < 42 : colorScheme === 'dark'
+
+  return useDark
     ? resolveDark(primary, accent, surface, base)
     : resolveLight(primary, accent, surface, base)
 }

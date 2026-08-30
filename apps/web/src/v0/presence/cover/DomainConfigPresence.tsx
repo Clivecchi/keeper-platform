@@ -15,6 +15,9 @@ import {
   type ChronicleCoverMedia,
 } from "../chronicleConfig/ChronicleCoverField"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
+import { useAuth } from "../../../context/AuthContext"
+import { applyDomainVisualFromImage } from "../../themes/applyDomainVisualFromImage"
 import { DomainAddressesSection } from "./DomainAddressesSection"
 import { DomainPeopleSection } from "./DomainPeopleSection"
 
@@ -174,6 +177,8 @@ export function DomainConfigPresence({
   ideBuildContextFields = [],
 }: DomainConfigPresenceProps) {
   const v0Shell = useV0ShellOptional()
+  const boardCtx = useUniversalBoardOptional()
+  const { user } = useAuth()
   const fieldMap = React.useMemo(() => new Map(visibleFields), [visibleFields])
   const treatmentFieldMap = React.useMemo(() => {
     const defaults = PRESENCE_SCHEMA_DEFAULTS.domain?.fields ?? {}
@@ -210,11 +215,26 @@ export function DomainConfigPresence({
     >
       <ChronicleCoverField
         label="Cover image"
-        description="The domain's visual identity — shown on the cover card and as the background across frames."
+        description="Lands in Library, becomes the board and Chronicle background, and extracts Treatment colors from the image."
         value={coverMedia}
         themeBits={existingTheme}
         onSave={async (cover) => {
-          await patchDomainThemeCover(domainId, existingTheme, cover)
+          if (!cover?.url) {
+            await patchDomainThemeCover(domainId, existingTheme, cover)
+            await v0Shell?.reloadDomainFrame()
+            return
+          }
+          await applyDomainVisualFromImage({
+            domainId,
+            domainSlug,
+            existingTheme,
+            imageUrl: cover.url,
+            imageKey: cover.key ?? null,
+            createLibraryItem: true,
+            userId: user?.id,
+            displayLabel: "Domain cover",
+          })
+          boardCtx?.actions.bumpLibraryNav()
           await v0Shell?.reloadDomainFrame()
         }}
         onSaved={onCoverSaved}
