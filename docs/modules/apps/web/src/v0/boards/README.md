@@ -38,6 +38,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Reach is not Composer
+- Top bar and Stage empty state say **Reach**. Composer is the Turn instrument; Reach opens from it.
+
 ### 2026-08-30 — Realm Nav launches Stage room
 - Realm Universal Nav has a **Stage** item. Click enters Stage on the same Realm Board (`openStageRoom`) — not `?board=stage`, not a Boards-list entry.
 - Stage uses locked curtains **15% / 70% / 15%**. Dialog keeps the stored split. Resize handles rest while curtains are locked.
@@ -69,7 +72,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Document header drops the redundant "Document" breadcrumb/chip so the title and points can breathe.
 
 ### 2026-08-22 — Composer reach + Keeper Stage
-- Center workspace can be Dialog or Stage (`workspaceSurface`). Composer is a reach sheet, not a fourth column and not `AgentComposer`.
+- Center workspace can be Dialog or Stage (`workspaceSurface`). Reach is a Composer feature (`KeeperComposerSheet`), not Composer itself (`AgentComposer`).
 - Stage select uses `onWorkTargetFromStage` so Talking in (Dialog) survives Working on (Agent / Draft / Journey / …).
 
 ### 2026-08-22 — Document coordinates stay honest

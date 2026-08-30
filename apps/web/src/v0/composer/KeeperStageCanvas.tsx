@@ -90,7 +90,7 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
               border: "1px solid hsl(var(--theme-border-soft))",
             }}
           >
-            Composer
+            Reach
           </button>
         </div>
       </div>
@@ -174,7 +174,7 @@ function EmptyStage({ onOpenComposer }: { onOpenComposer: () => void }) {
         This is Keeper Stage.
       </p>
       <p className="max-w-sm text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-        Open Composer. Find Kip. Bring a real object — Finding the Plot if it is here. Nothing on Stage is a copy.
+        Open Reach from Composer. Find Kip. Bring a real object — Finding the Plot if it is here. Nothing on Stage is a copy.
       </p>
       <button
         type="button"
@@ -185,7 +185,7 @@ function EmptyStage({ onOpenComposer }: { onOpenComposer: () => void }) {
           color: "hsl(var(--theme-ink-primary))",
         }}
       >
-        Open Composer
+        Open Reach
       </button>
     </div>
   )

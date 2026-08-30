@@ -79,7 +79,8 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - 2026-08-25: Point cards pass `onOpenPoint` + Dialog title so **Added point in Finding the plot** opens that Point in Chronicle.
 - 2026-08-25: `dialogThinking` labels `gloss.append` as Added Gloss.
 - 2026-08-22: Readable type is the board default. Dialog body/composer follow `board-readability.css`; older messages keep readable scale.
-- 2026-08-22: `dialogContent` can host Keeper Stage. Product **Composer** in the top bar is reach (`KeeperComposerSheet`), not this Dialog input floor (`AgentComposer`).
+- 2026-08-30: **Reach is a Composer feature** — `AgentComposer` opens Reach; top bar says Reach, not Composer. `KeeperComposerSheet` is the Reach sheet.
+- 2026-08-22: `dialogContent` can host Keeper Stage. Reach (`KeeperComposerSheet`) is a Composer feature, not the Dialog input floor (`AgentComposer`).
 - 2026-08-22: When Talking in a Dialog and Working on its Document, the Header Bar does not repeat the title. Working on shows **Document**; the name stays on Talking in. Domain remains on the right.
 - 2026-08-22: Dialog Nav opens the Document. Draft Nav opens the Draft and keeps Talking in on the linked Dialog. Agents are grounded in those two coordinates so they do not invent fiction-plot Points from a Dialog title.
 - 2026-08-21: **Header Bar = Talking in / Working on** — larger type; domain name on the right; SOLE badge and repeated title removed. Session id lives behind the chevron.

@@ -23,6 +23,7 @@ import {
   ClipboardDocumentCheckIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline"
+import { Sparkles } from "lucide-react"
 import type { TalkModeState } from "../../hooks/useTalkMode"
 import { useAuth } from "../../context/AuthContext"
 import {
@@ -160,6 +161,9 @@ export interface AgentComposerProps {
   dialogueMessages?: ReadonlyArray<AgentDialogueMessage>
   /** Display name for the current user in markdown export (default "You"). */
   userName?: string
+  /** Reach — bring objects onto Stage. A Composer feature, not Composer itself. */
+  onOpenReach?: () => void
+  reachOpen?: boolean
 }
 
 const MIN_ROWS = 4
@@ -215,6 +219,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   talkError,
   dialogueMessages,
   userName,
+  onOpenReach,
+  reachOpen = false,
 }) => {
   const fileInputId = React.useId()
   const formRef = React.useRef<HTMLFormElement>(null)
@@ -655,6 +661,25 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             >
               <DocumentTextIcon className="h-4 w-4" />
             </button>
+            {onOpenReach ? (
+              <button
+                type="button"
+                onClick={onOpenReach}
+                disabled={disabled}
+                className="keeper-composer-icon-btn flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium disabled:pointer-events-none disabled:opacity-40"
+                title="Reach — bring who or what you need"
+                aria-label="Open Reach"
+                aria-pressed={reachOpen}
+                style={
+                  reachOpen
+                    ? { color: "hsl(var(--theme-focus-ring))" }
+                    : undefined
+                }
+              >
+                <Sparkles className="h-4 w-4" strokeWidth={1.75} />
+                <span>Reach</span>
+              </button>
+            ) : null}
             {stageFileUpload ? (
               <>
                 <input

@@ -52,6 +52,7 @@ import {
 } from "./dialogThinking"
 import { useTalkMode } from "../../../hooks/useTalkMode"
 import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
 import "../../../components/gloss/gloss.css"
@@ -365,6 +366,7 @@ export function KeeperDialogFrame({
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const broadcastStripRef = React.useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
+  const board = useUniversalBoardOptional()
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
   const [debugPanelOpen, setDebugPanelOpen] = React.useState(false)
@@ -983,6 +985,8 @@ export function KeeperDialogFrame({
             talkError={talkError}
             dialogueMessages={messages}
             userName={userName}
+            onOpenReach={board ? board.actions.openComposerReach : undefined}
+            reachOpen={board?.composerReachOpen === true}
           />
           {showComposerFooter && !hideMobileComposerFooter && (
             <div className="dialog-composer-footer">

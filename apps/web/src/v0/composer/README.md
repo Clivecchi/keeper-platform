@@ -1,7 +1,7 @@
-# Keeper Composer + Stage
+# Reach + Stage
 
 ## 📌 Purpose
-Reach (Composer) and spatial composition (Stage) that sit above Boards without becoming a fourth column. Composer finds and brings real Keeper objects. Stage holds presence, not copies.
+Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument). **Reach** (`KeeperComposerSheet`) is a Composer feature that finds and brings real Keeper objects onto Stage. Stage holds presence, not copies.
 
 ## 🧱 Key Files
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
@@ -13,7 +13,7 @@ Reach (Composer) and spatial composition (Stage) that sit above Boards without b
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - Contextual Agency is Stage-owned. Base Agency stays on `kip_agents`.
-- Dialog input floor remains `AgentComposer`. This Composer is reach, not chat.
+- Dialog input floor is Composer (`AgentComposer`). This sheet is Reach, not Composer.
 - Theatre.js Present sheets stay Chronicle motion. Stage positions live in Keeper JSON.
 
 ## ⚠️ Notes & ToDo
@@ -23,6 +23,9 @@ Reach (Composer) and spatial composition (Stage) that sit above Boards without b
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Reach is not Composer
+- Sheet, Stage empty state, and top-bar control are labeled **Reach**. Composer is `AgentComposer`; Reach opens from Composer and as a shortcut.
 
 ### 2026-08-30 — Stage room launch (Slice 1)
 - Realm Nav now enters Stage. The canvas and reach sheet stay as stand-ins; the room change is the 15 / 70 / 15 curtains.

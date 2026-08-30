@@ -1,8 +1,8 @@
 "use client"
 
 /**
- * Keeper Composer — reach sheet.
- * Not the Dialog input floor (AgentComposer). Mobile-first: hold in one hand, select with the other.
+ * Reach — bring who or what you need onto Stage.
+ * A Composer feature, not Composer. Composer is AgentComposer.
  */
 
 import * as React from "react"
@@ -156,11 +156,11 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
   if (!composerReachOpen) return null
 
   return (
-    <div className="absolute inset-0 z-30 flex flex-col justify-end" role="dialog" aria-label="Composer">
+    <div className="absolute inset-0 z-30 flex flex-col justify-end" role="dialog" aria-label="Reach">
       <button
         type="button"
         className="absolute inset-0"
-        aria-label="Close Composer"
+        aria-label="Close Reach"
         onClick={actions.closeComposerReach}
         style={{ background: "hsl(var(--theme-ink-primary) / 0.45)" }}
       />
@@ -176,7 +176,7 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
         <header className="flex items-center justify-between gap-3 px-4 pb-2 pt-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-              Composer
+              Reach
             </p>
             <h2 className="text-[17px] font-medium">Bring who or what you need</h2>
           </div>

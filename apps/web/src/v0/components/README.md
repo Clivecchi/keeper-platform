@@ -35,7 +35,8 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 
 ## 📆 Update Log
 - 2026-08-22: `KeeperTopBar` profile menu — **Larger type** On/Off (comfortable density). Default is On.
-- 2026-08-22: `KeeperTopBar` — Stage + Composer controls on desktop and adaptive mobile (not a fourth column).
+- 2026-08-30: `KeeperTopBar` Stage + **Reach** (was mislabeled Composer). Reach is a Composer feature.
+- 2026-08-22: `KeeperTopBar` — Stage + Reach controls on desktop and adaptive mobile (not a fourth column).
 - 2026-08-18: `Margin` guest companion `agentId` reads `settings.primaryAgentId` enrichment (`resolveDialogLeadSlug`), not `domainFrame.kip.agent_id`.
 - 2026-08-17: **Bring in writing** — `SidebarCard` optional `onImport` (file icon) next to `+`. Dialogs Nav uses it to open Chronicle ingest Act.
 - 2026-08-04: **Mobile Top Bar Chronicle icon** — Adaptive mobile right slot is Chronicle (`BookOpen` → `onOpenChronicle`); avatar relocated to Nav drawer. Desktop Top Bar avatar unchanged.

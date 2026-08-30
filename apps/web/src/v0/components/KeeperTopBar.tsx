@@ -371,7 +371,7 @@ export function KeeperTopBar({
                   type="button"
                   onClick={() => board?.actions.toggleComposerReach()}
                   className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
-                  aria-label="Open Composer"
+                  aria-label="Open Reach"
                   aria-pressed={board?.composerReachOpen === true}
                   style={{
                     color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
@@ -503,11 +503,11 @@ export function KeeperTopBar({
                   "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
                   board?.composerReachOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
                 )}
-                aria-label="Open Composer"
+                aria-label="Open Reach"
                 aria-pressed={board?.composerReachOpen === true}
               >
                 <Sparkles className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={1.75} aria-hidden />
-                <span className="text-[13px]">Composer</span>
+                <span className="text-[13px]">Reach</span>
               </button>
             </>
           ) : null}

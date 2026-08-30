@@ -266,7 +266,7 @@ export interface UniversalBoardContextValue {
   libraryScreenOpen: boolean
   /** Dialog (temporal) or Stage (spatial) in the center workspace. */
   workspaceSurface: WorkspaceSurface
-  /** Composer reach sheet — not a fourth column; not the Dialog input floor. */
+  /** Reach sheet — Composer feature; not a fourth column; not Composer itself. */
   composerReachOpen: boolean
 }
 
