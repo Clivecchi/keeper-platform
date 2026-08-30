@@ -63,6 +63,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-08-29 — Attach ingest sends the file title
+- `DialogIngestPresence` passes the upload title when attaching to a Dialog, so the new writing can sit in its own Section instead of Open.
+
 ### 2026-08-22 — Literally inline Draft Points
 - `DraftPointRow` / `DraftPointsSection` expand one Point in place with Save / Cancel / Delete. No cramped form under the card.
 

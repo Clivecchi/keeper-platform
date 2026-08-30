@@ -58,6 +58,7 @@ export type ReorganizeStoreOk = {
   ok: true;
   proposal: DocumentReorganizeProposal;
   openDumpRepaired?: boolean;
+  oneSectionDumpRepaired?: boolean;
   restatement?: boolean;
 };
 
@@ -143,6 +144,7 @@ export async function storeDocumentReorganizeProposal(input: {
     ok: true,
     proposal: normalized.proposal,
     openDumpRepaired: normalized.openDumpRepaired,
+    oneSectionDumpRepaired: normalized.oneSectionDumpRepaired,
     restatement: isDocumentReorganizeRestatement(
       normalized.proposal,
       parseDocumentPathDeclarations(dialog.document_paths),

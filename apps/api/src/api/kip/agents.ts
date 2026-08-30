@@ -2549,8 +2549,12 @@ export async function executeAgentActions(
               break;
             }
             const openDumpRepaired = stored.openDumpRepaired === true;
+            const oneSectionDumpRepaired = stored.oneSectionDumpRepaired === true;
             const restatement = stored.restatement === true;
-            const spineOnly = isDocumentReorganizeSpineOnly(stored.proposal) || openDumpRepaired;
+            const spineOnly =
+              isDocumentReorganizeSpineOnly(stored.proposal)
+              || openDumpRepaired
+              || oneSectionDumpRepaired;
             const placedCount = stored.proposal.points.filter((point) => point.change !== 'unchanged').length;
             const identityOnly =
               hasDocumentIdentityProposal(stored.proposal) && placedCount === 0 && !spineOnly;
@@ -2563,6 +2567,8 @@ export async function executeAgentActions(
               status: 'success',
               message: openDumpRepaired
                 ? 'Open is not a reorganization. Named Sections stay. Chronicle will ask the Lead to place Points.'
+                : oneSectionDumpRepaired
+                ? 'Those Points do not all belong in one existing Section. Chronicle will ask the Lead to place them.'
                 : restatement
                 ? 'This restates the current Document. Chronicle will ask the Lead to propose a better structure.'
                 : spineOnly
@@ -2582,6 +2588,7 @@ export async function executeAgentActions(
                 dialogId: ctx.dialogId,
                 spineOnly,
                 openDumpRepaired,
+                oneSectionDumpRepaired,
                 restatement,
                 placedCount,
                 identityOnly,

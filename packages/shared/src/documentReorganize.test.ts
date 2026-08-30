@@ -526,6 +526,38 @@ describe('normalizeDocumentReorganizeProposal', () => {
     expect(formatReorganizeOverlaySummary(summary)).toContain('1 refined');
   });
 
+  it('repairs Open Points dumped into one existing Section', () => {
+    const incoming = ['alpha', 'beta', 'gamma'].map((name, index) =>
+      createDraftPoint({
+        id: `in-${index + 1}`,
+        content: `${name} from the Stage document.`,
+        proposedBy: 'Member',
+        status: 'accepted',
+        prelude: name,
+      }),
+    );
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [{ id: 'contract', title: 'Implementation Contract' }],
+        points: incoming.map((point) => ({
+          id: point.id,
+          change: 'move',
+          sectionId: 'Implementation Contract',
+        })),
+      },
+      currentPoints: incoming,
+      currentSections: [{ id: 'contract', title: 'Implementation Contract' }],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.oneSectionDumpRepaired).toBe(true);
+    for (const point of incoming) {
+      const op = result.proposal.points.find((row) => row.id === point.id);
+      expect(op?.change).toBe('unchanged');
+      expect(op?.sectionId == null || op.sectionId === 'open').toBe(true);
+    }
+  });
+
   it('treats unknown ids as New instead of failing the proposal', () => {
     const result = normalizeDocumentReorganizeProposal({
       raw: {

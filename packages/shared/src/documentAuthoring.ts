@@ -104,6 +104,24 @@ export function moveIdInOrder(
   return next;
 }
 
+/**
+ * When writing is attached to an existing Document, give it its own Section.
+ * Do not merge into a same-named Section — that hides the arrival as a dump.
+ */
+export function planIngestAttachSection(
+  paths: DocumentPathDeclaration[],
+  title: string,
+  prelude?: string,
+): { paths: DocumentPathDeclaration[]; section: DocumentPathDeclaration } {
+  const base = title.trim() || 'Brought in';
+  const taken = paths.some((path) => path.title.toLowerCase() === base.toLowerCase());
+  return createDocumentSection(
+    paths,
+    taken ? `${base} · brought in` : base,
+    prelude,
+  );
+}
+
 export function isOpenSectionId(sectionId?: string | null): boolean {
   const id = sectionId?.trim();
   return !id || id === DOCUMENT_OPEN_SECTION.id;

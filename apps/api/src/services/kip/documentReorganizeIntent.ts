@@ -30,6 +30,7 @@ const REORGANIZE_PATTERNS = [
   /\bcopy.?paste[d]?\b/i,
   /\bdid (you|it|kip) (even )?change\b/i,
   /\brestat(e|ed|ement|es)\b/i,
+  /\b(do not|don'?t) (necessarily )?belong\b/i,
 ];
 
 export function detectReorganizeIntent(userInput: string): ReorganizeIntentKind {
@@ -44,7 +45,10 @@ type ActionResultLite = {
   data?: unknown;
 };
 
-function resultFlag(data: unknown, key: 'spineOnly' | 'openDumpRepaired' | 'restatement'): boolean {
+function resultFlag(
+  data: unknown,
+  key: 'spineOnly' | 'openDumpRepaired' | 'oneSectionDumpRepaired' | 'restatement',
+): boolean {
   return Boolean(
     data
     && typeof data === 'object'
@@ -108,6 +112,7 @@ export function shouldRunReorganizePlacementFollowUp(params: {
       && (
         resultFlag(result.data, 'spineOnly')
         || resultFlag(result.data, 'openDumpRepaired')
+        || resultFlag(result.data, 'oneSectionDumpRepaired')
       ),
   );
 }
@@ -125,6 +130,7 @@ export function buildReorganizePlacementFollowUpInput(params: {
     'Emit document.reorganize.propose again now.',
     'Keep those named Sections — you may add one if the story needs it, or rename/reorder them.',
     'Place each Point where it should live in the proposed Document: nest it under a Section, or { id: "<number or title from DIALOG DOCUMENT>", sectionId: "<Section title>", change: "move" }.',
+    'Do not park all newly arrived or Open Points in one existing Section. Create a Section from their source or titles, or keep them in Open.',
     'You may refine, merge (replacesPointIds), retire, or add a Point (change: new). Split by adding new and refining or retiring the source.',
     'Prefer nesting Points under each Section. Do not emit a Section named Open.',
     'Never dump named work into Open. Open is only for Points that do not yet fit.',
@@ -195,6 +201,7 @@ export function buildReorganizeProposeSystemPrompt(dialogTitle?: string): string
     'Nest Points under the Section they should belong to in Proposed, or set sectionId to that Section title (change: move).',
     'Omit sectionId only when you are not moving that Point — Keeper keeps the current Section as a safety default. That is not a preference for the current structure.',
     'Never dump named work into Open. Do not emit a Section named Open. Open is only for Points that do not yet fit — use sectionId "open" only for those.',
+    'Do not park all newly arrived or Open Points in one existing Section (Implementation Contract, Keeper Stage, or any other). Create a Section from their source or titles when they arrived together.',
     'A Sections-only payload is accepted, then you must place the Points. Proposed should be a real Document, not empty headers or a single Open pile.',
   ].join('\n');
 }

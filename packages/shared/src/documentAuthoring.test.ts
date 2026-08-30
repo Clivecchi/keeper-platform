@@ -4,6 +4,7 @@ import {
   createDocumentSection,
   cycleDocumentLifecycleStatus,
   isOpenSectionId,
+  planIngestAttachSection,
   moveDocumentSection,
   moveIdInOrder,
   removeDocumentSection,
@@ -56,5 +57,16 @@ describe('document authoring', () => {
       content: 'A lone idea',
       prelude: 'A lone idea',
     });
+  });
+
+  it('gives attached writing its own Section and does not merge a same-named one', () => {
+    const fresh = planIngestAttachSection([], 'Stage', 'Brought in from Member.');
+    expect(fresh.section.title).toBe('Stage');
+    expect(fresh.section.prelude).toBe('Brought in from Member.');
+
+    const existing = createDocumentSection([], 'Keeper Stage');
+    const collision = planIngestAttachSection(existing.paths, 'Keeper Stage');
+    expect(collision.section.title).toBe('Keeper Stage · brought in');
+    expect(collision.paths).toHaveLength(2);
   });
 });

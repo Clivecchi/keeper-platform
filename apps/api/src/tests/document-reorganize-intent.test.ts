@@ -104,6 +104,24 @@ describe('detectReorganizeIntent', () => {
       'required',
     );
     expect(detectReorganizeIntent('no meaningful change')).toBe('required');
+    expect(
+      detectReorganizeIntent('those points do not necessarily belong in Implementation Contract'),
+    ).toBe('required');
+  });
+
+  it('asks the Lead to place again after a one-Section dump of Open Points', () => {
+    expect(
+      shouldRunReorganizePlacementFollowUp({
+        isLead: true,
+        actionResults: [
+          {
+            type: 'document.reorganize.propose',
+            status: 'success',
+            data: { oneSectionDumpRepaired: true },
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 
   it('tells the Lead that Current is evidence and omit is only a safety default', () => {

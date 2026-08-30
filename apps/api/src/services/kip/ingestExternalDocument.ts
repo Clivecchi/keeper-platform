@@ -8,7 +8,9 @@ import {
   canonicalizeDraftSpecJson,
   INGEST_MAX_MARKDOWN_CHARS,
   markdownToDraftPoints,
+  parseDocumentPathDeclarations,
   parseDraftPoints,
+  planIngestAttachSection,
 } from '@keeper/shared';
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
 import { resolveDomainLeadAgentFromDomain } from '../domains/resolveDomainLeadAgent.js';
@@ -92,7 +94,7 @@ async function authorizeDialog(
   domainId: string,
   dialogId: string,
   userId: string,
-): Promise<{ id: string; title: string } | null> {
+): Promise<{ id: string; title: string; document_paths: unknown } | null> {
   return prisma.dialog.findFirst({
     where: {
       id: dialogId,
@@ -103,7 +105,7 @@ async function authorizeDialog(
         { user_id: userId, available_to: { has: 'keeper' } },
       ],
     },
-    select: { id: true, title: true },
+    select: { id: true, title: true, document_paths: true },
   });
 }
 
@@ -137,6 +139,7 @@ export async function ingestExternalDocument(
   let created = false;
   let dialogId: string;
   let dialogTitle: string;
+  let attachSectionTitle: string | null = null;
 
   if (attachId) {
     const existing = await authorizeDialog(input.domainId, attachId, input.userId);
@@ -145,6 +148,24 @@ export async function ingestExternalDocument(
     }
     dialogId = existing.id;
     dialogTitle = existing.title;
+    const planned = planIngestAttachSection(
+      parseDocumentPathDeclarations(existing.document_paths),
+      input.title?.trim() || parsed.title,
+      `Brought in from ${source}.`,
+    );
+    attachSectionTitle = planned.section.title;
+    parsed.points = parsed.points.map((point) => ({
+      ...point,
+      pathGroupId: planned.section.id,
+    }));
+    await prisma.dialog.update({
+      where: { id: dialogId },
+      data: {
+        document_paths: planned.paths as Prisma.InputJsonValue,
+        step_title: 'Writing added',
+        step_body: `${parsed.points.length} point${parsed.points.length === 1 ? '' : 's'} brought in — sitting in “${planned.section.title}”.`,
+      },
+    });
   } else {
     const dialog = await prisma.dialog.create({
       data: {
@@ -205,12 +226,12 @@ export async function ingestExternalDocument(
       },
     });
     manuscriptId = manuscript.id;
-    if (!created) {
+    if (!created && !attachSectionTitle) {
       await prisma.dialog.update({
         where: { id: dialogId },
         data: {
           step_title: 'Writing added',
-          step_body: `${parsed.points.length} section${parsed.points.length === 1 ? '' : 's'} brought in from outside Keeper.`,
+          step_body: `${parsed.points.length} point${parsed.points.length === 1 ? '' : 's'} brought in from outside Keeper.`,
         },
       });
     }

@@ -38,6 +38,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-29 — Stage upload is not Implementation Contract
+- `ingestExternalDocument.ts` — attaching writing creates a Section from the file title and places the new Points there. They do not land in Open for Kip to dump into one existing Section.
+- `documentReorganizeIntent.ts` / store — a one-Section dump of Open Points is repaired and the Lead is asked to place again. Hears “do not belong.”
+
 ### 2026-08-29 — Story-builder turn: offer-in-prose is incomplete
 - `buildKeeperCardRenderingPrompt.ts` — names the contract once: a turn places objects; Dialog voices them; Chronicle holds them. Asking permission in prose is incomplete. Relational talk stays prose.
 - `pointIntent.ts` — `agentOfferedPointInProse` catches permission asks and soft offers ("I can add this as a Point", "Shall I propose this?"). Follow-up emits `draft.update.propose`. Gloss offers and idioms stay out.

@@ -89,7 +89,7 @@ export function DialogIngestPresence({
     try {
       const result = await KipApi.ingestExternalWriting(domainId, {
         markdown: body,
-        title: attaching ? undefined : title.trim() || undefined,
+        title: title.trim() || undefined,
         source: "Member",
         dialogId: attaching ? dialogId : null,
       })

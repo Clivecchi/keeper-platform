@@ -38,6 +38,10 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 ### 2026-08-29 — Story-builder continuity
 - `directorContinuity.ts` — offering a Point in prose is incomplete; emit `draft.update.propose`. The card is consent.
 
+### 2026-08-29 — Attached writing gets its own Section
+- `planIngestAttachSection` — upload-into-an-existing Document creates a new Section from the file title. Same-named Sections are not merged (`Stage · brought in`).
+- `isDocumentReorganizeOneSectionDump` — parking all Open Points in one existing Section is repaired, same as an Open dump.
+
 ### 2026-08-29 — Restatement is named, not hidden
 - `summarizeReorganizeProposal` / `isDocumentReorganizeRestatement` / `formatReorganizeOverlaySummary` — no Point marks, no title/Forward edit, and the same Section titles in the same order is a restatement. Chronicle can say so.
 

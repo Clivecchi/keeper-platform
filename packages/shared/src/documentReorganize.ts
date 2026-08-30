@@ -491,7 +491,7 @@ export function normalizeDocumentReorganizeProposal(input: {
   currentPoints: DraftPoint[];
   currentSections: DocumentPathDeclaration[];
   proposedBy?: string;
-}): { ok: true; proposal: DocumentReorganizeProposal; openDumpRepaired: boolean } | { ok: false; error: string } {
+}): { ok: true; proposal: DocumentReorganizeProposal; openDumpRepaired: boolean; oneSectionDumpRepaired: boolean } | { ok: false; error: string } {
   const parsed = parseDocumentReorganizeProposal(input.raw);
   if (!parsed) {
     return {
@@ -617,13 +617,24 @@ export function normalizeDocumentReorganizeProposal(input: {
     sections,
     points,
   };
-  const openDumpRepaired = isDocumentReorganizeOpenDump(assembled, input.currentPoints);
+  let proposal = assembled;
+  const openDumpRepaired = isDocumentReorganizeOpenDump(proposal, input.currentPoints);
+  if (openDumpRepaired) {
+    proposal = repairNamedWorkDumpedToOpen(proposal, input.currentPoints);
+  }
+  const oneSectionDumpRepaired = isDocumentReorganizeOneSectionDump(
+    proposal,
+    input.currentPoints,
+    input.currentSections,
+  );
+  if (oneSectionDumpRepaired) {
+    proposal = repairOpenWorkDumpedIntoOneExistingSection(proposal, input.currentPoints);
+  }
   return {
     ok: true,
     openDumpRepaired,
-    proposal: openDumpRepaired
-      ? repairNamedWorkDumpedToOpen(assembled, input.currentPoints)
-      : assembled,
+    oneSectionDumpRepaired,
+    proposal,
   };
 }
 
@@ -824,6 +835,65 @@ export function repairNamedWorkDumpedToOpen(
         return op;
       }
       if (!isOpenSectionId(op.sectionId)) return op;
+      return {
+        ...op,
+        sectionId: current.pathGroupId ?? null,
+        change: op.change === 'move' ? 'unchanged' : op.change,
+        fromSectionId: current.pathGroupId ?? null,
+      };
+    }),
+  };
+}
+
+/**
+ * True when previously unplaced Points (Open) all land in one existing named
+ * Section. That is a dump, not placement — same failure as all-to-Open.
+ */
+export function isDocumentReorganizeOneSectionDump(
+  proposal: DocumentReorganizeProposal,
+  currentPoints: DraftPoint[],
+  currentSections: DocumentPathDeclaration[],
+): boolean {
+  const unplaced = documentHostPoints(currentPoints).filter((point) =>
+    isOpenSectionId(point.pathGroupId),
+  );
+  if (unplaced.length < 3) return false;
+  const surviving = unplaced.filter((point) => {
+    const op = proposal.points.find((row) => row.id === point.id);
+    return op && op.change !== 'retire';
+  });
+  if (surviving.length < 3) return false;
+
+  const dests = new Set(
+    surviving.map((point) => {
+      const op = proposal.points.find((row) => row.id === point.id);
+      const dest = op?.sectionId ?? point.pathGroupId ?? null;
+      return isOpenSectionId(dest) ? 'open' : dest;
+    }),
+  );
+  if (dests.size !== 1) return false;
+  const dest = [...dests][0];
+  if (!dest || dest === 'open') return false;
+
+  return currentSections.some(
+    (section) =>
+      section.id === dest || normalizeKey(section.title) === normalizeKey(dest),
+  );
+}
+
+export function repairOpenWorkDumpedIntoOneExistingSection(
+  proposal: DocumentReorganizeProposal,
+  currentPoints: DraftPoint[],
+): DocumentReorganizeProposal {
+  const currentById = new Map(currentPoints.map((point) => [point.id, point]));
+  return {
+    ...proposal,
+    points: proposal.points.map((op) => {
+      const current = currentById.get(op.id);
+      if (!current || !isOpenSectionId(current.pathGroupId) || op.change === 'retire') {
+        return op;
+      }
+      if (isOpenSectionId(op.sectionId)) return op;
       return {
         ...op,
         sectionId: current.pathGroupId ?? null,
