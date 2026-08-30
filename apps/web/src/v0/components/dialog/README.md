@@ -20,7 +20,7 @@ Shared conversation shell used across Build Board, Agent Board, Domain Board, Re
 
 | Product name | Role | CSS / attribute |
 |---|---|---|
-| **Header Bar** | Talking in / Working on + domain; session details behind chevron; director cast identity below | `.dialog-header-banner` / `.dialog-coordinates` / `.dialog-header-cast` |
+| **Header Bar** | Stage (when open) · Talking in / Working on + domain; session details behind chevron; director cast identity below | `.dialog-header-banner` / `.dialog-coordinates` / `.dialog-header-cast` |
 | **Dialog Space** | Messages scroll here, above the dissolve | `.dialog-message-zone` / `.dialog-message-surface` |
 | **Horizon dissolve** | Gradient fade at Dialog Space floor (no live text) | `.dialog-horizon-band`, `.dialog-fade-overlay` |
 | **Broadcast Strip** | Unified working surface — live beat + ticker; upload previews when staging | `.dialog-broadcast-strip` |
@@ -41,7 +41,7 @@ While sending: one Broadcast Strip carries the live beat and prior story beats. 
 Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:relative, overflow:hidden`) so an absolute-positioned gradient dissolve div can overlay the bottom 80px of the scroll area without scrolling with the content.
 
 ### Surface behaviour
-- **Header Bar**: Talking in (Dialog or Session) and Working on (Document, Draft, or other Chronicle subject), plus the domain name. Hidden in `mode === 'feed'`. Chevron expands session id / Configure — not SOLE. Domain idle still uses the wordmark + live pulse.
+- **Header Bar**: On Stage, **Stage** (named composition, first name Keeper Stage) then Talking in and Working on. Off Stage: Talking in (Dialog or Session) and Working on (Document, Draft, or other Chronicle subject), plus the domain name. Hidden in `mode === 'feed'`. Chevron expands session id / Configure — not SOLE. Domain idle still uses the wordmark + live pulse.
 - **Dialog Space**: Scrollable messages above the dissolve. Top + bottom **mask fade** softens edges. Messages dim slightly while working. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Broadcast Strip (working)**: CRT lower third — phosphor live line (`▶` marker + cursor) + prior beats as ellipsis ticker. Collapses after reply.
 - **Broadcast Strip (uploads)**: Staged attachment tiles and **Pasted** supporting-document tiles while composing.
@@ -70,11 +70,12 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] Upload flow: files in Broadcast Strip; Library item at pick; attach on send.
 - [x] User-facing **Readable** density toggle on boards (`keeper-density` + avatar **Larger type**).
 - [ ] Additional Broadcast Strip streams beyond Debug (live server-side phase events).
-- [ ] `dialogContent` replaces the full Dialog Space content — separate slot if messages needed alongside.
+- [x] Stage `dialogContent` reads the current beat via **Now** (last Turn + reply). Full transcript stays on Dialog view.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-30: **Now on Stage** — Header Bar adds Stage · Talking in · Working on. Stage canvas shows the current beat, not the Dialog transcript.
 - 2026-08-30: **Composer lectern on Stage** — same bottom place as Dialog. Elevation is Agency + Reach-in-Chronicle, not a move to the top. `data-composer-placement="pit"`.
 - 2026-08-25: `dialogThinking` labels `document.reorganize.propose` as Proposed Document (not a draft-point update).
 - 2026-08-25: Point cards pass `onOpenPoint` + Dialog title so **Added point in Finding the plot** opens that Point in Chronicle.

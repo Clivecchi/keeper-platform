@@ -7,7 +7,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
-- `KeeperStageCanvas.tsx` — Stage table (presences only)
+- `KeeperStageCanvas.tsx` — Stage table: **Now** beat (last Turn + reply) plus object cards
+- `StageNowBeat.tsx` / `stageNowBeat.ts` — current story beat; not a Dialog transcript
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
 - `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
 - `useBindStageDialog.ts` — auto-bind Talking in when a Dialog is already on Stage
@@ -16,6 +17,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
+- **Now** is the current beat: last human Turn and the Director reply after it. Composer Turns still write the Dialog thread. Stage does not replay the transcript.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
 - Reach opens from Composer (and the top-bar shortcut) and renders in Chronicle. Composer does not live in Chronicle.
 
@@ -26,6 +28,10 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Now beat on Stage
+- Stage is not Dialog (no chat bubbles) and not objects only. Center card **Now** shows the last Turn and the room’s reply. Objects stay around it. Empty: “The story is not on yet. Speak from the lectern.” Waiting: “The room is answering…”
+- First named Stage displays as **Keeper Stage**. Header Bar: Stage · Talking in · Working on.
 
 ### 2026-08-30 — Composer lectern on Stage
 - Composer stays at the bottom and stands over the Stage (orchestra pit). Agency is in Composer. Reach is in Chronicle. Elevation is function, not a move to the top.

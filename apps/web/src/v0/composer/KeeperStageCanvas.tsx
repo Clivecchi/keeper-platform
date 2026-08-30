@@ -9,10 +9,25 @@ import * as React from "react"
 import { stagePresenceKindLabel, type StagePresence } from "@keeper/shared"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { useUniversalBoard } from "../boards/UniversalBoardContext"
+import type { AgentDialogueMessage } from "../../components/agent/types"
 import { useBindStageDialog } from "./useBindStageDialog"
 import { useKeeperStage } from "./useKeeperStage"
+import { StageNowBeat } from "./StageNowBeat"
+import { resolveStageNowBeat } from "./stageNowBeat"
 
-export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | null }) {
+export function KeeperStageCanvas({
+  domainId: _domainId,
+  messages = [],
+  userName = "You",
+  agentName = "Kip",
+  isSending = false,
+}: {
+  domainId: string | null
+  messages?: ReadonlyArray<AgentDialogueMessage>
+  userName?: string
+  agentName?: string
+  isSending?: boolean
+}) {
   const isMobile = useIsMobile()
   const { actions } = useUniversalBoard()
   const stageApi = useKeeperStage()
@@ -21,6 +36,10 @@ export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | 
   useBindStageDialog()
 
   const selected = stageApi.selected
+  const nowBeat = React.useMemo(
+    () => resolveStageNowBeat(messages, { userName, agentName }),
+    [messages, userName, agentName],
+  )
 
   const onSelect = (presence: StagePresence) => {
     stageApi.select(presence.id)
@@ -54,21 +73,11 @@ export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | 
 
   return (
     <div className="flex h-full min-h-0 flex-col" style={{ paddingBottom: 8 }}>
-      <div className="flex items-center justify-between gap-3 px-3 py-2">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Stage
-          </p>
-          <h2 className="text-[16px] font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-            {stageApi.stage.title}
-          </h2>
+      {stageApi.saving ? (
+        <div className="flex justify-end px-3 py-1">
+          <span className="text-[11px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>Saving</span>
         </div>
-        <div className="flex items-center gap-2">
-          {stageApi.saving ? (
-            <span className="text-[11px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>Saving</span>
-          ) : null}
-        </div>
-      </div>
+      ) : null}
 
       <div
         ref={canvasRef}
@@ -82,10 +91,9 @@ export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | 
           <p className="p-4 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             Loading Stage…
           </p>
-        ) : stageApi.stage.presences.length === 0 ? (
-          <EmptyStage onOpenComposer={actions.openComposerReach} />
         ) : isMobile ? (
-          <div className="flex flex-col gap-2 overflow-y-auto p-3">
+          <div className="flex flex-col items-center gap-3 overflow-y-auto p-3">
+            <StageNowBeat beat={nowBeat} waiting={isSending} />
             {stageApi.stage.presences.map((presence) => (
               <PresenceCard
                 key={presence.id}
@@ -96,55 +104,61 @@ export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | 
                 onRemove={() => stageApi.remove(presence.id)}
               />
             ))}
+            {stageApi.stage.presences.length === 0 ? (
+              <ReachHint onOpenReach={actions.openComposerReach} />
+            ) : null}
           </div>
         ) : (
-          stageApi.stage.presences.map((presence) => (
-            <div
-              key={presence.id}
-              className="absolute"
-              style={{
-                left: `${presence.x * 100}%`,
-                top: `${presence.y * 100}%`,
-                transform: "translate(-50%, -50%)",
-                width: "min(240px, 42%)",
-              }}
-              onPointerDown={(e) => onPointerDown(e, presence)}
-            >
-              <PresenceCard
-                presence={presence}
-                selected={selected?.id === presence.id}
-                onSelect={() => onSelect(presence)}
-                onRemove={() => stageApi.remove(presence.id)}
-              />
+          <>
+            {stageApi.stage.presences.map((presence) => (
+              <div
+                key={presence.id}
+                className="absolute"
+                style={{
+                  left: `${presence.x * 100}%`,
+                  top: `${presence.y * 100}%`,
+                  transform: "translate(-50%, -50%)",
+                  width: "min(240px, 42%)",
+                  zIndex: selected?.id === presence.id ? 2 : 0,
+                }}
+                onPointerDown={(e) => onPointerDown(e, presence)}
+              >
+                <PresenceCard
+                  presence={presence}
+                  selected={selected?.id === presence.id}
+                  onSelect={() => onSelect(presence)}
+                  onRemove={() => stageApi.remove(presence.id)}
+                />
+              </div>
+            ))}
+            <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center">
+              <StageNowBeat beat={nowBeat} waiting={isSending} />
             </div>
-          ))
+            {stageApi.stage.presences.length === 0 ? (
+              <div className="absolute bottom-5 left-1/2 z-[2] -translate-x-1/2">
+                <ReachHint onOpenReach={actions.openComposerReach} />
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </div>
   )
 }
 
-function EmptyStage({ onOpenComposer }: { onOpenComposer: () => void }) {
+function ReachHint({ onOpenReach }: { onOpenReach: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-      <p className="text-[15px]" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-        This is Keeper Stage.
-      </p>
-      <p className="max-w-sm text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-        Reach is on Composer. Chronicle shows it. Find Kip. Bring a real object — Finding the Plot if it is here. Nothing on Stage is a copy.
-      </p>
-      <button
-        type="button"
-        onClick={onOpenComposer}
-        className="rounded-full px-4 py-2 text-[14px]"
-        style={{
-          background: "hsl(var(--theme-accent-primary) / 0.18)",
-          color: "hsl(var(--theme-ink-primary))",
-        }}
-      >
-        Open Reach
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onOpenReach}
+      className="rounded-full px-4 py-2 text-[14px]"
+      style={{
+        background: "hsl(var(--theme-accent-primary) / 0.18)",
+        color: "hsl(var(--theme-ink-primary))",
+      }}
+    >
+      Open Reach
+    </button>
   )
 }
 

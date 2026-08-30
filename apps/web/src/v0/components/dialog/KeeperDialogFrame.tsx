@@ -80,6 +80,8 @@ type ServiceStatus = "connected" | "warning" | "disconnected"
  * Callers assemble this from board selection. KeeperDialogFrame renders the shape.
  */
 export interface BannerContext {
+  /** Named Stage when the room is open — title bar: Stage · Talking in · Working on. */
+  stage?: { title: string }
   /** Conversation you are in — Dialog or Session. */
   talkingIn?: { title: string; kindLabel: string }
   /** Chronicle / action target — Document, Draft, or other work subject. */
@@ -518,7 +520,9 @@ export function KeeperDialogFrame({
     requestAnimationFrame(run)
   }, [messages, isSending, dialogContent, mode, measureDialogScrollInset])
 
-  const hasCoordinates = Boolean(bannerContext?.talkingIn || bannerContext?.workingOn)
+  const hasCoordinates = Boolean(
+    bannerContext?.stage || bannerContext?.talkingIn || bannerContext?.workingOn,
+  )
   const hasBreadcrumb = bannerContext?.primary || bannerContext?.secondary || bannerContext?.tertiary
   const hasSessionMeta = Boolean(sessionId || onOpenCockpit || modelProvider)
   // Banner renders in dialog mode when there is context to show
@@ -759,7 +763,15 @@ export function KeeperDialogFrame({
                       </button>
                     )}
                     {hasCoordinates ? (
-                      <div className="dialog-coordinates" aria-label="Talking in and Working on">
+                      <div className="dialog-coordinates" aria-label="Stage, Talking in, and Working on">
+                        {bannerContext?.stage && (
+                          <div className="dialog-coordinate">
+                            <span className="dialog-coordinate-label">Stage</span>
+                            <span className="dialog-coordinate-title keeper-treatment-title">
+                              {bannerContext.stage.title}
+                            </span>
+                          </div>
+                        )}
                         {bannerContext?.talkingIn && (
                           <div className="dialog-coordinate">
                             <span className="dialog-coordinate-label">

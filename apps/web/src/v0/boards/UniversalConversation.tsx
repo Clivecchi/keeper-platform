@@ -92,6 +92,8 @@ import { createDraftMoment, keepMoment } from "../api/v0Moments"
 import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
 import type { GlossThread } from "@keeper/shared"
 import { KeeperStageCanvas } from "../composer/KeeperStageCanvas"
+import { displayStageTitle } from "../composer/stageNowBeat"
+import { useKeeperStageOptional } from "../composer/useKeeperStage"
 import {
   CAST_MEMBER_LABELS,
   extractAgentReplyFromRunResult,
@@ -354,6 +356,7 @@ export function UniversalConversation({
 
   // ── designer mode: frame key + draft context ───────────────────────────────
   const { selection, actions, workspaceSurface } = useUniversalBoard()
+  const keeperStage = useKeeperStageOptional()
   const boardSelectedAgentId = selection.selectedAgentId ?? selectedAgentId ?? null
   const selectedBoardDefId =
     kipMode === "designer" ? selection.selectedBoardDefId : null
@@ -2158,32 +2161,45 @@ export function UniversalConversation({
           (coordinates.workingOn && coordinates.workingOn.kind !== "session")),
     )
 
-    if (showCoordinates && coordinates) {
+    const talkingWorking =
+      coordinates
+        ? {
+            ...(coordinates.talkingIn
+              ? {
+                  talkingIn: {
+                    title: coordinates.talkingIn.title,
+                    kindLabel: talkingInKindLabel(coordinates.talkingIn.kind),
+                  },
+                }
+              : {}),
+            ...(coordinates.workingOn
+              ? {
+                  workingOn: {
+                    title: workingOnRepeatsTalkingInTitle(
+                      coordinates.talkingIn,
+                      coordinates.workingOn,
+                    )
+                      ? ""
+                      : coordinates.workingOn.title,
+                    kindLabel: workingOnKindLabel(coordinates.workingOn.kind),
+                  },
+                }
+              : {}),
+            ...(domainName?.trim() ? { domainLabel: domainName.trim() } : {}),
+            sessionLabel: coordinates.talkingIn?.kind === "session" ? ("Session" as const) : undefined,
+          }
+        : {}
+
+    if (workspaceSurface === "stage") {
       return {
-        ...(coordinates.talkingIn
-          ? {
-              talkingIn: {
-                title: coordinates.talkingIn.title,
-                kindLabel: talkingInKindLabel(coordinates.talkingIn.kind),
-              },
-            }
-          : {}),
-        ...(coordinates.workingOn
-          ? {
-              workingOn: {
-                title: workingOnRepeatsTalkingInTitle(
-                  coordinates.talkingIn,
-                  coordinates.workingOn,
-                )
-                  ? ""
-                  : coordinates.workingOn.title,
-                kindLabel: workingOnKindLabel(coordinates.workingOn.kind),
-              },
-            }
-          : {}),
+        stage: { title: displayStageTitle(keeperStage?.stage.title ?? "Keeper") },
+        ...talkingWorking,
         ...(domainName?.trim() ? { domainLabel: domainName.trim() } : {}),
-        sessionLabel: coordinates.talkingIn?.kind === "session" ? ("Session" as const) : undefined,
       }
+    }
+
+    if (showCoordinates && coordinates) {
+      return talkingWorking
     }
 
     if (selectedAgentId && kipMode !== "agent") {
@@ -2312,6 +2328,8 @@ export function UniversalConversation({
     selection.selectedMomentId,
     dialogSessionId,
     actions,
+    workspaceSurface,
+    keeperStage?.stage.title,
   ])
 
   // ── modelProvider — build mode reads from domain frame ──────────────────────
@@ -2675,7 +2693,17 @@ export function UniversalConversation({
         sessionId={dialogSessionId}
         modelProvider={modelProvider}
         onSaveTitle={kipMode === "build" ? handleSaveTitle : undefined}
-        dialogContent={workspaceSurface === "stage" ? <KeeperStageCanvas domainId={domainId} /> : undefined}
+        dialogContent={
+          workspaceSurface === "stage" ? (
+            <KeeperStageCanvas
+              domainId={domainId}
+              messages={dialogMessages}
+              userName={dialogUserDisplayName}
+              agentName={dialogAgentDisplayName}
+              isSending={isSending}
+            />
+          ) : undefined
+        }
         dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}
         mobileDialogStage={useMobileStagedComposer ? mobileDialogStage : undefined}
         onComposerFocusChange={useMobileStagedComposer ? handleComposerFocusChange : undefined}

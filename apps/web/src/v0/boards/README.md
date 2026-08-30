@@ -39,6 +39,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Now beat on Stage
+- Stage shows the current story beat (last Turn + Director reply) in the center. Object cards stay around it. Header Bar is Stage · Talking in · Working on. First named Stage is Keeper Stage.
+
 ### 2026-08-30 — Composer lectern on Stage; Reach in Chronicle
 - On Stage, Composer stays at the bottom and stands over the table (lectern / orchestra pit). Agency is in Composer. Reach renders in Chronicle. Elevation is function, not a move to the top.
 

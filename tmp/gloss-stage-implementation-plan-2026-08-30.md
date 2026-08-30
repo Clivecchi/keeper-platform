@@ -39,11 +39,17 @@ Composer works with Chronicle: Chronicle renders Composer tools such as Reach.
 
 Stage Chat (whole table) and object focus (one presence → Chronicle) still belong in this slice. Auto-bind the Dialog already on Stage so speaking does not require a card click.
 
-Slice 4 — Presence that belongs in the room
-Replace KeeperStageCanvas look so presence is the screenplay, not a picker.
-Agency (Role / Direction) leaves the Stage floor; it belongs in Composer/Chronicle.
+Slice 4 — The story is seen on Stage (Chuck, 2026-08-30 — awaiting lock)
+Today Chronicle holds the Document. Dialog holds the conversation. Stage holds objects. A Composer Turn on Stage is invisible in the room. That is the confusion.
+
+Stage is not Dialog. Do not replay bubbles on the table.
+Stage is not only objects. The current beat must be present — story in development and presentation.
+
+First presentation, before Rendr: a Now surface on Stage (last human Turn + Director reply). Objects stay as cast and props. Chronicle stays the Document. Composer stays the lectern.
+
+Slice 4b — Presence that belongs in the room
+Replace the picker look once the beat has a place to live.
 Keep references, not clones. Selected ≠ silently retargeting Stage Chat.
-First proof: enter Stage with Finding the Plot already on it → speak immediately → Chronicle still shows the story.
 
 Named Stage vs viewstate (Chuck, 2026-08-30 — awaiting lock)
 Two things. Do not collapse them.
