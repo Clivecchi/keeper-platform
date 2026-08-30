@@ -4,6 +4,8 @@
  * Detector lives in @keeper/shared so the client can skip Cast consults on the same ask.
  */
 
+import { type ReorganizeIntentKind } from '@keeper/shared';
+
 export {
   detectReorganizeIntent,
   type ReorganizeIntentKind,
