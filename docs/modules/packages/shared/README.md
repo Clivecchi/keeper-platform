@@ -36,6 +36,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-30 — Playbill domain label
+- `domainLeadBindings.ts` — `resolvePlaybillDomainLabel` / `resolvePlaybillStarName` use the slug when the stored name is a short clip. No generic "Agent" title.
+
 ### 2026-08-30 — Image palette + domain Stage name
 - `imagePalette.ts` derives background / accent from sampled pixels.
 - `displayKeeperStageTitle` uses the domain label when the stored title is still the platform default.

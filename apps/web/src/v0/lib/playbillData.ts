@@ -1,4 +1,9 @@
-import { extractPresenceAvatar, resolvePlaybillStarName, isPlatformDomainSlugAlias } from "@keeper/shared"
+import {
+  extractPresenceAvatar,
+  resolvePlaybillDomainLabel,
+  resolvePlaybillStarName,
+  isPlatformDomainSlugAlias,
+} from "@keeper/shared"
 import { apiFetch } from "../../lib/apiFetch"
 import { getAuthToken } from "../../lib/authTokenStore"
 import { KipApi } from "../../lib/kipApi"
@@ -12,7 +17,7 @@ import {
   type ResolvedLeadAgentIdentity,
 } from "./frameLeadAgentIdentity"
 
-export { resolvePlaybillStarName }
+export { resolvePlaybillDomainLabel, resolvePlaybillStarName }
 
 export interface DomainPlaybillStats {
   momentCount: number

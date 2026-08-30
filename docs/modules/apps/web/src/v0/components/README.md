@@ -35,6 +35,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-08-30: Playbill billing/star use `resolvePlaybillDomainLabel` — a short name clip of the slug (Liv / livecchi.biz) and the generic "Agent" placeholder no longer appear in the selector.
 - 2026-08-30: Cover imprint is the domain name, not hardcoded KE3P. Card wordmark is unchanged.
 - 2026-08-30: Cover page wash uses `--theme-atmosphere-wash-start` / `--theme-atmosphere-wash-end`.
 - 2026-08-30: Profile menu **Invite** opens `InviteCollaboratorDialog` for the current domain.

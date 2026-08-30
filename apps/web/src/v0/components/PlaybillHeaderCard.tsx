@@ -3,7 +3,11 @@
 import * as React from "react"
 import { ChevronDown } from "lucide-react"
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
-import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
+import {
+  formatPlaybillRoleSubtitle,
+  resolvePlaybillDomainLabel,
+  resolvePlaybillStarName,
+} from "../lib/playbillData"
 import { resolveDomainLeadContext, type DomainLeadRecord } from "../lib/domainLeadAgent"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
@@ -80,9 +84,14 @@ export function PlaybillHeaderCard({
   })
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
-  const billingName = domainName.trim() || "···"
+  const billingName =
+    resolvePlaybillDomainLabel({
+      domainName,
+      domainSlug,
+    }) || "···"
   const starName = resolvePlaybillStarName({
-    domainName: billingName,
+    domainName,
+    domainSlug,
     agentDisplayName: agent?.displayName ?? leadContext.name,
     isUncast,
     isLoading,
@@ -92,7 +101,10 @@ export function PlaybillHeaderCard({
   const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null
   const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
   const ambientUrl = resolvePlaybillAmbientUrl(coverImageUrl, portraitUrl)
-  const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
+  const portraitFallback =
+    isUncast || starName === billingName
+      ? (billingName.trim().charAt(0) || "?").toUpperCase()
+      : agent?.iconFallback ?? "?"
 
   const borderStyle = isOpen
     ? "1.5px solid hsl(var(--theme-focus-ring) / 0.75)"
@@ -178,14 +190,14 @@ export function PlaybillHeaderCard({
           title="Return to Realm"
         >
           <p
-            className="text-[8px] font-semibold uppercase tracking-[0.2em] truncate mb-1"
+            className="text-[8px] font-semibold uppercase tracking-[0.08em] break-words [overflow-wrap:anywhere] mb-1"
             style={{ color: "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))" }}
           >
             {billingName} presents
           </p>
 
           <h1
-            className="font-serif text-[20px] font-bold leading-tight tracking-tight truncate"
+            className="font-serif text-[20px] font-bold leading-tight tracking-tight break-words [overflow-wrap:anywhere]"
             style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
           >
             {starName}

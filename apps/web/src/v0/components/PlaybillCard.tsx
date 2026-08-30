@@ -8,7 +8,11 @@ import {
 import { usePlaybillCard } from "../hooks/usePlaybillCard"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { sealPlaybillGreet } from "../lib/playbillGreetContinuity"
-import { formatPlaybillRoleSubtitle, resolvePlaybillStarName } from "../lib/playbillData"
+import {
+  formatPlaybillRoleSubtitle,
+  resolvePlaybillDomainLabel,
+  resolvePlaybillStarName,
+} from "../lib/playbillData"
 import {
   PlaybillAgentPortrait,
   PlaybillAmbientLayer,
@@ -63,20 +67,30 @@ export function PlaybillCard({
       : "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))"
 
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
-  const billingName = domain.name.trim() || domain.slug
+  const billingName = resolvePlaybillDomainLabel({
+    domainName: domain.name,
+    domainSlug: domain.slug,
+  })
   const starName = resolvePlaybillStarName({
-    domainName: billingName,
+    domainName: domain.name,
+    domainSlug: domain.slug,
     agentDisplayName: agent?.displayName ?? domain.leadAgentName,
     isUncast,
     isLoading,
   })
   const roleSubtitle = formatPlaybillRoleSubtitle(agent, domain.slug, isUncast)
-  const ariaLead = isUncast ? "Agent" : agent?.displayName ?? domain.leadAgentName ?? "lead agent"
+  const ariaLead =
+    starName === billingName
+      ? billingName
+      : agent?.displayName ?? domain.leadAgentName ?? billingName
 
   const portraitUrl = isUncast ? null : agent?.avatarUrl ?? null
   const portraitEmoji = isUncast ? null : agent?.avatarEmoji ?? null
   const ambientUrl = resolvePlaybillAmbientUrl(domain.coverImageUrl, portraitUrl)
-  const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
+  const portraitFallback =
+    isUncast || starName === billingName
+      ? (billingName.trim().charAt(0) || "?").toUpperCase()
+      : agent?.iconFallback ?? "?"
 
   const handleEnter = () => {
     sealPlaybillGreet(domain.slug, domain.leadAgentSlug)
@@ -113,10 +127,12 @@ export function PlaybillCard({
           ].join(" ")}
         >
           <div className="min-w-0 flex-1">
-            <p className="playbill-dropdown-row__presents truncate">{billingName} presents</p>
+            <p className="playbill-dropdown-row__presents break-words [overflow-wrap:anywhere]">
+              {billingName} presents
+            </p>
             <p
               className={[
-                "playbill-dropdown-row__name truncate font-serif font-bold leading-tight",
+                "playbill-dropdown-row__name break-words [overflow-wrap:anywhere] font-serif font-bold leading-tight",
                 isMobile ? "text-[14px]" : "text-[15px]",
               ].join(" ")}
               style={{ color: inkPrimary }}
@@ -166,13 +182,13 @@ export function PlaybillCard({
       <div className="relative z-10 flex items-center gap-2.5 px-3 py-3">
         <div className="min-w-0 flex-1">
           <p
-            className="text-[8px] font-semibold uppercase tracking-[0.2em] truncate"
+            className="text-[8px] font-semibold uppercase tracking-[0.08em] break-words [overflow-wrap:anywhere]"
             style={{ color: inkMuted }}
           >
             {billingName} presents
           </p>
           <h3
-            className="mt-1 font-serif font-bold leading-tight truncate text-[16px]"
+            className="mt-1 font-serif font-bold leading-tight break-words [overflow-wrap:anywhere] text-[16px]"
             style={{ color: inkPrimary }}
           >
             {starName}

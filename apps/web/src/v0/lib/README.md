@@ -8,7 +8,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - `ensureDomainProvisioned.ts` — calls `POST /api/domains/:id/provision` (idempotent Step 1.2 repair).
 - `domainLeadAgent.ts` — **single web read path** for lead identity (`resolveDomainLeadContext`, `resolveDialogLeadSlug`) from API-enriched fields.
 - `frameLeadAgentIdentity.ts` — agent display name cache + `resolveLeadAgentId`; frame slug helpers are mirror-only / deprecated for product paths.
-- `playbillData.ts` — Playbill card enrichment: domain stats + lead agent portrait/role via live API; `resolvePlaybillStarName` never uses domain name as agent star.
+- `playbillData.ts` — Playbill card enrichment: domain stats + lead agent portrait/role via live API; re-exports `resolvePlaybillDomainLabel` + `resolvePlaybillStarName`. Uncast / provisioned leads fall back to the domain label, not "Agent".
 - `playbillGreetContinuity.ts` — seal/read innkeeper choice from Playbill wall for arrival greet continuity.
 - `userHomeSettings.ts` — user Home display name (localStorage until API persistence).
 
@@ -23,6 +23,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
+- 2026-08-30: Playbill star falls back to the domain label (slug when the stored name is a short clip). No generic "Agent" title.
 - 2026-08-02: `preloadPlaybillPortrait` settles after 2s max so hung image URLs cannot block curtain/Nav forever.
 - 2026-07-12: `resolvePlaybillAgent` uses `KipApi.getAgentBySlug`, Chronicle `/api/agents/:id` enrichment, and `clearPlaybillAgentCache` on dropdown open.
 - 2026-07-12: **Hotfix** — `UniversalConversation` undefined `frameLeadAgentSlug` crash; Playbill uses API `leadAgentName` when agent fetch fails; `isUncast` only when slug missing.

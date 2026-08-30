@@ -2321,9 +2321,10 @@ button.dialog-prelude:hover {
 .keeper-platform-top-bar .playbill-dropdown-row__presents {
   font-size: 8px;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: hsl(40 8% 72%);
+  color: hsl(40 14% 88%);
+  line-height: 1.25;
 }
 
 .keeper-platform-top-bar .playbill-dropdown-row__role {

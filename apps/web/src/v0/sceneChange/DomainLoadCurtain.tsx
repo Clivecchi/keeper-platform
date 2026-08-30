@@ -15,6 +15,7 @@ import {
   formatPlaybillRoleSubtitle,
   peekPlaybillAgent,
   resolvePlaybillAgent,
+  resolvePlaybillDomainLabel,
   resolvePlaybillStarName,
   type ResolvedPlaybillAgent,
 } from "../lib/playbillData"
@@ -132,14 +133,18 @@ export function DomainLoadCurtain({
   const cached = getCachedDomainBySlug(domainSlug)
   const lead = resolveDomainLeadContext(cached as DomainLeadRecord | null)
   const frame = peekDomainFrame(domainSlug)
-  const billingName = domainName.trim() || domainSlug
+  const billingName = resolvePlaybillDomainLabel({
+    domainName,
+    domainSlug,
+  })
   const tagline =
     frame?.theme?.tagline?.trim() ||
     cached?.description?.trim() ||
     ""
   const isUncast = !lead.slug
   const starName = resolvePlaybillStarName({
-    domainName: billingName,
+    domainName,
+    domainSlug,
     agentDisplayName: agent?.displayName ?? lead.name,
     isUncast,
     isLoading: !isUncast && !agent,
@@ -150,7 +155,10 @@ export function DomainLoadCurtain({
   // Full-page atmosphere = domain cover only. Agent portrait stays on the identity card —
   // never promote a lead/cast portrait into board/curtain wallpaper.
   const ambientUrl = coverUrl
-  const portraitFallback = isUncast ? "A" : agent?.iconFallback ?? "?"
+  const portraitFallback =
+    isUncast || starName === billingName
+      ? (billingName.trim().charAt(0) || "?").toUpperCase()
+      : agent?.iconFallback ?? "?"
   const accent = "hsl(var(--theme-accent-primary, var(--theme-focus-ring)))"
 
   const pageBackground: React.CSSProperties = ambientUrl
