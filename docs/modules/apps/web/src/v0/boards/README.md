@@ -30,7 +30,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 - **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
 - **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. On Stage the center is a Frame-driven story workshop (assets on the table → presentation). Chronicle stays the Document. The default Stage is named after the current domain (`{domain} Stage`).
-- **Library image upload:** `LibraryScreen` + creates a Library item and applies the image as domain cover + extracted Treatment.
+- **Library image upload:** `LibraryScreen` + shelves the file. Domain cover remains the atmosphere. Selecting a Library image overlays that item's extracted look while it is surfaced.
 
 ## ?? Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace � they share `/d/:slug/board`
@@ -41,8 +41,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Domain cover is the theme floor
+- Library `+` shelves the file. Cover Configure is the Domain look. A Library image overlays only while that item is selected.
+
 ### 2026-08-30 — Domain look from Library; Stage belongs to the domain
-- Library `+` on an image also sets domain cover and extracts Treatment. Cover Configure writes a Library row the same way.
 - Default Stage title displays as `{domain} Stage` instead of Keeper Stage.
 
 ### 2026-08-30 — Stage story is Frames, not Points

@@ -207,6 +207,8 @@ export function DomainConfigPresence({
         avatar: fieldValues.name?.slice(0, 1).toUpperCase(),
         status: fieldValues.status,
       }}
+      onNameChange={(value) => onFieldChange("name", value)}
+      namePlaceholder="Domain name"
       onBack={onBack}
       saveStatus={saveStatus}
       saveMessage={saveMessage}
@@ -215,7 +217,7 @@ export function DomainConfigPresence({
     >
       <ChronicleCoverField
         label="Cover image"
-        description="Lands in Library, becomes the board and Chronicle background, and extracts Treatment colors from the image."
+        description="The domain's look — board and Chronicle atmosphere, and the colors extracted from this image. Library shelves hold more images without changing this."
         value={coverMedia}
         themeBits={existingTheme}
         onSave={async (cover) => {

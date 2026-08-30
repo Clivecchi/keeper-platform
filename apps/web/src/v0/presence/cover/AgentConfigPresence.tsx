@@ -123,6 +123,8 @@ export function AgentConfigPresence({
         avatar: identityAvatar,
         status: fieldValues.status,
       }}
+      onNameChange={(value) => onFieldChange("name", value)}
+      namePlaceholder="Agent name"
       onBack={onBack}
       saveStatus={saveStatus}
       saveMessage={saveMessage}

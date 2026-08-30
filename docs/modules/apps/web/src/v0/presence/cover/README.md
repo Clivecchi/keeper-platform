@@ -53,8 +53,11 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-08-30 — Agent / Domain name in the Config header
+- `ChronicleConfigShell` identity name is editable (Agent name, Domain name). Save still goes through the existing Save bar.
+
 ### 2026-08-30 — Cover upload is the domain look
-- `DomainConfigPresence` cover image writes a Library item, sets cover, and extracts Treatment colors from the image.
+- `DomainConfigPresence` cover image writes a Library item, sets cover, and extracts Treatment colors from the image. Further Library uploads do not restyle the Domain.
 
 ### 2026-08-25 — Library Back to Document
 - `LibraryItemFocusPresence` shows **Back to Document** when a Dialog is still talking-in and Library took Chronicle (Nav / `library.read`). Dialog uploads no longer take Chronicle.

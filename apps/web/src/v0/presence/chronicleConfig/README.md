@@ -43,8 +43,11 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-08-30 — Config header name is the name
+- `ChronicleConfigShell` accepts `onNameChange` so Agent and Domain names edit in the identity header.
+
 ### 2026-08-30 — Cover is also Library + Treatment
-- Domain cover save still uses `ChronicleCoverField`; Domain Configure now also creates a Library row and extracts Treatment via `applyDomainVisualFromImage`.
+- Domain cover save still uses `ChronicleCoverField`; Domain Configure also creates a Library row and extracts Treatment via `applyDomainVisualFromImage`. Library `+` does not write the Domain look.
 
 ### 2026-08-18 — Frame / boardDef Chronicle PATCH
 - `handleChronicleSave("frame")` writes `frame_json` via `PATCH /api/domains/:slug/frame`

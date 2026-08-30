@@ -1,5 +1,11 @@
 /**
- * Hierarchy theme resolution — Moment → Path → Journey → Keeper → domain frame JSON.
+ * Hierarchy theme resolution.
+ *
+ * Visual floor: Domain cover image → Domain Treatment + theme colors.
+ * Entity overlay (most specific theme_id wins): Moment → Path → Journey → Keeper.
+ * Surfaced Library images overlay separately in useBoardThemeRegistration
+ * (extract on the fly; do not write back to the Domain).
+ * Cast / instruments never change atmosphere.
  *
  * DB `themes.style` (full V0 tokens) wins when present; otherwise palette hex is
  * mapped through domainThemeResolver (same path as Ke3p brand colors).

@@ -14,6 +14,9 @@ export interface ChronicleConfigIdentity {
 export interface ChronicleConfigShellProps extends ChronicleSaveBarProps {
   identity: ChronicleConfigIdentity
   onBack: () => void
+  /** When set, the identity name in the header is the editable name. */
+  onNameChange?: (value: string) => void
+  namePlaceholder?: string
   children: React.ReactNode
 }
 
@@ -22,7 +25,13 @@ function ConfigIdentityHeader({
   avatar,
   status,
   onBack,
-}: ChronicleConfigIdentity & { onBack: () => void }) {
+  onNameChange,
+  namePlaceholder,
+}: ChronicleConfigIdentity & {
+  onBack: () => void
+  onNameChange?: (value: string) => void
+  namePlaceholder?: string
+}) {
   const displayAvatar = avatar?.trim() || "◇"
   const isLive =
     (status ?? "").toLowerCase().includes("ready") ||
@@ -59,12 +68,23 @@ function ConfigIdentityHeader({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p
-          className="text-[14px] font-medium truncate"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          {name || "Untitled"}
-        </p>
+        {onNameChange ? (
+          <input
+            value={name}
+            onChange={(event) => onNameChange(event.target.value)}
+            placeholder={namePlaceholder ?? "Name"}
+            aria-label="Name"
+            className="w-full bg-transparent text-[14px] font-medium outline-none"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
+          />
+        ) : (
+          <p
+            className="text-[14px] font-medium truncate"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
+          >
+            {name || "Untitled"}
+          </p>
+        )}
         {status?.trim() && (
           <p
             className="text-[10px] font-mono uppercase tracking-wider flex items-center gap-1"
@@ -91,6 +111,8 @@ function ConfigIdentityHeader({
 export function ChronicleConfigShell({
   identity,
   onBack,
+  onNameChange,
+  namePlaceholder,
   children,
   saveStatus,
   saveMessage,
@@ -108,7 +130,12 @@ export function ChronicleConfigShell({
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       data-cover-mode="config"
     >
-      <ConfigIdentityHeader {...identity} onBack={onBack} />
+      <ConfigIdentityHeader
+        {...identity}
+        onBack={onBack}
+        onNameChange={onNameChange}
+        namePlaceholder={namePlaceholder}
+      />
 
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4">
         {children}

@@ -2,10 +2,11 @@
 
 /**
  * Re-registers domain-resolved theme tokens when hierarchy selection changes.
- * Runs inside UniversalBoardProvider so Moment → Path → Journey hierarchy applies.
  *
- * Atmosphere rule: cast / instrument toggles must NOT touch global theme.
- * Only Moment / Path / Journey / Keeper theme_id walks may re-register tokens.
+ * Visual hierarchy:
+ *   Domain cover → Domain Treatment / theme (floor)
+ *   Surfaced Chronicle subject overlays (Library image; Moment → Path → Journey → Keeper theme_id)
+ *   Cast / instruments never change atmosphere
  */
 
 import * as React from 'react'
@@ -20,6 +21,11 @@ import {
 } from './hierarchyThemeResolver'
 import { resolveDomainThemeSync } from './domainThemeResolver'
 import type { DomainFrameTheme } from '../data/domain-frame.types'
+import { apiFetch } from '../../lib/apiFetch'
+import { getBlobProxyUrl } from '../../lib/blobProxy'
+import { isLibraryImageSource } from '../boards/libraryBrowse'
+import { extractPaletteFromImageSource } from './extractImagePalette'
+import { clearSurfaceLook, setSurfaceLook } from './surfaceLookStore'
 
 const EMPTY_DOMAIN_THEME: DomainFrameTheme = {
   wordmark: '',
@@ -42,6 +48,7 @@ export function useBoardThemeRegistration(): void {
   const pathId = selection?.selectedPathId ?? null
   const journeyId = selection?.selectedJourneyId ?? selection?.activeJourneyId ?? null
   const keeperId = selection?.selectedKeeperId ?? null
+  const libraryItemId = selection?.selectedLibraryItemId ?? null
 
   React.useEffect(() => {
     if (urlThemeSlug) return
@@ -58,8 +65,48 @@ export function useBoardThemeRegistration(): void {
 
     void (async () => {
       try {
+        const domainTheme = domainFrame.theme ?? EMPTY_DOMAIN_THEME
+        let overlayTheme = domainTheme
+
+        if (libraryItemId) {
+          try {
+            const row = (await apiFetch(
+              `/api/library-items/${encodeURIComponent(libraryItemId)}`,
+            )) as { source_type?: string; source_ref?: string }
+            const sourceType = typeof row.source_type === 'string' ? row.source_type : ''
+            const sourceRef = typeof row.source_ref === 'string' ? row.source_ref.trim() : ''
+            if (sourceRef && isLibraryImageSource({ source_type: sourceType, source_ref: sourceRef })) {
+              const palette = await extractPaletteFromImageSource(sourceRef)
+              const atmosphereUrl = getBlobProxyUrl(sourceRef)
+              overlayTheme = {
+                ...domainTheme,
+                colors: {
+                  primary: palette.primary,
+                  accent: palette.accent,
+                  surface: palette.surface,
+                },
+              }
+              if (!cancelled) {
+                setSurfaceLook({
+                  source: 'library',
+                  subjectId: libraryItemId,
+                  atmosphereUrl,
+                  palette,
+                })
+              }
+            } else if (!cancelled) {
+              clearSurfaceLook()
+            }
+          } catch (error) {
+            console.warn('[BoardTheme] Library surface look skipped:', error)
+            if (!cancelled) clearSurfaceLook()
+          }
+        } else if (!cancelled) {
+          clearSurfaceLook()
+        }
+
         const tokens = await resolveBoardThemeTokens({
-          domainTheme: domainFrame.theme ?? EMPTY_DOMAIN_THEME,
+          domainTheme: overlayTheme,
           colorScheme,
           selection: hierarchy,
         })
@@ -70,6 +117,7 @@ export function useBoardThemeRegistration(): void {
       } catch (error) {
         console.warn('[BoardTheme] Hierarchy resolution failed, keeping domain tokens:', error)
         if (!cancelled) {
+          clearSurfaceLook()
           registerRuntimeTheme(
             DOMAIN_THEME_SLUG,
             resolveDomainThemeSync(domainFrame.theme ?? EMPTY_DOMAIN_THEME, colorScheme),
@@ -89,5 +137,6 @@ export function useBoardThemeRegistration(): void {
     pathId,
     journeyId,
     keeperId,
+    libraryItemId,
   ])
 }

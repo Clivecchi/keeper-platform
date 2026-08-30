@@ -31,7 +31,7 @@ Domain Treatment — named presence configuration stored in `Domain.frame_json.t
 
 ### 2026-08-30 — Atmosphere + readable ink
 - `treatmentShellStyle` paints the domain cover under a Treatment wash and sets `--theme-ink-*` from background luminance.
-- `ChronicleTreatmentShell` reads the domain cover from shell context. Chronicle panel glass is removed when Treatment is present.
+- `ChronicleTreatmentShell` uses Domain cover as the floor; a surfaced Library image overlays while that item is selected. Chronicle panel glass is removed when Treatment is present.
 
 ### 2026-08-03 — Treatment scope expansion (three tiers)
 - Added `TreatmentAccentShell` + `treatmentAccentStyle` for Nav and center Dialog
