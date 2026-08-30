@@ -119,7 +119,7 @@ export type AgentEnvironmentContext = {
     };
   };
   /**
-   * Domain Keeper Stage composition — references to real objects + contextual Agency.
+   * Domain Keeper Stage composition — references to real objects (story assets) + contextual Agency.
    * Loaded from Domain.settings.keeperStage. Empty when nothing has been brought.
    */
   keeperStage?: KeeperStageComposition;

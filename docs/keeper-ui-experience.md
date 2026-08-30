@@ -53,6 +53,21 @@ The member workspace is a three-panel board, not a standalone frame route.
 
 EntityKind cover/body/Config patterns (Key, Agent, Integration) follow the same split: Nav lists and labels; Chronicle owns cover, declaration blocks, and save. See `docs/entitykind-implementation-recipe.md`.
 
+### Stage room (viewstate on the Board — 2026-08-30)
+
+Stage is a room on the current Board (`workspaceSurface: 'dialog' | 'stage'`). It is **not** `?board=stage`, not a fourth panel, and not a Prisma Stage table until a second named Stage exists. First name: **Keeper Stage**.
+
+Two things named Stage:
+
+| Thing | What it is |
+|---|---|
+| **Viewstate** | How you look — Dialog conversation vs Stage workspace. Nav **Open Stage**. |
+| **Named Stage** | Titled composition of real object references (`Domain.settings.keeperStage`). One Stage, many Dialogs. |
+
+**Split (candidate lock, 2026-08-30):** Chronicle Document = Points for **discussion**. Stage workspace = Frame-driven **story** from placed assets (Documents, Drafts, attachments, Journeys, Moments, Library, Cast), wrapped in Config the way EntityKinds are wrapped. Present remains the guest/read (Show). Stage is Shape toward Show. Agents already receive the Stage roster; they should ask where the story is going. There is no Stage-story Apply action yet — Review & Reorganize stays Document-only.
+
+**Now** (last Turn + Director reply) is the first beat on the table. Do not put Dialog bubbles on Stage. Theatre / SlideTypes on Stage wait for Rendr.
+
 ### World Mode (Presentation vs Workshop)
 
 - **Presentation** renders narrative-first surfaces (story-first, read-only, no editing chrome).
@@ -133,7 +148,7 @@ On Universal Board, engagement follows a strict panel contract:
 ## 🔗 Narrative UX → Runtime Mapping
 
 - **Place / Space** → Frame + Shell selection, or Universal Board (`?board=*`) for members.
-- **Present** → Presentation world renderer + Present frame (public singular UI — Phase B).
+- **Present** → Presentation world renderer + Present frame (public singular UI — Phase B). Member **Stage** is the workshop that composes Frames from placed assets; Present is the guest/read of that story.
 - **Act** → Engagement template action (button / form in **Chronicle**, never Nav).
 - **Studio / Workshop** → Workshop world renderer and editing chrome.
 - **Commons** → Commons frame with workspace modes.
@@ -166,6 +181,7 @@ On Universal Board, engagement follows a strict panel contract:
 
 ## 📆 Update Log
 
+- **2026-08-30** — Stage room: Workspace-on-Stage is a Frame-driven story from placed assets, wrapped in Config. Chronicle Points stay discussion. Present stays guest/read. Now is the first beat. Not `?board=stage`.
 - **2026-08-18** — Locked Nav · Dialog · Chronicle pathway: Nav selects the subject; Dialog is that conversation; Chronicle + agent context share the same body (Document for a Dialog). Selecting a Dialog resumes its session; `dialog.read { id }` returns that Document. Echo / Kip support stays offstage unless it has substance. `glossary.read` is the live Object Glossary — not a draft husk.
 - **2026-06-19** — Declared Chronicle Act surface: `ChronicleActPresence` uses `ChronicleConfigShell` (same as Agent Manage); engagement forms must not bypass declared UI.
 - **2026-02-01** — Initial canonical UI experience doc (surfaces, engagement pipeline, narrative mapping).

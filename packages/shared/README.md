@@ -20,7 +20,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/guidedArrival.ts` – Phase 2.1 pending detection + compose hint
 - `src/dialogTitleSource.ts` — Chatter vs named Dialog vs Document-bearing (`user_set` only)
 - `src/talkingInWorkingOn.ts` — Talking in (Dialog/session) vs Working on (Document/Draft) + Point write-target helper
-- `src/keeperStage.ts` — Stage composition (object references + contextual Agency); not Theatre-as-database
+- `src/keeperStage.ts` — Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle`; not Theatre-as-database
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -71,6 +71,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 ### 2026-08-25 — Point identity
 - `resolveDraftPointRef` — UUID, 1-based number, or title. Same rules as Review & Reorganize.
 - `rewriteDraftPointInSpec` — title-only updates may omit content.
+
+### 2026-08-30 — Stage assets → Frame story
+- `buildKeeperStagePrompt` names objects as assets for an emerging presentation. Wide / narrow context. Frames vs Document Points. No Stage-story action yet.
 
 ### 2026-08-22 — Keeper Stage contract
 - `keeperStage.ts` — Stage owns presence/placement/contextual Agency. Objects stay themselves. Chronicle Working on (agent/journey/…) now wins over Talking in Dialog when both IDs are set.

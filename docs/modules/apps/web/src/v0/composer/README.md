@@ -1,7 +1,7 @@
 # Reach + Stage
 
 ## 📌 Purpose
-Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument) at the bottom. On Stage it is a lectern over the table — same place, more function (Agency, Reach in Chronicle).
+Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument) at the bottom. On Stage it is a lectern over the table — same place, more function (Agency, Reach in Chronicle). Placed objects are **assets**. The Stage workspace is a **Frame-driven story** (presentation), not a second Document of Points.
 
 ## 🧱 Key Files
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
@@ -17,17 +17,27 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
-- **Now** is the current beat: last human Turn and the Director reply after it. Composer Turns still write the Dialog thread. Stage does not replay the transcript.
+- **Now** is the first glimpse of that story: last human Turn and the Director reply after it. Composer Turns still write the Dialog thread. Stage does not replay the transcript.
+- Objects on Stage are assets (wide context = everything placed; narrow = selected + what was just said). Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed is fair game.
+- The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
 - Reach opens from Composer (and the top-bar shortcut) and renders in Chronicle. Composer does not live in Chronicle.
+- Agent turns already receive the Stage roster via `buildKeeperStagePrompt`. They are asked where the story is going. There is no Stage-story Apply action yet.
 
 ## ⚠️ Notes & ToDo
-- [ ] Theatre.js Stage project for choreography — after this proof
+- [ ] Rendr: Stage workspace as Frame story wrapped in Config (treatment before Theatre / SlideTypes)
+- [ ] Stage Config in Chronicle (how this Stage tells) — `ChronicleConfigShell`, no fourth panel
+- [ ] Agent story-arrange propose + human Apply (analog of Review & Reorganize; do not invent until Rendr shapes it)
+- [ ] Theatre.js choreography — after the Frame story is real
 - [ ] Persistent Keeper Cast migration off boardCast defaults
 - [ ] Confirm Finding the Plot is the first object Chuck wants seeded vs brought by hand
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Stage story is Frames, not Points
+- Chuck locked the destination: Workspace-on-Stage is a Frame-driven story wrapped in Config. Objects are assets. Agents pull the story together the way they Review & Reorganize a Document. Points stay Chronicle discussion. Now remains the first beat until that workshop is designed.
+- Agent Stage prompt now names assets, wide/narrow context, and Frames vs Points. No new action.
 
 ### 2026-08-30 — Now beat on Stage
 - Stage is not Dialog (no chat bubbles) and not objects only. Center card **Now** shows the last Turn and the room’s reply. Objects stay around it. Empty: “The story is not on yet. Speak from the lectern.” Waiting: “The room is answering…”

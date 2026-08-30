@@ -42,6 +42,7 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 
 ### Surface behaviour
 - **Header Bar**: On Stage, **Stage** (named composition, first name Keeper Stage) then Talking in and Working on. Off Stage: Talking in (Dialog or Session) and Working on (Document, Draft, or other Chronicle subject), plus the domain name. Hidden in `mode === 'feed'`. Chevron expands session id / Configure — not SOLE. Domain idle still uses the wordmark + live pulse.
+- **Stage workspace (when open):** the 70% is not a second Dialog. Destination: Frame-driven story from placed assets (Documents, Drafts, attachments, …), wrapped in Config. **Now** is the first beat. Chronicle stays the Document (Points = discussion). Present stays the guest/read.
 - **Dialog Space**: Scrollable messages above the dissolve. Top + bottom **mask fade** softens edges. Messages dim slightly while working. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Broadcast Strip (working)**: CRT lower third — phosphor live line (`▶` marker + cursor) + prior beats as ellipsis ticker. Collapses after reply.
 - **Broadcast Strip (uploads)**: Staged attachment tiles and **Pasted** supporting-document tiles while composing.
@@ -75,6 +76,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-30: **Stage story is Frames** — Workspace-on-Stage is presentation (Frames + Config), not discussion Points. Now stays the first glimpse.
 - 2026-08-30: **Now on Stage** — Header Bar adds Stage · Talking in · Working on. Stage canvas shows the current beat, not the Dialog transcript.
 - 2026-08-30: **Composer lectern on Stage** — same bottom place as Dialog. Elevation is Agency + Reach-in-Chronicle, not a move to the top. `data-composer-placement="pit"`.
 - 2026-08-25: `dialogThinking` labels `document.reorganize.propose` as Proposed Document (not a draft-point update).

@@ -29,6 +29,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `?board=` takes precedence over `?frame=` when both are present in the URL
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 - **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
+- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. On Stage the center is a Frame-driven story workshop (assets on the table → presentation). Chronicle stays the Document. First named Stage is Keeper Stage.
 
 ## ?? Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace � they share `/d/:slug/board`
@@ -38,6 +39,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-08-30 — Stage story is Frames, not Points
+- Workspace-on-Stage is a Frame-driven story wrapped in Config. Objects are assets. Chronicle Points stay discussion. Now is the first beat, not the finished workshop.
 
 ### 2026-08-30 — Now beat on Stage
 - Stage shows the current story beat (last Turn + Director reply) in the center. Object cards stay around it. Header Bar is Stage · Talking in · Working on. First named Stage is Keeper Stage.

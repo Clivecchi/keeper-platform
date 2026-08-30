@@ -2,7 +2,9 @@
  * Keeper Stage — composition/presence over existing Keeper objects.
  *
  * Stage owns placement and contextual Agency, not duplicate object truth.
+ * Objects on Stage are assets for an emerging Frame-driven story.
  * A Document on Stage remains the Document. Kip on Stage remains Kip.
+ * Chronicle Points stay discussion. Stage story is Frames for presentation.
  *
  * Theatre.js Present sheets stay Chronicle motion. This contract is Keeper
  * semantics; visual choreography may consume it later.
@@ -243,18 +245,29 @@ export function stagePresenceKindLabel(kind: StagePresenceKind): string {
   }
 }
 
+/** First named Stage displays as Keeper Stage. */
+export function displayKeeperStageTitle(title: string): string {
+  const trimmed = title.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'keeper') return 'Keeper Stage';
+  return trimmed;
+}
+
 /**
- * Compact Stage summary for agent turns — composition, not Theatre layout.
+ * Compact Stage summary for agent turns — assets for a Frame story, not Theatre layout.
  */
 export function buildKeeperStagePrompt(stage: KeeperStageComposition | null | undefined): string | null {
   if (!stage || stage.presences.length === 0) return null;
   const selected = stage.presences.find((p) => p.id === stage.selectedPresenceId) ?? null;
   const lines = [
-    'KEEPER STAGE (spatial composition — references, not clones):',
-    `Stage: “${stage.title}” (${stage.slug}). Objects below are the real Keeper objects present here.`,
+    'KEEPER STAGE (assets for an emerging story — references, not clones):',
+    `Stage: “${displayKeeperStageTitle(stage.title)}” (${stage.slug}). Objects below are real Keeper objects on this table.`,
+    'They are assets for the story in development: Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed.',
+    'Wide context is everything placed. Narrow context is the selected object plus what you have just been told.',
+    'Ask: where is this story going, based on what is here and what has been said?',
+    'The Stage story is Frames for presentation, not new Points for discussion. Chronicle Document stays the Document. Do not dump discussion Points onto Stage.',
   ];
   for (const presence of stage.presences) {
-    const selectedMark = selected?.id === presence.id ? ' [selected]' : '';
+    const selectedMark = selected?.id === presence.id ? ' [selected — narrow]' : '';
     const agency =
       presence.kind === 'agent'
         ? [
@@ -272,6 +285,7 @@ export function buildKeeperStagePrompt(stage: KeeperStageComposition | null | un
     'Selecting an object on Stage may set Working on without changing Talking in.',
     'Contextual stage role/direction is who the Agent is here — it does not redefine Base Agency.',
     'Do not invent objects that are not on this Stage or in Talking in / Working on.',
+    'There is no Stage-story apply action yet. Think and speak at this level. Review & Reorganize remains for the Document only.',
   );
   return lines.join('\n');
 }

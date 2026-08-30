@@ -109,6 +109,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ### 2026-08-22 — Review & Reorganize
 - Lead action `document.reorganize.propose` stores a proposed Document on the manuscript. Apply writes Sections + Points atomically and clears the proposal. The accepted Document is unchanged until Apply.
 
+### 2026-08-30 — Stage prompt is story, not inventory
+- `buildKeeperStagePrompt` tells Lead: placed objects are assets; ask where the story is going; Frames for presentation, not new Points on Stage. Review & Reorganize stays Document-only.
+
 ### 2026-08-22 — Keeper Stage on the turn
 - `resolveAgentEnvironment` loads `Domain.settings.keeperStage`. Compact env + Lead prompts include Stage composition and contextual Agency.
 

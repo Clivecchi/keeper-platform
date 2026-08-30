@@ -41,6 +41,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-08-30 — Stage objects are story assets
+- `settings.keeperStage` still stores references, not clones. Those objects are the asset pool for a Frame-driven Stage story (docs: `docs/keeper-ui-experience.md`).
+
 ### 2026-08-22 — Keeper Stage store
 - `keeperStageStore.ts` reads/writes `settings.keeperStage` as a merge so primaryAgentId and other settings stay put.
 

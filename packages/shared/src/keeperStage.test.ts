@@ -73,7 +73,9 @@ describe('buildKeeperStagePrompt', () => {
       direction: 'Keep the Re-Center honest',
     });
     const prompt = buildKeeperStagePrompt(stage);
-    expect(prompt).toContain('Stage: “Keeper”');
+    expect(prompt).toContain('Stage: “Keeper Stage”');
+    expect(prompt).toContain('assets for the story in development');
+    expect(prompt).toContain('Frames for presentation');
     expect(prompt).toContain('Agent “Kip”');
     expect(prompt).toContain('stage role: Lead');
     expect(prompt).toContain('Keep the Re-Center honest');

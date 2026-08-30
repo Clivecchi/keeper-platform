@@ -19,6 +19,16 @@ These two “path” concepts must never be collapsed:
 
 **Document** itself is Dialog state (freeform workspace scaffolding), not a separate Prisma EntityKind. Never call the Object Glossary a “Document” in platform language — that word stays reserved for the Dialog-associated construct.
 
+These three “story” surfaces must never be collapsed:
+
+| Term | What it is | Where it lives |
+|---|---|---|
+| **Document Point** | A kept unit of **discussion** on a Dialog Document | Chronicle — Review & Reorganize proposes; human Applies |
+| **Stage Frame** | A beat of **presentation** composed from objects placed on Stage (assets: Documents, Drafts, attachments, Journeys, Moments, Library, Cast) | Stage workspace (`workspaceSurface: stage`). Wrapped in Config. Not a Prisma table. First named Stage: Keeper Stage |
+| **Present / SlideType** | Guest/read of a composed story | Public Frame system (`Domain.frame_json`, `PresentFrame`). Show after Stage Shape |
+
+Stage is a room on the current Board, not `?board=stage`. Selecting a Dialog still has a Chronicle Document — that reading is not a Stage.
+
 ---
 
 ## Board-emphasis invariant (governing)

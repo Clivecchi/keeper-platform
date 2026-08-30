@@ -1,7 +1,8 @@
 "use client"
 
 /**
- * Keeper Stage — spatial composition of real object references.
+ * Keeper Stage — spatial composition of real object references (story assets).
+ * Now is the first beat. Destination: Frame-driven story, not a Dialog transcript.
  * Positions persist on the Stage. Theatre.js is not the source of truth.
  */
 

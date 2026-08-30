@@ -117,6 +117,8 @@ Merging Known Issues into one sequence (previous section) was right, but flatten
 
 Present (the JSON UI Frame system — `Domain.frame_json`, public, unauthenticated, `apps/web/src/v0/slides/`) is architecturally separate from the Universal Board. It renders `SlideType`s, not Documents or Points. Two exist (`companion`, `journey_invitation`); four are planned and unbuilt, including `moment_card` and `path_index` — already-named, not invented today.
 
+**Stage workshop (2026-08-30, Chuck):** between Document and Present sits the member Stage room. Objects placed on Stage are assets. The Stage workspace is a Frame-driven story (presentation), wrapped in Config — not a second Document of Points. Chronicle stays discussion. Present stays the guest/read. Agents pull that story together the way they Review & Reorganize a Document. **Now** is the first beat; Theatre / SlideTypes on Stage wait for Rendr. Do not collapse Present into the Document to make Stage work.
+
 Rendr's answers (relayed by Chuck, 2026-07-17), on what `moment_card`/`path_index` should actually do, in experience terms:
 
 1. **Pacing:** not a diary (private, sequential-by-necessity) — a curated exhibition. "Each card is a room you enter, not a page you turn." Chronicle's internal PointView needs no breathing room because the authenticated user already has context; a moment_card meets a stranger cold, so the transition is part of the content, not decoration. Chronicle = density and continuity. Present = sparsity and arrival.

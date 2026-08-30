@@ -70,6 +70,7 @@ Frames are surfaces (V0FrameKey): `cover`, `index`, `moment`, `moments`, `common
 
 Present, Commons — surfaces/frames, not Prisma models.
 Chronicle = right panel (UniversalViewPanel), not a frame route.
+Stage = room on the current Board (`workspaceSurface`), not `?board=stage`, not a Prisma Stage table. Objects on Stage are assets. Stage workspace is a Frame-driven story (presentation). Chronicle Points stay discussion. Present is the guest/read.
 "View" is overloaded in code. Do not treat it as a hierarchy layer.
 
 ### Singular UI (member vs public)
@@ -82,8 +83,9 @@ Chronicle = right panel (UniversalViewPanel), not a frame route.
 
 **Nav vs Dialog vs Chronicle (Universal Board):**
 - **Nav** — three panes on every board: **Universal** (Dialog, Draft, Chatter, Library link), **Keepers** (Keeper, Journeys, Moment), **Config** (board-specific). List, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI. Selecting a Dialog puts that Dialog in focus. Library opens a screen over Dialog; the selected item renders in Chronicle.
-- **Dialog** — the conversation for the focused Dialog (or the Dialog that owns the subject). Nav click resumes that Dialog’s session.
+- **Dialog** — the conversation for the focused Dialog (or the Dialog that owns the subject). Nav click resumes that Dialog’s session. On Stage the center is **not** this transcript; **Now** is the current beat.
 - **Chronicle** — declared render surface for presence, Config, and Acts. Focused Dialog → Document. Nav `+` → `requestChronicleEngagement` → `ChronicleActPresence`. Agent context must be that same body.
+- **Stage** — optional room (`Open Stage`). Named composition (first: **Keeper Stage**). Destination: Frame story from placed assets, Config in Chronicle. Do not invent a Stage Board.
 
 **Locked pathway:** Nav selects the subject. When the subject is a Dialog — or belongs to one — Dialog is that conversation. Chronicle renders the subject’s most relevant body. No third object.
 
@@ -156,6 +158,7 @@ All six steps are complete. JSON UI Frame v0 is functionally complete per jsonfr
 - Legacy standalone frames (`JourneysFrame`, etc.) — redirect or retire; not the member workspace
 - Theme creation UI and API
 - Present / SlideType storytelling surfaces (public singular UI — after board engagement)
+- Stage Frame workshop (Rendr first) — member Shape toward Show; do not put SlideTypes on Stage before treatment
 - Icon View Switcher (spec'd in jsonframe spec for admin workspace — not yet built as one control)
 
 **Phase 2:** Pool Keeper (proof of concept on working platform)
@@ -262,5 +265,5 @@ These are real, documented, and coming. They are not now:
 ---
 
 *This is an index, not a spec. When in doubt, follow the canonical documents it points to.*
-*Last updated: June 2026 — Declared Chronicle UI: Focus · Config · Act; Nav triggers, Chronicle renders.*
+*Last updated: August 2026 — Stage room: Frame story from assets (not Points); Chronicle Focus · Config · Act; Nav triggers, Chronicle renders.*
 *Maintained by: Cloud · final review: Chuck*
