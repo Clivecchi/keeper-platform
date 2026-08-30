@@ -351,6 +351,8 @@ An agent chat session row: agent + optional user, name/topic/summary/tags, optio
 ### What it is
 Persistent named conversation container scoped to domain (+ optional user): archives, document lifecycle fields (`document_status`, forward/step fields, `document_paths`), holds sessions and drafts, cast members, and ChronicleEvents.
 
+**Pathway (locked 2026-08-18):** Nav selects this Dialog. Dialog panel is its conversation (resume that Dialog’s session). Chronicle renders its Document. Agent `dialog.read { id }` returns that same Document — empty Points means unbuilt, not “I read it.” Auto-named (`title_source: auto_generated`) rows are Chatter, not Nav-primary Dialogs.
+
 ### Schema
 - **Key fields:** `id` (cuid), `title`, `domain_id`, `user_id`, `available_to` (String[]), `context` (Json), `is_archived`, `document_status`, `forward_title`, `forward_description`, `step_title`, `step_body`, `document_paths`, `presenceSchema`, timestamps
 - **FKs:** domain → Domain, user → users?; sessions[], drafts[], castMembers[], chronicleEvents[]
@@ -1318,7 +1320,7 @@ Feeds field resolution for KeeperPresence; not selectable as its own cover.
 # Part C — Cross-cutting open questions (code-backed)
 
 1. **Two Chronicle architectures:** Library uses `CHRONICLE_ENTITY_REGISTRY` / `ChronicleEntityView`; other EntityKinds still hard-branch in `KeeperPresence` — open whether registry is the intended end-state for all kinds.
-2. **Declaration columns only on some models:** Keeper, Integration, Key, Capability, LibraryItem have them; Journey/Path/Moment/Dialog/Draft/Agent/Domain do not — despite Partial EntityKind UI.
+2. **Declaration columns** (`display_label`, `description`, `chronicle_blocks`, `chronicle_actions`) now exist on Journey, Path, Moment, Dialog, kip_drafts, kip_agents, and Domain (`description` already existed on Domain). Schema + migration `20260819010000_entitykind_declaration_columns`. Chronicle UI/PATCH wiring for the new columns is remaining work.
 3. **Multiple “Key” stores:** `Key`, `kip_user_keys`, `kip_platform_keys`, `DomainAccessKey`, `UserApiCredential`, plus env — Chronicle `objectType: "key"` is overloaded.
 4. **Multiple “Path” / “Forward” / “Document” vocabularies:** Journey Path rows vs Dialog `document_paths` vs DraftPoints; Journey.forward vs Dialog.forward_*.
 5. **Multiple memory stacks:** MemoryCard/ThreadBlob vs Sole* vs SoleMemoryScope share suite — live paths favor Sole* + Library embeddings.
@@ -1341,6 +1343,12 @@ Feeds field resolution for KeeperPresence; not selectable as its own cover.
 *Governing Object Glossary v1. Prefer a flagged gap over a polished invention.*
 
 ## 📆 Update Log
+
+### 2026-08-18 — Glossary agent read
+- Agents read this file via `glossary.read` (same Chronicle presence as Nav Glossary). A draft titled Glossary with empty Points is not the glossary.
+
+### 2026-08-18 — Nav · Dialog · Chronicle pathway locked
+- Dialog entry records the locked three-panel sentence: Nav selects; Dialog is that conversation; Chronicle + `dialog.read` share the Document. Empty Points = unbuilt.
 
 ### 2026-08-17 — Board-emphasis invariant + Build board
 - Added governing **board-emphasis invariant** and per-board lens table (Domain · Build · Design · Realm · Agent). Acceptance criterion for future board work.
