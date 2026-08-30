@@ -9,12 +9,18 @@ import {
   resolveThemeTokens,
   subscribeRuntimeTheme,
 } from '../themes/themeResolver'
+import {
+  atmospherePresentFromTokens,
+  deriveAtmosphereContrast,
+  pickAtmosphereContrastTokens,
+} from '../themes/atmosphereContrast'
 
 /**
  * How a themeSlug merges onto the style registry shell:
  * - `full` — theme replaces surfaces, ink, dialogue, etc. (Cover / ?theme= preview)
- * - `treatment` — keep Warm Dark (or active style) glass shell; only take focus.ring
- *   so member boards stay dark glass while domain accent/Treatment still flows
+ * - `treatment` — keep Warm Dark (or active style) surfaces; take focus.ring plus
+ *   atmosphere contrast (glass alphas + high-contrast vs muted ink) so cover
+ *   images cannot wash out type. Domain cream surfaces still do not replace the shell.
  */
 export type StyleThemeApply = 'full' | 'treatment'
 
@@ -22,8 +28,8 @@ interface StyleScopeProps {
   styleId: StyleId
   themeSlug?: string | null
   /**
-   * Member Universal Board default is `treatment` (Warm Dark glass + domain accent).
-   * Public frames and `?theme=` previews use `full`.
+   * Member Universal Board default is `treatment` (Warm Dark surfaces + domain accent
+   * + atmosphere contrast). Public frames and `?theme=` previews use `full`.
    */
   themeApply?: StyleThemeApply
   children: React.ReactNode
@@ -128,16 +134,22 @@ export function StyleScope({
 
     if (effectiveThemeTokens) {
       if (themeApply === 'treatment') {
-        // Board chrome: Warm Dark (style) surfaces/ink/dialogue stay; domain accent only.
+        // Board chrome: Warm Dark surfaces/dialogue stay. Accent + contrast come from the engine.
+        const contrast = deriveAtmosphereContrast({
+          darkSurface: true,
+          hasAtmosphere: atmospherePresentFromTokens(effectiveThemeTokens),
+        })
         return {
           ...styleFallback,
           'focus.ring': effectiveThemeTokens['focus.ring'] || styleFallback['focus.ring'],
+          ...contrast,
         } as StyleTokens
       }
 
       // Override style tokens with theme tokens; theme may omit dialogue, so keep style fallbacks
       return {
         ...styleFallback,
+        ...pickAtmosphereContrastTokens(effectiveThemeTokens),
         'surface.page': effectiveThemeTokens['surface.page'] || styleFallback['surface.page'],
         'surface.paper': effectiveThemeTokens['surface.paper'] || styleFallback['surface.paper'],
         'surface.panel': effectiveThemeTokens['surface.panel'] || styleFallback['surface.panel'],

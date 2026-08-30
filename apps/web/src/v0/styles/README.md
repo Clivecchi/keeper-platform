@@ -40,6 +40,10 @@ Styles use a comprehensive token system covering:
 - `StyleScope` uses `useSyncExternalStore` on the runtime theme registry so Curtain/V0Shell re-registers re-paint.
 - `tokensToCSSVars` sets `--theme-accent-primary` from `focus.ring` (domain Treatment) instead of hard-coded teal.
 
+### 2026-08-30 ? Atmosphere contrast tokens
+- `themeApply=treatment` now merges atmosphere contrast (glass alphas + high-contrast vs muted ink) from the theme engine. Domain cream surfaces still do not replace the Warm Dark shell.
+- `tokensToCSSVars` emits `--theme-glass-*-alpha` and `--theme-atmosphere-wash-*`. Board CSS must use these instead of literal opacities.
+
 ### 2026-07-17 — Board chrome themeApply=treatment
 - `StyleScope` supports `themeApply`: `full` (Cover / `?theme=`) vs `treatment` (Warm Dark glass shell + domain `focus.ring` only).
 - Stops domain light cream surfaces from overwriting member Universal Board panels.

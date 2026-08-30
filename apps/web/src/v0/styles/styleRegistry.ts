@@ -77,11 +77,11 @@ export const styleRegistry: StyleDefinition[] = [
       'surface.panel': 'hsl(28, 10%, 12%)',
       'surface.elevated': 'hsl(35, 12%, 20%)',
 
-      // Ink — warm sand hierarchy, legible without effort
-      'ink.primary': 'hsl(38, 25%, 82%)',
-      'ink.secondary': 'hsl(38, 20%, 72%)',
-      'ink.tertiary': 'hsl(38, 15%, 55%)',
-      'ink.placeholder': 'hsl(38, 12%, 45%)',
+      // Ink — must-read vs muted (atmosphereContrast widens this further over a cover)
+      'ink.primary': 'hsl(38, 22%, 88%)',
+      'ink.secondary': 'hsl(38, 16%, 72%)',
+      'ink.tertiary': 'hsl(36, 12%, 54%)',
+      'ink.placeholder': 'hsl(36, 10%, 44%)',
 
       // Line colors — warm charcoal edges
       'line.hairline': 'hsl(38, 15%, 30%)',
@@ -232,6 +232,16 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
   const inkTertiary = toVar('ink.tertiary', tokens['ink.tertiary'])
   const inkPlaceholder = toVar('ink.placeholder', tokens['ink.placeholder'])
   const treatmentColor = toVar('focus.ring', tokens['focus.ring'])
+  const extras = tokens as StyleTokens & Record<string, string>
+  const composerText = extras['composer.text']
+    ? toHSLComponents(extras['composer.text'])
+    : '28 75% 62%'
+  const composerPlaceholder = extras['composer.placeholder']
+    ? toHSLComponents(extras['composer.placeholder'])
+    : '28 40% 56%'
+  const composerCaret = extras['composer.caret']
+    ? toHSLComponents(extras['composer.caret'])
+    : '22 80% 58%'
 
   return {
     '--theme-surface-page': toVar('surface.page', tokens['surface.page']),
@@ -278,10 +288,23 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-status-warning': '38 88% 58%',
     '--theme-status-error': '0 72% 58%',
 
-    /* Composer input — sunset amber (typed text, placeholder, caret only) */
-    '--theme-composer-input-text': '28 75% 62%',
-    '--theme-composer-placeholder': '28 55% 48%',
-    '--theme-composer-caret': '22 80% 58%',
+    /* Composer input — contrast engine (typed text, placeholder, caret) */
+    '--theme-composer-input-text': composerText,
+    '--theme-composer-placeholder': composerPlaceholder,
+    '--theme-composer-caret': composerCaret,
+
+    /* Atmosphere contrast — glass alphas + page wash. CSS must use these, not literals. */
+    '--theme-atmosphere-present': extras['atmosphere.present'] ?? '0',
+    '--theme-glass-panel-alpha': extras['glass.panel'] ?? '0.38',
+    '--theme-glass-nav-alpha': extras['glass.nav'] ?? '0.62',
+    '--theme-glass-nav-item-alpha': extras['glass.navItem'] ?? '0.55',
+    '--theme-glass-header-alpha': extras['glass.header'] ?? '0.55',
+    '--theme-glass-bubble-alpha': extras['glass.bubble'] ?? '0.72',
+    '--theme-glass-chronicle-alpha': extras['glass.chronicle'] ?? '0.76',
+    '--theme-glass-composer-alpha': extras['glass.composer'] ?? '0.55',
+    '--theme-glass-composer-input-alpha': extras['glass.composerInput'] ?? '0.9',
+    '--theme-atmosphere-wash-start': extras['atmosphere.washStart'] ?? '0.08',
+    '--theme-atmosphere-wash-end': extras['atmosphere.washEnd'] ?? '0.75',
 
     /* Platform header bar — warm dark top edge */
     '--theme-header-text-primary': '38 30% 82%',

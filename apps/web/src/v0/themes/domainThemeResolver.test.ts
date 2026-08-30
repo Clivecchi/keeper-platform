@@ -38,4 +38,11 @@ describe("resolveDomainThemeSync", () => {
     const tokens = resolveDomainThemeSync(darkTheme, "light")
     expect(inkLightness(tokens["ink.primary"])).toBeGreaterThan(80)
   })
+
+  it("seals glass and marks atmosphere when a cover sits behind the board", () => {
+    const tokens = resolveDomainThemeSync(darkTheme, "light", { hasAtmosphere: true })
+    expect(tokens["atmosphere.present"]).toBe("1")
+    expect(Number(tokens["glass.panel"])).toBeGreaterThan(0.7)
+    expect(inkLightness(tokens["ink.primary"]) - inkLightness(tokens["ink.tertiary"])).toBeGreaterThanOrEqual(30)
+  })
 })

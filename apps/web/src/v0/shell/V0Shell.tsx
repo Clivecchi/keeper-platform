@@ -97,12 +97,13 @@ import {
 } from "../lib/ensureDomainProvisioned"
 import { domainFrameLooksUnseeded } from "../lib/domainFrameLooksUnseeded"
 import { isMissingLeadAgentSlug, readFrameLeadAgentSlug } from "../lib/frameLeadAgentIdentity"
-import { resolveDomainAudience, type DomainAudienceRole } from "@keeper/shared"
+import { extractDomainThemeCover, resolveDomainAudience, type DomainAudienceRole } from "@keeper/shared"
 import { usePlacementMode } from "./usePlacementMode"
 import { FrameContextProvider } from "./FrameContext"
 import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
 import { getRuntimeThemeTokens, registerRuntimeTheme } from "../themes/themeResolver"
 import { DOMAIN_THEME_SLUG } from "../themes/constants"
+import { domainHasAtmosphere } from "../themes/atmosphereContrast"
 
 /** Placeholder used while domain is loading or when API fails. Never shows hardcoded marketing copy. */
 const getDomainFallback = (slug: string) => ({
@@ -367,9 +368,12 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
       peekDomainFrame(effectiveSlug)?.theme ??
       (stateMatchesSlug ? domainFrame.theme : null)
     if (themeSource) {
+      const cover = extractDomainThemeCover(domainData?.theme).coverImage
       registerRuntimeTheme(
         DOMAIN_THEME_SLUG,
-        resolveDomainThemeSync(themeSource, colorScheme),
+        resolveDomainThemeSync(themeSource, colorScheme, {
+          hasAtmosphere: domainHasAtmosphere(themeSource, cover),
+        }),
       )
     } else if (!getRuntimeThemeTokens(DOMAIN_THEME_SLUG)) {
       registerRuntimeTheme(
@@ -638,10 +642,13 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   // URL ?theme= override bypasses this entirely — static registry handles that path.
   React.useEffect(() => {
     if (!domainFrame) return
-    const tokens = resolveDomainThemeSync(domainFrame.theme, colorScheme)
+    const cover = extractDomainThemeCover(domainData?.theme).coverImage
+    const tokens = resolveDomainThemeSync(domainFrame.theme, colorScheme, {
+      hasAtmosphere: domainHasAtmosphere(domainFrame.theme, cover),
+    })
     registerRuntimeTheme(DOMAIN_THEME_SLUG, tokens)
     console.log("[DomainTheme] Resolved and registered:", colorScheme, tokens)
-  }, [domainFrame, colorScheme])
+  }, [domainFrame, colorScheme, domainData?.theme])
 
   // buildFrameUrl uses urlThemeSlug (not DOMAIN_THEME_SLUG) so that generated URLs
   // only carry ?theme= when the developer has explicitly set an override.

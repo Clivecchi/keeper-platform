@@ -13,6 +13,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - `StoryScroll.tsx` / `StoryScroll.types.ts` – Schema-driven inline narrative editor (edit buffer + `onChange`); optional Kip bar (`sendPrompt` / `onKipMessage`). See `StoryScroll.example.tsx` for usage (documentation-only).
 - `DomainBrief.tsx` – Domain Board Brief mode: human-readable form for core domain frame JSON (identity, theme, audience, Kip, cover chat); local draft with Publish via `PATCH /api/domains/:slug/frame` and `reloadDomainFrame`.
 - `cover-frame.tsx` – Album/storybook-inspired cover with imprint, title, liner notes, and setlist routes.
+- `coverImprint.ts` – Cover header imprint is the domain name (not hardcoded KE3P).
 - `moment-frame.tsx` – Moment diary preview frame with close loop back to the cover.
 - `kept-moments-frame.tsx` – Minimal list view for recently kept moments.
 - `FooterTrail.tsx` – Frame footer trail showing recent actions and navigation.
@@ -34,6 +35,8 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-08-30: Cover imprint is the domain name, not hardcoded KE3P. Card wordmark is unchanged.
+- 2026-08-30: Cover page wash uses `--theme-atmosphere-wash-start` / `--theme-atmosphere-wash-end`.
 - 2026-08-30: Profile menu **Invite** opens `InviteCollaboratorDialog` for the current domain.
 - 2026-08-30: `KeeperTopBar` Realm · Domain · Build · Design · Agent leave Stage. Stage control toggles the room.
 - 2026-08-22: `KeeperTopBar` profile menu — **Larger type** On/Off (comfortable density). Default is On.

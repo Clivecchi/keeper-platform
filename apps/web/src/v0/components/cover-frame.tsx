@@ -12,6 +12,7 @@ import { apiFetch } from "../../lib/api"
 import { getApiBase } from "../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
+import { resolveCoverImprint } from "./coverImprint"
 
 /** Designer Board preview stubs `buildFrameUrl` to always return "#" (see FramePreviewShell). */
 function isDesignerBoardPreviewShell(
@@ -20,8 +21,6 @@ function isDesignerBoardPreviewShell(
   if (!shell?.buildFrameUrl) return false
   return shell.buildFrameUrl("cover") === "#"
 }
-
-const COVER_IMPRINT = "KE3P"
 
 const COVER_CONSTANTS = {
   pad: "clamp(1.5rem, 5vw, 3.25rem)",
@@ -105,6 +104,11 @@ export function CoverFrame({
   const domainLabel =
     domainData?.slug || domainData?.name || v0Shell?.domainSlug || "domain"
   const domainSlug = domainData?.slug || v0Shell?.domainSlug || "default"
+  const coverImprint = resolveCoverImprint({
+    isPlaceholder,
+    domainName: domainData?.name,
+    domainSlug: domainData?.slug || v0Shell?.domainSlug,
+  })
   const userLabel = user?.name || user?.email || "Account";
   const menuLabel = `${domainLabel} · ${userLabel}`;
 
@@ -121,7 +125,7 @@ export function CoverFrame({
     : null
   const pageBackground = displayUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayUrl})`,
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / var(--theme-atmosphere-wash-start, 0.08)), hsl(var(--theme-surface-page) / var(--theme-atmosphere-wash-end, 0.75))), url(${displayUrl})`,
         backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
         backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
         backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
@@ -155,17 +159,16 @@ export function CoverFrame({
           ...pageBackground,
         }}
       >
-        {/* Cover Frame header — no imprint when it would duplicate cover body (domain name) */}
+        {/* Cover Frame header — imprint is the domain name (title card). Wordmark on the card stays. */}
         <header className="space-y-4 mb-8" aria-label="Cover Frame">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div />
-          {/* Only show imprint when domain name differs from platform brand (avoids duplicate KE3P) */}
-          {coverTitle && coverTitle !== COVER_IMPRINT ? (
+          {coverImprint ? (
             <p
               className="uppercase tracking-[0.42em] text-center"
               style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "var(--theme-ink-tertiary)" }}
             >
-              {COVER_IMPRINT}
+              {coverImprint}
             </p>
           ) : (
             <div />

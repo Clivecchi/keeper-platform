@@ -21,6 +21,8 @@ import {
 } from './hierarchyThemeResolver'
 import { resolveDomainThemeSync } from './domainThemeResolver'
 import type { DomainFrameTheme } from '../data/domain-frame.types'
+import { domainHasAtmosphere } from './atmosphereContrast'
+import { extractDomainThemeCover } from '@keeper/shared'
 import { apiFetch } from '../../lib/apiFetch'
 import { getBlobProxyUrl } from '../../lib/blobProxy'
 import { isLibraryImageSource } from '../boards/libraryBrowse'
@@ -67,6 +69,8 @@ export function useBoardThemeRegistration(): void {
       try {
         const domainTheme = domainFrame.theme ?? EMPTY_DOMAIN_THEME
         let overlayTheme = domainTheme
+        const domainCover = extractDomainThemeCover(shell?.domainData?.theme).coverImage
+        let hasAtmosphere = domainHasAtmosphere(domainTheme, domainCover)
 
         if (libraryItemId) {
           try {
@@ -78,6 +82,7 @@ export function useBoardThemeRegistration(): void {
             if (sourceRef && isLibraryImageSource({ source_type: sourceType, source_ref: sourceRef })) {
               const palette = await extractPaletteFromImageSource(sourceRef)
               const atmosphereUrl = getBlobProxyUrl(sourceRef)
+              hasAtmosphere = true
               overlayTheme = {
                 ...domainTheme,
                 colors: {
@@ -109,6 +114,7 @@ export function useBoardThemeRegistration(): void {
           domainTheme: overlayTheme,
           colorScheme,
           selection: hierarchy,
+          hasAtmosphere,
         })
 
         if (!cancelled) {
@@ -120,7 +126,12 @@ export function useBoardThemeRegistration(): void {
           clearSurfaceLook()
           registerRuntimeTheme(
             DOMAIN_THEME_SLUG,
-            resolveDomainThemeSync(domainFrame.theme ?? EMPTY_DOMAIN_THEME, colorScheme),
+            resolveDomainThemeSync(domainFrame.theme ?? EMPTY_DOMAIN_THEME, colorScheme, {
+              hasAtmosphere: domainHasAtmosphere(
+                domainFrame.theme ?? EMPTY_DOMAIN_THEME,
+                extractDomainThemeCover(shell?.domainData?.theme).coverImage,
+              ),
+            }),
           )
         }
       }
@@ -138,5 +149,6 @@ export function useBoardThemeRegistration(): void {
     journeyId,
     keeperId,
     libraryItemId,
+    shell?.domainData?.theme,
   ])
 }

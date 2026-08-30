@@ -53,6 +53,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-08-30 — Domain cover contrast
+- `EntityCoverPresence` sits on `--treatment-surface` so Treatment ink is readable. Body copy uses ink, not accent teal. Domain names wrap instead of clipping to "liv".
+
 ### 2026-08-30 — Agent / Domain name in the Config header
 - `ChronicleConfigShell` identity name is editable (Agent name, Domain name). Save still goes through the existing Save bar.
 

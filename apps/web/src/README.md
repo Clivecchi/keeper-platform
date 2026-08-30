@@ -18,6 +18,9 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - [ ] Consolidate legacy and public routes once domain routing is stabilized.
 
 ## 📆 Update Log
+### 2026-08-30 — Glass alphas come from the theme engine
+- Dialog, Nav, Chronicle, bubbles, composer, and header glass use `--theme-glass-*-alpha`. Nav list ink uses `--theme-ink-primary` (must-read) vs `--theme-ink-tertiary` (muted).
+
 ### 2026-08-30 — Chronicle Treatment is not glass
 - `.keeper-chronicle-panel:has(.keeper-chronicle-treatment)` drops the frosted overlay so extracted Treatment / cover atmosphere can show.
 ### 2026-08-22 - Aging-eyes readability

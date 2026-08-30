@@ -1,5 +1,10 @@
 import type { CSSProperties } from "react"
 import type { ResolvedDomainTreatment } from "./resolveDomainTreatment"
+import {
+  alphaToHexSuffix,
+  deriveAtmosphereContrast,
+  hslStringToComponents,
+} from "../themes/atmosphereContrast"
 
 const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 
@@ -77,19 +82,21 @@ export type TreatmentShellOptions = {
   atmosphereUrl?: string | null
 }
 
-function applyTreatmentInkVars(style: CSSProperties, darkBackground: boolean): void {
+function applyTreatmentInkVars(
+  style: CSSProperties,
+  darkBackground: boolean,
+  hasAtmosphere: boolean,
+): void {
+  const contrast = deriveAtmosphereContrast({
+    darkSurface: darkBackground,
+    hasAtmosphere,
+  })
   const vars = style as Record<string, string>
-  if (darkBackground) {
-    vars["--theme-ink-primary"] = "40 14% 94%"
-    vars["--theme-ink-secondary"] = "38 10% 78%"
-    vars["--theme-ink-tertiary"] = "36 8% 64%"
-    vars["--theme-ink-placeholder"] = "36 6% 50%"
-    style.color = "hsl(40 14% 94%)"
-    return
-  }
-  vars["--theme-ink-primary"] = "30 22% 18%"
-  vars["--theme-ink-secondary"] = "30 14% 32%"
-  vars["--theme-ink-tertiary"] = "30 10% 42%"
+  vars["--theme-ink-primary"] = hslStringToComponents(contrast["ink.primary"])
+  vars["--theme-ink-secondary"] = hslStringToComponents(contrast["ink.secondary"])
+  vars["--theme-ink-tertiary"] = hslStringToComponents(contrast["ink.tertiary"])
+  vars["--theme-ink-placeholder"] = hslStringToComponents(contrast["ink.placeholder"])
+  style.color = contrast["ink.primary"]
 }
 
 /** Full Treatment — Chronicle + Presents (background, accent, font). */
@@ -102,6 +109,11 @@ export function treatmentShellStyle(
     : "#f5f0e8"
   const darkBackground = relativeLuminance(background) < 0.35
   const atmosphereUrl = options.atmosphereUrl?.trim() || null
+  const hasAtmosphere = Boolean(atmosphereUrl)
+  const contrast = deriveAtmosphereContrast({
+    darkSurface: darkBackground,
+    hasAtmosphere,
+  })
 
   const style: CSSProperties = {
     backgroundColor: background,
@@ -110,15 +122,17 @@ export function treatmentShellStyle(
   }
 
   if (atmosphereUrl) {
-    const wash = darkBackground ? `${background}d6` : `${background}c4`
-    style.backgroundImage = `linear-gradient(180deg, ${wash}, ${background}ee), url(${atmosphereUrl})`
+    const washStart = `${background}${alphaToHexSuffix(Number(contrast["atmosphere.treatmentWashStart"]))}`
+    const washEnd = `${background}${alphaToHexSuffix(Number(contrast["atmosphere.treatmentWashEnd"]))}`
+    style.backgroundImage = `linear-gradient(180deg, ${washStart}, ${washEnd}), url(${atmosphereUrl})`
     style.backgroundSize = "cover"
     style.backgroundPosition = "center"
     style.backgroundRepeat = "no-repeat"
   }
 
-  applyTreatmentInkVars(style, darkBackground)
+  applyTreatmentInkVars(style, darkBackground, hasAtmosphere)
   applyTreatmentColorVars(style, treatment.palette.accent)
+  ;(style as Record<string, string>)["--treatment-surface"] = background
   ;(style as Record<string, string>)["--treatment-font-family"] =
     treatment.font.family
 

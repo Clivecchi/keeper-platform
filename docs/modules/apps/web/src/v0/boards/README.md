@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Cover wash uses atmosphere contrast
+- `UniversalBoard` page background wash alphas come from `--theme-atmosphere-wash-start` / `--theme-atmosphere-wash-end` (sealed when a cover is present).
+
 ### 2026-08-30 — Domain cover is the theme floor
 - Library `+` shelves the file. Cover Configure is the Domain look. A Library image overlays only while that item is selected.
 

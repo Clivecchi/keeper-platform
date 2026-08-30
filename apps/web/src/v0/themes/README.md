@@ -15,6 +15,7 @@ Houses the theme resolution pipeline for the V0 frame layer. This folder convert
 - `extractImagePalette.ts` — canvas sample of a File or image URL.
 - `applyDomainVisualFromImage.ts` — Domain cover upload → cover + extracted Treatment + theme colors (and a Library row for the shelves).
 - `surfaceLookStore.ts` — surfaced Library look overlay (not written back to the Domain).
+- `atmosphereContrast.ts` — glass alphas + must-read vs muted ink when a cover sits behind the board.
 
 ## ?? Data & Behavior
 
@@ -54,6 +55,11 @@ StyleScope: effectiveStyleId = gray-earth when domain-resolved (Warm Dark via ?s
 - [ ] Consider adding `clearRuntimeTheme('domain-resolved')` on domain unmount (not needed until multi-domain per session).
 
 ## ?? Update Log
+
+### 2026-08-30 — Atmosphere contrast is a theme-engine step
+- `atmosphereContrast.ts` derives sealed glass alphas and a wider ink spread (primary = must-read, tertiary = muted) when a cover / atmosphere image is present.
+- `resolveDomainThemeSync` accepts `{ hasAtmosphere }` and overlays those tokens. V0Shell / board registration pass the Domain cover URL.
+- Board `themeApply=treatment` still keeps Warm Dark surfaces; it now takes contrast tokens so type can hold a reading plane over a busy photo.
 
 ### 2026-08-30 — Domain cover is the floor; surfaced items overlay
 - Hierarchy: Domain cover → Domain Treatment / theme. A Library image overlays only while that item is Chronicle/Present subject. Moment → Path → Journey → Keeper `theme_id` still walks over Domain tokens. Cast never changes atmosphere.

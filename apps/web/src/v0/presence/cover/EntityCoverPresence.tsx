@@ -98,8 +98,8 @@ function AmbientVisualLayer({
           style={{
             background: `linear-gradient(
               to right,
-              hsl(var(--theme-surface-panel) / 0.97) 0%,
-              hsl(var(--theme-surface-panel) / 0.88) 42%,
+              color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 97%, transparent) 0%,
+              color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 88%, transparent) 42%,
               ${accent}22 62%,
               transparent 100%
             )`,
@@ -117,8 +117,8 @@ function AmbientVisualLayer({
         background: `radial-gradient(
           ellipse 90% 120% at 88% 50%,
           ${accent}28 0%,
-          hsl(var(--theme-surface-panel) / 0.92) 55%,
-          hsl(var(--theme-surface-page)) 100%
+          color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 92%, transparent) 55%,
+          var(--treatment-surface, hsl(var(--theme-surface-page))) 100%
         )`,
       }}
     />
@@ -160,7 +160,7 @@ function CoverVisualSlot({
             style={{
               background: `linear-gradient(
                 to right,
-                hsl(var(--theme-surface-panel) / 0.55) 0%,
+                color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 82%, transparent) 0%,
                 transparent 38%
               )`,
             }}
@@ -267,8 +267,8 @@ function VisualPrimaryCoverHeader({
           style={{
             background: `linear-gradient(
               to top,
-              hsl(var(--theme-surface-panel) / 0.96) 0%,
-              hsl(var(--theme-surface-panel) / 0.45) 38%,
+              color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 96%, transparent) 0%,
+              color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 55%, transparent) 38%,
               transparent 72%
             )`,
           }}
@@ -285,7 +285,7 @@ function VisualPrimaryCoverHeader({
           ) : null}
 
           <motion.h2
-            className="font-serif text-[20px] font-bold leading-tight tracking-tight line-clamp-2"
+            className="font-serif text-[20px] font-bold leading-tight tracking-tight break-words [overflow-wrap:anywhere] line-clamp-2"
             style={{ color: "hsl(var(--theme-ink-primary))", opacity: nameOpacity }}
           >
             {identity.name || "Untitled"}
@@ -293,8 +293,8 @@ function VisualPrimaryCoverHeader({
 
           {roleText ? (
             <motion.p
-              className="mt-1 text-[9px] font-mono uppercase tracking-[0.14em] truncate"
-              style={{ color: accent, opacity: nameOpacity }}
+              className="mt-1 text-[9px] font-mono uppercase tracking-[0.14em] break-words [overflow-wrap:anywhere]"
+              style={{ color: "hsl(var(--theme-ink-secondary))", opacity: nameOpacity }}
             >
               {roleText}
             </motion.p>
@@ -396,7 +396,7 @@ function UnifiedCoverHeader({
         <div className="flex gap-3 items-stretch min-h-[7.5rem]">
           <div className="flex-1 min-w-0 flex flex-col justify-center py-1 pr-2 max-w-[58%]">
             <motion.h2
-              className="font-serif text-[26px] font-bold leading-tight tracking-tight"
+              className="font-serif text-[26px] font-bold leading-tight tracking-tight break-words [overflow-wrap:anywhere]"
               style={{ color: "hsl(var(--theme-ink-primary))", opacity: nameOpacity }}
             >
               {identity.name || "Untitled agent"}
@@ -404,8 +404,8 @@ function UnifiedCoverHeader({
 
             {identity.roleLine?.trim() && (
               <motion.p
-                className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.16em]"
-                style={{ color: accent, opacity: nameOpacity }}
+                className="mt-1.5 text-[10px] font-mono uppercase tracking-[0.16em] break-words [overflow-wrap:anywhere]"
+                style={{ color: "hsl(var(--theme-ink-secondary))", opacity: nameOpacity }}
               >
                 {identity.roleLine}
               </motion.p>
@@ -423,7 +423,7 @@ function UnifiedCoverHeader({
                 />
                 <p
                   className="text-[13px] italic leading-relaxed line-clamp-3"
-                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                  style={{ color: "hsl(var(--theme-ink-primary))" }}
                 >
                   {voiceText}
                 </p>
@@ -563,7 +563,8 @@ export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenc
       className="relative overflow-hidden rounded-xl border"
       style={{
         borderColor: "hsl(var(--theme-border-soft) / 0.45)",
-        background: "hsl(var(--theme-surface-panel) / 0.6)",
+        background:
+          "color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 94%, transparent)",
         opacity: values.atmosphereOpacity,
       }}
       data-cover-mode="cover"

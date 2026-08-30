@@ -17,6 +17,15 @@ import type { ColorScheme } from '../../context/ThemeContext'
 import { resolveDomainThemeSync } from './domainThemeResolver'
 import type { ThemeTokens } from './themeRegistry'
 import { DEFAULT_BASE_THEME_SLUG } from './constants'
+import {
+  deriveAtmosphereContrast,
+  domainHasAtmosphere,
+} from './atmosphereContrast'
+
+function inkLooksLight(token: string | undefined): boolean {
+  const match = token?.match(/,\s*(\d+)%\)\s*$/)
+  return match ? Number(match[1]) > 50 : false
+}
 
 /** Hierarchy-only inputs for board theme — never cast/instruments/session chrome. */
 export type BoardThemeHierarchySelection = {
@@ -136,16 +145,28 @@ export async function resolveBoardThemeTokens(params: {
   domainTheme: DomainFrameTheme
   colorScheme: ColorScheme
   selection?: BoardThemeHierarchySelection
+  hasAtmosphere?: boolean
 }): Promise<ThemeTokens> {
-  const { domainTheme, colorScheme, selection } = params
-  const domainTokens = resolveDomainThemeSync(domainTheme, colorScheme)
+  const { domainTheme, colorScheme, selection, hasAtmosphere } = params
+  const atmosphere = hasAtmosphere ?? domainHasAtmosphere(domainTheme)
+  const domainTokens = resolveDomainThemeSync(domainTheme, colorScheme, {
+    hasAtmosphere: atmosphere,
+  })
 
   const themeId = await resolveThemeIdFromSelection(selection)
-  if (!themeId) return domainTokens
+  let merged = domainTokens
+  if (themeId) {
+    const dbTheme = await fetchDbThemeById(themeId)
+    if (dbTheme) {
+      merged = { ...domainTokens, ...resolveDbThemeTokens(dbTheme, colorScheme) }
+    }
+  }
 
-  const dbTheme = await fetchDbThemeById(themeId)
-  if (!dbTheme) return domainTokens
-
-  const entityTokens = resolveDbThemeTokens(dbTheme, colorScheme)
-  return { ...domainTokens, ...entityTokens }
+  return {
+    ...merged,
+    ...deriveAtmosphereContrast({
+      darkSurface: inkLooksLight(merged['ink.primary']),
+      hasAtmosphere: atmosphere,
+    }),
+  }
 }

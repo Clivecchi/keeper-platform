@@ -29,6 +29,12 @@ Domain Treatment — named presence configuration stored in `Domain.frame_json.t
 
 ## 📆 Update Log
 
+### 2026-08-30 — Cover card reads on Treatment surface
+- `treatmentShellStyle` exposes `--treatment-surface` so Chronicle cover cards sit on the Treatment floor (not dark board glass). Ink stays paired with that surface.
+
+### 2026-08-30 — Treatment ink and wash use atmosphere contrast
+- `treatmentShellStyle` reads `deriveAtmosphereContrast` for ink roles and treatment wash strength when a cover is present.
+
 ### 2026-08-30 — Atmosphere + readable ink
 - `treatmentShellStyle` paints the domain cover under a Treatment wash and sets `--theme-ink-*` from background luminance.
 - `ChronicleTreatmentShell` uses Domain cover as the floor; a surfaced Library image overlays while that item is selected. Chronicle panel glass is removed when Treatment is present.

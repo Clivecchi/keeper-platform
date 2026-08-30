@@ -469,7 +469,7 @@ function UniversalBoardShell({
     isRealmHome || !displayCoverUrl
       ? { background: "hsl(var(--theme-surface-page))" }
       : {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / var(--theme-atmosphere-wash-start, 0.08)), hsl(var(--theme-surface-page) / var(--theme-atmosphere-wash-end, 0.75))), url(${displayCoverUrl})`,
         backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
         backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
         backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",

@@ -22,6 +22,26 @@ import { getThemeTokensBySlug } from './themeRegistry'
 import type { ColorScheme } from '../../context/ThemeContext'
 import { DEFAULT_BASE_THEME_SLUG } from './constants'
 import { domainHasBrandColors } from './domainThemeHelpers'
+import {
+  deriveAtmosphereContrast,
+  domainHasAtmosphere,
+} from './atmosphereContrast'
+
+export type ResolveDomainThemeOptions = {
+  baseThemeSlug?: string
+  /** Cover / atmosphere image behind glass. When omitted, theme.background is used. */
+  hasAtmosphere?: boolean
+}
+
+function normalizeResolveOptions(
+  baseThemeSlugOrOptions?: string | ResolveDomainThemeOptions,
+): ResolveDomainThemeOptions {
+  if (!baseThemeSlugOrOptions) return {}
+  if (typeof baseThemeSlugOrOptions === 'string') {
+    return { baseThemeSlug: baseThemeSlugOrOptions }
+  }
+  return baseThemeSlugOrOptions
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -202,7 +222,8 @@ function resolveDark(primary: HSL, accent: HSL, surface: HSL, base: ThemeTokens)
  *   1. Load base tokens from themeRegistry by baseThemeSlug (default: gray-earth)
  *   2. If domainTheme.colors is present, map primary/accent/surface hex values to tokens
  *   3. If colorScheme is 'dark', apply dark mode token inversions
- *   4. Return merged ThemeTokens
+ *   4. Overlay atmosphere contrast (glass alphas + ink roles)
+ *   5. Return merged ThemeTokens
  *
  * Font gap: domainTheme.fonts (display, ui) cannot be mapped because ThemeTokens
  * has no font-family keys and tokensToCSSVars does not emit font vars.
@@ -211,8 +232,10 @@ function resolveDark(primary: HSL, accent: HSL, surface: HSL, base: ThemeTokens)
 export function resolveDomainThemeSync(
   domainTheme: DomainFrameTheme,
   colorScheme: ColorScheme,
-  baseThemeSlug?: string,
+  baseThemeSlugOrOptions?: string | ResolveDomainThemeOptions,
 ): ThemeTokens {
+  const options = normalizeResolveOptions(baseThemeSlugOrOptions)
+  const baseThemeSlug = options.baseThemeSlug
   const resolvedBaseSlug =
     baseThemeSlug
     ?? (domainHasBrandColors(domainTheme) ? 'neutral' : DEFAULT_BASE_THEME_SLUG)
@@ -225,15 +248,23 @@ export function resolveDomainThemeSync(
 
   const { colors } = domainTheme
 
+  const hasAtmosphere = options.hasAtmosphere ?? domainHasAtmosphere(domainTheme)
+
   // If no colors provided, fall back to the base tokens with dark-mode handling only
   if (!colors?.primary && !colors?.accent && !colors?.surface) {
-    if (colorScheme === 'dark') {
-      const fallbackPrimary: HSL = { h: 0, s: 0, l: 30 }
-      const fallbackAccent: HSL = { h: 221, s: 83, l: 53 }
-      const fallbackSurface: HSL = { h: 0, s: 0, l: 50 }
-      return resolveDark(fallbackPrimary, fallbackAccent, fallbackSurface, base)
+    const useDark = colorScheme === 'dark'
+    const resolved = useDark
+      ? resolveDark(
+          { h: 0, s: 0, l: 30 },
+          { h: 221, s: 83, l: 53 },
+          { h: 0, s: 0, l: 50 },
+          base,
+        )
+      : { ...base }
+    return {
+      ...resolved,
+      ...deriveAtmosphereContrast({ darkSurface: useDark, hasAtmosphere }),
     }
-    return { ...base }
   }
 
   const primary = hexToHSL(colors.primary ?? '#2d6a7f') ?? { h: 200, s: 48, l: 34 }
@@ -245,9 +276,14 @@ export function resolveDomainThemeSync(
   const surfaceDrivesScheme = Boolean(colors.surface?.trim())
   const useDark = surfaceDrivesScheme ? surface.l < 42 : colorScheme === 'dark'
 
-  return useDark
+  const resolved = useDark
     ? resolveDark(primary, accent, surface, base)
     : resolveLight(primary, accent, surface, base)
+
+  return {
+    ...resolved,
+    ...deriveAtmosphereContrast({ darkSurface: useDark, hasAtmosphere }),
+  }
 }
 
 /**
@@ -256,7 +292,7 @@ export function resolveDomainThemeSync(
 export async function resolveDomainTheme(
   domainTheme: DomainFrameTheme,
   colorScheme: ColorScheme,
-  baseThemeSlug = DEFAULT_BASE_THEME_SLUG,
+  baseThemeSlugOrOptions: string | ResolveDomainThemeOptions = DEFAULT_BASE_THEME_SLUG,
 ): Promise<ThemeTokens> {
-  return resolveDomainThemeSync(domainTheme, colorScheme, baseThemeSlug)
+  return resolveDomainThemeSync(domainTheme, colorScheme, baseThemeSlugOrOptions)
 }
