@@ -33,6 +33,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-29 — Proposed is Current with edits laid on
+- Chronicle tabs with a proposal are Current · Proposed · History. Changes is gone — it was a second list that did not compare against Current.
+- Proposed is the overlay: marks in place (New · Refined · Moved from… · Merged · Retire · As now), Now beside Proposed on refine/merge, and a banner that names a restatement when nothing changed.
+
 ### 2026-08-29 — Open dump banner
 - Chronicle only says Points are still in Open when named Sections are actually empty. A spine-only flag no longer claims that when Points already have Sections.
 

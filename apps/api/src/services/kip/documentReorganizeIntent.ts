@@ -24,6 +24,12 @@ const REORGANIZE_PATTERNS = [
   /\binto (a )?(single )?section called ["']?open\b/i,
   /\bmoving every point\b/i,
   /\b(that'?s|that is) (useless|not (a |the )?(proposal|reorganization|reorganisation))\b/i,
+  /\b(nothing|anything) (actually |really )?(changed|different)\b/i,
+  /\bno (meaningful |real |actual )?change\b/i,
+  /\b(the )?same (document|thing|proposal)\b/i,
+  /\bcopy.?paste[d]?\b/i,
+  /\bdid (you|it|kip) (even )?change\b/i,
+  /\brestat(e|ed|ement|es)\b/i,
 ];
 
 export function detectReorganizeIntent(userInput: string): ReorganizeIntentKind {
@@ -38,7 +44,7 @@ type ActionResultLite = {
   data?: unknown;
 };
 
-function resultFlag(data: unknown, key: 'spineOnly' | 'openDumpRepaired'): boolean {
+function resultFlag(data: unknown, key: 'spineOnly' | 'openDumpRepaired' | 'restatement'): boolean {
   return Boolean(
     data
     && typeof data === 'object'
@@ -123,6 +129,40 @@ export function buildReorganizePlacementFollowUpInput(params: {
     'Prefer nesting Points under each Section. Do not emit a Section named Open.',
     'Never dump named work into Open. Open is only for Points that do not yet fit.',
     'Do not invent UUIDs. Do not only send Sections. Do not essay a mutation list.',
+    '',
+    `Your prior message: "${params.priorResponseText.trim().slice(0, 600)}"`,
+  ].join('\n');
+}
+
+export function shouldRunReorganizeRestatementFollowUp(params: {
+  isLead: boolean;
+  actionResults: ActionResultLite[];
+}): boolean {
+  if (!params.isLead) return false;
+  if (shouldRunReorganizePlacementFollowUp(params)) return false;
+  return params.actionResults.some(
+    (result) =>
+      result.type === 'document.reorganize.propose'
+      && result.status === 'success'
+      && resultFlag(result.data, 'restatement'),
+  );
+}
+
+export function buildReorganizeRestatementFollowUpInput(params: {
+  agentName: string;
+  dialogTitle?: string;
+  priorResponseText: string;
+}): string {
+  const named = params.dialogTitle?.trim() ? ` "${params.dialogTitle.trim()}"` : '';
+  return [
+    `[Review & Reorganize restated Current — reply as ${params.agentName}.]`,
+    '',
+    `Your proposal for${named} did not change the Document. Chronicle Current and Proposed are the same.`,
+    'Emit document.reorganize.propose again now.',
+    'Propose a better information architecture — not the same Sections with the same Points.',
+    'Move Points, create or rename Sections, refine, merge, or retire. Nest each Point under the Section it should belong to.',
+    'Do not list the current Document and call it a reorganization.',
+    'Never dump named work into Open.',
     '',
     `Your prior message: "${params.priorResponseText.trim().slice(0, 600)}"`,
   ].join('\n');

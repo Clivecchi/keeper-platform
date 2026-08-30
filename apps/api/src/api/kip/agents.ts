@@ -166,10 +166,12 @@ import {
   buildReorganizePlacementFollowUpInput,
   buildReorganizeProposeFollowUpInput,
   buildReorganizeProposeSystemPrompt,
+  buildReorganizeRestatementFollowUpInput,
   detectReorganizeIntent,
   humanReorganizeFailureNotice,
   shouldRunReorganizePlacementFollowUp,
   shouldRunReorganizeProposeFollowUp,
+  shouldRunReorganizeRestatementFollowUp,
 } from '../../services/kip/documentReorganizeIntent.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocument.js';
@@ -2543,6 +2545,7 @@ export async function executeAgentActions(
               break;
             }
             const openDumpRepaired = stored.openDumpRepaired === true;
+            const restatement = stored.restatement === true;
             const spineOnly = isDocumentReorganizeSpineOnly(stored.proposal) || openDumpRepaired;
             const placedCount = stored.proposal.points.filter((point) => point.change !== 'unchanged').length;
             const identityOnly =
@@ -2556,6 +2559,8 @@ export async function executeAgentActions(
               status: 'success',
               message: openDumpRepaired
                 ? 'Open is not a reorganization. Named Sections stay. Chronicle will ask the Lead to place Points.'
+                : restatement
+                ? 'This restates the current Document. Chronicle will ask the Lead to propose a better structure.'
                 : spineOnly
                 ? 'Named Sections — place the existing Points into them. Open is only for Points that do not yet fit.'
                 : identityOnly
@@ -2566,11 +2571,14 @@ export async function executeAgentActions(
                 summary: stored.proposal.rationale
                   || (identityOnly
                     ? `Proposed ${identityBits.join(' and ') || 'Document identity'}`
+                    : restatement
+                      ? 'Restated the current Document'
                     : 'Proposed a better form of the Document'),
                 proposal: stored.proposal,
                 dialogId: ctx.dialogId,
                 spineOnly,
                 openDumpRepaired,
+                restatement,
                 placedCount,
                 identityOnly,
               },
@@ -8116,6 +8124,90 @@ export class KipAgentService {
               finalResponseText = `${finalResponseText}\n\n${
                 humanReorganizeFailureNotice(placeFollowUpExecution.results)
                 ?? placeFollowUpExecution.failedMessage
+              }`;
+            }
+          }
+        }
+
+        if (
+          shouldRunReorganizeRestatementFollowUp({
+            isLead: agent.role === 'Lead',
+            actionResults,
+          })
+        ) {
+          options?.onStatus?.('Proposing a better Document…');
+          options?.onReset?.();
+          const dialogTitle =
+            (options?.environment as { dialogDocument?: { title?: string } } | undefined)
+              ?.dialogDocument?.title;
+          const restateFollowUpInput = buildReorganizeRestatementFollowUpInput({
+            agentName: agent.name,
+            dialogTitle,
+            priorResponseText: finalResponseText,
+          });
+          const restateFollowUpResult = await this.callAIModel(
+            agent,
+            restateFollowUpInput,
+            previousMessages,
+            userId,
+            {
+              mode: activeMode,
+              modeConfig: activeModeConfig,
+              lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+              debugSummary,
+              maxChars,
+              outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+              includeFixPlan: activeModeConfig.includeFixPlan,
+              autoBrief: activeModeConfig.autoBrief,
+              environment: options?.environment ?? null,
+              activeJourneyId: options?.activeJourneyId ?? null,
+              activeKeeperId: options?.activeKeeperId ?? null,
+              domainId: options?.domainId ?? null,
+              attachments: options?.attachments ?? undefined,
+              timings: options?.timings,
+              timingLabel: 'reorganize_restatement_follow_up',
+              reuseMessages: [
+                ...lastPromptMessages,
+                { role: 'assistant', content: finalResponseText },
+              ],
+              onDelta: options?.onDelta,
+            },
+          );
+          lastPromptMessages = restateFollowUpResult.messages;
+          const restateFollowUpStructured = await ensureKipAgentOutputEnvelope(restateFollowUpResult.content, {
+            requestId: randomUUID(),
+            userId,
+            allowedActions: Array.from(allowActions),
+          });
+          finalResponseText =
+            restateFollowUpStructured.responseText?.trim()
+            || restateFollowUpResult.content.trim()
+            || finalResponseText;
+          if (options?.onDelta && !restateFollowUpResult.streamedVisible && finalResponseText.trim()) {
+            options.onDelta(finalResponseText);
+          }
+          if (restateFollowUpStructured.actions.length) {
+            const restateActionsStartedAt = Date.now();
+            const restateFollowUpExecution = await executeAgentActions(
+              restateFollowUpStructured.actions,
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allowActions,
+                sessionId: currentSessionId,
+                requestId,
+                actor: 'lead',
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - restateActionsStartedAt);
+            }
+            actionResults = [...actionResults, ...restateFollowUpExecution.results];
+            if (restateFollowUpExecution.failedMessage) {
+              finalResponseText = `${finalResponseText}\n\n${
+                humanReorganizeFailureNotice(restateFollowUpExecution.results)
+                ?? restateFollowUpExecution.failedMessage
               }`;
             }
           }

@@ -35,6 +35,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-29 — Restatement is named, not hidden
+- `summarizeReorganizeProposal` / `isDocumentReorganizeRestatement` / `formatReorganizeOverlaySummary` — no Point marks, no title/Forward edit, and the same Section titles in the same order is a restatement. Chronicle can say so.
+
 ### 2026-08-29 — Review & Reorganize does not dump to Open
 - `documentReorganize.ts` — omitted `sectionId` is a safety default (keep current Section), not a preference for the current structure. Explicit `open` / null is Open. An all-to-Open dump is repaired. Proposed Section titles rematch current ids so intentional placement does not orphan. Refine/merge that also changes Section still carries `Moved from…`.
 - `draftPoints.ts` — agent summaries include `pathGroupId` so Kip can see current membership as evidence.

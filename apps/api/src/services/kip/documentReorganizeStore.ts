@@ -16,6 +16,7 @@ import {
   coerceDocumentTitleProposal,
   DOCUMENT_REORGANIZE_SPEC_KEY,
   hasDocumentIdentityProposal,
+  isDocumentReorganizeRestatement,
   normalizeDocumentReorganizeProposal,
   parseDocumentPathDeclarations,
   parseDraftPoints,
@@ -57,6 +58,7 @@ export type ReorganizeStoreOk = {
   ok: true;
   proposal: DocumentReorganizeProposal;
   openDumpRepaired?: boolean;
+  restatement?: boolean;
 };
 
 export type ReorganizeStoreErr = {
@@ -141,6 +143,10 @@ export async function storeDocumentReorganizeProposal(input: {
     ok: true,
     proposal: normalized.proposal,
     openDumpRepaired: normalized.openDumpRepaired,
+    restatement: isDocumentReorganizeRestatement(
+      normalized.proposal,
+      parseDocumentPathDeclarations(dialog.document_paths),
+    ),
   };
 }
 

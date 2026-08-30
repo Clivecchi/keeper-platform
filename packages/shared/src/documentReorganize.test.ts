@@ -3,9 +3,12 @@ import { createDraftPoint } from './draftPoints.js';
 import {
   applyReorganizeToPoints,
   composeProposedDocument,
+  formatReorganizeOverlaySummary,
   isDocumentReorganizeOpenDump,
+  isDocumentReorganizeRestatement,
   isDocumentReorganizeSpineOnly,
   normalizeDocumentReorganizeProposal,
+  summarizeReorganizeProposal,
   parseDocumentReorganizeProposal,
   resolveDraftPointRef,
 } from './documentReorganize.js';
@@ -452,6 +455,75 @@ describe('normalizeDocumentReorganizeProposal', () => {
     if (!result.ok) return;
     expect(result.proposal.sections[0]?.id).toBe('plot-a1b2c');
     expect(result.proposal.points.find((p) => p.id === 'p1')?.sectionId).toBe('plot-a1b2c');
+  });
+
+  it('names a restatement when Sections and Points are unchanged', () => {
+    const namedPoints = [
+      createDraftPoint({
+        id: 'p1',
+        content: 'First finding about the plot.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'The plot',
+        pathGroupId: 'plot',
+      }),
+    ];
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [{ id: 'plot', title: 'The Plot' }],
+        points: [{ id: '1', change: 'unchanged' }],
+      },
+      currentPoints: namedPoints,
+      currentSections: [{ id: 'plot', title: 'The Plot' }],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const summary = summarizeReorganizeProposal({
+      proposal: result.proposal,
+      currentSections: [{ id: 'plot', title: 'The Plot' }],
+    });
+    expect(summary.restatement).toBe(true);
+    expect(isDocumentReorganizeRestatement(result.proposal, [{ id: 'plot', title: 'The Plot' }])).toBe(
+      true,
+    );
+    expect(formatReorganizeOverlaySummary(summary)).toContain('restates the current Document');
+  });
+
+  it('does not name a restatement when a Point is refined', () => {
+    const namedPoints = [
+      createDraftPoint({
+        id: 'p1',
+        content: 'First finding about the plot.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'The plot',
+        pathGroupId: 'plot',
+      }),
+    ];
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [{ id: 'plot', title: 'The Plot' }],
+        points: [
+          {
+            id: '1',
+            change: 'refine',
+            content: 'The plot is the first agency, not a later feature.',
+            prelude: 'The plot',
+          },
+        ],
+      },
+      currentPoints: namedPoints,
+      currentSections: [{ id: 'plot', title: 'The Plot' }],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const summary = summarizeReorganizeProposal({
+      proposal: result.proposal,
+      currentSections: [{ id: 'plot', title: 'The Plot' }],
+    });
+    expect(summary.restatement).toBe(false);
+    expect(summary.byKind.refine).toBe(1);
+    expect(formatReorganizeOverlaySummary(summary)).toContain('1 refined');
   });
 
   it('treats unknown ids as New instead of failing the proposal', () => {

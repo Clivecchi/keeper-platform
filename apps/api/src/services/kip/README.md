@@ -38,6 +38,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-29 — Restatement follow-up
+- `documentReorganizeStore.ts` returns `restatement` when Proposed is Current with no marks.
+- `documentReorganizeIntent.ts` asks the Lead again (skip if placement follow-up also fires). Hears "nothing actually changed" / copy-paste as another propose turn.
+- Dialog says the proposal restated Current instead of treating it as a successful reorganization.
+
 ### 2026-08-29 — Review & Reorganize does not dump to Open
 - `loadDialogDocumentForAgent.ts` — DIALOG DOCUMENT lists Points under their current Section as evidence, not a lock.
 - `documentReorganizeIntent.ts` — Current is evidence. Propose the better Document (new/renamed/reordered Sections, moves, refine, merge, retire, new). Omit `sectionId` is a safety default, not a preference for the current structure. Never dump named work into Open. Hears "every point into Open" as another propose turn. Open-dump repair triggers placement follow-up. Reorganize failures stay human in Dialog.

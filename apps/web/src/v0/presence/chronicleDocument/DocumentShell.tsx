@@ -123,8 +123,10 @@ export interface DocumentShellProps {
   emptyState?: React.ReactNode
   onBringInWriting?: () => void
   className?: string
-  /** In-place Review & Reorganize marks (Proposed / Changes). */
+  /** In-place Review & Reorganize marks on the Proposed overlay. */
   proposalMarks?: Record<string, PointProposalMark>
+  /** Proposed is Current with edits laid on — hide Accept status, show Now vs Proposed. */
+  proposalOverlay?: boolean
   /**
    * Live cue in the Forward slot (uploads, etc.). Click opens inspect overlay
    * over Workspace — does not replace the Document.
@@ -304,6 +306,7 @@ function PointFrame({
   glossThread,
   authoring,
   proposalMark,
+  proposalOverlay,
   focused,
 }: {
   point: Point
@@ -317,6 +320,7 @@ function PointFrame({
   glossThread?: DocumentGlossThreadInfo | null
   authoring?: PointAuthoringProps | null
   proposalMark?: PointProposalMark
+  proposalOverlay?: boolean
   focused?: boolean
 }) {
   const [glossOpen, setGlossOpen] = React.useState(false)
@@ -340,6 +344,7 @@ function PointFrame({
   }, [canInlineGloss, onGloss, pointId])
 
   const displayPoint = React.useMemo((): Point => {
+    if (proposalOverlay) return { ...point, status: undefined }
     if (!accepted || point.status?.label?.toLowerCase() === "accepted") return point
     return {
       ...point,
@@ -348,7 +353,7 @@ function PointFrame({
         tone: "active",
       },
     }
-  }, [accepted, point])
+  }, [accepted, point, proposalOverlay])
 
   return (
     <div
@@ -408,6 +413,7 @@ function PointFrame({
           glossMessageCount={glossThread?.messageCount}
           authoring={authoring}
           proposalMark={proposalMark}
+          proposalOverlay={proposalOverlay}
         />
         {glossOpen && glossContext && point.gloss?.anchor ? (
           <DocumentPointGloss
@@ -882,6 +888,7 @@ export function DocumentShell({
   authoring,
   className,
   proposalMarks,
+  proposalOverlay,
   now,
 }: DocumentShellProps) {
   const [query, setQuery] = React.useState("")
@@ -1209,6 +1216,7 @@ export function DocumentShell({
                       acceptedPointIds={acceptedPointIds}
                       authoring={pointAuthoring}
                       proposalMark={pointId ? proposalMarks?.[pointId] : undefined}
+                      proposalOverlay={proposalOverlay}
                       focused={Boolean(pointId && scrollToPointId && pointId === scrollToPointId)}
                       onGloss={
                         onGlossPoint && point.gloss?.anchor

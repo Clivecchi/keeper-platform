@@ -4,6 +4,7 @@ import {
   detectReorganizeIntent,
   shouldRunReorganizePlacementFollowUp,
   shouldRunReorganizeProposeFollowUp,
+  shouldRunReorganizeRestatementFollowUp,
 } from '../services/kip/documentReorganizeIntent.js';
 
 describe('detectReorganizeIntent', () => {
@@ -96,6 +97,15 @@ describe('detectReorganizeIntent', () => {
     expect(detectReorganizeIntent('add a point about the plot')).toBe('none');
   });
 
+  it('hears a restatement complaint as another propose turn', () => {
+    expect(detectReorganizeIntent('I am not sure anything actually changed')).toBe('required');
+    expect(detectReorganizeIntent('nothing actually changed')).toBe('required');
+    expect(detectReorganizeIntent('this looks like a copy paste of the same document')).toBe(
+      'required',
+    );
+    expect(detectReorganizeIntent('no meaningful change')).toBe('required');
+  });
+
   it('tells the Lead that Current is evidence and omit is only a safety default', () => {
     const prompt = buildReorganizeProposeSystemPrompt('Finding the Plot');
     expect(prompt).toContain('Current is evidence, not a constraint');
@@ -104,6 +114,33 @@ describe('detectReorganizeIntent', () => {
     expect(prompt).toContain('Never dump named work into Open');
     expect(prompt).not.toContain('omit for unplaced Points');
     expect(prompt).not.toContain('Preserve membership unless you are deliberately moving');
+  });
+
+  it('asks the Lead again when the proposal restated Current', () => {
+    expect(
+      shouldRunReorganizeRestatementFollowUp({
+        isLead: true,
+        actionResults: [
+          {
+            type: 'document.reorganize.propose',
+            status: 'success',
+            data: { restatement: true },
+          },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      shouldRunReorganizeRestatementFollowUp({
+        isLead: true,
+        actionResults: [
+          {
+            type: 'document.reorganize.propose',
+            status: 'success',
+            data: { spineOnly: true, restatement: true },
+          },
+        ],
+      }),
+    ).toBe(false);
   });
 
   it('asks the Lead to place Points after an Open-dump repair', () => {

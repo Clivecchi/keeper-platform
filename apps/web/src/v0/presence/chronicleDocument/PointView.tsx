@@ -37,6 +37,8 @@ export interface PointViewProps {
   authoring?: PointAuthoringProps | null
   /** In-place Review & Reorganize mark — explains itself where the Point lives. */
   proposalMark?: PointProposalMark
+  /** Proposed overlay — hide Accept status; show Now beside the edit. */
+  proposalOverlay?: boolean
 }
 
 export type PointAuthoringProps = {
@@ -153,6 +155,7 @@ export function PointView({
   glossMessageCount,
   authoring = null,
   proposalMark,
+  proposalOverlay = false,
 }: PointViewProps) {
   const card = point ?? document
   if (!card) return null
@@ -225,6 +228,13 @@ export function PointView({
   const [showOriginal, setShowOriginal] = React.useState(false)
   const markLabel = proposalMark ? reorganizeChangeLabel(proposalMark.kind) : ""
   const retire = proposalMark?.kind === "retire"
+  const overlayCompare =
+    proposalOverlay &&
+    Boolean(proposalMark?.originalBody || proposalMark?.originalTitle) &&
+    (proposalMark?.kind === "refine" || proposalMark?.kind === "merge")
+  const originalText = [proposalMark?.originalTitle, proposalMark?.originalBody]
+    .filter(Boolean)
+    .join("\n\n")
 
   return (
     <article
@@ -249,7 +259,7 @@ export function PointView({
             {author}
             {kindLabel ? ` · ${kindLabel}` : ""}
           </p>
-          {card.status ? (
+          {card.status && !proposalOverlay ? (
             <span
               className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
               style={{
@@ -270,7 +280,15 @@ export function PointView({
               {card.status.label}
             </span>
           ) : null}
-          {revisedCue ? (
+          {proposalOverlay && !markLabel ? (
+            <span
+              className="text-[11px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              As now
+            </span>
+          ) : null}
+          {revisedCue && !proposalOverlay ? (
             <span
               className="text-[11px] font-medium"
               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
@@ -294,7 +312,7 @@ export function PointView({
               {markLabel}
             </span>
           ) : null}
-          {proposalMark?.kind === "move" && proposalMark.fromSectionTitle ? (
+          {proposalMark?.fromSectionTitle ? (
             <span
               className="text-[11px] font-medium"
               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
@@ -346,7 +364,54 @@ export function PointView({
         )}
       </header>
 
-      {editing ? null : !showBody ? (
+      {editing ? null : overlayCompare && showBody ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Now
+            </p>
+            <p
+              className="text-[14px] leading-[1.6] whitespace-pre-wrap"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              {originalText}
+            </p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.08em]"
+              style={{ color: "hsl(var(--theme-accent-primary))" }}
+            >
+              Proposed
+            </p>
+            {showLede ? (
+              <p
+                className="document-point-body text-[15px] leading-[1.65]"
+                style={{
+                  color: "hsl(var(--theme-ink-secondary))",
+                  fontFamily: "var(--theme-font-ui, inherit)",
+                }}
+              >
+                {ledeText}
+              </p>
+            ) : null}
+            {bodyText ? (
+              <div
+                className="document-point-body text-[15px] leading-[1.65] whitespace-pre-wrap"
+                style={{
+                  color: "hsl(var(--theme-ink-secondary))",
+                  fontFamily: "var(--theme-font-ui, inherit)",
+                }}
+              >
+                {bodyText}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : !showBody ? (
         blurb ? (
           <p
             className="document-point-body text-[15px] leading-[1.65]"
@@ -390,7 +455,9 @@ export function PointView({
           Merges {proposalMark.replacesTitles.join(" · ")}
         </p>
       ) : null}
-      {proposalMark && (proposalMark.originalBody || proposalMark.originalTitle) &&
+      {!overlayCompare &&
+      proposalMark &&
+      (proposalMark.originalBody || proposalMark.originalTitle) &&
       (proposalMark.kind === "refine" || proposalMark.kind === "merge") ? (
         <div>
           <button
@@ -406,7 +473,7 @@ export function PointView({
               className="mt-1.5 text-[14px] leading-[1.6] whitespace-pre-wrap"
               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             >
-              {[proposalMark.originalTitle, proposalMark.originalBody].filter(Boolean).join("\n\n")}
+              {originalText}
             </p>
           ) : null}
         </div>

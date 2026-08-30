@@ -10,11 +10,13 @@ import type {
 import {
   buildGlossThreadKey,
   composeProposedDocument,
+  formatReorganizeOverlaySummary,
   parseDocumentPathDeclarations,
   parseDraftPoints,
   parseGlossThreads,
   readReorganizeProposalFromSpec,
   resolveChroniclePanelBody,
+  summarizeReorganizeProposal,
   resolveDocumentForward,
 } from "@keeper/shared"
 import {
@@ -166,9 +168,7 @@ export function DomainRealmStory({
   const [reorganizeProposal, setReorganizeProposal] =
     React.useState<DocumentReorganizeProposal | null>(null)
   const [manuscriptDraft, setManuscriptDraft] = React.useState<KipDraft | null>(null)
-  const [documentView, setDocumentView] = React.useState<"current" | "proposed" | "changes">(
-    "proposed",
-  )
+  const [documentView, setDocumentView] = React.useState<"current" | "proposed">("proposed")
   const [reorganizeBusy, setReorganizeBusy] = React.useState(false)
   const [reorganizeError, setReorganizeError] = React.useState<string | null>(null)
   const [glossThreadsByKey, setGlossThreadsByKey] = React.useState<
@@ -346,16 +346,20 @@ export function DomainRealmStory({
     return legacyEntries
   }, [manuscriptEntries, legacyEntries])
 
-  const showingProposal =
-    Boolean(composedProposal) && (documentView === "proposed" || documentView === "changes")
+  const showingProposal = Boolean(composedProposal) && documentView === "proposed"
 
   const storyEntries = React.useMemo(() => {
     if (!showingProposal) return currentStoryEntries
-    if (documentView === "changes") {
-      return proposedEntries.filter((entry) => Boolean(composedProposal?.marks[entry.id]))
-    }
     return proposedEntries
-  }, [showingProposal, currentStoryEntries, proposedEntries, documentView, composedProposal])
+  }, [showingProposal, currentStoryEntries, proposedEntries])
+
+  const overlaySummary = React.useMemo(() => {
+    if (!reorganizeProposal) return null
+    return summarizeReorganizeProposal({
+      proposal: reorganizeProposal,
+      currentSections: documentMeta.paths,
+    })
+  }, [reorganizeProposal, documentMeta.paths])
 
   const points = React.useMemo(
     () => storyEntries.map((entry) => entry.point),
@@ -510,6 +514,7 @@ export function DomainRealmStory({
         forward={resolvedForward}
         step={scope.status === "dialog" ? documentMeta.step : undefined}
         proposalMarks={showingProposal ? composedProposal?.marks : undefined}
+        proposalOverlay={showingProposal}
         authoring={
           scope.status === "dialog" && !showingProposal
             ? {
@@ -612,7 +617,7 @@ export function DomainRealmStory({
         >
           <div className="flex gap-4" role="tablist" aria-label="Chronicle view">
             {(reorganizeProposal
-              ? (["current", "proposed", "changes", "history"] as const)
+              ? (["current", "proposed", "history"] as const)
               : (["document", "history"] as const)
             ).map((mode) => {
               const selected =
@@ -629,9 +634,7 @@ export function DomainRealmStory({
                     ? "Current"
                     : mode === "proposed"
                       ? "Proposed"
-                      : mode === "changes"
-                        ? "Changes"
-                        : "History"
+                      : "History"
               return (
                 <button
                   key={mode}
@@ -644,7 +647,7 @@ export function DomainRealmStory({
                       return
                     }
                     boardCtx?.actions.setChroniclePanelMode("document")
-                    if (mode === "current" || mode === "proposed" || mode === "changes") {
+                    if (mode === "current" || mode === "proposed") {
                       setDocumentView(mode)
                     }
                   }}
@@ -731,6 +734,18 @@ export function DomainRealmStory({
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {reorganizeProposal.rationale}
+        </p>
+      ) : null}
+      {overlaySummary && panelMode === "document" && showingProposal ? (
+        <p
+          className="px-4 pt-3 text-[13px] leading-[1.55]"
+          style={{
+            color: overlaySummary.restatement
+              ? "hsl(var(--theme-status-warning, 38 80% 48%))"
+              : "hsl(var(--theme-ink-secondary))",
+          }}
+        >
+          {formatReorganizeOverlaySummary(overlaySummary)}
         </p>
       ) : null}
       {panelMode === "document"

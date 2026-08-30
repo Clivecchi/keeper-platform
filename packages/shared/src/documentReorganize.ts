@@ -694,6 +694,79 @@ export function composeProposedDocument(input: {
   };
 }
 
+export type ReorganizeKindCount = {
+  new: number;
+  refine: number;
+  move: number;
+  merge: number;
+  retire: number;
+};
+
+export type ReorganizeProposalSummary = {
+  restatement: boolean;
+  changedCount: number;
+  byKind: ReorganizeKindCount;
+  identityChanged: boolean;
+  sectionsChanged: boolean;
+};
+
+function sectionSpine(sections: DocumentPathDeclaration[]): string {
+  return sections.map((section) => normalizeKey(section.title)).join('\u0001');
+}
+
+/**
+ * What Proposed actually changes vs Current. A restatement has no Point
+ * marks, no identity edit, and the same Section titles in the same order.
+ */
+export function summarizeReorganizeProposal(input: {
+  proposal: DocumentReorganizeProposal;
+  currentSections?: DocumentPathDeclaration[];
+}): ReorganizeProposalSummary {
+  const byKind: ReorganizeKindCount = { new: 0, refine: 0, move: 0, merge: 0, retire: 0 };
+  for (const point of input.proposal.points) {
+    if (point.change === 'unchanged') continue;
+    if (point.change in byKind) {
+      byKind[point.change as keyof ReorganizeKindCount] += 1;
+    }
+  }
+  const changedCount = byKind.new + byKind.refine + byKind.move + byKind.merge + byKind.retire;
+  const identityChanged = hasDocumentIdentityProposal(input.proposal);
+  const current = input.currentSections ?? [];
+  const sectionsChanged =
+    current.length > 0
+      ? sectionSpine(input.proposal.sections) !== sectionSpine(current)
+      : input.proposal.sections.length > 0;
+  return {
+    restatement: changedCount === 0 && !identityChanged && !sectionsChanged,
+    changedCount,
+    byKind,
+    identityChanged,
+    sectionsChanged,
+  };
+}
+
+export function formatReorganizeOverlaySummary(summary: ReorganizeProposalSummary): string {
+  if (summary.restatement) {
+    return 'Nothing is marked as changed. This restates the current Document — Current and Proposed are the same.';
+  }
+  const bits: string[] = [];
+  if (summary.byKind.new) bits.push(`${summary.byKind.new} new`);
+  if (summary.byKind.refine) bits.push(`${summary.byKind.refine} refined`);
+  if (summary.byKind.move) bits.push(`${summary.byKind.move} moved`);
+  if (summary.byKind.merge) bits.push(`${summary.byKind.merge} merged`);
+  if (summary.byKind.retire) bits.push(`${summary.byKind.retire} retire`);
+  if (summary.identityChanged) bits.push('title / Forward');
+  if (summary.sectionsChanged && bits.length === 0) bits.push('Sections');
+  return `Proposed changes: ${bits.join(' · ')}. Unmarked Points stay as they are now.`;
+}
+
+export function isDocumentReorganizeRestatement(
+  proposal: DocumentReorganizeProposal,
+  currentSections?: DocumentPathDeclaration[],
+): boolean {
+  return summarizeReorganizeProposal({ proposal, currentSections }).restatement;
+}
+
 export function reorganizeChangeLabel(kind: ReorganizeChangeKind): string {
   switch (kind) {
     case 'new':
