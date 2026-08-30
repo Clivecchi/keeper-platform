@@ -1,20 +1,23 @@
 # Reach + Stage
 
 ## 📌 Purpose
-Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument). **Reach** (`KeeperComposerSheet`) is a Composer feature that finds and brings real Keeper objects onto Stage. Stage holds presence, not copies.
+Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument). On Stage, Composer is elevated above the table. **Reach** is a Composer tool that Chronicle renders.
 
 ## 🧱 Key Files
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
-- `KeeperComposerSheet.tsx` — mobile-first reach palette (Here / Cast / Recent / search)
-- `KeeperStageCanvas.tsx` — first Stage (`Keeper`) as workspace surface
-- `StageAgencyStrip.tsx` — Base Agency + On this Stage role/direction
+- `ReachPalette.tsx` — Here / Cast / Recent / search
+- `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
+- `KeeperStageCanvas.tsx` — Stage table (presences only)
+- `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
+- `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
+- `useBindStageDialog.ts` — auto-bind Talking in when a Dialog is already on Stage
 
 ## 🔄 Data & Behavior
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
-- Contextual Agency is Stage-owned. Base Agency stays on `kip_agents`.
-- Dialog input floor is Composer (`AgentComposer`). This sheet is Reach, not Composer.
-- Theatre.js Present sheets stay Chronicle motion. Stage positions live in Keeper JSON.
+- If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
+- Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
+- Reach opens from Composer (and the top-bar shortcut) and renders in Chronicle. Composer does not live in Chronicle.
 
 ## ⚠️ Notes & ToDo
 - [ ] Theatre.js Stage project for choreography — after this proof
@@ -23,6 +26,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Composer above Stage
+- Composer is elevated above the Stage table. Agency moved into Composer. Reach moved into Chronicle. Overlay sheet removed.
 
 ### 2026-08-30 — Reach is not Composer
 - Sheet, Stage empty state, and top-bar control are labeled **Reach**. Composer is `AgentComposer`; Reach opens from Composer and as a shortcut.

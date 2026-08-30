@@ -10,6 +10,7 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `FrameConfigPresence.tsx` — config layout for frame objects (preview, props, quiet JSON)
 - `BoardDefConfigPresence.tsx` — config layout for board definitions (human-readable structure)
 - `GlossaryPresence.tsx` — Object Glossary Chronicle surface (Domain read / Design definition ownership)
+- `ReachChroniclePresence.tsx` — Composer Reach tool in Chronicle (not Composer)
 - `KeeperPresenceDefaults.ts` — platform default schemas (journey, moment, keeper, agent, draft, dialog, service, domain, frame, boardDef)
 - `usePresenceSchema.ts` — React hook with 3-level resolution: object override → domain DB → platform default; module-level cache
 - `KeeperPresence.tsx` — schema-driven Chronicle surface; journey focus layout, breadcrumb, related sections, relative timestamps; agent explicit Save + structured prompts
@@ -62,6 +63,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-08-30 — Reach in Chronicle
+- `ReachChroniclePresence` is the Composer Reach tool in Chronicle. Back closes Reach. Composer stays the Turn box.
 
 ### 2026-08-29 — Attach ingest sends the file title
 - `DialogIngestPresence` passes the upload title when attaching to a Dialog, so the new writing can sit in its own Section instead of Open.

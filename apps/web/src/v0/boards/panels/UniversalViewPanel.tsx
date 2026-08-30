@@ -51,6 +51,7 @@ import {
 import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 import { LibrarySharedContextRoadmapPanel } from "../../presence/chronicleDocument/LibrarySharedContextRoadmapPanel"
+import { ReachChroniclePresence } from "../../presence/ReachChroniclePresence"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
@@ -732,6 +733,11 @@ export function UniversalViewPanel({
           <ChronicleEngagementSurface
             intent={chronicleEngagement}
             onClose={() => boardCtx?.actions.closeChronicleEngagement()}
+          />
+        ) : boardCtx?.composerReachOpen && domainId ? (
+          <ReachChroniclePresence
+            domainId={domainId}
+            onClose={() => boardCtx.actions.closeComposerReach()}
           />
         ) : boardCtx?.dialogIngest ? (
           domainId ? (

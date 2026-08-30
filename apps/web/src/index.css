@@ -789,6 +789,16 @@ button.dialog-prelude:hover {
   position: relative;
 }
 
+.keeper-dialog-frame[data-composer-placement="above"] .dialog-bottom-zone {
+  padding-top: 6px;
+  padding-bottom: 10px;
+}
+
+.keeper-dialog-frame[data-composer-placement="above"] .dialog-bottom-zone::before {
+  top: auto;
+  bottom: 0;
+}
+
 .dialog-bottom-zone::before {
   content: "";
   position: absolute;

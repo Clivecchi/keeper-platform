@@ -1,8 +1,8 @@
 "use client"
 
 /**
- * Reach — bring who or what you need onto Stage.
- * A Composer feature, not Composer. Composer is AgentComposer.
+ * Reach palette — bring who or what you need onto Stage.
+ * Composer tool body. Chronicle renders this; Composer does not.
  */
 
 import * as React from "react"
@@ -18,7 +18,7 @@ type NavIndexItem = {
   subtitle?: string
 }
 
-type PaletteRow = {
+export type ReachPaletteRow = {
   key: string
   kind: StagePresenceKind
   objectId: string
@@ -34,8 +34,14 @@ const DEFAULT_AGENT_STAGE_ROLE: Record<string, string> = {
   ceox: "Strategy / Synthesis",
 }
 
-export function KeeperComposerSheet({ domainId }: { domainId: string }) {
-  const { selection, actions, composerReachOpen } = useUniversalBoard()
+export function ReachPalette({
+  domainId,
+  active,
+}: {
+  domainId: string
+  active: boolean
+}) {
+  const { selection, actions } = useUniversalBoard()
   const stageApi = useKeeperStage()
   const [query, setQuery] = React.useState("")
   const [cast, setCast] = React.useState<ComposerCastAgent[]>([])
@@ -44,14 +50,14 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
-    if (!composerReachOpen) return
+    if (!active) return
     setQuery("")
     const t = window.setTimeout(() => inputRef.current?.focus(), 40)
     return () => window.clearTimeout(t)
-  }, [composerReachOpen])
+  }, [active])
 
   React.useEffect(() => {
-    if (!composerReachOpen || !domainId) return
+    if (!active || !domainId) return
     let cancelled = false
     setLoading(true)
     const qs = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""
@@ -76,10 +82,10 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
     return () => {
       cancelled = true
     }
-  }, [composerReachOpen, domainId, query])
+  }, [active, domainId, query])
 
-  const hereRows = React.useMemo<PaletteRow[]>(() => {
-    const rows: PaletteRow[] = []
+  const hereRows = React.useMemo<ReachPaletteRow[]>(() => {
+    const rows: ReachPaletteRow[] = []
     if (selection.selectedDialogId) {
       const named = recent.find((item) => item.kind === "dialog" && item.id === selection.selectedDialogId)
       rows.push({
@@ -105,7 +111,7 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
     return rows
   }, [selection.selectedDialogId, selection.selectedDraftId, recent])
 
-  const castRows = React.useMemo<PaletteRow[]>(() => {
+  const castRows = React.useMemo<ReachPaletteRow[]>(() => {
     const q = query.trim().toLowerCase()
     return cast
       .filter((agent) => {
@@ -127,7 +133,7 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
       }))
   }, [cast, query])
 
-  const recentRows = React.useMemo<PaletteRow[]>(() => {
+  const recentRows = React.useMemo<ReachPaletteRow[]>(() => {
     return recent.map((item) => ({
       key: `recent-${item.kind}-${item.id}`,
       kind: item.kind,
@@ -138,7 +144,7 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
     }))
   }, [recent])
 
-  const bringRow = (row: PaletteRow) => {
+  const bringRow = (row: ReachPaletteRow) => {
     const agent = row.kind === "agent" ? cast.find((a) => a.id === row.objectId) : null
     const presence = stageApi.bring({
       kind: row.kind,
@@ -153,67 +159,32 @@ export function KeeperComposerSheet({ domainId }: { domainId: string }) {
     actions.closeComposerReach()
   }
 
-  if (!composerReachOpen) return null
-
   return (
-    <div className="absolute inset-0 z-30 flex flex-col justify-end" role="dialog" aria-label="Reach">
-      <button
-        type="button"
-        className="absolute inset-0"
-        aria-label="Close Reach"
-        onClick={actions.closeComposerReach}
-        style={{ background: "hsl(var(--theme-ink-primary) / 0.45)" }}
-      />
-      <div
-        className="relative flex max-h-[78%] min-h-[52%] flex-col rounded-t-2xl"
-        style={{
-          background: "hsl(var(--theme-surface-paper) / 0.98)",
-          color: "hsl(var(--theme-ink-primary))",
-          boxShadow: "0 -12px 40px hsl(var(--theme-ink-primary) / 0.18)",
-        }}
-      >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full" style={{ background: "hsl(var(--theme-border-soft))" }} />
-        <header className="flex items-center justify-between gap-3 px-4 pb-2 pt-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-              Reach
-            </p>
-            <h2 className="text-[17px] font-medium">Bring who or what you need</h2>
-          </div>
-          <button
-            type="button"
-            onClick={actions.closeComposerReach}
-            className="rounded-md px-2 py-1 text-[13px]"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          >
-            Close
-          </button>
-        </header>
-        <div className="px-4 pb-3">
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search Keeper"
-            className="w-full rounded-xl px-3 py-2.5 text-[15px]"
-            style={{
-              background: "hsl(var(--theme-surface-panel) / 0.6)",
-              border: "1px solid hsl(var(--theme-border-soft))",
-              color: "hsl(var(--theme-ink-primary))",
-            }}
-          />
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
-          {loading ? (
-            <p className="py-6 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>Looking…</p>
-          ) : (
-            <>
-              <Rail title="Here" rows={hereRows} onPick={bringRow} />
-              <Rail title="Cast" rows={castRows} onPick={bringRow} />
-              <Rail title="Recent" rows={recentRows} onPick={bringRow} />
-            </>
-          )}
-        </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="px-1 pb-3">
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search Keeper"
+          className="w-full rounded-xl px-3 py-2.5 text-[15px]"
+          style={{
+            background: "hsl(var(--theme-surface-panel) / 0.6)",
+            border: "1px solid hsl(var(--theme-border-soft))",
+            color: "hsl(var(--theme-ink-primary))",
+          }}
+        />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+        {loading ? (
+          <p className="py-6 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>Looking…</p>
+        ) : (
+          <>
+            <Rail title="Here" rows={hereRows} onPick={bringRow} />
+            <Rail title="Cast" rows={castRows} onPick={bringRow} />
+            <Rail title="Recent" rows={recentRows} onPick={bringRow} />
+          </>
+        )}
       </div>
     </div>
   )
@@ -225,8 +196,8 @@ function Rail({
   onPick,
 }: {
   title: string
-  rows: PaletteRow[]
-  onPick: (row: PaletteRow) => void
+  rows: ReachPaletteRow[]
+  onPick: (row: ReachPaletteRow) => void
 }) {
   if (rows.length === 0) return null
   return (

@@ -39,6 +39,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Composer above Stage; Reach in Chronicle
+- On Stage, Composer sits above the table. Agency is in Composer. Reach renders in Chronicle (`ReachChroniclePresence`), not a sheet over the Stage.
+
 ### 2026-08-30 — Stage no longer traps navigation
 - Stage is a room on the current Board, not a board switch. Realm · Domain · Build · Design · Agent, and Nav subjects (Dialog, Draft, Library, …), leave Stage.
 - Clicking a presence on Stage stays on Stage (Chronicle inspect). Stage Nav item toggles Open / On Stage.
@@ -81,7 +84,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Document header drops the redundant "Document" breadcrumb/chip so the title and points can breathe.
 
 ### 2026-08-22 — Composer reach + Keeper Stage
-- Center workspace can be Dialog or Stage (`workspaceSurface`). Reach is a Composer feature (`KeeperComposerSheet`), not Composer itself (`AgentComposer`).
+- Center workspace can be Dialog or Stage (`workspaceSurface`). Reach is a Composer feature rendered in Chronicle, not Composer itself (`AgentComposer`).
 - Stage select uses `onWorkTargetFromStage` so Talking in (Dialog) survives Working on (Agent / Draft / Journey / …).
 
 ### 2026-08-22 — Document coordinates stay honest

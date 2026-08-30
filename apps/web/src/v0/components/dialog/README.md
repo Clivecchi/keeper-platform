@@ -1,10 +1,10 @@
 # Dialog Components
 
 ## 📌 Purpose
-Shared conversation shell used across Build Board, Agent Board, Domain Board, Realm, and Design. Product surfaces: **Header Bar** → **Dialog Space** → **Broadcast Strip** (when working) → **Composer**.
+Shared conversation shell used across Build Board, Agent Board, Domain Board, Realm, and Design. Dialog: **Header Bar** → **Dialog Space** → **Broadcast Strip** → **Composer**. Stage: **Header Bar** → **Composer** (elevated) → **Stage**.
 
 ## 🧱 Key Files
-- `KeeperDialogFrame.tsx` — Main shell. Assembles Header Bar, Dialog Space, Broadcast Strip, and Composer input floor.
+- `KeeperDialogFrame.tsx` — Main shell. Composer sits below Dialog Space, above Stage (`data-composer-placement`).
 - `DialogBroadcastStrip.tsx` — Unified working surface: live beat + prior-beat ticker (CRT lower third).
 - `DialogScrollHint.tsx` — “Latest” pill above the Broadcast Strip when the user scrolls up.
 - `DialogUploadStream.tsx` — Pending uploads in Broadcast Strip (Library item created at clip; sent with next message).
@@ -75,6 +75,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-30: **Composer above Stage** — same `AgentComposer`. Agency sits in Composer. Reach opens in Chronicle. `data-composer-placement="above"`.
 - 2026-08-25: `dialogThinking` labels `document.reorganize.propose` as Proposed Document (not a draft-point update).
 - 2026-08-25: Point cards pass `onOpenPoint` + Dialog title so **Added point in Finding the plot** opens that Point in Chronicle.
 - 2026-08-25: `dialogThinking` labels `gloss.append` as Added Gloss.

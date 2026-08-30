@@ -8,9 +8,10 @@
  * Canonical surfaces (product language):
  *   Header Bar   — expandable breadcrumb / session meta (`.dialog-header-banner`)
  *   Dialog Space — scrollable messages above the Horizon (`.dialog-message-zone`)
- *   Composer        — user input floor; two states via `data-composer-state`:
+ *   Composer        — user input; below Dialog Space, above Stage.
  *     composing    — input only; optional post-run summary atop composer
  *     working      — Broadcast Strip (live + ticker) + input
+ *     Stage        — `data-composer-placement="above"`; Agency sits in Composer. Reach opens in Chronicle.
  *
  * While sending: Broadcast Strip expands with live beat + prior story beats.
  * After the reply lands: strip collapses; a one-line dialogic summary sits atop
@@ -53,6 +54,7 @@ import {
 import { useTalkMode } from "../../../hooks/useTalkMode"
 import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
+import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
 import "../../../components/gloss/gloss.css"
@@ -533,10 +535,95 @@ export function KeeperDialogFrame({
     isMobileStaged
     && (mobileDialogStage === "response" || mobileDialogStage === "thinking")
 
+  const composerAbove = Boolean(dialogContent) && mode !== "feed"
+
+  const composerZone = mode === "feed" ? null : (
+      <div className="dialog-bottom-zone">
+        <div className="dialog-column dialog-bottom-stack">
+          {composerAbove && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
+          {postRunSummary && (
+            <div className="dialog-composer-horizon" aria-live="polite">
+              <p className="dialog-composer-horizon-summary">{postRunSummary}</p>
+            </div>
+          )}
+          <AgentComposer
+            agentName={agentName}
+            composerAgents={composerAgents}
+            onRemoveComposerAgent={onRemoveComposerAgent}
+            showToolbarAgentIdentity={showToolbarAgentIdentity}
+            agentId={agentId}
+            domainId={domainId}
+            dialogueMode={dialogueMode}
+            inputValue={inputValue}
+            onInputChange={onInputChange}
+            onSubmit={handleComposerSubmit}
+            onComposerFileUpload={onComposerFileUpload ?? onLibraryFileUpload}
+            attachments={pendingAttachments}
+            onAttachmentsChange={setPendingAttachments}
+            attachmentDisplay="thinking-space"
+            onUploadingChange={setIsFileUploading}
+            isSending={isSending || isFileUploading || isSubmittingMessage}
+            activeSessionId={activeSessionId}
+            disabled={disabled}
+            inputPlaceholder={inputPlaceholder}
+            submitOnEnter={!isMobileStaged}
+            onInputFocusChange={onComposerFocusChange}
+            composerSize={mobileComposerSize}
+            talkMode={talkMode}
+            talkState={talkState}
+            talkSupported={talkSupported}
+            onTalkStart={startListening}
+            onTalkStop={stopListening}
+            talkError={talkError}
+            dialogueMessages={messages}
+            userName={userName}
+            onOpenReach={board ? board.actions.openComposerReach : undefined}
+            reachOpen={board?.composerReachOpen === true}
+          />
+          {showComposerFooter && !hideMobileComposerFooter && (
+            <div className="dialog-composer-footer">
+              {showServiceBar ? (
+                <IntegratedServicesBar
+                  onOpen={onServiceOpen ?? (() => {})}
+                  instruments={boardCast}
+                  onInstrumentInvoke={onCastCueToggle}
+                  activeInstrumentSlug={activeCastMemberSlug}
+                  agentsEyebrow={castEyebrow}
+                  onToolInvoke={onToolInvoke}
+                  activeToolSlug={activeToolSlug}
+                  railwayStatus={railwayStatus}
+                  vercelStatus={vercelStatus}
+                  githubStatus={githubStatus}
+                />
+              ) : boardCast?.length ? (
+                <CastCueBar
+                  eyebrow={castEyebrow}
+                  instruments={boardCast}
+                  activeSlug={activeCastMemberSlug}
+                  activeSlugs={cuedCastMemberSlugs}
+                  selectionMode={castCueSelectionMode}
+                  leadLocked={castLeadLocked}
+                  onInvoke={onCastCueToggle}
+                  collaborationMode={castCollaborationMode}
+                />
+              ) : (
+                <div className="dialog-composer-footer-spacer" aria-hidden />
+              )}
+              <ComposerDebugToolbar
+                active={debugPanelOpen}
+                onToggle={toggleDebugPanel}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+  )
+
   return (
     <div
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
+      data-composer-placement={composerAbove ? "above" : "below"}
       data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
       data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
@@ -806,7 +893,40 @@ export function KeeperDialogFrame({
         />
       ) : null}
 
-      {/* ── Dialog Space — messages scroll above the Horizon ─────────────────── */}
+      {composerAbove ? composerZone : null}
+
+      {composerAbove && showBroadcastStrip ? (
+      <div
+        ref={broadcastStripRef}
+        className={[
+          "dialog-broadcast-strip",
+          isWorking ? " dialog-broadcast-strip--working" : "",
+          hasUploads && !isWorking ? " dialog-broadcast-strip--uploads" : "",
+          isMobileStaged && mobileDialogStage === "composing" && hasUploads
+            ? " dialog-broadcast-strip--mobile-composing"
+            : "",
+        ].join("")}
+      >
+        <div className="dialog-broadcast-scanlines" aria-hidden="true" />
+        <div className="dialog-column dialog-broadcast-inner">
+          {isWorking ? (
+            <DialogBroadcastStrip
+              liveLabel={broadcastLiveLabel}
+              steps={thinkingSteps}
+              agentName={agentName}
+              isActive={isWorking}
+            />
+          ) : (
+            <DialogUploadStream
+              attachments={pendingAttachments}
+              onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
+            />
+          )}
+        </div>
+      </div>
+      ) : null}
+
+      {/* ── Dialog Space — messages scroll above the Horizon; Stage when elevated Composer ── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
         <div ref={scrollRef} className="dialog-message-surface">
@@ -899,8 +1019,8 @@ export function KeeperDialogFrame({
         <DialogScrollRail scrollRef={scrollRef} />
         <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
 
-        {/* Horizon dissolve — softens Dialog Space floor; live status lives in Broadcast Strip */}
-        {mode !== "feed" && (
+        {/* Horizon dissolve — Dialog only. Stage has Composer above, so no floor fade. */}
+        {mode !== "feed" && !composerAbove && (
           <div
             className={[
               "dialog-horizon-band",
@@ -914,8 +1034,7 @@ export function KeeperDialogFrame({
 
       {isMobileStaged && mobileDialogStage === "response" ? mobileResponseToolbar : null}
 
-      {/* ── Broadcast Strip — live beat + ticker while working; uploads when staging ── */}
-      {showBroadcastStrip && (
+      {!composerAbove && showBroadcastStrip ? (
         <div
           ref={broadcastStripRef}
           className={[
@@ -944,87 +1063,9 @@ export function KeeperDialogFrame({
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* ── Composer — input floor; post-run Horizon summary sits directly above ── */}
-      <div className="dialog-bottom-zone">
-        <div className="dialog-column dialog-bottom-stack">
-          {mode !== "feed" && postRunSummary && (
-            <div className="dialog-composer-horizon" aria-live="polite">
-              <p className="dialog-composer-horizon-summary">{postRunSummary}</p>
-            </div>
-          )}
-          <AgentComposer
-            agentName={agentName}
-            composerAgents={composerAgents}
-            onRemoveComposerAgent={onRemoveComposerAgent}
-            showToolbarAgentIdentity={showToolbarAgentIdentity}
-            agentId={agentId}
-            domainId={domainId}
-            dialogueMode={dialogueMode}
-            inputValue={inputValue}
-            onInputChange={onInputChange}
-            onSubmit={handleComposerSubmit}
-            onComposerFileUpload={onComposerFileUpload ?? onLibraryFileUpload}
-            attachments={pendingAttachments}
-            onAttachmentsChange={setPendingAttachments}
-            attachmentDisplay="thinking-space"
-            onUploadingChange={setIsFileUploading}
-            isSending={isSending || isFileUploading || isSubmittingMessage}
-            activeSessionId={activeSessionId}
-            disabled={disabled}
-            inputPlaceholder={inputPlaceholder}
-            submitOnEnter={!isMobileStaged}
-            onInputFocusChange={onComposerFocusChange}
-            composerSize={mobileComposerSize}
-            talkMode={talkMode}
-            talkState={talkState}
-            talkSupported={talkSupported}
-            onTalkStart={startListening}
-            onTalkStop={stopListening}
-            talkError={talkError}
-            dialogueMessages={messages}
-            userName={userName}
-            onOpenReach={board ? board.actions.openComposerReach : undefined}
-            reachOpen={board?.composerReachOpen === true}
-          />
-          {showComposerFooter && !hideMobileComposerFooter && (
-            <div className="dialog-composer-footer">
-              {showServiceBar ? (
-                <IntegratedServicesBar
-                  onOpen={onServiceOpen ?? (() => {})}
-                  instruments={boardCast}
-                  onInstrumentInvoke={onCastCueToggle}
-                  activeInstrumentSlug={activeCastMemberSlug}
-                  agentsEyebrow={castEyebrow}
-                  onToolInvoke={onToolInvoke}
-                  activeToolSlug={activeToolSlug}
-                  railwayStatus={railwayStatus}
-                  vercelStatus={vercelStatus}
-                  githubStatus={githubStatus}
-                />
-              ) : boardCast?.length ? (
-                <CastCueBar
-                  eyebrow={castEyebrow}
-                  instruments={boardCast}
-                  activeSlug={activeCastMemberSlug}
-                  activeSlugs={cuedCastMemberSlugs}
-                  selectionMode={castCueSelectionMode}
-                  leadLocked={castLeadLocked}
-                  onInvoke={onCastCueToggle}
-                  collaborationMode={castCollaborationMode}
-                />
-              ) : (
-                <div className="dialog-composer-footer-spacer" aria-hidden />
-              )}
-              <ComposerDebugToolbar
-                active={debugPanelOpen}
-                onToggle={toggleDebugPanel}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      {!composerAbove ? composerZone : null}
 
       <DialogDebugOverlay open={debugPanelOpen} onClose={() => setDebugPanelOpen(false)} />
 

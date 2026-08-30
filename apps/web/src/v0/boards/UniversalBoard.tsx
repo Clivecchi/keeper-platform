@@ -77,7 +77,6 @@ import { getCachedBoardNavData } from "./boardNavDataCache"
 import { PwaInstallPrompt } from "../../mobile/pwa"
 import { hasUnreadChronicle, markChronicleViewed } from "../presence/chronicleDocument/chronicleMobile"
 import { KeeperStageProvider } from "../composer/useKeeperStage"
-import { KeeperComposerSheet } from "../composer/KeeperComposerSheet"
 import "./board-mobile.css"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
@@ -223,6 +222,7 @@ function UniversalBoardShell({
     dialogIngest,
     libraryScreenOpen,
     workspaceSurface,
+    composerReachOpen,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -299,7 +299,10 @@ function UniversalBoardShell({
   }, [selection.chronicleOpenRequestId, openChronicleOverlay])
 
   const closeNavDrawer = React.useCallback(() => setNavDrawerOpen(false), [])
-  const closeChronicleOverlay = React.useCallback(() => setChronicleOverlayOpen(false), [])
+  const closeChronicleOverlay = React.useCallback(() => {
+    setChronicleOverlayOpen(false)
+    actions.closeComposerReach()
+  }, [actions])
 
   React.useEffect(() => {
     if (libraryScreenOpen && useMobilePanelLayout) closeNavDrawer()
@@ -308,6 +311,10 @@ function UniversalBoardShell({
   React.useEffect(() => {
     if (workspaceSurface === "stage" && useMobilePanelLayout) closeNavDrawer()
   }, [workspaceSurface, useMobilePanelLayout, closeNavDrawer])
+
+  React.useEffect(() => {
+    if (composerReachOpen && useMobilePanelLayout) openChronicleOverlay()
+  }, [composerReachOpen, useMobilePanelLayout, openChronicleOverlay])
 
   const handleGoHome = React.useCallback(() => {
     actions.clearSelection()
@@ -674,7 +681,6 @@ function UniversalBoardShell({
             onClose={actions.closeLibraryWorkspaceOverlay}
           />
         ) : null}
-        {domainId ? <KeeperComposerSheet domainId={domainId} /> : null}
       </div>
     </PanelErrorBoundary>
   )

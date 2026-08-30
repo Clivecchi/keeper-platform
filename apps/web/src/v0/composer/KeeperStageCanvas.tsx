@@ -9,31 +9,18 @@ import * as React from "react"
 import { stagePresenceKindLabel, type StagePresence } from "@keeper/shared"
 import { useIsMobile } from "../../mobile/hooks/useIsMobile"
 import { useUniversalBoard } from "../boards/UniversalBoardContext"
-import { StageAgencyStrip } from "./StageAgencyStrip"
-import { fetchComposerCast, useKeeperStage, type ComposerCastAgent } from "./useKeeperStage"
+import { useBindStageDialog } from "./useBindStageDialog"
+import { useKeeperStage } from "./useKeeperStage"
 
-export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
+export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | null }) {
   const isMobile = useIsMobile()
   const { actions } = useUniversalBoard()
   const stageApi = useKeeperStage()
-  const [cast, setCast] = React.useState<ComposerCastAgent[]>([])
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const drag = React.useRef<{ id: string; ox: number; oy: number } | null>(null)
-
-  React.useEffect(() => {
-    if (!domainId) return
-    let cancelled = false
-    void fetchComposerCast(domainId).then((agents) => {
-      if (!cancelled) setCast(agents)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [domainId])
+  useBindStageDialog()
 
   const selected = stageApi.selected
-  const selectedAgent =
-    selected?.kind === "agent" ? cast.find((a) => a.id === selected.objectId) ?? null : null
 
   const onSelect = (presence: StagePresence) => {
     stageApi.select(presence.id)
@@ -80,18 +67,6 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
           {stageApi.saving ? (
             <span className="text-[11px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>Saving</span>
           ) : null}
-          <button
-            type="button"
-            onClick={actions.openComposerReach}
-            className="rounded-full px-3 py-1.5 text-[13px]"
-            style={{
-              background: "hsl(var(--theme-accent-primary) / 0.16)",
-              color: "hsl(var(--theme-ink-primary))",
-              border: "1px solid hsl(var(--theme-border-soft))",
-            }}
-          >
-            Reach
-          </button>
         </div>
       </div>
 
@@ -145,24 +120,6 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
           ))
         )}
       </div>
-
-      {selected?.kind === "agent" ? (
-        <StageAgencyStrip
-          presence={selected}
-          agent={selectedAgent}
-          onChange={(patch) => stageApi.updateAgency(selected.id, patch)}
-        />
-      ) : selected ? (
-        <div
-          className="px-4 py-3 text-[13px]"
-          style={{
-            borderTop: "1px solid hsl(var(--theme-border-soft))",
-            color: "hsl(var(--theme-ink-secondary))",
-          }}
-        >
-          Working on {stagePresenceKindLabel(selected.kind)} “{selected.title}”. Talking in stays where it is.
-        </div>
-      ) : null}
     </div>
   )
 }
@@ -174,7 +131,7 @@ function EmptyStage({ onOpenComposer }: { onOpenComposer: () => void }) {
         This is Keeper Stage.
       </p>
       <p className="max-w-sm text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-        Open Reach from Composer. Find Kip. Bring a real object — Finding the Plot if it is here. Nothing on Stage is a copy.
+        Reach is on Composer. Chronicle shows it. Find Kip. Bring a real object — Finding the Plot if it is here. Nothing on Stage is a copy.
       </p>
       <button
         type="button"
