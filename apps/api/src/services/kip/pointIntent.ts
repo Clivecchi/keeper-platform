@@ -455,7 +455,7 @@ const POINT_OFFER_PATTERNS = [
   /\badd that as a points?\?/i,
   /\b(?:let me know if|just say the word)[\s\S]{0,50}(?:as (?:a )?points?|add (?:a )?points?|propose (?:this|that|it|a points?))\b/i,
   /\bhere(?:['’]s| is) (?:a |the )?points? (?:we |i )?(?:should|could|can|would)\b/i,
-  /\bproposed points?:\b/i,
+  /\bproposed points?:/i,
 ];
 
 /** Agent offered a Point in prose instead of placing the object. */
