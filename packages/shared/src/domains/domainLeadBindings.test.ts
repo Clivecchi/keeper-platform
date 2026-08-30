@@ -39,7 +39,7 @@ describe("resolvePlaybillDomainLabel", () => {
 })
 
 describe("resolvePlaybillStarName", () => {
-  it("uses the domain label instead of Agent when the lead is uncast", () => {
+  it("uses the domain label only when there is no agent name", () => {
     expect(
       resolvePlaybillStarName({
         domainName: "Liv",
@@ -51,7 +51,16 @@ describe("resolvePlaybillStarName", () => {
     ).toBe("livecchi.biz")
   })
 
-  it("uses the domain label when the provisioned lead is named after the domain", () => {
+  it("keeps the agent name on the marquee — Liv is not a domain clip", () => {
+    expect(
+      resolvePlaybillStarName({
+        domainName: "livecchi.biz",
+        domainSlug: "livecchi.biz",
+        agentDisplayName: "Liv",
+        isUncast: false,
+        isLoading: false,
+      }),
+    ).toBe("Liv")
     expect(
       resolvePlaybillStarName({
         domainName: "Liv",
@@ -60,16 +69,7 @@ describe("resolvePlaybillStarName", () => {
         isUncast: false,
         isLoading: false,
       }),
-    ).toBe("livecchi.biz")
-    expect(
-      resolvePlaybillStarName({
-        domainName: "livecchi.biz",
-        domainSlug: "livecchi.biz",
-        agentDisplayName: "livecchi.biz",
-        isUncast: false,
-        isLoading: false,
-      }),
-    ).toBe("livecchi.biz")
+    ).toBe("Liv")
   })
 
   it("keeps a distinct cast lead on the marquee", () => {

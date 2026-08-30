@@ -2701,6 +2701,8 @@ export function UniversalConversation({
               userName={dialogUserDisplayName}
               agentName={dialogAgentDisplayName}
               isSending={isSending}
+              storyTitle={dialogTitle}
+              domainLabel={domainName}
             />
           ) : undefined
         }

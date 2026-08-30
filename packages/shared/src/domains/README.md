@@ -23,7 +23,7 @@ Shared constants and helpers for personal domain `frame_json` identity — detec
 - [ ] If fallback shape changes, update markers here and in `domainFrameFallback.ts` together.
 
 ## 📆 Update Log
-- 2026-08-30: Playbill helpers — `resolvePlaybillDomainLabel` promotes the slug when the name is a short clip (`Liv` / `livecchi.biz`). `resolvePlaybillStarName` falls back to that label, never "Agent".
+- 2026-08-30: Playbill helpers — billing uses the slug when the stored domain name is a short clip. The star is the agent name (`Liv`); only an empty lead falls back to the domain label.
 - 2026-07-11: **Frame-as-mirror** — removed `CANONICAL_DOMAIN_LEAD_BINDINGS`; `domainLeadMirror.ts` + `resolveDomainLeadAgentSlugSync` (DB-enriched fields only).
 - 2026-07-04: Added `keeperDomainsHost.ts` — shared `{slug}.keeper.domains` tenant slug resolution for database services and web/API alignment.
 - 2026-07-01: Phase 3.2 — `friend` audience role, `resolveDomainAudience`, hierarchical frame visibility, realm content filtering.

@@ -50,6 +50,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-08-30 — Domain look from Library; Stage belongs to the domain
 - Default Stage title displays as `{domain} Stage` instead of Keeper Stage.
 
+### 2026-08-30 — Stage inspect does not lose Chronicle
+- On Stage, Chronicle follows the selected object. Realm no longer routes Moment / Library through the Dialog Document. Now no longer blocks clicks on the table.
+
 ### 2026-08-30 — Stage story is Frames, not Points
 - Workspace-on-Stage is a Frame-driven story wrapped in Config. Objects are assets. Chronicle Points stay discussion. Now is the first beat, not the finished workshop.
 

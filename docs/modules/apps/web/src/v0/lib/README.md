@@ -23,7 +23,7 @@ Small V0 shell helpers — domain provisioning repair and frame seed detection.
 - [ ] Surface provision failure in Chronicle or a toast when repair fails repeatedly.
 
 ## 📆 Update Log
-- 2026-08-30: Playbill star falls back to the domain label (slug when the stored name is a short clip). No generic "Agent" title.
+- 2026-08-30: Playbill star is the agent name when one exists (Liv). Domain label is billing only; empty lead falls back to the address, not "Agent".
 - 2026-08-02: `preloadPlaybillPortrait` settles after 2s max so hung image URLs cannot block curtain/Nav forever.
 - 2026-07-12: `resolvePlaybillAgent` uses `KipApi.getAgentBySlug`, Chronicle `/api/agents/:id` enrichment, and `clearPlaybillAgentCache` on dropdown open.
 - 2026-07-12: **Hotfix** — `UniversalConversation` undefined `frameLeadAgentSlug` crash; Playbill uses API `leadAgentName` when agent fetch fails; `isUncast` only when slug missing.

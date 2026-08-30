@@ -70,7 +70,7 @@ Frames are surfaces (V0FrameKey): `cover`, `index`, `moment`, `moments`, `common
 
 Present, Commons — surfaces/frames, not Prisma models.
 Chronicle = right panel (UniversalViewPanel), not a frame route.
-Stage = room on the current Board (`workspaceSurface`), not `?board=stage`, not a Prisma Stage table. Objects on Stage are assets. Stage workspace is a Frame-driven story (presentation). Chronicle Points stay discussion. Present is the guest/read.
+Stage = room on the current Board (`workspaceSurface`), not `?board=stage`, not a Prisma Stage table. Objects on Stage are assets. The Stage **Frame** holds a **filmstrip of Slides**. First Slide is the existing title. SlideType `text_slide` is the beat. Chronicle Points stay discussion. Present is the guest/read.
 "View" is overloaded in code. Do not treat it as a hierarchy layer.
 
 ### Singular UI (member vs public)

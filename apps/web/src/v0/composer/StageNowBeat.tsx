@@ -3,7 +3,7 @@
 import * as React from "react"
 import type { StageNowBeatModel } from "./stageNowBeat"
 
-function excerpt(text: string, max = 520): string {
+function excerpt(text: string, max = 280): string {
   if (text.length <= max) return text
   return `${text.slice(0, max).trimEnd()}…`
 }
@@ -22,15 +22,11 @@ export function StageNowBeat({
       className="keeper-stage-now"
       aria-label="Now on Stage"
       style={{
-        pointerEvents: "auto",
-        width: "min(36rem, 86%)",
-        maxHeight: "62%",
-        overflow: "auto",
-        borderRadius: 18,
-        padding: "22px 26px 24px",
-        background: "hsl(var(--theme-surface-paper) / 0.78)",
-        border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
-        boxShadow: "0 18px 50px hsl(var(--theme-ink-primary) / 0.16)",
+        pointerEvents: "none",
+        width: "min(40rem, 92%)",
+        maxHeight: "42%",
+        overflow: "hidden",
+        padding: "8px 4px 0",
       }}
     >
       <p

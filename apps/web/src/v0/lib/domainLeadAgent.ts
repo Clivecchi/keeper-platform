@@ -30,7 +30,7 @@ export function resolveDomainLeadContext(
     typeof domainRecord?.leadAgentName === "string" ? domainRecord.leadAgentName.trim() : null
 
   if (!slug) {
-    return { id: null, slug: null, name: null, isUncast: true }
+    return { id, slug: null, name: name || null, isUncast: true }
   }
 
   return {

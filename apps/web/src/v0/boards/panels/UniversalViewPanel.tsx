@@ -52,6 +52,7 @@ import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 import { LibrarySharedContextRoadmapPanel } from "../../presence/chronicleDocument/LibrarySharedContextRoadmapPanel"
 import { ReachChroniclePresence } from "../../presence/ReachChroniclePresence"
+import { shouldRenderRealmDocumentChronicle } from "../workspaceSurface"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
@@ -324,13 +325,14 @@ function PanelBody({
     subject.kind === "dialog" && subject.id
       ? boardCtx?.selection.dialogTitleSourceById?.[subject.id]
       : undefined
-  const showRealmDocument =
-    (subject.kind === "dialog" &&
-      isDocumentBearingDialogTitleSource(dialogTitleSource)) ||
-    (boardId === "realm" &&
-      (subject.kind === "domain" ||
-        subject.kind === "moment" ||
-        subject.kind === "library"))
+  const showRealmDocument = shouldRenderRealmDocumentChronicle({
+    workspaceSurface: boardCtx?.workspaceSurface ?? "dialog",
+    boardId,
+    subjectKind: subject.kind,
+    dialogIsDocumentBearing:
+      subject.kind === "dialog" &&
+      isDocumentBearingDialogTitleSource(dialogTitleSource),
+  })
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]
   const objectId = subject.kind === "domain" ? domainId : subject.id
   const layout: PresenceLayout =

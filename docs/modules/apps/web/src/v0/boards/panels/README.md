@@ -71,6 +71,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-08-30 — Stage inspect
+- `shouldRenderRealmDocumentChronicle`: named Dialog still opens its Document. On Stage, Moment and Library render as themselves so you can discuss a placed object.
+
 ### 2026-08-19 — Session ≠ Dialog (locked)
 - `UniversalViewPanel` Document routing: named Dialog (`user_set`) only. Realm drafts open as drafts, not an empty Document shell.
 

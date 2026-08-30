@@ -26,7 +26,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
-- 2026-08-30: `domainLeadBindings.ts` — Playbill domain label + star (no "Liv" clip, no generic "Agent").
+- 2026-08-30: `domainLeadBindings.ts` — Playbill billing is the domain address; star is the agent name.
 - 2026-08-30: `imagePalette.ts` — derive a domain palette from image samples. `displayKeeperStageTitle` names the default Stage after the domain.
 - 2026-08-30: `realm/feed.ts` — `resolveRealmFeedSessionDomain` refuses to stamp orphan sessions onto the Realm anchor.
 - 2026-08-30: `keeperStage.ts` — Stage objects are assets for a Frame-driven story. Prompt asks where the story is going. Points stay Document discussion. `displayKeeperStageTitle` names the first Stage **Keeper Stage**.

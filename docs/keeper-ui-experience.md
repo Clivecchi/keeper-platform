@@ -66,7 +66,7 @@ Two things named Stage:
 
 **Split (candidate lock, 2026-08-30):** Chronicle Document = Points for **discussion**. Stage workspace = Frame-driven **story** from placed assets (Documents, Drafts, attachments, Journeys, Moments, Library, Cast), wrapped in Config the way EntityKinds are wrapped. Present remains the guest/read (Show). Stage is Shape toward Show. Agents already receive the Stage roster; they should ask where the story is going. There is no Stage-story Apply action yet — Review & Reorganize stays Document-only.
 
-**Now** (last Turn + Director reply) is the first beat on the table. Do not put Dialog bubbles on Stage. Theatre / SlideTypes on Stage wait for Rendr.
+**Filmstrip (2026-08-30):** Stage is the Frame (the room). The story is Slides. First Slide is the title that already exists. Current beat is a `text_slide` (jsonframe spec). Objects stay assets. Do not put Dialog bubbles on Stage.
 
 ### World Mode (Presentation vs Workshop)
 

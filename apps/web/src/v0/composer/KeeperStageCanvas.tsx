@@ -1,9 +1,8 @@
 "use client"
 
 /**
- * Keeper Stage — spatial composition of real object references (story assets).
- * Now is the first beat. Destination: Frame-driven story, not a Dialog transcript.
- * Positions persist on the Stage. Theatre.js is not the source of truth.
+ * Keeper Stage — filmstrip of Slides (text_slide) plus object assets.
+ * The Frame is the room. Each cell is a Slide. First Slide is the existing title.
  */
 
 import * as React from "react"
@@ -13,7 +12,8 @@ import { useUniversalBoard } from "../boards/UniversalBoardContext"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { useBindStageDialog } from "./useBindStageDialog"
 import { useKeeperStage } from "./useKeeperStage"
-import { StageNowBeat } from "./StageNowBeat"
+import { StageFilmstrip } from "./StageFilmstrip"
+import { resolveStageFilmstrip } from "./stageFilmstrip"
 import { resolveStageNowBeat } from "./stageNowBeat"
 
 export function KeeperStageCanvas({
@@ -22,12 +22,16 @@ export function KeeperStageCanvas({
   userName = "You",
   agentName = "Kip",
   isSending = false,
+  storyTitle = null,
+  domainLabel = null,
 }: {
   domainId: string | null
   messages?: ReadonlyArray<AgentDialogueMessage>
   userName?: string
   agentName?: string
   isSending?: boolean
+  storyTitle?: string | null
+  domainLabel?: string | null
 }) {
   const isMobile = useIsMobile()
   const { actions } = useUniversalBoard()
@@ -41,6 +45,17 @@ export function KeeperStageCanvas({
     () => resolveStageNowBeat(messages, { userName, agentName }),
     [messages, userName, agentName],
   )
+  const filmstrip = React.useMemo(
+    () =>
+      resolveStageFilmstrip({
+        stageTitle: stageApi.stage.title,
+        storyTitle,
+        domainLabel,
+        beat: nowBeat,
+        waiting: isSending,
+      }),
+    [stageApi.stage.title, storyTitle, domainLabel, nowBeat, isSending],
+  )
 
   const onSelect = (presence: StagePresence) => {
     stageApi.select(presence.id)
@@ -48,6 +63,7 @@ export function KeeperStageCanvas({
   }
 
   const onPointerDown = (event: React.PointerEvent, presence: StagePresence) => {
+    onSelect(presence)
     if (isMobile) return
     const canvas = canvasRef.current
     if (!canvas) return
@@ -94,7 +110,7 @@ export function KeeperStageCanvas({
           </p>
         ) : isMobile ? (
           <div className="flex flex-col items-center gap-3 overflow-y-auto p-3">
-            <StageNowBeat beat={nowBeat} waiting={isSending} />
+            <StageFilmstrip slides={filmstrip} />
             {stageApi.stage.presences.map((presence) => (
               <PresenceCard
                 key={presence.id}
@@ -119,8 +135,8 @@ export function KeeperStageCanvas({
                   left: `${presence.x * 100}%`,
                   top: `${presence.y * 100}%`,
                   transform: "translate(-50%, -50%)",
-                  width: "min(240px, 42%)",
-                  zIndex: selected?.id === presence.id ? 2 : 0,
+                  width: "min(220px, 34%)",
+                  zIndex: selected?.id === presence.id ? 4 : 3,
                 }}
                 onPointerDown={(e) => onPointerDown(e, presence)}
               >
@@ -132,8 +148,10 @@ export function KeeperStageCanvas({
                 />
               </div>
             ))}
-            <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center">
-              <StageNowBeat beat={nowBeat} waiting={isSending} />
+            <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center px-8">
+              <div className="pointer-events-auto">
+                <StageFilmstrip slides={filmstrip} />
+              </div>
             </div>
             {stageApi.stage.presences.length === 0 ? (
               <div className="absolute bottom-5 left-1/2 z-[2] -translate-x-1/2">
@@ -199,6 +217,11 @@ function PresenceCard({
         {presence.direction ? (
           <p className="mt-1 text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             {presence.direction}
+          </p>
+        ) : null}
+        {selected ? (
+          <p className="mt-2 text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            Discussing in Chronicle
           </p>
         ) : null}
       </button>
