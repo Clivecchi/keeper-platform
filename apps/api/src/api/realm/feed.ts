@@ -4,7 +4,11 @@ import {
   DomainService,
   prisma,
 } from "@keeper/database"
-import type { RealmFeedEvent, RealmFeedResponse } from "@keeper/shared"
+import {
+  resolveRealmFeedSessionDomain,
+  type RealmFeedEvent,
+  type RealmFeedResponse,
+} from "@keeper/shared"
 import { authMiddlewareCompat } from "../../middleware/authMiddleware.js"
 import { getRedis } from "../../lib/redis.js"
 import { resolveDomainLeadAgentFromDomain } from "../../services/domains/resolveDomainLeadAgent.js"
@@ -130,7 +134,9 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
       prisma.kip_sessions.findMany({
         where: {
           user_id: userId,
+          is_archived: false,
           updated_at: { gte: since },
+          dialog: { domain_id: { in: domainIds } },
         },
         orderBy: { updated_at: "desc" },
         take: 15,
@@ -186,9 +192,11 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
         "Conversation"
       // Hide orphan cast-consult sessions (pre-ephemeral fix leftovers).
       if (/^\[Director delegation\b/i.test(label)) continue
-      const sessionDomainId = session.dialog?.domain_id?.trim() || null
-      const domain =
-        (sessionDomainId ? domainById.get(sessionDomainId) : null) ?? anchorDomain
+      const domain = resolveRealmFeedSessionDomain(
+        session.dialog?.domain_id,
+        domainById,
+      )
+      if (!domain) continue
       const dialogQuery = session.dialog_id
         ? `&dialog=${encodeURIComponent(session.dialog_id)}`
         : ""
@@ -233,9 +241,9 @@ router.get("/feed", authMiddlewareCompat, async (req: Request, res: Response) =>
       events: trimmed,
       remarks: buildRemarks(trimmed, anchorAgentName),
       counts: {
-        drafts: drafts.length,
-        sessions: sessions.length,
-        moments: moments.length,
+        drafts: trimmed.filter((event) => event.type === "draft_waiting").length,
+        sessions: trimmed.filter((event) => event.type === "session_updated").length,
+        moments: trimmed.filter((event) => event.type === "moment_kept").length,
         domains: domainIds.length,
       },
     }

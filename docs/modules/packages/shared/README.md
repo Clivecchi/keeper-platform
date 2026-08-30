@@ -35,6 +35,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-30 — Realm feed session domain
+- `resolveRealmFeedSessionDomain` — a session is attributed only when its Dialog domain is in the viewer's reach. No anchor fallback.
+
 ### 2026-08-29 — Major headings establish ingest Sections
 - `markdownToDraftPoints` keeps heading level on each block (`#` / `##` / `###`).
 - `planIngestHeadingSections` — `##` becomes a Section (later `#` when there is no `##`); child headings become Points in that Section. File-title Section remains the attach fallback when headings cannot establish membership.

@@ -257,9 +257,23 @@ export function DomainSwitcherOverlay({
     (nextSlug: string) => {
       closeSwitcher()
       setFetchAttempt((value) => value + 1)
-      navigateAfterDomainPick(nextSlug)
+      // A new domain has no history. Land on its Domain board — do not stay
+      // on /home or persist it as the Realm anchor (that stamped person-wide
+      // feed onto the new face).
+      prefetchDomainShell(nextSlug)
+      const path = buildDomainBoardUrl(
+        nextSlug,
+        "domain",
+        new URLSearchParams(location.search),
+      )
+      const go = () => navigate(path, { replace: true })
+      if (sceneChange) {
+        void sceneChange.travelToSlug(nextSlug, go)
+        return
+      }
+      go()
     },
-    [closeSwitcher, navigateAfterDomainPick],
+    [closeSwitcher, location.search, navigate, sceneChange],
   )
 
   const retryFetch = React.useCallback(() => {

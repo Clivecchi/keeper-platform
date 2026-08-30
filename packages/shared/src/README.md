@@ -25,6 +25,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-30: `realm/feed.ts` — `resolveRealmFeedSessionDomain` refuses to stamp orphan sessions onto the Realm anchor.
 - 2026-08-30: `keeperStage.ts` — Stage objects are assets for a Frame-driven story. Prompt asks where the story is going. Points stay Document discussion. `displayKeeperStageTitle` names the first Stage **Keeper Stage**.
 - 2026-08-29: `markdownToDraftPoints` + `planIngestHeadingSections` — heading level is kept; `##` (or later `#`) establishes Document Sections; child headings become Points in that Section.
 - 2026-08-30: `documentReorganizeIntent.ts` — shared detector so Document-review turns skip Cast consult and Lead proposes.

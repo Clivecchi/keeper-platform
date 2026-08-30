@@ -32,6 +32,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## ?? Update Log
 
+### 2026-08-30 — New domain lands on its own board
+- Creating a domain from the switcher opens `/d/:slug?board=domain`. It does not stay on `/home` or become the Realm anchor. A brand-new domain was showing person-wide feed history as if it belonged there.
+
 ### 2026-08-20 — Universal Nav prefetch
 - Reveal curtain always warms Dialogs, Drafts, Keepers, Journeys, and Library. External Access stays on Domain Config.
 

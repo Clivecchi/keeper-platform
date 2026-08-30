@@ -16,5 +16,9 @@ Person-scoped Realm endpoints — cross-domain feed powering arrival remarks and
 - [ ] Retention and edge-scope rules from design regroup
 
 ## 📆 Update Log
+### 2026-08-30 — Sessions stay on their Dialog domain
+- Realm feed no longer paints orphan / undialoged sessions onto the Realm anchor.
+- Session query requires `dialog.domain_id` in the viewer's reach. Counts match emitted events.
+
 ### 2026-07-09 — Realm feed v1
 - Added `GET /api/realm/feed` with shared types in `@keeper/shared/realm/feed`
