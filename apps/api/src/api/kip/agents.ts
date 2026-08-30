@@ -6957,6 +6957,7 @@ export class KipAgentService {
             directorName: cc.directorDisplayName,
             consultations: labeled,
             castPromisedPointWrite,
+            documentDirection: detectReorganizeIntent(cc.userMessage) === 'required',
           });
           castVoicesForPersist = labeled.map((row) => {
             const status: 'ok' | 'empty' | 'failed' =

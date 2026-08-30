@@ -38,6 +38,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Directed Style: Kip directs the Document
+- Domain and Realm `dialogStyle` is **directed** (was vibe). Cast is not auto-cued. Document-review turns skip Cast consult so Lead proposes instead of reporting Cloud/Rendr.
+
 ### 2026-08-30 — Reach is not Composer
 - Top bar and Stage empty state say **Reach**. Composer is the Turn instrument; Reach opens from it.
 

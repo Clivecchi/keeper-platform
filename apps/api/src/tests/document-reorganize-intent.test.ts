@@ -16,6 +16,20 @@ describe('detectReorganizeIntent', () => {
     expect(detectReorganizeIntent('propose a better document')).toBe('required');
   });
 
+  it('hears director language Chuck actually uses', () => {
+    expect(
+      detectReorganizeIntent(
+        'review the current document and suggest directorial changes',
+      ),
+    ).toBe('required');
+    expect(detectReorganizeIntent('You are the director. Propose re-arrangement.')).toBe(
+      'required',
+    );
+    expect(
+      detectReorganizeIntent('we need this document to well tell the current story'),
+    ).toBe('required');
+  });
+
   it('hears hyphenated re-organize and revieww typos', () => {
     expect(
       detectReorganizeIntent(

@@ -38,6 +38,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-08-30 — Lead directs Document review
+- `documentReorganizeIntent` detector is shared. Hears “review the current document”, “directorial”, “you are the director.” Cast consult is skipped; synthesis tells Lead to propose.
+
 ### 2026-08-29 — Ingest headings become Document Sections
 - `ingestExternalDocument.ts` — `planIngestHeadingSections` creates Sections from `##` (or later `#` when there is no `##`) and stamps `pathGroupId` on child Points. Create writes those Sections on the new Dialog. Attach still falls back to a file-title Section when the markdown has no major headings.
 

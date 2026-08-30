@@ -7,7 +7,7 @@ import type { KipMessage } from "../lib/kipApi"
 import type { AgentAttachment } from "../components/agent/AgentComposer"
 import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components/agent/types"
 import { extractLinkedCard } from "../components/agent/helpers"
-import { parseGlossThreads } from "@keeper/shared"
+import { detectReorganizeIntent, parseGlossThreads } from "@keeper/shared"
 import { apiFetch } from "../lib/api"
 import {
   annotateCastActionResults,
@@ -910,7 +910,11 @@ export function useAgentDialog({
       /** Cast-run action receipts — previously discarded by text-only extract. */
       const castActionResults: unknown[] = []
 
-      if (liveDirectorConfig && consultSlugs.length > 0 && content.trim()) {
+      const leadDirectsDocument = detectReorganizeIntent(content) === "required"
+      if (leadDirectsDocument && consultSlugs.length > 0) {
+        appendThinkingStep("Directing the Document — Cast stays off this turn.")
+      }
+      if (liveDirectorConfig && consultSlugs.length > 0 && content.trim() && !leadDirectsDocument) {
         onDirectorPhaseChange?.("cast")
         console.info("[AgentTurn]", {
           mechanism: "cast_consultation_a",

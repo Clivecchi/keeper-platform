@@ -161,6 +161,7 @@ export interface ConversationPanelDef {
   /**
    * Dialog Style — room rhythm (Vibe vs Directed feel). Distinct from cueing chips.
    * When `"vibe"`, Cast is auto-cued and prompted for short beats; Lead still carries.
+   * Domain/Realm default is `"directed"`: Director-only until the human cues Cast.
    */
   dialogStyle?: DialogStyle
   /** Lead agent slug when dialogCueing is "directed". Defaults to agentSlug / "kip". */
@@ -455,7 +456,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     showServiceBar: false,
     kipMode: "domain",
     dialogCueing: "directed",
-    dialogStyle: "vibe",
+    dialogStyle: "directed",
     directorAgentSlug: "kip",
     castMultiSelect: true,
   },
@@ -500,7 +501,7 @@ export const REALM_BOARD_DEF: UniversalBoardDef = {
     showServiceBar: false,
     kipMode: "domain",
     dialogCueing: "directed",
-    dialogStyle: "vibe",
+    dialogStyle: "directed",
     directorAgentSlug: "kip",
     boardCast: ["cloud", "rendr"],
     castBar: true,

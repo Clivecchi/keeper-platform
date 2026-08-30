@@ -179,6 +179,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     status: 'ok' | 'empty' | 'failed' | 'error';
   }>;
   castPromisedPointWrite?: boolean;
+  /** Human asked the Lead to review / reorganize / direct the Document. */
+  documentDirection?: boolean;
 }): string {
   const lines = [
     `[Cast consultation synthesis — ${params.directorName}]`,
@@ -207,8 +209,17 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     '- Never invent, paraphrase-as-quote, or fabricate another agent\'s words.',
     '- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.',
     '- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
-    '- A named Section is draft.update.propose with payload.section. Never document.reorganize.propose to add a Section. Never draft.point.accept — Accept is a human Chronicle action.',
+    params.documentDirection
+      ? '- YOU are the Director of this Document. Cast replies are evidence, not your answer. Do not report what Cloud or Rendr think. Propose the rearrangement: emit document.reorganize.propose this turn. Move, section, refine, or name what belongs where. Chronicle Apply is the human.'
+      : '- A named Section is draft.update.propose with payload.section. Never document.reorganize.propose to add a Section. Never draft.point.accept — Accept is a human Chronicle action.',
   );
+
+  if (params.documentDirection) {
+    lines.push(
+      '- Do not narrate that you will propose later. The proposal is this turn.',
+      '- Do not ask the human to cue Cast again. You own the Document move.',
+    );
+  }
 
   if (params.castPromisedPointWrite) {
     lines.push(

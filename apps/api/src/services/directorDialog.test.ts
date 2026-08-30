@@ -36,4 +36,19 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).toMatch(/Never document\.reorganize\.propose/);
     expect(prompt).not.toMatch(/REQUIRED when the user asked for lock/i);
   });
+
+  it('tells Lead to direct the Document instead of reporting Cast', () => {
+    const prompt = buildCastConsultationsSynthesisPrompt({
+      userMessage: 'review the current document and suggest directorial changes',
+      directorName: 'Kip',
+      consultations: [
+        { label: 'Cloud', reply: 'It is a spec archive.', status: 'ok' },
+        { label: 'Rendr', reply: 'Reorder the sections.', status: 'ok' },
+      ],
+      documentDirection: true,
+    });
+    expect(prompt).toMatch(/YOU are the Director of this Document/i);
+    expect(prompt).toMatch(/document\.reorganize\.propose/);
+    expect(prompt).not.toMatch(/Never document\.reorganize\.propose/);
+  });
 });

@@ -14,6 +14,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
 - `sessionActionLog.ts` — Session action receipts for the Lead prompt
+- `documentReorganizeIntent.ts` — Shared detector for Document-review / director language
 
 ## 🔄 Data & Behavior
 - All exports are side-effect free utilities or type helpers.
@@ -25,6 +26,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 
 ## 📆 Update Log
 - 2026-08-29: `markdownToDraftPoints` + `planIngestHeadingSections` — heading level is kept; `##` (or later `#`) establishes Document Sections; child headings become Points in that Section.
+- 2026-08-30: `documentReorganizeIntent.ts` — shared detector so Document-review turns skip Cast consult and Lead proposes.
 - 2026-08-29: `directorContinuity.ts` — offering a Point in prose is incomplete; emit `draft.update.propose`. The card is consent.
 - 2026-08-26: `sessionActionLog.ts` — session action receipts (time / type / status) for the Lead prompt. Narration is not evidence.
 - 2026-08-26: `pointProposeIdentity.ts` — same-Point identity for propose (identical body, or distinctive title + same opening). Cast Notes are not hosts.

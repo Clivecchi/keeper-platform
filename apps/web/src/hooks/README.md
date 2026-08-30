@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-08-30 — Document review is Lead-only
+- `useAgentDialog` skips Cast consult when `detectReorganizeIntent` hears a Document-review / director ask. Kip directs; Cloud and Rendr stay off that turn.
+
 ### 2026-08-25 — Composer Cast chips own the stage
 - `useAgentDialog` sets `skipDelegateConsult` on Directed/Vibe boards so Kip does not `delegate.consult` Cloud/Rendr after the composer already decided who is on stage (including an empty cue list = Lead only).
 
