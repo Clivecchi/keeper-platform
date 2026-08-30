@@ -11,6 +11,7 @@ import {
   resolvePointWriteTarget,
   resolveTalkingInWorkingOn,
 } from '@keeper/shared';
+import { STORY_BUILDER_OBJECT_LINE } from './buildKeeperCardRenderingPrompt.js';
 
 export type PointIntentKind = 'none' | 'required' | 'constrained';
 
@@ -239,7 +240,7 @@ const KEEPER_POINT_GROUNDING = [
   'Talking in (the Dialog/session) is conversation context — do not write the Dialog manuscript just because the session still belongs to that Dialog.',
   'Never pick a different Dialog or Draft from draftsDirectory, session history, or memory. Working on is the only write target.',
   'Do not announce that you will read or propose. Emit draft.update.propose in this turn. A read without a propose is not completion.',
-  'Never ask "want me to add that as a Point?" The card is the proposal. The human Accepts in Dialog. Asking is not completion.',
+  STORY_BUILDER_OBJECT_LINE,
   'Chronicle renders those Points. Gloss threads are not Points.',
   'When the human asks to propose/add/capture Points, they mean this object.',
   'Point content is the beat only — never Domain Contract, action-schema rules, draft UUIDs, Prisma, or executor errors.',
@@ -422,16 +423,56 @@ export function shouldRunPointObligationFollowUp(params: {
   return !hasSuccessfulPointPropose(params.actionResults);
 }
 
-const OFFERED_POINT_ASK =
-  /\b(?:want me to add (?:that |it |this )?(?:as )?a points?|shall i (?:add|propose) (?:that |it |this )?(?:as )?a points?|should i (?:add|propose) (?:that |it )?(?:as )?a points?|add that as a points?\?)\b/i;
 const OFFERED_GLOSS_ASK =
-  /\b(?:want me to (?:add (?:it |that )?(?:as )?(?:a )?)?gloss|as a gloss|shall i gloss)\b/i;
+  /\b(?:want me to (?:add (?:it |that )?(?:as )?(?:a )?)?gloss|as a gloss|shall i gloss|add it as a gloss)\b/i;
 
-export function agentAskedToAddPointInsteadOfProposing(responseText: string): boolean {
+const POINT_OFFER_IDIOMS = [
+  /\bwhat['’]?s the point\b/i,
+  /\bthe point is\b/i,
+  /\bpoint of view\b/i,
+  /\bpoint out\b/i,
+  /\bstarting point\b/i,
+  /\btipping point\b/i,
+  /\bfocal point\b/i,
+  /\bpower point\b/i,
+  /\bdecimal point\b/i,
+  /\bgood point\b/i,
+  /\bfair point\b/i,
+];
+
+const OFFER_LEAD =
+  '(?:want me to|shall i|should i|would you like me to|do you want me to|i can|i could|happy to|if you(?:[\'’]d| would) like(?: me to)?)';
+
+const POINT_OFFER_PATTERNS = [
+  new RegExp(
+    `\\b${OFFER_LEAD}\\b[\\s\\S]{0,80}\\b(?:add|propose|capture|write|put)\\b[\\s\\S]{0,60}\\b(?:as (?:a )?points?|(?:a |the |this |that )?points?(?!\\s+of\\s+view)|(?:to|on|into) (?:the )?(?:documents?|chronicle))\\b`,
+    'i',
+  ),
+  new RegExp(
+    `\\b${OFFER_LEAD}\\s+(?:propose|capture)\\s+(?:this|that|it|a points?)\\b`,
+    'i',
+  ),
+  /\badd that as a points?\?/i,
+  /\b(?:let me know if|just say the word)[\s\S]{0,50}(?:as (?:a )?points?|add (?:a )?points?|propose (?:this|that|it|a points?))\b/i,
+  /\bhere(?:['’]s| is) (?:a |the )?points? (?:we |i )?(?:should|could|can|would)\b/i,
+  /\bproposed points?:\b/i,
+];
+
+/** Agent offered a Point in prose instead of placing the object. */
+export function agentOfferedPointInProse(responseText: string): boolean {
   const text = responseText?.trim() ?? '';
   if (!text) return false;
   if (OFFERED_GLOSS_ASK.test(text)) return false;
-  return OFFERED_POINT_ASK.test(text);
+  if (POINT_OFFER_IDIOMS.some((pattern) => pattern.test(text))) {
+    const stillAnOffer = POINT_OFFER_PATTERNS.some((pattern) => pattern.test(text));
+    if (!stillAnOffer) return false;
+  }
+  return POINT_OFFER_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+/** @deprecated Use agentOfferedPointInProse — same gate, wider phrasing. */
+export function agentAskedToAddPointInsteadOfProposing(responseText: string): boolean {
+  return agentOfferedPointInProse(responseText);
 }
 
 export function shouldRunPointAskFollowUp(params: {
@@ -444,7 +485,7 @@ export function shouldRunPointAskFollowUp(params: {
   if (!params.isTurnOwner || params.glossRequired) return false;
   if (!params.manuscriptDraftId) return false;
   if (hasSuccessfulPointPropose(params.actionResults)) return false;
-  return agentAskedToAddPointInsteadOfProposing(params.responseText);
+  return agentOfferedPointInProse(params.responseText);
 }
 
 export function buildPointAskFollowUpInput(params: {
@@ -456,7 +497,7 @@ export function buildPointAskFollowUpInput(params: {
   dialogId?: string;
 }): string {
   return [
-    `[Point ask — reply as ${params.agentName}. Do not ask. Propose the Point as UI now.]`,
+    `[Point offer in prose — reply as ${params.agentName}. That turn is incomplete. Place the Point as UI now.]`,
     '',
     KEEPER_POINT_GROUNDING,
     `Manuscript draft id: ${params.manuscriptDraftId}`,
@@ -464,11 +505,11 @@ export function buildPointAskFollowUpInput(params: {
       ? `Dialog: ${params.dialogTitle ?? 'this Dialog'} (${params.dialogId})`
       : `Dialog: ${params.dialogTitle ?? 'this Dialog'}`,
     '',
-    `You asked the human whether to add a Point: "${params.priorResponseText.trim().slice(0, 800)}"`,
+    `You offered a Point in prose instead of placing it: "${params.priorResponseText.trim().slice(0, 800)}"`,
     '',
     `Original user message: "${params.originalInput}"`,
     'Emit draft.update.propose now. payload.content is the Point beat. Do not invent a draft id.',
-    'Do not ask again. Keeper shows a card. The human Accepts. Do not draft.point.accept.',
+    'Do not ask again. The card is consent. The human Accepts. Do not draft.point.accept.',
     'Keep "response" to 1–3 short sentences.',
   ].join('\n');
 }

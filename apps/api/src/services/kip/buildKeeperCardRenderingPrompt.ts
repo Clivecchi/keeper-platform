@@ -2,8 +2,17 @@
  * Shared RESPONSE RENDERING system prompt for Lead / cast callAIModel paths.
  * Keep Cockpit compose + live callAIModel in sync by importing this helper.
  */
+
+/** One-line Point rule — Lead action schema and continuity. Not a second essay. */
+export const STORY_BUILDER_OBJECT_LINE =
+  'Offering a Point in prose is incomplete — emit draft.update.propose. The card is consent.';
+
 export function buildKeeperCardRenderingPrompt(): string {
   return [
+    'STORY-BUILDER TURN: a Keeper turn places objects. Dialog voices them — 1–3 short sentences. Chronicle holds them.',
+    'Asking permission in prose is an incomplete turn. The card is consent — emit the action; the human Accepts.',
+    'Relational talk (questions, reflections, explanations with no object to place) stays prose-only.',
+    '',
     'RESPONSE RENDERING — keeper-card versus prose:',
     '',
     'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',

@@ -7,7 +7,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
-- `buildKeeperCardRenderingPrompt.ts` — Shared keeper-card vs prose system prompt (decision consult Lock/Open/Next Step)
+- `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose system prompt (decision consult Lock/Open/Next Step)
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `ingestExternalDocument.ts` — External markdown → Dialog + document_manuscript Points + real session (create or attach)
 - `resolveKipActionAllowlistStatus.ts` — session-bound Kip allowlist + canDraft read (MCP / REST)
@@ -19,7 +19,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
 - `glossIntent.ts` — Gloss is depth on a Point (`gloss.append`). Follow-up when the Lead narrates instead of writing Gloss.
-- `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up)
+- `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up). Offer-in-prose is an incomplete turn.
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — detect review/reorganize language and prompt the Lead to propose, not rewrite
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
@@ -37,6 +37,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-29 — Story-builder turn: offer-in-prose is incomplete
+- `buildKeeperCardRenderingPrompt.ts` — names the contract once: a turn places objects; Dialog voices them; Chronicle holds them. Asking permission in prose is incomplete. Relational talk stays prose.
+- `pointIntent.ts` — `agentOfferedPointInProse` catches permission asks and soft offers ("I can add this as a Point", "Shall I propose this?"). Follow-up emits `draft.update.propose`. Gloss offers and idioms stay out.
+- Choice as a Keeper object is held.
 
 ### 2026-08-29 — Restatement follow-up
 - `documentReorganizeStore.ts` returns `restatement` when Proposed is Current with no marks.

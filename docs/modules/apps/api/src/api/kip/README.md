@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-08-29: **Story-builder turn** — contract named once on the Lead/cast rendering prompt. Offer-in-prose (permission ask or soft "I can add this as a Point") is incomplete; Keeper follow-up emits `draft.update.propose`. Choice as a Keeper object is held.
 - 2026-08-29: **Review & Reorganize does not dump to Open** — DIALOG DOCUMENT shows current Point → Section membership as evidence. `document.reorganize.propose` may create/rename/reorder Sections and move Points. Omitted `sectionId` is a safety default, not a lock. Open-dump proposals are repaired. Dialog no longer pastes raw reorganize executor errors.
 - 2026-08-26: **Propose as UI** — `draft.update.propose` lands as proposed. Keeper shows a card. The human Accepts. Agents must not ask "want me to add that as a Point?" Session action log (receipts + UTC time) is injected into the Lead prompt.
 - 2026-08-26: **Same Point twice** — collapse duplicate `draft.update.propose` in one turn; if that Point is already on the host, Keeper returns success without appending. Gloss "yes" after a Gloss offer is Gloss.

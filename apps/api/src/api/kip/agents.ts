@@ -57,7 +57,10 @@ import { openSse, startSseHeartbeat, writeSseEvent } from '../../lib/sse.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
 import { buildDomainLeadCollaborationPrompt } from '../../services/kip/buildDomainLeadCollaborationPrompt.js';
-import { buildKeeperCardRenderingPrompt } from '../../services/kip/buildKeeperCardRenderingPrompt.js';
+import {
+  buildKeeperCardRenderingPrompt,
+  STORY_BUILDER_OBJECT_LINE,
+} from '../../services/kip/buildKeeperCardRenderingPrompt.js';
 import {
   buildCompactEnvironmentForPrompt,
   measureEnvironmentPromptSize,
@@ -352,7 +355,8 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding NEW Points, use draft.update.propose with payload.content (body) and payload.prelude or payload.title (short story-label — not a cut of the body). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy, optional payload.closer, optional payload.moments ([{ title, narrative? }]), optional payload.referencesPointId, optional payload.section (Section title — Keeper creates it if missing), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. Each propose appends a proposed Point. Keeper shows a card in Dialog. The human taps Accept. Never ask "want me to add that as a Point?" — emit the action. Asking is not completion.';
+    '- When adding NEW Points, use draft.update.propose with payload.content (body) and payload.prelude or payload.title (short story-label — not a cut of the body). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy, optional payload.closer, optional payload.moments ([{ title, narrative? }]), optional payload.referencesPointId, optional payload.section (Section title — Keeper creates it if missing), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. Each propose appends a proposed Point. Keeper shows a card in Dialog. The human taps Accept. '
+    + STORY_BUILDER_OBJECT_LINE;
   const rewritePoints =
     '- When REWRITING or RETITLING existing Points, use draft.point.rewrite. payload.pointId is the Chronicle number (1, 2, 3… from DIALOG DOCUMENT), the current title, or the Point UUID. Do not put that identity in payload.id — payload.id is the Draft, and Keeper fills it on a Dialog Document. payload.prelude or payload.title is the new Point title (a short label that tells the story). payload.content is the body; omit content to keep the body and only change the title. To retitle many Points, emit one rewrite per Point or payload.points: [{ pointId, title }]. On ordinary drafts, only points with status proposed or pending are rewritable — accepted (kept) journey points are anchors. On Dialog document_manuscript drafts, the Lead may rewrite accepted Points in place. Cast agents that cannot rewrite should draft.update.propose a new Point with referencesPointId pointing at the accepted Point.';
   const preservePoints =
@@ -5793,7 +5797,7 @@ export class KipAgentService {
             : 'INFRA / MCP OWNERSHIP: mcp.call is NOT in Lead Allowed actions. Never emit mcp.call. For Railway/Vercel/GitHub live data, use delegate.consult with agentSlug "cloud" (or cast-consult Cloud). Cloud owns mcp.call.',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
           'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
-          'Never ask "want me to add that as a Point?" Emit draft.update.propose. Keeper shows a card. The human Accepts.',
+          STORY_BUILDER_OBJECT_LINE,
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
           '',
           buildSoleVsDraftDistinctionPrompt(),
@@ -6388,8 +6392,7 @@ export class KipAgentService {
               : 'INFRA / MCP OWNERSHIP: mcp.call is NOT in your Allowed actions. Never emit mcp.call. For Railway, Vercel, GitHub, or live infrastructure data, use delegate.consult with { "agentSlug": "cloud" } (Mechanism B), or rely on cast consultation of Cloud (Mechanism A). Cloud owns mcp.call and executes Railway/Vercel/GitHub tools.',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'Never promise draft work in a future turn ("give me a moment", "I\'m pulling…", "I\'ll create a draft"). If draft work is required, include draft.create, draft.update, or draft.update.propose in this same response.',
-            'Never ask "want me to add that as a Point?" Emit draft.update.propose. Keeper shows a card. The human Accepts.',
-          'Never ask "want me to add that as a Point?" Emit draft.update.propose. Keeper shows a card. The human Accepts.',
+            STORY_BUILDER_OBJECT_LINE,
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             '',
             buildSoleVsDraftDistinctionPrompt(),

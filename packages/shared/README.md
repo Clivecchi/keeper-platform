@@ -35,6 +35,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-08-29 — Story-builder continuity
+- `directorContinuity.ts` — offering a Point in prose is incomplete; emit `draft.update.propose`. The card is consent.
+
 ### 2026-08-29 — Restatement is named, not hidden
 - `summarizeReorganizeProposal` / `isDocumentReorganizeRestatement` / `formatReorganizeOverlaySummary` — no Point marks, no title/Forward edit, and the same Section titles in the same order is a restatement. Chronicle can say so.
 

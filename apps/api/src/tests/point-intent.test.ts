@@ -19,7 +19,9 @@ import {
   shouldRunPointAskFollowUp,
   shouldRunPointObligationFollowUp,
   stripLeadCastRollCall,
+  agentOfferedPointInProse,
 } from '../services/kip/pointIntent.js';
+import { buildKeeperCardRenderingPrompt } from '../services/kip/buildKeeperCardRenderingPrompt.js';
 
 describe('detectPointIntent', () => {
   it('recognizes explicit Point requests', () => {
@@ -499,13 +501,43 @@ describe('stripLeadCastRollCall', () => {
   });
 });
 
+describe('agentOfferedPointInProse', () => {
+  it('catches permission asks and soft offers', () => {
+    expect(agentOfferedPointInProse('Want me to add that as a Point — and flag it as a capability gap?')).toBe(true);
+    expect(agentOfferedPointInProse('I can add this as a Point if you would like.')).toBe(true);
+    expect(agentOfferedPointInProse('Would you like me to capture this on the Document?')).toBe(true);
+    expect(agentOfferedPointInProse('Shall I propose this?')).toBe(true);
+    expect(agentOfferedPointInProse('Let me know if you want this as a Point.')).toBe(true);
+    expect(agentOfferedPointInProse('Here is a Point we should capture.')).toBe(true);
+    expect(agentOfferedPointInProse('Proposed Point: Agency is the product.')).toBe(true);
+  });
+
+  it('leaves relational talk and Gloss offers alone', () => {
+    expect(agentOfferedPointInProse('Would you like me to explain how Documents work?')).toBe(false);
+    expect(agentOfferedPointInProse("That's a good point.")).toBe(false);
+    expect(agentOfferedPointInProse("What's the point of that?")).toBe(false);
+    expect(agentOfferedPointInProse('I can help think through this.')).toBe(false);
+    expect(agentOfferedPointInProse('Shall I look that up?')).toBe(false);
+    expect(agentOfferedPointInProse('Want me to add it as a Gloss to Point 14?')).toBe(false);
+    expect(agentOfferedPointInProse('I can add a point of view in the next pass.')).toBe(false);
+  });
+});
+
 describe('shouldRunPointAskFollowUp', () => {
-  it('runs when the Lead asked instead of proposing', () => {
+  it('runs when the Lead offered a Point in prose', () => {
     expect(
       shouldRunPointAskFollowUp({
         isTurnOwner: true,
         actionResults: [],
         responseText: 'Want me to add that as a Point — and flag it as a capability gap?',
+        manuscriptDraftId: 'draft-1',
+      }),
+    ).toBe(true);
+    expect(
+      shouldRunPointAskFollowUp({
+        isTurnOwner: true,
+        actionResults: [],
+        responseText: 'I can add this as a Point if you would like.',
         manuscriptDraftId: 'draft-1',
       }),
     ).toBe(true);
@@ -528,5 +560,14 @@ describe('shouldRunPointAskFollowUp', () => {
         manuscriptDraftId: 'draft-1',
       }),
     ).toBe(false);
+  });
+});
+
+describe('buildKeeperCardRenderingPrompt', () => {
+  it('names the story-builder contract once', () => {
+    const prompt = buildKeeperCardRenderingPrompt();
+    expect(prompt).toContain('STORY-BUILDER TURN');
+    expect(prompt).toContain('Asking permission in prose is an incomplete turn');
+    expect(prompt.indexOf('STORY-BUILDER TURN')).toBeLessThan(prompt.indexOf('RESPONSE RENDERING'));
   });
 });
