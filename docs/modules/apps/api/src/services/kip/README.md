@@ -14,7 +14,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `streamAgentOutput.ts` — Incremental extractor for the streamed `response` field inside `agent_output` JSON
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
-- `loadDialogDocumentForAgent.ts` — Agent-facing Document summary (prompt injection)
+- `loadDialogDocumentForAgent.ts` — Agent-facing Document summary (prompt injection); Points listed under their Section
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
@@ -37,6 +37,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-29 — Review & Reorganize does not dump to Open
+- `loadDialogDocumentForAgent.ts` — DIALOG DOCUMENT lists Points under their current Section as evidence, not a lock.
+- `documentReorganizeIntent.ts` — Current is evidence. Propose the better Document (new/renamed/reordered Sections, moves, refine, merge, retire, new). Omit `sectionId` is a safety default, not a preference for the current structure. Never dump named work into Open. Hears "every point into Open" as another propose turn. Open-dump repair triggers placement follow-up. Reorganize failures stay human in Dialog.
+- `documentReorganizeStore.ts` — persists `openDumpRepaired` so the Lead is asked to place Points instead of keeping an Open pile.
 
 ### 2026-08-26 — Propose as UI; Gloss yes is Gloss
 - `pointIntent.ts` — never ask to add a Point. If the Lead asks anyway, a follow-up emits `draft.update.propose`. Accept is a human card action.

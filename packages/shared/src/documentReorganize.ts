@@ -8,6 +8,7 @@
  */
 
 import type { DocumentPathDeclaration } from './document.js';
+import { isOpenSectionId } from './documentAuthoring.js';
 import { createDraftPoint, type DraftPoint } from './draftPoints.js';
 
 export const DOCUMENT_REORGANIZE_VERSION = 1 as const;
@@ -95,8 +96,27 @@ function sectionTitle(
   sections: DocumentPathDeclaration[],
   sectionId: string | null | undefined,
 ): string | null {
-  if (!sectionId || sectionId === 'open') return 'Open';
+  if (isOpenSectionId(sectionId) || !sectionId) return 'Open';
   return sections.find((section) => section.id === sectionId)?.title ?? sectionId;
+}
+
+const SECTION_ID_KEYS = ['sectionId', 'section', 'path', 'pathId', 'pathGroupId'] as const;
+
+/**
+ * Omitted sectionId means "keep the current Section".
+ * Explicit null / "open" / empty means Open.
+ */
+function readOptionalSectionId(row: Record<string, unknown>): string | null | undefined {
+  const hasKey = SECTION_ID_KEYS.some((key) => key in row && row[key] !== undefined);
+  if (!hasKey) return undefined;
+  for (const key of SECTION_ID_KEYS) {
+    if (!(key in row) || row[key] === undefined) continue;
+    const raw = row[key];
+    if (raw === null) return null;
+    const value = trimmed(raw);
+    return value && !isOpenSectionId(value) ? value : null;
+  }
+  return undefined;
 }
 
 function isUuidLike(value: string): boolean {
@@ -194,12 +214,58 @@ export function resolveReorganizeSectionId(
   ref: string | null | undefined,
   sections: DocumentPathDeclaration[],
 ): string | null {
-  if (!ref || ref === 'open') return null;
+  if (isOpenSectionId(ref) || !ref) return null;
   if (sections.some((section) => section.id === ref)) return ref;
   const byTitle = sections.find(
     (section) => normalizeKey(section.title) === normalizeKey(ref),
   );
   return byTitle?.id ?? ref;
+}
+
+/** Reuse current Section ids when the Lead restates the same titles. */
+export function rematchProposedSections(
+  proposed: DocumentPathDeclaration[],
+  current: DocumentPathDeclaration[],
+): DocumentPathDeclaration[] {
+  if (proposed.length === 0) return current;
+  const used = new Set<string>(['open']);
+  return proposed.map((section) => {
+    if (section.id && section.id !== 'open' && !used.has(section.id)
+      && current.some((row) => row.id === section.id)) {
+      used.add(section.id);
+      return section;
+    }
+    const currentByTitle = current.find(
+      (row) => normalizeKey(row.title) === normalizeKey(section.title) && !used.has(row.id),
+    );
+    if (currentByTitle) {
+      used.add(currentByTitle.id);
+      return { ...section, id: currentByTitle.id };
+    }
+    let id = section.id && section.id !== 'open' && !used.has(section.id)
+      ? section.id
+      : slugId(section.title);
+    while (used.has(id)) {
+      id = `${slugId(section.title)}-${used.size}`;
+    }
+    used.add(id);
+    return { ...section, id };
+  });
+}
+
+function resolveKeptSectionId(
+  currentSectionId: string | null | undefined,
+  sections: DocumentPathDeclaration[],
+  currentSections: DocumentPathDeclaration[],
+): string | null {
+  if (isOpenSectionId(currentSectionId)) return null;
+  if (sections.some((section) => section.id === currentSectionId)) {
+    return currentSectionId ?? null;
+  }
+  const previous = currentSections.find((section) => section.id === currentSectionId);
+  const remapped = previous
+    && sections.find((section) => normalizeKey(section.title) === normalizeKey(previous.title));
+  return remapped?.id ?? currentSectionId ?? null;
 }
 
 function pickString(row: Record<string, unknown>, keys: string[]): string | null {
@@ -270,10 +336,8 @@ function coercePointRow(item: unknown, fallbackSectionId?: string | null): Recor
   const row = item as Record<string, unknown>;
   const prelude = pickString(row, ['prelude', 'title', 'name', 'label']);
   const content = pickString(row, ['content', 'body', 'text', 'narrative']) ?? '';
-  const sectionId =
-    pickString(row, ['sectionId', 'section', 'path', 'pathId', 'pathGroupId'])
-    ?? fallbackSectionId
-    ?? null;
+  const explicitSectionId = readOptionalSectionId(row);
+  const sectionId = explicitSectionId !== undefined ? explicitSectionId : fallbackSectionId;
   const id = pickString(row, ['id', 'pointId', 'point']);
   const change = isChangeKind(row.change) ? row.change : sectionId ? 'move' : 'unchanged';
   return {
@@ -281,7 +345,7 @@ function coercePointRow(item: unknown, fallbackSectionId?: string | null): Recor
     ...(id ? { id } : {}),
     ...(prelude ? { prelude } : {}),
     content,
-    ...(sectionId ? { sectionId } : {}),
+    ...(sectionId !== undefined ? { sectionId } : {}),
     change,
   };
 }
@@ -370,7 +434,7 @@ export function parseDocumentReorganizeProposal(raw: unknown): DocumentReorganiz
       id,
       prelude: trimmed(row.prelude) ?? undefined,
       content,
-      sectionId: row.sectionId === null ? null : trimmed(row.sectionId),
+      sectionId: readOptionalSectionId(row),
       change,
       fromSectionId: row.fromSectionId === null ? null : trimmed(row.fromSectionId),
       originalPrelude: trimmed(row.originalPrelude) ?? undefined,
@@ -427,7 +491,7 @@ export function normalizeDocumentReorganizeProposal(input: {
   currentPoints: DraftPoint[];
   currentSections: DocumentPathDeclaration[];
   proposedBy?: string;
-}): { ok: true; proposal: DocumentReorganizeProposal } | { ok: false; error: string } {
+}): { ok: true; proposal: DocumentReorganizeProposal; openDumpRepaired: boolean } | { ok: false; error: string } {
   const parsed = parseDocumentReorganizeProposal(input.raw);
   if (!parsed) {
     return {
@@ -440,7 +504,10 @@ export function normalizeDocumentReorganizeProposal(input: {
   const listed = new Set<string>();
   const replaced = new Set<string>();
   const points: ReorganizePointOp[] = [];
-  const sections = parsed.sections.length > 0 ? parsed.sections : input.currentSections;
+  const sections = rematchProposedSections(
+    parsed.sections.length > 0 ? parsed.sections : input.currentSections,
+    input.currentSections,
+  );
 
   const takeRef = (ref: string | undefined, hints?: { prelude?: string; content?: string }) =>
     resolveReorganizePointRef(ref, input.currentPoints, listed, hints);
@@ -507,14 +574,18 @@ export function normalizeDocumentReorganizeProposal(input: {
     listed.add(resolved);
     const current = currentById.get(resolved);
     if (!current) continue;
-    const currentSection = current.pathGroupId ?? null;
+    const currentSection = resolveKeptSectionId(
+      current.pathGroupId ?? null,
+      sections,
+      input.currentSections,
+    );
     points.push({
       ...op,
       id: resolved,
       prelude: op.prelude ?? current.prelude,
       content: op.content.trim() ? op.content : current.content,
       sectionId: sectionId === undefined ? currentSection : sectionId,
-      fromSectionId: fromSectionId ?? currentSection,
+      fromSectionId: fromSectionId ?? current.pathGroupId ?? null,
       originalPrelude: op.originalPrelude ?? current.prelude,
       originalContent: op.originalContent ?? current.content,
     });
@@ -522,11 +593,16 @@ export function normalizeDocumentReorganizeProposal(input: {
 
   for (const current of input.currentPoints) {
     if (listed.has(current.id) || replaced.has(current.id)) continue;
+    const currentSection = resolveKeptSectionId(
+      current.pathGroupId ?? null,
+      sections,
+      input.currentSections,
+    );
     points.push({
       id: current.id,
       prelude: current.prelude,
       content: current.content,
-      sectionId: current.pathGroupId ?? null,
+      sectionId: currentSection,
       change: 'unchanged',
       fromSectionId: current.pathGroupId ?? null,
       originalPrelude: current.prelude,
@@ -534,15 +610,20 @@ export function normalizeDocumentReorganizeProposal(input: {
     });
   }
 
+  const assembled: DocumentReorganizeProposal = {
+    ...parsed,
+    proposedBy: input.proposedBy?.trim() || parsed.proposedBy,
+    leadNamedSections: parsed.leadNamedSections === true,
+    sections,
+    points,
+  };
+  const openDumpRepaired = isDocumentReorganizeOpenDump(assembled, input.currentPoints);
   return {
     ok: true,
-    proposal: {
-      ...parsed,
-      proposedBy: input.proposedBy?.trim() || parsed.proposedBy,
-      leadNamedSections: parsed.leadNamedSections === true,
-      sections,
-      points,
-    },
+    openDumpRepaired,
+    proposal: openDumpRepaired
+      ? repairNamedWorkDumpedToOpen(assembled, input.currentPoints)
+      : assembled,
   };
 }
 
@@ -577,8 +658,13 @@ export function composeProposedDocument(input: {
     points.push(draft);
 
     const fromId = op.fromSectionId ?? current?.pathGroupId ?? null;
+    const sameSection =
+      (isOpenSectionId(fromId) && isOpenSectionId(sectionId))
+      || fromId === sectionId;
     const fromTitle =
-      op.change === 'move' || (op.change === 'retire' && fromId)
+      op.change === 'move'
+      || (op.change !== 'new' && op.change !== 'unchanged' && !sameSection)
+      || (op.change === 'retire' && Boolean(fromId))
         ? sectionTitle(input.currentSections, fromId)
         : null;
     const replacesTitles = (op.replacesPointIds ?? [])
@@ -627,6 +713,52 @@ export function reorganizeChangeLabel(kind: ReorganizeChangeKind): string {
       return _exhaustive;
     }
   }
+}
+
+/**
+ * True when every Point that already lives in a named Section would land in Open.
+ * That is not a reorganization — Open is only for unplaced Points.
+ */
+export function isDocumentReorganizeOpenDump(
+  proposal: DocumentReorganizeProposal,
+  currentPoints: DraftPoint[],
+): boolean {
+  const named = documentHostPoints(currentPoints).filter(
+    (point) => !isOpenSectionId(point.pathGroupId),
+  );
+  if (named.length === 0) return false;
+  const surviving = named.filter((point) => {
+    const op = proposal.points.find((row) => row.id === point.id);
+    return op && op.change !== 'retire';
+  });
+  if (surviving.length === 0) return false;
+  return surviving.every((point) => {
+    const op = proposal.points.find((row) => row.id === point.id);
+    return isOpenSectionId(op?.sectionId);
+  });
+}
+
+export function repairNamedWorkDumpedToOpen(
+  proposal: DocumentReorganizeProposal,
+  currentPoints: DraftPoint[],
+): DocumentReorganizeProposal {
+  const currentById = new Map(currentPoints.map((point) => [point.id, point]));
+  return {
+    ...proposal,
+    points: proposal.points.map((op) => {
+      const current = currentById.get(op.id);
+      if (!current || isOpenSectionId(current.pathGroupId) || op.change === 'retire') {
+        return op;
+      }
+      if (!isOpenSectionId(op.sectionId)) return op;
+      return {
+        ...op,
+        sectionId: current.pathGroupId ?? null,
+        change: op.change === 'move' ? 'unchanged' : op.change,
+        fromSectionId: current.pathGroupId ?? null,
+      };
+    }),
+  };
 }
 
 /** True when the Lead named Sections but did not place, refine, or retire any Point. */

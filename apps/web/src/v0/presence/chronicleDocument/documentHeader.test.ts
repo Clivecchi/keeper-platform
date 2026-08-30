@@ -4,7 +4,7 @@ import {
   DOCUMENT_EMPTY_POINTS_COPY,
   formatDocumentStatusLabel,
   resolveDocumentHeaderTitle,
-} from "./documentHeader"
+} from "./documentIdentity"
 
 describe("Document Chronicle header", () => {
   it("prefers Dialog title, then Forward, then Nav — never Realm idle copy", () => {

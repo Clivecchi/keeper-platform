@@ -423,6 +423,7 @@ export function summarizeDraftPointsForAgent(
   type: DraftPointType;
   preview: string;
   prelude?: string;
+  pathGroupId?: string;
   momentCount?: number;
   rewritable: boolean;
   referencesPointId?: string;
@@ -433,6 +434,7 @@ export function summarizeDraftPointsForAgent(
     type: point.type,
     preview: point.content.trim().slice(0, 160),
     ...(point.prelude?.trim() ? { prelude: point.prelude.trim() } : {}),
+    ...(point.pathGroupId?.trim() ? { pathGroupId: point.pathGroupId.trim() } : {}),
     ...(point.moments && point.moments.length > 0
       ? { momentCount: point.moments.length }
       : {}),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildReorganizeProposeSystemPrompt,
   detectReorganizeIntent,
   shouldRunReorganizePlacementFollowUp,
   shouldRunReorganizeProposeFollowUp,
@@ -85,5 +86,38 @@ describe('detectReorganizeIntent', () => {
     expect(detectReorganizeIntent('Try updating the forward specifically')).toBe('required');
     expect(detectReorganizeIntent('Let me rewrite the Forward now')).toBe('required');
     expect(detectReorganizeIntent('Should we rename the document?')).toBe('required');
+  });
+
+  it('hears a dump-to-Open rejection as another propose turn', () => {
+    expect(
+      detectReorganizeIntent('So you propose moving every point into a single section called Open?'),
+    ).toBe('required');
+    expect(detectReorganizeIntent("that's useless")).toBe('required');
+    expect(detectReorganizeIntent('add a point about the plot')).toBe('none');
+  });
+
+  it('tells the Lead that Current is evidence and omit is only a safety default', () => {
+    const prompt = buildReorganizeProposeSystemPrompt('Finding the Plot');
+    expect(prompt).toContain('Current is evidence, not a constraint');
+    expect(prompt).toContain('create, rename, or reorder Sections');
+    expect(prompt).toContain('safety default');
+    expect(prompt).toContain('Never dump named work into Open');
+    expect(prompt).not.toContain('omit for unplaced Points');
+    expect(prompt).not.toContain('Preserve membership unless you are deliberately moving');
+  });
+
+  it('asks the Lead to place Points after an Open-dump repair', () => {
+    expect(
+      shouldRunReorganizePlacementFollowUp({
+        isLead: true,
+        actionResults: [
+          {
+            type: 'document.reorganize.propose',
+            status: 'success',
+            data: { openDumpRepaired: true },
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 });

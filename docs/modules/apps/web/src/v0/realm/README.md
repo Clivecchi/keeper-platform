@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-08-29 — Open dump banner
+- Chronicle only says Points are still in Open when named Sections are actually empty. A spine-only flag no longer claims that when Points already have Sections.
+
 ### 2026-08-25 — Proposed title and Forward
 - Chronicle Proposed view shows a Lead-proposed Document name and Forward. A failed Document refresh no longer flashes **Untitled document**.
 

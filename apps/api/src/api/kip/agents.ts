@@ -80,6 +80,7 @@ import { extractPdfText, isPdfBuffer } from '../../services/pdfTextExtract.js';
 import { visibleAgentMessageText } from '../../services/structure/parseKipAgentOutput.js';
 import {
   buildDialogReadHonesty,
+  formatDialogDocumentForAgent,
   loadDialogDocumentForAgent,
 } from '../../services/kip/loadDialogDocumentForAgent.js';
 import { readObjectGlossary } from '../../services/kip/loadObjectGlossary.js';
@@ -166,6 +167,7 @@ import {
   buildReorganizeProposeFollowUpInput,
   buildReorganizeProposeSystemPrompt,
   detectReorganizeIntent,
+  humanReorganizeFailureNotice,
   shouldRunReorganizePlacementFollowUp,
   shouldRunReorganizeProposeFollowUp,
 } from '../../services/kip/documentReorganizeIntent.js';
@@ -357,7 +359,7 @@ function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unk
     '- Do not emit draft.point.accept yourself unless you have exact draftId + pointId from a prior success receipt. Accept is a human UI action on the Point card.';
   const reorganizeDocument =
     agent.role === 'Lead' || agent.role === 'System'
-      ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Include payload.title (Document name) and payload.forward: { title, description } when those should change. Do not silently rewrite accepted Points with draft.point.rewrite. Do not draft.update.propose a Point that is actually the Forward or the Document name. Chronicle shows Current vs Proposed; the human Applies. When they ask to rename or retitle Points on the live Document, that is draft.point.rewrite (prelude/title) — not a second reorganize.'
+      ? '- When the human asks to review, reorganize, or propose a better Document, use document.reorganize.propose. Current is evidence — propose the Document as it should become (new/renamed/reordered Sections, Points moved between them, refine, merge, retire, new). Include payload.title and payload.forward: { title, description } when those should change. Nest Points under the Section they should belong to, or set sectionId to that title (change: move). Omit sectionId only when you are not moving that Point (safety default, not a preference for the current structure). Never dump named work into Open. Do not emit a Section named Open. Do not silently rewrite accepted Points with draft.point.rewrite. Do not draft.update.propose a Point that is actually the Forward or the Document name. Chronicle shows Current vs Proposed with New · Refined · Moved from… · Merged · Retire; the human Applies. When they ask to rename or retitle Points on the live Document only, that is draft.point.rewrite (prelude/title) — not a second reorganize.'
       : '';
   const glossPoints =
     '- When the human asks to Gloss a Point — depth beside the Point, not a rewrite of the body — use gloss.append. payload.pointId is 1–N from DIALOG DOCUMENT or the current title (omit it to Gloss the latest Point). payload.content is the Gloss. Do not draft.point.rewrite. Do not weave Gloss into the Point body. Do not draft.create or draft.setActive. Include a keeper-card when the Gloss lands.';
@@ -1238,70 +1240,14 @@ function buildDialogDocumentSystemPrompt(environment: unknown): string | null {
           prelude?: string;
           status?: string;
           referencesPointId?: string;
+          pathGroupId?: string;
         }>;
         manuscriptDraftId?: string;
       };
     }
   )?.dialogDocument;
   if (!doc?.dialogId) return null;
-
-  const lines = [
-    'DIALOG DOCUMENT (live Document for this Dialog — same source Chronicle renders):',
-    `Dialog id: ${doc.dialogId}${doc.title ? ` — ${doc.title}` : ''}${doc.status ? ` [${doc.status}]` : ''}`,
-  ];
-  if (doc.manuscriptDraftId) {
-    lines.push(
-      'Keeper will write new Points to this Dialog manuscript — omit payload.id on draft.update.propose.',
-    );
-  }
-  if (doc.forward) {
-    const unwritten = doc.forwardAuthored === false;
-    lines.push(
-      unwritten
-        ? `Forward (directional objective of this Dialog) — slot present${
-            doc.forward.title ? ` (holding “${doc.forward.title}”)` : ''
-          }; the objective is not written yet.`
-        : `Forward (directional objective of this Dialog) — ${doc.forward.title}: ${doc.forward.description}`,
-    );
-  } else {
-    lines.push(
-      'Forward (directional objective of this Dialog) — not written yet. Every Document can have a Forward.',
-    );
-  }
-  if (doc.step) {
-    lines.push(`Step — ${doc.step.title}: ${doc.step.body}`);
-  }
-  if (Array.isArray(doc.paths) && doc.paths.length > 0) {
-    lines.push(
-      `Sections: ${doc.paths.map((path) => path.title).join('; ')}`,
-    );
-  } else {
-    lines.push('Sections: Open (quieter Section for Points that do not yet fit).');
-  }
-  if (Array.isArray(doc.points) && doc.points.length > 0) {
-    const hosts = doc.points.filter((point) => !point.referencesPointId);
-    lines.push(
-      `Points (${hosts.length} — refer to existing ones by number or title; Keeper owns ids):`,
-    );
-    hosts.slice(0, 80).forEach((point, index) => {
-      const title = typeof point.prelude === 'string' ? point.prelude.trim() : '';
-      const preview = typeof point.preview === 'string' ? point.preview.trim() : '';
-      const body = title && preview && title !== preview
-        ? `${title} — ${preview}`
-        : title || preview;
-      const waiting = point.status === 'proposed' ? '[proposed] ' : '';
-      lines.push(body ? `${index + 1}. ${waiting}${body}` : `${index + 1}.`);
-    });
-  } else {
-    lines.push('Points: (none loaded for this Dialog manuscript yet).');
-  }
-  lines.push(
-    'Point title is prelude — a short label that tells the story of the Point (e.g. "Agent Narrates, Doesn\'t Act"), not a cut of the body. Always set prelude/title on new Points. To rename: draft.point.rewrite with pointId set to the number (1, 2, 3…) or the current title; prelude is the new title; omit content to keep the body. To Gloss a Point (depth beside it, not a rewrite): gloss.append with pointId 1–N or the current title, and content. Do not weave Gloss into the Point body. The Dialog id above is not a Point id.',
-    'This Document is the primary conversational background. Stay aware of the Domain. If Working on is a Draft, do not treat this manuscript as the Point write target.',
-    'When the user asks about this Dialog\'s Document, Forward, Sections, or Points, use this block — do not claim the Document is absent when fields above are present.',
-    'When asked to pick or name one item from a Section, reply with an exact Point title/preview from this block only. If you cannot match a real Point, say you cannot find that item — do not invent a name.',
-  );
-  return lines.join('\n');
+  return formatDialogDocumentForAgent({ ...doc, dialogId: doc.dialogId });
 }
 
 function attachPointTurnObligation(
@@ -2596,7 +2542,8 @@ export async function executeAgentActions(
               });
               break;
             }
-            const spineOnly = isDocumentReorganizeSpineOnly(stored.proposal);
+            const openDumpRepaired = stored.openDumpRepaired === true;
+            const spineOnly = isDocumentReorganizeSpineOnly(stored.proposal) || openDumpRepaired;
             const placedCount = stored.proposal.points.filter((point) => point.change !== 'unchanged').length;
             const identityOnly =
               hasDocumentIdentityProposal(stored.proposal) && placedCount === 0 && !spineOnly;
@@ -2607,8 +2554,10 @@ export async function executeAgentActions(
             results.push({
               type: action.type,
               status: 'success',
-              message: spineOnly
-                ? 'Named Sections — Points are still in Open. Chronicle will ask the Lead to place them.'
+              message: openDumpRepaired
+                ? 'Open is not a reorganization. Named Sections stay. Chronicle will ask the Lead to place Points.'
+                : spineOnly
+                ? 'Named Sections — place the existing Points into them. Open is only for Points that do not yet fit.'
                 : identityOnly
                   ? `Proposed ${identityBits.join(' and ') || 'Document identity'} — open Proposed in Chronicle. Apply when you want it to become truth.`
                 : 'Proposed Document — open Proposed in Chronicle. Apply when you want it to become truth.',
@@ -2621,6 +2570,7 @@ export async function executeAgentActions(
                 proposal: stored.proposal,
                 dialogId: ctx.dialogId,
                 spineOnly,
+                openDumpRepaired,
                 placedCount,
                 identityOnly,
               },
@@ -5970,7 +5920,7 @@ export class KipAgentService {
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
         'gloss.append — Gloss an existing Point (depth beside it). Payload: { pointId (1–N or title; omit for the latest Point), content }. Not a rewrite. Not a new Draft. Chronicle shows Gloss on the Point. Include a keeper-card.',
-        'document.reorganize.propose — Lead only. Review the current Dialog Document and propose a better composition — including Document name (payload.title) and Forward (payload.forward: { title, description }). Those are not Points. Does not change accepted work until Apply. Chronicle shows Current vs Proposed. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Identity-only (title/Forward) is valid. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle Points on the live Document is draft.point.rewrite.',
+        'document.reorganize.propose — Lead only. Propose the better Document. Current is evidence, not a constraint. Document name is payload.title; Forward is payload.forward: { title, description }. Those are not Points. Does not change accepted work until Apply. Chronicle shows Current vs Proposed (New · Refined · Moved from… · Merged · Retire). Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Nest Points under the Section they should belong to, or set sectionId to that title (change: move). Omit sectionId only when you are not moving that Point. Never dump named work into Open. Do not emit a Section named Open. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Identity-only (title/Forward) is valid. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle Points on the live Document only is draft.point.rewrite.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -6467,7 +6417,7 @@ export class KipAgentService {
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
             'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
             'gloss.append payload schema: pointId (1–N or current title; omit to Gloss the latest Point), content (the Gloss — depth beside the Point). Do not rewrite. Do not create a Draft. Include a card.',
-            'document.reorganize.propose — Lead only. Propose a better Document without changing accepted work. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
+            'document.reorganize.propose — Lead only. Propose the better Document without changing accepted work. Current is evidence. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Nest Points under the Section they should belong to. Omit sectionId only when you are not moving that Point. Never dump named work into Open. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
@@ -7488,9 +7438,12 @@ export class KipAgentService {
               if (draftFailureNotice) {
                 finalResponseText = draftFailureNotice;
               } else if (execution.failedMessage) {
+                const reorganizeNotice = humanReorganizeFailureNotice(execution.results);
+                const notice = reorganizeNotice
+                  ?? `I attempted an action, but it failed: ${execution.failedMessage}`;
                 finalResponseText = structured.responseText
-                  ? `${structured.responseText} I attempted an action, but it failed: ${execution.failedMessage}`
-                  : `I attempted an action, but it failed: ${execution.failedMessage}`;
+                  ? `${structured.responseText} ${notice}`
+                  : notice;
               }
 
               const allFailedSummary = buildAllActionsFailedSummary(execution.results);
@@ -8076,7 +8029,10 @@ export class KipAgentService {
             }
             actionResults = [...actionResults, ...reorganizeFollowUpExecution.results];
             if (reorganizeFollowUpExecution.failedMessage) {
-              finalResponseText = `${finalResponseText}\n\n${reorganizeFollowUpExecution.failedMessage}`;
+              finalResponseText = `${finalResponseText}\n\n${
+                humanReorganizeFailureNotice(reorganizeFollowUpExecution.results)
+                ?? reorganizeFollowUpExecution.failedMessage
+              }`;
             }
           }
         }
@@ -8157,7 +8113,10 @@ export class KipAgentService {
             }
             actionResults = [...actionResults, ...placeFollowUpExecution.results];
             if (placeFollowUpExecution.failedMessage) {
-              finalResponseText = `${finalResponseText}\n\n${placeFollowUpExecution.failedMessage}`;
+              finalResponseText = `${finalResponseText}\n\n${
+                humanReorganizeFailureNotice(placeFollowUpExecution.results)
+                ?? placeFollowUpExecution.failedMessage
+              }`;
             }
           }
         }
@@ -8753,9 +8712,12 @@ export class KipAgentService {
               if (draftFailureNotice) {
                 finalResponseText = draftFailureNotice;
               } else if (execution.failedMessage) {
+                const reorganizeNotice = humanReorganizeFailureNotice(execution.results);
+                const notice = reorganizeNotice
+                  ?? `I attempted an action, but it failed: ${execution.failedMessage}`;
                 finalResponseText = structured.responseText
-                  ? `${structured.responseText} I attempted an action, but it failed: ${execution.failedMessage}`
-                  : `I attempted an action, but it failed: ${execution.failedMessage}`;
+                  ? `${structured.responseText} ${notice}`
+                  : notice;
               }
 
               const allFailedSummary = buildAllActionsFailedSummary(execution.results);

@@ -10,7 +10,6 @@ import type {
 import {
   buildGlossThreadKey,
   composeProposedDocument,
-  isDocumentReorganizeSpineOnly,
   parseDocumentPathDeclarations,
   parseDraftPoints,
   parseGlossThreads,
@@ -28,7 +27,7 @@ import {
   DOCUMENT_LOADING_COPY,
   DOCUMENT_SELECT_DIALOG_COPY,
   resolveDocumentHeaderTitle,
-} from "../presence/chronicleDocument/documentHeader"
+} from "../presence/chronicleDocument/documentIdentity"
 import { useDocumentAuthoring } from "../presence/chronicleDocument/useDocumentAuthoring"
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatment"
@@ -735,14 +734,9 @@ export function DomainRealmStory({
         </p>
       ) : null}
       {panelMode === "document"
-      && (
-        (reorganizeProposal && isDocumentReorganizeSpineOnly(reorganizeProposal))
-        || (
-          documentMeta.paths.length > 0
-          && storyEntries.length > 0
-          && paths.every((path) => path.pointIds.length === 0)
-        )
-      ) ? (
+      && paths.length > 0
+      && storyEntries.length > 0
+      && paths.every((path) => path.pointIds.length === 0) ? (
         <p
           className="px-4 pt-3 text-[13px] leading-[1.55]"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}

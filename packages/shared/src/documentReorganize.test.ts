@@ -3,6 +3,7 @@ import { createDraftPoint } from './draftPoints.js';
 import {
   applyReorganizeToPoints,
   composeProposedDocument,
+  isDocumentReorganizeOpenDump,
   isDocumentReorganizeSpineOnly,
   normalizeDocumentReorganizeProposal,
   parseDocumentReorganizeProposal,
@@ -190,6 +191,267 @@ describe('normalizeDocumentReorganizeProposal', () => {
     expect(result.proposal.points.find((p) => p.id === 'p1')?.content).toBe(
       'First finding about the plot.',
     );
+  });
+
+  it('keeps current Section when sectionId is omitted', () => {
+    const namedPoints = [
+      createDraftPoint({
+        id: 'p1',
+        content: 'First finding about the plot.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'The plot',
+        pathGroupId: 'plot',
+      }),
+      createDraftPoint({
+        id: 'p2',
+        content: 'UI notes that wandered in.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'UI notes',
+        pathGroupId: 'stage',
+      }),
+    ];
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [
+          { id: 'plot', title: 'The Plot' },
+          { id: 'stage', title: 'Keeper Stage' },
+        ],
+        points: [
+          { id: '1', change: 'refine', content: 'First finding, tightened.' },
+          { id: '2', change: 'unchanged' },
+        ],
+      },
+      currentPoints: namedPoints,
+      currentSections: [
+        { id: 'plot', title: 'The Plot' },
+        { id: 'stage', title: 'Keeper Stage' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.openDumpRepaired).toBe(false);
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.sectionId).toBe('plot');
+    expect(result.proposal.points.find((p) => p.id === 'p2')?.sectionId).toBe('stage');
+  });
+
+  it('does not dump named work into Open when the Lead lists every Point without a Section', () => {
+    const namedPoints = [
+      createDraftPoint({
+        id: 'p1',
+        content: 'First finding about the plot.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'The plot',
+        pathGroupId: 'plot',
+      }),
+      createDraftPoint({
+        id: 'p2',
+        content: 'UI notes that wandered in.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'UI notes',
+        pathGroupId: 'stage',
+      }),
+    ];
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [{ title: 'Open' }],
+        points: [
+          { id: 'The plot', change: 'move' },
+          { id: 'UI notes', change: 'move' },
+        ],
+      },
+      currentPoints: namedPoints,
+      currentSections: [
+        { id: 'plot', title: 'The Plot' },
+        { id: 'stage', title: 'Keeper Stage' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.sectionId).toBe('plot');
+    expect(result.proposal.points.find((p) => p.id === 'p2')?.sectionId).toBe('stage');
+  });
+
+  it('repairs an explicit dump of named-section Points into Open', () => {
+    const namedPoints = [
+      createDraftPoint({
+        id: 'p1',
+        content: 'First finding about the plot.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'The plot',
+        pathGroupId: 'plot',
+      }),
+      createDraftPoint({
+        id: 'p2',
+        content: 'UI notes that wandered in.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'UI notes',
+        pathGroupId: 'stage',
+      }),
+    ];
+    const dumped = {
+      rationale: 'Put everything in Open.',
+      sections: [{ id: 'plot', title: 'The Plot' }],
+      points: [
+        { id: 'p1', change: 'move' as const, sectionId: 'open', content: 'First finding about the plot.' },
+        { id: 'p2', change: 'move' as const, sectionId: 'open', content: 'UI notes that wandered in.' },
+      ],
+    };
+    const parsed = parseDocumentReorganizeProposal(dumped);
+    expect(parsed).not.toBeNull();
+    expect(isDocumentReorganizeOpenDump(parsed!, namedPoints)).toBe(true);
+
+    const result = normalizeDocumentReorganizeProposal({
+      raw: dumped,
+      currentPoints: namedPoints,
+      currentSections: [
+        { id: 'plot', title: 'The Plot' },
+        { id: 'stage', title: 'Keeper Stage' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.openDumpRepaired).toBe(true);
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.sectionId).toBe('plot');
+    expect(result.proposal.points.find((p) => p.id === 'p2')?.sectionId).toBe('stage');
+    expect(isDocumentReorganizeOpenDump(result.proposal, namedPoints)).toBe(false);
+  });
+
+  it('accepts a better structure — new Section, move, refine, merge, retire, and new', () => {
+    const namedPoints = [
+      createDraftPoint({
+        id: 'p1',
+        content: 'First finding about the plot.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'The plot',
+        pathGroupId: 'plot',
+      }),
+      createDraftPoint({
+        id: 'p2',
+        content: 'UI notes that wandered in.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'UI notes',
+        pathGroupId: 'stage',
+      }),
+      createDraftPoint({
+        id: 'p3',
+        content: 'A second note on the same UI beat.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'More UI',
+        pathGroupId: 'stage',
+      }),
+      createDraftPoint({
+        id: 'p4',
+        content: 'Superseded aside.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'Aside',
+        pathGroupId: 'plot',
+      }),
+    ];
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        rationale: 'A clearer spine.',
+        sections: [
+          { title: 'The Story' },
+          {
+            title: 'Stage',
+            points: [
+              {
+                id: 'UI notes',
+                change: 'merge',
+                prelude: 'UI notes',
+                content: 'UI notes, gathered.',
+                replacesPointIds: ['More UI'],
+              },
+            ],
+          },
+        ],
+        points: [
+          {
+            id: 'The plot',
+            change: 'refine',
+            sectionId: 'The Story',
+            content: 'The plot, tightened.',
+          },
+          { id: 'Aside', change: 'retire' },
+          {
+            change: 'new',
+            prelude: 'What comes next',
+            content: 'The next beat to find.',
+            sectionId: 'The Story',
+          },
+        ],
+      },
+      currentPoints: namedPoints,
+      currentSections: [
+        { id: 'plot', title: 'The Plot' },
+        { id: 'stage', title: 'Keeper Stage' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.openDumpRepaired).toBe(false);
+    expect(result.proposal.sections.map((section) => section.title)).toEqual([
+      'The Story',
+      'Stage',
+    ]);
+    const plot = result.proposal.points.find((p) => p.id === 'p1');
+    expect(plot?.change).toBe('refine');
+    expect(plot?.sectionId).toBe(result.proposal.sections[0]?.id);
+    const merged = result.proposal.points.find((p) => p.id === 'p2');
+    expect(merged?.change).toBe('merge');
+    expect(merged?.replacesPointIds).toEqual(['p3']);
+    expect(result.proposal.points.find((p) => p.id === 'p4')?.change).toBe('retire');
+    expect(result.proposal.points.some((p) => p.change === 'new')).toBe(true);
+
+    const composed = composeProposedDocument({
+      currentPoints: namedPoints,
+      currentSections: [
+        { id: 'plot', title: 'The Plot' },
+        { id: 'stage', title: 'Keeper Stage' },
+      ],
+      proposal: result.proposal,
+    });
+    expect(composed.marks.p1?.kind).toBe('refine');
+    expect(composed.marks.p1?.fromSectionTitle).toBe('The Plot');
+    expect(composed.marks.p2?.kind).toBe('merge');
+    expect(composed.marks.p4?.kind).toBe('retire');
+    const created = result.proposal.points.find((p) => p.change === 'new');
+    expect(created && composed.marks[created.id]?.kind).toBe('new');
+  });
+
+  it('reuses current Section ids when the Lead restates the same titles', () => {
+    const namedPoints = [
+      createDraftPoint({
+        id: 'p1',
+        content: 'First finding about the plot.',
+        proposedBy: 'Chuck',
+        status: 'accepted',
+        prelude: 'The plot',
+        pathGroupId: 'plot-a1b2c',
+      }),
+    ];
+    const result = normalizeDocumentReorganizeProposal({
+      raw: {
+        sections: [{ title: 'The Plot' }],
+        points: [{ id: '1', sectionId: 'The Plot', change: 'move' }],
+      },
+      currentPoints: namedPoints,
+      currentSections: [{ id: 'plot-a1b2c', title: 'The Plot' }],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.proposal.sections[0]?.id).toBe('plot-a1b2c');
+    expect(result.proposal.points.find((p) => p.id === 'p1')?.sectionId).toBe('plot-a1b2c');
   });
 
   it('treats unknown ids as New instead of failing the proposal', () => {

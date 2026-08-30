@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Pencil } from "lucide-react"
 import { AuthorSaveBar } from "./ChronicleAuthorControls"
-import { formatDocumentStatusLabel } from "./documentHeader"
+import { formatDocumentStatusLabel } from "./documentIdentity"
 
 export interface DocumentHeaderProps {
   title: string

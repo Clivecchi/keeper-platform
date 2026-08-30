@@ -56,6 +56,7 @@ async function loadManuscript(domainId: string, dialogId: string, db: Reorganize
 export type ReorganizeStoreOk = {
   ok: true;
   proposal: DocumentReorganizeProposal;
+  openDumpRepaired?: boolean;
 };
 
 export type ReorganizeStoreErr = {
@@ -136,7 +137,11 @@ export async function storeDocumentReorganizeProposal(input: {
     data: { spec_json: asJson(nextSpec), updated_at: new Date() },
   });
 
-  return { ok: true, proposal: normalized.proposal };
+  return {
+    ok: true,
+    proposal: normalized.proposal,
+    openDumpRepaired: normalized.openDumpRepaired,
+  };
 }
 
 export async function applyDocumentReorganizeProposal(input: {

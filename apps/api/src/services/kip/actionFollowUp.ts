@@ -491,6 +491,9 @@ export function buildAllActionsFailedSummary(results: ActionResultLike[]): strin
 
   const lines = results.map((result) => {
     const label = result.status === 'skipped' ? 'skipped' : 'failed';
+    if (result.type === 'document.reorganize.propose') {
+      return `- document.reorganize.propose (${label}): The proposed Document did not land. Named Sections stay.`;
+    }
     return `- ${result.type} (${label}): ${result.message}`;
   });
   return `\n\nI could not complete the requested actions:\n${lines.join('\n')}`;

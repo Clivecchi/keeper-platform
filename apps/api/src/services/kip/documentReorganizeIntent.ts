@@ -19,6 +19,11 @@ const REORGANIZE_PATTERNS = [
   /\brename (the |this )?(document|dialog|title)\b/i,
   /\b(document|dialog) (name|title)\b/i,
   /\bforward (field|title|specifically)\b/i,
+  /\b(every|all) points?.{0,80}\bopen\b/i,
+  /\bsection called ["']?open\b/i,
+  /\binto (a )?(single )?section called ["']?open\b/i,
+  /\bmoving every point\b/i,
+  /\b(that'?s|that is) (useless|not (a |the )?(proposal|reorganization|reorganisation))\b/i,
 ];
 
 export function detectReorganizeIntent(userInput: string): ReorganizeIntentKind {
@@ -33,12 +38,12 @@ type ActionResultLite = {
   data?: unknown;
 };
 
-function resultSpineOnly(data: unknown): boolean {
+function resultFlag(data: unknown, key: 'spineOnly' | 'openDumpRepaired'): boolean {
   return Boolean(
     data
     && typeof data === 'object'
     && !Array.isArray(data)
-    && (data as { spineOnly?: unknown }).spineOnly === true,
+    && (data as Record<string, unknown>)[key] === true,
   );
 }
 
@@ -47,7 +52,7 @@ export function isSpineOnlyReorganizeResult(results: ActionResultLite[]): boolea
     (result) =>
       result.type === 'document.reorganize.propose'
       && result.status === 'success'
-      && resultSpineOnly(result.data),
+      && resultFlag(result.data, 'spineOnly'),
   );
 }
 
@@ -89,7 +94,16 @@ export function shouldRunReorganizePlacementFollowUp(params: {
   isLead: boolean;
   actionResults: ActionResultLite[];
 }): boolean {
-  return params.isLead && isSpineOnlyReorganizeResult(params.actionResults);
+  if (!params.isLead) return false;
+  return params.actionResults.some(
+    (result) =>
+      result.type === 'document.reorganize.propose'
+      && result.status === 'success'
+      && (
+        resultFlag(result.data, 'spineOnly')
+        || resultFlag(result.data, 'openDumpRepaired')
+      ),
+  );
 }
 
 export function buildReorganizePlacementFollowUpInput(params: {
@@ -103,30 +117,44 @@ export function buildReorganizePlacementFollowUpInput(params: {
     '',
     `You named Sections for${named} but did not place any Points. Chronicle cannot show a better Document from headers alone.`,
     'Emit document.reorganize.propose again now.',
-    'Keep the same Sections.',
-    'Place every existing Point that belongs in a named Section: { id: "<number or title from DIALOG DOCUMENT>", sectionId: "<Section title>", change: "move" }.',
-    'You may refine wording (change: refine) or retire a Point (change: retire).',
+    'Keep those named Sections — you may add one if the story needs it, or rename/reorder them.',
+    'Place each Point where it should live in the proposed Document: nest it under a Section, or { id: "<number or title from DIALOG DOCUMENT>", sectionId: "<Section title>", change: "move" }.',
+    'You may refine, merge (replacesPointIds), retire, or add a Point (change: new). Split by adding new and refining or retiring the source.',
+    'Prefer nesting Points under each Section. Do not emit a Section named Open.',
+    'Never dump named work into Open. Open is only for Points that do not yet fit.',
     'Do not invent UUIDs. Do not only send Sections. Do not essay a mutation list.',
     '',
     `Your prior message: "${params.priorResponseText.trim().slice(0, 600)}"`,
   ].join('\n');
 }
 
+export function humanReorganizeFailureNotice(
+  results: Array<{ type?: string; status?: string }>,
+): string | null {
+  if (!results.some((result) => result.type === 'document.reorganize.propose' && result.status === 'error')) {
+    return null;
+  }
+  return 'The proposed Document did not land. Named Sections stay. Open is only for Points that do not yet fit.';
+}
+
 export function buildReorganizeProposeSystemPrompt(dialogTitle?: string): string {
   const named = dialogTitle?.trim() ? ` "${dialogTitle.trim()}"` : '';
   return [
-    `REVIEW & REORGANIZE — the human asked you to review the current Dialog Document${named}.`,
-    'You may review → understand → propose. You must not silently restructure accepted work.',
+    `REVIEW & REORGANIZE — propose the better Document${named}. Current is evidence, not a constraint.`,
+    'You may review → understand → propose. Do not silently rewrite accepted work. Chronicle shows Current vs Proposed; the human Applies.',
     'Emit document.reorganize.propose in this turn. Do not rewrite accepted Points with draft.point.rewrite.',
     'Do not draft.update.propose. Review & Reorganize is not a Point write.',
-    'Do not essay a mutation list. Chronicle will show the proposed Document.',
+    'Do not essay a mutation list. Chronicle will show the proposed Document with marks: New · Refined · Moved from… · Merged · Retire.',
+    'Propose a better information architecture when the current one is weak. You may: keep a Point where it belongs; move a Point to another Section; create, rename, or reorder Sections and place Points into them; refine wording; merge redundant Points (change: merge + replacesPointIds); split by adding change: new and refining or retiring the source; retire superseded Points; change title and Forward.',
     'Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, prelude? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalPrelude?, originalContent?, replacesPointIds? }] }.',
     'change is one of: unchanged | new | refine | move | merge | retire.',
     'Refer to existing Points by their number or title from DIALOG DOCUMENT. Keeper resolves identities — do not invent UUIDs.',
     'You may omit unchanged Points — Keeper fills them in. A new Point uses change "new".',
     'Document name is payload.title (or documentTitle). Forward is payload.forward: { title, description }. Those are not Points. Identity-only payloads are valid — Keeper keeps current Sections and Points.',
     'Do not draft.update.propose to change the Forward or the Document name.',
-    'A Sections-only payload is accepted. Better: put Points under each Section (title or number) so Proposed is a real Document, not empty headers.',
-    'Open is the quieter Section — use sectionId "open" or omit for unplaced Points.',
+    'Nest Points under the Section they should belong to in Proposed, or set sectionId to that Section title (change: move).',
+    'Omit sectionId only when you are not moving that Point — Keeper keeps the current Section as a safety default. That is not a preference for the current structure.',
+    'Never dump named work into Open. Do not emit a Section named Open. Open is only for Points that do not yet fit — use sectionId "open" only for those.',
+    'A Sections-only payload is accepted, then you must place the Points. Proposed should be a real Document, not empty headers or a single Open pile.',
   ].join('\n');
 }

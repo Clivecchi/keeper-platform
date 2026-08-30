@@ -6,7 +6,7 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 ## ?? Key Files
 - `PointView.tsx` ? clamped body, status, optional Gloss action (atomic Point)
 - `DocumentShell.tsx` ? cover + Points sequence (universal container; Realm adapter consumes this)
-- `DocumentHeader.tsx` / `documentHeader.ts` — Document identity header (same Chronicle header job as Cdraft)
+- `DocumentHeader.tsx` / `documentIdentity.ts` — Document identity header (same Chronicle header job as Cdraft). Helpers live in `documentIdentity.ts` so Windows does not collide with `DocumentHeader.tsx`.
 - `ChronicleAuthorControls.tsx` — Save / Cancel / Delete bar, auto-grow fields, in-place Point editor
 - `useDocumentAuthoring.ts` / `useDraftAuthoring.ts` — Document and Draft author writes
 - `DocumentPointGloss.tsx` — inline polish panel on a Document Point (Dialog carrier + Kip chat)
@@ -28,6 +28,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-08-29 — Header helpers renamed
+- `documentHeader.ts` → `documentIdentity.ts` so Windows/Vite does not resolve `DocumentHeader` to the helper file.
+
 ### 2026-08-25 — Proposed identity
 - `DocumentHeader` / Forward in Chronicle Proposed view can show a Lead-proposed title and Forward before Apply.
 
