@@ -51,6 +51,8 @@ export type NavRenderBlock =
   | "sessions"
   | "connections"
   | "boards"
+  /** Realm Universal pane — opens Stage room, not a board. */
+  | "stage"
 
 export interface NavSectionsDef {
   dialogs: boolean

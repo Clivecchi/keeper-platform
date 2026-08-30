@@ -24,6 +24,9 @@ Reach (Composer) and spatial composition (Stage) that sit above Boards without b
 
 ## 📆 Update Log
 
+### 2026-08-30 — Stage room launch (Slice 1)
+- Realm Nav now enters Stage. The canvas and reach sheet stay as stand-ins; the room change is the 15 / 70 / 15 curtains.
+
 ### 2026-08-22 — First vertical slice
 - Added Composer reach sheet + Keeper Stage workspace over existing Universal Board.
 - Persist composition; inject Stage into agent turns; preserve Talking in / Working on.

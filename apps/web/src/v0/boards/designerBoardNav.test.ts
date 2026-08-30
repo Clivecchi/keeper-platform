@@ -20,6 +20,7 @@ describe("DESIGNER_BOARD_DEF nav", () => {
       "chatter",
       "library",
     ])
+    expect(paneBlocksFor(DESIGNER_BOARD_DEF, "universal")).not.toContain("stage")
   })
 
   it("puts Glossary and Board Definitions on Config, not Universal", () => {

@@ -31,7 +31,20 @@ describe("nav panes", () => {
       expect(blocks).toContain("library")
       expect(blocks).not.toContain("integrations")
       expect(blocks).not.toContain("agents")
+      if (def.boardId === "realm") {
+        expect(blocks).toContain("stage")
+      } else {
+        expect(blocks).not.toContain("stage")
+      }
     }
+  })
+
+  it("puts Stage on Realm Universal only — launch, not a board", () => {
+    expect(paneBlocksFor(REALM_BOARD_DEF, "universal")).toContain("stage")
+    expect(paneBlocksFor(REALM_BOARD_DEF, "config")).not.toContain("stage")
+    expect(paneForNavBlock("stage")).toBe("universal")
+    expect(paneBlocksFor(DOMAIN_BOARD_DEF, "universal")).not.toContain("stage")
+    expect(paneBlocksFor(BUILD_BOARD_DEF, "universal")).not.toContain("stage")
   })
 
   it("keeps Design Sessions on Universal only", () => {

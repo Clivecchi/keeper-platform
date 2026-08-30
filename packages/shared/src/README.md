@@ -24,6 +24,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-29: `markdownToDraftPoints` + `planIngestHeadingSections` — heading level is kept; `##` (or later `#`) establishes Document Sections; child headings become Points in that Section.
 - 2026-08-29: `directorContinuity.ts` — offering a Point in prose is incomplete; emit `draft.update.propose`. The card is consent.
 - 2026-08-26: `sessionActionLog.ts` — session action receipts (time / type / status) for the Lead prompt. Narration is not evidence.
 - 2026-08-26: `pointProposeIdentity.ts` — same-Point identity for propose (identical body, or distinctive title + same opening). Cast Notes are not hosts.

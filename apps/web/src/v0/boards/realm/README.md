@@ -24,6 +24,11 @@ Conversation: lead agent slug from `domainFrame.kip.agent_id` (`agentFromFrame: 
 - [ ] Connection row click → Chronicle manage surface (nav is list-only today)
 
 ## 📆 Update Log
+
+### 2026-08-30 — Stage launch from Realm Nav
+- Universal pane includes **Stage**. Click opens the Stage room (curtains 15 / 70 / 15) without changing `?board=`.
+- Domain / Build / Agent / Designer do not get this Nav item.
+
 ### 2026-07-12 — Phase 1b: Domain board on mobile
 - Domain board (`?board=domain`) uses same adaptive Nav · Dialog · Chronicle layout as `/home`.
 - Cross-domain picker via top-bar playbill (`DomainSwitcherOverlay`), not separate mobile Domains tab.

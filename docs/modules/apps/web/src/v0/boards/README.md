@@ -38,6 +38,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Realm Nav launches Stage room
+- Realm Universal Nav has a **Stage** item. Click enters Stage on the same Realm Board (`openStageRoom`) — not `?board=stage`, not a Boards-list entry.
+- Stage uses locked curtains **15% / 70% / 15%**. Dialog keeps the stored split. Resize handles rest while curtains are locked.
+- Old Stage canvas remains a stand-in. Composer replacement is a later slice.
+
 ### 2026-08-25 — Manuscript stays off Chronicle
 - Successful `draft.update` / `draft.create` on `document_manuscript` refreshes the Dialog Document instead of selecting the hidden manuscript Draft (the **Untitled document** flash).
 

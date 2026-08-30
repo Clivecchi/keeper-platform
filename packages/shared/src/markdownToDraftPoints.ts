@@ -1,6 +1,7 @@
 /**
  * Split external markdown into Dialog Document Points.
  * One Point per heading/section — v1 ingest, not a Library upload.
+ * Heading level is kept so ingest can turn major headings into Sections.
  */
 
 import { createDraftPoint, type DraftPoint } from './draftPoints.js';
@@ -8,9 +9,21 @@ import { createDraftPoint, type DraftPoint } from './draftPoints.js';
 export const INGEST_MAX_MARKDOWN_CHARS = 200_000;
 export const INGEST_MAX_POINTS = 80;
 
+/** 0 = preamble, 1 = #, 2 = ##, 3 = ### */
+export type MarkdownHeadingLevel = 0 | 1 | 2 | 3;
+
+export type MarkdownHeadingBlock = {
+  heading: string;
+  body: string;
+  level: MarkdownHeadingLevel;
+  point: DraftPoint;
+};
+
 export type MarkdownToDraftPointsResult = {
   title: string;
   points: DraftPoint[];
+  /** Same order as points — heading level for Section membership. */
+  blocks: MarkdownHeadingBlock[];
   /** True when more heading/sections existed than INGEST_MAX_POINTS. */
   truncated: boolean;
 };
@@ -63,7 +76,7 @@ export function markdownToDraftPoints(
 ): MarkdownToDraftPointsResult {
   const text = markdown.replace(/\r\n/g, '\n').trim();
   if (!text) {
-    return { title: 'Brought in writing', points: [], truncated: false };
+    return { title: 'Brought in writing', points: [], blocks: [], truncated: false };
   }
 
   const lines = text.split('\n');
@@ -114,6 +127,7 @@ export function markdownToDraftPoints(
   }
 
   const points: DraftPoint[] = [];
+  const blocks: MarkdownHeadingBlock[] = [];
   let truncated = false;
   for (const section of sections) {
     if (points.length >= INGEST_MAX_POINTS) {
@@ -121,12 +135,24 @@ export function markdownToDraftPoints(
       break;
     }
     const point = makePoint(section.heading, section.body, options);
-    if (point) points.push(point);
+    if (!point) continue;
+    const level = (section.level <= 0
+      ? 0
+      : section.level >= 3
+        ? 3
+        : section.level) as MarkdownHeadingLevel;
+    points.push(point);
+    blocks.push({
+      heading: section.heading,
+      body: section.body,
+      level,
+      point,
+    });
   }
 
   const h1 = sections.find((section) => section.level === 1)?.heading;
   const firstHeading = sections.find((section) => section.level > 0)?.heading;
   const title = slugTitle(h1 || firstHeading || firstMeaningfulLine(text));
 
-  return { title, points, truncated };
+  return { title, points, blocks, truncated };
 }

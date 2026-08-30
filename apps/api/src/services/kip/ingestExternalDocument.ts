@@ -10,7 +10,8 @@ import {
   markdownToDraftPoints,
   parseDocumentPathDeclarations,
   parseDraftPoints,
-  planIngestAttachSection,
+  planIngestHeadingSections,
+  type DocumentPathDeclaration,
 } from '@keeper/shared';
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
 import { resolveDomainLeadAgentFromDomain } from '../domains/resolveDomainLeadAgent.js';
@@ -55,6 +56,25 @@ export class IngestExternalDocumentError extends Error {
     this.name = 'IngestExternalDocumentError';
     this.code = code;
   }
+}
+
+function describeIngestPlacement(
+  pointCount: number,
+  sections: DocumentPathDeclaration[],
+): string {
+  const n = `${pointCount} point${pointCount === 1 ? '' : 's'}`;
+  if (sections.length === 0) {
+    return `${n} brought in from outside Keeper.`;
+  }
+  if (sections.length === 1) {
+    return `${n} brought in — sitting in “${sections[0]?.title ?? 'Open'}”.`;
+  }
+  const shown = sections
+    .slice(0, 4)
+    .map((section) => `“${section.title}”`)
+    .join(', ');
+  const more = sections.length > 4 ? ` (+${sections.length - 4} more)` : '';
+  return `${n} brought in — ${sections.length} Sections: ${shown}${more}.`;
 }
 
 function slugifyKey(title: string): string {
@@ -139,7 +159,8 @@ export async function ingestExternalDocument(
   let created = false;
   let dialogId: string;
   let dialogTitle: string;
-  let attachSectionTitle: string | null = null;
+  let ingestPoints = parsed.points;
+  let createdSections: DocumentPathDeclaration[] = [];
 
   if (attachId) {
     const existing = await authorizeDialog(input.domainId, attachId, input.userId);
@@ -148,25 +169,38 @@ export async function ingestExternalDocument(
     }
     dialogId = existing.id;
     dialogTitle = existing.title;
-    const planned = planIngestAttachSection(
-      parseDocumentPathDeclarations(existing.document_paths),
-      input.title?.trim() || parsed.title,
-      `Brought in from ${source}.`,
-    );
-    attachSectionTitle = planned.section.title;
-    parsed.points = parsed.points.map((point) => ({
-      ...point,
-      pathGroupId: planned.section.id,
-    }));
+    const planned = planIngestHeadingSections({
+      paths: parseDocumentPathDeclarations(existing.document_paths),
+      blocks: parsed.blocks,
+      fallbackTitle: input.title?.trim() || parsed.title,
+      fallbackPrelude: `Brought in from ${source}.`,
+      requireSection: true,
+    });
+    ingestPoints = planned.points;
+    createdSections = planned.createdSections;
     await prisma.dialog.update({
       where: { id: dialogId },
       data: {
-        document_paths: planned.paths as Prisma.InputJsonValue,
+        document_paths: planned.paths as unknown as Prisma.InputJsonValue,
         step_title: 'Writing added',
-        step_body: `${parsed.points.length} point${parsed.points.length === 1 ? '' : 's'} brought in — sitting in “${planned.section.title}”.`,
+        step_body: describeIngestPlacement(ingestPoints.length, createdSections),
       },
     });
   } else {
+    const planned = planIngestHeadingSections({
+      paths: [],
+      blocks: parsed.blocks,
+      fallbackTitle: title,
+      requireSection: false,
+    });
+    ingestPoints = planned.points;
+    createdSections = planned.createdSections;
+    if (ingestPoints.length === 0 && createdSections.length === 0) {
+      throw new IngestExternalDocumentError(
+        'NO_POINTS',
+        'Could not find any sections to bring in.',
+      );
+    }
     const dialog = await prisma.dialog.create({
       data: {
         title,
@@ -178,7 +212,12 @@ export async function ingestExternalDocument(
         forward_title: title,
         forward_description: `Writing brought in from outside Keeper (${source}).`,
         step_title: 'Brought in',
-        step_body: `${parsed.points.length} section${parsed.points.length === 1 ? '' : 's'} started this conversation.`,
+        step_body: createdSections.length
+          ? describeIngestPlacement(ingestPoints.length, createdSections)
+          : `${ingestPoints.length} section${ingestPoints.length === 1 ? '' : 's'} started this conversation.`,
+        ...(planned.paths.length > 0
+          ? { document_paths: planned.paths as unknown as Prisma.InputJsonValue }
+          : {}),
       },
     });
     created = true;
@@ -198,7 +237,7 @@ export async function ingestExternalDocument(
 
   const existingPoints = manuscript ? parseDraftPoints(manuscript.spec_json) : [];
   const nextSpec = canonicalizeDraftSpecJson({
-    points: [...existingPoints, ...parsed.points],
+    points: [...existingPoints, ...ingestPoints],
   });
   const now = new Date();
 
@@ -226,15 +265,6 @@ export async function ingestExternalDocument(
       },
     });
     manuscriptId = manuscript.id;
-    if (!created && !attachSectionTitle) {
-      await prisma.dialog.update({
-        where: { id: dialogId },
-        data: {
-          step_title: 'Writing added',
-          step_body: `${parsed.points.length} point${parsed.points.length === 1 ? '' : 's'} brought in from outside Keeper.`,
-        },
-      });
-    }
   } else {
     const createdDraft = await prisma.kip_drafts.create({
       data: {
@@ -299,13 +329,12 @@ export async function ingestExternalDocument(
       session_id: sessionId,
       sender: 'user',
       role: 'user',
-      content: created
-        ? `Brought in writing from outside Keeper.\n\n${parsed.points.length} section${parsed.points.length === 1 ? '' : 's'} started this conversation.`
-        : `Brought in writing from outside Keeper.\n\nAdded ${parsed.points.length} section${parsed.points.length === 1 ? '' : 's'} to this conversation.`,
+      content: `Brought in writing from outside Keeper.\n\n${describeIngestPlacement(ingestPoints.length, createdSections)}`,
       metadata: {
         ingest: true,
         source,
-        appendedCount: parsed.points.length,
+        appendedCount: ingestPoints.length,
+        sectionCount: createdSections.length,
         truncated: parsed.truncated,
       } as Prisma.InputJsonValue,
     },
@@ -318,14 +347,14 @@ export async function ingestExternalDocument(
     agentId,
   });
 
-  const finalCount = existingPoints.length + parsed.points.length;
+  const finalCount = existingPoints.length + ingestPoints.length;
   return {
     created,
     dialogId,
     dialogTitle,
     manuscriptId,
     pointCount: finalCount,
-    appendedCount: parsed.points.length,
+    appendedCount: ingestPoints.length,
     sessionId,
     truncated: parsed.truncated,
   };

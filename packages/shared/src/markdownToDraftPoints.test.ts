@@ -9,6 +9,8 @@ describe('markdownToDraftPoints', () => {
     );
     expect(result.title).toBe('Spec');
     expect(result.points).toHaveLength(3);
+    expect(result.blocks).toHaveLength(3);
+    expect(result.blocks.map((block) => block.level)).toEqual([1, 2, 2]);
     expect(result.points[0]?.prelude).toBe('Spec');
     expect(result.points[0]?.content).toContain('Intro paragraph');
     expect(result.points[1]?.prelude).toBe('Task 1');
@@ -39,6 +41,7 @@ describe('markdownToDraftPoints', () => {
   it('returns no points for empty input', () => {
     const result = markdownToDraftPoints('   \n', { proposedBy: 'ingest' });
     expect(result.points).toHaveLength(0);
+    expect(result.blocks).toHaveLength(0);
     expect(result.title).toBe('Brought in writing');
     expect(result.truncated).toBe(false);
   });

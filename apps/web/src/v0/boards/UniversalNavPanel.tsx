@@ -1681,6 +1681,22 @@ export function UniversalNavPanel({
             ]}
           />
         )
+      case "stage":
+        return (
+          <SidebarCard
+            className="keeper-sidebar-card"
+            title="Stage"
+            description="Opens the Stage room"
+            items={[
+              {
+                id: "stage-open",
+                label: boardCtx?.workspaceSurface === "stage" ? "On Stage" : "Open Stage",
+                isSelected: boardCtx?.workspaceSurface === "stage",
+                onClick: () => boardCtx?.actions.openStageRoom(),
+              },
+            ]}
+          />
+        )
       case "glossary":
         if (!showGlossaryNav) return null
         return (

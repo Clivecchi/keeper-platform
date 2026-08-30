@@ -222,6 +222,7 @@ function UniversalBoardShell({
     chronicleEngagement,
     dialogIngest,
     libraryScreenOpen,
+    workspaceSurface,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -303,6 +304,10 @@ function UniversalBoardShell({
   React.useEffect(() => {
     if (libraryScreenOpen && useMobilePanelLayout) closeNavDrawer()
   }, [libraryScreenOpen, useMobilePanelLayout, closeNavDrawer])
+
+  React.useEffect(() => {
+    if (workspaceSurface === "stage" && useMobilePanelLayout) closeNavDrawer()
+  }, [workspaceSurface, useMobilePanelLayout, closeNavDrawer])
 
   const handleGoHome = React.useCallback(() => {
     actions.clearSelection()
@@ -751,6 +756,7 @@ function UniversalBoardShell({
               <KeeperBoardPanelGroup
                 boardKind={boardKind}
                 domainSlug={slug}
+                workspaceSurface={workspaceSurface}
                 left={leftNode}
                 center={centerNode}
                 right={rightNode}

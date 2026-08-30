@@ -48,6 +48,7 @@ describe("shouldRenderContentGatedBlock", () => {
     expect(shouldRenderContentGatedBlock("journeys", nav, emptyCounts)).toBe(true)
     expect(shouldRenderContentGatedBlock("library", nav, emptyCounts)).toBe(true)
     expect(shouldRenderContentGatedBlock("chatter", nav, emptyCounts)).toBe(true)
+    expect(shouldRenderContentGatedBlock("stage", nav, emptyCounts)).toBe(true)
   })
 
   it("keeps navAlwaysShow blocks visible when empty", () => {

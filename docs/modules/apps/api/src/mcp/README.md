@@ -1010,6 +1010,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 ## 📆 Update Log
 
+**2026-08-29**: `dialog_ingest` description — major headings become Document Sections; child headings become Points in that Section (same planner as Chronicle ingest).
+
 **2026-08-20**: `github_repo_read` lists directories and encodes nested Contents paths; Contents 404s fall back to the git tree with nearby-path hints so Cloud can recover from `apps/web/src/components/board` vs `boards`.
 
 **2026-08-19**: Capability Ledger Phase 2 — always-visible `capability_ledger` MCP tool + JWT `GET /api/capabilities/ledger`. One read of the three Phase 1 slices. Key stores listed, not merged. No enforcement changes. Phase 3 (Key-store consolidation) is not in this pass.

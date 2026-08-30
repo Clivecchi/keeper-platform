@@ -238,6 +238,8 @@ export interface UniversalBoardActions {
   setChroniclePanelMode: (mode: ChroniclePanelMode) => void
   /** Center workspace: Dialog (time) or Stage (space). Survives board switches. */
   setWorkspaceSurface: (surface: WorkspaceSurface) => void
+  /** Realm Nav launch — enter Stage room, close Library overlay. Does not change ?board=. */
+  openStageRoom: () => void
   openComposerReach: () => void
   closeComposerReach: () => void
   toggleComposerReach: () => void
@@ -413,6 +415,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const setWorkspaceSurface = React.useCallback((surface: WorkspaceSurface) => {
     setWorkspaceSurfaceState(surface)
+  }, [])
+
+  const openStageRoom = React.useCallback(() => {
+    setLibraryScreenOpen(false)
+    setWorkspaceSurfaceState("stage")
   }, [])
 
   const openComposerReach = React.useCallback(() => {
@@ -1257,6 +1264,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         openChronicleDocument,
         setChroniclePanelMode,
         setWorkspaceSurface,
+        openStageRoom,
         openComposerReach,
         closeComposerReach,
         toggleComposerReach,
@@ -1370,6 +1378,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       openChronicleDocument,
       setChroniclePanelMode,
       setWorkspaceSurface,
+      openStageRoom,
       openComposerReach,
       closeComposerReach,
       toggleComposerReach,

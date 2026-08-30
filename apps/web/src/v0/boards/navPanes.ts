@@ -15,13 +15,14 @@ export const NAV_PANE_LABELS: Record<NavPaneId, string> = {
   config: "Config",
 }
 
-/** Dialog, Draft, Chatter, Library — always on, every board. Sessions stay Design-gated. */
+/** Dialog, Draft, Chatter, Library — always on, every board. Sessions stay Design-gated. Stage is Realm-only. */
 export const UNIVERSAL_NAV_BLOCKS: NavRenderBlock[] = [
   "dialogs",
   "sessions",
   "drafts",
   "chatter",
   "library",
+  "stage",
 ]
 
 /** Keeper, Journeys, Moment (Moment is a create card under the selected Journey). */
@@ -109,6 +110,7 @@ export function paneBlocksFor(
   if (pane === "universal") {
     return UNIVERSAL_NAV_BLOCKS.filter((block) => {
       if (block === "sessions") return def.nav.sections.sessions === true
+      if (block === "stage") return def.boardId === "realm"
       return true
     })
   }

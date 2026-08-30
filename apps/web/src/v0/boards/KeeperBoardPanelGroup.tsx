@@ -1,8 +1,11 @@
 "use client"
 
 import * as React from "react"
+import type { WorkspaceSurface } from "@keeper/shared"
 
 export type KeeperBoardKind = "build" | "agent"
+
+export type PanelSplit = { leftPct: number; rightPct: number }
 
 export interface KeeperBoardPanelGroupProps {
   boardKind: KeeperBoardKind
@@ -10,6 +13,8 @@ export interface KeeperBoardPanelGroupProps {
   left: React.ReactNode
   center: React.ReactNode
   right: React.ReactNode
+  /** Dialog keeps stored split. Stage uses locked symmetric curtains. */
+  workspaceSurface?: WorkspaceSurface
 }
 
 /** Side rails: % of row. Center fills `100 - left - right`. */
@@ -18,9 +23,19 @@ const MIN_CENTER = 28
 const MAX_SIDE = 52
 const LAYOUT_VERSION = "v4"
 
-const DEFAULTS: Record<KeeperBoardKind, { leftPct: number; rightPct: number }> = {
+const DEFAULTS: Record<KeeperBoardKind, PanelSplit> = {
   build: { leftPct: 15, rightPct: 35 },
   agent: { leftPct: 15, rightPct: 35 },
+}
+
+/** Stage room — matched curtains. Center is 70%. */
+export const STAGE_CURTAIN_SPLIT: PanelSplit = { leftPct: 15, rightPct: 15 }
+
+export function panelSplitForSurface(
+  surface: WorkspaceSurface | undefined,
+  stored: PanelSplit,
+): PanelSplit {
+  return surface === "stage" ? STAGE_CURTAIN_SPLIT : stored
 }
 
 function storageKey(groupId: string) {
@@ -91,12 +106,16 @@ function saveStored(groupId: string, leftPct: number, rightPct: number) {
 const HANDLE_CLASS =
   "relative z-20 w-[4px] shrink-0 cursor-col-resize select-none bg-transparent outline-none group focus-visible:ring-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-1"
 
+const HANDLE_LOCKED_CLASS =
+  "relative z-20 w-[4px] shrink-0 select-none bg-transparent outline-none"
+
 export function KeeperBoardPanelGroup({
   boardKind,
   domainSlug,
   left: leftChild,
   center: centerChild,
   right: rightChild,
+  workspaceSurface = "dialog",
 }: KeeperBoardPanelGroupProps) {
   const fallback = DEFAULTS[boardKind]
   const slugKey = domainSlug.trim().length > 0 ? domainSlug : "default"
@@ -104,15 +123,17 @@ export function KeeperBoardPanelGroup({
   const legacyGroupId =
     boardKind === "build" ? `keeper-board-ide:${slugKey}` : null
 
-  const [{ leftPct, rightPct }, setPercents] = React.useState(() =>
+  const [storedSplit, setPercents] = React.useState(() =>
     loadStored(groupId, fallback, legacyGroupId),
   )
+  const { leftPct, rightPct } = panelSplitForSurface(workspaceSurface, storedSplit)
+  const curtainsLocked = workspaceSurface === "stage"
 
   const rootRef = React.useRef<HTMLDivElement>(null)
 
   const onResizePointerDown = React.useCallback(
     (edge: "left" | "right", e: React.PointerEvent) => {
-      if (e.button !== 0) return
+      if (curtainsLocked || e.button !== 0) return
       e.preventDefault()
       e.stopPropagation()
 
@@ -121,8 +142,8 @@ export function KeeperBoardPanelGroup({
 
       const widthPx = root.getBoundingClientRect().width || 1
       const startX = e.clientX
-      const startLeft = leftPct
-      const startRight = rightPct
+      const startLeft = storedSplit.leftPct
+      const startRight = storedSplit.rightPct
 
       const last = { left: startLeft, right: startRight }
 
@@ -158,7 +179,7 @@ export function KeeperBoardPanelGroup({
       window.addEventListener("pointerup", end)
       window.addEventListener("pointercancel", end)
     },
-    [groupId, leftPct, rightPct],
+    [curtainsLocked, groupId, storedSplit.leftPct, storedSplit.rightPct],
   )
 
   return (
@@ -172,12 +193,15 @@ export function KeeperBoardPanelGroup({
       <div
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize left panel"
-        className={HANDLE_CLASS}
-        style={{ touchAction: "none" }}
+        aria-label={curtainsLocked ? "Stage left curtain" : "Resize left panel"}
+        aria-disabled={curtainsLocked}
+        className={curtainsLocked ? HANDLE_LOCKED_CLASS : HANDLE_CLASS}
+        style={{ touchAction: curtainsLocked ? "auto" : "none" }}
         onPointerDown={(e) => onResizePointerDown("left", e)}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-8 rounded-full bg-transparent group-hover:bg-[hsl(var(--theme-border)/0.6)] transition-colors duration-150" />
+        {curtainsLocked ? null : (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-8 rounded-full bg-transparent group-hover:bg-[hsl(var(--theme-border)/0.6)] transition-colors duration-150" />
+        )}
       </div>
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden" style={{ flex: "1 1 0%", minWidth: 0 }}>
         {centerChild}
@@ -185,12 +209,15 @@ export function KeeperBoardPanelGroup({
       <div
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize right panel"
-        className={HANDLE_CLASS}
-        style={{ touchAction: "none" }}
+        aria-label={curtainsLocked ? "Stage right curtain" : "Resize right panel"}
+        aria-disabled={curtainsLocked}
+        className={curtainsLocked ? HANDLE_LOCKED_CLASS : HANDLE_CLASS}
+        style={{ touchAction: curtainsLocked ? "auto" : "none" }}
         onPointerDown={(e) => onResizePointerDown("right", e)}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-8 rounded-full bg-transparent group-hover:bg-[hsl(var(--theme-border)/0.6)] transition-colors duration-150" />
+        {curtainsLocked ? null : (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-8 rounded-full bg-transparent group-hover:bg-[hsl(var(--theme-border)/0.6)] transition-colors duration-150" />
+        )}
       </div>
       <div
         className="flex min-h-0 min-w-0 flex-col overflow-hidden"

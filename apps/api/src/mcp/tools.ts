@@ -868,7 +868,8 @@ const tools: Tool[] = [
       properties: {
         markdown: {
           type: 'string',
-          description: 'Markdown or plain text to turn into Document Points (one Point per heading)',
+          description:
+            'Markdown or plain text to turn into Document Points. Major headings (##, or later #) become Sections; child headings become Points in that Section.',
         },
         title: {
           type: 'string',
