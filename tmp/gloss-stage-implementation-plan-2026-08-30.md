@@ -45,11 +45,23 @@ Agency (Role / Direction) leaves the Stage floor; it belongs in Composer/Chronic
 Keep references, not clones. Selected ≠ silently retargeting Stage Chat.
 First proof: enter Stage with Finding the Plot already on it → speak immediately → Chronicle still shows the story.
 
+Named Stage vs viewstate (Chuck, 2026-08-30 — awaiting lock)
+Two things. Do not collapse them.
+
+**Viewstate** — `workspaceSurface`: Dialog or Stage. “Open Stage” in Nav. How you look at the room. Not every Dialog has a named Stage. Every Dialog can still have a Chronicle reading when selected — that is the Dialog’s view, not a Stage.
+
+**Named Stage** — a titled composition. The first one is **Keeper Stage**. It aligns with the Document section. One Stage may hold many Dialogs (cross-stories). Agents tell that Stage’s story.
+
+Title bar when a named Stage is open: **Stage** · Talking in · Working on.
+
+Nav “Open Stage” still enters the viewstate. Later, Nav can list named Stages. Do not invent a Stage table until a second named Stage is real. Today’s store (`Domain.settings.keeperStage`, title already exists, default “Keeper”) is enough to name this first one **Keeper Stage**.
+
 Slice 5 — Later, not now
 Domain Stage as a public/member Domain experience.
 Invitation + permanent inviting-Domain.
 Cloud review of Agent governance before Stage/Cast contract primitives.
 Rendr / Theatre.js as full Stage presentation.
+A list of many named Stages.
 
 Cast Management (Chuck, 2026-08-30 — parked here, specified in `docs/dialog-cueing-plan.md`)
 Style and Cueing can fight (Vibe auto-cued Cast while Cueing said Directed). Build Cast Management and the config around it: roster, Style/Cueing contract, and unique voice style per agent. Not the next Stage slice.
