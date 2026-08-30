@@ -1,9 +1,21 @@
 "use client"
 
 import * as React from "react"
+import { toPresentInstanceKey } from "../presents/presentInstanceKey"
+import {
+  captionMotionStyle,
+  primaryMotionStyle,
+  secondaryMotionStyle,
+} from "../presents/presentMotionStyles"
+import {
+  PresentMotionProvider,
+  usePresentMotionValues,
+} from "../presents/usePresentMotion"
 import type { StageSlide } from "./stageFilmstrip"
 
 function SlideScene({ slide }: { slide: StageSlide }) {
+  const motion = usePresentMotionValues()
+
   return (
     <article
       className="keeper-stage-slide"
@@ -11,21 +23,33 @@ function SlideScene({ slide }: { slide: StageSlide }) {
     >
       <p
         className="text-[11px] uppercase tracking-[0.1em]"
-        style={{ color: "hsl(var(--theme-ink-secondary))", margin: 0 }}
+        style={{
+          color: "hsl(var(--theme-ink-secondary))",
+          margin: 0,
+          ...captionMotionStyle(motion),
+        }}
       >
         {slide.slideType.replace("_", " ")}
         {slide.kind === "title" ? " · 1" : ""}
       </p>
       <h2
         className="keeper-treatment-title mt-3 text-[28px] leading-tight"
-        style={{ color: "hsl(var(--theme-ink-primary))", margin: 0 }}
+        style={{
+          color: "hsl(var(--theme-ink-primary))",
+          margin: 0,
+          ...primaryMotionStyle(motion),
+        }}
       >
         {slide.title}
       </h2>
       {slide.body ? (
         <p
           className="mt-4 whitespace-pre-wrap text-[17px] leading-relaxed"
-          style={{ color: "hsl(var(--theme-ink-primary))", margin: 0 }}
+          style={{
+            color: "hsl(var(--theme-ink-primary))",
+            margin: 0,
+            ...secondaryMotionStyle(motion),
+          }}
         >
           {slide.body}
         </p>
@@ -44,6 +68,8 @@ export function StageFilmstrip({ slides }: { slides: ReadonlyArray<StageSlide> }
   }, [slides.length, slides[slides.length - 1]?.body])
 
   if (!current) return null
+
+  const instanceKey = toPresentInstanceKey("stage", current.id)
 
   return (
     <div className="flex w-full max-w-3xl flex-col items-center gap-4">
@@ -78,7 +104,14 @@ export function StageFilmstrip({ slides }: { slides: ReadonlyArray<StageSlide> }
           </button>
         ))}
       </nav>
-      <SlideScene slide={current} />
+      <PresentMotionProvider
+        key={current.id}
+        present="slide"
+        instanceKey={instanceKey}
+        enabled
+      >
+        <SlideScene slide={current} />
+      </PresentMotionProvider>
     </div>
   )
 }

@@ -19,6 +19,7 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - Sheet instance id = `{objectType}:{objectId}` so concurrent Chronicle selections do not collide
 - `@theatre/studio` is dev-only; production bundle uses `@theatre/core` only
 - Motion runs when `KeeperPresence` `layout="focus"` and record is loaded; config layout skips animation
+- Stage filmstrip plays the same `slide` Present when the current cell is shown (`StageFilmstrip`)
 
 ## ⚠️ Notes & ToDo
 - [ ] Domain-level Present sequence overrides from Rendr (domain JSON precedence)
@@ -27,6 +28,9 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 
 ## 📆 Update Log
 
+### 2026-08-30 — Stage filmstrip uses `slide`
+- `StageFilmstrip` plays the existing `slide` sequence. Theatre authors motion, not the story title.
+
 ### 2026-05-25 — Tuned default Present sequences (spec §8.2)
 - Cover: 1.2s atmosphere, identity after 1.05s, staggered content through 2.35s
 - Slide: primary → +200ms secondary → +200ms context/caption beats
@@ -34,6 +38,7 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - Journey: title+forward on primary track; paths/body stagger on secondary; meta on context
 - Moment: title, 440ms breath (hold), narrative, context beneath
 - Per-keyframe easing + hold types; project id bumped to `Keeper Presents · tuned`
+- Theatre state uses `definitionVersion: "0.4.0"` and JSON-encoded prop paths (required by @theatre/core 0.7)
 
 ### 2026-05-25 — Theatre.js scaffold (Steps 4–6)
 - Added five default Present sequences and project state builder

@@ -19,6 +19,7 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - Sheet instance id = `{objectType}:{objectId}` so concurrent Chronicle selections do not collide
 - `@theatre/studio` is dev-only; production bundle uses `@theatre/core` only
 - Motion runs when `KeeperPresence` `layout="focus"` and record is loaded; config layout skips animation
+- Stage filmstrip plays the same `slide` Present when the current cell is shown (`StageFilmstrip`)
 
 ## ⚠️ Notes & ToDo
 - [ ] Domain-level Present sequence overrides from Rendr (domain JSON precedence)
@@ -26,6 +27,9 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - [ ] Wire `context` prop to future feed/journey surfaces beyond Chronicle
 
 ## 📆 Update Log
+
+### 2026-08-30 — Stage filmstrip uses `slide`
+- `StageFilmstrip` plays the existing `slide` sequence. Theatre authors motion, not the story title.
 
 ### 2026-05-25 — Tuned default Present sequences (spec §8.2)
 - Cover: 1.2s atmosphere, identity after 1.05s, staggered content through 2.35s

@@ -7,7 +7,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
-- `KeeperStageCanvas.tsx` — Stage table: **Now** beat (last Turn + reply) plus object cards
+- `KeeperStageCanvas.tsx` — Stage Frame: filmstrip of Slides plus object assets
 - `StageNowBeat.tsx` / `stageNowBeat.ts` — last Turn + reply (feeds a text_slide, not a special surface)
 - `StageFilmstrip.tsx` / `stageFilmstrip.ts` — story filmstrip; first Slide is the existing title
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
@@ -18,7 +18,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
-- **Filmstrip:** Stage is a **Frame** (the room). The story is a strip of **Slides**. First Slide is the title that already exists (Talking in, else Keeper Stage). Current beat is a later `text_slide` — already named in the jsonframe spec. Now is not a special card type.
+- **Filmstrip:** Stage is a **Frame** (the room). The story is a strip of **Slides**. First Slide is the title that already exists (Talking in, else Keeper Stage). Current beat is a later `text_slide`. Each current Slide **plays** the existing Theatre Present `slide` (opacity / settle). Theatre does not author the strip.
 - Objects on Stage are assets (wide context = everything placed; narrow = selected + what was just said). Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed is fair game.
 - The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
@@ -30,12 +30,15 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Rendr: more SlideTypes on Stage (`moment_card`) after the title + beat strip is felt
 - [ ] Stage Config in Chronicle (how this Stage tells) — `ChronicleConfigShell`, no fourth panel
 - [ ] Agent story-arrange propose + human Apply (analog of Review & Reorganize; do not invent until Rendr shapes it)
-- [ ] Theatre.js choreography — after the Frame story is real
+- [x] Play filmstrip cells on the existing Theatre `slide` Present (not a new Stage project)
 - [ ] Persistent Keeper Cast migration off boardCast defaults
 - [ ] Confirm Finding the Plot is the first object Chuck wants seeded vs brought by hand
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Theatre plays Stage Slides
+- Current filmstrip cell uses `PresentMotionProvider` `present="slide"` — the same sequence Chronicle already plays. Title arrives, then body. Switching cells replays. Theatre is not a new Stage project and not the source of the title.
 
 ### 2026-08-30 — Default Stage belongs to the domain
 - `displayStageTitle` / `displayKeeperStageTitle` take an optional domain label. Empty or `Keeper` becomes `{domain} Stage`.
