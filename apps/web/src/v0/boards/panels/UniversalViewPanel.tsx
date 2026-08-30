@@ -52,6 +52,7 @@ import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 import { LibrarySharedContextRoadmapPanel } from "../../presence/chronicleDocument/LibrarySharedContextRoadmapPanel"
 import { ReachChroniclePresence } from "../../presence/ReachChroniclePresence"
+import { OnStageObjectList } from "../../composer/OnStageObjectList"
 import { shouldRenderRealmDocumentChronicle } from "../workspaceSurface"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
@@ -766,20 +767,27 @@ export function UniversalViewPanel({
             />
           )
         ) : (
-          <PanelBody
-            subject={liveSubject}
-            subjectKey={contextKey}
-            domainId={domainId}
-            domainName={domainName}
-            domainSlug={domainSlug}
-            boardId={def.boardId}
-            onJourneySelect={handleJourneySelect}
-            onPathSelect={handlePathSelect}
-            onMomentSelect={handleMomentSelect}
-            onSessionSelect={handleSessionSelect}
-            onLabelResolved={handleLabelResolved}
-            treatment={chronicleTreatment}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {boardCtx?.workspaceSurface === "stage" ? (
+              <OnStageObjectList layout="chronicle" />
+            ) : null}
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <PanelBody
+                subject={liveSubject}
+                subjectKey={contextKey}
+                domainId={domainId}
+                domainName={domainName}
+                domainSlug={domainSlug}
+                boardId={def.boardId}
+                onJourneySelect={handleJourneySelect}
+                onPathSelect={handlePathSelect}
+                onMomentSelect={handleMomentSelect}
+                onSessionSelect={handleSessionSelect}
+                onLabelResolved={handleLabelResolved}
+                treatment={chronicleTreatment}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>

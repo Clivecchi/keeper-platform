@@ -12,6 +12,7 @@ import {
   usePresentMotionValues,
 } from "../presents/usePresentMotion"
 import type { StageSlide } from "./stageFilmstrip"
+import { useStagePresentationOptional } from "./stagePresentation"
 
 function SlideScene({ slide }: { slide: StageSlide }) {
   const motion = usePresentMotionValues()
@@ -30,10 +31,9 @@ function SlideScene({ slide }: { slide: StageSlide }) {
         }}
       >
         {slide.slideType.replace("_", " ")}
-        {slide.kind === "title" ? " · 1" : ""}
       </p>
       <h2
-        className="keeper-treatment-title mt-3 text-[28px] leading-tight"
+        className="keeper-treatment-title mt-4 text-[36px] leading-tight"
         style={{
           color: "hsl(var(--theme-ink-primary))",
           margin: 0,
@@ -44,7 +44,7 @@ function SlideScene({ slide }: { slide: StageSlide }) {
       </h2>
       {slide.body ? (
         <p
-          className="mt-4 whitespace-pre-wrap text-[17px] leading-relaxed"
+          className="mt-6 max-w-2xl whitespace-pre-wrap text-[20px] leading-relaxed"
           style={{
             color: "hsl(var(--theme-ink-primary))",
             margin: 0,
@@ -58,60 +58,65 @@ function SlideScene({ slide }: { slide: StageSlide }) {
   )
 }
 
-export function StageFilmstrip({ slides }: { slides: ReadonlyArray<StageSlide> }) {
-  const last = Math.max(0, slides.length - 1)
-  const [index, setIndex] = React.useState(last)
-  const current = slides[Math.min(index, last)] ?? slides[0]
-
-  React.useEffect(() => {
-    setIndex(Math.max(0, slides.length - 1))
-  }, [slides.length, slides[slides.length - 1]?.body])
-
+/** Big screen — current Slide only. Objects do not live here. */
+export function StagePresentationScreen() {
+  const story = useStagePresentationOptional()
+  const current = story?.current
   if (!current) return null
 
-  const instanceKey = toPresentInstanceKey("stage", current.id)
-
   return (
-    <div className="flex w-full max-w-3xl flex-col items-center gap-4">
-      <nav aria-label="Story filmstrip" className="flex flex-wrap items-center justify-center gap-2">
-        {slides.map((slide, i) => (
-          <button
-            key={slide.id}
-            type="button"
-            onClick={() => setIndex(i)}
-            aria-current={i === index ? "true" : undefined}
-            className="rounded-md px-3 py-2 text-left"
-            style={{
-              minWidth: 88,
-              border:
-                i === index
-                  ? "1px solid hsl(var(--theme-accent-primary))"
-                  : "1px solid hsl(var(--theme-border-soft) / 0.7)",
-              background:
-                i === index
-                  ? "hsl(var(--theme-surface-paper) / 0.88)"
-                  : "hsl(var(--theme-surface-paper) / 0.45)",
-              color: "hsl(var(--theme-ink-primary))",
-            }}
-          >
-            <span
-              className="block text-[10px] uppercase tracking-[0.08em]"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-            >
-              {i + 1}
-            </span>
-            <span className="block max-w-[9rem] truncate text-[13px]">{slide.title}</span>
-          </button>
-        ))}
-      </nav>
+    <div
+      className="flex h-full min-h-0 items-center justify-center px-10 py-8"
+      aria-label="Stage presentation"
+    >
       <PresentMotionProvider
         key={current.id}
         present="slide"
-        instanceKey={instanceKey}
+        instanceKey={toPresentInstanceKey("stage", current.id)}
         enabled
       >
         <SlideScene slide={current} />
       </PresentMotionProvider>
     </div>
+  )
+}
+
+/** Filmstrip cells — sit just above Composer. */
+export function StageSlideStrip() {
+  const story = useStagePresentationOptional()
+  if (!story || story.slides.length === 0) return null
+
+  return (
+    <nav aria-label="Story filmstrip" className="flex flex-wrap items-center gap-2 px-1 pb-2">
+      {story.slides.map((slide, i) => (
+        <button
+          key={slide.id}
+          type="button"
+          onClick={() => story.setIndex(i)}
+          aria-current={i === story.index ? "true" : undefined}
+          className="rounded-md px-3 py-2 text-left"
+          style={{
+            minWidth: 88,
+            border:
+              i === story.index
+                ? "1px solid hsl(var(--theme-accent-primary))"
+                : "1px solid hsl(var(--theme-border-soft) / 0.7)",
+            background:
+              i === story.index
+                ? "hsl(var(--theme-surface-paper) / 0.88)"
+                : "hsl(var(--theme-surface-paper) / 0.45)",
+            color: "hsl(var(--theme-ink-primary))",
+          }}
+        >
+          <span
+            className="block text-[10px] uppercase tracking-[0.08em]"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+          >
+            {i + 1}
+          </span>
+          <span className="block max-w-[9rem] truncate text-[13px]">{slide.title}</span>
+        </button>
+      ))}
+    </nav>
   )
 }

@@ -76,6 +76,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-08-30: **Stage screen + strip** — presentation fills Dialog Space; filmstrip sits just above Composer. Objects select from Reach / Chronicle, not the screen.
 - 2026-08-30: **Stage story is Frames** — Workspace-on-Stage is presentation (Frames + Config), not discussion Points. Now stays the first glimpse.
 - 2026-08-30: **Now on Stage** — Header Bar adds Stage · Talking in · Working on. Stage canvas shows the current beat, not the Dialog transcript.
 - 2026-08-30: **Composer lectern on Stage** — same bottom place as Dialog. Elevation is Agency + Reach-in-Chronicle, not a move to the top. `data-composer-placement="pit"`.

@@ -93,6 +93,7 @@ import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard
 import type { GlossThread } from "@keeper/shared"
 import { KeeperStageCanvas } from "../composer/KeeperStageCanvas"
 import { displayStageTitle } from "../composer/stageNowBeat"
+import { StagePresentationProvider } from "../composer/stagePresentation"
 import { useKeeperStageOptional } from "../composer/useKeeperStage"
 import {
   CAST_MEMBER_LABELS,
@@ -2688,6 +2689,14 @@ export function UniversalConversation({
       )}
 
       <TreatmentAccentShell treatment={dialogTreatment} className="keeper-dialog-treatment min-h-0 flex-1">
+      <StagePresentationProvider
+        messages={dialogMessages}
+        userName={dialogUserDisplayName}
+        agentName={dialogAgentDisplayName}
+        isSending={isSending}
+        storyTitle={dialogTitle}
+        domainLabel={domainName}
+      >
       <KeeperDialogFrame
         bannerContext={bannerContext}
         sessionId={dialogSessionId}
@@ -2695,15 +2704,7 @@ export function UniversalConversation({
         onSaveTitle={kipMode === "build" ? handleSaveTitle : undefined}
         dialogContent={
           workspaceSurface === "stage" ? (
-            <KeeperStageCanvas
-              domainId={domainId}
-              messages={dialogMessages}
-              userName={dialogUserDisplayName}
-              agentName={dialogAgentDisplayName}
-              isSending={isSending}
-              storyTitle={dialogTitle}
-              domainLabel={domainName}
-            />
+            <KeeperStageCanvas domainId={domainId} />
           ) : undefined
         }
         dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}
@@ -2825,6 +2826,7 @@ export function UniversalConversation({
           onUpdateMessageThreads: handleGlossThreadUpdate,
         }}
       />
+      </StagePresentationProvider>
       </TreatmentAccentShell>
 
       {domainId ? (

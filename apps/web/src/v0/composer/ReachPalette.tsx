@@ -9,6 +9,7 @@ import * as React from "react"
 import { stagePresenceKindLabel, type StagePresenceKind } from "@keeper/shared"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoard } from "../boards/UniversalBoardContext"
+import { OnStageObjectList } from "./OnStageObjectList"
 import { fetchComposerCast, useKeeperStage, type ComposerCastAgent } from "./useKeeperStage"
 
 type NavIndexItem = {
@@ -180,6 +181,7 @@ export function ReachPalette({
           <p className="py-6 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>Looking…</p>
         ) : (
           <>
+            <OnStageObjectList layout="reach" />
             <Rail title="Here" rows={hereRows} onPick={bringRow} />
             <Rail title="Cast" rows={castRows} onPick={bringRow} />
             <Rail title="Recent" rows={recentRows} onPick={bringRow} />

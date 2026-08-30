@@ -7,9 +7,10 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
-- `KeeperStageCanvas.tsx` — Stage Frame: filmstrip of Slides plus object assets
-- `StageNowBeat.tsx` / `stageNowBeat.ts` — last Turn + reply (feeds a text_slide, not a special surface)
-- `StageFilmstrip.tsx` / `stageFilmstrip.ts` — story filmstrip; first Slide is the existing title
+- `KeeperStageCanvas.tsx` — Stage **screen** (current Slide only)
+- `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
+- `OnStageObjectList.tsx` — active objects in Reach, Chronicle, and Composer
+- `stageNowBeat.ts` / `stageFilmstrip.ts` — beat + derived Slides
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
 - `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
 - `useBindStageDialog.ts` — auto-bind Talking in when a Dialog is already on Stage
@@ -18,7 +19,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
-- **Filmstrip:** Stage is a **Frame** (the room). The story is a strip of **Slides**. First Slide is the title that already exists (Talking in, else Keeper Stage). Current beat is a later `text_slide`. Each current Slide **plays** the existing Theatre Present `slide` (opacity / settle). Theatre does not author the strip.
+- **Screen / strip / Reach:** Stage is the big presentation screen. Filmstrip cells sit just above Composer. Objects are not on the screen — they are **On Stage** in Reach (list over Chronicle) and as chips in Composer. Selection happens there.
 - Objects on Stage are assets (wide context = everything placed; narrow = selected + what was just said). Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed is fair game.
 - The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
@@ -36,6 +37,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Stage is the screen
+- Objects leave the canvas. On Stage list lives at the top of Reach and Chronicle; Composer shows active chips. Filmstrip sits just above Composer. The 70% is the current Slide only.
 
 ### 2026-08-30 — Theatre plays Stage Slides
 - Current filmstrip cell uses `PresentMotionProvider` `present="slide"` — the same sequence Chronicle already plays. Title arrives, then body. Switching cells replays. Theatre is not a new Stage project and not the source of the title.

@@ -57,6 +57,8 @@ import { useTalkMode } from "../../../hooks/useTalkMode"
 import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
+import { OnStageObjectList } from "../../composer/OnStageObjectList"
+import { StageSlideStrip } from "../../composer/StageFilmstrip"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
 import "../../../components/gloss/gloss.css"
@@ -546,6 +548,8 @@ export function KeeperDialogFrame({
   const composerZone = mode === "feed" ? null : (
       <div className="dialog-bottom-zone">
         <div className="dialog-column dialog-bottom-stack">
+          {composerOnStage ? <StageSlideStrip /> : null}
+          {composerOnStage ? <OnStageObjectList layout="composer" /> : null}
           {composerOnStage && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
           {postRunSummary && (
             <div className="dialog-composer-horizon" aria-live="polite">
