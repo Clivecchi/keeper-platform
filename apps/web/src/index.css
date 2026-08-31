@@ -600,6 +600,13 @@ button.dialog-prelude:hover {
   display: none;
 }
 
+/* Stage presentations own their media — do not dissolve them into the board wash. */
+.keeper-dialog-frame[data-composer-placement="pit"] .dialog-message-surface {
+  -webkit-mask-image: none;
+  mask-image: none;
+  overflow-y: hidden;
+}
+
 /* Zone 2 wrapper — takes flex:1 so the scroll surface can be height:100% */
 .dialog-message-zone {
   position: relative;

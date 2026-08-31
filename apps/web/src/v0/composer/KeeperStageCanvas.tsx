@@ -21,10 +21,7 @@ export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | 
           <span className="text-[11px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>Saving</span>
         </div>
       ) : null}
-      <div
-        className="min-h-0 flex-1 overflow-hidden"
-        style={{ background: "hsl(var(--theme-surface-panel) / 0.12)" }}
-      >
+      <div className="min-h-0 flex-1 overflow-hidden">
         {stageApi?.loading ? (
           <p className="p-4 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             Loading Stage…

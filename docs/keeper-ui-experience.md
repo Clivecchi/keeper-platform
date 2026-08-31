@@ -68,7 +68,7 @@ Two things named Stage:
 
 **Forward motion (2026-08-30):** Domain presentations. Root is the Cover (`domain_cover` — wordmark, tagline, Forward). That is the frame that loads with the domain, not a `text_slide` title. Forward opens the **selected story**. On Stage, that is the filmstrip after Root. On public Cover, that is Present (first public journey today; Stage story when Present can play it). Browse journeys is not Forward.
 
-**Filmstrip:** Root first. Story beats after. Theatre plays the current cell. Objects stay in Reach / Composer, not on the glass.
+**Filmstrip:** Root first. Story beats after. Each cell is a standalone engagement — media field + paper card, as the public Cover dresses. Theatre plays the current cell. Objects stay in Reach / Chronicle, not Composer.
 
 ### World Mode (Presentation vs Workshop)
 

@@ -8,7 +8,7 @@ import { useKeeperStageOptional } from "./useKeeperStage"
 export function OnStageObjectList({
   layout,
 }: {
-  layout: "chronicle" | "reach" | "composer"
+  layout: "chronicle" | "reach"
 }) {
   const { actions, workspaceSurface } = useUniversalBoard()
   const stageApi = useKeeperStageOptional()
@@ -21,35 +21,6 @@ export function OnStageObjectList({
     stageApi.select(presence.id)
     actions.onWorkTargetFromStage({ kind: presence.kind, objectId: presence.objectId })
     if (layout === "reach") actions.closeComposerReach()
-  }
-
-  if (layout === "composer") {
-    return (
-      <div className="flex flex-wrap items-center gap-1.5 px-1 pb-2" aria-label="On Stage">
-        {stageApi.stage.presences.map((presence) => {
-          const on = selected?.id === presence.id
-          return (
-            <button
-              key={presence.id}
-              type="button"
-              onClick={() => pick(presence)}
-              className="rounded-full px-2.5 py-1 text-[12px]"
-              style={{
-                border: on
-                  ? "1px solid hsl(var(--theme-accent-primary))"
-                  : "1px solid hsl(var(--theme-border-soft))",
-                background: on
-                  ? "hsl(var(--theme-accent-primary) / 0.16)"
-                  : "hsl(var(--theme-surface-panel) / 0.45)",
-                color: "hsl(var(--theme-ink-primary))",
-              }}
-            >
-              {presence.title}
-            </button>
-          )
-        })}
-      </div>
-    )
   }
 
   return (

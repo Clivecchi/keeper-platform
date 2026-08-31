@@ -9,7 +9,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
 - `KeeperStageCanvas.tsx` — Stage **screen** (current Slide only)
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
-- `OnStageObjectList.tsx` — active objects in Reach, Chronicle, and Composer
+- `OnStageObjectList.tsx` — On Stage list in Reach and Chronicle (not Composer)
+- `StageEngagementSurface.tsx` — Slide as media field + paper card (public Cover dress)
 - `stageNowBeat.ts` / `stageFilmstrip.ts` — domain Root (`domain_cover`) + story beats after Forward
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
 - `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
@@ -19,7 +20,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
-- **Screen / strip / Reach:** Stage is the big presentation screen. Filmstrip cells sit just above Composer. Objects are not on the screen — they are **On Stage** in Reach (list over Chronicle) and as chips in Composer. Selection happens there.
+- **Screen / strip / Reach:** Stage is the presentation screen. Each Slide is a standalone engagement — its own media field and paper card (Root uses the public Cover image). Filmstrip cells sit just above Composer. Objects are **On Stage** in Reach and Chronicle only — not in Composer.
 - Objects on Stage are assets (wide context = everything placed; narrow = selected + what was just said). Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed is fair game.
 - The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
@@ -38,6 +39,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Slides are engagements; objects leave Composer
+- Root (and beats) fill the Stage screen as the public Cover does: cover image + paper card. Objects stay in Reach / Chronicle. Composer is the lectern only.
 
 ### 2026-08-30 — Root is the domain Cover
 - First cell is `domain_cover` (wordmark, tagline, Forward) — the frame that loads with the domain. Not a `text_slide` title. Forward opens the selected story (beats after Root). Agents do not author the Root.
