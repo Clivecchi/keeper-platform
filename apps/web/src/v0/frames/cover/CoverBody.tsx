@@ -174,7 +174,7 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
           }
         }
 
-        if (isAuthenticated || designerPreview) {
+        if (designerPreview) {
           navigateToJourneysFallback()
           return
         }

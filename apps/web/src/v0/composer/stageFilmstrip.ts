@@ -1,19 +1,15 @@
-import { displayStageTitle, type StageNowBeatModel } from "./stageNowBeat"
+import {
+  domainCoverRootSlide,
+  withDomainCoverRoot,
+  type StageSlideKind,
+  type StageSlideType,
+  type StageStorySlide,
+} from "@keeper/shared"
+import { type StageNowBeatModel } from "./stageNowBeat"
 
-/** Already named in jsonframe spec — story beats, not a new SlideType. */
-export const STAGE_SLIDE_TYPE_TEXT = "text_slide" as const
+export type { StageSlideKind, StageSlideType }
 
-export type StageSlideType = typeof STAGE_SLIDE_TYPE_TEXT
-
-export type StageSlideKind = "title" | "beat"
-
-export type StageSlide = {
-  id: string
-  slideType: StageSlideType
-  kind: StageSlideKind
-  title: string
-  body: string
-}
+export type StageSlide = StageStorySlide
 
 function excerpt(text: string, max = 280): string {
   const trimmed = text.replace(/\s+/g, " ").trim()
@@ -30,41 +26,36 @@ function beatBody(beat: StageNowBeatModel, waiting: boolean): string {
 }
 
 /**
- * Derived filmstrip — no Prisma table.
- * Slide 1 is the title that already exists (Talking in, else Stage name).
- * The current beat is a later text_slide, not a special Now surface.
+ * Domain presentations: Root is always the Cover (`domain_cover`).
+ * Forward opens the selected story (beats). Agents do not author the Root.
  */
 export function resolveStageFilmstrip(input: {
-  stageTitle: string
-  storyTitle?: string | null
+  wordmark?: string | null
+  tagline?: string | null
   domainLabel?: string | null
   beat: StageNowBeatModel
   waiting: boolean
+  persisted?: ReadonlyArray<StageSlide> | null
 }): StageSlide[] {
-  const stageName = displayStageTitle(input.stageTitle, input.domainLabel)
-  const heading = input.storyTitle?.trim() || stageName
-  const slides: StageSlide[] = [
-    {
-      id: "title",
-      slideType: STAGE_SLIDE_TYPE_TEXT,
-      kind: "title",
-      title: heading,
-      body:
-        heading === stageName
-          ? "The story has a name. Speak from the lectern."
-          : `On ${stageName}.`,
-    },
-  ]
+  const root = domainCoverRootSlide({
+    wordmark: input.wordmark,
+    tagline: input.tagline,
+    domainLabel: input.domainLabel,
+  })
 
+  if (input.persisted && input.persisted.length > 0) {
+    return withDomainCoverRoot(input.persisted, root)
+  }
+
+  const slides: StageSlide[] = [root]
   if (input.beat.you || input.beat.answer || input.waiting) {
     slides.push({
       id: "now",
-      slideType: STAGE_SLIDE_TYPE_TEXT,
+      slideType: "text_slide",
       kind: "beat",
       title: input.beat.answer?.name || input.beat.you?.name || "Now",
       body: beatBody(input.beat, input.waiting),
     })
   }
-
   return slides
 }

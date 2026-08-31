@@ -5,44 +5,49 @@ import { resolveStageFilmstrip } from "./stageFilmstrip"
 const emptyBeat = { you: null, answer: null }
 
 describe("resolveStageFilmstrip", () => {
-  it("uses the existing story title as the first text_slide", () => {
+  it("uses the domain Cover as Root, not a text title", () => {
     const slides = resolveStageFilmstrip({
-      stageTitle: "Keeper",
-      storyTitle: "Finding the Plot",
+      wordmark: "ke3p",
+      tagline: "Becoming together",
+      domainLabel: "ke3p",
       beat: emptyBeat,
       waiting: false,
     })
     expect(slides).toHaveLength(1)
     expect(slides[0]).toMatchObject({
-      id: "title",
-      slideType: "text_slide",
-      kind: "title",
-      title: "Finding the Plot",
+      id: "root",
+      slideType: "domain_cover",
+      kind: "root",
+      title: "ke3p",
+      body: "Becoming together",
     })
   })
 
-  it("falls back to the Stage name when no story title exists", () => {
+  it("adds the current beat after Root — that is the selected story in progress", () => {
     const slides = resolveStageFilmstrip({
-      stageTitle: "Keeper",
-      beat: emptyBeat,
-      waiting: false,
-    })
-    expect(slides[0]?.title).toBe("Keeper Stage")
-  })
-
-  it("adds the current beat as a later text_slide, not a special Now surface", () => {
-    const slides = resolveStageFilmstrip({
-      stageTitle: "Keeper",
-      storyTitle: "Finding the Plot",
+      wordmark: "ke3p",
       beat: {
         you: { name: "Chuck", text: "Where is the story?" },
-        answer: { name: "Kip", text: "On the filmstrip." },
+        answer: { name: "Kip", text: "After Forward." },
       },
       waiting: false,
     })
-    expect(slides.map((slide) => slide.id)).toEqual(["title", "now"])
+    expect(slides.map((slide) => slide.kind)).toEqual(["root", "beat"])
     expect(slides[1]?.slideType).toBe("text_slide")
     expect(slides[1]?.body).toContain("Where is the story?")
-    expect(slides[1]?.body).toContain("On the filmstrip.")
+  })
+
+  it("keeps the domain Root in front of a persisted story", () => {
+    const slides = resolveStageFilmstrip({
+      wordmark: "ke3p",
+      tagline: "Becoming together",
+      beat: emptyBeat,
+      waiting: false,
+      persisted: [
+        { id: "s2", slideType: "text_slide", kind: "beat", title: "The gap", body: "Stage is not the story." },
+      ],
+    })
+    expect(slides.map((slide) => slide.title)).toEqual(["ke3p", "The gap"])
+    expect(slides[0]?.slideType).toBe("domain_cover")
   })
 })

@@ -20,6 +20,7 @@ Domain policy pack definitions and helpers that feed Kip environment bundles and
 - [ ] Surface policy version negotiation if a future pack is introduced
 
 ## 📆 Update Log
+- 2026-08-30: **stage.story.layout** — golden path + handlers. Lead writes the Stage filmstrip.
 - 2026-08-25: **gloss.append** — golden path + handlers. Lead Gloss on a Document Point (Chronicle Gloss carrier). Not a rewrite.
 - 2026-08-22: **document.reorganize.propose** — added to golden path + handlers. Lead Review & Reorganize; Apply is a human Chronicle action, not an agent write.
 - 2026-08-19: **Capability Ledger Phase 1** — extracted `kipActionAllowlist.ts` (`GOLDEN_PATH_ACTIONS`, `buildAllowedActions`, `buildKipActionAllowlistStatus`) so the executor, MCP `kip_actions_list`, and `GET /api/kip/actions/allowlist` share one read of the Kip allowlist. No enforcement changes.

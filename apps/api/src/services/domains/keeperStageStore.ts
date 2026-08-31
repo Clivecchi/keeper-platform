@@ -6,7 +6,7 @@
 import { prisma, type Prisma } from '@keeper/database';
 import {
   KEEPER_STAGE_SETTINGS_KEY,
-  parseKeeperStage,
+  mergeKeeperStagePatch,
   readKeeperStageFromDomainSettings,
   type KeeperStageComposition,
 } from '@keeper/shared';
@@ -28,13 +28,14 @@ export async function loadKeeperStage(domainId: string): Promise<KeeperStageComp
 
 export async function saveKeeperStage(
   domainId: string,
-  next: KeeperStageComposition,
+  next: KeeperStageComposition | Record<string, unknown>,
 ): Promise<KeeperStageComposition> {
-  const parsed = parseKeeperStage(next);
   const domain = await prisma.domain.findUnique({
     where: { id: domainId },
     select: { settings: true },
   });
+  const current = readKeeperStageFromDomainSettings(domain?.settings);
+  const parsed = mergeKeeperStagePatch(current, next);
   const settings = asSettings(domain?.settings);
   settings[KEEPER_STAGE_SETTINGS_KEY] = parsed;
   await prisma.domain.update({

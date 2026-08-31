@@ -156,6 +156,7 @@ import {
   type PointTurnObligation,
 } from '../../services/kip/pointIntent.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
+import { layoutStageStory } from '../../services/kip/layoutStageStory.js';
 import { appendGlossTurn } from '../../services/GlossWriteService.js';
 import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
 import {
@@ -1221,11 +1222,21 @@ function buildConversationCoordinatesPrompt(environment: unknown): string | null
   });
 }
 
+function workspaceSurfaceFromEnvironment(environment: unknown): 'stage' | null {
+  const env = environment as { agentContext?: { workspaceSurface?: unknown } } | null;
+  return env?.agentContext?.workspaceSurface === 'stage' ? 'stage' : null;
+}
+
 function keeperStageFromEnvironment(environment: unknown): KeeperStageComposition | null {
   const env = environment as { keeperStage?: unknown } | null;
-  if (!env?.keeperStage) return null;
+  if (!env?.keeperStage) {
+    return workspaceSurfaceFromEnvironment(environment) === 'stage' ? parseKeeperStage(null) : null;
+  }
   const parsed = parseKeeperStage(env.keeperStage);
-  return parsed.presences.length > 0 ? parsed : null;
+  if (parsed.presences.length > 0 || parsed.story || workspaceSurfaceFromEnvironment(environment) === 'stage') {
+    return parsed;
+  }
+  return null;
 }
 
 function domainLabelFromEnvironment(environment: unknown): string | null {
@@ -1378,6 +1389,7 @@ function mergePointSkipActionTypes(
     next.add('draft.create');
     next.add('draft.point.rewrite');
     next.add('document.reorganize.propose');
+    next.add('stage.story.layout');
     next.add('gloss.append');
   }
   if (obligation?.required && obligation.manuscriptDraftId) {
@@ -1969,9 +1981,10 @@ export async function executeAgentActions(
                 && (
                   action.type.startsWith('draft.')
                   || action.type === 'document.reorganize.propose'
+                  || action.type === 'stage.story.layout'
                   || action.type === 'gloss.append'
                 )
-                ? 'Skipped — Kip support does not write the Document; Lead owns those writes'
+                ? 'Skipped — Kip support does not write the Document or Stage story; Lead owns those writes'
               : ctx.glossRequired
                 && (
                   action.type === 'draft.point.rewrite'
@@ -1979,6 +1992,7 @@ export async function executeAgentActions(
                   || action.type === 'draft.setActive'
                   || action.type === 'draft.update.propose'
                   || action.type === 'document.reorganize.propose'
+                  || action.type === 'stage.story.layout'
                 )
                 ? 'Skipped — Gloss is depth on a Point. Use gloss.append; do not rewrite, add a Point, create a Draft, or switch Working on.'
               : ctx.castAdviseOnly
@@ -1987,10 +2001,11 @@ export async function executeAgentActions(
                   || action.type === 'draft.create'
                   || action.type === 'draft.point.rewrite'
                   || action.type === 'document.reorganize.propose'
+                  || action.type === 'stage.story.layout'
                   || action.type === 'gloss.append'
                   || action.type === 'draft.point.accept'
                 )
-                ? 'Skipped — Cast advises only. The Lead writes Points with draft.update.propose (payload.section when they named a Section). Not reorganize. Not Accept.'
+                ? 'Skipped — Cast advises only. The Lead writes Points with draft.update.propose (payload.section when they named a Section). Not reorganize. Not Stage layout. Not Accept.'
               : ctx.pointConstraint && action.type.startsWith('draft.')
                 ? 'Skipped — the human asked not to add Points yet'
                 : action.type === 'draft.update.propose' && ctx.pointObligationRequired
@@ -2598,6 +2613,60 @@ export async function executeAgentActions(
                 restatement,
                 placedCount,
                 identityOnly,
+              },
+            });
+            break;
+          }
+          case 'stage.story.layout': {
+            const payload = action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+              ? action.payload as Record<string, unknown>
+              : {};
+            if (!ctx.domainId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Stage story needs a domain.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            const agentRow = ctx.agentId
+              ? await tx.kip_agents.findUnique({
+                  where: { id: ctx.agentId },
+                  select: { role: true },
+                })
+              : null;
+            if (agentRow && agentRow.role !== 'Lead') {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'The Lead lays out the Stage story. Cast may advise.',
+                errorCode: 'LEAD_ONLY',
+              });
+              break;
+            }
+            const laidOut = await layoutStageStory({
+              domainId: ctx.domainId,
+              slides: payload.slides,
+              rationale: typeof payload.rationale === 'string' ? payload.rationale : undefined,
+            });
+            if (laidOut.ok === false) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: laidOut.message,
+                errorCode: laidOut.code,
+              });
+              break;
+            }
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: `Laid out ${laidOut.story.slides.length} Slide${laidOut.story.slides.length === 1 ? '' : 's'} on Stage.`,
+              data: {
+                slideCount: laidOut.story.slides.length,
+                titles: laidOut.story.slides.map((slide) => slide.title),
+                rationale: laidOut.rationale,
               },
             });
             break;
@@ -5213,6 +5282,7 @@ const SUPPORT_ECHO_SKIP_ACTIONS = [
   'draft.update.propose',
   'draft.point.rewrite',
   'document.reorganize.propose',
+  'stage.story.layout',
   'gloss.append',
 ] as const;
 
@@ -5747,6 +5817,7 @@ export class KipAgentService {
       const stagePreview = buildKeeperStagePrompt(
         keeperStageFromEnvironment(environment),
         domainLabelFromEnvironment(environment),
+        { onStage: workspaceSurfaceFromEnvironment(environment) === 'stage' },
       );
       if (stagePreview) {
         systemParts.push(stagePreview);
@@ -5949,6 +6020,7 @@ export class KipAgentService {
         'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
         'gloss.append — Gloss an existing Point (depth beside it). Payload: { pointId (1–N or title; omit for the latest Point), content }. Not a rewrite. Not a new Draft. Chronicle shows Gloss on the Point. Include a keeper-card.',
         'document.reorganize.propose — Lead only. Propose the better Document. Current is evidence, not a constraint. Document name is payload.title; Forward is payload.forward: { title, description }. Those are not Points. Does not change accepted work until Apply. Chronicle shows Current vs Proposed (New · Refined · Moved from… · Merged · Retire). Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Nest Points under the Section they should belong to, or set sectionId to that title (change: move). Omit sectionId only when you are not moving that Point. Never dump named work into Open. Do not emit a Section named Open. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Identity-only (title/Forward) is valid. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle Points on the live Document only is draft.point.rewrite.',
+        'stage.story.layout — Lead only. On Stage, lay out the selected story as Slides after the domain Root. Keeper places the Cover (`domain_cover`). Your slides are text_slide beats Forward opens. Payload: { rationale?, slides: [{ title, body?, source?: { kind: live|point|moment|path|keeper|journey, id? } }] }. Do not emit the Root. Not a Document write.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -6236,6 +6308,7 @@ export class KipAgentService {
         const stagePrompt = buildKeeperStagePrompt(
           keeperStageFromEnvironment(environmentContext),
           domainLabelFromEnvironment(environmentContext),
+          { onStage: workspaceSurfaceFromEnvironment(environmentContext) === 'stage' },
         );
         if (stagePrompt) {
           messages.push({
@@ -6448,6 +6521,7 @@ export class KipAgentService {
             'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
             'gloss.append payload schema: pointId (1–N or current title; omit to Gloss the latest Point), content (the Gloss — depth beside the Point). Do not rewrite. Do not create a Draft. Include a card.',
             'document.reorganize.propose — Lead only. Propose the better Document without changing accepted work. Current is evidence. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Nest Points under the Section they should belong to. Omit sectionId only when you are not moving that Point. Never dump named work into Open. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
+            'stage.story.layout — Lead only. On Stage, lay out the selected story after the domain Root. Payload: { rationale?, slides: [{ title, body?, source? }] }. Do not emit the Cover. Not document.reorganize.propose.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',

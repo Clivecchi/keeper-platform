@@ -2,9 +2,9 @@
  * Keeper Stage — composition/presence over existing Keeper objects.
  *
  * Stage owns placement and contextual Agency, not duplicate object truth.
- * Objects on Stage are assets for an emerging Frame-driven story.
+ * Objects on Stage are assets. There is one story on this Stage; agents lay it out.
  * A Document on Stage remains the Document. Kip on Stage remains Kip.
- * Chronicle Points stay discussion. Stage story is Frames for presentation.
+ * Chronicle Points stay discussion. Kept lifts hierarchy weight off the Document.
  *
  * Theatre.js Present sheets stay Chronicle motion. This contract is Keeper
  * semantics; visual choreography may consume it later.
@@ -14,6 +14,19 @@ export const KEEPER_STAGE_SLUG = 'keeper' as const;
 export const KEEPER_STAGE_TITLE = 'Keeper';
 export const KEEPER_STAGE_SETTINGS_KEY = 'keeperStage';
 export const KEEPER_STAGE_VERSION = 1 as const;
+export const STAGE_STORY_VERSION = 1 as const;
+export const STAGE_SLIDE_TYPE_COVER = 'domain_cover' as const;
+export const STAGE_SLIDE_TYPE_TEXT = 'text_slide' as const;
+export const STAGE_STORY_MAX_SLIDES = 24 as const;
+
+export const STAGE_STORY_SOURCE_KINDS = [
+  'live',
+  'point',
+  'moment',
+  'path',
+  'keeper',
+  'journey',
+] as const;
 
 export const STAGE_PRESENCE_KINDS = [
   'agent',
@@ -41,12 +54,41 @@ export type StagePresence = {
   direction?: string | null;
 };
 
+export type StageSlideType = typeof STAGE_SLIDE_TYPE_COVER | typeof STAGE_SLIDE_TYPE_TEXT;
+
+/** Root is the domain Cover. Beats are the selected story after Forward. */
+export type StageSlideKind = 'root' | 'beat';
+
+export type StageStorySourceKind = (typeof STAGE_STORY_SOURCE_KINDS)[number];
+
+export type StageStorySlideSource = {
+  kind: StageStorySourceKind;
+  id?: string | null;
+};
+
+export type StageStorySlide = {
+  id: string;
+  slideType: StageSlideType;
+  kind: StageSlideKind;
+  title: string;
+  body: string;
+  source?: StageStorySlideSource;
+};
+
+/** One story on this Stage. Not a Prisma table. Not the Document. */
+export type StageStory = {
+  version: typeof STAGE_STORY_VERSION;
+  slides: StageStorySlide[];
+};
+
 export type KeeperStageComposition = {
   version: typeof KEEPER_STAGE_VERSION;
   slug: typeof KEEPER_STAGE_SLUG;
   title: string;
   selectedPresenceId: string | null;
   presences: StagePresence[];
+  /** Laid-out filmstrip. Null until agents (or a human) write it. */
+  story: StageStory | null;
 };
 
 export type WorkspaceSurface = 'dialog' | 'stage';
@@ -72,11 +114,106 @@ export function emptyKeeperStage(): KeeperStageComposition {
     title: KEEPER_STAGE_TITLE,
     selectedPresenceId: null,
     presences: [],
+    story: null,
   };
 }
 
 export function isStagePresenceKind(value: unknown): value is StagePresenceKind {
   return typeof value === 'string' && KIND_SET.has(value);
+}
+
+const SOURCE_KIND_SET = new Set<string>(STAGE_STORY_SOURCE_KINDS);
+
+export function isStageStorySourceKind(value: unknown): value is StageStorySourceKind {
+  return typeof value === 'string' && SOURCE_KIND_SET.has(value);
+}
+
+function parseSlideSource(raw: unknown): StageStorySlideSource | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const rec = raw as Record<string, unknown>;
+  if (!isStageStorySourceKind(rec.kind)) return undefined;
+  return { kind: rec.kind, id: trimmed(rec.id) };
+}
+
+function slideId(raw: unknown, index: number, kind: StageSlideKind): string {
+  return trimmed(raw) ?? (kind === 'root' ? 'root' : `slide-${index + 1}`);
+}
+
+export function parseStageStory(raw: unknown): StageStory | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const rec = raw as Record<string, unknown>;
+  const rows = Array.isArray(rec.slides) ? rec.slides : [];
+  const slides: StageStorySlide[] = [];
+  const seen = new Set<string>();
+
+  for (const item of rows) {
+    if (slides.length >= STAGE_STORY_MAX_SLIDES) break;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const row = item as Record<string, unknown>;
+    const title = trimmed(row.title);
+    if (!title) continue;
+    const wantsRoot = row.kind === 'root' || row.slideType === STAGE_SLIDE_TYPE_COVER;
+    if (wantsRoot) continue;
+    const kind: StageSlideKind = 'beat';
+    const id = slideId(row.id, slides.length, kind);
+    if (seen.has(id) || id === 'root') continue;
+    seen.add(id);
+    const source = parseSlideSource(row.source);
+    const body = typeof row.body === 'string' ? row.body.trim() : '';
+    slides.push({
+      id,
+      slideType: STAGE_SLIDE_TYPE_TEXT,
+      kind,
+      title: title.slice(0, 200),
+      body: body.slice(0, 4000),
+      ...(source ? { source } : {}),
+    });
+  }
+
+  if (slides.length === 0) return null;
+  return { version: STAGE_STORY_VERSION, slides };
+}
+
+export function domainCoverRootSlide(input: {
+  wordmark?: string | null;
+  tagline?: string | null;
+  domainLabel?: string | null;
+}): StageStorySlide {
+  const title = trimmed(input.wordmark) ?? trimmed(input.domainLabel) ?? 'Domain';
+  const body = trimmed(input.tagline) ?? '';
+  return {
+    id: 'root',
+    slideType: STAGE_SLIDE_TYPE_COVER,
+    kind: 'root',
+    title,
+    body,
+  };
+}
+
+/** Platform owns the domain Root. Agent/persisted slides are the story after Forward. */
+export function withDomainCoverRoot(
+  slides: ReadonlyArray<StageStorySlide>,
+  root: StageStorySlide,
+): StageStorySlide[] {
+  const story = slides.filter((slide) => slide.kind !== 'root' && slide.slideType !== STAGE_SLIDE_TYPE_COVER);
+  return [root, ...story];
+}
+
+/** PATCH without `story` (or `story: null`) keeps the current filmstrip. `story: { slides: [] }` clears it. */
+export function mergeKeeperStagePatch(
+  current: KeeperStageComposition,
+  patch: unknown,
+): KeeperStageComposition {
+  const rec = patch && typeof patch === 'object' && !Array.isArray(patch)
+    ? (patch as Record<string, unknown>)
+    : {};
+  const storyPatch = !('story' in rec) || rec.story == null ? current.story : rec.story;
+  return parseKeeperStage({
+    title: 'title' in rec ? rec.title : current.title,
+    selectedPresenceId: 'selectedPresenceId' in rec ? rec.selectedPresenceId : current.selectedPresenceId,
+    presences: 'presences' in rec ? rec.presences : current.presences,
+    story: storyPatch,
+  });
 }
 
 export function parseKeeperStage(raw: unknown): KeeperStageComposition {
@@ -116,6 +253,7 @@ export function parseKeeperStage(raw: unknown): KeeperStageComposition {
     title: trimmed(rec.title) ?? KEEPER_STAGE_TITLE,
     selectedPresenceId: selected && presences.some((p) => p.id === selected) ? selected : null,
     presences,
+    story: parseStageStory(rec.story),
   };
 }
 
@@ -260,21 +398,24 @@ export function displayKeeperStageTitle(title: string, domainLabel?: string | nu
 }
 
 /**
- * Compact Stage summary for agent turns — assets for a Frame story, not Theatre layout.
+ * Compact Stage summary for agent turns — one story to lay out, not Theatre layout.
  */
 export function buildKeeperStagePrompt(
   stage: KeeperStageComposition | null | undefined,
   domainLabel?: string | null,
+  options?: { onStage?: boolean },
 ): string | null {
-  if (!stage || stage.presences.length === 0) return null;
+  const hasStory = Boolean(stage?.story?.slides.length);
+  const hasAssets = Boolean(stage?.presences.length);
+  if (!stage || (!hasAssets && !hasStory && options?.onStage !== true)) return null;
   const selected = stage.presences.find((p) => p.id === stage.selectedPresenceId) ?? null;
   const lines = [
-    'KEEPER STAGE (assets for an emerging story — references, not clones):',
+    'KEEPER STAGE (one story on this screen — assets are references, not clones):',
     `Stage: “${displayKeeperStageTitle(stage.title, domainLabel)}” (${stage.slug}). Objects below are real Keeper objects on this table.`,
-    'They are assets for the story in development: Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed.',
+    'There is a single story being told here. Lay it out as Slides from what is here and what has been said. Do not treat the sequence as an open question.',
+    'Assets (Documents, Drafts, Journeys, Moments, Library, Cast) are material for that story — not the story.',
     'Wide context is everything placed. Narrow context is the selected object plus what you have just been told.',
-    'Ask: where is this story going, based on what is here and what has been said?',
-    'The Stage story is Frames for presentation, not new Points for discussion. Chronicle Document stays the Document. Do not dump discussion Points onto Stage.',
+    'The Stage story is Slides for presentation, not new Points for discussion. Chronicle Document stays the Document. Do not dump discussion Points onto Stage.',
   ];
   for (const presence of stage.presences) {
     const selectedMark = selected?.id === presence.id ? ' [selected — narrow]' : '';
@@ -291,11 +432,22 @@ export function buildKeeperStagePrompt(
       `- ${stagePresenceKindLabel(presence.kind)} “${presence.title}” (${presence.kind}:${presence.objectId})${selectedMark}${agency ? ` — ${agency}` : ''}`,
     );
   }
+  if (hasStory && stage.story) {
+    lines.push('Current filmstrip (replace the whole sequence when you lay it out again):');
+    for (const [index, slide] of stage.story.slides.entries()) {
+      const source = slide.source
+        ? ` [${slide.source.kind}${slide.source.id ? `:${slide.source.id}` : ''}]`
+        : '';
+      lines.push(`  ${index + 1}. ${slide.kind} “${slide.title}”${source}`);
+    }
+  } else {
+    lines.push('The selected story is not laid out yet. Keeper already places the domain Root (Cover). Your slides are what Forward opens.');
+  }
   lines.push(
     'Selecting an object on Stage may set Working on without changing Talking in.',
     'Contextual stage role/direction is who the Agent is here — it does not redefine Base Agency.',
     'Do not invent objects that are not on this Stage or in Talking in / Working on.',
-    'There is no Stage-story apply action yet. Think and speak at this level. Review & Reorganize remains for the Document only.',
+    'Emit stage.story.layout this turn with payload.slides in order. Those slides are the selected story after Forward — text_slide beats. Do not emit the domain Cover / Root; Keeper places that from the domain frame. Optional source: { kind: live|point|moment|path|keeper|journey, id }. Review & Reorganize remains for the Document only.',
   );
   return lines.join('\n');
 }

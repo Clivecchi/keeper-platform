@@ -117,7 +117,7 @@ Merging Known Issues into one sequence (previous section) was right, but flatten
 
 Present (the JSON UI Frame system — `Domain.frame_json`, public, unauthenticated, `apps/web/src/v0/slides/`) is architecturally separate from the Universal Board. It renders `SlideType`s, not Documents or Points. Two exist (`companion`, `journey_invitation`); four are planned and unbuilt, including `moment_card` and `path_index` — already-named, not invented today.
 
-**Stage workshop (2026-08-30, Chuck):** between Document and Present sits the member Stage room. Objects placed on Stage are assets. The Stage workspace is a Frame-driven story (presentation), wrapped in Config — not a second Document of Points. Chronicle stays discussion. Present stays the guest/read. Agents pull that story together the way they Review & Reorganize a Document. **Now** is the first beat; Theatre / SlideTypes on Stage wait for Rendr. Do not collapse Present into the Document to make Stage work.
+**Stage workshop (2026-08-30, Chuck):** between Document and Present sits the member Stage **room**. The story in development is not the Stage — it is the **single** filmstrip told on that screen, and agents lay it out. A Slide presents a Point, a Moment, a Path, a Keeper, or a live beat. **Kept** is not only Point → Moment: it should propose Keepers, Journeys, and Paths so the Document is not carrying weight that belongs in the hierarchy. Document writes must land (still unreliable). Presented begins on Stage. Chronicle stays discussion. Do not collapse Story into Stage, or Present into the Document.
 
 Rendr's answers (relayed by Chuck, 2026-07-17), on what `moment_card`/`path_index` should actually do, in experience terms:
 
@@ -313,7 +313,7 @@ A `Point` isn't necessarily static content — it can be backed by a real `Momen
 Big reframe:
 
 - **Drop "Chronicle" from the name.** It's the render surface, not an entity. Container → **`Document`**. Atomic card → **`Point`**.
-- **Draft is not a separate type from Document — it's a status on Document.** `Drafts → Kept → Presented` is lifecycle status, not three models requiring conversion.
+- **Draft is not a separate type from Document — it's a status on Document.** `Drafts → Kept → Presented` is lifecycle status, not three models requiring conversion. **Kept** (2026-08-30): settle the Document *and* unburden it — propose Keeper / Journey / Path / Moment so discussion does not warehouse the hierarchy. Document update reliability is still a gap. **Presented** begins on Stage: one story, agents lay it out.
 - **Each Dialog has exactly one Document.** Points live inside it; the Document crystallizes the Dialog's conversation into structure.
 - **A Point becomes a Moment when kept** — identity carries through (same id or explicit lineage), not delete-and-recreate of a disconnected row.
 - **A kept Moment keeps evolving.** Later Points can target an existing Moment; keeping one evolves that Moment.

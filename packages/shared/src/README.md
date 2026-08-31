@@ -10,7 +10,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `canonicalBoards.ts` – Canonical logged-in experience board slugs & helpers
 - `universalBoardId.ts` – `build` Board id; `ide` is a URL/frame-JSON alias only
 - `cloudMcpCeiling.ts` – Cloud MCP capability ceiling (shared by API + Build Board def)
-- `keeperStage.ts` – Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle(title, domainLabel?)`, `buildKeeperStagePrompt`
+- `keeperStage.ts` – Stage composition (assets + `story` filmstrip); `parseStageStory`, `mergeKeeperStagePatch`, `buildKeeperStagePrompt`, `displayKeeperStageTitle`
 - `imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
@@ -26,6 +26,9 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-08-30: `keeperStage.ts` — Root is `domain_cover`. Agent story slides are beats after Forward. `withDomainCoverRoot` / `domainCoverRootSlide`.
+- 2026-08-30: `keeperStage.ts` — `story` persists the filmstrip on the named Stage. `stage.story.layout` is the agent write. PATCH without story keeps the strip.
+- 2026-08-30: `keeperStage.ts` — one story on Stage; agents lay it out as Slides. Assets are material, not the story. No persist action yet.
 - 2026-08-30: `domainLeadBindings.ts` — Playbill billing is the domain address; star is the agent name.
 - 2026-08-30: `imagePalette.ts` — derive a domain palette from image samples. `displayKeeperStageTitle` names the default Stage after the domain.
 - 2026-08-30: `realm/feed.ts` — `resolveRealmFeedSessionDomain` refuses to stamp orphan sessions onto the Realm anchor.

@@ -22,6 +22,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up). Offer-in-prose is an incomplete turn.
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — detect review/reorganize language and prompt the Lead to propose, not rewrite
+- `layoutStageStory.ts` — Lead `stage.story.layout` writes `keeperStage.story`
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
 - `modeConfig.ts` — Kip mode configuration helpers
@@ -37,6 +38,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-08-30 — Stage story layout
+- `layoutStageStory.ts` — Lead `stage.story.layout` writes the filmstrip on `Domain.settings.keeperStage.story`. Not a Document write. Not a Prisma Story table.
 
 ### 2026-08-30 — Lead directs Document review
 - `documentReorganizeIntent` detector is shared. Hears “review the current document”, “directorial”, “you are the director.” Cast consult is skipped; synthesis tells Lead to propose.

@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-08-30 — Stage story layout
+- On Stage, `agentContext.workspaceSurface` is `stage`. After a turn, Stage reloads so a Lead `stage.story.layout` shows on the filmstrip.
+
 ### 2026-08-30 — Cover wash uses atmosphere contrast
 - `UniversalBoard` page background wash alphas come from `--theme-atmosphere-wash-start` / `--theme-atmosphere-wash-end` (sealed when a cover is present).
 

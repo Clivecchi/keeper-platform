@@ -19,6 +19,7 @@ Normalize and validate structured Kip agent actions before `executeAgentActions`
 - [ ] Confirm with Chuck: cast agents proposing on journey drafts should stay `proposed` (human Accept)
 
 ## 📆 Update Log
+- 2026-08-30: `stage.story.layout` — Lead lays out the Stage filmstrip (`slides[]`). Writes `keeperStage.story`. Not a Document action.
 - 2026-08-29: `document.reorganize.propose` — omitted `sectionId` is a safety default (keep current Section). Nest Points under the Section they should belong to in Proposed. Do not emit a Section named Open.
 - 2026-08-25: `document.reorganize.propose` payload accepts `title`, `documentTitle`, `forward` / `forwardTitle` / `forwardDescription`. Those are Document identity, not Point fields.
 - 2026-08-25: Actions README — `gloss.append` payload schema (pointId + content).

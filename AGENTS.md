@@ -70,7 +70,7 @@ Frames are surfaces (V0FrameKey): `cover`, `index`, `moment`, `moments`, `common
 
 Present, Commons — surfaces/frames, not Prisma models.
 Chronicle = right panel (UniversalViewPanel), not a frame route.
-Stage = room on the current Board (`workspaceSurface`), not `?board=stage`, not a Prisma Stage table. Objects on Stage are assets. The Stage **Frame** holds a **filmstrip of Slides**. First Slide is the existing title. SlideType `text_slide` is the beat. Chronicle Points stay discussion. Present is the guest/read.
+Stage = room / screen on the current Board (`workspaceSurface`), not `?board=stage`, not a Prisma Stage table. The **story in development** is the **single** filmstrip told on Stage — not the Stage. Root is the domain Cover (`domain_cover`). Forward opens the selected story. Agents lay out beats after Root (`stage.story.layout` → `keeperStage.story`). A Slide presents a Point, Moment, Path, Keeper, or live beat. **Drafts → Kept → Presented** is Document status. Kept must land Document writes *and* propose Keeper / Journey / Path so the Document is not the warehouse. Present is the guest/read of a kept story; Stage is the first place to build it.
 "View" is overloaded in code. Do not treat it as a hierarchy layer.
 
 ### Singular UI (member vs public)

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { AgentDialogueMessage } from "../../components/agent/types"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useKeeperStageOptional } from "./useKeeperStage"
 import { resolveStageFilmstrip, type StageSlide } from "./stageFilmstrip"
 import { resolveStageNowBeat } from "./stageNowBeat"
@@ -33,32 +34,55 @@ export function StagePresentationProvider({
   children: React.ReactNode
 }) {
   const stageApi = useKeeperStageOptional()
+  const shell = useV0ShellOptional()
   const beat = React.useMemo(
     () => resolveStageNowBeat(messages, { userName, agentName }),
     [messages, userName, agentName],
   )
+  const persisted = React.useMemo((): StageSlide[] | null => {
+    const story = stageApi?.stage.story
+    if (!story?.slides.length) return null
+    return story.slides.map((slide) => ({
+      id: slide.id,
+      slideType: slide.slideType,
+      kind: slide.kind,
+      title: slide.title,
+      body: slide.body,
+    }))
+  }, [stageApi?.stage.story])
   const slides = React.useMemo(
     () =>
       resolveStageFilmstrip({
-        stageTitle: stageApi?.stage.title ?? "Keeper",
-        storyTitle,
+        wordmark: shell?.domainFrame?.theme.wordmark,
+        tagline: shell?.domainFrame?.theme.tagline,
         domainLabel,
         beat,
         waiting: isSending,
+        persisted,
       }),
-    [stageApi?.stage.title, storyTitle, domainLabel, beat, isSending],
+    [shell?.domainFrame?.theme.wordmark, shell?.domainFrame?.theme.tagline, domainLabel, beat, isSending, persisted],
   )
   const last = Math.max(0, slides.length - 1)
-  const [index, setIndex] = React.useState(last)
+  const [index, setIndexState] = React.useState(0)
+  const followStoryRef = React.useRef(false)
+
+  const setIndex = React.useCallback((next: number) => {
+    followStoryRef.current = next > 0
+    setIndexState(next)
+  }, [])
 
   React.useEffect(() => {
-    setIndex(Math.max(0, slides.length - 1))
-  }, [slides.length, slides[slides.length - 1]?.body])
+    if (followStoryRef.current && last > 0) {
+      setIndexState(last)
+    } else {
+      setIndexState((currentIndex) => Math.min(currentIndex, last))
+    }
+  }, [slides.length, slides[last]?.id, slides[last]?.body, last])
 
   const current = slides[Math.min(index, last)] ?? null
   const value = React.useMemo(
     () => ({ slides, index: Math.min(index, last), setIndex, current }),
-    [slides, index, last, current],
+    [slides, index, last, setIndex, current],
   )
 
   return (

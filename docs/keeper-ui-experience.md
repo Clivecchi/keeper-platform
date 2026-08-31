@@ -64,9 +64,11 @@ Two things named Stage:
 | **Viewstate** | How you look — Dialog conversation vs Stage workspace. Nav **Open Stage**. |
 | **Named Stage** | Titled composition of real object references (`Domain.settings.keeperStage`). One Stage, many Dialogs. |
 
-**Split (candidate lock, 2026-08-30):** Chronicle Document = Points for **discussion**. Stage workspace = Frame-driven **story** from placed assets (Documents, Drafts, attachments, Journeys, Moments, Library, Cast), wrapped in Config the way EntityKinds are wrapped. Present remains the guest/read (Show). Stage is Shape toward Show. Agents already receive the Stage roster; they should ask where the story is going. There is no Stage-story Apply action yet — Review & Reorganize stays Document-only.
+**Split (2026-08-30, Chuck):** Stage is the **room / screen**. The **story in development** is the single filmstrip told on that screen — not the Stage itself. Agents lay that story out (`stage.story.layout` writes `keeperStage.story`). Chronicle Document = Points for discussion. **Kept** lifts hierarchy weight (Keeper, Journey, Path, Moment) off the Document. **Presented** begins on Stage. A Slide is a presentation of a Point, a Moment, a Path, a Keeper, or a live beat. Do not invent a Prisma Story table until a second named Story exists.
 
-**Filmstrip (2026-08-30):** Stage is the Frame (the room). The story is Slides. First Slide is the title that already exists. Current beat is a `text_slide` (jsonframe spec). Each current cell plays the existing Theatre Present `slide`. Theatre does not own the strip. Objects stay assets. Do not put Dialog bubbles on Stage.
+**Forward motion (2026-08-30):** Domain presentations. Root is the Cover (`domain_cover` — wordmark, tagline, Forward). That is the frame that loads with the domain, not a `text_slide` title. Forward opens the **selected story**. On Stage, that is the filmstrip after Root. On public Cover, that is Present (first public journey today; Stage story when Present can play it). Browse journeys is not Forward.
+
+**Filmstrip:** Root first. Story beats after. Theatre plays the current cell. Objects stay in Reach / Composer, not on the glass.
 
 ### World Mode (Presentation vs Workshop)
 

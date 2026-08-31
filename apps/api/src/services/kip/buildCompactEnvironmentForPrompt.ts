@@ -79,6 +79,9 @@ export type CompactEnvironmentForPrompt = {
       contextualRole?: string | null;
       direction?: string | null;
     }>;
+    story?: {
+      slides: Array<{ id: string; kind: string; title: string }>;
+    } | null;
   };
   agentContext?: Record<string, unknown>;
   draftPolicy?: {
@@ -116,6 +119,8 @@ function slimAgentContext(raw: unknown): Record<string, unknown> | undefined {
     'draftDiscuss',
     'draftDiscussIntent',
     'designBoard',
+    'workspaceSurface',
+    'dialogStyle',
   ] as const) {
     if (ctx[key] !== undefined) out[key] = ctx[key];
   }
@@ -269,7 +274,9 @@ export function buildCompactEnvironmentForPrompt(
 
   const keeperStage = asRecord(env.keeperStage);
   const stagePresences = Array.isArray(keeperStage?.presences) ? keeperStage.presences : [];
-  if (keeperStage && stagePresences.length > 0) {
+  const stageStory = asRecord(keeperStage?.story);
+  const stageSlides = Array.isArray(stageStory?.slides) ? stageStory.slides : [];
+  if (keeperStage && (stagePresences.length > 0 || stageSlides.length > 0)) {
     compact.keeperStage = {
       slug: typeof keeperStage.slug === 'string' ? keeperStage.slug : 'keeper',
       title: typeof keeperStage.title === 'string' ? keeperStage.title : 'Keeper',
@@ -288,6 +295,21 @@ export function buildCompactEnvironmentForPrompt(
           };
         })
         .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+      story: stageSlides.length
+        ? {
+            slides: stageSlides
+              .map((entry) => {
+                const row = asRecord(entry);
+                if (!row || typeof row.title !== 'string') return null;
+                return {
+                  id: typeof row.id === 'string' ? row.id : row.title,
+                  kind: typeof row.kind === 'string' ? row.kind : 'beat',
+                  title: row.title,
+                };
+              })
+              .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+          }
+        : null,
     };
   }
 

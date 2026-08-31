@@ -1057,6 +1057,13 @@ export function UniversalConversation({
       }
     }
 
+    if (workspaceSurface === "stage") {
+      merged = {
+        ...(merged ?? {}),
+        workspaceSurface: "stage",
+      }
+    }
+
     return merged as AgentContext | undefined
   }, [
     domainFrame,
@@ -1071,6 +1078,7 @@ export function UniversalConversation({
     selectedAgentRecord,
     boardSelectedAgentId,
     dialogStyle,
+    workspaceSurface,
   ])
 
   const agentBoardMessaging = React.useMemo((): AgentBoardMessaging | undefined => {
@@ -2577,6 +2585,18 @@ export function UniversalConversation({
     }
     wasSendingRef.current = isSending
   }, [useMobileStagedComposer, isSending])
+
+  const wasStageSendingRef = React.useRef(false)
+  React.useEffect(() => {
+    if (workspaceSurface !== "stage") {
+      wasStageSendingRef.current = isSending
+      return
+    }
+    if (wasStageSendingRef.current && !isSending) {
+      keeperStage?.reload()
+    }
+    wasStageSendingRef.current = isSending
+  }, [workspaceSurface, isSending, keeperStage])
 
   // Defer blur so composerSize class/rows updates don't collapse mid-focus transition.
   const handleComposerFocusChange = React.useCallback(

@@ -10,7 +10,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `KeeperStageCanvas.tsx` — Stage **screen** (current Slide only)
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
 - `OnStageObjectList.tsx` — active objects in Reach, Chronicle, and Composer
-- `stageNowBeat.ts` / `stageFilmstrip.ts` — beat + derived Slides
+- `stageNowBeat.ts` / `stageFilmstrip.ts` — domain Root (`domain_cover`) + story beats after Forward
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
 - `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
 - `useBindStageDialog.ts` — auto-bind Talking in when a Dialog is already on Stage
@@ -24,19 +24,26 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
 - Reach opens from Composer (and the top-bar shortcut) and renders in Chronicle. Composer does not live in Chronicle.
-- Agent turns already receive the Stage roster via `buildKeeperStagePrompt`. They are asked where the story is going. There is no Stage-story Apply action yet.
+- Agent turns receive the Stage roster and the current filmstrip via `buildKeeperStagePrompt`. On Stage they emit `stage.story.layout` — that writes the strip. Reload after the turn.
 
 ## ⚠️ Notes & ToDo
-- [ ] Persist filmstrip cells (still Slides, still `text_slide` until a new layout is real)
-- [ ] Rendr: more SlideTypes on Stage (`moment_card`) after the title + beat strip is felt
+- [x] Persist filmstrip cells on `Domain.settings.keeperStage.story` (`stage.story.layout`)
+- [ ] Present plays the Stage story (not only the first public journey)
+- [ ] Rendr: more SlideTypes on Stage (`moment_card`) after Root + beats are felt
 - [ ] Stage Config in Chronicle (how this Stage tells) — `ChronicleConfigShell`, no fourth panel
-- [ ] Agent story-arrange propose + human Apply (analog of Review & Reorganize; do not invent until Rendr shapes it)
+- [x] Agent layout writes the strip (`stage.story.layout`). No Apply — agents lay it out.
 - [x] Play filmstrip cells on the existing Theatre `slide` Present (not a new Stage project)
 - [ ] Persistent Keeper Cast migration off boardCast defaults
 - [ ] Confirm Finding the Plot is the first object Chuck wants seeded vs brought by hand
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-30 — Root is the domain Cover
+- First cell is `domain_cover` (wordmark, tagline, Forward) — the frame that loads with the domain. Not a `text_slide` title. Forward opens the selected story (beats after Root). Agents do not author the Root.
+
+### 2026-08-30 — Agents lay out the Stage story
+- Filmstrip persists on the named Stage (`keeperStage.story`). Lead `stage.story.layout` writes the sequence. Derived title + beat remains only until the first layout. Presence PATCH does not wipe the story.
 
 ### 2026-08-30 — Stage is the screen
 - Objects leave the canvas. On Stage list lives at the top of Reach and Chronicle; Composer shows active chips. Filmstrip sits just above Composer. The 70% is the current Slide only.

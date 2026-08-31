@@ -11,16 +11,41 @@ import {
   PresentMotionProvider,
   usePresentMotionValues,
 } from "../presents/usePresentMotion"
+import { JourneyInvitationSlide } from "../slides/JourneyInvitationSlide"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 import type { StageSlide } from "./stageFilmstrip"
 import { useStagePresentationOptional } from "./stagePresentation"
 
-function SlideScene({ slide }: { slide: StageSlide }) {
+function SlideScene({
+  slide,
+  onForward,
+  forwardDisabled,
+}: {
+  slide: StageSlide
+  onForward?: () => void
+  forwardDisabled?: boolean
+}) {
   const motion = usePresentMotionValues()
+  const shell = useV0ShellOptional()
+
+  if (slide.kind === "root") {
+    return (
+      <article className="keeper-stage-slide" aria-label="Domain cover">
+        <JourneyInvitationSlide
+          wordmark={slide.title}
+          tagline={slide.body}
+          forwardLabel={shell?.domainFrame?.forward.label ?? "Forward"}
+          onForward={() => onForward?.()}
+          forwardDisabled={forwardDisabled}
+        />
+      </article>
+    )
+  }
 
   return (
     <article
       className="keeper-stage-slide"
-      aria-label={`${slide.kind === "title" ? "Title" : "Beat"} slide`}
+      aria-label="Story beat"
     >
       <p
         className="text-[11px] uppercase tracking-[0.1em]"
@@ -75,7 +100,15 @@ export function StagePresentationScreen() {
         instanceKey={toPresentInstanceKey("stage", current.id)}
         enabled
       >
-        <SlideScene slide={current} />
+        <SlideScene
+          slide={current}
+          onForward={
+            current.kind === "root" && story && story.slides.length > 1
+              ? () => story.setIndex(1)
+              : undefined
+          }
+          forwardDisabled={!story || story.slides.length < 2}
+        />
       </PresentMotionProvider>
     </div>
   )
@@ -112,7 +145,7 @@ export function StageSlideStrip() {
             className="block text-[10px] uppercase tracking-[0.08em]"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
-            {i + 1}
+            {slide.kind === "root" ? "Root" : String(i)}
           </span>
           <span className="block max-w-[9rem] truncate text-[13px]">{slide.title}</span>
         </button>

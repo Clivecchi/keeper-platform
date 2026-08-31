@@ -32,6 +32,7 @@ type KeeperStageContextValue = {
   loading: boolean
   saving: boolean
   error: string | null
+  reload: () => void
   bring: (input: {
     kind: StagePresenceKind
     objectId: string
@@ -94,6 +95,7 @@ export function KeeperStageProvider({
           title: next.title,
           selectedPresenceId: next.selectedPresenceId,
           presences: next.presences,
+          story: next.story,
         }),
       })
         .then(() => setError(null))
@@ -129,6 +131,17 @@ export function KeeperStageProvider({
       cancelled = true
       if (persistTimer.current != null) window.clearTimeout(persistTimer.current)
     }
+  }, [domainId])
+
+  const reload = React.useCallback(() => {
+    if (!domainId) return
+    void apiFetch(`/api/domains/${encodeURIComponent(domainId)}/keeper-stage`)
+      .then((res: { stage?: unknown }) => {
+        setStage(parseKeeperStage(res?.stage))
+      })
+      .catch(() => {
+        /* keep current composition if reload fails */
+      })
   }, [domainId])
 
   const apply = React.useCallback((next: KeeperStageComposition) => {
@@ -180,13 +193,14 @@ export function KeeperStageProvider({
     loading,
     saving,
     error,
+    reload,
     bring,
     select,
     move,
     updateAgency,
     remove,
     selected,
-  }), [stage, loading, saving, error, bring, select, move, updateAgency, remove, selected])
+  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, selected])
 
   return React.createElement(KeeperStageCtx.Provider, { value }, children)
 }

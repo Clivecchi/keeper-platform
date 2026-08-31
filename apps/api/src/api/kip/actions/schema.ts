@@ -306,6 +306,29 @@ export type DocumentReorganizeProposeAction = z.infer<
   typeof documentReorganizeProposePayloadSchema
 > & { type: 'document.reorganize.propose' };
 
+const stageStorySlidePayloadSchema = z.object({
+  id: z.string().min(1).max(80).optional(),
+  kind: z.enum(['root', 'beat', 'title']).optional(),
+  slideType: z.enum(['text_slide', 'domain_cover']).optional(),
+  title: z.string().min(1).max(200),
+  body: z.string().max(4000).optional(),
+  source: z
+    .object({
+      kind: z.enum(['live', 'point', 'moment', 'path', 'keeper', 'journey']),
+      id: z.string().max(80).nullable().optional(),
+    })
+    .optional(),
+});
+
+const stageStoryLayoutPayloadSchema = z.object({
+  rationale: z.string().max(800).optional(),
+  slides: z.array(stageStorySlidePayloadSchema).min(1).max(24),
+});
+
+export type StageStoryLayoutAction = z.infer<typeof stageStoryLayoutPayloadSchema> & {
+  type: 'stage.story.layout';
+};
+
 /**
  * Web search action payload schema
  */
@@ -360,6 +383,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'image.generate': imageGeneratePayloadSchema,
   'treatment.propose': treatmentProposePayloadSchema,
   'document.reorganize.propose': documentReorganizeProposePayloadSchema,
+  'stage.story.layout': stageStoryLayoutPayloadSchema,
   'web.search': webSearchPayloadSchema,
   'mcp.call': mcpCallPayloadSchema,
   'delegate.consult': delegateConsultPayloadSchema,

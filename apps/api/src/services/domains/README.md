@@ -11,7 +11,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `repairDomainLeadBindings.ts` — mirror sync via `syncDomainLeadAuthority` (no canonical map).
 - `resolveDomainLeadAgent.ts` — DB-first read (`primaryAgentId` → mirror row lookup); `syncDomainLeadAuthority` one write path.
 - `dialogCastMembership.ts` — Phase 1 cross-domain cast enablement (candidates / members / enable / disable); Admin checked at request time via direct Prisma.
-- `keeperStageStore.ts` — load/save `Domain.settings.keeperStage` without wiping sibling settings.
+- `keeperStageStore.ts` — load/save `Domain.settings.keeperStage` without wiping sibling settings or the filmstrip.
 - `../scripts/repair-domain-frame.ts` — CLI repair for unseeded personal domains.
 
 ## 🔄 Data & Behavior
@@ -40,6 +40,9 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+
+### 2026-08-30 — Stage story persists on the named Stage
+- `saveKeeperStage` merges patches. Omitting `story` (or sending `null`) keeps the filmstrip. Agents write it via `stage.story.layout`.
 
 ### 2026-08-30 — Stage objects are story assets
 - `settings.keeperStage` still stores references, not clones. Those objects are the asset pool for a Frame-driven Stage story (docs: `docs/keeper-ui-experience.md`).
