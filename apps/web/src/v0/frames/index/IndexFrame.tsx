@@ -219,7 +219,7 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
           backgroundColor: INDEX_SURFACE.background,
           backgroundImage: `linear-gradient(${INDEX_SURFACE.gridLine} 1px, transparent 1px), linear-gradient(90deg, ${INDEX_SURFACE.gridLine} 1px, transparent 1px)`,
           backgroundSize: "28px 28px",
-          color: "var(--theme-ink-primary)",
+          color: "hsl(var(--theme-ink-primary))",
           ["--v0-margin-height" as any]: V0_MARGIN_HEIGHT,
         }}
       >
@@ -229,13 +229,13 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
         >
           <header className="flex flex-wrap items-start justify-between gap-6 mb-8">
             <div className="space-y-3 max-w-xl">
-              <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+              <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
                 Domain Index
               </p>
-              <h1 className="text-3xl md:text-4xl font-serif" style={{ color: "var(--theme-ink-primary)" }}>
+              <h1 className="text-3xl md:text-4xl font-serif" style={{ color: "hsl(var(--theme-ink-primary))" }}>
                 Table of Contents
               </h1>
-              <p className="text-sm leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+              <p className="text-sm leading-snug" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                 A structured map of {domainSlug} — designed for quick reference and gentle orientation.
               </p>
             </div>
@@ -302,7 +302,7 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-medium" style={{ color: "var(--theme-ink-primary)" }}>
+                              <span className="text-sm font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
                                 {entry.label}
                               </span>
                               {entry.status && (
@@ -318,7 +318,7 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                            <p className="text-xs leading-snug" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                               {entry.description}
                             </p>
                           </div>

@@ -256,8 +256,8 @@ export function JourneysFrame({
   }
 
   // ---- render helpers ----
-  const themeInk = "var(--theme-ink-primary)"
-  const themeInkSecondary = "var(--theme-ink-secondary)"
+  const themeInk = "hsl(var(--theme-ink-primary))"
+  const themeInkSecondary = "hsl(var(--theme-ink-secondary))"
   const themeBorder = "var(--theme-border-soft)"
   const themeSurface = "hsl(var(--theme-surface-paper) / 0.8)"
 

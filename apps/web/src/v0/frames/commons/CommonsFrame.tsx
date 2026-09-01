@@ -26,9 +26,9 @@ import type { PromptedAction } from "../../components/PromptedActionCard"
 const COMMONS_SURFACE = {
   card: "hsl(var(--theme-surface-paper) / 0.82)",
   sideCard: "hsl(var(--theme-surface-paper) / 0.6)",
-  border: "var(--theme-border-soft)",
-  inkPrimary: "var(--theme-ink-primary)",
-  inkSecondary: "var(--theme-ink-secondary)",
+  border: "hsl(var(--theme-border-soft))",
+  inkPrimary: "hsl(var(--theme-ink-primary))",
+  inkSecondary: "hsl(var(--theme-ink-secondary))",
 }
 
 /** Sidebar anchor card data (used during loading & data assembly) */

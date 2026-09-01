@@ -198,10 +198,10 @@ function HubCardItem({ card, isAdmin }: { card: HubCard; isAdmin: boolean }) {
         {card.badge && <Badge type={card.badge} />}
       </div>
       <div>
-        <div className="text-[13px] font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+        <div className="text-[13px] font-semibold" style={{ color: "hsl(var(--theme-ink-primary))" }}>
           {card.label}
         </div>
-        <div className="mt-0.5 text-[11px] leading-relaxed" style={{ color: "var(--theme-ink-tertiary)" }}>
+        <div className="mt-0.5 text-[11px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           {card.description}
         </div>
       </div>

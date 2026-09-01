@@ -49,6 +49,23 @@ const patchSchema = z.object({
     })
     .nullable()
     .optional(),
+  theme: z
+    .object({
+      inherit: z.boolean(),
+      sourceImage: z.string().max(2000).nullable().optional(),
+      palette: z
+        .object({
+          background: z.string().max(16),
+          accent: z.string().max(16),
+          primary: z.string().max(16),
+          surface: z.string().max(16),
+          dark: z.boolean(),
+        })
+        .nullable()
+        .optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 router.get(

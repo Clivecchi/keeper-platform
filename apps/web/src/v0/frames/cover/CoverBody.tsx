@@ -287,11 +287,11 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
       >
         {title ? (
           <>
-            <h2 className="text-3xl md:text-4xl font-serif" style={{ color: "var(--theme-ink-primary)" }}>
+            <h2 className="text-3xl md:text-4xl font-serif" style={{ color: "hsl(var(--theme-ink-primary))" }}>
               {title}
             </h2>
             {tagline && (
-              <p className="text-sm leading-relaxed max-w-md" style={{ color: "var(--theme-ink-secondary)" }}>
+              <p className="text-sm leading-relaxed max-w-md" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                 {tagline}
               </p>
             )}
@@ -299,7 +299,7 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
         ) : (
           <div
             className="h-8 w-24 animate-pulse rounded"
-            style={{ backgroundColor: "var(--theme-ink-tertiary)" }}
+            style={{ backgroundColor: "hsl(var(--theme-ink-tertiary))" }}
             aria-hidden
           />
         )}
@@ -332,11 +332,11 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
     return (
       <>
         <section aria-label="Opened threshold" className="mb-5 space-y-3">
-          <div className="rounded-xl border px-5 py-4" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-panel)" }}>
-            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+          <div className="rounded-xl border px-5 py-4" style={{ borderColor: "hsl(var(--theme-border-soft))", backgroundColor: "hsl(var(--theme-surface-panel))" }}>
+            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
               First Page
             </p>
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--theme-ink-secondary)" }}>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
               Choose where to begin. The Index is the calm map; Moments are the daily pulse.
             </p>
           </div>
@@ -345,24 +345,24 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
             onClick={handleOpenIndex}
             className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
             style={{
-              borderColor: "var(--theme-border-soft)",
-              backgroundColor: "var(--theme-surface-panel)",
+              borderColor: "hsl(var(--theme-border-soft))",
+              backgroundColor: "hsl(var(--theme-surface-panel))",
               boxShadow: "var(--theme-shadow-soft)",
             }}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
                   Table of Contents
                 </p>
-                <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
+                <p className="text-base md:text-lg" style={{ color: "hsl(var(--theme-ink-primary))" }}>
                   Open Index
                 </p>
-                <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                <p className="text-xs leading-snug" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                   Open the structured map of this domain board.
                 </p>
               </div>
-              <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
+              <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
                 →
               </span>
             </div>
@@ -372,24 +372,24 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
             onClick={handleWriteMoment}
             className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
             style={{
-              borderColor: "var(--theme-border-soft)",
-              backgroundColor: "var(--theme-surface-paper)",
+              borderColor: "hsl(var(--theme-border-soft))",
+              backgroundColor: "hsl(var(--theme-surface-paper))",
               boxShadow: "var(--theme-shadow-soft)",
             }}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
                   Moment
                 </p>
-                <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
+                <p className="text-base md:text-lg" style={{ color: "hsl(var(--theme-ink-primary))" }}>
                   Write a Moment
                 </p>
-                <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                <p className="text-xs leading-snug" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                   Capture your thoughts in a beautiful diary entry.
                 </p>
               </div>
-              <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
+              <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
                 {isCreatingDraft ? "..." : "→"}
               </span>
             </div>
@@ -400,7 +400,7 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
         <div className="flex justify-center" aria-hidden>
           <div
             className="w-16 h-px opacity-30"
-            style={{ backgroundColor: "var(--theme-line-hairline)" }}
+            style={{ backgroundColor: "hsl(var(--theme-line-hairline))" }}
           />
         </div>
 

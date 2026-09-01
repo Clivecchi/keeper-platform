@@ -52,6 +52,7 @@ import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 import { LibrarySharedContextRoadmapPanel } from "../../presence/chronicleDocument/LibrarySharedContextRoadmapPanel"
 import { ReachChroniclePresence } from "../../presence/ReachChroniclePresence"
+import { ThemeChroniclePresence } from "../../presence/ThemeChroniclePresence"
 import { OnStageObjectList } from "../../composer/OnStageObjectList"
 import { shouldRenderRealmDocumentChronicle } from "../workspaceSurface"
 
@@ -741,6 +742,10 @@ export function UniversalViewPanel({
           <ReachChroniclePresence
             domainId={domainId}
             onClose={() => boardCtx.actions.closeComposerReach()}
+          />
+        ) : boardCtx?.composerThemeOpen ? (
+          <ThemeChroniclePresence
+            onClose={() => boardCtx.actions.closeComposerTheme()}
           />
         ) : boardCtx?.dialogIngest ? (
           domainId ? (

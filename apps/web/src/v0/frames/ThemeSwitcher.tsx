@@ -77,8 +77,8 @@ export function ThemeSwitcher() {
                 onClick={() => handleThemeChange(theme.slug)}
                 className="w-full text-left px-3 py-2 text-sm hover:bg-opacity-50 transition-colors first:rounded-t-md last:rounded-b-md"
                 style={{
-                  color: "var(--theme-ink-primary)",
-                  backgroundColor: currentTheme === theme.slug ? "var(--theme-surface-elevated)" : "transparent",
+                  color: "hsl(var(--theme-ink-primary))",
+                  backgroundColor: currentTheme === theme.slug ? "hsl(var(--theme-surface-elevated))" : "transparent",
                 }}
               >
                 {theme.label}

@@ -48,7 +48,7 @@ export function JourneyInvitationSlide({
       {/* Wordmark */}
       <h2
         className="text-3xl md:text-4xl font-serif tracking-wide"
-        style={{ color: "var(--theme-ink-primary)" }}
+        style={{ color: "hsl(var(--theme-ink-primary))" }}
       >
         {wordmark}
       </h2>
@@ -56,7 +56,7 @@ export function JourneyInvitationSlide({
       {/* Tagline */}
       <p
         className="text-sm leading-relaxed max-w-xs"
-        style={{ color: "var(--theme-ink-secondary)" }}
+        style={{ color: "hsl(var(--theme-ink-secondary))" }}
       >
         {tagline}
       </p>
@@ -69,9 +69,9 @@ export function JourneyInvitationSlide({
         aria-busy={forwardDisabled}
         className="mt-2 rounded-full border px-5 py-2 text-[11px] font-medium tracking-wide uppercase transition-colors hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
         style={{
-          borderColor: "var(--theme-border-soft)",
+          borderColor: "hsl(var(--theme-border-soft))",
           backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-          color: "var(--theme-ink-primary)",
+          color: "hsl(var(--theme-ink-primary))",
           letterSpacing: "0.12em",
         }}
       >
@@ -83,7 +83,7 @@ export function JourneyInvitationSlide({
           type="button"
           onClick={onBrowseJourneys}
           className="text-[11px] font-medium tracking-wide underline-offset-2 transition-opacity hover:opacity-80 hover:underline"
-          style={{ color: "var(--theme-ink-secondary)" }}
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {browseJourneysLabel}
         </button>

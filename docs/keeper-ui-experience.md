@@ -70,6 +70,8 @@ Two things named Stage:
 
 **Filmstrip:** Root first. Story beats after. Each cell is a standalone engagement — media field + paper card, as the public Cover dresses. Theatre plays the current cell. Objects stay in Reach / Chronicle, not Composer.
 
+**Reading plane (2026-08-31):** Paper cards on atmosphere use cream paper + dark ink (`surface.reading` / `.theme-reading-plane`). Board chrome stays Warm Dark. Stage theme inherits the domain; imagery can grow a Stage look (`keeperStage.theme`). Composer toolbar groups Look · Reach · Capture · Send. Theme opens Chronicle, same as Reach.
+
 ### World Mode (Presentation vs Workshop)
 
 - **Presentation** renders narrative-first surfaces (story-first, read-only, no editing chrome).

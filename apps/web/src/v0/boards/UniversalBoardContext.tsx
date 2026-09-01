@@ -248,6 +248,9 @@ export interface UniversalBoardActions {
   openComposerReach: () => void
   closeComposerReach: () => void
   toggleComposerReach: () => void
+  openComposerTheme: () => void
+  closeComposerTheme: () => void
+  toggleComposerTheme: () => void
   /**
    * Stage / Composer selection — set Working on without changing Talking in
    * (except Dialog, which is the conversation object).
@@ -273,6 +276,8 @@ export interface UniversalBoardContextValue {
   workspaceSurface: WorkspaceSurface
   /** Reach sheet — Composer feature; not a fourth column; not Composer itself. */
   composerReachOpen: boolean
+  /** Theme editor — Composer feature; Chronicle Config family; not Composer itself. */
+  composerThemeOpen: boolean
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -408,17 +413,20 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [libraryScreenOpen, setLibraryScreenOpen] = React.useState(false)
   const [workspaceSurface, setWorkspaceSurfaceState] = React.useState<WorkspaceSurface>("dialog")
   const [composerReachOpen, setComposerReachOpen] = React.useState(false)
+  const [composerThemeOpen, setComposerThemeOpen] = React.useState(false)
   const stayOnStageRef = React.useRef(false)
 
   const leaveStageRoom = React.useCallback(() => {
     setWorkspaceSurfaceState(nextWorkspaceSurface("leave-stage"))
     setComposerReachOpen(false)
+    setComposerThemeOpen(false)
   }, [])
 
   const leaveStageOnPlatformNav = React.useCallback(() => {
     if (stayOnStageRef.current) return
     setWorkspaceSurfaceState(nextWorkspaceSurface("platform-nav"))
     setComposerReachOpen(false)
+    setComposerThemeOpen(false)
   }, [])
 
   const openLibraryScreen = React.useCallback(() => {
@@ -432,7 +440,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const setWorkspaceSurface = React.useCallback((surface: WorkspaceSurface) => {
     setWorkspaceSurfaceState(surface)
-    if (surface === "dialog") setComposerReachOpen(false)
+    if (surface === "dialog") {
+      setComposerReachOpen(false)
+      setComposerThemeOpen(false)
+    }
   }, [])
 
   const openStageRoom = React.useCallback(() => {
@@ -450,6 +461,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const openComposerReach = React.useCallback(() => {
     setLibraryScreenOpen(false)
+    setComposerThemeOpen(false)
     setComposerReachOpen(true)
   }, [])
 
@@ -459,7 +471,30 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const toggleComposerReach = React.useCallback(() => {
     setComposerReachOpen((open) => {
-      if (!open) setLibraryScreenOpen(false)
+      if (!open) {
+        setLibraryScreenOpen(false)
+        setComposerThemeOpen(false)
+      }
+      return !open
+    })
+  }, [])
+
+  const openComposerTheme = React.useCallback(() => {
+    setLibraryScreenOpen(false)
+    setComposerReachOpen(false)
+    setComposerThemeOpen(true)
+  }, [])
+
+  const closeComposerTheme = React.useCallback(() => {
+    setComposerThemeOpen(false)
+  }, [])
+
+  const toggleComposerTheme = React.useCallback(() => {
+    setComposerThemeOpen((open) => {
+      if (!open) {
+        setLibraryScreenOpen(false)
+        setComposerReachOpen(false)
+      }
       return !open
     })
   }, [])
@@ -1324,6 +1359,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         openComposerReach,
         closeComposerReach,
         toggleComposerReach,
+        openComposerTheme,
+        closeComposerTheme,
+        toggleComposerTheme,
         onWorkTargetFromStage,
       },
       navCollapsed,
@@ -1331,6 +1369,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       libraryScreenOpen,
       workspaceSurface,
       composerReachOpen,
+      composerThemeOpen,
       chronicleEngagement,
       dialogIngest,
       chronicleView,
@@ -1440,12 +1479,16 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       openComposerReach,
       closeComposerReach,
       toggleComposerReach,
+      openComposerTheme,
+      closeComposerTheme,
+      toggleComposerTheme,
       onWorkTargetFromStage,
       navCollapsed,
       onToggleNavCollapsed,
       libraryScreenOpen,
       workspaceSurface,
       composerReachOpen,
+      composerThemeOpen,
       chronicleEngagement,
       dialogIngest,
       chronicleView,

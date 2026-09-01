@@ -11,6 +11,7 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `BoardDefConfigPresence.tsx` — config layout for board definitions (human-readable structure)
 - `GlossaryPresence.tsx` — Object Glossary Chronicle surface (Domain read / Design definition ownership)
 - `ReachChroniclePresence.tsx` — Composer Reach tool in Chronicle (not Composer)
+- `ThemeChroniclePresence.tsx` — Composer Theme tool in Chronicle (Stage inherit / imagery; not `?frame=theme`)
 - `KeeperPresenceDefaults.ts` — platform default schemas (journey, moment, keeper, agent, draft, dialog, service, domain, frame, boardDef)
 - `usePresenceSchema.ts` — React hook with 3-level resolution: object override → domain DB → platform default; module-level cache
 - `KeeperPresence.tsx` — schema-driven Chronicle surface; journey focus layout, breadcrumb, related sections, relative timestamps; agent explicit Save + structured prompts
@@ -63,6 +64,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-08-31 — Theme in Chronicle
+- `ThemeChroniclePresence` is the Composer Theme tool. Stage inherits the domain; uploaded imagery can grow a Stage look. Back closes Theme. Domain Treatment stays on Domain Config. Not `?frame=theme`.
 
 ### 2026-08-30 — Agent name save was blaming empty Purpose
 - `buildAgentFieldPatch` omits blank optional fields so Chronicle Save can rename an agent without sending empty Purpose / Role / provider.

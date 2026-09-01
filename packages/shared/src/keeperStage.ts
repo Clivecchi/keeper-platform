@@ -81,6 +81,25 @@ export type StageStory = {
   slides: StageStorySlide[];
 };
 
+/**
+ * Stage look. Null / inherit = domain Treatment + cover.
+ * Own look grows from uploaded imagery (same palette pipeline as the domain).
+ * Not a Prisma Theme table.
+ */
+export type KeeperStageThemePalette = {
+  background: string;
+  accent: string;
+  primary: string;
+  surface: string;
+  dark: boolean;
+};
+
+export type KeeperStageTheme = {
+  inherit: boolean;
+  sourceImage?: string | null;
+  palette?: KeeperStageThemePalette | null;
+};
+
 export type KeeperStageComposition = {
   version: typeof KEEPER_STAGE_VERSION;
   slug: typeof KEEPER_STAGE_SLUG;
@@ -89,6 +108,8 @@ export type KeeperStageComposition = {
   presences: StagePresence[];
   /** Laid-out filmstrip. Null until agents (or a human) write it. */
   story: StageStory | null;
+  /** Null or inherit:true uses the domain. */
+  theme: KeeperStageTheme | null;
 };
 
 export type WorkspaceSurface = 'dialog' | 'stage';
@@ -115,6 +136,7 @@ export function emptyKeeperStage(): KeeperStageComposition {
     selectedPresenceId: null,
     presences: [],
     story: null,
+    theme: null,
   };
 }
 
@@ -199,6 +221,46 @@ export function withDomainCoverRoot(
   return [root, ...story];
 }
 
+function parseHexColor(raw: unknown): string | null {
+  const value = trimmed(raw);
+  if (!value) return null;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value) ? value : null;
+}
+
+function parseStageThemePalette(raw: unknown): KeeperStageThemePalette | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const rec = raw as Record<string, unknown>;
+  const background = parseHexColor(rec.background);
+  const accent = parseHexColor(rec.accent);
+  const primary = parseHexColor(rec.primary);
+  const surface = parseHexColor(rec.surface);
+  if (!background || !accent || !primary || !surface) return null;
+  return {
+    background,
+    accent,
+    primary,
+    surface,
+    dark: rec.dark === true,
+  };
+}
+
+export function parseKeeperStageTheme(raw: unknown): KeeperStageTheme | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const rec = raw as Record<string, unknown>;
+  if (rec.inherit !== false) {
+    return { inherit: true };
+  }
+  return {
+    inherit: false,
+    sourceImage: trimmed(rec.sourceImage),
+    palette: parseStageThemePalette(rec.palette),
+  };
+}
+
+export function stageThemeInheritsDomain(theme: KeeperStageTheme | null | undefined): boolean {
+  return theme == null || theme.inherit !== false;
+}
+
 /** PATCH without `story` (or `story: null`) keeps the current filmstrip. `story: { slides: [] }` clears it. */
 export function mergeKeeperStagePatch(
   current: KeeperStageComposition,
@@ -208,11 +270,13 @@ export function mergeKeeperStagePatch(
     ? (patch as Record<string, unknown>)
     : {};
   const storyPatch = !('story' in rec) || rec.story == null ? current.story : rec.story;
+  const themePatch = !('theme' in rec) || rec.theme == null ? current.theme : rec.theme;
   return parseKeeperStage({
     title: 'title' in rec ? rec.title : current.title,
     selectedPresenceId: 'selectedPresenceId' in rec ? rec.selectedPresenceId : current.selectedPresenceId,
     presences: 'presences' in rec ? rec.presences : current.presences,
     story: storyPatch,
+    theme: themePatch,
   });
 }
 
@@ -254,6 +318,7 @@ export function parseKeeperStage(raw: unknown): KeeperStageComposition {
     selectedPresenceId: selected && presences.some((p) => p.id === selected) ? selected : null,
     presences,
     story: parseStageStory(rec.story),
+    theme: parseKeeperStageTheme(rec.theme),
   };
 }
 

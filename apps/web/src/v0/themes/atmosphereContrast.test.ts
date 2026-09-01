@@ -29,6 +29,10 @@ describe("deriveAtmosphereContrast", () => {
     const tertiary = inkLightness(tokens["ink.tertiary"])
     expect(primary).toBeGreaterThanOrEqual(90)
     expect(primary - tertiary).toBeGreaterThanOrEqual(30)
+
+    expect(inkLightness(tokens["surface.reading"])).toBeGreaterThanOrEqual(90)
+    expect(inkLightness(tokens["ink.reading"])).toBeLessThan(20)
+    expect(Number(tokens["glass.reading"])).toBe(GLASS_SEALED.reading)
   })
 
   it("keeps open glass when there is no atmosphere", () => {

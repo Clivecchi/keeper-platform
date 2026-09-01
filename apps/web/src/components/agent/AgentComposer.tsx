@@ -23,7 +23,7 @@ import {
   ClipboardDocumentCheckIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline"
-import { Sparkles } from "lucide-react"
+import { Sparkles, SwatchBook } from "lucide-react"
 import type { TalkModeState } from "../../hooks/useTalkMode"
 import { useAuth } from "../../context/AuthContext"
 import {
@@ -164,10 +164,37 @@ export interface AgentComposerProps {
   /** Reach — bring objects onto Stage. A Composer feature, not Composer itself. */
   onOpenReach?: () => void
   reachOpen?: boolean
+  /** Theme — inherit domain; Stage may grow its own from imagery. Chronicle, not Composer. */
+  onOpenTheme?: () => void
+  themeOpen?: boolean
 }
 
 const MIN_ROWS = 4
 const MAX_ROWS = 10
+
+function ComposerToolGroup({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center gap-0.5" role="group" aria-label={label}>
+      {children}
+    </div>
+  )
+}
+
+function ComposerToolDivider() {
+  return (
+    <span
+      aria-hidden
+      className="mx-0.5 h-4 w-px shrink-0"
+      style={{ background: "hsl(var(--theme-border-soft) / 0.65)" }}
+    />
+  )
+}
 
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
 
@@ -221,6 +248,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   userName,
   onOpenReach,
   reachOpen = false,
+  onOpenTheme,
+  themeOpen = false,
 }) => {
   const fileInputId = React.useId()
   const formRef = React.useRef<HTMLFormElement>(null)
@@ -548,7 +577,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           ["--tw-ring-color" as string]: "var(--treatment-color-alpha-20)",
         }}
       >
-        {/* Toolbar: Kip Domain (left) | attach | send (right) */}
+        {/* Toolbar: agency (left) | Look · Reach · Capture · Send (right) */}
         <div
           className="keeper-composer-toolbar flex items-center justify-between gap-2 rounded-t-[10px] border-b px-3 py-2"
           style={{ borderColor: SURFACE.border, backgroundColor: SURFACE.toolbarBg }}
@@ -608,121 +637,150 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               </select>
             )}
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {showTalkMic ? (
-              <button
-                type="button"
-                onClick={handleTalkClick}
-                disabled={disabled || isSending || talkState === "transcribing"}
-                className={[
-                  "keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40",
-                  isTalkListening ? "keeper-composer-talk--active" : "",
-                ].join(" ")}
-                style={
-                  isTalkListening
-                    ? { color: "hsl(var(--theme-focus-ring))" }
-                    : undefined
-                }
-                title={talkMicTitle}
-                aria-label={talkMicTitle}
-                aria-pressed={isTalkListening}
-              >
-                <MicrophoneIcon className="h-4 w-4" />
-              </button>
-            ) : null}
-            {showTalkUnsupported ? (
-              <span
-                className="keeper-composer-icon-btn flex h-8 w-8 items-center justify-center rounded-md opacity-40"
-                title="Speech recognition is not supported in this browser"
-              >
-                <MicrophoneIcon className="h-4 w-4" aria-hidden />
-              </span>
-            ) : null}
-            {/* Tools cluster — capture ‖ markdown ‖ attach — visual break from send */}
-            {stageFileUpload ? (
-              <button
-                type="button"
-                onClick={() => void handleScreenCapture()}
-                disabled={isSending || disabled || isUploading}
-                className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
-                title="Capture screen"
-                aria-label="Capture screen"
-              >
-                <ComputerDesktopIcon className="h-4 w-4" />
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => canOpenMarkdown && setMarkdownOpen(true)}
-              disabled={!canOpenMarkdown || disabled}
-              className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
-              title="Copy dialog as markdown"
-              aria-label="Copy dialog as markdown"
-            >
-              <DocumentTextIcon className="h-4 w-4" />
-            </button>
-            {onOpenReach ? (
-              <button
-                type="button"
-                onClick={onOpenReach}
-                disabled={disabled}
-                className="keeper-composer-icon-btn flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium disabled:pointer-events-none disabled:opacity-40"
-                title="Reach — bring who or what you need"
-                aria-label="Open Reach"
-                aria-pressed={reachOpen}
-                style={
-                  reachOpen
-                    ? { color: "hsl(var(--theme-focus-ring))" }
-                    : undefined
-                }
-              >
-                <Sparkles className="h-4 w-4" strokeWidth={1.75} />
-                <span>Reach</span>
-              </button>
-            ) : null}
-            {stageFileUpload ? (
+          <div className="flex shrink-0 items-center gap-0.5">
+            {onOpenTheme ? (
               <>
-                <input
-                  type="file"
-                  id={fileInputId}
-                  className="hidden"
-                  accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
-                  onChange={(event) => void handleFileChange(event)}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById(fileInputId)?.click()}
-                  disabled={isSending || disabled || isUploading}
-                  className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
-                  title="Attach file"
-                  aria-label="Attach file"
-                >
-                  {isUploading ? (
-                    <span className="text-[10px]">…</span>
-                  ) : (
-                    <PaperClipIcon className="h-4 w-4" />
-                  )}
-                </button>
+                <ComposerToolGroup label="Look">
+                  <button
+                    type="button"
+                    onClick={onOpenTheme}
+                    disabled={disabled}
+                    className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
+                    title="Theme — inherit the domain, or grow a Stage look"
+                    aria-label="Open Theme"
+                    aria-pressed={themeOpen}
+                    style={
+                      themeOpen
+                        ? { color: "hsl(var(--theme-focus-ring))" }
+                        : undefined
+                    }
+                  >
+                    <SwatchBook className="h-4 w-4" strokeWidth={1.75} />
+                  </button>
+                </ComposerToolGroup>
+                <ComposerToolDivider />
               </>
             ) : null}
-            <span
-              aria-hidden
-              className="mx-0.5 h-4 w-px shrink-0"
-              style={{ background: "hsl(var(--theme-border-soft) / 0.65)" }}
-            />
-            <button
-              type="submit"
-              disabled={!canSend}
-              className="keeper-composer-send flex h-8 w-8 items-center justify-center rounded-md transition-opacity disabled:opacity-40"
-              style={{ backgroundColor: "hsl(var(--theme-focus-ring))", color: "hsl(0 0% 98%)" }}
-              aria-label="Send"
-            >
-              {isSending ? (
-                <span className="text-[10px] font-medium">…</span>
-              ) : (
-                <PaperAirplaneIcon className="h-4 w-4" strokeWidth={2} />
-              )}
-            </button>
+            {onOpenReach ? (
+              <>
+                <ComposerToolGroup label="Reach">
+                  <button
+                    type="button"
+                    onClick={onOpenReach}
+                    disabled={disabled}
+                    className="keeper-composer-icon-btn flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium disabled:pointer-events-none disabled:opacity-40"
+                    title="Reach — bring who or what you need"
+                    aria-label="Open Reach"
+                    aria-pressed={reachOpen}
+                    style={
+                      reachOpen
+                        ? { color: "hsl(var(--theme-focus-ring))" }
+                        : undefined
+                    }
+                  >
+                    <Sparkles className="h-4 w-4" strokeWidth={1.75} />
+                    <span>Reach</span>
+                  </button>
+                </ComposerToolGroup>
+                <ComposerToolDivider />
+              </>
+            ) : null}
+            {showTalkMic || showTalkUnsupported || stageFileUpload ? (
+            <ComposerToolGroup label="Capture">
+              {showTalkMic ? (
+                <button
+                  type="button"
+                  onClick={handleTalkClick}
+                  disabled={disabled || isSending || talkState === "transcribing"}
+                  className={[
+                    "keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40",
+                    isTalkListening ? "keeper-composer-talk--active" : "",
+                  ].join(" ")}
+                  style={
+                    isTalkListening
+                      ? { color: "hsl(var(--theme-focus-ring))" }
+                      : undefined
+                  }
+                  title={talkMicTitle}
+                  aria-label={talkMicTitle}
+                  aria-pressed={isTalkListening}
+                >
+                  <MicrophoneIcon className="h-4 w-4" />
+                </button>
+              ) : null}
+              {showTalkUnsupported ? (
+                <span
+                  className="keeper-composer-icon-btn flex h-8 w-8 items-center justify-center rounded-md opacity-40"
+                  title="Speech recognition is not supported in this browser"
+                >
+                  <MicrophoneIcon className="h-4 w-4" aria-hidden />
+                </span>
+              ) : null}
+              {stageFileUpload ? (
+                <button
+                  type="button"
+                  onClick={() => void handleScreenCapture()}
+                  disabled={isSending || disabled || isUploading}
+                  className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
+                  title="Capture screen"
+                  aria-label="Capture screen"
+                >
+                  <ComputerDesktopIcon className="h-4 w-4" />
+                </button>
+              ) : null}
+              {stageFileUpload ? (
+                <>
+                  <input
+                    type="file"
+                    id={fileInputId}
+                    className="hidden"
+                    accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
+                    onChange={(event) => void handleFileChange(event)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById(fileInputId)?.click()}
+                    disabled={isSending || disabled || isUploading}
+                    className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
+                    title="Attach file"
+                    aria-label="Attach file"
+                  >
+                    {isUploading ? (
+                      <span className="text-[10px]">…</span>
+                    ) : (
+                      <PaperClipIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </>
+              ) : null}
+            </ComposerToolGroup>
+            ) : null}
+            <ComposerToolDivider />
+            <ComposerToolGroup label="Send">
+              <button
+                type="button"
+                onClick={() => canOpenMarkdown && setMarkdownOpen(true)}
+                disabled={!canOpenMarkdown || disabled}
+                className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md disabled:pointer-events-none disabled:opacity-40"
+                title="Copy dialog as markdown"
+                aria-label="Copy dialog as markdown"
+              >
+                <DocumentTextIcon className="h-4 w-4" />
+              </button>
+              <button
+                type="submit"
+                disabled={!canSend}
+                className="keeper-composer-send flex h-8 w-8 items-center justify-center rounded-md transition-opacity disabled:opacity-40"
+                style={{ backgroundColor: "hsl(var(--theme-focus-ring))", color: "hsl(0 0% 98%)" }}
+                aria-label="Send"
+              >
+                {isSending ? (
+                  <span className="text-[10px] font-medium">…</span>
+                ) : (
+                  <PaperAirplaneIcon className="h-4 w-4" strokeWidth={2} />
+                )}
+              </button>
+            </ComposerToolGroup>
           </div>
         </div>
 

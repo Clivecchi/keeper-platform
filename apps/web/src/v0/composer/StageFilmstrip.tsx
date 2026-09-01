@@ -87,9 +87,9 @@ function SlideScene({
             onClick={onContinue}
             className="mt-8 rounded-full border px-5 py-2 text-[11px] font-medium uppercase tracking-[0.12em]"
             style={{
-              borderColor: "var(--theme-border-soft)",
+              borderColor: "hsl(var(--theme-border-soft))",
               backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-              color: "var(--theme-ink-primary)",
+              color: "hsl(var(--theme-ink-primary))",
             }}
           >
             Continue

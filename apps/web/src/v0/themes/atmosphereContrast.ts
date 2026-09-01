@@ -27,6 +27,7 @@ export type AtmosphereGlassAlphas = {
   chronicle: number
   composer: number
   composerInput: number
+  reading: number
   washStart: number
   washEnd: number
   treatmentWashStart: number
@@ -43,10 +44,14 @@ export type AtmosphereContrastTokens = {
   'glass.chronicle': string
   'glass.composer': string
   'glass.composerInput': string
+  'glass.reading': string
   'atmosphere.washStart': string
   'atmosphere.washEnd': string
   'atmosphere.treatmentWashStart': string
   'atmosphere.treatmentWashEnd': string
+  'surface.reading': string
+  'ink.reading': string
+  'ink.readingSecondary': string
   'ink.primary': string
   'ink.secondary': string
   'ink.tertiary': string
@@ -66,6 +71,7 @@ export const GLASS_OPEN: AtmosphereGlassAlphas = {
   chronicle: 0.76,
   composer: 0.55,
   composerInput: 0.9,
+  reading: 0.88,
   washStart: 0.08,
   washEnd: 0.75,
   treatmentWashStart: 0.77,
@@ -82,6 +88,7 @@ export const GLASS_SEALED: AtmosphereGlassAlphas = {
   chronicle: 0.88,
   composer: 0.82,
   composerInput: 0.94,
+  reading: 0.94,
   washStart: 0.42,
   washEnd: 0.86,
   treatmentWashStart: 0.88,
@@ -159,6 +166,36 @@ function deriveInk(darkSurface: boolean, hasAtmosphere: boolean): Pick<
   }
 }
 
+/**
+ * Paper card that sits on atmosphere (Cover, Stage Root, invitation frames).
+ * Board chrome stays Warm Dark; the card is a cream reading plane so type and
+ * frame edges hold against a dark cover photo.
+ */
+function deriveReadingPlane(
+  darkSurface: boolean,
+  hasAtmosphere: boolean,
+): Pick<AtmosphereContrastTokens, 'surface.reading' | 'ink.reading' | 'ink.readingSecondary'> {
+  if (hasAtmosphere) {
+    return {
+      'surface.reading': hslToken(36, 22, 95),
+      'ink.reading': hslToken(30, 22, 12),
+      'ink.readingSecondary': hslToken(30, 14, 28),
+    }
+  }
+  if (darkSurface) {
+    return {
+      'surface.reading': hslToken(28, 10, 14),
+      'ink.reading': hslToken(38, 22, 88),
+      'ink.readingSecondary': hslToken(38, 16, 72),
+    }
+  }
+  return {
+    'surface.reading': hslToken(35, 15, 96),
+    'ink.reading': hslToken(30, 20, 18),
+    'ink.readingSecondary': hslToken(30, 14, 32),
+  }
+}
+
 function deriveComposer(
   darkSurface: boolean,
   hasAtmosphere: boolean,
@@ -191,11 +228,13 @@ export function deriveAtmosphereContrast(
     'glass.chronicle': alphaToken(glass.chronicle),
     'glass.composer': alphaToken(glass.composer),
     'glass.composerInput': alphaToken(glass.composerInput),
+    'glass.reading': alphaToken(glass.reading),
     'atmosphere.washStart': alphaToken(glass.washStart),
     'atmosphere.washEnd': alphaToken(glass.washEnd),
     'atmosphere.treatmentWashStart': alphaToken(glass.treatmentWashStart),
     'atmosphere.treatmentWashEnd': alphaToken(glass.treatmentWashEnd),
     ...deriveInk(input.darkSurface, input.hasAtmosphere),
+    ...deriveReadingPlane(input.darkSurface, input.hasAtmosphere),
     ...deriveComposer(input.darkSurface, input.hasAtmosphere),
   }
 }
@@ -210,10 +249,14 @@ export const ATMOSPHERE_CONTRAST_KEYS = [
   'glass.chronicle',
   'glass.composer',
   'glass.composerInput',
+  'glass.reading',
   'atmosphere.washStart',
   'atmosphere.washEnd',
   'atmosphere.treatmentWashStart',
   'atmosphere.treatmentWashEnd',
+  'surface.reading',
+  'ink.reading',
+  'ink.readingSecondary',
   'ink.primary',
   'ink.secondary',
   'ink.tertiary',

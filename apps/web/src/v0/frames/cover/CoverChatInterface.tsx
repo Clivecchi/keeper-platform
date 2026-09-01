@@ -75,7 +75,7 @@ export function CoverChatInterface({
           style={{
             borderColor: "var(--theme-border-soft)",
             backgroundColor: "hsl(var(--theme-surface-paper) / 0.75)",
-            color: "var(--theme-ink-primary)",
+            color: "hsl(var(--theme-ink-primary))",
           }}
         >
           {submitLabel ?? "Talk to Kip"}

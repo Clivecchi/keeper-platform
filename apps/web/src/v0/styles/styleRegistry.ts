@@ -306,6 +306,21 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-atmosphere-wash-start': extras['atmosphere.washStart'] ?? '0.08',
     '--theme-atmosphere-wash-end': extras['atmosphere.washEnd'] ?? '0.75',
 
+    /* Reading plane — paper card on atmosphere. CSS must use these, not invented alphas. */
+    '--theme-surface-reading': extras['surface.reading']
+      ? toHSLComponents(extras['surface.reading'])
+      : toVar('surface.paper', tokens['surface.paper']),
+    '--theme-ink-reading': extras['ink.reading']
+      ? toHSLComponents(extras['ink.reading'])
+      : inkPrimary,
+    '--theme-ink-reading-secondary': extras['ink.readingSecondary']
+      ? toHSLComponents(extras['ink.readingSecondary'])
+      : inkSecondary,
+    '--theme-ink-reading-color': extras['ink.reading']
+      ? `hsl(${toHSLComponents(extras['ink.reading'])})`
+      : `hsl(${inkPrimary})`,
+    '--theme-glass-reading-alpha': extras['glass.reading'] ?? '0.88',
+
     /* Platform header bar — warm dark top edge */
     '--theme-header-text-primary': '38 30% 82%',
     '--theme-header-text-secondary': '38 20% 62%',

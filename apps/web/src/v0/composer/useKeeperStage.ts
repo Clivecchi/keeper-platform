@@ -15,6 +15,7 @@ import {
   selectStagePresence,
   updateStagePresence,
   type KeeperStageComposition,
+  type KeeperStageTheme,
   type StagePresence,
   type StagePresenceKind,
 } from "@keeper/shared"
@@ -44,6 +45,7 @@ type KeeperStageContextValue = {
   move: (presenceId: string, x: number, y: number) => void
   updateAgency: (presenceId: string, patch: { contextualRole?: string | null; direction?: string | null }) => void
   remove: (presenceId: string) => void
+  setTheme: (theme: KeeperStageTheme | null) => void
   selected: StagePresence | null
 }
 
@@ -96,6 +98,7 @@ export function KeeperStageProvider({
           selectedPresenceId: next.selectedPresenceId,
           presences: next.presences,
           story: next.story,
+          theme: next.theme,
         }),
       })
         .then(() => setError(null))
@@ -183,6 +186,10 @@ export function KeeperStageProvider({
     apply(removeStagePresence(stageRef.current, presenceId))
   }, [apply])
 
+  const setTheme = React.useCallback((theme: KeeperStageTheme | null) => {
+    apply({ ...stageRef.current, theme })
+  }, [apply])
+
   const selected = React.useMemo(
     () => stage.presences.find((p) => p.id === stage.selectedPresenceId) ?? null,
     [stage],
@@ -199,8 +206,9 @@ export function KeeperStageProvider({
     move,
     updateAgency,
     remove,
+    setTheme,
     selected,
-  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, selected])
+  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, setTheme, selected])
 
   return React.createElement(KeeperStageCtx.Provider, { value }, children)
 }

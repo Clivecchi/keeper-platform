@@ -139,6 +139,31 @@ describe('parseStageStory', () => {
   });
 });
 
+describe('parseKeeperStageTheme', () => {
+  it('inherits the domain when omitted or inherit is not false', () => {
+    expect(parseKeeperStage({}).theme).toBeNull();
+    expect(parseKeeperStage({ theme: { inherit: true } }).theme).toEqual({ inherit: true });
+  });
+
+  it('keeps a Stage look grown from imagery', () => {
+    const parsed = parseKeeperStage({
+      theme: {
+        inherit: false,
+        sourceImage: 'https://cdn.example/stage.jpg',
+        palette: {
+          background: '#3a2a22',
+          accent: '#c47a3a',
+          primary: '#2d6a7f',
+          surface: '#f5f0e8',
+          dark: true,
+        },
+      },
+    });
+    expect(parsed.theme?.inherit).toBe(false);
+    expect(parsed.theme?.palette?.surface).toBe('#f5f0e8');
+  });
+});
+
 describe('mergeKeeperStagePatch', () => {
   it('keeps the filmstrip when a presence PATCH omits story', () => {
     const current = parseKeeperStage({
@@ -150,6 +175,17 @@ describe('mergeKeeperStagePatch', () => {
       presences: [{ id: 'p1', kind: 'dialog', objectId: 'd1', title: 'Finding the Plot', x: 0.2, y: 0.2 }],
     });
     expect(next.story?.slides[0]?.title).toBe('Finding the Plot');
+  });
+
+  it('keeps Stage theme when a presence PATCH omits theme', () => {
+    const current = parseKeeperStage({
+      theme: { inherit: false, sourceImage: 'https://cdn.example/a.jpg', palette: {
+        background: '#111111', accent: '#222222', primary: '#333333', surface: '#f5f0e8', dark: true,
+      } },
+    });
+    const next = mergeKeeperStagePatch(current, { presences: [] });
+    expect(next.theme?.inherit).toBe(false);
+    expect(next.theme?.sourceImage).toBe('https://cdn.example/a.jpg');
   });
 
   it('does not wipe the filmstrip when story is null', () => {

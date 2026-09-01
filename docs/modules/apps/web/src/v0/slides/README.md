@@ -30,6 +30,9 @@ SlideTypes receive data from the domain frame JSON and the resolved audience rol
 
 ## 📆 Update Log
 
+### 2026-08-31 — Invitation ink uses hsl()
+- `JourneyInvitationSlide` wordmark, tagline, and Forward use `hsl(var(--theme-ink-*))` so type holds on the reading plane.
+
 ### 2026-08-30 — Cover card is Stage Root
 - `JourneyInvitationSlide` also dresses the Stage Root (`domain_cover`). Forward on Stage opens the selected story (next filmstrip cell), not a new Frame.
 

@@ -41,12 +41,12 @@ export function KeepersFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       <div
         className="rounded-2xl border p-6 text-sm shadow-sm"
         style={{
-          borderColor: "var(--theme-border-soft)",
+          borderColor: "hsl(var(--theme-border-soft))",
           backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
-          color: "var(--theme-ink-secondary)",
+          color: "hsl(var(--theme-ink-secondary))",
         }}
       >
-        <p className="font-medium mb-2" style={{ color: "var(--theme-ink-primary)" }}>
+        <p className="font-medium mb-2" style={{ color: "hsl(var(--theme-ink-primary))" }}>
           {json.coming_soon_heading}
         </p>
         <p>{json.coming_soon_body}</p>
@@ -55,9 +55,9 @@ export function KeepersFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           onClick={placementActions.goCommons}
           className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
           style={{
-            borderColor: "var(--theme-border-soft)",
+            borderColor: "hsl(var(--theme-border-soft))",
             backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-            color: "var(--theme-ink-primary)",
+            color: "hsl(var(--theme-ink-primary))",
           }}
         >
           {json.cta_back_to_commons}

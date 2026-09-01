@@ -223,6 +223,7 @@ function UniversalBoardShell({
     libraryScreenOpen,
     workspaceSurface,
     composerReachOpen,
+    composerThemeOpen,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -315,6 +316,10 @@ function UniversalBoardShell({
   React.useEffect(() => {
     if (composerReachOpen && useMobilePanelLayout) openChronicleOverlay()
   }, [composerReachOpen, useMobilePanelLayout, openChronicleOverlay])
+
+  React.useEffect(() => {
+    if (composerThemeOpen && useMobilePanelLayout) openChronicleOverlay()
+  }, [composerThemeOpen, useMobilePanelLayout, openChronicleOverlay])
 
   const handleGoHome = React.useCallback(() => {
     actions.clearSelection()

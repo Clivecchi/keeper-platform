@@ -587,6 +587,8 @@ export function KeeperDialogFrame({
             userName={userName}
             onOpenReach={board ? board.actions.openComposerReach : undefined}
             reachOpen={board?.composerReachOpen === true}
+            onOpenTheme={board ? board.actions.openComposerTheme : undefined}
+            themeOpen={board?.composerThemeOpen === true}
           />
           {showComposerFooter && !hideMobileComposerFooter && (
             <div className="dialog-composer-footer">

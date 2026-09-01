@@ -155,7 +155,7 @@ export function CoverFrame({
         className="min-h-screen"
         style={{
           padding: COVER_CONSTANTS.pad,
-          color: "var(--theme-ink-primary)",
+          color: "hsl(var(--theme-ink-primary))",
           ...pageBackground,
         }}
       >
@@ -166,7 +166,7 @@ export function CoverFrame({
           {coverImprint ? (
             <p
               className="uppercase tracking-[0.42em] text-center"
-              style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "var(--theme-ink-tertiary)" }}
+              style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "hsl(var(--theme-ink-tertiary))" }}
             >
               {coverImprint}
             </p>
@@ -183,7 +183,7 @@ export function CoverFrame({
                   style={{
                     borderColor: "var(--theme-border-soft)",
                     backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-                    color: "var(--theme-ink-primary)",
+                    color: "hsl(var(--theme-ink-primary))",
                   }}
                   aria-label="Open profile menu"
                 >
@@ -206,7 +206,7 @@ export function CoverFrame({
                           navigate('/settings');
                         }}
                         className="block w-full text-left px-4 py-2 text-xs hover:opacity-80"
-                        style={{ color: "var(--theme-ink-primary)" }}
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
                       >
                         Settings
                       </button>
@@ -218,7 +218,7 @@ export function CoverFrame({
                             navigate(`/d/${domainSlug}/admin`);
                           }}
                           className="block w-full text-left px-4 py-2 text-xs hover:opacity-80"
-                          style={{ color: "var(--theme-ink-primary)" }}
+                          style={{ color: "hsl(var(--theme-ink-primary))" }}
                         >
                           Domain Admin
                         </button>
@@ -230,7 +230,7 @@ export function CoverFrame({
                           handleLogout();
                         }}
                         className="block w-full text-left px-4 py-2 text-xs hover:opacity-80"
-                        style={{ color: "var(--theme-ink-primary)" }}
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
                       >
                         Logout
                       </button>
@@ -259,9 +259,8 @@ export function CoverFrame({
           themeSwitcherSlot={<ThemeSwitcher />}
         >
           <div
-            className="rounded-xl"
+            className="theme-reading-plane rounded-xl"
             style={{
-              backgroundColor: "hsl(var(--theme-surface-paper) / 0.88)",
               padding: "clamp(1.5rem, 4vw, 2.5rem)",
               boxShadow: "var(--theme-shadow-soft, 0 8px 32px hsl(30 20% 4% / 0.12))",
             }}

@@ -24,6 +24,7 @@ These story surfaces must never be collapsed:
 | Term | What it is | Where it lives |
 |---|---|---|
 | **Stage** | The **room / screen**. Named composition of assets. How you look. Not the story. | `workspaceSurface: stage` + `Domain.settings.keeperStage`. First name: Keeper Stage |
+| **Stage theme** | Inherit the domain Treatment and cover. May grow its own look from uploaded imagery (same palette pipeline). | `keeperStage.theme`. Not a Prisma Theme table. Composer Look → Chronicle |
 | **Story in development** | The **single** filmstrip being told on Stage. Agents lay it out. Not the Stage. Not yet a Prisma EntityKind. | `Domain.settings.keeperStage.story`. Lead `stage.story.layout`. Derived title + beat only until the first layout |
 | **Root** | The domain Cover — the frame that loads with the domain (`domain_cover`). Not a text title. | First cell on Stage. Same identity as `?frame=cover` |
 | **Slide** | One cell of the selected story after Forward. A **presentation of** a live beat, Point, Moment, Path, or Keeper. SlideType is the dress (`text_slide`, later `moment_card`, `path_index`) | Filmstrip after Root. Not the Cover |

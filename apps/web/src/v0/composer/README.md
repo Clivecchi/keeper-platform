@@ -10,7 +10,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `KeeperStageCanvas.tsx` — Stage **screen** (current Slide only)
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
 - `OnStageObjectList.tsx` — On Stage list in Reach and Chronicle (not Composer)
-- `StageEngagementSurface.tsx` — Slide as media field + paper card (public Cover dress)
+- `StageEngagementSurface.tsx` — Slide as media field + paper card (public Cover dress; `.theme-reading-plane`)
+- `ThemeChroniclePresence.tsx` (in `presence/`) — Composer Theme tool in Chronicle (inherit domain; Stage look from imagery)
 - `stageNowBeat.ts` / `stageFilmstrip.ts` — domain Root (`domain_cover`) + story beats after Forward
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
 - `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
@@ -39,6 +40,10 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-08-31 — Stage theme inherits the domain; Composer Look group
+- Stage look persists on `keeperStage.theme`. Null / inherit uses the domain Treatment. Imagery grows a Stage look via the same palette extraction as a domain cover. Not a Prisma Theme table.
+- Composer toolbar groups Look (Theme) · Reach · Capture · Send. Theme opens Chronicle, same as Reach. Paper cards use the atmosphere reading plane so type is no longer hidden on dark covers.
 
 ### 2026-08-30 — Slides are engagements; objects leave Composer
 - Root (and beats) fill the Stage screen as the public Cover does: cover image + paper card. Objects stay in Reach / Chronicle. Composer is the lectern only.

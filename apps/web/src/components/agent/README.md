@@ -34,6 +34,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-08-31: Composer toolbar is grouped — **Look** (Theme) · **Reach** · **Capture** · **Send**. Theme opens Chronicle (`onOpenTheme`). Not a second Composer.
 - 2026-08-30: Composer toolbar can open **Reach** (`onOpenReach`) — bring objects onto Stage. Reach is a Composer feature, not a second Composer.
 - 2026-08-26: Proposed Point cards show **Accept** in Dialog. Manuscript Points are no longer auto-accepted. Duplicate receipts still fold; **Already on this document** has no Accept.
 - 2026-08-26: `DialogueMessageList` folds a second `draft.update.propose` receipt when Keeper already has that Point (`data.duplicate`). Card copy is **Already on this document**, not a second Added.

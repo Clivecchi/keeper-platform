@@ -56,6 +56,11 @@ StyleScope: effectiveStyleId = gray-earth when domain-resolved (Warm Dark via ?s
 
 ## ?? Update Log
 
+### 2026-08-31 — Reading plane for paper cards on atmosphere
+- `atmosphereContrast` now emits `surface.reading`, `ink.reading`, `ink.readingSecondary`, and `glass.reading`. When a cover sits behind the board, the card is cream paper + dark ink so type and frame edges hold. Board chrome stays Warm Dark.
+- CSS class `.theme-reading-plane` remaps paper/ink for Cover and Stage engagement cards. `.v0-style-scope` inherits a real `hsl()` ink so `var(--theme-ink-primary)` without `hsl()` no longer vanishes.
+- `stageThemeCss.ts` applies a Stage-local look when `keeperStage.theme.inherit` is false (imagery). Inherit (default) uses the domain.
+
 ### 2026-08-30 — Atmosphere contrast is a theme-engine step
 - `atmosphereContrast.ts` derives sealed glass alphas and a wider ink spread (primary = must-read, tertiary = muted) when a cover / atmosphere image is present.
 - `resolveDomainThemeSync` accepts `{ hasAtmosphere }` and overlays those tokens. V0Shell / board registration pass the Domain cover URL.
