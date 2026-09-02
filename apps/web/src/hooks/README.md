@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-01 — Cast advisory card survives consult
+- `useAgentDialog` extracts the existing envelope `card` from Cast runs, forwards `instrumentCard`, and attaches it on `castVoices` / delegation. Advise-only Stage skips are not Dialog receipts. Status is `ok` when reply **or** card crossed.
+
 ### 2026-08-30 — Document review is Lead-only
 - `useAgentDialog` skips Cast consult when `detectReorganizeIntent` hears a Document-review / director ask. Kip directs; Cloud and Rendr stay off that turn.
 

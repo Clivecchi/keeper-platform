@@ -937,6 +937,8 @@ export class KipApi {
         instrumentReply?: string | null
         /** Cast-run action receipts for Dialog transparency (merged onto Lead message). */
         actionResults?: unknown[]
+        /** Existing keeper-card from the Cast run — advisory channel. */
+        instrumentCard?: Record<string, unknown>
       }
       /** Domain/Realm multi-cast consultation — real replies only; empty is honest. */
       castConsultations?: {
@@ -948,6 +950,8 @@ export class KipApi {
           status: 'ok' | 'empty' | 'failed' | 'error'
           /** Cast-run action receipts for Dialog transparency (merged onto Lead message). */
           actionResults?: unknown[]
+          /** Existing keeper-card from the Cast run — advisory channel. */
+          instrumentCard?: Record<string, unknown>
         }>
       }
       /**

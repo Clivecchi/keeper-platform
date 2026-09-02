@@ -35,6 +35,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-01 — Cast instrumentCard on Kip run
+- `kipApi.runAgent` / stream options accept `instrumentCard` on `directorDelegation` and `castConsultations[]` so the existing advisory card reaches Lead synthesis.
+
 ### 2026-08-25 — Preserve Chronicle `activeDraftId: null`
 - `kipApi.runAgent` / `runAgentStream` send `null` instead of dropping the field, so Working on stays the Document on screen.
 

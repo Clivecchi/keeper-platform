@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
+import { formatKeeperAdviceCardForPrompt } from '@keeper/shared';
 import {
   buildCastConsultationsSynthesisPrompt,
   buildCastMemberDelegationPrompt,
+  buildDirectorSynthesisPrompt,
 } from './directorDialog.js';
+
+const keepingJudgmentCard = {
+  type: 'summary',
+  title: 'Keeping Judgment Contract — Architectural Report',
+  body: 'Form before capability.',
+  items: ['**A. Keeping Judgment**\n\nJudge fitness before mutation.'],
+};
 
 describe('buildCastMemberDelegationPrompt', () => {
   it('tells Cast they cannot write the Document', () => {
@@ -50,5 +59,67 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).toMatch(/YOU are the Director of this Document/i);
     expect(prompt).toMatch(/document\.reorganize\.propose/);
     expect(prompt).not.toMatch(/Never document\.reorganize\.propose/);
+  });
+
+  it('grounds synthesis in the delivered advisory card (Cast Stage advisory)', () => {
+    const delivered = formatKeeperAdviceCardForPrompt(keepingJudgmentCard);
+    const prompt = buildCastConsultationsSynthesisPrompt({
+      userMessage: 'Cloud, read attached and respond accordingly',
+      directorName: 'Kip',
+      consultations: [
+        {
+          label: 'Cloud',
+          reply: 'Let me give you the architectural report.',
+          status: 'ok',
+          deliveredAdvice: delivered,
+        },
+      ],
+    });
+    expect(prompt).toContain('Keeping Judgment Contract — Architectural Report');
+    expect(prompt).toContain('Judge fitness before mutation');
+    expect(prompt).toMatch(/Do NOT claim a cast member provided a report/);
+    expect(prompt).not.toMatch(/Emit stage\.story\.layout this turn/);
+  });
+
+  it('does not let Lead claim an undelivered Cast report', () => {
+    const prompt = buildCastConsultationsSynthesisPrompt({
+      userMessage: 'Cloud, read attached and respond accordingly',
+      directorName: 'Kip',
+      consultations: [
+        {
+          label: 'Cloud',
+          reply: 'Let me give you the architectural report.',
+          status: 'ok',
+        },
+      ],
+    });
+    expect(prompt).toContain('No advisory card crossed to the human');
+    expect(prompt).not.toContain('Keeping Judgment Contract — Architectural Report');
+    expect(prompt).toMatch(/Do NOT treat "I will give you the report" as delivery/);
+  });
+});
+
+describe('buildDirectorSynthesisPrompt', () => {
+  it('treats card-only Cast advice as delivered and forbids false completion', () => {
+    const prompt = buildDirectorSynthesisPrompt({
+      userMessage: 'Cloud, analyze this architecture',
+      castMemberLabel: 'Cloud',
+      castMemberReply: '',
+      directorName: 'Kip',
+      deliveredAdvice: formatKeeperAdviceCardForPrompt(keepingJudgmentCard),
+    });
+    expect(prompt).toContain('Keeping Judgment Contract — Architectural Report');
+    expect(prompt).toMatch(/Do NOT claim Cloud provided a report/);
+  });
+
+  it('forbids claiming a report when only an intro crossed', () => {
+    const prompt = buildDirectorSynthesisPrompt({
+      userMessage: 'Cloud, analyze this architecture',
+      castMemberLabel: 'Cloud',
+      castMemberReply: 'Let me give you the architectural report.',
+      directorName: 'Kip',
+    });
+    expect(prompt).toContain('no separate advisory card crossed to the human');
+    expect(prompt).toMatch(/Do NOT treat "I will give you the report" as delivery/);
   });
 });

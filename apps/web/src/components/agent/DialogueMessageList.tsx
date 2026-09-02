@@ -500,8 +500,10 @@ function AgentMessageTurn({
             name={voice.attributedTo ?? "Agent"}
             content={
               voice.content?.trim()
+              || voice.card?.title
               || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`
             }
+            card={voice.card}
             glossMessageId={message.id}
             glossNodeId={`cast-${voice.slug ?? index}`}
             glossThreads={message.glossThreads}
@@ -518,6 +520,7 @@ function AgentMessageTurn({
             }
             name={delegation.attributedTo ?? "Agent"}
             content={delegation.content}
+            card={delegation.card}
             glossMessageId={message.id}
             glossNodeId="delegation"
             glossThreads={message.glossThreads}

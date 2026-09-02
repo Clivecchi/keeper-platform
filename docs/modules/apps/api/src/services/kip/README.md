@@ -39,6 +39,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-09-01 — Advise-only skip is not a failed turn
+- `actionFollowUp.ts` — Cast-advises-only / Kip-support skips do not produce “I could not complete the requested actions.”
+
 ### 2026-08-30 — Stage story layout
 - `layoutStageStory.ts` — Lead `stage.story.layout` writes the filmstrip on `Domain.settings.keeperStage.story`. Not a Document write. Not a Prisma Story table.
 

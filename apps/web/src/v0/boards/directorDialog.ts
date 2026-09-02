@@ -4,10 +4,13 @@
  */
 
 export {
+  extractKeeperAdviceCardFromRunResult,
   isDirectorContinuityPhrase,
   resolveDirectorDelegationMessage,
   type DirectorContinuityMessage,
 } from "@keeper/shared"
+
+import { withoutAdviseOnlySkips } from "@keeper/shared"
 
 import type { DirectorDelegationBeat } from "../../components/agent/types"
 
@@ -439,30 +442,35 @@ export function mergeCastAndLeadActionResults(
   leadActions: unknown[] | undefined,
   castActions: unknown[],
 ): unknown[] | undefined {
-  if (leadActions?.length) {
-    const leadHasCastReceipts = leadActions.some(rowHasCastSlug)
-    if (!leadHasCastReceipts) {
-      return castActions.length ? [...castActions, ...leadActions] : leadActions
-    }
-    if (!castActions.length) return leadActions
+  const merged = (() => {
+    if (leadActions?.length) {
+      const leadHasCastReceipts = leadActions.some(rowHasCastSlug)
+      if (!leadHasCastReceipts) {
+        return castActions.length ? [...castActions, ...leadActions] : leadActions
+      }
+      if (!castActions.length) return leadActions
 
-    const usedCast = new Set<number>()
-    const merged = leadActions.map((leadRow) => {
-      if (!rowHasCastSlug(leadRow)) return leadRow
-      const leadType = actionTypeOf(leadRow)
-      const leadSlug = actionDataOf(leadRow)?.castSlug
-      const matchIdx = castActions.findIndex((castRow, idx) => {
-        if (usedCast.has(idx)) return false
-        if (actionTypeOf(castRow) !== leadType) return false
-        const castSlug = actionDataOf(castRow)?.castSlug
-        return !leadSlug || !castSlug || leadSlug === castSlug
+      const usedCast = new Set<number>()
+      const folded = leadActions.map((leadRow) => {
+        if (!rowHasCastSlug(leadRow)) return leadRow
+        const leadType = actionTypeOf(leadRow)
+        const leadSlug = actionDataOf(leadRow)?.castSlug
+        const matchIdx = castActions.findIndex((castRow, idx) => {
+          if (usedCast.has(idx)) return false
+          if (actionTypeOf(castRow) !== leadType) return false
+          const castSlug = actionDataOf(castRow)?.castSlug
+          return !leadSlug || !castSlug || leadSlug === castSlug
+        })
+        if (matchIdx < 0) return leadRow
+        usedCast.add(matchIdx)
+        return pickRicherCastReceipt(leadRow, castActions[matchIdx])
       })
-      if (matchIdx < 0) return leadRow
-      usedCast.add(matchIdx)
-      return pickRicherCastReceipt(leadRow, castActions[matchIdx])
-    })
-    const leftovers = castActions.filter((_, idx) => !usedCast.has(idx))
-    return leftovers.length ? [...leftovers, ...merged] : merged
-  }
-  return castActions.length ? castActions : undefined
+      const leftovers = castActions.filter((_, idx) => !usedCast.has(idx))
+      return leftovers.length ? [...leftovers, ...folded] : folded
+    }
+    return castActions.length ? castActions : undefined
+  })()
+  if (!merged?.length) return merged
+  const visible = withoutAdviseOnlySkips(merged)
+  return visible.length ? visible : undefined
 }

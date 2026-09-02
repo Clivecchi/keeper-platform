@@ -11,7 +11,14 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { Prisma } from '@prisma/client';
-import { logger, redactForLog } from '@keeper/shared';
+import {
+  extractKeeperAdviceCardFromRunResult,
+  formatKeeperAdviceCardForPrompt,
+  logger,
+  parseKeeperAdviceCard,
+  redactForLog,
+  withoutAdviseOnlySkips,
+} from '@keeper/shared';
 import {
   appendDraftPointToSpec,
   buildDraftSummaryFromAcceptedPoints,
@@ -324,6 +331,7 @@ type RunAgentOptions = {
       instrumentReply?: string | null;
       status: 'ok' | 'empty' | 'failed' | 'error';
       actionResults?: Array<Record<string, unknown>>;
+      instrumentCard?: Record<string, unknown>;
     }>;
   };
   /**
@@ -5121,6 +5129,8 @@ const AgentRunSchema = z.object({
       castMemberReply: z.string().nullable().optional(),
       /** Client-run cast action receipts — merged into Lead actionResults for UI. */
       actionResults: z.array(z.record(z.unknown())).optional(),
+      /** Existing keeper-card from the Cast run — advisory channel. */
+      instrumentCard: z.record(z.unknown()).optional(),
     })
     .refine((data) => Boolean(data.castMemberSlug ?? data.instrumentSlug), {
       message: 'directorDelegation requires castMemberSlug (or legacy instrumentSlug)',
@@ -5138,6 +5148,8 @@ const AgentRunSchema = z.object({
           status: z.enum(['ok', 'empty', 'failed', 'error']),
           /** Client-run cast action receipts — merged into Lead actionResults for UI. */
           actionResults: z.array(z.record(z.unknown())).optional(),
+          /** Existing keeper-card from the Cast run — advisory channel. */
+          instrumentCard: z.record(z.unknown()).optional(),
         }),
       ).min(1),
     })
@@ -6020,7 +6032,7 @@ export class KipAgentService {
         'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
         'gloss.append — Gloss an existing Point (depth beside it). Payload: { pointId (1–N or title; omit for the latest Point), content }. Not a rewrite. Not a new Draft. Chronicle shows Gloss on the Point. Include a keeper-card.',
         'document.reorganize.propose — Lead only. Propose the better Document. Current is evidence, not a constraint. Document name is payload.title; Forward is payload.forward: { title, description }. Those are not Points. Does not change accepted work until Apply. Chronicle shows Current vs Proposed (New · Refined · Moved from… · Merged · Retire). Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Nest Points under the Section they should belong to, or set sectionId to that title (change: move). Omit sectionId only when you are not moving that Point. Never dump named work into Open. Do not emit a Section named Open. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Identity-only (title/Forward) is valid. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle Points on the live Document only is draft.point.rewrite.',
-        'stage.story.layout — Lead only. On Stage, lay out the selected story as Slides after the domain Root. Keeper places the Cover (`domain_cover`). Your slides are text_slide beats Forward opens. Payload: { rationale?, slides: [{ title, body?, source?: { kind: live|point|moment|path|keeper|journey, id? } }] }. Do not emit the Root. Not a Document write.',
+        'stage.story.layout — Lead only. Available when composing the Stage filmstrip. Keeper places the Cover (`domain_cover`). Your slides are text_slide beats Forward opens. Payload: { rationale?, slides: [{ title, body?, source?: { kind: live|point|moment|path|keeper|journey, id? } }] }. Do not emit the Root. Not a Document write. Stage presence does not require this action.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
         '',
         'You have an index at session start. Use these tools to go deeper when needed.',
@@ -6521,7 +6533,7 @@ export class KipAgentService {
             'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
             'gloss.append payload schema: pointId (1–N or current title; omit to Gloss the latest Point), content (the Gloss — depth beside the Point). Do not rewrite. Do not create a Draft. Include a card.',
             'document.reorganize.propose — Lead only. Propose the better Document without changing accepted work. Current is evidence. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Nest Points under the Section they should belong to. Omit sectionId only when you are not moving that Point. Never dump named work into Open. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
-            'stage.story.layout — Lead only. On Stage, lay out the selected story after the domain Root. Payload: { rationale?, slides: [{ title, body?, source? }] }. Do not emit the Cover. Not document.reorganize.propose.',
+            'stage.story.layout — Lead only. Available when composing the Stage filmstrip. Payload: { rationale?, slides: [{ title, body?, source? }] }. Do not emit the Cover. Not document.reorganize.propose. Stage presence does not require this action.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
@@ -6967,6 +6979,13 @@ export class KipAgentService {
               attributedTo: string;
               content: string;
               status: 'ok' | 'empty' | 'failed';
+              card?: {
+                type: string;
+                title: string;
+                body?: string;
+                meta?: string;
+                items?: string[];
+              };
             }>
           | undefined;
         /** Server-side director cast receipts — merged into Lead actionResults for UI. */
@@ -7018,12 +7037,20 @@ export class KipAgentService {
                   });
                 }
               }
+              const card = parseKeeperAdviceCard(row.instrumentCard);
+              const delivered = Boolean(reply || card);
               return {
                 slug: row.instrumentSlug,
                 label,
                 reply: reply || null,
-                status: row.status,
-                castReceipts,
+                status:
+                  row.status === 'failed' && !delivered
+                    ? row.status
+                    : delivered
+                      ? 'ok'
+                      : row.status,
+                castReceipts: withoutAdviseOnlySkips(castReceipts),
+                card,
               };
             }),
           );
@@ -7041,13 +7068,18 @@ export class KipAgentService {
           leadModelInput = buildCastConsultationsSynthesisPrompt({
             userMessage: cc.userMessage,
             directorName: cc.directorDisplayName,
-            consultations: labeled,
+            consultations: labeled.map((row) => ({
+              label: row.label,
+              reply: row.reply,
+              status: row.status,
+              deliveredAdvice: row.card ? formatKeeperAdviceCardForPrompt(row.card) : null,
+            })),
             castPromisedPointWrite,
             documentDirection: detectReorganizeIntent(cc.userMessage) === 'required',
           });
           castVoicesForPersist = labeled.map((row) => {
             const status: 'ok' | 'empty' | 'failed' =
-              row.status === 'ok' && row.reply
+              row.status === 'ok' && (row.reply || row.card)
                 ? 'ok'
                 : row.status === 'failed'
                   ? 'failed'
@@ -7058,19 +7090,23 @@ export class KipAgentService {
               content:
                 status === 'ok' && row.reply
                   ? row.reply
-                  : status === 'failed'
+                  : status === 'ok' && row.card
+                    ? row.card.title
+                    : status === 'failed'
                     ? `${row.label} couldn't respond this turn.`
                     : `${row.label} returned nothing this turn.`,
               status,
+              ...(row.card ? { card: row.card } : {}),
             };
           });
           // Prefer equal castVoices in UI; keep firstOk delegation for older clients.
-          const firstOk = labeled.find((row) => row.status === 'ok' && row.reply);
+          const firstOk = labeled.find((row) => row.status === 'ok' && (row.reply || row.card));
           directorDelegationResult = firstOk
             ? {
                 attributedTo: firstOk.label,
-                content: firstOk.reply!,
+                content: firstOk.reply || firstOk.card?.title || '',
                 status: 'ok',
+                ...(firstOk.card ? { card: firstOk.card } : {}),
               }
             : {
                 attributedTo: labeled[0]?.label ?? 'Cast',
@@ -7103,6 +7139,7 @@ export class KipAgentService {
                 };
               })();
           let castMemberReply: string | null = null;
+          let castMemberCard = parseKeeperAdviceCard(dd.instrumentCard);
           if (dd.instrumentRanClientSide) {
             // Client already ran the Cast member in its own HTTP request (avoids proxy timeout).
             const precomputed =
@@ -7137,7 +7174,7 @@ export class KipAgentService {
                 });
               }
             }
-            if (!castMemberReply) {
+            if (!castMemberReply && !castMemberCard) {
               directorDelegationResult = {
                 attributedTo: castMemberLabel,
                 content: `${castMemberLabel} couldn't respond this turn. Kip answered using platform knowledge instead.`,
@@ -7191,6 +7228,8 @@ export class KipAgentService {
                 throw new Error(errMsg);
               }
               castMemberReply = extractReplyFromAgentRunResult(castMemberRun);
+              castMemberCard =
+                extractKeeperAdviceCardFromRunResult(castMemberRun) ?? castMemberCard;
               const nestedActions = annotateCastActionResults(
                 extractActionResultsFromAgentRunResult(castMemberRun),
                 { castSlug: dd.instrumentSlug, attributedTo: castMemberLabel },
@@ -7218,7 +7257,7 @@ export class KipAgentService {
                       : { castSlug: dd.instrumentSlug, attributedTo: castMemberLabel },
                 });
               }
-              if (!castMemberReply) {
+              if (!castMemberReply && !castMemberCard) {
                 console.warn('[director] Cast member returned empty reply', {
                   castMember: dd.instrumentSlug,
                 });
@@ -7237,14 +7276,15 @@ export class KipAgentService {
             }
           }
 
-          if (castMemberReply) {
+          if (castMemberReply || castMemberCard) {
             if (detectCastPromisedPointWrite([castMemberReply])) {
               attachPointTurnObligation('add a point', options?.environment ?? null);
             }
             directorDelegationResult = {
               attributedTo: castMemberLabel,
-              content: castMemberReply,
+              content: castMemberReply || castMemberCard?.title || '',
               status: 'ok',
+              ...(castMemberCard ? { card: castMemberCard } : {}),
             };
             leadModelInput = buildDirectorSynthesisPrompt({
               userMessage: dd.userMessage,
@@ -7253,8 +7293,11 @@ export class KipAgentService {
                   ? resolvedTask.taskMessage
                   : undefined,
               castMemberLabel,
-              castMemberReply,
+              castMemberReply: castMemberReply || '',
               directorName: dd.directorDisplayName,
+              deliveredAdvice: castMemberCard
+                ? formatKeeperAdviceCardForPrompt(castMemberCard)
+                : null,
             });
           } else {
             orchestrationMechanism = 'director_instrument_fallback';
@@ -7673,6 +7716,7 @@ export class KipAgentService {
           actionResults = [...serverCastActionResults, ...actionResults];
           serverCastActionResults = [];
         }
+        actionResults = withoutAdviseOnlySkips(actionResults);
 
         if (
           glossIntent !== 'required'
@@ -8634,6 +8678,7 @@ export class KipAgentService {
             message_count: previousMessages.length + (agent.memory_enabled ? 2 : 0), // +2 for current user/agent messages
             model: agent.model,
             actions: actionResults,
+            ...(structured.card ? { card: structured.card } : {}),
             actionPack,
             composedSystemPrompt,
             soleStatus,
@@ -9162,6 +9207,8 @@ export class KipAgentService {
           }
         }
 
+        actionResults = withoutAdviseOnlySkips(actionResults);
+
         if (currentSessionId && !isGlossMode(options?.agentContext)) {
           try {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
@@ -9190,6 +9237,7 @@ export class KipAgentService {
             session_id: currentSessionId || `system_${agent.slug}_${Date.now()}`,
             model: agent.model,
             actions: actionResults,
+            ...(structured.card ? { card: structured.card } : {}),
             composedSystemPrompt: aiResult.composedSystemPrompt,
             timestamp: new Date().toISOString(),
           },
@@ -10013,6 +10061,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
                 ...(Array.isArray(row.actionResults) && row.actionResults.length
                   ? { actionResults: row.actionResults }
                   : {}),
+                ...(row.instrumentCard ? { instrumentCard: row.instrumentCard } : {}),
               })),
             };
           } else if (validation.data.directorDelegation) {
@@ -10030,6 +10079,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
                 ...(Array.isArray(dd.actionResults) && dd.actionResults.length
                   ? { actionResults: dd.actionResults }
                   : {}),
+                ...(dd.instrumentCard ? { instrumentCard: dd.instrumentCard } : {}),
               } satisfies DirectorDelegationRequest;
             }
           }

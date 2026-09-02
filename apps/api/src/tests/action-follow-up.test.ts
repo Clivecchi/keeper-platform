@@ -260,6 +260,19 @@ describe('actionFollowUp', () => {
     ).toBe(true);
   });
 
+  it('does not treat Cast-advise-only skips as a failed turn', () => {
+    expect(
+      buildAllActionsFailedSummary([
+        {
+          type: 'stage.story.layout',
+          status: 'skipped',
+          message:
+            'Skipped — Cast advises only. The Lead writes Points with draft.update.propose (payload.section when they named a Section). Not reorganize. Not Stage layout. Not Accept.',
+        },
+      ]),
+    ).toBeNull();
+  });
+
   it('builds all-actions-failed summary when every action failed or skipped', () => {
     const summary = buildAllActionsFailedSummary([
       { type: 'draft.create', status: 'error', message: 'Validation failed' },

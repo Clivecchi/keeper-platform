@@ -37,6 +37,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - 2026-08-31: Composer toolbar is grouped — **Look** (Theme) · **Reach** · **Capture** · **Send**. Theme opens Chronicle (`onOpenTheme`). Not a second Composer.
 - 2026-08-30: Composer toolbar can open **Reach** (`onOpenReach`) — bring objects onto Stage. Reach is a Composer feature, not a second Composer.
 - 2026-08-26: Proposed Point cards show **Accept** in Dialog. Manuscript Points are no longer auto-accepted. Duplicate receipts still fold; **Already on this document** has no Accept.
+- 2026-09-01: **Cast voice cards render `card`** — Mechanism A / single-pin Cast beats pass the existing keeper-card so advisory reports appear on Cloud’s voice, not only in Lead prose.
 - 2026-08-26: `DialogueMessageList` folds a second `draft.update.propose` receipt when Keeper already has that Point (`data.duplicate`). Card copy is **Already on this document**, not a second Added.
 - 2026-08-25: Point receipts use the Dialog name and open that Point in Chronicle (`onOpenPoint`).
 - 2026-08-21: Point turns use `DraftPointProposeCard` on **failure** as well as success — Prisma dumps are stripped from the bubble and folded into one Point-shaped miss card. Success still shows Added/Accepted cards.

@@ -7,7 +7,13 @@ import type { KipMessage } from "../lib/kipApi"
 import type { AgentAttachment } from "../components/agent/AgentComposer"
 import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components/agent/types"
 import { extractLinkedCard } from "../components/agent/helpers"
-import { detectReorganizeIntent, parseGlossThreads } from "@keeper/shared"
+import {
+  detectReorganizeIntent,
+  extractKeeperAdviceCardFromRunResult,
+  parseGlossThreads,
+  parseKeeperAdviceCard,
+  withoutAdviseOnlySkips,
+} from "@keeper/shared"
 import { apiFetch } from "../lib/api"
 import {
   annotateCastActionResults,
@@ -74,12 +80,14 @@ function normalizeCastVoiceBeat(
       ? row.status
       : undefined
   const slug = typeof row.slug === "string" ? row.slug : undefined
-  if (!content.trim() && status !== "failed" && status !== "empty") return null
+  const card = parseKeeperAdviceCard(row.card)
+  if (!content.trim() && !card && status !== "failed" && status !== "empty") return null
   return {
-    content,
+    content: content || (card?.title ?? ""),
     ...(attributedTo ? { attributedTo } : {}),
     ...(status ? { status } : {}),
     ...(slug ? { slug } : {}),
+    ...(card ? { card } : {}),
   }
 }
 
@@ -391,6 +399,7 @@ export function extractRunAgentPayload(result: unknown): {
         : undefined
     const content = typeof d.content === "string" ? d.content.trim() : ""
     const attributedTo = typeof d.attributedTo === "string" ? d.attributedTo : undefined
+    const card = parseKeeperAdviceCard(d.card)
 
     if (status === "failed" || status === "empty") {
       directorDelegation = {
@@ -399,9 +408,15 @@ export function extractRunAgentPayload(result: unknown): {
           `${attributedTo ?? "Agent"} couldn't respond this turn. Kip answered using platform knowledge instead.`,
         attributedTo,
         status,
+        ...(card ? { card } : {}),
       }
-    } else if (content && !isDirectorDelegationFailureContent(content)) {
-      directorDelegation = { content, attributedTo, status: status ?? "ok" }
+    } else if ((content && !isDirectorDelegationFailureContent(content)) || card) {
+      directorDelegation = {
+        content: content || card?.title || "",
+        attributedTo,
+        status: status ?? "ok",
+        ...(card ? { card } : {}),
+      }
     }
   }
   return {
@@ -892,6 +907,7 @@ export function useAgentDialog({
 
       let directorTaskMessage: string | undefined
       let clientCastMemberReply: string | null = null
+      let clientCastMemberCard: ReturnType<typeof extractKeeperAdviceCardFromRunResult> = null
       // Wire shape stays `instrumentSlug`/`instrumentReply` — apps/api agents.ts
       // castConsultations schema only accepts those keys (see agents.ts zod schema).
       let castConsultations:
@@ -936,6 +952,7 @@ export function useAgentDialog({
           instrumentReply: string | null
           status: "ok" | "empty" | "failed" | "error"
           actionResults?: unknown[]
+          instrumentCard?: Record<string, unknown>
         }
         const consultationRows: ConsultationRow[] = await Promise.all(
           consultSlugs.map(async (slug): Promise<ConsultationRow> => {
@@ -968,21 +985,25 @@ export function useAgentDialog({
                 },
               )
               const reply = extractAgentReplyFromRunResult(castResult)
-              const castActions = annotateCastActionResults(
-                extractActionResultsFromRunResult(castResult),
-                { castSlug: slug, attributedTo: label },
+              const card = extractKeeperAdviceCardFromRunResult(castResult)
+              const castActions = withoutAdviseOnlySkips(
+                annotateCastActionResults(
+                  extractActionResultsFromRunResult(castResult),
+                  { castSlug: slug, attributedTo: label },
+                ),
               )
               if (castActions.length) {
                 appendThinkingStep(
                   `${label} returned ${castActions.length} action receipt${castActions.length === 1 ? "" : "s"}.`,
                 )
               }
-              if (reply) {
+              if (reply || card) {
                 return {
                   instrumentSlug: slug,
                   instrumentReply: reply,
                   status: "ok",
                   ...(castActions.length ? { actionResults: castActions } : {}),
+                  ...(card ? { instrumentCard: card } : {}),
                 }
               }
               appendThinkingStep(`${label} returned nothing.`)
@@ -1084,12 +1105,15 @@ export function useAgentDialog({
               },
             )
             clientCastMemberReply = extractAgentReplyFromRunResult(castResult)
-            const castActions = annotateCastActionResults(
-              extractActionResultsFromRunResult(castResult),
-              {
-                castSlug: castMember,
-                attributedTo: castMemberLabel ?? castMember,
-              },
+            clientCastMemberCard = extractKeeperAdviceCardFromRunResult(castResult)
+            const castActions = withoutAdviseOnlySkips(
+              annotateCastActionResults(
+                extractActionResultsFromRunResult(castResult),
+                {
+                  castSlug: castMember,
+                  attributedTo: castMemberLabel ?? castMember,
+                },
+              ),
             )
             if (castActions.length) {
               castActionResults.push(...castActions)
@@ -1097,7 +1121,7 @@ export function useAgentDialog({
                 `${castMemberLabel} returned ${castActions.length} action receipt${castActions.length === 1 ? "" : "s"}.`,
               )
             }
-            if (!clientCastMemberReply) {
+            if (!clientCastMemberReply && !clientCastMemberCard) {
               appendThinkingStep(`${castMemberLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
             }
           } catch (castErr: unknown) {
@@ -1160,6 +1184,9 @@ export function useAgentDialog({
                   instrumentReply: clientCastMemberReply,
                   ...(castActionResults.length
                     ? { actionResults: castActionResults }
+                    : {}),
+                  ...(clientCastMemberCard
+                    ? { instrumentCard: clientCastMemberCard }
                     : {}),
                 },
               }
@@ -1304,12 +1331,14 @@ export function useAgentDialog({
                   liveDirectorConfig?.castLabels[row.instrumentSlug]
                   ?? row.instrumentSlug
                 const reply = row.instrumentReply?.trim() ?? ""
-                if (row.status === "ok" && reply) {
+                const card = parseKeeperAdviceCard(row.instrumentCard)
+                if (row.status === "ok" && (reply || card)) {
                   return {
                     slug: row.instrumentSlug,
                     attributedTo: label,
-                    content: reply,
+                    content: reply || card?.title || "",
                     status: "ok" as const,
+                    ...(card ? { card } : {}),
                   }
                 }
                 if (row.status === "failed") {

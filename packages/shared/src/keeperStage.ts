@@ -477,8 +477,7 @@ export function buildKeeperStagePrompt(
   const lines = [
     'KEEPER STAGE (one story on this screen — assets are references, not clones):',
     `Stage: “${displayKeeperStageTitle(stage.title, domainLabel)}” (${stage.slug}). Objects below are real Keeper objects on this table.`,
-    'There is a single story being told here. Lay it out as Slides from what is here and what has been said. Do not treat the sequence as an open question.',
-    'Assets (Documents, Drafts, Journeys, Moments, Library, Cast) are material for that story — not the story.',
+    'There is a single story on this screen. Assets are material for that story — not the story.',
     'Wide context is everything placed. Narrow context is the selected object plus what you have just been told.',
     'The Stage story is Slides for presentation, not new Points for discussion. Chronicle Document stays the Document. Do not dump discussion Points onto Stage.',
   ];
@@ -512,7 +511,8 @@ export function buildKeeperStagePrompt(
     'Selecting an object on Stage may set Working on without changing Talking in.',
     'Contextual stage role/direction is who the Agent is here — it does not redefine Base Agency.',
     'Do not invent objects that are not on this Stage or in Talking in / Working on.',
-    'Emit stage.story.layout this turn with payload.slides in order. Those slides are the selected story after Forward — text_slide beats. Do not emit the domain Cover / Root; Keeper places that from the domain frame. Optional source: { kind: live|point|moment|path|keeper|journey, id }. Review & Reorganize remains for the Document only.',
+    'stage.story.layout is available to the Lead when composing the filmstrip. Payload: { rationale?, slides: [{ title, body?, source?: { kind: live|point|moment|path|keeper|journey, id? } }] }. Slides are text_slide beats after Forward. Do not emit the domain Cover / Root. Not a Document write. Review & Reorganize remains for the Document only.',
+    'Stage presence does not require a mutation. Conversation, advice, or no action is a valid successful turn. Emit stage.story.layout only when you are actually laying out the story.',
   );
   return lines.join('\n');
 }

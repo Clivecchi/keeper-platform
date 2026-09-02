@@ -26,7 +26,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
 - Reach opens from Composer (and the top-bar shortcut) and renders in Chronicle. Composer does not live in Chronicle.
-- Agent turns receive the Stage roster and the current filmstrip via `buildKeeperStagePrompt`. On Stage they emit `stage.story.layout` — that writes the strip. Reload after the turn.
+- Agent turns receive the Stage roster and the current filmstrip via `buildKeeperStagePrompt`. `stage.story.layout` is available to Lead when composing the filmstrip — Stage presence does not require a mutation. Reload after a layout write.
 
 ## ⚠️ Notes & ToDo
 - [x] Persist filmstrip cells on `Domain.settings.keeperStage.story` (`stage.story.layout`)
@@ -40,6 +40,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-09-01 — Stage layout is available, not obligated
+- Stage prompt no longer commands `Emit stage.story.layout this turn`. Conversation / advice / no action is a valid successful turn.
 
 ### 2026-08-31 — Stage theme inherits the domain; Composer Look group
 - Stage look persists on `keeperStage.theme`. Null / inherit uses the domain Treatment. Imagery grows a Stage look via the same palette extraction as a domain cover. Not a Prisma Theme table.

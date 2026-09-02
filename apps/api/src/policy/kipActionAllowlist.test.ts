@@ -17,6 +17,13 @@ describe('kipActionAllowlist', () => {
     expect(allowed.has('journey.read')).toBe(true);
   });
 
+  it('keeps stage.story.layout available to Lead without requiring a phrase detector', () => {
+    const allowed = buildAllowedActions(null);
+    expect(allowed.has('stage.story.layout')).toBe(true);
+    expect(GOLDEN_PATH_ACTIONS).toContain('stage.story.layout');
+    expect(KIP_ACTION_HANDLERS).toContain('stage.story.layout');
+  });
+
   it('does not put mcp.call on the Lead allowlist', () => {
     const allowed = buildAllowedActions(null);
     expect(allowed.has('mcp.call')).toBe(false);

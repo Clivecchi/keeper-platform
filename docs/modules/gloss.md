@@ -10,6 +10,8 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-08-22-agency-ui-trace-behavior.md`
 - `2026-08-22-composer-stage-vertical-slice.md`
 - `2026-08-22-review-reorganize.md`
+- `2026-09-01-keep-it-right-agency.md`
+- `2026-09-01-cloud-advise-only-card-drop.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -18,6 +20,12 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-01 — Cloud advise-only card drop
+- Added `2026-09-01-cloud-advise-only-card-drop.md` — Cloud wrote the Keeping Judgment report into `card`; consult dropped it; Stage command caused skipped layout; same Ceox root.
+
+### 2026-09-01 — Keep It Right Agency
+- Added `2026-09-01-keep-it-right-agency.md` — Ceox Stage layout vs Kip Document Point; understanding→action seam; reuse Story-builder + obligation, do not add phrase rules.
+
 ### 2026-08-22 — Review & Reorganize
 - Added `2026-08-22-review-reorganize.md` — Lead proposes a better Document; Chronicle shows Current vs Proposed; human Applies.
 

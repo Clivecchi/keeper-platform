@@ -23,6 +23,8 @@ export type DirectorDelegationRequest = {
   instrumentReply?: string | null;
   /** Client-run cast action receipts — merged into Lead actionResults for UI. */
   actionResults?: Array<Record<string, unknown>>;
+  /** Existing keeper-card from the Cast run — advisory channel. */
+  instrumentCard?: Record<string, unknown>;
 };
 
 export type DirectorDelegationResult = {
@@ -30,6 +32,14 @@ export type DirectorDelegationResult = {
   content: string;
   status: 'ok' | 'empty' | 'failed' | 'error';
   error?: string;
+  /** Existing keeper-card that crossed from the Cast run. */
+  card?: {
+    type: string;
+    title: string;
+    body?: string;
+    meta?: string;
+    items?: string[];
+  };
 };
 
 const PLATFORM_CAST_LABELS: Record<string, string> = {
@@ -114,10 +124,12 @@ export function buildDirectorSynthesisPrompt(params: {
   castMemberLabel: string;
   castMemberReply: string;
   directorName: string;
+  deliveredAdvice?: string | null;
 }): string {
   const display = params.userMessage.trim();
   const task = params.taskMessage?.trim() || display;
   const isContinuation = task !== display;
+  const delivered = params.deliveredAdvice?.trim();
 
   return [
     `[Director synthesis — ${params.directorName}]`,
@@ -128,11 +140,16 @@ export function buildDirectorSynthesisPrompt(params: {
     '',
     `${params.castMemberLabel} (Cast member) responded:`,
     `"${params.castMemberReply}"`,
+    delivered
+      ? `Delivered to the human (Dialog already shows this):\n${delivered}`
+      : `${params.castMemberLabel} delivered only the prose above — no separate advisory card crossed to the human.`,
     '',
     `Reply to the user as Lead (${params.directorName}). Talk like a person — 1–3 short sentences.`,
     `- Integrate ${params.castMemberLabel}'s input; do not repeat it verbatim.`,
     `- Do NOT paste ### ${params.castMemberLabel} headings — Dialog already shows their voice card.`,
     `- If ${params.castMemberLabel} said they would capture or add a Point, they cannot write the Document. You emit draft.update.propose this turn. Use payload.section when they named a Section.`,
+    `- Do NOT claim ${params.castMemberLabel} provided a report, card, or artifact unless it is listed as delivered above.`,
+    `- Do NOT treat "I will give you the report" as delivery.`,
     `- Do NOT correct the user about who they addressed.`,
     `- Do NOT tell the user to "try ${params.castMemberLabel} again" or to flag routing issues.`,
     `- Do NOT claim this session starts cold or that earlier thread turns are unavailable — they are in context.`,
@@ -177,6 +194,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     label: string;
     reply: string | null;
     status: 'ok' | 'empty' | 'failed' | 'error';
+    deliveredAdvice?: string | null;
   }>;
   castPromisedPointWrite?: boolean;
   /** Human asked the Lead to review / reorganize / direct the Document. */
@@ -191,8 +209,13 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   ];
 
   for (const row of params.consultations) {
-    if (row.status === 'ok' && row.reply?.trim()) {
-      lines.push(`- ${row.label}: "${row.reply.trim()}"`);
+    if (row.status === 'ok' && (row.reply?.trim() || row.deliveredAdvice?.trim())) {
+      lines.push(`- ${row.label}: "${(row.reply ?? '').trim() || '(prose empty — advisory card delivered)'}"`);
+      if (row.deliveredAdvice?.trim()) {
+        lines.push(`  Delivered advisory card:\n${row.deliveredAdvice.trim()}`);
+      } else {
+        lines.push(`  No advisory card crossed to the human.`);
+      }
     } else {
       lines.push(`- ${row.label}: (nothing returned — say you got nothing back)`);
     }
@@ -202,6 +225,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     '',
     `Reply as Lead (${params.directorName}). Talk like a person in the room.`,
     '- The Dialog UI already shows each cast member\'s real reply as their own voice card.',
+    '- Do NOT claim a cast member provided a report, card, or artifact unless it is listed as delivered above.',
+    '- Do NOT treat "I will give you the report" as delivery.',
     '- Your reply is 1–3 short sentences in your own voice. Not a committee report.',
     '- Do NOT use ### Cloud / ### Rendr headings. Do NOT write "Cloud and Rendr have identified…" or "both agree…".',
     '- Attribute a stance to a cast member ONLY when a real reply is listed above — and then in a clause, not a roll-call.',

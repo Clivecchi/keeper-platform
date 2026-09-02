@@ -20,6 +20,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-01 — Cast advice crosses; no false completion
+- `directorDialog.ts` — synthesis lists the advisory `card` that actually crossed. Lead must not claim a report from consult `ok` or “I will give you the report.” Card-only Cast turns are successful.
+
 ### 2026-08-25 — Cast cannot write; Lead talks
 - `directorDialog.ts` — Cast must not say "I'll capture it now." Lead synthesis is 1–3 sentences, not Cloud/Rendr minutes. If Cast promised a Point, Lead emits `draft.update.propose`.
 

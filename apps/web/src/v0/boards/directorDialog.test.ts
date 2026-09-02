@@ -4,6 +4,7 @@ import {
   buildDomainCollaborationPrompt,
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
+  extractKeeperAdviceCardFromRunResult,
   isEchoInternalPrompt,
   mergeCastAndLeadActionResults,
   sanitizeUserMessageContent,
@@ -54,6 +55,50 @@ describe("sanitizeUserMessageContent — Echo / collaboration scaffolds", () => 
 })
 
 describe("cast-consult action-result extract", () => {
+  it("preserves a Cast advisory card from the System envelope", () => {
+    const result = {
+      success: true,
+      data: {
+        action: "system_interaction",
+        data: {
+          response: "Let me give you the architectural report.",
+          card: {
+            type: "summary",
+            title: "Keeping Judgment Contract — Architectural Report",
+            body: "Form before capability.",
+          },
+          actions: [
+            {
+              type: "stage.story.layout",
+              status: "skipped",
+              message: "Skipped — Cast advises only.",
+            },
+          ],
+        },
+      },
+    }
+    expect(extractAgentReplyFromRunResult(result)).toBe(
+      "Let me give you the architectural report.",
+    )
+    expect(extractKeeperAdviceCardFromRunResult(result)?.title).toBe(
+      "Keeping Judgment Contract — Architectural Report",
+    )
+  })
+
+  it("does not surface Cast-advise Stage skips as Dialog receipts", () => {
+    const cast = annotateCastActionResults(
+      [
+        {
+          type: "stage.story.layout",
+          status: "skipped",
+          message: "Skipped — Cast advises only.",
+        },
+      ],
+      { castSlug: "cloud", attributedTo: "Cloud" },
+    )
+    expect(mergeCastAndLeadActionResults(undefined, cast)).toBeUndefined()
+  })
+
   it("extracts actions from nested runAgent envelope (not just reply text)", () => {
     const result = {
       success: true,

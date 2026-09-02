@@ -4,6 +4,8 @@
  * available until after execution — a second model turn closes the loop.
  */
 
+import { isAdviseOnlySkip } from '@keeper/shared';
+
 export type ActionResultLike = {
   type: string;
   status: string;
@@ -486,10 +488,11 @@ export function hasSuccessfulDraftMutationResults(results: ActionResultLike[]): 
 
 /** When every action in the turn failed or was skipped — surface a summary in response text. */
 export function buildAllActionsFailedSummary(results: ActionResultLike[]): string | null {
-  if (!results.length) return null;
-  if (results.some((result) => result.status === 'success')) return null;
+  const consequential = results.filter((result) => !isAdviseOnlySkip(result));
+  if (!consequential.length) return null;
+  if (consequential.some((result) => result.status === 'success')) return null;
 
-  const lines = results.map((result) => {
+  const lines = consequential.map((result) => {
     const label = result.status === 'skipped' ? 'skipped' : 'failed';
     if (result.type === 'document.reorganize.propose') {
       return `- document.reorganize.propose (${label}): The proposed Document did not land. Named Sections stay.`;

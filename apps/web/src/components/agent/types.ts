@@ -18,6 +18,14 @@ export interface DialogResponseEcho {
   attributedTo?: string
   /** ok = prose echo; empty = intentional silence; failed = inference error. */
   status?: DirectorDelegationStatus
+  /** Existing keeper-card — Cast advisory channel when prose is only an intro. */
+  card?: {
+    type: string
+    title: string
+    body?: string
+    meta?: string
+    items?: string[]
+  }
 }
 
 /** Board instrument reply shown above Lead content in director mode. */

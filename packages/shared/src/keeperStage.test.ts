@@ -80,9 +80,13 @@ describe('buildKeeperStagePrompt', () => {
     const prompt = buildKeeperStagePrompt(stage);
     expect(prompt).toContain('Stage: “Keeper Stage”');
     expect(buildKeeperStagePrompt(stage, 'livecchi.biz')).toContain('Stage: “livecchi.biz Stage”');
-    expect(prompt).toContain('single story being told');
-    expect(prompt).toContain('Lay it out as Slides');
-    expect(prompt).toContain('stage.story.layout');
+    expect(prompt).toContain('single story on this screen');
+    expect(prompt).toContain('stage.story.layout is available');
+    expect(prompt).not.toContain('Emit stage.story.layout this turn');
+    expect(prompt).toContain('does not require a mutation');
+    expect(prompt).toContain('Conversation, advice, or no action is a valid successful turn');
+    expect(prompt).not.toMatch(/if the user says .*story/i);
+    expect(prompt).not.toMatch(/when the user (asks|says) .*layout/i);
     expect(prompt).toContain('Slides for presentation');
     expect(prompt).toContain('Agent “Kip”');
     expect(prompt).toContain('stage role: Lead');
@@ -95,7 +99,8 @@ describe('buildKeeperStagePrompt', () => {
 
   it('speaks on an empty Stage when the human is in the room', () => {
     const prompt = buildKeeperStagePrompt(emptyKeeperStage(), 'ke3p', { onStage: true });
-    expect(prompt).toContain('stage.story.layout');
+    expect(prompt).toContain('stage.story.layout is available');
+    expect(prompt).not.toContain('Emit stage.story.layout this turn');
     expect(prompt).toContain('domain Root');
   });
 });

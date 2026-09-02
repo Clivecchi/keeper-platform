@@ -79,22 +79,36 @@ function speakerLabel(
   return fallbackAgentName
 }
 
+function appendCardMarkdown(
+  lines: string[],
+  card?: { title: string; body?: string; items?: string[] },
+): void {
+  if (!card?.title) return
+  lines.push(`**${card.title}**`)
+  if (card.body?.trim()) lines.push(card.body.trim())
+  for (const item of card.items ?? []) {
+    if (item.trim()) lines.push(item.trim())
+  }
+}
+
 function appendBeat(
   lines: string[],
   label: string,
   content: string | undefined,
   status?: string,
+  card?: { title: string; body?: string; items?: string[] },
 ): void {
   const body = content?.trim()
-  if (!body && status !== "empty" && status !== "failed") return
+  if (!body && !card && status !== "empty" && status !== "failed") return
   lines.push(`### ${label}`)
-  if (status === "empty") {
+  if (status === "empty" && !card) {
     lines.push("_(silent)_")
   } else if (status === "failed") {
     lines.push(body || "_(failed)_")
   } else if (body) {
     lines.push(body)
   }
+  appendCardMarkdown(lines, card)
   lines.push("")
 }
 
@@ -119,11 +133,11 @@ export function formatDialogueAsMarkdown(
     if (message.castVoices?.length) {
       for (const voice of message.castVoices) {
         const name = voice.attributedTo?.trim() || "Cast"
-        appendBeat(lines, name, voice.content, voice.status)
+        appendBeat(lines, name, voice.content, voice.status, voice.card)
       }
     } else if (message.delegation) {
       const name = message.delegation.attributedTo?.trim() || "Director"
-      appendBeat(lines, name, message.delegation.content, message.delegation.status)
+      appendBeat(lines, name, message.delegation.content, message.delegation.status, message.delegation.card)
     }
 
     const body = message.content?.trim()
