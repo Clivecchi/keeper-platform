@@ -15,6 +15,7 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-09-02-keeping-choices-dynamic-kinds.md`
 - `2026-09-02-keeping-choice-contract.md`
 - `2026-09-07-stage-casting-code-truth.md`
+- `2026-09-07-keeping-choice-card-won.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -23,6 +24,9 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-07 — Keeping Choice card won
+- Added `2026-09-07-keeping-choice-card-won.md` — first live test: raw envelope had Lock/Open/Next Step card, no keepingChoices; parser did not drop; decision-card example won. Gloss-only.
+
 ### 2026-09-07 — Stage / Casting code-truth
 - Added `2026-09-07-stage-casting-code-truth.md` — live-DB diagnostic: Agent / Casting / Loop / Stage / Frame already exist as parallel primitives; smallest slice is a Stage-cast bridge into existing consult + Treatment Apply. Gloss-only.
 

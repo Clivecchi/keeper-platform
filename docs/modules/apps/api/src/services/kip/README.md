@@ -7,7 +7,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
-- `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose system prompt (decision consult Lock/Open/Next Step)
+- `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when asked or multi-Cast synthesis; optional future keeps are `keepingChoices`
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `ingestExternalDocument.ts` — External markdown → Dialog + document_manuscript Points + real session (create or attach)
 - `resolveKipActionAllowlistStatus.ts` — session-bound Kip allowlist + canDraft read (MCP / REST)
@@ -39,6 +39,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-09-07 — Keeping Choice vs inert decision card
+- `buildKeeperCardRenderingPrompt.ts` — Lock/Open/Next Step card required only when the human asked for that form or the Lead is synthesizing a real multi-Cast consult. Optional future keeping acts emit `keepingChoices`, not inert Lock/Next Step items. Envelope example shows `card` / `keepingChoices` / `actions` as siblings, not all required.
 
 ### 2026-09-02 — Keeping Choice persist
 - `keepingChoicePersist.ts` — stamp offered choices on the Lead message; record a single selection; never execute offers.
