@@ -12,6 +12,8 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-08-22-review-reorganize.md`
 - `2026-09-01-keep-it-right-agency.md`
 - `2026-09-01-cloud-advise-only-card-drop.md`
+- `2026-09-02-keeping-choices-dynamic-kinds.md`
+- `2026-09-02-keeping-choice-contract.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -20,6 +22,12 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-02 — Keeping Choice contract
+- Added `2026-09-02-keeping-choice-contract.md` — design-only envelope sibling `keepingChoices`; click reuses Composer send; no kind field; learn from selections not offers. Gloss-only.
+
+### 2026-09-02 — Keeping Choices + Dynamic Kinds
+- Added `2026-09-02-keeping-choices-dynamic-kinds.md` — code-truth investigation: no Keeping Choice type; proposal is a state diff; Kind is several discriminators; Business Plan can be Document/`draft.kind` but not a typed Kind; SOLE is the lightest emerging-form memory. Gloss-only.
+
 ### 2026-09-01 — Cloud advise-only card drop
 - Added `2026-09-01-cloud-advise-only-card-drop.md` — Cloud wrote the Keeping Judgment report into `card`; consult dropped it; Stage command caused skipped layout; same Ceox root.
 

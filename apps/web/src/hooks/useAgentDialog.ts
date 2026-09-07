@@ -10,8 +10,14 @@ import { extractLinkedCard } from "../components/agent/helpers"
 import {
   detectReorganizeIntent,
   extractKeeperAdviceCardFromRunResult,
+  applyKeepingChoiceSelection,
+  canExerciseKeepingChoice,
+  extractKeepingChoicesFromRunResult,
   parseGlossThreads,
   parseKeeperAdviceCard,
+  parseKeepingChoiceExercise,
+  parseKeepingChoiceRecords,
+  type KeepingChoiceExercise,
   withoutAdviseOnlySkips,
 } from "@keeper/shared"
 import { apiFetch } from "../lib/api"
@@ -145,6 +151,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
       : meta?.keeperCard && typeof meta.keeperCard === "object" && !Array.isArray(meta.keeperCard)
         ? (meta.keeperCard as AgentDialogueMessage["keeperCard"])
         : undefined
+  const keepingChoices = parseKeepingChoiceRecords(meta?.keepingChoices)
   const chronicleChip =
     meta?.chronicleChip && typeof meta.chronicleChip === "object" && !Array.isArray(meta.chronicleChip)
       ? (meta.chronicleChip as AgentDialogueMessage["chronicleChip"])
@@ -195,6 +202,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(senderName?.trim() ? { senderName: senderName.trim() } : {}),
     ...(linkedCard ? { linkedCard } : {}),
     ...(keeperCard ? { keeperCard } : {}),
+    ...(keepingChoices.length ? { keepingChoices } : {}),
     ...(chronicleChip ? { chronicleChip } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),
@@ -372,14 +380,28 @@ export interface UseAgentDialogResult {
       displayContent?: string
       attachments?: AgentAttachment[]
       supportingDocs?: ReadonlyArray<{ name: string; preview?: string }>
+      keepingChoice?: KeepingChoiceExercise
     },
   ) => Promise<void>
+}
+
+function extractKeepingChoiceAlreadySelected(result: unknown): boolean {
+  const visit = (node: unknown, depth = 0): boolean => {
+    if (!node || typeof node !== "object" || depth > 5) return false
+    const obj = node as Record<string, unknown>
+    if (obj.keepingChoiceAlreadySelected === true) return true
+    if (obj.data !== undefined) return visit(obj.data, depth + 1)
+    return false
+  }
+  return visit(result)
 }
 
 export function extractRunAgentPayload(result: unknown): {
   actions?: unknown[]
   sessionId?: string
   directorDelegation?: DirectorDelegationBeat
+  keepingChoices?: ReturnType<typeof extractKeepingChoicesFromRunResult>
+  keepingChoiceAlreadySelected?: boolean
 } {
   const outer = (result as { data?: Record<string, unknown> })?.data
   const inner =
@@ -419,10 +441,14 @@ export function extractRunAgentPayload(result: unknown): {
       }
     }
   }
+  const keepingChoices = extractKeepingChoicesFromRunResult(result)
+  const keepingChoiceAlreadySelected = extractKeepingChoiceAlreadySelected(result)
   return {
     actions: Array.isArray(actions) ? actions : undefined,
     sessionId: typeof sessionRaw === "string" && sessionRaw.trim() ? sessionRaw.trim() : undefined,
     directorDelegation,
+    ...(keepingChoices.length ? { keepingChoices } : {}),
+    ...(keepingChoiceAlreadySelected ? { keepingChoiceAlreadySelected: true } : {}),
   }
 }
 
@@ -710,14 +736,23 @@ export function useAgentDialog({
   const sendMessage = React.useCallback(
     async (
       _e: FormEvent,
-      { content, displayContent, attachments, supportingDocs }: {
+      { content, displayContent, attachments, supportingDocs, keepingChoice }: {
         content: string
         displayContent?: string
         attachments?: AgentAttachment[]
         supportingDocs?: ReadonlyArray<{ name: string; preview?: string }>
+        keepingChoice?: KeepingChoiceExercise
       },
     ) => {
       if (mode === "designer" && !frameKey && !dialogIdRef.current) return
+
+      const exercisedChoicePreview = parseKeepingChoiceExercise(keepingChoice)
+      if (exercisedChoicePreview) {
+        const offered = messagesRef.current
+          .flatMap((message) => message.keepingChoices ?? [])
+          .find((row) => row.choiceId === exercisedChoicePreview.choiceId)
+        if (offered && !canExerciseKeepingChoice(offered)) return
+      }
 
       // ── build / agent / domain / designer: KipApi.runAgent ──────────────────
       if ((!content.trim() && !attachments?.length) || isSending || sendInFlightRef.current || !agentId) {
@@ -824,6 +859,7 @@ export function useAgentDialog({
       }
 
       const ts = Date.now()
+      const exercisedChoice = parseKeepingChoiceExercise(keepingChoice)
 
       const transcriptContent = displayContent?.trim() || content || "[attachment]"
       const optimisticUser = stampSenderName({
@@ -835,7 +871,19 @@ export function useAgentDialog({
         ...(supportingDocs?.length ? { supportingDocs: [...supportingDocs] } : {}),
       })
 
-      setMessages((prev) => [...prev, optimisticUser])
+      setMessages((prev) => {
+        const withUser = [...prev, optimisticUser]
+        if (!exercisedChoice) return withUser
+        return withUser.map((message) => {
+          if (!message.keepingChoices?.length) return message
+          const applied = applyKeepingChoiceSelection(message.keepingChoices, exercisedChoice.choiceId, {
+            selectedAt: new Date().toISOString(),
+            resultingUserMessageId: optimisticUser.id,
+          })
+          if (!applied.ok) return message
+          return { ...message, keepingChoices: applied.records }
+        })
+      })
 
       setInput("")
       // Clear sessionStorage immediately so a mid-send session-key change cannot
@@ -866,6 +914,9 @@ export function useAgentDialog({
         mode === "designer" && frameKey
           ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
           : agentContext
+      const withKeepingChoice = exercisedChoice
+        ? { ...(baseAgentContext ?? {}), keepingChoice: exercisedChoice }
+        : baseAgentContext
       const runOpts = {
         domainSlug: domainSlug || undefined,
         domainId: resolvedDomainId || domainId || undefined,
@@ -875,8 +926,8 @@ export function useAgentDialog({
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
         activeDraftId: activeDraftId ?? null,
         agentContext: liveDirectorConfig
-          ? { ...(baseAgentContext ?? {}), skipDelegateConsult: true }
-          : baseAgentContext,
+          ? { ...(withKeepingChoice ?? {}), skipDelegateConsult: true }
+          : withKeepingChoice,
         attachments: attachments?.length ? attachments : undefined,
         displayContent: displayContent?.trim() || undefined,
         supportingDocs: supportingDocs?.length ? [...supportingDocs] : undefined,
@@ -1297,7 +1348,17 @@ export function useAgentDialog({
           actions: leadActionsArr,
           sessionId: returnedSessionId,
           directorDelegation: extractedDelegation,
+          keepingChoices: resultKeepingChoices,
+          keepingChoiceAlreadySelected,
         } = extractRunAgentPayload(result)
+
+        if (keepingChoiceAlreadySelected) {
+          setMessages((prev) =>
+            prev.filter((message) => message.id !== `user-${ts}` && message.id !== streamAgentId),
+          )
+          appendThinkingStep("Keeping Choice already selected")
+          return
+        }
 
         // Prefer Lead response actions (server already folds forwarded cast
         // receipts into that stream for persistence). Fall back to client-held
@@ -1364,7 +1425,7 @@ export function useAgentDialog({
             ...(attachments?.length ? { attachments } : {}),
             ...(supportingDocs?.length ? { supportingDocs: [...supportingDocs] } : {}),
           })
-          if (!directorDelegation && !actionsArr?.length && !castVoices?.length) return withUser
+          if (!directorDelegation && !actionsArr?.length && !castVoices?.length && !resultKeepingChoices?.length) return withUser
           const updated = [...withUser]
           const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
           if (lastAgentIdx < 0) return withUser
@@ -1377,6 +1438,7 @@ export function useAgentDialog({
                 ? { delegation: directorDelegation }
                 : {}),
             ...(actionsArr?.length ? { actionResults: actionsArr as RunAgentActionInput[] } : {}),
+            ...(resultKeepingChoices?.length ? { keepingChoices: resultKeepingChoices } : {}),
           }
           return updated
         }
@@ -1447,6 +1509,26 @@ export function useAgentDialog({
           setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}` && m.id !== streamAgentId))
         } else {
           setMessages((prev) => prev.filter((m) => m.id !== streamAgentId))
+        }
+        if (exercisedChoice) {
+          setMessages((prev) =>
+            prev.map((message) => {
+              if (!message.keepingChoices?.length) return message
+              return {
+                ...message,
+                keepingChoices: message.keepingChoices.map((row) =>
+                  row.choiceId === exercisedChoice.choiceId
+                    ? {
+                        ...row,
+                        selections: row.selections.filter(
+                          (selection) => selection.resultingUserMessageId !== `user-${ts}`,
+                        ),
+                      }
+                    : row,
+                ),
+              }
+            }),
+          )
         }
         setError(null)
         setMessages((prev) => [

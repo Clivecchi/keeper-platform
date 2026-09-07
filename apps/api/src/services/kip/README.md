@@ -23,6 +23,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — detect review/reorganize language and prompt the Lead to propose, not rewrite
 - `layoutStageStory.ts` — Lead `stage.story.layout` writes `keeperStage.story`
+- `keepingChoicePersist.ts` — stamp / select / reload Keeping Choice records on `kip_messages.metadata`
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
 - `modeConfig.ts` — Kip mode configuration helpers
@@ -38,6 +39,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-09-02 — Keeping Choice persist
+- `keepingChoicePersist.ts` — stamp offered choices on the Lead message; record a single selection; never execute offers.
+- `buildKeeperCardRenderingPrompt.ts` — directed keeps stay action/proposal; undirected meanings may emit `keepingChoices`.
+- Already-selected exercise returns without a new user Turn or model call.
 
 ### 2026-09-01 — Advise-only skip is not a failed turn
 - `actionFollowUp.ts` — Cast-advises-only / Kip-support skips do not produce “I could not complete the requested actions.”

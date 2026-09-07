@@ -4,7 +4,7 @@
  */
 
 import type { LinkedCardProps } from "../../types/props"
-import type { GlossThread } from "@keeper/shared"
+import type { GlossThread, KeepingChoiceRecord } from "@keeper/shared"
 
 export type DirectorDelegationStatus = "ok" | "failed" | "empty"
 
@@ -65,6 +65,8 @@ export interface AgentDialogueMessage {
     meta?: string
     items?: string[]
   }
+  /** Deferred keeping judgments — not actions, not proposals. */
+  keepingChoices?: KeepingChoiceRecord[]
   /**
    * Dialog Document deep-link for chronicle_update chips / Known Issue cards.
    * Persisted on kip_messages.metadata.chronicleChip.

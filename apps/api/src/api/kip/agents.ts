@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { Prisma } from '@prisma/client';
 import {
+  buildKeepingChoiceExercisePrompt,
   extractKeeperAdviceCardFromRunResult,
   formatKeeperAdviceCardForPrompt,
   logger,
@@ -124,6 +125,13 @@ import {
   recordStructuralEvent,
 } from '../../services/kip/chronicleEvents.js';
 import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
+import {
+  attachKeepingChoiceResultMessage,
+  isKeepingChoiceExercisable,
+  readKeepingChoiceExercise,
+  recordKeepingChoiceSelection,
+  stampOfferedKeepingChoices,
+} from '../../services/kip/keepingChoicePersist.js';
 import { promoteDraftPointInTransaction } from '../../services/kip/promoteDraftPoint.js';
 import {
   buildAllActionsFailedSummary,
@@ -5633,7 +5641,7 @@ export class KipAgentService {
     content: string, 
     role: string, 
     metadata?: Record<string, unknown>
-  ): Promise<void> {
+  ): Promise<{ id: string } | null> {
     try {
       if (!sessionId || !sender || !content || !role) {
         throw new Error('Session ID, sender, content, and role are required');
@@ -5650,7 +5658,8 @@ export class KipAgentService {
         metadata: metadata || {}
       };
       
-      await createKipMessage(messageData);
+      const created = await createKipMessage(messageData);
+      return created?.id ? { id: String(created.id) } : null;
     } catch (error) {
       console.error('Error saving message:', error);
       throw new Error(`Failed to save message: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -5886,7 +5895,7 @@ export class KipAgentService {
 
       systemParts.push(
         [
-          'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"actions":[...]}',
+          'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), optional "keepingChoices" (array of {label, direction, meaning?, about?}), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"keepingChoices":[],"actions":[...]}',
           `Allowed actions: ${allowList.join(', ')}.`,
           'Each action must include a "type" and optional "payload".',
           'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
@@ -6478,7 +6487,7 @@ export class KipAgentService {
               : [
                   'CRITICAL: This model does not support API-level JSON mode. You MUST still reply with valid raw JSON only — no prose before or after, no markdown fences. Any non-JSON text will break the system.',
                 ]),
-            'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"actions":[...]}',
+            'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), optional "keepingChoices" (array of {label, direction, meaning?, about?}), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"keepingChoices":[],"actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
             'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
@@ -6553,6 +6562,13 @@ export class KipAgentService {
           role: 'system',
           content: buildKeeperCardRenderingPrompt(),
         });
+        const keepingChoiceExercise = readKeepingChoiceExercise(agentContextRecord);
+        if (keepingChoiceExercise) {
+          messages.push({
+            role: 'system',
+            content: buildKeepingChoiceExercisePrompt(keepingChoiceExercise),
+          });
+        }
       }
       
       // --- Journey + Moments context injection ---
@@ -6894,8 +6910,34 @@ export class KipAgentService {
 
       // Handle Lead agents - interactive chat experience with memory
       if (agent.role === 'Lead') {
+        leadTurn: {
         let currentSessionId = sessionId;
         let previousMessages: KipMessageWithRelations[] = [];
+        let keepingExerciseForTurn = readKeepingChoiceExercise(options?.agentContext);
+        if (keepingExerciseForTurn) {
+          const gate = await isKeepingChoiceExercisable(keepingExerciseForTurn);
+          if (gate.ok === false) {
+            if (options?.agentContext && typeof options.agentContext === 'object') {
+              delete (options.agentContext as Record<string, unknown>).keepingChoice;
+            }
+            if (gate.reason === 'already_selected') {
+              result = {
+                action: 'lead_interaction',
+                keeper_id: userId || 'lead_user',
+                type: 'conversation',
+                data: {
+                  response: '',
+                  session_id: currentSessionId || `lead_${agent.slug}`,
+                  actions: [],
+                  keepingChoiceAlreadySelected: true,
+                  timestamp: new Date().toISOString(),
+                },
+              };
+              break leadTurn;
+            }
+            keepingExerciseForTurn = null;
+          }
+        }
         
         // Handle memory for memory-enabled agents
         if (agent.memory_enabled) {
@@ -6955,7 +6997,7 @@ export class KipAgentService {
                 typeof options?.displayContent === 'string' && options.displayContent.trim()
                   ? options.displayContent.trim()
                   : undefined;
-              await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
+              const savedUser = await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId,
                 ...(displayContent ? { displayContent } : {}),
@@ -6963,7 +7005,23 @@ export class KipAgentService {
                 ...(options?.supportingDocs?.length
                   ? { supportingDocs: options.supportingDocs }
                   : {}),
+                ...(keepingExerciseForTurn
+                  ? {
+                      keepingChoiceSelection: {
+                        choiceId: keepingExerciseForTurn.choiceId,
+                        sourceMessageId: keepingExerciseForTurn.sourceMessageId,
+                        label: keepingExerciseForTurn.label,
+                        direction: keepingExerciseForTurn.direction,
+                      },
+                    }
+                  : {}),
               });
+              if (keepingExerciseForTurn && savedUser?.id) {
+                await recordKeepingChoiceSelection({
+                  exercise: keepingExerciseForTurn,
+                  resultingUserMessageId: savedUser.id,
+                });
+              }
             } catch (error) {
               console.warn('Failed to save user message:', error);
             }
@@ -8605,6 +8663,8 @@ export class KipAgentService {
           }
         }
 
+        let persistedKeepingChoices: ReturnType<typeof stampOfferedKeepingChoices> = [];
+
         // Save agent response to memory if we have a session (skip gloss sub-turns)
         if (
           agent.memory_enabled
@@ -8624,7 +8684,7 @@ export class KipAgentService {
                 consultActionCount,
               });
             }
-            await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
+            const savedAgent = await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
               agentName: agent.name,
@@ -8644,6 +8704,30 @@ export class KipAgentService {
                 ? { delegation: directorDelegationResult }
                 : {}),
             });
+            if (structured.keepingChoices?.length && savedAgent && currentSessionId) {
+              persistedKeepingChoices = stampOfferedKeepingChoices({
+                offers: structured.keepingChoices,
+                messageId: savedAgent.id,
+                sessionId: currentSessionId,
+                dialogId: options?.dialogId ?? null,
+                agentId,
+                agentSlug: agent.slug,
+                actor: agent.name,
+                idFactory: () => randomUUID(),
+              });
+              if (userId) {
+                await this.updateMessageMetadata(savedAgent.id, userId, {
+                  keepingChoices: persistedKeepingChoices,
+                });
+              }
+            }
+            if (keepingExerciseForTurn && savedAgent) {
+              await attachKeepingChoiceResultMessage({
+                sourceMessageId: keepingExerciseForTurn.sourceMessageId,
+                choiceId: keepingExerciseForTurn.choiceId,
+                resultingAgentMessageId: savedAgent.id,
+              });
+            }
             if (castVoicesForPersist?.length) {
               await stampCastNotesOntoFocusedPoint({
                 domainId: options?.domainId,
@@ -8655,6 +8739,18 @@ export class KipAgentService {
           } catch (error) {
             console.warn('Failed to save agent response:', error);
           }
+        }
+        if (!persistedKeepingChoices.length && structured.keepingChoices?.length) {
+          persistedKeepingChoices = stampOfferedKeepingChoices({
+            offers: structured.keepingChoices,
+            messageId: randomUUID(),
+            sessionId: currentSessionId || `lead_${agent.slug}`,
+            dialogId: options?.dialogId ?? null,
+            agentId,
+            agentSlug: agent.slug,
+            actor: agent.name,
+            idFactory: () => randomUUID(),
+          });
         }
         
         const config = agent.config || {};
@@ -8679,6 +8775,7 @@ export class KipAgentService {
             model: agent.model,
             actions: actionResults,
             ...(structured.card ? { card: structured.card } : {}),
+            ...(persistedKeepingChoices.length ? { keepingChoices: persistedKeepingChoices } : {}),
             actionPack,
             composedSystemPrompt,
             soleStatus,
@@ -8699,6 +8796,7 @@ export class KipAgentService {
               : {}),
           }
         };
+        }
       }
       // Handle Coordinator agents
       else if (agent.role === 'Coordinator') {

@@ -42,6 +42,7 @@ export * from './dialogTitleSource.js';
 export * from './talkingInWorkingOn.js';
 export * from './keeperStage.js';
 export * from './keeperAdviceCard.js';
+export * from './keepingChoice.js';
 export * from './redactForLog.js';
 export * from './libraryPointer.js';
 export * from './domainAccessKey.js';

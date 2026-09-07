@@ -1,4 +1,4 @@
-import { logger } from '@keeper/shared';
+import { logger, parseKeepingChoiceOffers, type KeepingChoiceOffer } from '@keeper/shared';
 import {
   ActionValidationError,
   isActionParseSuccess,
@@ -15,6 +15,8 @@ export type ParsedAgentOutput = {
   raw: string;
   /** Structured keeper-card — preferred over nested ```keeper-card fences. */
   card?: KeeperResponseCard;
+  /** Deferred semantic directions — never executed this turn. */
+  keepingChoices?: KeepingChoiceOffer[];
   ignoredReason?: string;
   validationError?: ActionValidationError;
   repaired?: boolean;
@@ -57,7 +59,7 @@ export function extractJsonFromResponse(raw: string): string | null {
   } catch {
     /* not valid JSON, try extraction */
   }
-  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions)"[\s\S]*\}/);
+  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions|keepingChoices)"[\s\S]*\}/);
   if (jsonMatch) {
     const candidate = jsonMatch[0];
     try {
@@ -65,7 +67,11 @@ export function extractJsonFromResponse(raw: string): string | null {
       if (
         typeof obj === 'object'
         && obj !== null
-        && (typeof obj.response === 'string' || Array.isArray(obj.actions))
+        && (
+          typeof obj.response === 'string'
+          || Array.isArray(obj.actions)
+          || Array.isArray(obj.keepingChoices)
+        )
       ) {
         return candidate;
       }
@@ -118,12 +124,14 @@ function parseEnvelopeObject(
       : raw;
   const actionsResult = safeParseActions(parsed);
 
+  const keepingChoices = parseKeepingChoiceOffers(parsed.keepingChoices);
   if (isActionParseSuccess(actionsResult)) {
     return {
       responseText,
       actions: actionsResult.actions as StructuredAgentAction[],
       raw,
       card: parseKeeperCardField(parsed.card),
+      ...(keepingChoices.length ? { keepingChoices } : {}),
     };
   }
 
@@ -144,6 +152,7 @@ function parseEnvelopeObject(
       actions: [],
       raw,
       card: parseKeeperCardField(parsed.card),
+      ...(keepingChoices.length ? { keepingChoices } : {}),
       ignoredReason: 'missing_agent_output_envelope',
       validationError,
     };
@@ -154,6 +163,7 @@ function parseEnvelopeObject(
     actions: mapLegacyActions(parsed),
     raw,
     card: parseKeeperCardField(parsed.card),
+    ...(keepingChoices.length ? { keepingChoices } : {}),
     validationError,
   };
 }

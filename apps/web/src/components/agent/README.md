@@ -13,6 +13,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `JourneyCard.tsx` -- Detail view for a Journey (Draft UI style): title, forward, paths, moments, Set as Active, ← Dialogue.
 - `KeeperCard.tsx` -- Detail view for a Keeper (Draft UI style): title, purpose, domain, Set as Active, ← Dialogue.
 - `DialogueMessageList.tsx` -- Scrollable conversation message list with action receipts, skeleton loading, and error states. Agent name is dynamic (passed as prop, never hardcoded).
+- `KeepingChoiceControls.tsx` -- Independent Keeping Choice chips. Selected is one-use; siblings stay available.
 - `errorPresentation.ts` -- Shared category/tone mapping for Kip dialogue errors such as provider overloads, quota, timeouts, missing keys, and invalid models.
 - `SessionCard.tsx` -- Clickable session card for conversation session lists. Compact and full variants.
 - `CockpitPanel.tsx` -- Agent configuration and diagnostics overview: SOLE memory, model config, tools/actions (allowedActions prop), session stats, governance compliance (when showCompliance). Also exports `FrameCard` utility component.
@@ -34,6 +35,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-09-02: **Keeping Choices** — `DialogueMessageList` renders independent chips from message metadata. Click is a new Lead turn; selected chips cannot be exercised again.
 - 2026-08-31: Composer toolbar is grouped — **Look** (Theme) · **Reach** · **Capture** · **Send**. Theme opens Chronicle (`onOpenTheme`). Not a second Composer.
 - 2026-08-30: Composer toolbar can open **Reach** (`onOpenReach`) — bring objects onto Stage. Reach is a Composer feature, not a second Composer.
 - 2026-08-26: Proposed Point cards show **Accept** in Dialog. Manuscript Points are no longer auto-accepted. Duplicate receipts still fold; **Already on this document** has no Accept.

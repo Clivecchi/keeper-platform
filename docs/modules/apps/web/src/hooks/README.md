@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-02 — Keeping Choice exercise
+- `useAgentDialog` hydrates `keepingChoices`, stamps a single selection on click, and sends `agentContext.keepingChoice` through existing Composer/send. Failed turns revert the optimistic Selected stamp. Already-selected choices cannot start a second Turn.
+
 ### 2026-09-01 — Cast advisory card survives consult
 - `useAgentDialog` extracts the existing envelope `card` from Cast runs, forwards `instrumentCard`, and attaches it on `castVoices` / delegation. Advise-only Stage skips are not Dialog receipts. Status is `ok` when reply **or** card crossed.
 

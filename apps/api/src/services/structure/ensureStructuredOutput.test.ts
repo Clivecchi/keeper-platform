@@ -71,6 +71,81 @@ describe('parseKipAgentOutput', () => {
     expect(result.ignoredReason).toBe('invalid_json');
   });
 
+  it('parses keepingChoices without treating them as actions', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'I see two keep-worthy meanings.',
+      keepingChoices: [
+        {
+          label: 'Keep this consequence',
+          direction: 'Preserve this architectural consequence if it still holds.',
+          meaning: 'Stage must not force mutation.',
+        },
+        {
+          label: 'Develop Local Stores',
+          direction: 'Develop Local Stores as a Story if that still fits.',
+          about: 'Local Stores',
+        },
+      ],
+      actions: [],
+    });
+    const result = parseKipAgentOutput(raw);
+    expect(result.actions).toEqual([]);
+    expect(result.keepingChoices).toHaveLength(2);
+    expect(result.keepingChoices?.[0]?.label).toBe('Keep this consequence');
+    expect(result.keepingChoices?.[1]?.label).toBe('Develop Local Stores');
+  });
+
+  it('keeps directed Point acts on draft.update.propose rather than converting them', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'I can add that as a Point.',
+      actions: [
+        {
+          type: 'draft.update.propose',
+          payload: {
+            title: 'Local Stores consequence',
+            content: 'Stage must not force mutation.',
+          },
+        },
+      ],
+    });
+    const result = parseKipAgentOutput(raw);
+    expect(result.keepingChoices).toBeUndefined();
+    expect(result.actions).toEqual([
+      {
+        type: 'draft.update.propose',
+        payload: {
+          title: 'Local Stores consequence',
+          content: 'Stage must not force mutation.',
+        },
+      },
+    ]);
+  });
+
+  it('lets directed propose and undirected keepingChoices coexist without executing offers', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'I will add the Point. I also see another meaning.',
+      actions: [
+        {
+          type: 'draft.update.propose',
+          payload: { title: 'Add this Point', content: 'Directed keep.' },
+        },
+      ],
+      keepingChoices: [
+        {
+          label: 'Develop Local Stores',
+          direction: 'Develop Local Stores as a Story if that still fits.',
+        },
+      ],
+    });
+    const result = parseKipAgentOutput(raw);
+    expect(result.actions.map((action) => action.type)).toEqual(['draft.update.propose']);
+    expect(result.keepingChoices).toHaveLength(1);
+    expect(result.keepingChoices?.[0]?.label).toBe('Develop Local Stores');
+  });
+
   it('unwraps agent_output JSON for session history', () => {
     const raw = JSON.stringify({
       type: 'agent_output',

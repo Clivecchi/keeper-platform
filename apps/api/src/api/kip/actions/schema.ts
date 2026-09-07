@@ -405,6 +405,8 @@ export const agentOutputEnvelopeSchema = z.object({
   type: z.literal('agent_output'),
   response: z.string().optional(),
   actions: z.array(actionSchema).optional(),
+  /** Parsed independently — unknown items must not fail action extraction. */
+  keepingChoices: z.array(z.unknown()).optional(),
 });
 
 /**

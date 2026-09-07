@@ -54,6 +54,10 @@ import {
   talkingInKindLabel,
   workingOnKindLabel,
   workingOnRepeatsTalkingInTitle,
+  canExerciseKeepingChoice,
+  formatKeepingChoiceLeadInput,
+  keepingChoiceRecordToExercise,
+  type KeepingChoiceRecord,
 } from "@keeper/shared"
 import { useAgentDialog, extractRunAgentPayload, type AgentContext } from "../../hooks/useAgentDialog"
 import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
@@ -1927,6 +1931,18 @@ export function UniversalConversation({
     [sendMessage, guidedArrivalActive, guidedArrival],
   )
 
+  const handleExerciseKeepingChoice = React.useCallback(
+    (record: KeepingChoiceRecord) => {
+      if (!canExerciseKeepingChoice(record) || isSending) return
+      void sendMessage({ preventDefault() {} } as React.FormEvent, {
+        content: formatKeepingChoiceLeadInput(record),
+        displayContent: record.label,
+        keepingChoice: keepingChoiceRecordToExercise(record),
+      })
+    },
+    [isSending, sendMessage],
+  )
+
   useSelectionSessionResume({
     domainId,
     domainSlug,
@@ -2819,6 +2835,7 @@ export function UniversalConversation({
         }
         applyingTreatmentProposal={applyingTreatmentProposal}
         onAcceptDraftPoint={domainId ? handleAcceptDraftPoint : undefined}
+        onExerciseKeepingChoice={handleExerciseKeepingChoice}
         acceptedDraftPointIds={acceptedDraftPointIds}
         acceptingDraftPointId={acceptingDraftPointId}
         agentBubbleFullWidth={kipMode !== "build"}

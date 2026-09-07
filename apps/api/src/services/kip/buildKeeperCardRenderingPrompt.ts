@@ -3,6 +3,8 @@
  * Keep Cockpit compose + live callAIModel in sync by importing this helper.
  */
 
+import { KEEPING_CHOICE_STORY_BUILDER_RULE } from '@keeper/shared';
+
 /** One-line Point rule — Lead action schema and continuity. Not a second essay. */
 export const STORY_BUILDER_OBJECT_LINE =
   'Offering a Point in prose is incomplete — emit draft.update.propose. The card is consent.';
@@ -55,5 +57,7 @@ export function buildKeeperCardRenderingPrompt(): string {
     '- "response" may contain prose; put operational structure in "card"',
     '- Do not wrap conversational content in a card',
     '- Do not produce a card for every response — only when the content is operational',
+    '',
+    KEEPING_CHOICE_STORY_BUILDER_RULE,
   ].join('\n');
 }

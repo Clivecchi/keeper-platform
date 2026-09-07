@@ -29,6 +29,7 @@ import { isPastedSupportingDoc } from "../../../components/agent/composerSupport
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
+import type { KeepingChoiceRecord } from "@keeper/shared"
 import { IntegratedServicesBar } from "../../boards/components/IntegratedServicesBar"
 import {
   CastCueBar,
@@ -210,6 +211,7 @@ export interface KeeperDialogFrameProps {
   onAcceptDraftPoint?: (draftId: string, pointId: string) => void
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
+  onExerciseKeepingChoice?: (record: KeepingChoiceRecord) => void
   agentName?: string
   /** Display name for the current user — shown on user message bubbles. */
   userName?: string
@@ -336,6 +338,7 @@ export function KeeperDialogFrame({
   onAcceptDraftPoint,
   acceptedDraftPointIds,
   acceptingDraftPointId,
+  onExerciseKeepingChoice,
   agentName = "Kip",
   userName,
   composerAgents,
@@ -958,6 +961,7 @@ export function KeeperDialogFrame({
                         onAcceptDraftPoint={onAcceptDraftPoint}
                         acceptedDraftPointIds={acceptedDraftPointIds}
                         acceptingDraftPointId={acceptingDraftPointId}
+                        onExerciseKeepingChoice={onExerciseKeepingChoice}
                         agentBubbleFullWidth={agentBubbleFullWidth}
                         agentBoardMessaging={agentBoardMessaging}
                         scrollContainerRef={scrollRef}
@@ -989,6 +993,7 @@ export function KeeperDialogFrame({
                     onAcceptDraftPoint={onAcceptDraftPoint}
                     acceptedDraftPointIds={acceptedDraftPointIds}
                     acceptingDraftPointId={acceptingDraftPointId}
+                    onExerciseKeepingChoice={onExerciseKeepingChoice}
                     agentBubbleFullWidth={agentBubbleFullWidth}
                     agentBoardMessaging={agentBoardMessaging}
                     scrollContainerRef={scrollRef}

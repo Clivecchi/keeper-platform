@@ -10,6 +10,8 @@ import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard, type KeepAsMomentPayload } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
 import { DraftPointProposeCard } from "../kip/DraftPointProposeCard"
+import { KeepingChoiceControls } from "./KeepingChoiceControls"
+import type { KeepingChoiceRecord } from "@keeper/shared"
 import { TreatmentProposeCard } from "../kip/TreatmentProposeCard"
 import type { DomainFrameTreatment } from "../../v0/data/domain-frame.types"
 import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
@@ -358,6 +360,8 @@ function AgentMessageTurn({
   onAcceptDraftPoint,
   acceptedDraftPointIds,
   acceptingDraftPointId,
+  onExerciseKeepingChoice,
+  keepingChoiceBusy,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -378,6 +382,8 @@ function AgentMessageTurn({
   onAcceptDraftPoint?: DialogueMessageListProps["onAcceptDraftPoint"]
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
+  onExerciseKeepingChoice?: (record: KeepingChoiceRecord) => void
+  keepingChoiceBusy?: boolean
 }) {
   const castVoices = (message.castVoices ?? []).filter((voice) => {
     const content = voice.content?.trim()
@@ -403,6 +409,7 @@ function AgentMessageTurn({
       && !message.arrivalInvitations?.length
       && !message.keeperCard
       && !message.chronicleChip
+      && !message.keepingChoices?.length
     ) {
       return (
         <MessageAttachments
@@ -452,6 +459,13 @@ function AgentMessageTurn({
             <RealmInvitationButtons
               invitations={message.arrivalInvitations}
               onInvite={onArrivalInvitation}
+            />
+          ) : null}
+          {message.keepingChoices?.length ? (
+            <KeepingChoiceControls
+              choices={message.keepingChoices}
+              disabled={keepingChoiceBusy}
+              onExercise={onExerciseKeepingChoice}
             />
           ) : null}
         </GlossSurface>
@@ -554,6 +568,13 @@ function AgentMessageTurn({
             glossMessageId={message.id}
             glossNodeId="card"
             glossThreads={message.glossThreads}
+          />
+        ) : null}
+        {message.keepingChoices?.length ? (
+          <KeepingChoiceControls
+            choices={message.keepingChoices}
+            disabled={keepingChoiceBusy}
+            onExercise={onExerciseKeepingChoice}
           />
         ) : null}
         {echo && (
@@ -888,6 +909,7 @@ export interface DialogueMessageListProps {
   onArrivalInvitation?: (id: RealmInvitationId) => void
   /** Open Chronicle Document from an in-stream chronicle_update / Known Issue chip. */
   onOpenChronicleChip?: (chip: NonNullable<AgentDialogueMessage["chronicleChip"]>) => void
+  onExerciseKeepingChoice?: (record: KeepingChoiceRecord) => void
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -916,6 +938,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onAcceptDraftPoint,
   acceptedDraftPointIds,
   acceptingDraftPointId,
+  onExerciseKeepingChoice,
 }) => (
   <div className="dialogue-message-list min-h-[24rem] space-y-4 overflow-x-hidden overflow-y-auto rounded-2xl px-4 py-4">
     {isLoading ? (
@@ -1005,6 +1028,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               onAcceptDraftPoint={onAcceptDraftPoint}
               acceptedDraftPointIds={acceptedDraftPointIds}
               acceptingDraftPointId={acceptingDraftPointId}
+              onExerciseKeepingChoice={onExerciseKeepingChoice}
+              keepingChoiceBusy={isSending}
             />
           </div>
         )

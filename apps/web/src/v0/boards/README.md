@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-09-02 — Keeping Choice click
+- `UniversalConversation` exercises a Keeping Choice through existing `sendMessage` (`displayContent` = label). Current Talking in / Working on win.
+
 ### 2026-09-01 — Cast advisory card + no obligated Stage mutation
 - `directorDialog.ts` re-exports `extractKeeperAdviceCardFromRunResult`. Merge drops Cast-advise-only Stage skips so Dialog does not show a skip notice merely because Stage exists.
 

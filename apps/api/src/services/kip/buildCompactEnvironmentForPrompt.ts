@@ -121,6 +121,7 @@ function slimAgentContext(raw: unknown): Record<string, unknown> | undefined {
     'designBoard',
     'workspaceSurface',
     'dialogStyle',
+    'keepingChoice',
   ] as const) {
     if (ctx[key] !== undefined) out[key] = ctx[key];
   }
