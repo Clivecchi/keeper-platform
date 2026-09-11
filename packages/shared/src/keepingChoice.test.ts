@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyKeepingChoiceSelection,
+  buildKeepingChoiceExercisePrompt,
   canExerciseKeepingChoice,
   extractKeepingChoicesFromRunResult,
+  formatKeepingChoiceLeadInput,
   isKeepingChoiceSelected,
   KEEPING_CHOICE_STORY_BUILDER_RULE,
   parseKeepingChoiceOffers,
   parseKeepingChoiceRecords,
   stampKeepingChoiceRecords,
+  type KeepingChoiceExercise,
   type KeepingChoiceSource,
 } from './keepingChoice.js';
 
@@ -156,6 +159,56 @@ describe('story-builder coexistence rule', () => {
     expect(KEEPING_CHOICE_STORY_BUILDER_RULE).toContain('Do not substitute keepingChoices for that act');
     expect(KEEPING_CHOICE_STORY_BUILDER_RULE).toContain('Do not create or stage those meanings this turn');
     expect(KEEPING_CHOICE_STORY_BUILDER_RULE).toContain('each choice is independently selectable once');
+  });
+});
+
+describe('keeping-choice exercise contract', () => {
+  const exercise: KeepingChoiceExercise = {
+    choiceId: 'choice-cast',
+    sourceMessageId: 'msg-offer',
+    label: 'Keep the Casting principle',
+    direction: 'Hold this as a Stage / Casting principle if it still holds.',
+    meaning: 'Role is not authority.',
+    about: 'Casting',
+    source: {
+      ...source,
+      messageId: 'msg-offer',
+    },
+  };
+
+  it('lead input experiences and understands without a pull-to-act', () => {
+    const input = formatKeepingChoiceLeadInput(exercise);
+    expect(input).toContain('Experience it. Understand it.');
+    expect(input).toContain('Re-evaluate against current Keeper truth.');
+    expect(input).toContain('Do not treat this selection as an order to write.');
+    expect(input).not.toContain('keep it appropriately');
+    expect(input).toContain('Label: Keep the Casting principle');
+    expect(input).toContain('Direction: Hold this as a Stage / Casting principle if it still holds.');
+  });
+
+  it('exercise prompt makes both judgments available without requiring recitation', () => {
+    const prompt = buildKeepingChoiceExercisePrompt(exercise);
+    expect(prompt).toContain('Experience this selection. Understand it.');
+    expect(prompt).toContain('independently, be capable of Keeping Judgment and Learning Judgment');
+    expect(prompt).toContain('Do not enumerate them unless the case is not obvious');
+    expect(prompt).toContain('Quiet when obvious');
+    expect(prompt).toContain('Neither judgment requires an action');
+    expect(prompt).toContain('Determine the Form sufficiently to keep well');
+    expect(prompt).toContain('no adequate Form has yet emerged');
+    expect(prompt).toContain('No additional keeping is a competent outcome');
+    expect(prompt).toContain('Naming a Kind is optional');
+    expect(prompt).toContain('The source is not learning');
+    expect(prompt).toContain('Agent-specific learning, or no learning, are both competent');
+    expect(prompt).toContain('Do not sole.save the source');
+    expect(prompt).toContain('the judgment has failed');
+    expect(prompt).toContain('Act, Propose, Advise, Notice, or Leave As-Is');
+    expect(prompt).toContain('Do not sole.save merely because a choice was selected');
+    expect(prompt).not.toContain('keep it appropriately');
+    expect(prompt).not.toContain('name the Form');
+    expect(prompt).not.toContain('name the Kind');
+    expect(prompt).not.toMatch(/step\s+[1-7]/i);
+    expect(prompt).not.toContain('keepingJudgment');
+    expect(prompt).not.toContain('learningJudgment');
   });
 });
 

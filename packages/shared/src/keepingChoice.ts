@@ -331,7 +331,8 @@ export function parseKeepingChoiceSelectionMeta(raw: unknown): KeepingChoiceSele
 export function formatKeepingChoiceLeadInput(record: KeepingChoiceExercise | KeepingChoiceRecord): string {
   const lines = [
     'The human selected a keeping judgment from an earlier Turn.',
-    'Do not replay a stored mutation. Re-evaluate against current Keeper truth and keep it appropriately.',
+    'Experience it. Understand it. Re-evaluate against current Keeper truth.',
+    'Do not replay a stored mutation. Do not treat this selection as an order to write.',
     '',
     `Label: ${record.label}`,
     `Direction: ${record.direction}`,
@@ -347,13 +348,17 @@ export function formatKeepingChoiceLeadInput(record: KeepingChoiceExercise | Kee
   return lines.join('\n');
 }
 
-/** System-block for the exercising turn — direction, not a capability obligation. */
+/** System-block for the exercising turn — Agency judgments, not a capability obligation. */
 export function buildKeepingChoiceExercisePrompt(exercise: KeepingChoiceExercise): string {
   return [
     'KEEPING CHOICE (human-selected, Keeper-owned):',
     'The human selected this keeping judgment from an earlier Turn.',
     'This is semantic direction, not a predetermined capability.',
+    'Experience this selection. Understand it.',
     'Re-evaluate against current Talking in / Working on / Stage / Document truth.',
+    'Then, independently, be capable of Keeping Judgment and Learning Judgment. Do not enumerate them unless the case is not obvious. Quiet when obvious. Neither judgment requires an action.',
+    'Keeping: What, if anything, deserves keeping? Determine the Form sufficiently to keep well, or determine that no adequate Form has yet emerged. Naming a Kind is optional and is not the same as determining Form. No additional keeping is a competent outcome.',
+    'Learning: What, if anything, should I learn from this experience to become better at being the Agent I am? The source is not learning. Agent-specific learning, or no learning, are both competent. Do not sole.save the source. If a proposed keep and a proposed learning would write the same source artifact, the judgment has failed — do not sole.save.',
     'Then Act, Propose, Advise, Notice, or Leave As-Is as appropriate.',
     'Do not invent a mutation because a choice was selected. Do not sole.save merely because a choice was selected.',
     `Label: ${exercise.label}`,
