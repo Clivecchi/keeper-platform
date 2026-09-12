@@ -50,6 +50,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 ### 2026-08-05 — AI provider chat timeouts raised
 - `ModelProviderService.ts` — OpenAI/Anthropic/Together chat AbortController budgets raised (90s / 110s / 90s, env-overridable) so long Sonnet turns stop failing at 30–60s; abort detection covers SDK-wrapped abort errors; Anthropic clears timeout in `finally`.
 
+### 2026-09-11 — Cloud mcp.call web.search alias
+- `mcpAgentBridge.ts` — `mcp.call` name `web.search` / `web_search` rewrites to `WebSearchService`. Not an MCP tool.
+
 ### 2026-08-04 — Web search for Kip agents
 - `WebSearchService.ts` — Brave Search API client for the `web.search` Kip action (`BRAVE_SEARCH_API_KEY`). Returns titled URL + snippet results; clear errors when the key is missing.
 

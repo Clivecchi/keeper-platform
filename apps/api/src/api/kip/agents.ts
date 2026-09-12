@@ -212,6 +212,7 @@ import {
   buildMcpToolSystemPrompt,
   executeMcpCallAction,
   hasSuccessfulMcpResults,
+  McpCallExecutionError,
   resolveMcpToolsForAgent,
 } from '../../services/mcpAgentBridge.js';
 import {
@@ -4575,12 +4576,14 @@ export async function executeAgentActions(
               });
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : 'MCP call failed';
+              const errorCode =
+                error instanceof McpCallExecutionError ? error.errorCode : 'EXECUTION_ERROR';
               logger.error({ requestId, actionType: action.type, toolName, error: errorMessage }, '[kip.actions] mcp.call failed');
               results.push({
                 type: action.type,
                 status: 'error',
                 message: `${toolName}: ${errorMessage}`,
-                errorCode: 'EXECUTION_ERROR',
+                errorCode,
                 data: { tool: toolName },
               });
             }
@@ -6497,7 +6500,7 @@ export class KipAgentService {
                   mcpToolPrompt,
                   agent.slug === 'rendr'
                     ? RENDR_IDENTITY_LOCK
-                    : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed.',
+                    : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed. Live internet search is the Kip action web.search — never mcp.call name "web.search".',
                 ]
               : [
             skipDelegateConsultFromEnv(environmentContext)

@@ -6,6 +6,41 @@ import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js
 import { withAsyncTimeout } from '../lib/fetchWithTimeout.js';
 import { mcpCallAction, type McpContext } from '../mcp/core.js';
 import { getSchema } from '../mcp/tools.js';
+import { WebSearchService } from './WebSearchService.js';
+
+/** Cloud often mcp.call's the Kip action name. web.search is not an MCP tool. */
+export function isWebSearchMcpAlias(name: string): boolean {
+  const normalized = name.trim().toLowerCase().replace(/_/g, '.');
+  return normalized === 'web.search';
+}
+
+export class McpCallExecutionError extends Error {
+  readonly errorCode: string;
+
+  constructor(message: string, errorCode: string) {
+    super(message);
+    this.name = 'McpCallExecutionError';
+    this.errorCode = errorCode;
+  }
+}
+
+function webSearchQueryFromArgs(args: Record<string, unknown>): { query: string; count?: number } {
+  const nested =
+    args.payload && typeof args.payload === 'object' && !Array.isArray(args.payload)
+      ? (args.payload as Record<string, unknown>)
+      : null;
+  const raw =
+    (typeof args.query === 'string' && args.query) ||
+    (typeof args.q === 'string' && args.q) ||
+    (typeof args.search === 'string' && args.search) ||
+    (typeof nested?.query === 'string' && nested.query) ||
+    '';
+  const countRaw = args.count ?? nested?.count;
+  return {
+    query: raw.trim(),
+    ...(typeof countRaw === 'number' ? { count: countRaw } : {}),
+  };
+}
 
 export type McpToolDescriptor = {
   name: string;
@@ -73,6 +108,7 @@ export function buildMcpToolSystemPrompt(tools: McpToolDescriptor[]): string {
     ']}',
     'Deploy/write tools (railway_trigger_redeploy, vercel_trigger_redeploy) require explicit user confirmation first.',
     'Do NOT tell the user MCP tools are unavailable — they are wired via mcp.call when listed above.',
+    'web.search is a Kip action, not an MCP tool. Never mcp.call name "web.search". Emit {"type":"web.search","payload":{"query":"..."}}.',
   ].join('\n');
 }
 
@@ -82,6 +118,15 @@ export async function executeMcpCallAction(params: {
   domainId?: string | null;
   agentCapabilities: string[];
 }): Promise<unknown> {
+  if (isWebSearchMcpAlias(params.toolName)) {
+    const { query, count } = webSearchQueryFromArgs(params.args ?? {});
+    const outcome = await WebSearchService.search({ query, count });
+    if (outcome.ok === false) {
+      throw new McpCallExecutionError(outcome.message, outcome.errorCode);
+    }
+    return outcome;
+  }
+
   const ctx: McpContext = {
     domainId: params.domainId ?? null,
     agentCapabilities: params.agentCapabilities,

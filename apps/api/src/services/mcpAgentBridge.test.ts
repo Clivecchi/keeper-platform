@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildMcpToolSystemPrompt,
+  executeMcpCallAction,
   getMcpToolsForCapabilities,
   hasSuccessfulMcpResults,
+  isWebSearchMcpAlias,
+  McpCallExecutionError,
 } from './mcpAgentBridge.js';
 
 describe('mcpAgentBridge', () => {
@@ -34,6 +37,36 @@ describe('mcpAgentBridge', () => {
     expect(prompt).toContain('mcp.call');
     expect(prompt).toContain('railway_get_deployments');
     expect(prompt).toContain('live and callable');
+    expect(prompt).toContain('web.search is a Kip action, not an MCP tool');
+  });
+
+  it('treats web.search / web_search as Kip-action aliases, not MCP tools', () => {
+    expect(isWebSearchMcpAlias('web.search')).toBe(true);
+    expect(isWebSearchMcpAlias('web_search')).toBe(true);
+    expect(isWebSearchMcpAlias('railway_get_deployments')).toBe(false);
+  });
+
+  it('mcp.call web.search uses WebSearchService instead of Unknown tool', async () => {
+    const original = process.env.BRAVE_SEARCH_API_KEY;
+    delete process.env.BRAVE_SEARCH_API_KEY;
+    try {
+      await expect(
+        executeMcpCallAction({
+          toolName: 'web.search',
+          args: { query: 'OpenAI Agent API' },
+          agentCapabilities: [],
+        }),
+      ).rejects.toMatchObject({
+        name: 'McpCallExecutionError',
+        errorCode: 'MISSING_API_KEY',
+      });
+    } finally {
+      if (original === undefined) {
+        delete process.env.BRAVE_SEARCH_API_KEY;
+      } else {
+        process.env.BRAVE_SEARCH_API_KEY = original;
+      }
+    }
   });
 
   it('detects successful MCP action results', () => {
