@@ -16,6 +16,12 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-09-02-keeping-choice-contract.md`
 - `2026-09-07-stage-casting-code-truth.md`
 - `2026-09-07-keeping-choice-card-won.md`
+- `2026-09-07-keeping-choice-sole-form.md`
+- `2026-09-10-form-fitness.md`
+- `2026-09-10-form-and-sole.md`
+- `2026-09-11-keeping-and-learning-contracts.md`
+- `2026-09-11-exercise-seam-plan.md`
+- `2026-09-11-exercise-prompt-shipped.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -24,6 +30,24 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-11 — Exercise prompt shipped
+- Added `2026-09-11-exercise-prompt-shipped.md` — prompt rewrite live on Railway; Casting replay blocked. Gloss-only.
+
+### 2026-09-11 — Exercise seam plan
+- Added `2026-09-11-exercise-seam-plan.md` — bounded plan to prove both judgments on the Keeping Choice exercise turn. Gloss-only.
+
+### 2026-09-11 — Keeping and Learning contracts
+- Added `2026-09-11-keeping-and-learning-contracts.md` — companion Agency contracts; Form ≠ SOLE; four outcomes after Experience → Understand. Gloss-only.
+
+### 2026-09-10 — Form and SOLE
+- Added `2026-09-10-form-and-sole.md` — Form is composed structure, not object type; SOLE is Agent learning, not leftover keep. Live Casting saved the source, not the learning. Gloss-only.
+
+### 2026-09-10 — Form Fitness
+- Added `2026-09-10-form-fitness.md` — Keeping Choice works; next seam is Form Fitness. No form-selection architecture; prompt gravity chooses. Gloss-only.
+
+### 2026-09-07 — Keeping Choice selected SOLE
+- Added `2026-09-07-keeping-choice-sole-form.md` — live exercise: mechanism held; Kip explicitly emitted sole.save for “Keep the Casting principle.” Form-fitness gap, not auto-SOLE. Gloss-only.
+
 ### 2026-09-07 — Keeping Choice card won
 - Added `2026-09-07-keeping-choice-card-won.md` — first live test: raw envelope had Lock/Open/Next Step card, no keepingChoices; parser did not drop; decision-card example won. Gloss-only.
 
