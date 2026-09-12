@@ -199,6 +199,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   castPromisedPointWrite?: boolean;
   /** Human asked the Lead to review / reorganize / direct the Document. */
   documentDirection?: boolean;
+  /** Stage + Cast performance — emit resolvedMeaning on the envelope, not by rewriting response. */
+  resolvePerformanceMeaning?: boolean;
 }): string {
   const lines = [
     `[Cast consultation synthesis — ${params.directorName}]`,
@@ -251,6 +253,19 @@ export function buildCastConsultationsSynthesisPrompt(params: {
       '- A cast member said they would capture/add a Point. They cannot write the Document. You must emit draft.update.propose this turn.',
       '- Use payload.section when they named a Section (e.g. Keeper Stage). payload.prelude is the short title. payload.content is the Point body (Rendr\'s line, the design principle — whatever they offered).',
       '- Short prose + the action. Do not sit silent after they promised a write. If the write fails, say so.',
+    );
+  }
+
+  if (params.resolvePerformanceMeaning) {
+    lines.push(
+      '',
+      'RESOLVED MEANING (Stage performance — envelope sibling, not your spoken reply):',
+      '- Also emit "resolvedMeaning": { "meaning": "...", "because?": "...", "about": [{ "kind", "id", "title?" }], "performedBy": ["slug"] }.',
+      '- "meaning" is what emerged — insight, question, tension, possibility, decision, or direction. It must not be a restatement of "response".',
+      '- "about" references Keeper objects on Stage or in Talking in / Working on (ids + optional titles). Do not copy Point or Document bodies.',
+      '- "performedBy" is slugs that actually delivered this turn. Never invent a voice.',
+      '- If nothing resolved, omit resolvedMeaning. Do not invent meaning so a Frame can appear.',
+      '- Do not emit stage.story.layout for this. Expression is not your job this turn.',
     );
   }
 

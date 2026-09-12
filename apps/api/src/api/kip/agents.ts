@@ -55,6 +55,9 @@ import {
   buildKeeperStagePrompt,
   resolveTalkingInWorkingOn,
   parseKeeperStage,
+  withPerformedByFallback,
+  type ResolvedMeaning,
+  type StageExpressionStamp,
   coerceDocumentReorganizePayload,
   hasDocumentIdentityProposal,
   isDocumentReorganizeSpineOnly,
@@ -207,6 +210,7 @@ import {
   type DirectorDelegationRequest,
 } from '../../services/directorDialog.js';
 import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
+import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
 import {
   buildMcpFollowUpInput,
   buildMcpToolSystemPrompt,
@@ -7137,6 +7141,7 @@ export class KipAgentService {
             })),
             castPromisedPointWrite,
             documentDirection: detectReorganizeIntent(cc.userMessage) === 'required',
+            resolvePerformanceMeaning: workspaceSurfaceFromEnvironment(options?.environment) === 'stage',
           });
           castVoicesForPersist = labeled.map((row) => {
             const status: 'ok' | 'empty' | 'failed' =
@@ -8667,6 +8672,14 @@ export class KipAgentService {
         }
 
         let persistedKeepingChoices: ReturnType<typeof stampOfferedKeepingChoices> = [];
+        const deliveredCastSlugs =
+          options?.castConsultations?.consultations
+            ?.filter((row) => row.status === 'ok')
+            .map((row) => row.instrumentSlug) ?? [];
+        const persistedResolvedMeaning: ResolvedMeaning | undefined = structured.resolvedMeaning
+          ? withPerformedByFallback(structured.resolvedMeaning, deliveredCastSlugs)
+          : undefined;
+        let stageExpressionStamp: StageExpressionStamp | undefined;
 
         // Save agent response to memory if we have a session (skip gloss sub-turns)
         if (
@@ -8706,7 +8719,47 @@ export class KipAgentService {
               ...(directorDelegationResult && !castVoicesForPersist?.length
                 ? { delegation: directorDelegationResult }
                 : {}),
+              ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
             });
+            const onStagePerformance =
+              workspaceSurfaceFromEnvironment(options?.environment) === 'stage'
+              && Boolean(options?.castConsultations?.consultations?.length);
+            if (onStagePerformance && persistedResolvedMeaning && savedAgent && options?.domainId) {
+              try {
+                const expressed = await expressResolvedMeaningOnStage({
+                  domainId: options.domainId,
+                  userId,
+                  leadMessageId: savedAgent.id,
+                  resolvedMeaning: persistedResolvedMeaning,
+                  deliveredCastSlugs,
+                  environment: options.environment,
+                });
+                if (expressed.ok === false) {
+                  console.info('[AgentTurn] stage expression skipped', {
+                    reason: expressed.reason,
+                    message: expressed.message,
+                    leadMessageId: savedAgent.id,
+                  });
+                } else {
+                  stageExpressionStamp = expressed.stamp;
+                  if (userId) {
+                    await this.updateMessageMetadata(savedAgent.id, userId, {
+                      stageExpression: expressed.stamp,
+                    });
+                  }
+                }
+              } catch (error) {
+                console.warn('[AgentTurn] stage expression failed — Stage unchanged', {
+                  leadMessageId: savedAgent.id,
+                  error: error instanceof Error ? error.message : error,
+                });
+              }
+            } else if (onStagePerformance && !persistedResolvedMeaning) {
+              console.info('[AgentTurn] stage expression skipped', {
+                reason: 'no_resolved_meaning',
+                message: 'Lead did not emit resolvedMeaning. Stage unchanged.',
+              });
+            }
             if (structured.keepingChoices?.length && savedAgent && currentSessionId) {
               persistedKeepingChoices = stampOfferedKeepingChoices({
                 offers: structured.keepingChoices,
@@ -8797,6 +8850,8 @@ export class KipAgentService {
             ...(directorDelegationResult
               ? { directorDelegation: directorDelegationResult }
               : {}),
+            ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
+            ...(stageExpressionStamp ? { stageExpression: stageExpressionStamp } : {}),
           }
         };
         }

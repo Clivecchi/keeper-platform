@@ -196,6 +196,60 @@ export function parseStageStory(raw: unknown): StageStory | null {
   return { version: STAGE_STORY_VERSION, slides };
 }
 
+function uniqueBeatId(preferred: string | undefined, existing: ReadonlySet<string>, index: number): string {
+  const base = trimmed(preferred);
+  if (base && base !== 'root' && !existing.has(base)) return base.slice(0, 80);
+  let next = `slide-${index + 1}`;
+  let n = index + 1;
+  while (existing.has(next) || next === 'root') {
+    n += 1;
+    next = `slide-${n}`;
+  }
+  return next;
+}
+
+/**
+ * Append story beats. Never writes Cover/root. Caps at STAGE_STORY_MAX_SLIDES.
+ * One performance Frame uses this with a single live-sourced beat.
+ */
+export function appendStageStoryBeats(
+  current: StageStory | null | undefined,
+  beats: ReadonlyArray<Pick<StageStorySlide, 'title' | 'body'> & Partial<StageStorySlide>>,
+): StageStory | null {
+  const slides: StageStorySlide[] = [...(current?.slides ?? [])];
+  const seen = new Set(slides.map((slide) => slide.id));
+  for (const beat of beats) {
+    if (slides.length >= STAGE_STORY_MAX_SLIDES) break;
+    const title = trimmed(beat.title);
+    if (!title) continue;
+    if (beat.kind === 'root' || beat.slideType === STAGE_SLIDE_TYPE_COVER) continue;
+    const id = uniqueBeatId(beat.id, seen, slides.length);
+    seen.add(id);
+    const source = beat.source && isStageStorySourceKind(beat.source.kind)
+      ? { kind: beat.source.kind, id: beat.source.id ?? null }
+      : undefined;
+    slides.push({
+      id,
+      slideType: STAGE_SLIDE_TYPE_TEXT,
+      kind: 'beat',
+      title: title.slice(0, 200),
+      body: (typeof beat.body === 'string' ? beat.body.trim() : '').slice(0, 4000),
+      ...(source ? { source } : {}),
+    });
+  }
+  if (slides.length === 0) return null;
+  return { version: STAGE_STORY_VERSION, slides };
+}
+
+export function findLiveSourcedSlide(
+  story: StageStory | null | undefined,
+  leadMessageId: string,
+): StageStorySlide | null {
+  const id = trimmed(leadMessageId);
+  if (!id || !story?.slides.length) return null;
+  return story.slides.find((slide) => slide.source?.kind === 'live' && slide.source.id === id) ?? null;
+}
+
 export function domainCoverRootSlide(input: {
   wordmark?: string | null;
   tagline?: string | null;

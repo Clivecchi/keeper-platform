@@ -146,6 +146,37 @@ describe('parseKipAgentOutput', () => {
     expect(result.keepingChoices?.[0]?.label).toBe('Develop Local Stores');
   });
 
+  it('parses resolvedMeaning without treating it as spoken prose or an action', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'That is the lock — the Dialog is the story.',
+      resolvedMeaning: {
+        meaning: 'Finding the Plot is the Dialog, not a fiction outline.',
+        because: 'Cast held the conversation as the story.',
+        about: [{ kind: 'dialog', id: 'dlg-1', title: 'Finding the Plot' }],
+        performedBy: ['cloud', 'rendr'],
+      },
+      actions: [],
+    });
+    const result = parseKipAgentOutput(raw);
+    expect(result.responseText).toBe('That is the lock — the Dialog is the story.');
+    expect(result.resolvedMeaning?.meaning).toBe(
+      'Finding the Plot is the Dialog, not a fiction outline.',
+    );
+    expect(result.actions).toEqual([]);
+    expect(result.resolvedMeaning?.about[0]?.id).toBe('dlg-1');
+  });
+
+  it('omits resolvedMeaning when only a claim alias is present', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'Spoken only.',
+      resolvedMeaning: { claim: 'Must not parse.' },
+      actions: [],
+    });
+    expect(parseKipAgentOutput(raw).resolvedMeaning).toBeUndefined();
+  });
+
   it('unwraps agent_output JSON for session history', () => {
     const raw = JSON.stringify({
       type: 'agent_output',

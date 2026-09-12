@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-11: **Resolved Meaning → Rendr → Frame** — Stage + Cast Lead turns persist `resolvedMeaning` on the Lead message. If present, an ephemeral Rendr handoff appends one live-sourced filmstrip beat. Missing meaning, Rendr failure, or timeout leaves Stage unchanged. `stage.story.layout` stays Lead-only.
 - 2026-09-02: **Keeping Choices** — optional `keepingChoices` on `agent_output` are parsed and persisted, never executed. Selection starts a new Lead turn via `agentContext.keepingChoice`. Single-selection per offer.
 - 2026-09-01: Agency reliability — System/Lead HTTP results include envelope `card`. Advise-only Stage skips are stripped from receipts. Cast `instrumentCard` folds into synthesis and `castVoices`. No-mutation turns succeed.
 - 2026-08-30: Stage prompt names the Stage after the current domain when the stored title is still the platform default.

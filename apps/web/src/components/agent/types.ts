@@ -4,7 +4,7 @@
  */
 
 import type { LinkedCardProps } from "../../types/props"
-import type { GlossThread, KeepingChoiceRecord } from "@keeper/shared"
+import type { GlossThread, KeepingChoiceRecord, ResolvedMeaning, StageExpressionStamp } from "@keeper/shared"
 
 export type DirectorDelegationStatus = "ok" | "failed" | "empty"
 
@@ -67,6 +67,10 @@ export interface AgentDialogueMessage {
   }
   /** Deferred keeping judgments — not actions, not proposals. */
   keepingChoices?: KeepingChoiceRecord[]
+  /** Lead-resolved meaning of a Stage performance — not spoken content. */
+  resolvedMeaning?: ResolvedMeaning
+  /** Provenance for the one Frame Keeper appended from that meaning. */
+  stageExpression?: StageExpressionStamp
   /**
    * Dialog Document deep-link for chronicle_update chips / Known Issue cards.
    * Persisted on kip_messages.metadata.chronicleChip.

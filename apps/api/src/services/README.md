@@ -20,6 +20,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-11 — Performance One Resolved Meaning
+- `directorDialog.ts` — Stage + Cast synthesis asks for envelope `resolvedMeaning` (`meaning`, not `claim`). Not a restatement of `response`. Does not emit `stage.story.layout` for expression.
+
 ### 2026-09-01 — Cast advice crosses; no false completion
 - `directorDialog.ts` — synthesis lists the advisory `card` that actually crossed. Lead must not claim a report from consult `ok` or “I will give you the report.” Card-only Cast turns are successful.
 

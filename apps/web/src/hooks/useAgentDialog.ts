@@ -17,6 +17,8 @@ import {
   parseKeeperAdviceCard,
   parseKeepingChoiceExercise,
   parseKeepingChoiceRecords,
+  parseResolvedMeaning,
+  parseStageExpressionStamp,
   type KeepingChoiceExercise,
   withoutAdviseOnlySkips,
 } from "@keeper/shared"
@@ -152,6 +154,8 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
         ? (meta.keeperCard as AgentDialogueMessage["keeperCard"])
         : undefined
   const keepingChoices = parseKeepingChoiceRecords(meta?.keepingChoices)
+  const resolvedMeaning = parseResolvedMeaning(meta?.resolvedMeaning)
+  const stageExpression = parseStageExpressionStamp(meta?.stageExpression)
   const chronicleChip =
     meta?.chronicleChip && typeof meta.chronicleChip === "object" && !Array.isArray(meta.chronicleChip)
       ? (meta.chronicleChip as AgentDialogueMessage["chronicleChip"])
@@ -203,6 +207,8 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(linkedCard ? { linkedCard } : {}),
     ...(keeperCard ? { keeperCard } : {}),
     ...(keepingChoices.length ? { keepingChoices } : {}),
+    ...(resolvedMeaning ? { resolvedMeaning } : {}),
+    ...(stageExpression ? { stageExpression } : {}),
     ...(chronicleChip ? { chronicleChip } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),
@@ -396,12 +402,38 @@ function extractKeepingChoiceAlreadySelected(result: unknown): boolean {
   return visit(result)
 }
 
+function extractResolvedMeaningFromRunResult(result: unknown): ReturnType<typeof parseResolvedMeaning> {
+  const visit = (node: unknown, depth = 0): ReturnType<typeof parseResolvedMeaning> => {
+    if (!node || typeof node !== "object" || depth > 5) return null
+    const obj = node as Record<string, unknown>
+    const fromHere = parseResolvedMeaning(obj.resolvedMeaning)
+    if (fromHere) return fromHere
+    if (obj.data !== undefined) return visit(obj.data, depth + 1)
+    return null
+  }
+  return visit(result)
+}
+
+function extractStageExpressionFromRunResult(result: unknown): ReturnType<typeof parseStageExpressionStamp> {
+  const visit = (node: unknown, depth = 0): ReturnType<typeof parseStageExpressionStamp> => {
+    if (!node || typeof node !== "object" || depth > 5) return null
+    const obj = node as Record<string, unknown>
+    const fromHere = parseStageExpressionStamp(obj.stageExpression)
+    if (fromHere) return fromHere
+    if (obj.data !== undefined) return visit(obj.data, depth + 1)
+    return null
+  }
+  return visit(result)
+}
+
 export function extractRunAgentPayload(result: unknown): {
   actions?: unknown[]
   sessionId?: string
   directorDelegation?: DirectorDelegationBeat
   keepingChoices?: ReturnType<typeof extractKeepingChoicesFromRunResult>
   keepingChoiceAlreadySelected?: boolean
+  resolvedMeaning?: NonNullable<ReturnType<typeof parseResolvedMeaning>>
+  stageExpression?: NonNullable<ReturnType<typeof parseStageExpressionStamp>>
 } {
   const outer = (result as { data?: Record<string, unknown> })?.data
   const inner =
@@ -443,12 +475,16 @@ export function extractRunAgentPayload(result: unknown): {
   }
   const keepingChoices = extractKeepingChoicesFromRunResult(result)
   const keepingChoiceAlreadySelected = extractKeepingChoiceAlreadySelected(result)
+  const resolvedMeaning = extractResolvedMeaningFromRunResult(result)
+  const stageExpression = extractStageExpressionFromRunResult(result)
   return {
     actions: Array.isArray(actions) ? actions : undefined,
     sessionId: typeof sessionRaw === "string" && sessionRaw.trim() ? sessionRaw.trim() : undefined,
     directorDelegation,
     ...(keepingChoices.length ? { keepingChoices } : {}),
     ...(keepingChoiceAlreadySelected ? { keepingChoiceAlreadySelected: true } : {}),
+    ...(resolvedMeaning ? { resolvedMeaning } : {}),
+    ...(stageExpression ? { stageExpression } : {}),
   }
 }
 
@@ -1350,6 +1386,8 @@ export function useAgentDialog({
           directorDelegation: extractedDelegation,
           keepingChoices: resultKeepingChoices,
           keepingChoiceAlreadySelected,
+          resolvedMeaning: resultResolvedMeaning,
+          stageExpression: resultStageExpression,
         } = extractRunAgentPayload(result)
 
         if (keepingChoiceAlreadySelected) {
@@ -1425,7 +1463,16 @@ export function useAgentDialog({
             ...(attachments?.length ? { attachments } : {}),
             ...(supportingDocs?.length ? { supportingDocs: [...supportingDocs] } : {}),
           })
-          if (!directorDelegation && !actionsArr?.length && !castVoices?.length && !resultKeepingChoices?.length) return withUser
+          if (
+            !directorDelegation
+            && !actionsArr?.length
+            && !castVoices?.length
+            && !resultKeepingChoices?.length
+            && !resultResolvedMeaning
+            && !resultStageExpression
+          ) {
+            return withUser
+          }
           const updated = [...withUser]
           const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
           if (lastAgentIdx < 0) return withUser
@@ -1439,6 +1486,8 @@ export function useAgentDialog({
                 : {}),
             ...(actionsArr?.length ? { actionResults: actionsArr as RunAgentActionInput[] } : {}),
             ...(resultKeepingChoices?.length ? { keepingChoices: resultKeepingChoices } : {}),
+            ...(resultResolvedMeaning ? { resolvedMeaning: resultResolvedMeaning } : {}),
+            ...(resultStageExpression ? { stageExpression: resultStageExpression } : {}),
           }
           return updated
         }

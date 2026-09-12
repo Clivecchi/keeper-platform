@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-11 — Resolved Meaning on the Lead turn
+- `useAgentDialog` hydrates `resolvedMeaning` and `stageExpression` from Lead metadata / run result. Spoken `content` is unchanged. No Composer redesign.
+
 ### 2026-09-02 — Keeping Choice exercise
 - `useAgentDialog` hydrates `keepingChoices`, stamps a single selection on click, and sends `agentContext.keepingChoice` through existing Composer/send. Failed turns revert the optimistic Selected stamp. Already-selected choices cannot start a second Turn.
 

@@ -13,6 +13,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `keeperStage.ts` – Stage composition (assets + `story` filmstrip); `parseStageStory`, `mergeKeeperStagePatch`, `buildKeeperStagePrompt`, `displayKeeperStageTitle`
 - `keeperAdviceCard.ts` – Existing envelope `card` as the Cast/Lead advisory channel (`extractKeeperAdviceCardFromRunResult`, `withoutAdviseOnlySkips`)
 - `keepingChoice.ts` – Keeping Choice offer/record/exercise contract. Not an action. Not a proposal.
+- `resolvedMeaning.ts` – Lead-resolved performance meaning + one `stage_expression` beat. Not spoken prose. Not Cast transcript.
 - `imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
@@ -28,6 +29,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-11: `resolvedMeaning.ts` — `meaning` / `because?` / `about[]` / `performedBy[]` on the Lead envelope. `appendStageStoryBeats` / `findLiveSourcedSlide` append one live-sourced Frame. No taxonomy.
 - 2026-09-02: `keepingChoice.ts` — envelope sibling for deferred semantic direction. Single-selection per offer; siblings stay independent. No `kind` field.
 - 2026-09-01: Agency reliability — Stage prompt makes `stage.story.layout` available, not obligated. `keeperAdviceCard.ts` forwards the existing envelope `card` and treats Cast-advise skips as non-failures.
 - 2026-08-30: `keeperStage.ts` — Root is `domain_cover`. Agent story slides are beats after Forward. `withDomainCoverRoot` / `domainCoverRootSlide`.

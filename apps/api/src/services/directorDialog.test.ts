@@ -81,6 +81,22 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).not.toMatch(/Emit stage\.story\.layout this turn/);
   });
 
+  it('asks for resolvedMeaning on a Stage performance without rewriting response', () => {
+    const prompt = buildCastConsultationsSynthesisPrompt({
+      userMessage: 'What emerged just now?',
+      directorName: 'Kip',
+      consultations: [
+        { label: 'Cloud', reply: 'The Dialog is the plot.', status: 'ok' },
+        { label: 'Rendr', reply: 'Hold that as one beat.', status: 'ok' },
+      ],
+      resolvePerformanceMeaning: true,
+    });
+    expect(prompt).toContain('resolvedMeaning');
+    expect(prompt).toMatch(/must not be a restatement of "response"/i);
+    expect(prompt).toMatch(/Do not emit stage\.story\.layout for this/);
+    expect(prompt).not.toMatch(/Emit stage\.story\.layout this turn/);
+  });
+
   it('does not let Lead claim an undelivered Cast report', () => {
     const prompt = buildCastConsultationsSynthesisPrompt({
       userMessage: 'Cloud, read attached and respond accordingly',

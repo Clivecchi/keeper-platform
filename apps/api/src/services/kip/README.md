@@ -22,7 +22,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up). Offer-in-prose is an incomplete turn.
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — detect review/reorganize language and prompt the Lead to propose, not rewrite
-- `layoutStageStory.ts` — Lead `stage.story.layout` writes `keeperStage.story`
+- `layoutStageStory.ts` — Lead `stage.story.layout` writes `keeperStage.story`; `appendStageExpressionBeat` appends one live-sourced performance Frame
 - `keepingChoicePersist.ts` — stamp / select / reload Keeping Choice records on `kip_messages.metadata`
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
 - `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
@@ -39,6 +39,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-09-11 — Performance One Frame append
+- `layoutStageStory.ts` — `appendStageExpressionBeat` appends one `text_slide` with `source.live` = Lead message id. Does not replace the story or rewrite Cover. Idempotent per Lead message.
 
 ### 2026-09-07 — Keeping Choice vs inert decision card
 - `buildKeeperCardRenderingPrompt.ts` — Lock/Open/Next Step card required only when the human asked for that form or the Lead is synthesizing a real multi-Cast consult. Optional future keeping acts emit `keepingChoices`, not inert Lock/Next Step items. Envelope example shows `card` / `keepingChoices` / `actions` as siblings, not all required.

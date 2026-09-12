@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  appendStageStoryBeats,
   bringOntoStage,
   buildKeeperStagePrompt,
   displayKeeperStageTitle,
   domainCoverRootSlide,
   emptyKeeperStage,
+  findLiveSourcedSlide,
   mergeKeeperStagePatch,
   parseKeeperStage,
   parseStageStory,
@@ -141,6 +143,37 @@ describe('parseStageStory', () => {
 
   it('returns null for an empty slide list', () => {
     expect(parseStageStory({ slides: [] })).toBeNull();
+  });
+});
+
+describe('appendStageStoryBeats', () => {
+  it('appends one live beat without rewriting Cover or prior slides', () => {
+    const current = parseStageStory({
+      slides: [{ title: 'Finding the Plot', body: 'On Stage.' }],
+    });
+    const next = appendStageStoryBeats(current, [
+      {
+        id: 'live-msg-1',
+        title: 'The Dialog is the plot',
+        body: 'Not a fiction outline.',
+        source: { kind: 'live', id: 'msg-1' },
+      },
+    ]);
+    expect(next?.slides.map((slide) => slide.title)).toEqual([
+      'Finding the Plot',
+      'The Dialog is the plot',
+    ]);
+    expect(next?.slides[1]?.source).toEqual({ kind: 'live', id: 'msg-1' });
+    expect(findLiveSourcedSlide(next, 'msg-1')?.id).toBe('live-msg-1');
+  });
+
+  it('refuses root/cover beats and empty titles', () => {
+    expect(
+      appendStageStoryBeats(null, [
+        { title: 'Cover', kind: 'root', slideType: 'domain_cover', body: '' },
+        { title: '   ', body: 'no' },
+      ]),
+    ).toBeNull();
   });
 });
 

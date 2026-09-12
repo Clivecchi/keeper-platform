@@ -25,6 +25,7 @@ Contract IDs and `FRAME_TO_JSON_KEY` live in `@keeper/shared/structure`. Frame J
 - [ ] Replace permissive `domainFrameSliceSchema` with per-frame Zod from `domain-frame.types.ts`
 
 ## 📆 Update Log
+- 2026-09-11: **resolvedMeaning** — parse optional envelope sibling; never treated as `response` or `actions`. `claim` is not accepted.
 - 2026-09-02: **keepingChoices** — parse optional envelope sibling; never treated as `actions`.
 - 2026-08-24: **visibleAgentMessageText** — unwrap `agent_output` JSON so session save/history stores the spoken reply, not the envelope.
 - 2026-06-15: **domain.frame.theme** — `themeFrameSchema` registered; 13 governed frame contracts including brand identity tokens.
