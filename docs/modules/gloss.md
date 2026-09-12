@@ -25,6 +25,7 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-09-11-performance-one-code-truth.md`
 - `2026-09-11-reach-directs-the-set.md`
 - `2026-09-11-performance-resolved-meaning-seam.md`
+- `2026-09-11-resolved-meaning-performance-one.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -33,6 +34,9 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-11 — Resolved Meaning Performance One
+- Added `2026-09-11-resolved-meaning-performance-one.md` — minimum contract: envelope sibling → post-Lead Rendr → append filmstrip beat. Gloss-only until review.
+
 ### 2026-09-11 — Performance resolved-meaning seam
 - Added `2026-09-11-performance-resolved-meaning-seam.md` — Cast → Lead persist has no resolved-meaning sibling for post-Lead Rendr. Gloss-only.
 
