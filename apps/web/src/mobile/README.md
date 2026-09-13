@@ -11,6 +11,8 @@ Authenticated Domain and Realm boards on narrow viewports now mount **`Universal
 - `PublicGuestChrome.tsx` — Sign In / Get Started overlay for guest public story
 - `public-story.css` — mobile-safe layout for Cover / Present (Phase 3.3)
 - `hooks/useIsMobile.ts` — `(max-width: 767px)` viewport hook
+- `hooks/useVisualViewportHeight.ts` — pins the adaptive board shell to the keyboard-aware visual viewport
+- `hooks/visualViewportMetrics.ts` — visual-viewport → CSS pixel helper
 - `hooks/useMobileSurface.ts` — auth + narrow → mobile surface mode (URL overrides via `?surface=`)
 - `pwa/` — installability (`PwaInstallPrompt` mounted from `UniversalBoard` on member boards)
 - **Deprecated (not mounted by V0Shell):** `UniversalMobileShell.tsx`, `screens/*`, `mobile-shell.css`, `UniversalMobileUIContext`
@@ -62,6 +64,10 @@ Authenticated Domain and Realm boards on narrow viewports now mount **`Universal
 - [ ] Phase 3: offline draft queue, push notifications, app store wrappers
 
 ## 📆 Update Log
+
+### 2026-09-12 — Basic mobile chat reliability
+- Adaptive Domain/Realm uses a docked chat bar (input + send always visible). The 58vh staged composer and Message bubble are no longer the member path.
+- `useVisualViewportHeight` keeps the shell above the software keyboard.
 
 ### 2026-08-09 — Composer bubble stage (Domain/Realm adaptive)
 - `useMobileKipDialogStage`: idle (including empty Dialog) stays `response` until focus/typed content — drives pinned Message bubble, not a forced expanded composer.

@@ -19,6 +19,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
 - `sessionActionLog.ts` — Session action receipts for the Lead prompt
 - `documentReorganizeIntent.ts` — Shared detector for Document-review / director language
+- `agentRole.ts` — `isLeadAgentRole` (class role, not Agent identity)
+- `agentPerformanceProvenance.ts` — `perf-v1` named runtime checklist for Agent Board inspection
 
 ## 🔄 Data & Behavior
 - All exports are side-effect free utilities or type helpers.
@@ -29,6 +31,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-12: `agentRole.ts` + `agentPerformanceProvenance.ts` — Lead is a role. Persist named runtime layers on Lead messages; derive a checklist from older orchestration/card metadata.
 - 2026-09-11: `resolvedMeaning.ts` — `meaning` / `because?` / `about[]` / `performedBy[]` on the Lead envelope. `appendStageStoryBeats` / `findLiveSourcedSlide` append one live-sourced Frame. No taxonomy.
 - 2026-09-02: `keepingChoice.ts` — envelope sibling for deferred semantic direction. Single-selection per offer; siblings stay independent. No `kind` field.
 - 2026-09-01: Agency reliability — Stage prompt makes `stage.story.layout` available, not obligated. `keeperAdviceCard.ts` forwards the existing envelope `card` and treats Cast-advise skips as non-failures.

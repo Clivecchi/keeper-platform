@@ -12,6 +12,8 @@ import type { AgentCoverMode } from "./coverTypes"
 import { coverFromRecord } from "./coverImageUtils"
 import type { ChronicleCoverMedia } from "../chronicleConfig/ChronicleCoverField"
 import { useGuidedArrivalOptional } from "../../guidedArrival/GuidedArrivalContext"
+import { useFrameLeadAgentIdentity } from "../../hooks/useFrameLeadAgentIdentity"
+import { useV0ShellOptional } from "../../shell/V0ShellContext"
 
 export interface DomainFocusPresenceProps {
   objectId: string
@@ -60,6 +62,27 @@ export function DomainFocusPresence({
   renderFieldEditor,
 }: DomainFocusPresenceProps) {
   const guidedArrival = useGuidedArrivalOptional()
+  const v0Shell = useV0ShellOptional()
+  const shellLead = v0Shell?.domainData as
+    | { leadAgentSlug?: string | null; leadAgentName?: string | null }
+    | null
+    | undefined
+  const declaredLeadSlug =
+    (typeof record.leadAgentSlug === "string" ? record.leadAgentSlug.trim() : "") ||
+    shellLead?.leadAgentSlug?.trim() ||
+    null
+  const declaredLeadName =
+    (typeof record.leadAgentName === "string" ? record.leadAgentName.trim() : "") ||
+    shellLead?.leadAgentName?.trim() ||
+    null
+  const leadIdentity = useFrameLeadAgentIdentity(
+    declaredLeadSlug,
+    declaredLeadName ?? "Kip",
+    declaredLeadName,
+  )
+  const primaryAgentName = declaredLeadSlug || declaredLeadName
+    ? leadIdentity.displayName
+    : null
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
   const [coverRevision, setCoverRevision] = React.useState(0)
 
@@ -82,7 +105,10 @@ export function DomainFocusPresence({
 
   const coverContent = React.useMemo(() => {
     const content = domainCoverSchema.resolve(
-      record,
+      {
+        ...record,
+        leadAgentName: primaryAgentName,
+      },
       fieldValues,
       { objectId },
       { onConfigure: () => setCoverMode("config"), onOpenSession: () => {} },
@@ -96,7 +122,7 @@ export function DomainFocusPresence({
         voiceQuote: arrivalQuote,
       },
     }
-  }, [record, fieldValues, objectId, coverRevision, guidedArrival?.coverGreeting])
+  }, [record, fieldValues, objectId, coverRevision, guidedArrival?.coverGreeting, primaryAgentName])
 
   return (
     <div className="relative flex flex-col h-full min-h-0">
@@ -104,7 +130,7 @@ export function DomainFocusPresence({
         {coverMode === "cover" ? (
           <motion.div
             key="cover"
-            className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4"
+            className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -154,12 +180,13 @@ export function DomainFocusPresence({
           </motion.div>
         ) : (
           <DomainConfigPresence
-            key="config"
+            key={`config-${domainId}`}
             domainId={domainId}
             domainSlug={
               fieldValues.slug?.trim() ||
               (typeof record.slug === "string" ? record.slug : domainSlug ?? "")
             }
+            primaryAgentName={primaryAgentName}
             customDomain={
               typeof record.customDomain === "string" ? record.customDomain : null
             }

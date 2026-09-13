@@ -1068,6 +1068,19 @@ export function UniversalConversation({
       }
     }
 
+    merged = {
+      ...(merged ?? {}),
+      boardId: def.boardId,
+      dialogCueing: def.conversation.dialogCueing ?? "monologue",
+    }
+
+    if (kipMode === "agent" && selection.agentPerformanceInspection) {
+      merged = {
+        ...merged,
+        agentPerformanceInspection: selection.agentPerformanceInspection,
+      }
+    }
+
     return merged as AgentContext | undefined
   }, [
     domainFrame,
@@ -1083,6 +1096,9 @@ export function UniversalConversation({
     boardSelectedAgentId,
     dialogStyle,
     workspaceSurface,
+    def.boardId,
+    def.conversation.dialogCueing,
+    selection.agentPerformanceInspection,
   ])
 
   const agentBoardMessaging = React.useMemo((): AgentBoardMessaging | undefined => {
@@ -2176,7 +2192,7 @@ export function UniversalConversation({
       momentId: selection.selectedMomentId,
       keeperId: selectedKeeperId,
       keeperTitle: keeperName,
-      agentId: kipMode === "agent" ? null : selectedAgentId,
+      agentId: selectedAgentId,
       agentTitle: selectedAgentRecord?.name ?? def.conversation.agentName,
     })
 
@@ -2257,7 +2273,7 @@ export function UniversalConversation({
             sessionLabel: "Training" as const,
           }
         }
-        if (usingSelectedNonDefaultAgent && selectedAgentRecord) {
+        if (selectedAgentRecord) {
           return {
             primary: selectedAgentRecord.name,
             secondary: def.displayName,
@@ -2790,9 +2806,7 @@ export function UniversalConversation({
           composerAgentChips.length > 0 ? handleRemoveComposerAgent : undefined
         }
         showToolbarAgentIdentity={
-          useMobileStagedComposer && mobileDialogStage === "response"
-            ? false
-            : showComposerToolbarAgentIdentity
+          useMobileStagedComposer ? false : showComposerToolbarAgentIdentity
         }
         thinkingStatusLabel={horizonThinkingLabel}
         thinkingSteps={thinkingSteps}

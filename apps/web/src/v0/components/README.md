@@ -35,6 +35,9 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+
+### 2026-09-12 — Mobile Playbill is identity only
+- Phone Playbill shows domain + current Dialog title. Title is not a second Chronicle button; Chronicle stays the book icon.
 - 2026-08-30: Playbill billing is the domain address; the star is the agent name (Liv, not livecchi.biz). Empty lead falls back to the domain label instead of "Agent".
 - 2026-08-30: Cover imprint is the domain name, not hardcoded KE3P. Card wordmark is unchanged.
 - 2026-08-30: Cover page wash uses `--theme-atmosphere-wash-start` / `--theme-atmosphere-wash-end`.

@@ -9,6 +9,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when the human asked — not after Cast; optional future keeps are `keepingChoices`
 - `leadJudgmentContract.ts` — Lead role Agency contract (find the plot). Injected when `role === 'Lead'`. Not Kip-specific.
+- `buildAgentBoardContextPrompt.ts` — Agent Board Training + Performance Inspection Composer grounding
+- `agentPerformanceProvenance` lives in `@keeper/shared` — named runtime checklist on persisted Lead messages
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `ingestExternalDocument.ts` — External markdown → Dialog + document_manuscript Points + real session (create or attach)
 - `resolveKipActionAllowlistStatus.ts` — session-bound Kip allowlist + canDraft read (MCP / REST)
@@ -40,6 +42,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-09-12 — Agent Board Performance Inspection V0
+- `buildAgentBoardContextPrompt.ts` injects observable inspection facts and Training frame context. Compact environment now allowlists those keys.
+- `isLeadRole` is `isLeadAgentRole` — slug is not Lead.
 
 ### 2026-09-12 — Lead Judgment contract
 - `leadJudgmentContract.ts` — role Agency: spoken response is Lead value, not Cast recap. Valid outcomes include unresolved tension and no new conclusion.

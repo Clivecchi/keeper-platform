@@ -116,6 +116,7 @@ export const agentCoverSchema: EntityCoverSchema = {
       : "—"
 
     const traits = [
+      { label: "Role", value: agentClass?.trim() || "—" },
       { label: "Domain", value: domainLabel },
       { label: "Model", value: formatModelLabel(fieldValues.model) },
       { label: "Status", value: statusLabel, pulse: glow === "active" },

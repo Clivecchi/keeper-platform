@@ -85,6 +85,10 @@ export function useChronicleConfig({
   }, [])
 
   React.useEffect(() => {
+    resetSaveState()
+  }, [entityId, domainId, resetSaveState])
+
+  React.useEffect(() => {
     if (saveStatus !== "saved") return
     const timer = window.setTimeout(() => {
       setSaveStatus("idle")
@@ -120,7 +124,8 @@ export function useChronicleConfig({
 
     const rawPayload = buildPayload()
     if (!rawPayload) {
-      // incomplete — no feedback on unchanged save
+      setSaveStatus("idle")
+      setSaveMessage("No changes to save.")
       return
     }
 
@@ -136,9 +141,8 @@ export function useChronicleConfig({
     if (entityKind === "agent") {
       payload = buildAgentChroniclePatchBody(rawPayload, domainId)
       if (Object.keys(payload).length <= 1) {
-        // incomplete — no feedback on unchanged save
         setSaveStatus("idle")
-        setSaveMessage(null)
+        setSaveMessage("No changes to save.")
         return
       }
     }

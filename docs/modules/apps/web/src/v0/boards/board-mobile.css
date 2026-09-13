@@ -27,29 +27,41 @@
   cursor: default;
 }
 
-/* ── Chronicle overlay ──────────────────────────────────────────────────── */
-
-.board-mobile-chronicle-overlay__scrim {
-  background: hsl(var(--theme-ink-primary) / 0.35);
-}
+/* ── Chronicle overlay — full-screen takeover (not a stacked sheet) ─────── */
 
 .board-mobile-chronicle-overlay__panel {
-  margin-top: max(2.5rem, env(safe-area-inset-top));
+  margin-top: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
   background: hsl(var(--theme-surface-page, var(--theme-surface-paper)));
-  border-top-left-radius: 14px;
-  border-top-right-radius: 14px;
-  box-shadow: 0 -8px 32px hsl(var(--theme-ink-primary) / 0.18);
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
 }
 
 .board-mobile-chronicle-overlay__header {
-  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.45);
-  background: hsl(var(--theme-surface-elevated) / 0.9);
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.35);
+  background: hsl(var(--theme-surface-page, var(--theme-surface-paper)));
 }
 
 .board-mobile-chronicle-overlay__body > .keeper-chronicle-panel,
 .board-mobile-chronicle-overlay__body > * {
   height: 100%;
+}
+
+/* Single dismiss (overlay X) — hide TrailBar so Chronicle isn't double-chromed */
+.board-mobile-chronicle-overlay__body .keeper-chronicle-trail-bar {
+  display: none;
+}
+
+/* Neutralize nested desktop side-panel card chrome inside the takeover */
+.board-mobile-chronicle-overlay__body .keeper-chronicle-panel {
+  border-radius: 0 !important;
+  border-left: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 /* ── Nav drawer ─────────────────────────────────────────────────────────── */
@@ -107,35 +119,87 @@
 }
 
 .board-mobile-shell-height {
-  height: 100dvh;
-  max-height: 100dvh;
+  height: var(--keeper-vvh, 100dvh);
+  max-height: var(--keeper-vvh, 100dvh);
+  overscroll-behavior: none;
 }
 
 /*
- * Mobile-staged composer reclaim (Domain/Realm adaptive board).
- * Reuses AgentComposer mobile-compact / mobile-expanded values.
+ * Adaptive mobile chat — docked composer.
  * Must beat .keeper-board-scope .dialog-bottom-zone .keeper-composer-input (108/220).
- * Desktop (>767px) never sets data-dialog-layout="mobile-staged" on this path.
  */
 @media (max-width: 767px) {
+  .board-mobile-layout .keeper-dialog-frame {
+    --dialog-fade-height: 40px;
+    --dialog-column-pad: 12px;
+  }
+
+  .board-mobile-layout .dialog-scroll-rail-track,
+  .board-mobile-layout .dialog-scroll-hint-btn {
+    display: none;
+  }
+
   .keeper-board-scope
-    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"]
+    .dialog-bottom-zone {
+    padding: 8px 12px max(10px, env(safe-area-inset-bottom));
+    background: hsl(var(--theme-surface-page, var(--theme-surface-paper)) / 0.96);
+  }
+
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"]
+    .dialog-composer-footer {
+    display: none;
+  }
+
+  .keeper-board-scope .keeper-composer-docked-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .keeper-board-scope .keeper-composer-docked-icon,
+  .keeper-board-scope .keeper-composer-docked-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+  }
+
+  .keeper-board-scope .keeper-composer-docked-icon {
+    color: hsl(var(--theme-ink-secondary));
+    background: hsl(var(--theme-surface-panel) / 0.7);
+  }
+
+  .keeper-board-scope .keeper-composer-docked-icon:disabled,
+  .keeper-board-scope .keeper-composer-docked-send:disabled {
+    opacity: 0.4;
+  }
+
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"]
+    .dialog-bottom-zone
+    .keeper-composer-docked-input,
+  .keeper-board-scope
+    .keeper-dialog-frame[data-dialog-layout="mobile-staged"]
     .dialog-bottom-zone
     .keeper-composer-input {
     min-height: 44px;
-    max-height: 56px;
-    padding: 8px 12px;
+    max-height: 120px;
+    padding: 10px 12px;
+    font-size: 16px;
+    line-height: 1.4;
+    border-radius: 18px;
   }
 
-  .keeper-board-scope
-    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="composing"]
-    .dialog-bottom-zone
-    .keeper-composer-input {
-    min-height: 38vh;
-    max-height: 50vh;
+  .keeper-board-scope .keeper-composer-docked-input {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
-  /* Compact domain Dialog banner — name + LIVE row */
   .keeper-board-scope .dialog-header-banner--mobile-compact {
     padding-top: 6px;
     padding-bottom: 6px;
@@ -152,20 +216,5 @@
     text-decoration: none;
     border-radius: 8px;
     background: hsl(var(--theme-surface-panel) / 0.55);
-  }
-
-  /* Response stage: thinner composer chrome */
-  .keeper-board-scope
-    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
-    .keeper-composer-toolbar {
-    padding-top: 4px;
-    padding-bottom: 4px;
-  }
-
-  .keeper-board-scope
-    .keeper-dialog-frame[data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="response"]
-    .dialog-composer-footer {
-    padding-top: 2px;
-    padding-bottom: 2px;
   }
 }

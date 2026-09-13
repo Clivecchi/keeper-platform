@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-12: **Performance provenance** — Lead memory saves attach `performanceProvenance` (`perf-v1`) on `kip_messages.metadata`. Composer receives Agent Board inspection/training via `collectAgentBoardContextPrompts`. Lead remains role-based.
 - 2026-09-12: **Lead Judgment contract** — `role === 'Lead'` now injects `buildLeadJudgmentContractPrompt` (Agency, not persona). Card renderer no longer treats multi-Cast as a Summary-card synthesis turn. Human message + orchestration context + personality seams unchanged.
 - 2026-09-12: **Lead voice after Cast** — `leadModelInput` stays the human's direction. Cast results inject as `orchestrationContext` (system). Seeded `config.personality` enters the live identity line. Read/delegate follow-up is context, not a new user utterance.
 - 2026-09-11: **Resolved Meaning → Rendr → Frame** — Stage + Cast Lead turns persist `resolvedMeaning` on the Lead message. If present, an ephemeral Rendr handoff appends one live-sourced filmstrip beat. Missing meaning, Rendr failure, or timeout leaves Stage unchanged. `stage.story.layout` stays Lead-only.

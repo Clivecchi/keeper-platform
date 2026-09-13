@@ -12,8 +12,13 @@ import {
   resolveAgentCoverContent,
 } from "./schemas/agentCoverSchema"
 import { AgentTrainingPresence } from "./AgentTrainingPresence"
+import { AgentPerformanceInspection } from "./AgentPerformanceInspection"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { AgentCoverMode } from "./coverTypes"
+import {
+  buildComposerInspectionContext,
+  type AgentPerformanceRow,
+} from "./agentPerformanceInspection"
 
 export interface AgentFocusPresenceProps {
   objectId: string
@@ -74,14 +79,43 @@ export function AgentFocusPresence({
 }: AgentFocusPresenceProps) {
   const boardCtx = useUniversalBoardOptional()
   const trainingMode = boardCtx?.selection.trainingMode ?? false
+  const performanceDialogId = boardCtx?.selection.selectedDialogId ?? null
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
+  const [activePerformance, setActivePerformance] =
+    React.useState<AgentPerformanceRow | null>(null)
+  const configuredRole =
+    typeof record.role === "string" && record.role.trim() ? record.role.trim() : null
+  const setInspection = boardCtx?.actions.setAgentPerformanceInspection
+
+  React.useEffect(() => {
+    if (!performanceDialogId) {
+      setActivePerformance(null)
+      setInspection?.(null)
+    }
+  }, [performanceDialogId, setInspection])
+
+  React.useEffect(() => {
+    if (!activePerformance) {
+      if (!performanceDialogId) setInspection?.(null)
+      return
+    }
+    setInspection?.(
+      buildComposerInspectionContext({
+        provenance: activePerformance.provenance,
+        configuredName: fieldValues.name ?? "",
+        configuredRole,
+        instruction:
+          "You are inspecting a recorded performance. Use only the observable facts and recorded layers provided. Do not invent hidden reasoning. Do not change identity, role, lens, voice prompt, contracts, capabilities, or model configuration.",
+      }),
+    )
+  }, [activePerformance, configuredRole, fieldValues.name, performanceDialogId, setInspection])
   const [voicePrompt, setVoicePrompt] = React.useState(
     () => fieldValues.lensSystemPrompt ?? "",
   )
 
   React.useEffect(() => {
     setCoverMode("cover")
-  }, [objectId])
+  }, [objectId, performanceDialogId])
 
   React.useEffect(() => {
     setVoicePrompt(fieldValues.lensSystemPrompt ?? "")
@@ -144,7 +178,7 @@ export function AgentFocusPresence({
   )
 
   return (
-    <div className="relative flex flex-col h-full min-h-0">
+    <div className="relative flex flex-col h-full min-h-0 overflow-hidden">
       <AnimatePresence mode="wait">
         {showTraining ? (
           <AgentTrainingPresence
@@ -162,6 +196,7 @@ export function AgentFocusPresence({
             onVoicePromptSaved={(next) => {
               setVoicePrompt(next)
               onFieldChange("lensSystemPrompt", next)
+              onAvatarSaved?.()
             }}
           />
         ) : coverMode === "cover" ? (
@@ -177,6 +212,16 @@ export function AgentFocusPresence({
               content={coverContent}
               instanceKey={objectId}
             />
+
+            {performanceDialogId && (
+              <AgentPerformanceInspection
+                agentId={objectId}
+                agentName={fieldValues.name ?? ""}
+                configuredRole={configuredRole}
+                dialogId={performanceDialogId}
+                onActivePerformanceChange={setActivePerformance}
+              />
+            )}
 
             {relatedSections.length > 0 && (
               <div className="mt-6">

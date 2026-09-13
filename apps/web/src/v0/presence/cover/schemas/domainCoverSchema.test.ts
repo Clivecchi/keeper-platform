@@ -1,0 +1,29 @@
+// @vitest-environment node
+import { describe, expect, it } from "vitest"
+import { domainCoverSchema } from "./domainCoverSchema"
+
+describe("domainCoverSchema", () => {
+  it("shows primary agent as a cover trait when the name is known", () => {
+    const content = domainCoverSchema.resolve(
+      { name: "ke3p", leadAgentName: "Kip", visibility: "private" },
+      { visibility: "private" },
+      { objectId: "domain-1" },
+      { onConfigure: () => {}, onOpenSession: () => {} },
+    )
+
+    expect(content.traits).toEqual(
+      expect.arrayContaining([{ label: "Primary Agent", value: "Kip" }]),
+    )
+  })
+
+  it("omits primary agent when the name is not known", () => {
+    const content = domainCoverSchema.resolve(
+      { name: "ke3p" },
+      {},
+      { objectId: "domain-1" },
+      { onConfigure: () => {}, onOpenSession: () => {} },
+    )
+
+    expect(content.traits.some((trait) => trait.label === "Primary Agent")).toBe(false)
+  })
+})

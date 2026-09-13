@@ -84,6 +84,7 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
     fields: {
       name:               { role: 'primary',   always: true,             editable: true  },
       tagline:            { role: 'secondary', minDensity: 'standard', editable: true,  label: 'Tagline' },
+      role:               { role: 'quiet',     always: true,             editable: false, label: 'Role' },
       purpose:            { role: 'secondary', minDensity: 'standard', editable: true  },
       lensSystemPrompt:   {
         role: 'body',

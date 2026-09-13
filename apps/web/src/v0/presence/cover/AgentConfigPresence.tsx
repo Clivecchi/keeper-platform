@@ -103,7 +103,7 @@ export function AgentConfigPresence({
 
   const placeholders: Record<string, string> = {
     name: "Agent name",
-    tagline: "Role line — how this agent is billed",
+    tagline: "Short billing line — not the Agent class role",
     purpose: "What this agent is for",
     personality: "Personality traits",
     lensSystemPrompt: "How this agent thinks and what it knows…",
@@ -147,14 +147,35 @@ export function AgentConfigPresence({
         }}
       />
 
-      {/* Domain assignment — incomplete — no save path */}
       <div className="mb-4">
-        <p className="keeper-presence-field-label mb-1.5">Domain Assignment</p>
+        <p className="keeper-presence-field-label mb-1.5">Role</p>
+        <p
+          className="text-[14px] leading-relaxed"
+          style={{ color: "hsl(var(--theme-ink-primary))" }}
+        >
+          {typeof record.role === "string" && record.role.trim() ? record.role.trim() : "—"}
+        </p>
+        <p
+          className="text-[12px] mt-1 leading-relaxed"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Class responsibility. Lead is a role — not this Agent&apos;s name. Not editable here.
+        </p>
+      </div>
+
+      <div className="mb-4">
+        <p className="keeper-presence-field-label mb-1.5">Domain</p>
         <p
           className="text-[14px] leading-relaxed"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {domainDisplayName?.trim() || domainSlug?.trim() || "Current domain"}
+        </p>
+        <p
+          className="text-[12px] mt-1 leading-relaxed"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          This Board&apos;s Domain. Agents are not assigned from this field.
         </p>
       </div>
 
@@ -164,7 +185,7 @@ export function AgentConfigPresence({
         return (
           <div key={key} className="mb-4">
             <p className="keeper-presence-field-label mb-1.5">
-              {key === "tagline" ? "Role" : resolveFieldLabel(key, def)}
+              {key === "tagline" ? "Tagline" : resolveFieldLabel(key, def)}
             </p>
             {renderFieldEditor(key, def, placeholders[key])}
           </div>
@@ -195,7 +216,7 @@ export function AgentConfigPresence({
             className="text-[12px] mb-2 leading-relaxed"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            How this agent thinks and what it knows.
+            Agent voice prompt. This is identity — not the Lead role contract.
           </p>
           <textarea
             value={fieldValues.lensSystemPrompt ?? ""}
@@ -223,7 +244,13 @@ export function AgentConfigPresence({
       {!hiddenFields.includes("composedSystemPrompt") &&
         fieldValues.composedSystemPrompt?.trim() && (
           <div className="mb-4">
-            <p className="keeper-presence-field-label mb-1.5">Runtime assembly</p>
+            <p className="keeper-presence-field-label mb-1.5">Current runtime assembly</p>
+            <p
+              className="text-[12px] mb-2 leading-relaxed"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Preview of how a new turn would be assembled now — not the recorded performance.
+            </p>
             <ComposedPromptPreview value={fieldValues.composedSystemPrompt} />
           </div>
         )}

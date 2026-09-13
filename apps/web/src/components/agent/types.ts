@@ -4,7 +4,13 @@
  */
 
 import type { LinkedCardProps } from "../../types/props"
-import type { GlossThread, KeepingChoiceRecord, ResolvedMeaning, StageExpressionStamp } from "@keeper/shared"
+import type {
+  AgentPerformanceProvenance,
+  GlossThread,
+  KeepingChoiceRecord,
+  ResolvedMeaning,
+  StageExpressionStamp,
+} from "@keeper/shared"
 
 export type DirectorDelegationStatus = "ok" | "failed" | "empty"
 
@@ -69,6 +75,10 @@ export interface AgentDialogueMessage {
   keepingChoices?: KeepingChoiceRecord[]
   /** Lead-resolved meaning of a Stage performance — not spoken content. */
   resolvedMeaning?: ResolvedMeaning
+  /** Named orchestration metadata persisted on the Lead message. */
+  orchestration?: Record<string, unknown>
+  /** Named runtime-layer checklist for Agent Board inspection. */
+  performanceProvenance?: AgentPerformanceProvenance
   /** Provenance for the one Frame Keeper appended from that meaning. */
   stageExpression?: StageExpressionStamp
   /**

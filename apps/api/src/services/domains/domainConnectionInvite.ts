@@ -33,7 +33,13 @@ export type PendingConnectionInvitation = {
   expiresAt: Date;
   createdAt: Date;
   status: 'pending';
+  /** Copyable redeem path for domain admins — email delivery is not wired. */
+  acceptPath: string;
 };
+
+export function invitationAcceptPath(token: string): string {
+  return `/invite/accept?token=${encodeURIComponent(token)}`;
+}
 
 export type InviteConnectionResult =
   | { outcome: 'granted'; permission: DomainPermission }
@@ -132,6 +138,7 @@ export async function listDomainConnections(
       expiresAt: invitation.expiresAt,
       createdAt: invitation.createdAt,
       status: 'pending' as const,
+      acceptPath: invitationAcceptPath(invitation.token),
     })),
   };
 }

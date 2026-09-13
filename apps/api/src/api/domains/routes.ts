@@ -45,6 +45,7 @@ import {
 } from '../../services/domains/resolveDomainLeadAgent.js';
 import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
 import {
+  invitationAcceptPath,
   inviteDomainConnection,
   listDomainConnections,
   revokeDomainConnection,
@@ -1442,7 +1443,7 @@ router.post(
           expiresAt: result.invitation.expiresAt,
           /** Copyable redeem path — email delivery is not wired; clipboard is the honest path. */
           token: result.invitation.token,
-          acceptPath: `/invite/accept?token=${encodeURIComponent(result.invitation.token)}`,
+          acceptPath: invitationAcceptPath(result.invitation.token),
         },
       });
     } catch (error) {
@@ -2205,20 +2206,42 @@ async function simulateCustomDomainVerification(customDomain: string): Promise<b
 // GET /api/domains/:id/members - list members (domain admin only)
 router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {
+    const domain = await prisma.domain.findUnique({
+      where: { id: req.params.id },
+      select: {
+        ownerId: true,
+        users: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
     const permissions = await prisma.domainPermission.findMany({
       where: { domainId: req.params.id },
       include: { users_DomainPermission_userIdTousers: { select: { id: true, name: true, email: true } } },
     });
 
-    const members = permissions.map((p) => ({
-      userId: p.userId,
-      name: p.users_DomainPermission_userIdTousers?.name || p.users_DomainPermission_userIdTousers?.email || p.userId,
-      role: p.role,
-      permissions: p.permissions,
-      expiresAt: p.expiresAt,
-    }));
+    const members = permissions
+      .filter((p) => p.userId !== domain.ownerId)
+      .map((p) => ({
+        userId: p.userId,
+        name: p.users_DomainPermission_userIdTousers?.name || p.users_DomainPermission_userIdTousers?.email || p.userId,
+        email: p.users_DomainPermission_userIdTousers?.email ?? null,
+        role: p.role,
+        permissions: p.permissions,
+        expiresAt: p.expiresAt,
+      }));
 
-    return res.json({ members });
+    const ownerUser = domain.users;
+    const owner = {
+      userId: domain.ownerId,
+      name: ownerUser?.name || ownerUser?.email || domain.ownerId,
+      email: ownerUser?.email ?? null,
+    };
+
+    return res.json({ owner, members });
   } catch (error) {
     console.error('[DomainRoutes] list members error', error);
     return res.status(500).json({ error: 'Internal server error' });

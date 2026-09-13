@@ -72,7 +72,7 @@ export function ChronicleSaveBar({
         )}
         {saveStatus === "idle" && !isDirty && (
           <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            Ready to save
+            {saveMessage ?? "Ready to save"}
           </p>
         )}
       </div>

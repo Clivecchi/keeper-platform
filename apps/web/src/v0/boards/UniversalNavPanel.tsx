@@ -149,6 +149,8 @@ export interface UniversalNavPanelProps {
   // Collapse state — controlled by the Board
   collapsed?: boolean
   onToggleCollapsed?: () => void
+  /** Adaptive mobile drawer — Dialogs first; hide desktop-only chrome. */
+  mobileSimplified?: boolean
 
   // Version counters — increment to trigger re-fetch of that section
   dialogListVersion?: number
@@ -351,6 +353,7 @@ export function UniversalNavPanel({
   onMomentSelect,
   collapsed = false,
   onToggleCollapsed,
+  mobileSimplified = false,
   dialogListVersion = 0,
   journeyListVersion = 0,
   keeperListVersion = 0,
@@ -1357,7 +1360,7 @@ export function UniversalNavPanel({
               items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
               onTitleClick={() => toggleExpanded("dialogs")}
               onAdd={user && domainId ? handleDialogCreate : undefined}
-              onImport={user && domainId ? handleDialogIngest : undefined}
+              onImport={!mobileSimplified && user && domainId ? handleDialogIngest : undefined}
               onImportLabel="Bring in writing"
             />
             {dialogError && (
@@ -1449,6 +1452,7 @@ export function UniversalNavPanel({
           </>
         )
       case "boards":
+        if (mobileSimplified) return null
         if (def.boardId !== "domain" && def.boardId !== "realm") return null
         return (
           <SidebarCard
@@ -1682,6 +1686,7 @@ export function UniversalNavPanel({
           />
         )
       case "stage":
+        if (mobileSimplified) return null
         return (
           <SidebarCard
             className="keeper-sidebar-card"
@@ -1796,7 +1801,7 @@ export function UniversalNavPanel({
           color: "hsl(var(--theme-ink-primary))",
         }}
       >
-        {/* Domain name header — quiet anchor, not interactive */}
+        {!mobileSimplified ? (
         <div
           className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
         >
@@ -1831,6 +1836,21 @@ export function UniversalNavPanel({
             </button>
           </div>
         </div>
+        ) : (
+        <div className="shrink-0 flex items-center justify-end px-3 pt-2 pb-1">
+          {domainId ? (
+            <button
+              type="button"
+              onClick={() => setCrossNavOpen(true)}
+              className="rounded-md px-2 py-1 text-[12px] font-medium"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              aria-label="Search Dialogs"
+            >
+              Search
+            </button>
+          ) : null}
+        </div>
+        )}
 
         <div
           className="keeper-nav-pane-tabs shrink-0"
@@ -1848,7 +1868,13 @@ export function UniversalNavPanel({
                 className="keeper-nav-pane-tab"
                 onClick={() => setNavPane(pane)}
               >
-                {NAV_PANE_LABELS[pane]}
+                {mobileSimplified
+                  ? pane === "universal"
+                    ? "Dialogs"
+                    : pane === "keepers"
+                      ? "Keepers"
+                      : "More"
+                  : NAV_PANE_LABELS[pane]}
               </button>
             )
           })}

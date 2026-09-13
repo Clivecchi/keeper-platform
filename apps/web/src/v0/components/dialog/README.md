@@ -76,6 +76,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-09-12: **Mobile chat is docked** — Adaptive `mobile-staged` uses `composerSize="mobile-docked"`: composer stays pinned, send stays visible, Cast/footer/scroll-rail stay off the phone surface.
 - 2026-09-02: **Keeping Choice** — `KeeperDialogFrame` forwards exercise to `DialogueMessageList`. Click is a Composer send, not a card Accept.
 - 2026-08-30: **Stage screen + strip** — presentation fills Dialog Space; filmstrip sits just above Composer. Objects select from Reach / Chronicle, not the screen.
 - 2026-08-30: **Stage story is Frames** — Workspace-on-Stage is presentation (Frames + Config), not discussion Points. Now stays the first glimpse.

@@ -122,6 +122,10 @@ function slimAgentContext(raw: unknown): Record<string, unknown> | undefined {
     'workspaceSurface',
     'dialogStyle',
     'keepingChoice',
+    'boardId',
+    'dialogCueing',
+    'agentTraining',
+    'agentPerformanceInspection',
   ] as const) {
     if (ctx[key] !== undefined) out[key] = ctx[key];
   }

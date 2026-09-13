@@ -6,6 +6,7 @@
  * moment threads, keeper context — without duplicating bespoke view logic.
  */
 
+import { isLeadAgentRole } from "@keeper/shared"
 import { apiFetch } from "../../lib/api"
 import {
   getCachedDomainBySlug,
@@ -589,8 +590,7 @@ async function enrichKeeper(
 
 function isLeadAgentRecord(record: Record<string, unknown>): boolean {
   const agentRole = typeof record.role === "string" ? record.role : ""
-  const slug = typeof record.slug === "string" ? record.slug : ""
-  return agentRole === "Lead" || slug === "kip"
+  return isLeadAgentRole(agentRole)
 }
 
 async function enrichAgent(
@@ -805,6 +805,12 @@ async function enrichDomain(
     }
     if (typeof ideBuild.environment === "string") {
       record.environment = ideBuild.environment
+    }
+    if (typeof domain.leadAgentName === "string") {
+      record.leadAgentName = domain.leadAgentName
+    }
+    if (typeof domain.leadAgentSlug === "string") {
+      record.leadAgentSlug = domain.leadAgentSlug
     }
   }
 

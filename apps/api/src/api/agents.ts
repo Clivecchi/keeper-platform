@@ -10,7 +10,12 @@ import { activityRouter } from './agents/activity.js';
 import { tasksRouter } from './agents/tasks.js';
 import eventsRouter from './agents/events.js';
 import { z } from 'zod';
-import { mergePresenceSchemaAvatar } from '@keeper/shared';
+import {
+  deriveProvenanceFromLegacyMetadata,
+  isLeadAgentRole,
+  mergePresenceSchemaAvatar,
+  parseAgentPerformanceProvenance,
+} from '@keeper/shared';
 import { prisma, updateKipAgent, type PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { KipAgentService } from './kip/agents.js';
@@ -103,8 +108,8 @@ function existingConfigRecord(config: unknown): Record<string, unknown> {
   return {};
 }
 
-function isLeadAgentRecord(agent: { role?: string | null; slug?: string | null }): boolean {
-  return agent.role === 'Lead' || agent.slug === 'kip';
+function isLeadAgentRecord(agent: { role?: string | null }): boolean {
+  return isLeadAgentRole(agent.role);
 }
 
 function mergeAgentConfigFields(
@@ -516,6 +521,157 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
 });
 
 /**
+ * GET /api/agents/:id/performances?dialogId=
+ * Lead messages for a Dialog — Agent Board performance inspection.
+ */
+router.get('/:id/performances', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as { user?: { id?: string } }).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!UUID_V4.test(id)) {
+      return res.status(400).json({ error: 'Invalid agent id' });
+    }
+
+    const dialogId =
+      typeof req.query.dialogId === 'string' && req.query.dialogId.trim()
+        ? req.query.dialogId.trim()
+        : null;
+    if (!dialogId) {
+      return res.status(400).json({ error: 'dialogId is required' });
+    }
+
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id },
+      select: { id: true, slug: true, name: true, role: true, model: true, model_provider: true },
+    });
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const dialog = await prisma.dialog.findUnique({
+      where: { id: dialogId },
+      select: { id: true, title: true, domain_id: true },
+    });
+    if (!dialog) {
+      return res.status(404).json({ error: 'Dialog not found' });
+    }
+
+    const domain = dialog.domain_id
+      ? await prisma.domain.findUnique({
+          where: { id: dialog.domain_id },
+          select: { id: true, name: true },
+        })
+      : null;
+
+    const messages = await prisma.kip_messages.findMany({
+      where: {
+        sender: 'agent',
+        kip_sessions: {
+          agent_id: id,
+          dialog_id: dialogId,
+          is_archived: false,
+        },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        content: true,
+        metadata: true,
+        created_at: true,
+        session_id: true,
+      },
+    });
+
+    const performances = messages.map((message) => {
+      const metadata =
+        message.metadata && typeof message.metadata === 'object' && !Array.isArray(message.metadata)
+          ? (message.metadata as Record<string, unknown>)
+          : {};
+      const persisted = parseAgentPerformanceProvenance(metadata.performanceProvenance);
+      const provenance =
+        persisted
+        ?? deriveProvenanceFromLegacyMetadata({
+          agentId: agent.id,
+          agentSlug: agent.slug,
+          agentName: agent.name,
+          configuredRole: agent.role,
+          dialogId: dialog.id,
+          dialogTitle: dialog.title,
+          domainId: domain?.id ?? dialog.domain_id,
+          domainName: domain?.name ?? null,
+          model: agent.model,
+          modelProvider: agent.model_provider,
+          recordedAt: message.created_at.toISOString(),
+          messageId: message.id,
+          metadata: {
+            orchestration:
+              metadata.orchestration && typeof metadata.orchestration === 'object'
+                ? (metadata.orchestration as {
+                    mechanism?: string;
+                    agentSlug?: string;
+                    model?: string;
+                    modelProvider?: string;
+                    dialogId?: string | null;
+                    castConsultSlugs?: string[];
+                  })
+                : null,
+            castVoices: Array.isArray(metadata.castVoices)
+              ? (metadata.castVoices as Array<{
+                  slug?: string;
+                  attributedTo?: string;
+                  status?: string;
+                }>)
+              : undefined,
+            card:
+              metadata.card && typeof metadata.card === 'object'
+                ? (metadata.card as { type?: string })
+                : null,
+            resolvedMeaning: metadata.resolvedMeaning,
+          },
+        });
+
+      const preview = (message.content || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+      return {
+        messageId: message.id,
+        sessionId: message.session_id,
+        createdAt: message.created_at.toISOString(),
+        preview,
+        provenance: {
+          ...provenance,
+          messageId: message.id,
+        },
+        orchestration: metadata.orchestration ?? null,
+        card: metadata.card ?? null,
+        resolvedMeaning: metadata.resolvedMeaning ?? null,
+        castVoices: metadata.castVoices ?? [],
+      };
+    });
+
+    return res.json({
+      agent: {
+        id: agent.id,
+        slug: agent.slug,
+        name: agent.name,
+        role: agent.role,
+      },
+      dialog: {
+        id: dialog.id,
+        title: dialog.title,
+        domainId: dialog.domain_id,
+      },
+      performances,
+    });
+  } catch (error) {
+    console.error('Error fetching agent performances:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * PATCH /api/agents/:id - Update agent fields (Chronicle presence saves)
  * Uses updateKipAgent — same path as PUT /api/kip/agents.
  */
@@ -638,7 +794,7 @@ router.get('/:id/composed-prompt', authMiddlewareCompat, async (req: Request, re
       return res.status(404).json({ error: 'Agent not found' });
     }
 
-    const isLead = agent.role === 'Lead' || agent.slug === 'kip';
+    const isLead = isLeadAgentRole(agent.role);
     if (!isLead) {
       return res.status(404).json({ error: 'Composed prompt not available for this agent' });
     }

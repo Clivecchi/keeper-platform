@@ -44,6 +44,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-09-12: **Domain People** — `GET /:id/members` returns `owner` from `Domain.ownerId` (not a permission row) plus members excluding the owner. `GET /:id/connections` pending invitations include `acceptPath` for copyable links. Email is not sent.
 - 2026-08-31: **Stage theme** — `PATCH /:domainId/keeper-stage` accepts `theme` (inherit or imagery palette). Omit keeps the current look. Not a Theme table.
 - 2026-08-22: **Review & Reorganize Apply** — `POST …/dialogs/:id/document/reorganize/apply` writes the stored Lead proposal. `…/dismiss` drops it. The accepted Document is unchanged until Apply.
 - 2026-08-22: **Keeper Stage** — `GET/PATCH /:domainId/keeper-stage` persists composition on `Domain.settings.keeperStage` (references, not clones).

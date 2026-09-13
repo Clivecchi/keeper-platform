@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { Prisma } from '@prisma/client';
 import {
+  buildAgentPerformanceProvenance,
   buildKeepingChoiceExercisePrompt,
   extractKeeperAdviceCardFromRunResult,
   formatKeeperAdviceCardForPrompt,
@@ -80,6 +81,7 @@ import {
   buildCompactEnvironmentForPrompt,
   measureEnvironmentPromptSize,
 } from '../../services/kip/buildCompactEnvironmentForPrompt.js';
+import { collectAgentBoardContextPrompts } from '../../services/kip/buildAgentBoardContextPrompt.js';
 import {
   createAgentRunTimings,
   recordModelCall,
@@ -5874,6 +5876,9 @@ export class KipAgentService {
       if (rendrDesignPrompt) {
         systemParts.push(rendrDesignPrompt);
       }
+      for (const boardPrompt of collectAgentBoardContextPrompts(agentContextRecord)) {
+        systemParts.push(boardPrompt);
+      }
 
       // Domain contract (matches callAIModel injection)
       if (options.domainId) {
@@ -6319,6 +6324,12 @@ export class KipAgentService {
           messages.push({
             role: 'system',
             content: rendrDesignPrompt,
+          });
+        }
+        for (const boardPrompt of collectAgentBoardContextPrompts(agentContextRecord)) {
+          messages.push({
+            role: 'system',
+            content: boardPrompt,
           });
         }
 
@@ -8746,6 +8757,53 @@ export class KipAgentService {
                 consultActionCount,
               });
             }
+            const agentCtxRecord = (
+              (options?.agentContext as Record<string, unknown> | undefined)
+              ?? ((envForTurn as { agentContext?: Record<string, unknown> } | null | undefined)?.agentContext)
+              ?? {}
+            ) as Record<string, unknown>;
+            const homeDomain = Array.isArray(envForTurn?.domains)
+              ? envForTurn.domains.find((row) => row.role === 'home') ?? envForTurn.domains[0]
+              : undefined;
+            const performanceProvenance = buildAgentPerformanceProvenance({
+              source: 'recorded_on_turn',
+              agentId,
+              agentSlug: agent.slug,
+              agentName: agent.name,
+              configuredRole: agent.role,
+              dialogId: dialogDocument?.dialogId ?? options?.dialogId ?? null,
+              dialogTitle: dialogDocument?.title ?? null,
+              domainId: options?.domainId ?? homeDomain?.domainId ?? null,
+              domainName: homeDomain?.domainName ?? null,
+              boardId: typeof agentCtxRecord.boardId === 'string' ? agentCtxRecord.boardId : null,
+              cueingMode:
+                typeof agentCtxRecord.dialogCueing === 'string' ? agentCtxRecord.dialogCueing : null,
+              workspaceSurface: workspaceSurfaceFromEnvironment(options?.environment) ?? null,
+              model: agent.model,
+              modelProvider: agent.model_provider,
+              orchestrationMechanism: resolvedMechanism,
+              cast:
+                castVoicesForPersist?.map((voice) => ({
+                  slug: voice.slug,
+                  attributedTo: voice.attributedTo,
+                  status: voice.status,
+                })) ?? [],
+              cardType: structured.card && typeof structured.card.type === 'string'
+                ? structured.card.type
+                : null,
+              resolvedMeaningPresent: Boolean(persistedResolvedMeaning),
+              leadJudgmentActive: isLeadRole(agent.role),
+              castHonestyActive: Boolean(envForTurn?.domainAgents?.length),
+              voicePromptActive: Boolean(leadVoicePrompt),
+              domainLensActive: Boolean(!leadVoicePrompt && lens?.systemPrompt),
+              domainContractActive: Boolean(options?.domainId),
+              cardRenderingActive: true,
+              actionPolicyActive: true,
+              resolvedMeaningContractActive:
+                workspaceSurfaceFromEnvironment(options?.environment) === 'stage'
+                && Boolean(options?.castConsultations?.consultations?.length),
+            });
+
             const savedAgent = await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
@@ -8758,6 +8816,7 @@ export class KipAgentService {
                 mechanism: resolvedMechanism,
                 delegateConsultCount: consultActionCount,
               },
+              performanceProvenance,
               ...(structured.card ? { card: structured.card } : {}),
               ...(chronicleChip ? { chronicleChip } : {}),
               ...(castVoicesForPersist?.length ? { castVoices: castVoicesForPersist } : {}),

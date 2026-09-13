@@ -4,13 +4,22 @@ import * as React from "react"
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { ROLE_OPTIONS } from "@keeper/shared"
 import { apiFetch } from "../../../lib/api"
+import { InviteCollaboratorDialog } from "../../boards/components/InviteCollaboratorDialog"
+import {
+  formatPeopleDate,
+  invitationAcceptUrl,
+  parseDomainPeoplePayloads,
+  peopleMutationFeedback,
+  resolveRoleInfo,
+  type DomainMemberRow,
+  type DomainOwnerRow,
+  type PendingInvitationRow,
+} from "./domainPeople"
 
-export interface DomainMemberRow {
-  userId: string
-  name: string
-  role: string
-  permissions?: string[]
-  expiresAt?: string
+export type { DomainMemberRow, DomainOwnerRow, PendingInvitationRow }
+
+export interface DomainPeopleSectionProps {
+  domainId: string
 }
 
 interface SearchUserRow {
@@ -18,10 +27,6 @@ interface SearchUserRow {
   name: string
   email: string
   createdAt?: string
-}
-
-export interface DomainPeopleSectionProps {
-  domainId: string
 }
 
 const sectionLabelStyle: React.CSSProperties = {
@@ -45,37 +50,74 @@ const rowStyle: React.CSSProperties = {
   background: "hsl(var(--theme-surface-paper) / 0.25)",
 }
 
+const listScrollStyle: React.CSSProperties = {
+  maxHeight: "16rem",
+  overflowY: "auto",
+  overscrollBehavior: "contain",
+}
+
 export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
+  const [owner, setOwner] = React.useState<DomainOwnerRow | null>(null)
   const [members, setMembers] = React.useState<DomainMemberRow[]>([])
+  const [pendingInvitations, setPendingInvitations] = React.useState<PendingInvitationRow[]>([])
   const [loading, setLoading] = React.useState(true)
   const [showAdd, setShowAdd] = React.useState(false)
+  const [inviteOpen, setInviteOpen] = React.useState(false)
   const [userSearch, setUserSearch] = React.useState("")
   const [searchResults, setSearchResults] = React.useState<SearchUserRow[]>([])
   const [selectedUser, setSelectedUser] = React.useState<SearchUserRow | null>(null)
   const [newMemberRole, setNewMemberRole] = React.useState("user")
   const [busyUserId, setBusyUserId] = React.useState<string | null>(null)
+  const [copyingInviteId, setCopyingInviteId] = React.useState<string | null>(null)
   const [adding, setAdding] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [success, setSuccess] = React.useState<string | null>(null)
 
-  const loadMembers = React.useCallback(async () => {
+  const resetLocalForms = React.useCallback(() => {
+    setShowAdd(false)
+    setInviteOpen(false)
+    setUserSearch("")
+    setSearchResults([])
+    setSelectedUser(null)
+    setNewMemberRole("user")
+    setBusyUserId(null)
+    setCopyingInviteId(null)
+  }, [])
+
+  const loadPeople = React.useCallback(async () => {
     setLoading(true)
     try {
-      const response = (await apiFetch(`/api/domains/${domainId}/members`)) as {
-        members?: DomainMemberRow[]
-      }
-      setMembers(Array.isArray(response.members) ? response.members : [])
+      const [membersResponse, connectionsResponse] = await Promise.all([
+        apiFetch(`/api/domains/${domainId}/members`) as Promise<{
+          owner?: DomainOwnerRow | null
+          members?: DomainMemberRow[]
+        }>,
+        apiFetch(`/api/domains/${domainId}/connections`) as Promise<{
+          pendingInvitations?: PendingInvitationRow[]
+        }>,
+      ])
+
+      const parsed = parseDomainPeoplePayloads(membersResponse, connectionsResponse)
+      setOwner(parsed.owner)
+      setMembers(parsed.members)
+      setPendingInvitations(parsed.pendingInvitations)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load members")
+      setError(err instanceof Error ? err.message : "Failed to load people")
+      setOwner(null)
+      setMembers([])
+      setPendingInvitations([])
     } finally {
       setLoading(false)
     }
   }, [domainId])
 
   React.useEffect(() => {
-    void loadMembers()
-  }, [loadMembers])
+    resetLocalForms()
+    setError(null)
+    setSuccess(null)
+    void loadPeople()
+  }, [domainId, loadPeople, resetLocalForms])
 
   React.useEffect(() => {
     if (!showAdd) return
@@ -107,6 +149,10 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
 
   const handleAddMember = async () => {
     if (!selectedUser) return
+    if (owner?.userId === selectedUser.id) {
+      setError("The owner already belongs to this domain.")
+      return
+    }
     setAdding(true)
     setError(null)
     try {
@@ -119,10 +165,10 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
       setSearchResults([])
       setSelectedUser(null)
       setNewMemberRole("user")
-      setSuccess("Member added")
-      await loadMembers()
+      setSuccess(peopleMutationFeedback("member-added").message)
+      await loadPeople()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add member")
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
     } finally {
       setAdding(false)
     }
@@ -136,12 +182,10 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
         method: "PATCH",
         body: JSON.stringify({ role }),
       })
-      setMembers((prev) =>
-        prev.map((member) => (member.userId === userId ? { ...member, role } : member)),
-      )
-      setSuccess("Role updated")
+      setSuccess(peopleMutationFeedback("role-updated").message)
+      await loadPeople()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update role")
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
     } finally {
       setBusyUserId(null)
     }
@@ -155,12 +199,30 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
       await apiFetch(`/api/domains/${domainId}/members/${userId}`, {
         method: "DELETE",
       })
-      setMembers((prev) => prev.filter((member) => member.userId !== userId))
-      setSuccess("Member removed")
+      setSuccess(peopleMutationFeedback("member-removed").message)
+      await loadPeople()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove member")
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
     } finally {
       setBusyUserId(null)
+    }
+  }
+
+  const handleCopyAcceptLink = async (invitation: PendingInvitationRow) => {
+    const acceptUrl = invitationAcceptUrl(invitation.acceptPath)
+    if (!acceptUrl) {
+      setError("No acceptance link is available for this invitation.")
+      return
+    }
+    setCopyingInviteId(invitation.id)
+    setError(null)
+    try {
+      await navigator.clipboard.writeText(acceptUrl)
+      setSuccess("Acceptance link copied")
+    } catch {
+      setError("Could not copy the link. Select it from the invitation details.")
+    } finally {
+      setCopyingInviteId(null)
     }
   }
 
@@ -169,23 +231,40 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
       className="mt-6 mb-4 pt-5 border-t"
       style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3">
         <p
           className="text-[11px] font-semibold uppercase tracking-widest"
           style={sectionLabelStyle}
         >
           People
         </p>
-        <button
-          type="button"
-          onClick={() => setShowAdd((open) => !open)}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
-          style={actionButtonStyle}
-        >
-          {showAdd ? <XMarkIcon className="w-3.5 h-3.5" /> : <PlusIcon className="w-3.5 h-3.5" />}
-          {showAdd ? "Cancel" : "Add member"}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setInviteOpen(true)
+              setShowAdd(false)
+            }}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
+            style={actionButtonStyle}
+          >
+            Invite
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAdd((open) => !open)}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
+            style={actionButtonStyle}
+          >
+            {showAdd ? <XMarkIcon className="w-3.5 h-3.5" /> : <PlusIcon className="w-3.5 h-3.5" />}
+            {showAdd ? "Cancel" : "Add member"}
+          </button>
+        </div>
       </div>
+
+      <p className="text-[11px] mb-3" style={sectionLabelStyle}>
+        Owner, members, and pending invitations are different relationships.
+      </p>
 
       {showAdd ? (
         <div className="rounded-md p-3 mb-3 space-y-3" style={rowStyle}>
@@ -242,11 +321,14 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
                 className="rounded-md px-2 py-1.5 text-xs"
                 style={inputStyle}
               >
-                {ROLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                {ROLE_OPTIONS.map((option) => {
+                  const info = resolveRoleInfo(option.value)
+                  return (
+                    <option key={option.value} value={option.value}>
+                      {info.label} — {info.description}
+                    </option>
+                  )
+                })}
               </select>
               <button
                 type="button"
@@ -264,55 +346,154 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
 
       {loading ? (
         <p className="text-sm" style={sectionLabelStyle}>
-          Loading members…
-        </p>
-      ) : members.length === 0 ? (
-        <p className="text-sm" style={sectionLabelStyle}>
-          No members yet. Add someone who should access this domain.
+          Loading people…
         </p>
       ) : (
-        <div className="space-y-2">
-          {members.map((member) => (
-            <div
-              key={member.userId}
-              className="flex flex-col gap-2 rounded-md px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-              style={rowStyle}
+        <div className="space-y-4">
+          <div>
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+              style={sectionLabelStyle}
             >
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{member.name}</p>
-                <p className="text-[11px] capitalize" style={sectionLabelStyle}>
-                  {member.role}
+              Owner
+            </p>
+            {owner ? (
+              <div className="rounded-md px-3 py-2" style={rowStyle}>
+                <p className="text-sm font-medium truncate">{owner.name}</p>
+                {owner.email ? (
+                  <p className="text-[11px] truncate" style={sectionLabelStyle}>
+                    {owner.email}
+                  </p>
+                ) : null}
+                <p className="text-[11px] mt-1" style={sectionLabelStyle}>
+                  Owner — domain-level ownership, not a member role.
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <select
-                  value={member.role}
-                  disabled={busyUserId === member.userId}
-                  onChange={(e) =>
-                    void handleUpdateMemberRole(member.userId, e.target.value)
-                  }
-                  className="rounded-md px-2 py-1 text-xs disabled:opacity-50"
-                  style={inputStyle}
-                >
-                  {ROLE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => void handleRemoveMember(member.userId)}
-                  disabled={busyUserId === member.userId}
-                  className="rounded-md p-1 disabled:opacity-50"
-                  style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-                  aria-label={`Remove ${member.name}`}
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+            ) : (
+              <p className="text-sm" style={sectionLabelStyle}>
+                Owner could not be loaded.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+              style={sectionLabelStyle}
+            >
+              Members
+            </p>
+            {members.length === 0 ? (
+              <p className="text-sm" style={sectionLabelStyle}>
+                No members yet. Add someone who already has a Keeper account, or invite by
+                email.
+              </p>
+            ) : (
+              <div className="space-y-2" style={listScrollStyle}>
+                {members.map((member) => {
+                  const roleInfo = resolveRoleInfo(member.role)
+                  return (
+                    <div
+                      key={member.userId}
+                      className="flex flex-col gap-2 rounded-md px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                      style={rowStyle}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{member.name}</p>
+                        <p className="text-[11px]" style={sectionLabelStyle}>
+                          {roleInfo.label} — {roleInfo.description}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <select
+                          value={member.role}
+                          disabled={busyUserId === member.userId}
+                          onChange={(e) =>
+                            void handleUpdateMemberRole(member.userId, e.target.value)
+                          }
+                          className="rounded-md px-2 py-1 text-xs disabled:opacity-50"
+                          style={inputStyle}
+                          aria-label={`Role for ${member.name}`}
+                        >
+                          {ROLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => void handleRemoveMember(member.userId)}
+                          disabled={busyUserId === member.userId}
+                          className="rounded-md p-1 disabled:opacity-50"
+                          style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+                          aria-label={`Remove ${member.name}`}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+
+          <div>
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+              style={sectionLabelStyle}
+            >
+              Pending invitations
+            </p>
+            {pendingInvitations.length === 0 ? (
+              <p className="text-sm" style={sectionLabelStyle}>
+                No pending invitations. Invite creates a copyable acceptance link — Keeper
+                does not send email yet.
+              </p>
+            ) : (
+              <div className="space-y-2" style={listScrollStyle}>
+                {pendingInvitations.map((invitation) => {
+                  const roleInfo = resolveRoleInfo(invitation.role)
+                  const created = formatPeopleDate(invitation.createdAt)
+                  const expires = formatPeopleDate(invitation.expiresAt)
+                  const acceptUrl = invitationAcceptUrl(invitation.acceptPath)
+                  return (
+                    <div key={invitation.id} className="rounded-md px-3 py-2 space-y-1.5" style={rowStyle}>
+                      <p className="text-sm font-medium truncate">{invitation.email}</p>
+                      <p className="text-[11px]" style={sectionLabelStyle}>
+                        {roleInfo.label} — pending
+                        {created ? ` · invited ${created}` : ""}
+                        {expires ? ` · expires ${expires}` : ""}
+                      </p>
+                      {acceptUrl ? (
+                        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+                          <code
+                            className="block min-w-0 flex-1 break-all rounded px-2 py-1 text-[11px]"
+                            style={{
+                              ...inputStyle,
+                              background: "hsl(var(--theme-surface-paper) / 0.35)",
+                            }}
+                          >
+                            {acceptUrl}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyAcceptLink(invitation)}
+                            disabled={copyingInviteId === invitation.id}
+                            className="rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 shrink-0"
+                            style={actionButtonStyle}
+                          >
+                            {copyingInviteId === invitation.id ? "Copying…" : "Copy link"}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -332,6 +513,16 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
           {success}
         </p>
       ) : null}
+
+      <InviteCollaboratorDialog
+        domainId={domainId}
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onSettled={(outcome) => {
+          setSuccess(peopleMutationFeedback(outcome === "granted" ? "granted" : "invited").message)
+          void loadPeople()
+        }}
+      />
     </div>
   )
 }

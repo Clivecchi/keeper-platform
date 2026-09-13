@@ -41,6 +41,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-09-12 — Basic mobile chat and nav
+- Adaptive mobile Dialog is a standard chat: docked composer, visual-viewport height, Stage/Reach/Cast chrome off this surface.
+- Nav drawer is Dialogs · Keepers · More. Selecting a Dialog still closes the drawer.
+
+### 2026-09-12 — Agent Board Performance Inspection V0
+- Agent Board selection keeps the Agent as Chronicle subject; a Dialog is performance context (`agentBoardSelection.ts`).
+- Composer receives `agentPerformanceInspection` plus Talking in / Working on when both Agent and Dialog are selected.
+- Selecting a performance on Agent Board exits Training so Chronicle can show the inspection.
+
 ### 2026-09-02 — Keeping Choice click
 - `UniversalConversation` exercises a Keeping Choice through existing `sendMessage` (`displayContent` = label). Current Talking in / Working on win.
 

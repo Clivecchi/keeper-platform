@@ -142,8 +142,8 @@ export interface AgentComposerProps {
   submitOnEnter?: boolean
   /** Notifies parent when the composer textarea gains or loses focus. */
   onInputFocusChange?: (focused: boolean) => void
-  /** Expands composer input for mobile staged layout. */
-  composerSize?: "default" | "mobile-expanded" | "mobile-compact"
+  /** Mobile adaptive layout. `mobile-docked` is the reliable chat bar. */
+  composerSize?: "default" | "mobile-expanded" | "mobile-compact" | "mobile-docked"
   /** Override default placeholder text. */
   inputPlaceholder?: string
   feedbackSlot?: React.ReactNode
@@ -490,10 +490,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       return
     }
     ta.style.height = "auto"
-    const lineHeight = 20
-    const minRows = composerSize === "mobile-expanded" ? 10 : MIN_ROWS
+    const lineHeight = composerSize === "mobile-docked" ? 22 : 20
+    const minRows = composerSize === "mobile-expanded" ? 10 : composerSize === "mobile-docked" ? 1 : MIN_ROWS
+    const maxRows = composerSize === "mobile-docked" ? 4 : MAX_ROWS
     const newHeight = Math.min(
-      MAX_ROWS * lineHeight,
+      maxRows * lineHeight,
       Math.max(minRows * lineHeight, ta.scrollHeight),
     )
     ta.style.height = `${newHeight}px`
@@ -543,7 +544,112 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       ? `${agentName} is responding…`
       : `Message ${agentName}`
 
-  // Idle / thinking: pinned chat bubble. Tap expands to the full composer (~2/3 screen).
+  if (composerSize === "mobile-docked") {
+    return (
+      <div className="keeper-composer-docked w-full">
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="keeper-composer-docked-form"
+        >
+          {showSupportingDocs ? (
+            <div
+              className="keeper-composer-supporting-docs mb-2 px-1"
+              aria-label="Supporting documents for this message"
+            >
+              {pastedSupporting.map((doc) => (
+                <SupportingDocumentTile key={doc.id} document={doc} onRemove={removeAttachment} />
+              ))}
+            </div>
+          ) : null}
+          <div className="keeper-composer-docked-row">
+            {stageFileUpload ? (
+              <>
+                <input
+                  type="file"
+                  id={fileInputId}
+                  className="hidden"
+                  accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
+                  onChange={(event) => void handleFileChange(event)}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById(fileInputId)?.click()}
+                  disabled={isSending || disabled || isUploading}
+                  className="keeper-composer-docked-icon"
+                  title="Attach file"
+                  aria-label="Attach file"
+                >
+                  {isUploading ? (
+                    <span className="text-[10px]">…</span>
+                  ) : (
+                    <PaperClipIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </>
+            ) : null}
+            {showTalkMic ? (
+              <button
+                type="button"
+                onClick={handleTalkClick}
+                disabled={disabled || isSending || talkState === "transcribing"}
+                className={[
+                  "keeper-composer-docked-icon",
+                  isTalkListening ? "keeper-composer-talk--active" : "",
+                ].join(" ")}
+                title={talkMicTitle}
+                aria-label={talkMicTitle}
+                aria-pressed={isTalkListening}
+              >
+                <MicrophoneIcon className="h-5 w-5" />
+              </button>
+            ) : null}
+            <textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={(e) => onInputChange(e.target.value)}
+              onPaste={handlePaste}
+              onFocus={() => onInputFocusChange?.(true)}
+              onBlur={() => onInputFocusChange?.(false)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={isSending || disabled}
+              rows={1}
+              enterKeyHint="send"
+              className="keeper-composer-input keeper-composer-docked-input"
+            />
+            <button
+              type="submit"
+              disabled={!canSend}
+              className="keeper-composer-send keeper-composer-docked-send"
+              aria-label="Send"
+            >
+              {isSending ? (
+                <span className="text-[11px] font-medium">…</span>
+              ) : (
+                <PaperAirplaneIcon className="h-5 w-5" strokeWidth={2} />
+              )}
+            </button>
+          </div>
+        </form>
+        {talkMode && (isTalkBusy || talkError) ? (
+          <div
+            className="mt-1 px-1 text-xs"
+            style={{ color: talkError ? "hsl(0 65% 45%)" : SURFACE.inkSecondary }}
+            aria-live="polite"
+          >
+            {talkError
+              ? talkError
+              : talkState === "listening"
+                ? "Listening… tap mic when done, then send."
+                : "Transcribing…"}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  // Legacy staged bubble — unused on adaptive Universal Board (docked chat bar).
   if (composerSize === "mobile-compact") {
     return (
       <div className="flex w-full justify-end">

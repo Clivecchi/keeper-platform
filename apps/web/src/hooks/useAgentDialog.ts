@@ -13,6 +13,7 @@ import {
   applyKeepingChoiceSelection,
   canExerciseKeepingChoice,
   extractKeepingChoicesFromRunResult,
+  parseAgentPerformanceProvenance,
   parseGlossThreads,
   parseKeeperAdviceCard,
   parseKeepingChoiceExercise,
@@ -156,6 +157,11 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const keepingChoices = parseKeepingChoiceRecords(meta?.keepingChoices)
   const resolvedMeaning = parseResolvedMeaning(meta?.resolvedMeaning)
   const stageExpression = parseStageExpressionStamp(meta?.stageExpression)
+  const orchestration =
+    meta?.orchestration && typeof meta.orchestration === "object" && !Array.isArray(meta.orchestration)
+      ? (meta.orchestration as Record<string, unknown>)
+      : undefined
+  const performanceProvenance = parseAgentPerformanceProvenance(meta?.performanceProvenance)
   const chronicleChip =
     meta?.chronicleChip && typeof meta.chronicleChip === "object" && !Array.isArray(meta.chronicleChip)
       ? (meta.chronicleChip as AgentDialogueMessage["chronicleChip"])
@@ -209,6 +215,8 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(keepingChoices.length ? { keepingChoices } : {}),
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
     ...(stageExpression ? { stageExpression } : {}),
+    ...(orchestration ? { orchestration } : {}),
+    ...(performanceProvenance ? { performanceProvenance } : {}),
     ...(chronicleChip ? { chronicleChip } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),

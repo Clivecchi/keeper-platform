@@ -75,6 +75,7 @@ import { LibraryItemWorkspaceOverlay } from "./components/LibraryItemWorkspaceOv
 import { BoardMobileNavDrawer } from "./components/BoardMobileNavDrawer"
 import { getCachedBoardNavData } from "./boardNavDataCache"
 import { PwaInstallPrompt } from "../../mobile/pwa"
+import { useVisualViewportHeight } from "../../mobile/hooks/useVisualViewportHeight"
 import { hasUnreadChronicle, markChronicleViewed } from "../presence/chronicleDocument/chronicleMobile"
 import { KeeperStageProvider } from "../composer/useKeeperStage"
 import "./board-mobile.css"
@@ -222,13 +223,12 @@ function UniversalBoardShell({
     dialogIngest,
     libraryScreenOpen,
     workspaceSurface,
-    composerReachOpen,
-    composerThemeOpen,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
   const isRealmHome = def.boardId === "realm" && shellMode === "home"
   const useMobilePanelLayout = usesAdaptiveMobileBoardLayout(def.boardId, isMobile)
+  useVisualViewportHeight(useMobilePanelLayout)
   const [navDrawerOpen, setNavDrawerOpen] = React.useState(false)
   const [chronicleOverlayOpen, setChronicleOverlayOpen] = React.useState(false)
 
@@ -310,16 +310,25 @@ function UniversalBoardShell({
   }, [libraryScreenOpen, useMobilePanelLayout, closeNavDrawer])
 
   React.useEffect(() => {
-    if (workspaceSurface === "stage" && useMobilePanelLayout) closeNavDrawer()
-  }, [workspaceSurface, useMobilePanelLayout, closeNavDrawer])
+    if (!useMobilePanelLayout) return
+    if (workspaceSurface === "stage") {
+      actions.leaveStageRoom()
+    }
+  }, [useMobilePanelLayout, workspaceSurface, actions])
 
   React.useEffect(() => {
-    if (composerReachOpen && useMobilePanelLayout) openChronicleOverlay()
-  }, [composerReachOpen, useMobilePanelLayout, openChronicleOverlay])
-
-  React.useEffect(() => {
-    if (composerThemeOpen && useMobilePanelLayout) openChronicleOverlay()
-  }, [composerThemeOpen, useMobilePanelLayout, openChronicleOverlay])
+    if (!useMobilePanelLayout) return
+    const html = document.documentElement
+    const body = document.body
+    const prevHtmlOverflow = html.style.overflow
+    const prevBodyOverflow = body.style.overflow
+    html.style.overflow = "hidden"
+    body.style.overflow = "hidden"
+    return () => {
+      html.style.overflow = prevHtmlOverflow
+      body.style.overflow = prevBodyOverflow
+    }
+  }, [useMobilePanelLayout])
 
   const handleGoHome = React.useCallback(() => {
     actions.clearSelection()
@@ -639,6 +648,7 @@ function UniversalBoardShell({
               }}
               collapsed={useMobilePanelLayout ? false : navCollapsed}
               onToggleCollapsed={onToggleNavCollapsed}
+              mobileSimplified={useMobilePanelLayout}
               dialogListVersion={effectiveDialogListVersion}
               journeyListVersion={effectiveJourneyListVersion}
               keeperListVersion={selection.keeperNavRevision}
@@ -811,7 +821,7 @@ export function UniversalBoard(props: UniversalBoardProps) {
     <UniversalBoardShell {...props} />
   )
   return (
-    <UniversalBoardProvider>
+    <UniversalBoardProvider boardId={props.def.boardId}>
       {isRealmHome ? <RealmArrivalProvider>{shellNode}</RealmArrivalProvider> : shellNode}
     </UniversalBoardProvider>
   )

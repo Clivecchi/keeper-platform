@@ -24,6 +24,8 @@ import { DomainPeopleSection } from "./DomainPeopleSection"
 export interface DomainConfigPresenceProps {
   domainId: string
   domainSlug: string
+  /** Read-only Domain lead from settings.primaryAgentId — not an editor. */
+  primaryAgentName?: string | null
   customDomain?: string | null
   customDomainVerified?: boolean
   onAddressesUpdated?: (patch: {
@@ -158,6 +160,7 @@ function ConfigFieldGroup({
 export function DomainConfigPresence({
   domainId,
   domainSlug,
+  primaryAgentName,
   customDomain,
   customDomainVerified,
   onAddressesUpdated,
@@ -249,6 +252,18 @@ export function DomainConfigPresence({
         placeholders={fieldPlaceholders}
         renderFieldEditor={renderFieldEditor}
       />
+
+      {primaryAgentName?.trim() ? (
+        <div className="mb-4">
+          <p className="keeper-presence-field-label mb-1.5">Primary Agent</p>
+          <p className="text-sm" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+            {primaryAgentName.trim()}
+          </p>
+          <p className="text-[11px] mt-1" style={sectionLabelStyle}>
+            Who primarily works with this Domain. Change the lead on Agent Board.
+          </p>
+        </div>
+      ) : null}
 
       <DomainAddressesSection
         domainId={domainId}

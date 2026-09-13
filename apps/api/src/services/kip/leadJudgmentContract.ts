@@ -9,8 +9,10 @@
  * They are not this contract.
  */
 
+import { isLeadAgentRole } from '@keeper/shared';
+
 export function isLeadRole(role: string | null | undefined): boolean {
-  return role?.trim().toLowerCase() === 'lead';
+  return isLeadAgentRole(role);
 }
 
 export function buildLeadJudgmentContractPrompt(): string {

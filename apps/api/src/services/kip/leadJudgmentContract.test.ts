@@ -10,6 +10,7 @@ describe('leadJudgmentContract', () => {
     expect(isLeadRole('lead')).toBe(true);
     expect(isLeadRole('System')).toBe(false);
     expect(isLeadRole('Coordinator')).toBe(false);
+    expect(isLeadRole('kip')).toBe(false);
   });
 
   it('defines Lead Judgment without naming Kip or a specific scene', () => {

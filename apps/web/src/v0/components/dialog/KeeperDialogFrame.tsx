@@ -397,11 +397,10 @@ export function KeeperDialogFrame({
   const domainBannerCompact =
     isMobile && !!bannerContext?.livePulse && !hideDomainIdentityBanner
   const showDomainBannerDetails = !domainBannerCompact || bannerExpanded
-  /** Response stage reclaims chrome — cast strip returns when composing. */
+  /** Adaptive mobile keeps Dialog as chat — Cast roster stays off this surface. */
   const hideCastHeaderOnMobileResponse =
     isMobile
     && dialogLayout === "mobile-staged"
-    && mobileDialogStage === "response"
   const toggleDebugPanel = React.useCallback(() => {
     setDebugPanelOpen((open) => !open)
   }, [])
@@ -431,13 +430,17 @@ export function KeeperDialogFrame({
   }, [])
 
   const measureDialogScrollInset = React.useCallback(() => {
+    if (isMobile) {
+      setDialogScrollInset(28)
+      return
+    }
     const broadcastHeight = broadcastStripRef.current?.offsetHeight ?? 0
     const fadeEl = scrollRef.current?.parentElement?.querySelector(
       ".dialog-fade-overlay",
     ) as HTMLElement | null
     const fadeHeight = fadeEl?.offsetHeight ?? 120
     setDialogScrollInset(broadcastHeight + fadeHeight)
-  }, [])
+  }, [isMobile])
 
   React.useLayoutEffect(() => {
     if (mode === "feed" || dialogContent) return
@@ -511,6 +514,10 @@ export function KeeperDialogFrame({
 
     const run = () => {
       measureDialogScrollInset()
+      if (isMobile) {
+        el.scrollTop = el.scrollHeight
+        return
+      }
       const broadcastHeight = broadcastStripRef.current?.offsetHeight ?? 0
       const fadeEl = el.parentElement?.querySelector(
         ".dialog-fade-overlay",
@@ -522,7 +529,7 @@ export function KeeperDialogFrame({
     }
 
     requestAnimationFrame(run)
-  }, [messages, isSending, dialogContent, mode, measureDialogScrollInset])
+  }, [messages, isSending, dialogContent, mode, measureDialogScrollInset, isMobile])
 
   const hasCoordinates = Boolean(
     bannerContext?.stage || bannerContext?.talkingIn || bannerContext?.workingOn,
@@ -534,24 +541,16 @@ export function KeeperDialogFrame({
   const showBannerEffective = showBanner && !hideDomainIdentityBanner
 
   const isMobileStaged = dialogLayout === "mobile-staged" && mode !== "feed"
-  // Idle + thinking: pinned bubble. Focus/type: expanded (~2/3). Desktop unchanged.
-  const mobileComposerSize =
-    isMobileStaged && mobileDialogStage === "composing"
-      ? "mobile-expanded"
-      : isMobileStaged
-        ? "mobile-compact"
-        : "default"
-  const hideMobileComposerFooter =
-    isMobileStaged
-    && (mobileDialogStage === "response" || mobileDialogStage === "thinking")
+  const mobileComposerSize = isMobileStaged ? "mobile-docked" : "default"
+  const hideMobileComposerFooter = isMobileStaged
 
   const composerOnStage = Boolean(dialogContent) && mode !== "feed"
 
   const composerZone = mode === "feed" ? null : (
       <div className="dialog-bottom-zone">
         <div className="dialog-column dialog-bottom-stack">
-          {composerOnStage ? <StageSlideStrip /> : null}
-          {composerOnStage && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
+          {composerOnStage && !isMobileStaged ? <StageSlideStrip /> : null}
+          {composerOnStage && !isMobileStaged && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
           {postRunSummary && (
             <div className="dialog-composer-horizon" aria-live="polite">
               <p className="dialog-composer-horizon-summary">{postRunSummary}</p>
@@ -577,7 +576,7 @@ export function KeeperDialogFrame({
             activeSessionId={activeSessionId}
             disabled={disabled}
             inputPlaceholder={inputPlaceholder}
-            submitOnEnter={!isMobileStaged}
+            submitOnEnter
             onInputFocusChange={onComposerFocusChange}
             composerSize={mobileComposerSize}
             talkMode={talkMode}
@@ -588,10 +587,10 @@ export function KeeperDialogFrame({
             talkError={talkError}
             dialogueMessages={messages}
             userName={userName}
-            onOpenReach={board ? board.actions.openComposerReach : undefined}
-            reachOpen={board?.composerReachOpen === true}
-            onOpenTheme={board ? board.actions.openComposerTheme : undefined}
-            themeOpen={board?.composerThemeOpen === true}
+            onOpenReach={!isMobileStaged && board ? board.actions.openComposerReach : undefined}
+            reachOpen={!isMobileStaged && board?.composerReachOpen === true}
+            onOpenTheme={!isMobileStaged && board ? board.actions.openComposerTheme : undefined}
+            themeOpen={!isMobileStaged && board?.composerThemeOpen === true}
           />
           {showComposerFooter && !hideMobileComposerFooter && (
             <div className="dialog-composer-footer">
@@ -1006,8 +1005,10 @@ export function KeeperDialogFrame({
           }
         </div>
 
-        <DialogScrollRail scrollRef={scrollRef} />
-        <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
+        {!isMobile ? <DialogScrollRail scrollRef={scrollRef} /> : null}
+        {!isMobile ? (
+          <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
+        ) : null}
 
         {/* Horizon dissolve — Dialog floor. Stage uses the lectern instead. */}
         {mode !== "feed" && !composerOnStage && (

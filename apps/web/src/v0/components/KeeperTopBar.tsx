@@ -373,40 +373,6 @@ export function KeeperTopBar({
 
         {showMobileChronicle ? (
           <div className="flex items-center gap-1">
-            {showComposerChrome ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => board?.actions.toggleStageRoom()}
-                  className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
-                  aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Stage"}
-                  aria-pressed={board?.workspaceSurface === "stage"}
-                  style={{
-                    color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
-                    background: board?.workspaceSurface === "stage"
-                      ? "hsl(var(--theme-accent-primary) / 0.22)"
-                      : "hsl(var(--theme-surface-panel) / 0.35)",
-                  }}
-                >
-                  <Layers width={18} height={18} strokeWidth={1.75} aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => board?.actions.toggleComposerReach()}
-                  className="keeper-topbar-chronicle-trigger relative shrink-0 rounded-lg p-2"
-                  aria-label="Open Reach"
-                  aria-pressed={board?.composerReachOpen === true}
-                  style={{
-                    color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))",
-                    background: board?.composerReachOpen
-                      ? "hsl(var(--theme-accent-primary) / 0.22)"
-                      : "hsl(var(--theme-surface-panel) / 0.35)",
-                  }}
-                >
-                  <Sparkles width={18} height={18} strokeWidth={1.75} aria-hidden />
-                </button>
-              </>
-            ) : null}
             <button
               type="button"
               onClick={onOpenChronicle}

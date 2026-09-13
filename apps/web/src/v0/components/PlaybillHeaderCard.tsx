@@ -61,7 +61,6 @@ export function PlaybillHeaderCard({
   livePulse,
   dialogTitle,
   dialogUnread = false,
-  onOpenChronicle,
 }: PlaybillHeaderCardProps) {
   const isMobile = useIsMobile()
   const showLive = Boolean(livePulse)
@@ -152,17 +151,25 @@ export function PlaybillHeaderCard({
           />
           </span>
         </button>
-        {dialogTitle && onOpenChronicle ? (
-          <button
-            type="button"
-            onClick={onOpenChronicle}
-            className="flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-left"
-            style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
-            aria-label={`Open Chronicle for ${dialogTitle}`}
+        {dialogTitle ? (
+          <span
+            className="flex min-w-0 items-center gap-1.5"
+            title={dialogTitle}
           >
-            <span className="truncate font-serif text-[14px] font-semibold">→ {dialogTitle}</span>
-            {dialogUnread ? <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "hsl(var(--theme-accent-primary))" }} aria-label="Chronicle updated" /> : null}
-          </button>
+            <span
+              className="min-w-0 truncate font-serif text-[13px] font-semibold leading-none"
+              style={{ color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))" }}
+            >
+              {dialogTitle}
+            </span>
+            {dialogUnread ? (
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ background: "hsl(var(--theme-accent-primary))" }}
+                aria-label="Chronicle updated"
+              />
+            ) : null}
+          </span>
         ) : null}
       </div>
     )

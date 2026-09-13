@@ -1,17 +1,20 @@
 "use client"
 
 /**
- * Invite a second human collaborator onto the current domain.
- * Cast Header "Invite" — calls POST /api/domains/:id/connections/invite.
+ * Invite a second human onto the current domain.
+ * People and profile menus reuse this dialog — one invitation system.
+ * Email delivery is not wired; new emails get a copyable accept link.
  */
 
 import * as React from "react"
 import { apiFetch } from "../../../lib/api"
+import { invitationAcceptUrl } from "../../presence/cover/domainPeople"
 
 export interface InviteCollaboratorDialogProps {
   domainId: string
   open: boolean
   onClose: () => void
+  onSettled?: (outcome: "granted" | "invited") => void
 }
 
 type InviteOutcome =
@@ -25,16 +28,19 @@ export function InviteCollaboratorDialog({
   domainId,
   open,
   onClose,
+  onSettled,
 }: InviteCollaboratorDialogProps) {
   const [identifier, setIdentifier] = React.useState("")
   const [role, setRole] = React.useState<"connection" | "friend">("connection")
   const [outcome, setOutcome] = React.useState<InviteOutcome>({ kind: "idle" })
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle")
 
   React.useEffect(() => {
     if (!open) {
       setIdentifier("")
       setRole("connection")
       setOutcome({ kind: "idle" })
+      setCopyState("idle")
     }
   }, [open])
 
@@ -47,6 +53,7 @@ export function InviteCollaboratorDialog({
         return
       }
       setOutcome({ kind: "working" })
+      setCopyState("idle")
       try {
         const data = (await apiFetch(
           `/api/domains/${encodeURIComponent(domainId)}/connections/invite`,
@@ -71,22 +78,19 @@ export function InviteCollaboratorDialog({
             kind: "granted",
             name: trimmed,
           })
+          onSettled?.("granted")
           return
         }
 
         if (data.outcome === "invited" && data.invitation) {
           const email = data.invitation.email ?? trimmed
-          const acceptPath =
-            data.invitation.acceptPath
-            ?? (data.invitation.token
-              ? `/invite/accept?token=${encodeURIComponent(data.invitation.token)}`
-              : null)
-          const origin = typeof window !== "undefined" ? window.location.origin : ""
-          const acceptUrl = acceptPath
-            ? acceptPath.startsWith("http")
-              ? acceptPath
-              : `${origin}${acceptPath}`
-            : ""
+          const acceptUrl =
+            invitationAcceptUrl(
+              data.invitation.acceptPath
+                ?? (data.invitation.token
+                  ? `/invite/accept?token=${encodeURIComponent(data.invitation.token)}`
+                  : null),
+            ) ?? ""
           setOutcome({
             kind: "invited",
             email,
@@ -95,39 +99,50 @@ export function InviteCollaboratorDialog({
           if (acceptUrl) {
             try {
               await navigator.clipboard.writeText(acceptUrl)
+              setCopyState("copied")
             } catch {
-              /* user copies manually */
+              setCopyState("failed")
             }
           }
+          onSettled?.("invited")
           return
         }
 
         setOutcome({
           kind: "error",
-          message: data.error ?? "Invite failed.",
+          message: data.error ?? "Invitation could not be created.",
         })
       } catch (err) {
         setOutcome({
           kind: "error",
-          message: err instanceof Error ? err.message : "Invite failed.",
+          message: err instanceof Error ? err.message : "Invitation could not be created.",
         })
       }
     },
-    [domainId, identifier, role],
+    [domainId, identifier, onSettled, role],
   )
+
+  const handleCopyAgain = async (acceptUrl: string) => {
+    try {
+      await navigator.clipboard.writeText(acceptUrl)
+      setCopyState("copied")
+    } catch {
+      setCopyState("failed")
+    }
+  }
 
   if (!open) return null
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4"
       style={{ background: "hsla(var(--theme-ink) / 0.35)" }}
       role="dialog"
       aria-modal="true"
       aria-label="Invite collaborator"
     >
       <div
-        className="w-full max-w-md rounded-lg border p-4 shadow-lg"
+        className="my-auto w-full max-w-md max-h-[min(32rem,calc(100vh-2rem))] overflow-y-auto overscroll-contain rounded-lg border p-4 shadow-lg"
         style={{
           background: "hsl(var(--theme-surface))",
           borderColor: "hsl(var(--theme-border))",
@@ -138,8 +153,8 @@ export function InviteCollaboratorDialog({
           <div>
             <h2 className="text-[15px] font-medium">Invite a collaborator</h2>
             <p className="mt-1 text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-              Add a second human to this domain. Existing members are granted immediately;
-              new emails get a copyable accept link.
+              Existing Keeper accounts become members immediately. New emails get a copyable
+              acceptance link — Keeper does not send email yet.
             </p>
           </div>
           <button
@@ -183,8 +198,8 @@ export function InviteCollaboratorDialog({
               }}
               disabled={outcome.kind === "working"}
             >
-              <option value="connection">Connection</option>
-              <option value="friend">Friend</option>
+              <option value="connection">Connection — read-only access</option>
+              <option value="friend">Friend — collaborator with limited write access</option>
             </select>
           </label>
 
@@ -197,21 +212,25 @@ export function InviteCollaboratorDialog({
             }}
             disabled={outcome.kind === "working"}
           >
-            {outcome.kind === "working" ? "Inviting…" : "Send invite"}
+            {outcome.kind === "working" ? "Creating…" : "Create invitation"}
           </button>
         </form>
 
         {outcome.kind === "granted" ? (
           <p className="mt-3 text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            {outcome.name} is now a collaborator on this domain.
+            {outcome.name} is now a member of this domain.
           </p>
         ) : null}
         {outcome.kind === "invited" ? (
           <div className="mt-3 space-y-1 text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            <p>Invitation created for {outcome.email}.</p>
+            <p>Invitation created for {outcome.email}. Keeper did not send email.</p>
             {outcome.acceptUrl ? (
               <>
-                <p>Accept link copied to clipboard:</p>
+                <p>
+                  {copyState === "copied"
+                    ? "Acceptance link copied to clipboard:"
+                    : "Share this acceptance link:"}
+                </p>
                 <code
                   className="block break-all rounded border px-2 py-1 text-[11px]"
                   style={{
@@ -221,9 +240,16 @@ export function InviteCollaboratorDialog({
                 >
                   {outcome.acceptUrl}
                 </code>
+                <button
+                  type="button"
+                  className="text-[12px] underline underline-offset-2"
+                  onClick={() => void handleCopyAgain(outcome.acceptUrl)}
+                >
+                  {copyState === "failed" ? "Copy failed — try again" : "Copy link"}
+                </button>
               </>
             ) : (
-              <p>Share the pending invitation from Manage when the accept link is available.</p>
+              <p>The invitation is pending. Copy the link from People when it is available.</p>
             )}
           </div>
         ) : null}

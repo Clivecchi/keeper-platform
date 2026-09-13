@@ -22,6 +22,12 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 
 ## 📆 Update Log
 
+### 2026-09-12 — Basic mobile menu
+- Nav drawer header is **Menu**. Adaptive mobile no longer puts Stage / Reach in the top bar.
+
+### 2026-09-12 — Honest Domain invite
+- `InviteCollaboratorDialog` is the shared invite surface for People and profile menus. Copy says invitation created + copyable link. Does not claim email was sent. Viewport-safe scroll.
+
 ### 2026-08-30 — Invite from the account menu
 - `BoardMobileNavAccount` profile menu includes **Invite**, same dialog as the desktop top-bar profile menu.
 

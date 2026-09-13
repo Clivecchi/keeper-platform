@@ -41,6 +41,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-09-12 — Invitation accept path
+- `invitationAcceptPath` + pending invitation `acceptPath` on `listDomainConnections` so Domain People can copy a link. Email delivery remains unwired.
+
 ### 2026-08-30 — Stage story persists on the named Stage
 - `saveKeeperStage` merges patches. Omitting `story` (or sending `null`) keeps the filmstrip. Agents write it via `stage.story.layout`.
 

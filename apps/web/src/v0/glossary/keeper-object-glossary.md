@@ -19,6 +19,27 @@ These two “path” concepts must never be collapsed:
 
 **Document** itself is Dialog state (freeform workspace scaffolding), not a separate Prisma EntityKind. Never call the Object Glossary a “Document” in platform language — that word stays reserved for the Dialog-associated construct.
 
+These story surfaces must never be collapsed:
+
+| Term | What it is | Where it lives |
+|---|---|---|
+| **Stage** | The **room / screen**. Named composition of assets. How you look. Not the story. | `workspaceSurface: stage` + `Domain.settings.keeperStage`. First name: Keeper Stage |
+| **Stage theme** | Inherit the domain Treatment and cover. May grow its own look from uploaded imagery (same palette pipeline). | `keeperStage.theme`. Not a Prisma Theme table. Composer Look → Chronicle |
+| **Story in development** | The **single** filmstrip being told on Stage. Agents lay it out. Not the Stage. Not yet a Prisma EntityKind. | `Domain.settings.keeperStage.story`. Lead `stage.story.layout`. Derived title + beat only until the first layout |
+| **Root** | The domain Cover — the frame that loads with the domain (`domain_cover`). Not a text title. | First cell on Stage. Same identity as `?frame=cover` |
+| **Slide** | One cell of the selected story after Forward. A **presentation of** a live beat, Point, Moment, Path, or Keeper. SlideType is the dress (`text_slide`, later `moment_card`, `path_index`) | Filmstrip after Root. Not the Cover |
+| **Document Point** | A unit of **discussion** | Chronicle. Review & Reorganize. Stays on the Document until Keep lifts it |
+| **Moment / Path / Journey / Keeper** | Where **Kept** weight belongs — the narrative hierarchy | Point → Moment exists (`promoteDraftPoint`). Keep should also propose Keeper, Journey, Path so the Document is not the warehouse |
+| **Present** | Guest/read of what has been kept, first built on Stage | `PresentFrame` / SlideTypes. Stage is the first place to Shape toward Show |
+
+**Lifecycle (status on Document, not three models):** Drafts → Kept → Presented.
+
+- **Drafts** — discussion is still moving. Document writes must land (this is still unreliable).
+- **Kept** — settle, and **unburden**. Lift weight that belongs in the hierarchy (Keeper, Journey, Path, Moment). The Document keeps what is still discussion.
+- **Presented** — one story, laid out on Stage, then shown.
+
+Stage is a room on the current Board, not `?board=stage`. The story in development is not the Stage. Selecting a Dialog still has a Chronicle Document — that reading is not a Stage and not a Story.
+
 ---
 
 ## Board-emphasis invariant (governing)

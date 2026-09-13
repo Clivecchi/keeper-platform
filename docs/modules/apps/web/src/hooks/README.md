@@ -6,7 +6,7 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 ## 🧱 Key Files
 - `useDraftPointAccept.ts` — Shared Accept handler for draft points (Dialog receipts + Chronicle blocks).
 - `useDraftPointPromote.ts` — Promote accepted journey_spec points to Journey (Nav selection or spec `targetJourneyId`).
-- `useAgentDialog.ts` — Parameterized agent session hook (`agentSlug` / `agentDisplayName`). Used by IDE, Agent, and Domain boards.
+- `useAgentDialog.ts` — Parameterized agent session hook (`agentSlug` / `agentDisplayName`). Used by IDE, Agent, and Domain boards. Persisted messages now keep `orchestration` and `performanceProvenance`.
 - `useComposerDraftAutosave.ts` — SessionStorage-backed unsent composer recovery for all Kip dialog surfaces.
 - `useKipSession.ts` — Deprecated alias for `useAgentDialog`. Re-exported for backward compatibility only.
 - `useDraftContext.ts` — Draft–session linking (IDE) and post-run draft list refresh (Agent).
@@ -30,6 +30,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-09-12 — Agent Board performance metadata
+- Persisted Dialog messages keep `orchestration` and `performanceProvenance` so Chronicle can inspect a recorded Lead turn.
 
 ### 2026-09-11 — Resolved Meaning on the Lead turn
 - `useAgentDialog` hydrates `resolvedMeaning` and `stageExpression` from Lead metadata / run result. Spoken `content` is unchanged. No Composer redesign.

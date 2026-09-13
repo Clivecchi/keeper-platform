@@ -110,11 +110,20 @@ function useSectionSave({
       setSaveMessage(null)
 
       try {
-        await apiFetch(`/api/agents/${encodeURIComponent(objectId)}`, {
+        const saved = (await apiFetch(`/api/agents/${encodeURIComponent(objectId)}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ domainId, lensSystemPrompt: nextPrompt }),
-        })
+        })) as { config?: { voice_prompt?: unknown } }
+        const persisted =
+          saved?.config && typeof saved.config === "object" && !Array.isArray(saved.config)
+            ? (saved.config as { voice_prompt?: unknown }).voice_prompt
+            : undefined
+        if (typeof persisted === "string" && persisted !== nextPrompt) {
+          setSaveStatus("error")
+          setSaveMessage("Save did not persist the voice prompt. Reload and try again.")
+          return
+        }
         onVoicePromptSaved(nextPrompt)
         setSaveStatus("saved")
         setSaveMessage("Saved")

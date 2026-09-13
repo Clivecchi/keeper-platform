@@ -25,6 +25,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `IntegrationFocusPresence.tsx` — Integration Cover Mode + Config Mode orchestration
 - `AgentConfigPresence.tsx` — Config Mode compressed header + editable fields
 - `AgentTrainingPresence.tsx` — Training Mode structured prompt editor
+- `AgentPerformanceInspection.tsx` — Agent Board recorded-performance facts in Chronicle
+- `agentPerformanceInspection.ts` — fact lines + Composer inspection context
 - `agentNameHighlight.tsx` — accent highlight for agent name in training instructions
 - `trainingSectionEditors.tsx` — per-section voice prompt editors (Identity, Behavior, etc.)
 - `openSession.ts` — Open Session → focus center conversation composer
@@ -198,7 +200,21 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `DnsInfoPanel` compact mode matches Chronicle theme; shows registrar A/CNAME even when verified
 
 ### 2026-07-04 — Domain people section (Phase 4)
-- `DomainPeopleSection.tsx` — members list, invite search, role PATCH, remove in Chronicle Configure
+- `domainPeople.ts` — owner / member / invitation helpers (no DomainPermission invented for owner)
+- `DomainPeopleSection.tsx` — owner, members, pending invitations, invite from People
+
+## 📆 Update Log
+
+### 2026-09-12 — Agent Board Performance Inspection V0
+- Cover shows class Role from `record.role`. Tagline remains the billing line, not the Agency role.
+- When a Dialog is selected as performance context, Chronicle Cover renders `AgentPerformanceInspection`.
+- Training Save verifies persisted `config.voice_prompt` before reporting success. Selecting a performance returns Cover.
+
+### 2026-09-12 — Domain People V0
+- People now shows Owner (`Domain.ownerId`), Members (`DomainPermission`), and Pending invitations (`GET /connections`) as distinct relationships.
+- Invite reuses `InviteCollaboratorDialog` from People. Copyable accept link; no email implied.
+- Cover + Configure show Primary Agent read-only only when the Domain already declares a lead (`leadAgentSlug` / `leadAgentName`). Not an editor. Addresses verification copy no longer implies Keeper SSL provisioning.
+- Configure remounts on Domain switch; Addresses and People local state reset. Chronicle scroll uses `overscroll-contain` plus extra bottom padding so Save stays reachable.
 
 ### 2026-07-04 — Domain addresses section (Phases 2–3)
 - `DomainAddressesSection.tsx` — keeper subdomain preview, custom domain, Vercel + DNS in Chronicle Configure

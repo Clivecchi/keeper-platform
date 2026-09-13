@@ -49,6 +49,9 @@ export const domainCoverSchema: EntityCoverSchema = {
     const coverUrl =
       (typeof record.coverImage === "string" && record.coverImage) ||
       undefined
+    const primaryAgent =
+      (typeof record.leadAgentName === "string" && record.leadAgentName.trim()) ||
+      ""
     const avatarFallback = name.slice(0, 1).toUpperCase()
 
     const configureAction: CoverActionDef = {
@@ -79,6 +82,9 @@ export const domainCoverSchema: EntityCoverSchema = {
           : []),
         ...(fieldValues.visibility?.trim()
           ? [{ label: "Visibility", value: fieldValues.visibility }]
+          : []),
+        ...(primaryAgent
+          ? [{ label: "Primary Agent", value: primaryAgent }]
           : []),
       ],
       credits: [],

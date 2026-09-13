@@ -65,6 +65,15 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-12 — Agent Board Performance Inspection V0
+- Agent Cover shows class **Role** from `kip_agents.role`. Tagline is no longer labeled Role.
+- Domain Assignment and Lead Judgment stay honest read-only. Empty Config save says “No changes to save.”
+- `isLeadAgentRecord` uses role only — not `slug === "kip"`.
+
+### 2026-09-12 — Domain People + lead visibility
+- Domain Chronicle Configure People recovers owner / members / pending invitations. Enrichment can pass `leadAgentName` / `leadAgentSlug` from the by-slug cache for read-only Primary Agent.
+- Primary Agent stays hidden unless the Domain already declares a lead. Configure remounts when the Domain changes so Addresses and People cannot keep the previous Domain.
+
 ### 2026-08-31 — Theme in Chronicle
 - `ThemeChroniclePresence` is the Composer Theme tool. Stage inherits the domain; uploaded imagery can grow a Stage look. Back closes Theme. Domain Treatment stays on Domain Config. Not `?frame=theme`.
 

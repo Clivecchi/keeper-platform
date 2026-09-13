@@ -43,6 +43,14 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-09-12 — Domain Board save / scroll honesty
+- `useChronicleConfig` clears dirty/save state when `entityId` or `domainId` changes so a Domain switch cannot keep the previous Domain's unsaved banner.
+- `ChronicleConfigShell` scroll area uses `overscroll-contain` and extra bottom padding so the last Configure fields stay above the Save bar.
+
+### 2026-09-12 — Agent Board save honesty
+- Empty Agent PATCH now stays idle with “No changes to save.” Failed saves still surface as error — never Saved.
+- Save bar shows that idle message instead of a false “Ready to save” after a no-op.
+
 ### 2026-08-30 — Agent name save was blaming empty Purpose
 - `buildAgentChroniclePatchBody` omits blank optional fields so renaming an agent (e.g. `liv`) is not rejected.
 - `parseChroniclePatchFieldErrors` maps Zod `details[].path` onto the real field instead of pinning “Validation error” on Name.

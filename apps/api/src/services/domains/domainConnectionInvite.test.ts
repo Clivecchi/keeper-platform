@@ -1,10 +1,52 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  invitationAcceptPath,
   looksLikeEmail,
   normalizeConnectionRole,
   normalizeIdentifier,
   resolveUserByIdentifier,
 } from './domainConnectionInvite.js';
+
+describe('invitationAcceptPath', () => {
+  it('builds the copyable accept path without implying email delivery', () => {
+    expect(invitationAcceptPath('tok/value')).toBe('/invite/accept?token=tok%2Fvalue');
+  });
+});
+
+describe('listDomainConnections pending invitations', () => {
+  it('includes acceptPath and never treats pending invitations as members', async () => {
+    const { listDomainConnections } = await import('./domainConnectionInvite.js');
+    const prisma = {
+      domainPermission: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      domainInvitation: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'inv-1',
+            email: 'new@example.com',
+            role: 'connection',
+            invitedBy: 'owner-1',
+            expiresAt: new Date('2026-09-19T00:00:00.000Z'),
+            createdAt: new Date('2026-09-12T00:00:00.000Z'),
+            token: 'tok/value',
+          },
+        ]),
+      },
+    };
+
+    const result = await listDomainConnections(prisma as never, 'domain-1');
+    expect(result.connections).toEqual([]);
+    expect(result.pendingInvitations).toEqual([
+      expect.objectContaining({
+        id: 'inv-1',
+        email: 'new@example.com',
+        status: 'pending',
+        acceptPath: '/invite/accept?token=tok%2Fvalue',
+      }),
+    ]);
+  });
+});
 
 describe('domainConnectionInvite lookup helpers', () => {
   it('normalizes connection role with friend default override', () => {

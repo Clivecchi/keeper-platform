@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
   buildAgentChroniclePatchBody,
   handleChronicleSave,
@@ -7,6 +7,10 @@ import {
   resolveChronicleFramePatchEndpoint,
   resolveChroniclePatchEndpoint,
 } from "./chroniclePatch"
+
+vi.mock("../../../lib/api", () => ({
+  apiFetch: vi.fn(),
+}))
 
 describe("resolveChroniclePatchEndpoint", () => {
   it("routes library and domain to existing targeted PATCH paths", () => {
@@ -93,5 +97,23 @@ describe("handleChronicleSave", () => {
     )
     expect(result.status).toBe("error")
     expect(result.message).toMatch(/slug/i)
+  })
+
+  it("does not report saved when the domain PATCH fails", async () => {
+    const { apiFetch } = await import("../../../lib/api")
+    vi.mocked(apiFetch).mockRejectedValueOnce({
+      status: 500,
+      message: "Database write failed",
+    })
+
+    const result = await handleChronicleSave(
+      "domain",
+      "dom-1",
+      { name: "ke3p" },
+      { domainId: "dom-1", domainSlug: "ke3p" },
+    )
+
+    expect(result.status).toBe("error")
+    expect(result.message).toMatch(/failed/i)
   })
 })

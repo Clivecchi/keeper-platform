@@ -39,6 +39,11 @@ import { apiFetch } from "../../lib/api"
 import { GuidedArrivalProvider } from "../guidedArrival/GuidedArrivalContext"
 import { clearPrefetchedDialogSession } from "./domain/dialogSessionPrefetch"
 import { nextWorkspaceSurface } from "./workspaceSurface"
+import {
+  shouldKeepAgentWhenSelectingDialog,
+  shouldKeepAgentWhenSelectingLibrary,
+  shouldKeepDialogWhenSelectingAgent,
+} from "./agentBoardSelection"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -135,6 +140,11 @@ export interface UniversalBoardSelection {
   trainingMode: boolean
   /** Agent Board training storyboard — which voice-prompt frame is in focus. */
   activeTrainingFrame: VoicePromptSectionKey
+  /**
+   * Agent Board — recorded performance inspection currently shown in Chronicle.
+   * Grounds Composer. Never a mutation instruction.
+   */
+  agentPerformanceInspection: Record<string, unknown> | null
   /** Directed cueing (IDE/Designer): single pinned Cast member for dialog delegation. */
   activeCastMember: CastMemberSlug | null
   /**
@@ -229,6 +239,7 @@ export interface UniversalBoardActions {
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
   onTrainingFrameSelect: (frame: VoicePromptSectionKey) => void
+  setAgentPerformanceInspection: (value: Record<string, unknown> | null) => void
   /** IDE/Designer single-swap — replaces the active pin. */
   onSetActiveCastMember: (slug: CastMemberSlug | null) => void
   /** Domain/Realm multi-select — toggle one non-lead Cast member in/out of the cued set. */
@@ -301,9 +312,11 @@ export function useUniversalBoardOptional(): UniversalBoardContextValue | null {
 
 interface UniversalBoardProviderProps {
   children: React.ReactNode
+  /** Current Board id — Agent Board keeps Agent as Chronicle subject when a Dialog is context. */
+  boardId?: string
 }
 
-export function UniversalBoardProvider({ children }: UniversalBoardProviderProps) {
+export function UniversalBoardProvider({ children, boardId }: UniversalBoardProviderProps) {
   const frameCtx = useFrameContextOptional()
   const shell = useV0ShellOptional()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -362,6 +375,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [trainingMode, setTrainingMode] = React.useState(false)
   const [activeTrainingFrame, setActiveTrainingFrame] =
     React.useState<VoicePromptSectionKey>("currently")
+  const [agentPerformanceInspection, setAgentPerformanceInspection] =
+    React.useState<Record<string, unknown> | null>(null)
   const [activeCastMember, setActiveCastMember] =
     React.useState<CastMemberSlug | null>(null)
   const [cuedCastMembers, setCuedCastMembers] =
@@ -526,7 +541,13 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
-    setSelectedAgentId(null)
+    const keepAgent = shouldKeepAgentWhenSelectingDialog(boardId, selectedAgentId)
+    if (keepAgent) {
+      setTrainingMode(false)
+    } else {
+      setSelectedAgentId(null)
+      setChroniclePanelMode("document")
+    }
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
@@ -534,11 +555,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
     shell?.clearBoardDefinition()
-    setChroniclePanelMode("document")
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
     setLibraryWorkspaceOverlayId(null)
     setDialogNow((prev) => (prev && prev.dialogId !== id ? null : prev))
-  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav, shell])
+  }, [boardId, selectedAgentId, clearDraftIdFromUrl, leaveStageOnPlatformNav, shell])
 
   const openChronicleDocument = React.useCallback((options: {
     dialogId: string
@@ -668,7 +688,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     clearDraftIdFromUrl()
     setTrainingMode(false)
     setSelectedAgentId(id)
-    setSelectedDialogId(null)
+    if (!shouldKeepDialogWhenSelectingAgent(boardId)) {
+      setSelectedDialogId(null)
+    }
     setSelectedJourneyId(null)
     setSelectedPathId(null)
     setSelectedMomentId(null)
@@ -680,7 +702,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
+  }, [boardId, clearDraftIdFromUrl, leaveStageOnPlatformNav])
 
   const onServiceOpen = React.useCallback((slug: string) => {
     leaveStageOnPlatformNav()
@@ -751,11 +773,13 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
-    setSelectedAgentId(null)
+    if (!shouldKeepAgentWhenSelectingLibrary(boardId)) {
+      setSelectedAgentId(null)
+    }
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
     setLibraryWorkspaceOverlayId(null)
-  }, [leaveStageOnPlatformNav])
+  }, [boardId, leaveStageOnPlatformNav])
 
   const presentDialogNow = React.useCallback((item: DialogNowLibraryItem) => {
     setDialogNow(item)
@@ -1291,6 +1315,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         draftComposeHint,
         trainingMode,
         activeTrainingFrame,
+        agentPerformanceInspection,
         activeCastMember,
         cuedCastMembers,
         chroniclePanelMode,
@@ -1345,6 +1370,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         requestChronicleEngagement,
         closeChronicleEngagement,
         onEnterTrainingMode,
+        setAgentPerformanceInspection,
         onExitTrainingMode,
         onTrainingFrameSelect,
         onSetActiveCastMember,
@@ -1414,6 +1440,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       draftComposeHint,
       trainingMode,
       activeTrainingFrame,
+      agentPerformanceInspection,
       activeCastMember,
       cuedCastMembers,
       chroniclePanelMode,
@@ -1465,6 +1492,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       requestDialogIngest,
       closeDialogIngest,
       onEnterTrainingMode,
+      setAgentPerformanceInspection,
       onExitTrainingMode,
       onTrainingFrameSelect,
       onSetActiveCastMember,

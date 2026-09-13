@@ -97,7 +97,11 @@ export function DomainAddressesSection({
   React.useEffect(() => {
     setSavedCustomDomain(customDomainProp?.trim() ?? "")
     setCustomDomainVerified(customDomainVerifiedProp)
-  }, [customDomainProp, customDomainVerifiedProp])
+    setDraftCustomDomain("")
+    setDnsStatus(null)
+    setError(null)
+    setSuccess(null)
+  }, [domainId, customDomainProp, customDomainVerifiedProp])
 
   const loadDnsStatus = React.useCallback(async () => {
     if (!savedCustomDomain) {
@@ -418,7 +422,7 @@ export function DomainAddressesSection({
                       <p className="text-sm font-medium">DNS &amp; verification</p>
                       <p className="text-[11px]" style={sectionLabelStyle}>
                         {dnsVerified
-                          ? "Verified — SSL will issue automatically"
+                          ? "Verified — Vercel issues HTTPS automatically"
                           : dnsConfigured
                             ? "DNS detected — run verify when ready"
                             : "Add DNS records at your registrar"}

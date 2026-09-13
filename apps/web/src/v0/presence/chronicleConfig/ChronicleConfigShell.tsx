@@ -137,7 +137,7 @@ export function ChronicleConfigShell({
         namePlaceholder={namePlaceholder}
       />
 
-      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4">
+      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-8">
         {children}
       </div>
 

@@ -44,7 +44,7 @@ export function BoardMobileNavDrawer({
             className="text-[11px] font-semibold uppercase tracking-widest"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            Nav
+            Menu
           </p>
           <button
             type="button"
