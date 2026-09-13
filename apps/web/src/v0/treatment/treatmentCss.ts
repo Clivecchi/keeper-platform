@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react"
 import {
   resolvePlacementReadingPlane,
+  resolveTreatmentSwatches,
   type PlacementReadingPlane,
 } from "@keeper/shared"
 import type { ResolvedDomainTreatment } from "./resolveDomainTreatment"
@@ -135,11 +136,36 @@ export function treatmentShellStyle(
     style.backgroundRepeat = "no-repeat"
   }
 
+  const swatches = resolveTreatmentSwatches({
+    background,
+    accent: treatment.palette.accent,
+    ink: treatment.palette.ink,
+    signal: treatment.palette.signal,
+    action: treatment.palette.action,
+    hasAtmosphere,
+  })
+  const signalComponents = hexToHslComponents(swatches.signal)
+  const actionComponents = hexToHslComponents(swatches.action)
+
+  style.borderLeft = `3px solid ${swatches.accent}`
   applyTreatmentInkVars(style, plane)
-  applyTreatmentColorVars(style, treatment.palette.accent)
-  ;(style as Record<string, string>)["--treatment-surface"] = plane.surfaceHex
+  applyTreatmentColorVars(style, swatches.accent)
+  ;(style as Record<string, string>)["--treatment-surface"] = swatches.paper
+  ;(style as Record<string, string>)["--treatment-paper"] = swatches.paper
+  ;(style as Record<string, string>)["--treatment-ink"] = swatches.ink
+  ;(style as Record<string, string>)["--treatment-accent"] = swatches.accent
+  ;(style as Record<string, string>)["--treatment-signal"] = swatches.signal
+  ;(style as Record<string, string>)["--treatment-action"] = swatches.action
+  ;(style as Record<string, string>)["--treatment-action-ink"] = swatches.actionInk
   ;(style as Record<string, string>)["--treatment-font-family"] =
     treatment.font.family
+  if (signalComponents) {
+    ;(style as Record<string, string>)["--theme-status-success"] = signalComponents
+  }
+  if (actionComponents) {
+    ;(style as Record<string, string>)["--theme-accent-primary"] = actionComponents
+    ;(style as Record<string, string>)["--theme-focus-ring"] = actionComponents
+  }
 
   return style
 }
@@ -151,20 +177,29 @@ export function treatmentShellStyle(
 export function treatmentAccentStyle(
   treatment: ResolvedDomainTreatment,
 ): CSSProperties {
-  const accent = HEX_COLOR.test(treatment.palette.accent)
-    ? treatment.palette.accent
-    : "#2d6a7f"
-  const accentComponents = hexToHslComponents(accent)
+  const swatches = resolveTreatmentSwatches({
+    background: HEX_COLOR.test(treatment.palette.background)
+      ? treatment.palette.background
+      : "#f5f0e8",
+    accent: treatment.palette.accent,
+    ink: treatment.palette.ink,
+    signal: treatment.palette.signal,
+    action: treatment.palette.action,
+  })
+  const accentComponents = hexToHslComponents(swatches.accent)
 
   const style: CSSProperties = {
-    borderLeft: `3px solid ${accent}`,
+    borderLeft: `3px solid ${swatches.accent}`,
   }
 
   if (accentComponents) {
     style.backgroundColor = `hsl(${accentComponents} / 0.04)`
   }
 
-  applyTreatmentColorVars(style, accent)
+  applyTreatmentColorVars(style, swatches.accent)
+  ;(style as Record<string, string>)["--treatment-accent"] = swatches.accent
+  ;(style as Record<string, string>)["--treatment-signal"] = swatches.signal
+  ;(style as Record<string, string>)["--treatment-action"] = swatches.action
   ;(style as Record<string, string>)["--treatment-font-family"] =
     treatment.font.family.trim() || "Georgia, serif"
 

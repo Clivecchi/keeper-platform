@@ -156,29 +156,29 @@ export function DomainFocusPresence({
                   <div key={section.title} className="mb-4">
                     <p
                       className="text-[11px] font-semibold uppercase tracking-widest mb-2"
-                      style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                      style={{ color: "var(--treatment-accent, hsl(var(--theme-ink-tertiary)))" }}
                     >
                       {section.title}
                     </p>
                     {section.items.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-lg border px-3 py-2 mb-2"
+                        className="rounded-lg px-3 py-2.5 mb-2"
                         style={{
-                          borderColor: "hsl(var(--theme-border-soft) / 0.4)",
-                          background: "hsl(var(--theme-surface-elevated) / 0.25)",
+                          background: "var(--treatment-paper, hsl(var(--theme-surface-elevated) / 0.35))",
+                          boxShadow: "inset 3px 0 0 var(--treatment-accent, hsl(var(--theme-border-strong)))",
                         }}
                       >
                         <p
                           className="text-[13px] font-medium"
-                          style={{ color: "hsl(var(--theme-ink-primary))" }}
+                          style={{ color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))" }}
                         >
                           {item.label}
                         </p>
                         {item.sub && (
                           <p
                             className="text-[11px] mt-0.5"
-                            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                            style={{ color: "hsl(var(--theme-ink-secondary))" }}
                           >
                             {item.sub}
                           </p>

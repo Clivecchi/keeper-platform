@@ -30,6 +30,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `agentNameHighlight.tsx` — accent highlight for agent name in training instructions
 - `trainingSectionEditors.tsx` — per-section voice prompt editors (Identity, Behavior, etc.)
 - `openSession.ts` — Open Session → focus center conversation composer
+- `domainConfigFrames.ts` — Domain Card inner frames: Domain, People, Addresses, Presence
 
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
@@ -54,6 +55,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-09-13 — Domain card uses Alive and Action
+- Active is a signal chip. Configure is a filled Action button. Recent Moments sit on paper with an Accent rail.
 
 ### 2026-09-13 — Domain card is a reading plane
 - `EntityCoverPresence` uses `.theme-reading-plane` (sealed paper + reading ink). Atmosphere no longer lowers the whole card’s opacity. Type sits on the page, not in the photograph.
@@ -212,6 +216,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - Cover shows class Role from `record.role`. Tagline remains the billing line, not the Agency role.
 - When a Dialog is selected as performance context, Chronicle Cover renders `AgentPerformanceInspection`.
 - Training Save verifies persisted `config.voice_prompt` before reporting success. Selecting a performance returns Cover.
+
+### 2026-09-13 — Domain Card inner frames
+- Configure is one card with quiet frames: **Domain · People · Addresses · Presence**. Not a new Board or pane.
+- People is its own frame. Character is labeled **How it shows up**. One frame at a time so Chronicle can scroll.
 
 ### 2026-09-13 — Domain Chronicle height restore
 - Absolute inset pinning collapsed Chronicle to the atmosphere photo. Cover/Configure now use `flex-1 min-h-0` so the Domain card loads again and can scroll.

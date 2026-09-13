@@ -65,6 +65,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-13 — Theme palette is five roles
+- Theme Chronicle edits Paper, Ink, Accent, Alive, and Action. Preview shows the Active chip and a filled Configure button. Existing two-color Treatments still load.
+
 ### 2026-09-13 — Theme is the Domain look
 - `ThemeChroniclePresence` edits paper, accent, and cover, shows a contrast preview, and can ask the lead to refine. It no longer sends members to Stage to change the Domain look.
 

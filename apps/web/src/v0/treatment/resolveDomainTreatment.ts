@@ -84,6 +84,15 @@ function normalizeTreatment(
     palette: {
       background: normalizeHexColor(palette.background, fallback.palette.background),
       accent: normalizeHexColor(palette.accent, fallback.palette.accent),
+      ...(palette.ink
+        ? { ink: normalizeHexColor(palette.ink, fallback.palette.ink ?? fallback.palette.accent) }
+        : {}),
+      ...(palette.signal
+        ? { signal: normalizeHexColor(palette.signal, fallback.palette.signal ?? fallback.palette.accent) }
+        : {}),
+      ...(palette.action
+        ? { action: normalizeHexColor(palette.action, fallback.palette.action ?? fallback.palette.accent) }
+        : {}),
     },
     font: {
       family: normalizeFontFamily(font.family, fallback.font.family),

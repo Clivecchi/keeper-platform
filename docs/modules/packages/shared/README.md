@@ -23,6 +23,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/keeperStage.ts` — Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle(title, domainLabel?)`; not Theatre-as-database
 - `src/imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 - `src/placementContrast.ts` — paper vs atmosphere contrast (mid-tone seal, 4.5:1 ink)
+- `src/treatmentSwatches.ts` — living-book roles: paper, ink, accent, signal (Alive), action
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -36,6 +37,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-09-13 — Five treatment roles
+- `treatmentSwatches.ts` expands paper + accent into ink, Alive (signal), and Action. Brown-on-brown domains get gold + teal so type and buttons can pop.
 
 ### 2026-09-13 — Placement contrast
 - `placementContrast.ts` seals mid-tone surfaces onto cream or charcoal paper and picks ink that holds 4.5:1 after glass alpha. `imagePalette` writes paper + readable primary, not the raw average as both surface and ink.

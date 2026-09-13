@@ -29,6 +29,9 @@ Domain Treatment — named presence configuration stored in `Domain.frame_json.t
 
 ## 📆 Update Log
 
+### 2026-09-13 — Five living-book roles
+- Treatment palette may include `ink`, `signal`, and `action`. Missing roles are derived. Chronicle CSS exposes `--treatment-paper/ink/accent/signal/action` and maps Alive onto `--theme-status-success`.
+
 ### 2026-09-13 — Treatment ink uses placement contrast
 - `treatmentShellStyle` picks paper + ink from `resolvePlacementReadingPlane`. Mid-tone Treatment backgrounds become sealed paper for `--treatment-surface` so Chronicle type holds. Reading tokens (`--theme-ink-reading`, `--theme-glass-reading-alpha`) are set on the shell.
 

@@ -13,7 +13,13 @@ const DEFAULT_TREATMENT = {
 
 export type NormalizedDomainTreatment = {
   name: string;
-  palette: { background: string; accent: string };
+  palette: {
+    background: string;
+    accent: string;
+    ink?: string;
+    signal?: string;
+    action?: string;
+  };
   font: { family: string };
 };
 
@@ -66,6 +72,13 @@ function readExistingTreatment(raw: unknown): NormalizedDomainTreatment {
     palette: {
       background: normalizeHexColor(palette.background, DEFAULT_TREATMENT.palette.background),
       accent: normalizeHexColor(palette.accent, DEFAULT_TREATMENT.palette.accent),
+      ...(palette.ink ? { ink: normalizeHexColor(palette.ink, DEFAULT_TREATMENT.palette.accent) } : {}),
+      ...(palette.signal
+        ? { signal: normalizeHexColor(palette.signal, DEFAULT_TREATMENT.palette.accent) }
+        : {}),
+      ...(palette.action
+        ? { action: normalizeHexColor(palette.action, DEFAULT_TREATMENT.palette.accent) }
+        : {}),
     },
     font: {
       family: normalizeFontFamily(font.family, DEFAULT_TREATMENT.font.family),
@@ -211,6 +224,30 @@ export function normalizeTreatmentProposal(
     palette: {
       background: normalizeHexColor(palette.background ?? base.palette.background, base.palette.background),
       accent: normalizeHexColor(palette.accent ?? base.palette.accent, base.palette.accent),
+      ...(palette.ink || base.palette.ink
+        ? {
+            ink: normalizeHexColor(
+              palette.ink ?? (base.palette as { ink?: string }).ink,
+              base.palette.accent,
+            ),
+          }
+        : {}),
+      ...(palette.signal || (base.palette as { signal?: string }).signal
+        ? {
+            signal: normalizeHexColor(
+              palette.signal ?? (base.palette as { signal?: string }).signal,
+              base.palette.accent,
+            ),
+          }
+        : {}),
+      ...(palette.action || (base.palette as { action?: string }).action
+        ? {
+            action: normalizeHexColor(
+              palette.action ?? (base.palette as { action?: string }).action,
+              base.palette.accent,
+            ),
+          }
+        : {}),
     },
     font: {
       family: normalizeFontFamily(font.family ?? base.font.family, base.font.family),

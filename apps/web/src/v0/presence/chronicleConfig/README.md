@@ -43,6 +43,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain Card frames
+- `ChronicleConfigShell` accepts `subnav` for quiet inner frames under the identity header. Domain Configure uses Domain · People · Addresses · Presence.
+
 ### 2026-09-13 — Chronicle Config is a bounded scrollport
 - `ChronicleConfigShell` uses `overflow-hidden` on the shell so the inner panel, not the card, is the scroll surface.
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { hexContrast } from "./treatmentSwatches.js"
 import {
   derivePaletteFromRgbSamples,
   relativeLuminanceRgb,
@@ -7,7 +8,7 @@ import {
 
 describe("derivePaletteFromRgbSamples", () => {
   it("returns the Warm Minimal fallback when there are no samples", () => {
-    expect(derivePaletteFromRgbSamples([])).toEqual({
+    expect(derivePaletteFromRgbSamples([])).toMatchObject({
       background: "#f5f0e8",
       accent: "#2d6a7f",
       primary: "#2d6a7f",
@@ -23,9 +24,9 @@ describe("derivePaletteFromRgbSamples", () => {
       { r: 46, g: 177, b: 167 },
     ])
     expect(palette.dark).toBe(false)
-    expect(palette.accent).toBe("#2eb1a7")
     expect(palette.primary).toBe("#231910")
     expect(palette.surface).not.toBe(palette.accent)
+    expect(hexContrast(palette.accent, palette.surface)).toBeGreaterThanOrEqual(3)
   })
 
   it("marks a dark-brown field as dark", () => {

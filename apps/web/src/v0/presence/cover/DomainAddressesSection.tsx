@@ -26,6 +26,8 @@ export interface DomainAddressesSectionProps {
     customDomain?: string | null
     customDomainVerified?: boolean
   }) => void
+  /** Hide stacked-section chrome when this is its own Domain Card frame. */
+  embedded?: boolean
 }
 
 interface DnsStatusPayload {
@@ -72,6 +74,7 @@ export function DomainAddressesSection({
   customDomain: customDomainProp,
   customDomainVerified: customDomainVerifiedProp = false,
   onAddressesUpdated,
+  embedded = false,
 }: DomainAddressesSectionProps) {
   const [draftCustomDomain, setDraftCustomDomain] = React.useState("")
   const [savedCustomDomain, setSavedCustomDomain] = React.useState(
@@ -268,13 +271,18 @@ export function DomainAddressesSection({
   const dnsVerified = Boolean(dnsStatus?.verified || customDomainVerified)
 
   return (
-    <div className="mt-6 mb-4 pt-5 border-t" style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}>
-      <p
-        className="text-[11px] font-semibold uppercase tracking-widest mb-3"
-        style={sectionLabelStyle}
-      >
-        Addresses
-      </p>
+    <div
+      className={embedded ? "mb-4" : "mt-6 mb-4 pt-5 border-t"}
+      style={embedded ? undefined : { borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+    >
+      {embedded ? null : (
+        <p
+          className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+          style={sectionLabelStyle}
+        >
+          Addresses
+        </p>
+      )}
 
       <div className="mb-4">
         <p className="keeper-presence-field-label mb-1.5">Domain tag</p>

@@ -99,6 +99,9 @@ export async function applyDomainVisualFromImage(
           palette: {
             background: palette.background,
             accent: palette.accent,
+            ink: palette.ink,
+            signal: palette.signal,
+            action: palette.action,
           },
         },
         theme: {

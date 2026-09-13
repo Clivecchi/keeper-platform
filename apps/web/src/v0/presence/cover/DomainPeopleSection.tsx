@@ -20,6 +20,8 @@ export type { DomainMemberRow, DomainOwnerRow, PendingInvitationRow }
 
 export interface DomainPeopleSectionProps {
   domainId: string
+  /** Hide stacked-section chrome when this is its own Domain Card frame. */
+  embedded?: boolean
 }
 
 interface SearchUserRow {
@@ -56,7 +58,7 @@ const listScrollStyle: React.CSSProperties = {
   overscrollBehavior: "contain",
 }
 
-export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
+export function DomainPeopleSection({ domainId, embedded = false }: DomainPeopleSectionProps) {
   const [owner, setOwner] = React.useState<DomainOwnerRow | null>(null)
   const [members, setMembers] = React.useState<DomainMemberRow[]>([])
   const [pendingInvitations, setPendingInvitations] = React.useState<PendingInvitationRow[]>([])
@@ -228,16 +230,22 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
 
   return (
     <div
-      className="mt-6 mb-4 pt-5 border-t"
-      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+      className={embedded ? "mb-2" : "mt-6 mb-4 pt-5 border-t"}
+      style={embedded ? undefined : { borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
     >
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <p
-          className="text-[11px] font-semibold uppercase tracking-widest"
-          style={sectionLabelStyle}
-        >
-          People
-        </p>
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start sm:justify-between">
+        {embedded ? (
+          <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            Who owns this Domain, who belongs, and who has been invited.
+          </p>
+        ) : (
+          <p
+            className="text-[11px] font-semibold uppercase tracking-widest"
+            style={sectionLabelStyle}
+          >
+            People
+          </p>
+        )}
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
@@ -261,10 +269,6 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
           </button>
         </div>
       </div>
-
-      <p className="text-[11px] mb-3" style={sectionLabelStyle}>
-        Owner, members, and pending invitations are different relationships.
-      </p>
 
       {showAdd ? (
         <div className="rounded-md p-3 mb-3 space-y-3" style={rowStyle}>
@@ -358,16 +362,24 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
               Owner
             </p>
             {owner ? (
-              <div className="rounded-md px-3 py-2" style={rowStyle}>
-                <p className="text-sm font-medium truncate">{owner.name}</p>
-                {owner.email ? (
-                  <p className="text-[11px] truncate" style={sectionLabelStyle}>
-                    {owner.email}
-                  </p>
-                ) : null}
-                <p className="text-[11px] mt-1" style={sectionLabelStyle}>
-                  Owner — domain-level ownership, not a member role.
-                </p>
+              <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5" style={rowStyle}>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{owner.name}</p>
+                  {owner.email ? (
+                    <p className="text-[11px] truncate" style={sectionLabelStyle}>
+                      {owner.email}
+                    </p>
+                  ) : null}
+                </div>
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+                  style={{
+                    color: "hsl(var(--theme-ink-secondary))",
+                    border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
+                  }}
+                >
+                  Owner
+                </span>
               </div>
             ) : (
               <p className="text-sm" style={sectionLabelStyle}>
@@ -385,8 +397,8 @@ export function DomainPeopleSection({ domainId }: DomainPeopleSectionProps) {
             </p>
             {members.length === 0 ? (
               <p className="text-sm" style={sectionLabelStyle}>
-                No members yet. Add someone who already has a Keeper account, or invite by
-                email.
+                No members yet. Invite someone, or add a person who already has a Keeper
+                account.
               </p>
             ) : (
               <div className="space-y-2" style={listScrollStyle}>

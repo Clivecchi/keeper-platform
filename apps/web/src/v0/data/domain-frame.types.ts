@@ -30,6 +30,12 @@ export interface DomainFrameTheme {
 export interface DomainFrameTreatmentPalette {
   background: string
   accent: string
+  /** Optional — derived from paper when omitted. */
+  ink?: string
+  /** Alive / Active — the life color. Derived when omitted. */
+  signal?: string
+  /** Buttons and other pressable chrome. Derived when omitted. */
+  action?: string
 }
 
 export interface DomainFrameTreatmentFont {

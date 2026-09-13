@@ -57,7 +57,7 @@ export const domainCoverSchema: EntityCoverSchema = {
     const configureAction: CoverActionDef = {
       id: "configure",
       label: "Configure",
-      variant: "secondary",
+      variant: "primary",
       icon: "gear",
       onClick: actions.onConfigure,
     }

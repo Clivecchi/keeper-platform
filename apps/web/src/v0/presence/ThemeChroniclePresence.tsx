@@ -2,7 +2,7 @@
 
 /**
  * Theme in Chronicle — Composer tool, not Composer.
- * Domain look: paper, accent, cover. Ask the lead to refine.
+ * Domain look: paper, ink, accent, alive, action. Ask the lead to refine.
  * Stage inherit / imagery stays available when that room is open.
  */
 
@@ -10,10 +10,26 @@ import * as React from "react"
 import { ArrowLeftIcon } from "@heroicons/react/24/outline"
 import {
   extractDomainThemeCover,
-  resolvePlacementReadingPlane,
+  resolveTreatmentSwatches,
   stageThemeInheritsDomain,
   type KeeperStageTheme,
 } from "@keeper/shared"
+
+type LookDraft = {
+  paper: string
+  ink: string
+  accent: string
+  signal: string
+  action: string
+}
+
+const SWATCHES: { key: keyof LookDraft; label: string; hint: string }[] = [
+  { key: "paper", label: "Paper", hint: "the page" },
+  { key: "ink", label: "Ink", hint: "the type" },
+  { key: "accent", label: "Accent", hint: "identity" },
+  { key: "signal", label: "Alive", hint: "Active" },
+  { key: "action", label: "Action", hint: "buttons" },
+]
 import { useAuth } from "../../context/AuthContext"
 import { ChronicleVisualUploadField } from "./chronicleConfig/ChronicleCoverField"
 import { patchDomainTreatment } from "./chronicleConfig/chroniclePatch"
@@ -77,21 +93,55 @@ export function ThemeChroniclePresence({
   )
   const agentName = leadIdentity.displayName || "the lead agent"
 
-  const [background, setBackground] = React.useState(treatment.palette.background)
-  const [accent, setAccent] = React.useState(treatment.palette.accent)
-
-  React.useEffect(() => {
-    setBackground(treatment.palette.background)
-    setAccent(treatment.palette.accent)
-  }, [treatment.palette.background, treatment.palette.accent])
-
-  const plane = React.useMemo(
+  const seeded = React.useMemo(
     () =>
-      resolvePlacementReadingPlane({
-        surfaceHex: background,
+      resolveTreatmentSwatches({
+        background: treatment.palette.background,
+        accent: treatment.palette.accent,
+        ink: treatment.palette.ink,
+        signal: treatment.palette.signal,
+        action: treatment.palette.action,
         hasAtmosphere: Boolean(coverUrl),
       }),
-    [background, coverUrl],
+    [
+      treatment.palette.background,
+      treatment.palette.accent,
+      treatment.palette.ink,
+      treatment.palette.signal,
+      treatment.palette.action,
+      coverUrl,
+    ],
+  )
+
+  const [draft, setDraft] = React.useState<LookDraft>(() => ({
+    paper: treatment.palette.background,
+    ink: seeded.ink,
+    accent: seeded.accent,
+    signal: seeded.signal,
+    action: seeded.action,
+  }))
+
+  React.useEffect(() => {
+    setDraft({
+      paper: treatment.palette.background,
+      ink: seeded.ink,
+      accent: seeded.accent,
+      signal: seeded.signal,
+      action: seeded.action,
+    })
+  }, [treatment.palette.background, seeded])
+
+  const live = React.useMemo(
+    () =>
+      resolveTreatmentSwatches({
+        background: draft.paper,
+        accent: draft.accent,
+        ink: draft.ink,
+        signal: draft.signal,
+        action: draft.action,
+        hasAtmosphere: Boolean(coverUrl),
+      }),
+    [draft, coverUrl],
   )
 
   const applyTheme = React.useCallback(
@@ -104,19 +154,27 @@ export function ThemeChroniclePresence({
   const persistTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const persistLook = React.useCallback(
-    async (nextBackground: string, nextAccent: string) => {
+    async (next: LookDraft) => {
       if (!resolvedSlug || !user) return
-      const bg = normalizeTreatmentHexColor(nextBackground, treatment.palette.background)
-      const ac = normalizeTreatmentHexColor(nextAccent, treatment.palette.accent)
-      const nextTreatment = {
-        name: treatment.name,
-        palette: { background: bg, accent: ac },
-        font: treatment.font,
-      }
-      const paper = resolvePlacementReadingPlane({
-        surfaceHex: bg,
+      const resolved = resolveTreatmentSwatches({
+        background: normalizeTreatmentHexColor(next.paper, treatment.palette.background),
+        accent: normalizeTreatmentHexColor(next.accent, treatment.palette.accent),
+        ink: normalizeTreatmentHexColor(next.ink, seeded.ink),
+        signal: normalizeTreatmentHexColor(next.signal, seeded.signal),
+        action: normalizeTreatmentHexColor(next.action, seeded.action),
         hasAtmosphere: Boolean(coverUrl),
       })
+      const nextTreatment = {
+        name: treatment.name,
+        palette: {
+          background: normalizeTreatmentHexColor(next.paper, treatment.palette.background),
+          accent: resolved.accent,
+          ink: resolved.ink,
+          signal: resolved.signal,
+          action: resolved.action,
+        },
+        font: treatment.font,
+      }
       setSaving(true)
       setError(null)
       try {
@@ -128,9 +186,9 @@ export function ThemeChroniclePresence({
             treatment: nextTreatment,
             theme: {
               colors: {
-                primary: paper.inkPrimaryHex,
-                accent: ac,
-                surface: paper.surfaceHex,
+                primary: resolved.ink,
+                accent: resolved.accent,
+                surface: resolved.paper,
               },
             },
           }),
@@ -142,14 +200,14 @@ export function ThemeChroniclePresence({
         setSaving(false)
       }
     },
-    [resolvedSlug, user, treatment, coverUrl, shell],
+    [resolvedSlug, user, treatment, coverUrl, shell, seeded],
   )
 
   const queuePersist = React.useCallback(
-    (nextBackground: string, nextAccent: string) => {
+    (next: LookDraft) => {
       if (persistTimerRef.current) window.clearTimeout(persistTimerRef.current)
       persistTimerRef.current = window.setTimeout(() => {
-        void persistLook(nextBackground, nextAccent)
+        void persistLook(next)
       }, 450)
     },
     [persistLook],
@@ -163,10 +221,10 @@ export function ThemeChroniclePresence({
 
   const askAgent = React.useCallback(() => {
     board?.actions.setDraftComposeHint(
-      `Please refine ${domainName}'s look. The Domain card and Chronicle must read like a living book — sealed paper, strong ink contrast, atmosphere behind the page not through the type. Current paper is ${background}, accent is ${accent}. Fix inadequate contrast if you see it.`,
+      `Please refine ${domainName}'s look like a living book. Use all five roles: paper ${live.paper}, ink ${live.ink}, accent ${live.accent}, alive ${live.signal}, action ${live.action}. Atmosphere stays behind the page. Type, Active, and buttons should pop.`,
     )
     onClose()
-  }, [board, domainName, background, accent, onClose])
+  }, [board, domainName, live, onClose])
 
   const canEdit = Boolean(user && resolvedSlug)
 
@@ -209,29 +267,47 @@ export function ThemeChroniclePresence({
           className="text-[13px] leading-relaxed"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
-          Change the paper and accent here, or ask {agentName} to refine contrast. Atmosphere
-          belongs behind the page — type stays on sealed paper.
+          Five roles, not two. Paper and ink hold the page. Accent is identity. Alive is
+          Active. Action is what you press. Ask {agentName} if you want the image to choose.
         </p>
 
         <div
-          className="theme-reading-plane mt-4 rounded-xl border px-4 py-4"
+          className="mt-4 rounded-xl px-4 py-4"
           style={{
-            borderColor: "hsl(var(--theme-border-soft) / 0.45)",
-            backgroundColor: plane.surfaceHex,
-            color: plane.ink.primary,
+            backgroundColor: live.paper,
+            color: live.ink,
+            boxShadow: `inset 3px 0 0 ${live.accent}`,
           }}
         >
-          <p className="font-serif text-[20px] font-bold leading-tight">{domainName}</p>
-          <p className="mt-1 text-[13px] leading-relaxed" style={{ color: plane.ink.secondary }}>
-            This is how the Domain card should read — a living book, not type lost in the
-            photograph.
-          </p>
-          <p className="mt-2 text-[11px]" style={{ color: plane.ink.tertiary }}>
-            {plane.contrast >= 4.5
-              ? `${plane.contrast}:1 — readable`
-              : `${plane.contrast}:1 — too close; paper will seal`}
-            {plane.adjusted ? " · mid-tone pushed to paper" : ""}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-serif text-[20px] font-bold leading-tight">{domainName}</p>
+            <span
+              className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest"
+              style={{ background: live.signal, color: "#1a1612" }}
+            >
+              Active
+            </span>
+          </div>
+          <div className="mt-2 flex gap-3">
+            <div className="w-0.5 shrink-0 rounded-full" style={{ background: live.accent }} />
+            <p className="text-[13px] leading-relaxed" style={{ opacity: 0.88 }}>
+              Type on paper. Life on the chip. A button you can actually see.
+            </p>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <span
+              className="rounded-lg px-3 py-1.5 text-[11px] font-semibold"
+              style={{ background: live.action, color: live.actionInk }}
+            >
+              Configure
+            </span>
+            <span
+              className="rounded-lg px-3 py-1.5 text-[11px] font-semibold"
+              style={{ border: `1px solid ${live.accent}`, color: live.accent }}
+            >
+              People
+            </span>
+          </div>
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
@@ -270,74 +346,55 @@ export function ThemeChroniclePresence({
             />
           ) : null}
 
-          <label className="flex flex-col gap-1.5 text-[13px]" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-            Paper
-            <span className="flex items-center gap-2">
-              <input
-                type="color"
-                value={normalizeTreatmentHexColor(background, "#f5f0e8")}
-                disabled={!canEdit || saving}
-                onChange={(event) => {
-                  const next = event.target.value
-                  setBackground(next)
-                  queuePersist(next, accent)
-                }}
-                aria-label="Paper color"
-              />
-              <input
-                type="text"
-                value={background}
-                disabled={!canEdit || saving}
-                onChange={(event) => setBackground(event.target.value)}
-                onBlur={() => void persistLook(background, accent)}
-                className="min-w-0 flex-1 rounded-md border px-2 py-1 font-mono text-[12px]"
-                style={{
-                  borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                  background: "hsl(var(--theme-surface-paper) / 0.7)",
-                  color: "hsl(var(--theme-ink-primary))",
-                }}
-              />
-            </span>
-          </label>
-
-          <label className="flex flex-col gap-1.5 text-[13px]" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-            Accent
-            <span className="flex items-center gap-2">
-              <input
-                type="color"
-                value={normalizeTreatmentHexColor(accent, "#2d6a7f")}
-                disabled={!canEdit || saving}
-                onChange={(event) => {
-                  const next = event.target.value
-                  setAccent(next)
-                  queuePersist(background, next)
-                }}
-                aria-label="Accent color"
-              />
-              <input
-                type="text"
-                value={accent}
-                disabled={!canEdit || saving}
-                onChange={(event) => setAccent(event.target.value)}
-                onBlur={() => void persistLook(background, accent)}
-                className="min-w-0 flex-1 rounded-md border px-2 py-1 font-mono text-[12px]"
-                style={{
-                  borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                  background: "hsl(var(--theme-surface-paper) / 0.7)",
-                  color: "hsl(var(--theme-ink-primary))",
-                }}
-              />
-            </span>
-          </label>
+          <div className="flex gap-2">
+            {SWATCHES.map((swatch) => (
+              <label
+                key={swatch.key}
+                className="flex min-w-0 flex-1 flex-col items-center gap-1"
+              >
+                <span
+                  className="relative h-10 w-10 overflow-hidden rounded-full border-2"
+                  style={{
+                    background: live[swatch.key],
+                    borderColor: "hsl(var(--theme-ink-primary) / 0.2)",
+                  }}
+                >
+                  <input
+                    type="color"
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    value={normalizeTreatmentHexColor(draft[swatch.key], live[swatch.key])}
+                    disabled={!canEdit || saving}
+                    aria-label={swatch.label}
+                    onChange={(event) => {
+                      const next = { ...draft, [swatch.key]: event.target.value }
+                      setDraft(next)
+                      queuePersist(next)
+                    }}
+                  />
+                </span>
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-wide"
+                  style={{ color: "hsl(var(--theme-ink-primary))" }}
+                >
+                  {swatch.label}
+                </span>
+                <span
+                  className="text-center text-[9px] leading-tight"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  {swatch.hint}
+                </span>
+              </label>
+            ))}
+          </div>
 
           <button
             type="button"
             onClick={askAgent}
             className="rounded-lg px-3 py-2.5 text-[13px] font-semibold"
             style={{
-              background: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.16)",
-              border: "1px solid hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.4)",
-              color: "hsl(var(--theme-ink-primary))",
+              background: live.action,
+              color: live.actionInk,
             }}
           >
             Ask {agentName} to refine this look

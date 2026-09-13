@@ -20,6 +20,11 @@ import { useAuth } from "../../../context/AuthContext"
 import { applyDomainVisualFromImage } from "../../themes/applyDomainVisualFromImage"
 import { DomainAddressesSection } from "./DomainAddressesSection"
 import { DomainPeopleSection } from "./DomainPeopleSection"
+import {
+  DOMAIN_CONFIG_FRAME_DEFS,
+  resolveDomainConfigFrame,
+  type DomainConfigFrame,
+} from "./domainConfigFrames"
 
 export interface DomainConfigPresenceProps {
   domainId: string
@@ -50,7 +55,7 @@ export interface DomainConfigPresenceProps {
     placeholder?: string,
   ) => React.ReactNode
   ideBuildContextFields?: [string, FieldDefinition][]
-  /** Open Configure already scrolled to People (from Cover). */
+  /** Open Configure on the People frame (from Cover). */
   focusPeople?: boolean
 }
 
@@ -104,7 +109,7 @@ const fieldPlaceholders: Record<string, string> = {
 }
 
 const fieldLabels: Record<string, string> = {
-  keeperType: "Character",
+  keeperType: "How it shows up",
   purpose: "Purpose",
   theme_color: "Theme color",
   visibility: "Visibility",
@@ -149,7 +154,7 @@ function ConfigFieldGroup({
             ) : null}
             {key === "keeperType" ? (
               <p className="text-[11px] mt-1" style={sectionLabelStyle}>
-                How this domain shows up in Keeper — type, role, or persona line.
+                A short line for what this Domain is in Keeper. Not a membership role.
               </p>
             ) : null}
           </div>
@@ -182,10 +187,12 @@ export function DomainConfigPresence({
   ideBuildContextFields = [],
   focusPeople = false,
 }: DomainConfigPresenceProps) {
-  const peopleSectionRef = React.useRef<HTMLDivElement>(null)
   const v0Shell = useV0ShellOptional()
   const boardCtx = useUniversalBoardOptional()
   const { user } = useAuth()
+  const [activeFrame, setActiveFrame] = React.useState<DomainConfigFrame>(() =>
+    resolveDomainConfigFrame(focusPeople ? "people" : "identity"),
+  )
   const fieldMap = React.useMemo(() => new Map(visibleFields), [visibleFields])
   const treatmentFieldMap = React.useMemo(() => {
     const defaults = PRESENCE_SCHEMA_DEFAULTS.domain?.fields ?? {}
@@ -206,14 +213,14 @@ export function DomainConfigPresence({
   const ideKeys = IDE_BUILD_FIELD_ORDER.filter((key) => ideFieldMap.has(key))
 
   const domainTag = fieldValues.slug?.trim() || domainSlug
+  const includeBuild = ideKeys.length > 0
+  const frames = DOMAIN_CONFIG_FRAME_DEFS.filter(
+    (frame) => frame.id !== "build" || includeBuild,
+  )
 
   React.useEffect(() => {
-    if (!focusPeople) return
-    const frame = window.requestAnimationFrame(() => {
-      peopleSectionRef.current?.scrollIntoView({ block: "start", behavior: "auto" })
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [focusPeople])
+    setActiveFrame(resolveDomainConfigFrame(focusPeople ? "people" : "identity", { includeBuild }))
+  }, [domainId, focusPeople, includeBuild])
 
   return (
     <ChronicleConfigShell
@@ -229,23 +236,40 @@ export function DomainConfigPresence({
       saveMessage={saveMessage}
       isDirty={isDirty}
       onSave={onSave}
-      headerActions={
-        <button
-          type="button"
-          onClick={() =>
-            peopleSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })
-          }
-          className="rounded-md px-2 py-1 text-xs font-semibold"
-          style={{
-            border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
-            color: "hsl(var(--theme-ink-primary))",
-            background: "hsl(var(--theme-surface-paper) / 0.65)",
-          }}
-        >
-          People
-        </button>
+      subnav={
+        <nav className="flex flex-wrap items-center gap-1" aria-label="Domain card frames">
+          {frames.map((frame) => {
+            const selected = frame.id === activeFrame
+            return (
+              <button
+                key={frame.id}
+                type="button"
+                onClick={() => setActiveFrame(frame.id)}
+                className="rounded-md px-2.5 py-1 text-[12px] font-semibold"
+                style={{
+                  color: selected
+                    ? "hsl(var(--theme-ink-primary))"
+                    : "hsl(var(--theme-ink-tertiary))",
+                  background: selected ? "hsl(var(--theme-surface-paper) / 0.7)" : "transparent",
+                  border: selected
+                    ? "1px solid hsl(var(--theme-border-soft) / 0.55)"
+                    : "1px solid transparent",
+                }}
+                aria-current={selected ? "page" : undefined}
+              >
+                {frame.label}
+              </button>
+            )
+          })}
+        </nav>
       }
     >
+      <p className="text-[12px] mb-4" style={sectionLabelStyle}>
+        {frames.find((frame) => frame.id === activeFrame)?.hint}
+      </p>
+
+      {activeFrame === "identity" ? (
+        <>
       <ChronicleCoverField
         label="Cover image"
         description="The domain's look — board and Chronicle atmosphere, and the colors extracted from this image. Library shelves hold more images without changing this."
@@ -292,88 +316,70 @@ export function DomainConfigPresence({
           </p>
         </div>
       ) : null}
-
-      <div ref={peopleSectionRef} id="domain-people">
-        <DomainPeopleSection domainId={domainId} />
-      </div>
-
-      <DomainAddressesSection
-        domainId={domainId}
-        domainTag={domainTag}
-        domainTagError={fieldErrors.slug}
-        onDomainTagChange={(value) => onFieldChange("slug", value)}
-        customDomain={customDomain}
-        customDomainVerified={customDomainVerified}
-        onAddressesUpdated={onAddressesUpdated}
-      />
-
-      {presenceKeys.length > 0 ? (
-        <div
-          className="mt-6 mb-4 pt-5 border-t"
-          style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
-        >
-          <p
-            className="text-[11px] font-semibold uppercase tracking-widest mb-3"
-            style={sectionLabelStyle}
-          >
-            Presence
-          </p>
-          <ConfigFieldGroup
-            keys={presenceKeys}
-            fieldMap={fieldMap}
-            fieldErrors={fieldErrors}
-            placeholders={fieldPlaceholders}
-            labels={fieldLabels}
-            renderFieldEditor={renderFieldEditor}
-          />
-        </div>
+        </>
       ) : null}
 
-      {treatmentKeys.length > 0 ? (
-        <div
-          className="mt-6 mb-4 pt-5 border-t"
-          style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
-        >
-          <p
-            className="text-[11px] font-semibold uppercase tracking-widest mb-1"
-            style={sectionLabelStyle}
-          >
-            Treatment
-          </p>
-          <p className="text-[11px] mb-3" style={sectionLabelStyle}>
-            How this domain feels — full look on Chronicle and Presents; accent and title type on
-            Nav and center Dialog. Trail bar stays neutral utility chrome.
-          </p>
-          <ConfigFieldGroup
-            keys={treatmentKeys}
-            fieldMap={treatmentFieldMap}
-            fieldErrors={fieldErrors}
-            placeholders={fieldPlaceholders}
-            labels={fieldLabels}
-            renderFieldEditor={renderFieldEditor}
-          />
-        </div>
+      {activeFrame === "people" ? (
+        <DomainPeopleSection domainId={domainId} embedded />
       ) : null}
 
-      {ideKeys.length > 0 ? (
-        <div
-          className="mt-6 mb-4 pt-5 border-t"
-          style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
-        >
-          <p
-            className="text-[11px] font-semibold uppercase tracking-widest mb-3"
-            style={sectionLabelStyle}
-          >
-            Build context
-          </p>
-          <ConfigFieldGroup
-            keys={ideKeys}
-            fieldMap={ideFieldMap}
-            fieldErrors={fieldErrors}
-            placeholders={fieldPlaceholders}
-            renderFieldEditor={renderFieldEditor}
-          />
-        </div>
+      {activeFrame === "addresses" ? (
+        <DomainAddressesSection
+          domainId={domainId}
+          domainTag={domainTag}
+          domainTagError={fieldErrors.slug}
+          onDomainTagChange={(value) => onFieldChange("slug", value)}
+          customDomain={customDomain}
+          customDomainVerified={customDomainVerified}
+          onAddressesUpdated={onAddressesUpdated}
+          embedded
+        />
+      ) : null}
+
+      {activeFrame === "presence" ? (
+        <>
+          {presenceKeys.length > 0 ? (
+            <ConfigFieldGroup
+              keys={presenceKeys}
+              fieldMap={fieldMap}
+              fieldErrors={fieldErrors}
+              placeholders={fieldPlaceholders}
+              labels={fieldLabels}
+              renderFieldEditor={renderFieldEditor}
+            />
+          ) : null}
+          {treatmentKeys.length > 0 ? (
+            <div className="mt-2 mb-4">
+              <p
+                className="text-[11px] font-semibold uppercase tracking-widest mb-1"
+                style={sectionLabelStyle}
+              >
+                Look
+              </p>
+              <p className="text-[11px] mb-3" style={sectionLabelStyle}>
+                How Chronicle and Presents feel. Nav and Dialog take the accent.
+              </p>
+              <ConfigFieldGroup
+                keys={treatmentKeys}
+                fieldMap={treatmentFieldMap}
+                fieldErrors={fieldErrors}
+                placeholders={fieldPlaceholders}
+                labels={fieldLabels}
+                renderFieldEditor={renderFieldEditor}
+              />
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      {activeFrame === "build" && includeBuild ? (
+        <ConfigFieldGroup
+          keys={ideKeys}
+          fieldMap={ideFieldMap}
+          fieldErrors={fieldErrors}
+          placeholders={fieldPlaceholders}
+          renderFieldEditor={renderFieldEditor}
+        />
       ) : null}
     </ChronicleConfigShell>
   )

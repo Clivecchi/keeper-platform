@@ -19,6 +19,8 @@ export interface ChronicleConfigShellProps extends ChronicleSaveBarProps {
   namePlaceholder?: string
   /** Always-visible header control (e.g. Domain People). */
   headerActions?: React.ReactNode
+  /** Quiet inner-frame switcher under the identity header. */
+  subnav?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -119,6 +121,7 @@ export function ChronicleConfigShell({
   onNameChange,
   namePlaceholder,
   headerActions,
+  subnav,
   children,
   saveStatus,
   saveMessage,
@@ -143,6 +146,15 @@ export function ChronicleConfigShell({
         namePlaceholder={namePlaceholder}
         headerActions={headerActions}
       />
+
+      {subnav ? (
+        <div
+          className="shrink-0 px-3 py-2"
+          style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.35)" }}
+        >
+          {subnav}
+        </div>
+      ) : null}
 
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-8">
         {children}

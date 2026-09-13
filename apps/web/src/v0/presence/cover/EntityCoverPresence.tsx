@@ -53,14 +53,14 @@ function CoverActionButton({ action }: { action: CoverActionDef }) {
       style={
         isPrimary
           ? {
-              background: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.18)",
-              border: "1px solid hsl(var(--theme-accent-primary, var(--theme-ink-primary)) / 0.45)",
-              color: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)))",
+              background: "var(--treatment-action, hsl(var(--theme-accent-primary)))",
+              border: "1px solid var(--treatment-action, hsl(var(--theme-accent-primary)))",
+              color: "var(--treatment-action-ink, hsl(var(--theme-surface-paper)))",
             }
           : {
               background: "transparent",
-              border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
-              color: "hsl(var(--theme-ink-secondary))",
+              border: "1px solid var(--treatment-accent, hsl(var(--theme-border-soft)))",
+              color: "var(--treatment-accent, hsl(var(--theme-ink-primary)))",
             }
       }
     >
@@ -303,12 +303,15 @@ function VisualPrimaryCoverHeader({
 
           {hero.statusLabel ? (
             <div
-              className="mt-1.5 inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest"
-              style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest"
+              style={{
+                background: "var(--treatment-signal, hsl(var(--theme-status-success, 152 69% 43%)))",
+                color: "#1a1612",
+              }}
             >
               <span
                 className="w-1.5 h-1.5 rounded-full"
-                style={{ background: "hsl(var(--theme-status-success, 152 69% 43%))" }}
+                style={{ background: "#1a1612" }}
                 aria-hidden
               />
               {hero.statusLabel}
@@ -380,8 +383,11 @@ function UnifiedCoverHeader({
       <div className="relative z-10 px-4 pt-4 pb-3">
         {hero.statusLabel && (
           <div
-            className="absolute top-4 right-4 z-20 flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest"
-            style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}
+            className="absolute top-4 right-4 z-20 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest"
+            style={{
+              background: "var(--treatment-signal, hsl(var(--theme-status-success, 152 69% 43%)))",
+              color: "#1a1612",
+            }}
           >
             <motion.span
               className="w-1.5 h-1.5 rounded-full"

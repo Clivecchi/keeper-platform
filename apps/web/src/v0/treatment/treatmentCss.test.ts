@@ -19,6 +19,8 @@ describe("treatmentShellStyle", () => {
     expect((style as Record<string, string>)["--treatment-color"]).toMatch(/\d+/)
     expect((style as Record<string, string>)["--theme-ink-primary"]).toMatch(/12%$/)
     expect((style as Record<string, string>)["--theme-ink-reading"]).toMatch(/12%$/)
+    expect((style as Record<string, string>)["--treatment-signal"]).toMatch(/^#/)
+    expect((style as Record<string, string>)["--treatment-action"]).toMatch(/^#/)
   })
 
   it("flips ink and paints atmosphere when the background is dark", () => {

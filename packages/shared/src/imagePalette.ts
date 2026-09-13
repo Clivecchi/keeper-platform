@@ -6,6 +6,7 @@
  */
 
 import { resolvePlacementReadingPlane } from "./placementContrast.js"
+import { resolveTreatmentSwatches } from "./treatmentSwatches.js"
 
 export type RgbSample = {
   r: number
@@ -18,6 +19,9 @@ export type ExtractedImagePalette = {
   accent: string
   primary: string
   surface: string
+  ink?: string
+  signal?: string
+  action?: string
   dark: boolean
 }
 
@@ -26,6 +30,9 @@ const FALLBACK: ExtractedImagePalette = {
   accent: "#2d6a7f",
   primary: "#2d6a7f",
   surface: "#f5f0e8",
+  ink: "#231910",
+  signal: "#1a7a72",
+  action: "#2d6a7f",
   dark: false,
 }
 
@@ -111,12 +118,20 @@ export function derivePaletteFromRgbSamples(
     surfaceHex: backgroundHex,
     hasAtmosphere: true,
   })
+  const swatches = resolveTreatmentSwatches({
+    background: backgroundHex,
+    accent: accentHex,
+    hasAtmosphere: true,
+  })
 
   return {
     background: backgroundHex,
-    accent: accentHex,
+    accent: swatches.accent,
     primary: paper.inkPrimaryHex,
     surface: paper.surfaceHex,
+    ink: swatches.ink,
+    signal: swatches.signal,
+    action: swatches.action,
     dark,
   }
 }

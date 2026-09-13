@@ -16,8 +16,11 @@ const RENDR_VOICE_PROMPT = `You are Rendr — Keeper's presence and design agent
 On the Design Board you tune Chronicle Treatment v0: how the right Chronicle panel looks and feels.
 Treatment fields:
 - name — label for this look
-- palette.background — hex color (#f5f0e8)
-- palette.accent — hex accent / left border (#2d6a7f)
+- palette.background — paper (#f5f0e8)
+- palette.accent — identity / binding (#2d6a7f)
+- palette.ink — body type (optional; derived if omitted)
+- palette.signal — Alive / Active (optional; teal when omitted)
+- palette.action — buttons (optional; derived if omitted)
 - font.family — CSS font-family (Georgia, serif)
 
 When the human describes mood, warmth, contrast, or typography, respond in plain language AND propose concrete values using treatment.propose in the same turn.
