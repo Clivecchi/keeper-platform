@@ -1,4 +1,8 @@
 import type { CSSProperties } from "react"
+import {
+  resolvePlacementReadingPlane,
+  type PlacementReadingPlane,
+} from "@keeper/shared"
 import type { ResolvedDomainTreatment } from "./resolveDomainTreatment"
 import {
   alphaToHexSuffix,
@@ -50,18 +54,6 @@ export function hexToHslComponents(hex: string): string | null {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
 }
 
-function relativeLuminance(hex: string): number {
-  const expanded = expandHex(hex)
-  if (!expanded) return 1
-
-  const channels = [0, 2, 4].map((i) => {
-    const c = parseInt(expanded.slice(i, i + 2), 16) / 255
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-  })
-
-  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
-}
-
 function applyTreatmentColorVars(
   style: CSSProperties,
   accentHex: string,
@@ -84,19 +76,23 @@ export type TreatmentShellOptions = {
 
 function applyTreatmentInkVars(
   style: CSSProperties,
-  darkBackground: boolean,
-  hasAtmosphere: boolean,
+  plane: PlacementReadingPlane,
 ): void {
-  const contrast = deriveAtmosphereContrast({
-    darkSurface: darkBackground,
-    hasAtmosphere,
-  })
   const vars = style as Record<string, string>
-  vars["--theme-ink-primary"] = hslStringToComponents(contrast["ink.primary"])
-  vars["--theme-ink-secondary"] = hslStringToComponents(contrast["ink.secondary"])
-  vars["--theme-ink-tertiary"] = hslStringToComponents(contrast["ink.tertiary"])
-  vars["--theme-ink-placeholder"] = hslStringToComponents(contrast["ink.placeholder"])
-  style.color = contrast["ink.primary"]
+  vars["--theme-ink-primary"] = hslStringToComponents(plane.ink.primary)
+  vars["--theme-ink-secondary"] = hslStringToComponents(plane.ink.secondary)
+  vars["--theme-ink-tertiary"] = hslStringToComponents(plane.ink.tertiary)
+  vars["--theme-ink-placeholder"] = hslStringToComponents(plane.ink.placeholder)
+  vars["--theme-ink-primary-color"] = plane.ink.primary
+  vars["--theme-ink-secondary-color"] = plane.ink.secondary
+  vars["--theme-ink-tertiary-color"] = plane.ink.tertiary
+  vars["--theme-ink-placeholder-color"] = plane.ink.placeholder
+  vars["--theme-ink-reading"] = hslStringToComponents(plane.ink.primary)
+  vars["--theme-ink-reading-secondary"] = hslStringToComponents(plane.ink.secondary)
+  vars["--theme-ink-reading-color"] = plane.ink.primary
+  vars["--theme-surface-reading"] = plane.surfaceComponents
+  vars["--theme-glass-reading-alpha"] = String(plane.glassAlpha)
+  style.color = plane.ink.primary
 }
 
 /** Full Treatment — Chronicle + Presents (background, accent, font). */
@@ -107,13 +103,22 @@ export function treatmentShellStyle(
   const background = HEX_COLOR.test(treatment.palette.background)
     ? treatment.palette.background
     : "#f5f0e8"
-  const darkBackground = relativeLuminance(background) < 0.35
   const atmosphereUrl = options.atmosphereUrl?.trim() || null
   const hasAtmosphere = Boolean(atmosphereUrl)
-  const contrast = deriveAtmosphereContrast({
-    darkSurface: darkBackground,
+  const plane = resolvePlacementReadingPlane({
+    surfaceHex: background,
     hasAtmosphere,
   })
+  const contrast = deriveAtmosphereContrast({
+    darkSurface: plane.darkSurface,
+    hasAtmosphere,
+  })
+  const washStartAlpha = plane.adjusted
+    ? Math.max(Number(contrast["atmosphere.treatmentWashStart"]), plane.glassAlpha)
+    : Number(contrast["atmosphere.treatmentWashStart"])
+  const washEndAlpha = plane.adjusted
+    ? Math.max(Number(contrast["atmosphere.treatmentWashEnd"]), Math.min(1, plane.glassAlpha + 0.02))
+    : Number(contrast["atmosphere.treatmentWashEnd"])
 
   const style: CSSProperties = {
     backgroundColor: background,
@@ -122,17 +127,17 @@ export function treatmentShellStyle(
   }
 
   if (atmosphereUrl) {
-    const washStart = `${background}${alphaToHexSuffix(Number(contrast["atmosphere.treatmentWashStart"]))}`
-    const washEnd = `${background}${alphaToHexSuffix(Number(contrast["atmosphere.treatmentWashEnd"]))}`
+    const washStart = `${background}${alphaToHexSuffix(washStartAlpha)}`
+    const washEnd = `${background}${alphaToHexSuffix(washEndAlpha)}`
     style.backgroundImage = `linear-gradient(180deg, ${washStart}, ${washEnd}), url(${atmosphereUrl})`
     style.backgroundSize = "cover"
     style.backgroundPosition = "center"
     style.backgroundRepeat = "no-repeat"
   }
 
-  applyTreatmentInkVars(style, darkBackground, hasAtmosphere)
+  applyTreatmentInkVars(style, plane)
   applyTreatmentColorVars(style, treatment.palette.accent)
-  ;(style as Record<string, string>)["--treatment-surface"] = background
+  ;(style as Record<string, string>)["--treatment-surface"] = plane.surfaceHex
   ;(style as Record<string, string>)["--treatment-font-family"] =
     treatment.font.family
 

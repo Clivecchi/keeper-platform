@@ -89,7 +89,7 @@ function AmbientVisualLayer({
             backgroundPosition: "right center",
             filter: "blur(28px) saturate(1.35)",
             transform: "scale(1.2)",
-            opacity: 0.5,
+            opacity: 0.28,
           }}
         />
         <div
@@ -267,9 +267,10 @@ function VisualPrimaryCoverHeader({
           style={{
             background: `linear-gradient(
               to top,
-              color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 96%, transparent) 0%,
-              color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 55%, transparent) 38%,
-              transparent 72%
+              hsl(var(--theme-surface-reading, var(--theme-surface-paper)) / 0.96) 0%,
+              hsl(var(--theme-surface-reading, var(--theme-surface-paper)) / 0.72) 42%,
+              hsl(var(--theme-surface-reading, var(--theme-surface-paper)) / 0.18) 72%,
+              transparent 100%
             )`,
           }}
         />
@@ -560,12 +561,9 @@ export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenc
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-xl border"
+      className="theme-reading-plane relative overflow-hidden rounded-xl border"
       style={{
-        borderColor: "hsl(var(--theme-border-soft) / 0.45)",
-        background:
-          "color-mix(in srgb, var(--treatment-surface, hsl(var(--theme-surface-panel))) 94%, transparent)",
-        opacity: values.atmosphereOpacity,
+        borderColor: "hsl(var(--theme-border-soft) / 0.55)",
       }}
       data-cover-mode="cover"
       data-cover-layout={content.layout ?? "standard"}

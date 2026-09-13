@@ -71,6 +71,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-09-13 — Theme editor in Chronicle
+- Composer Theme wraps `ThemeChroniclePresence` in the Treatment shell and passes domain id/slug so paper, accent, and cover can be saved from Chronicle.
+
 ### 2026-08-30 — Stage inspect
 - `shouldRenderRealmDocumentChronicle`: named Dialog still opens its Document. On Stage, Moment and Library render as themselves so you can discuss a placed object.
 
@@ -132,7 +135,7 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 ## 📆 Update Log
 
 ### 2026-09-13 — Domain Chronicle height
-- Domain idle extras (ingest + Library roadmap) no longer render as flex siblings under `ChronicleRecordView`. That pairing made the Domain card as tall as its content, so Chronicle could not scroll. Those notes now live inside the Domain Cover scroll.
+- Domain idle extras no longer sit as flex siblings under `ChronicleRecordView`. Chronicle body is `flex-1 min-h-0` so the Domain card fills and scrolls.
 
 ### 2026-07-13 — Chronicle Layer-1 compat shim (PR4)
 - `UniversalViewPanel` routes via `@keeper/shared` `resolveChronicleView` + `chronicleSubjectToLegacyKindId` instead of inline `resolveKindId` if-chain

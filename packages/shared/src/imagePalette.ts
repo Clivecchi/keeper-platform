@@ -1,7 +1,11 @@
 /**
  * Derive a domain palette from sampled image pixels.
  * Canvas / file loading stays in the web app; this is the testable color math.
+ * Paper / ink are sealed through placement contrast so mid-tone averages
+ * cannot become the Domain card.
  */
+
+import { resolvePlacementReadingPlane } from "./placementContrast.js"
 
 export type RgbSample = {
   r: number
@@ -103,12 +107,16 @@ export function derivePaletteFromRgbSamples(
   const dark = relativeLuminanceRgb(background.r, background.g, background.b) < 0.35
   const backgroundHex = rgbToHex(background.r, background.g, background.b)
   const accentHex = rgbToHex(accent.r, accent.g, accent.b)
+  const paper = resolvePlacementReadingPlane({
+    surfaceHex: backgroundHex,
+    hasAtmosphere: true,
+  })
 
   return {
     background: backgroundHex,
     accent: accentHex,
-    primary: accentHex,
-    surface: backgroundHex,
+    primary: paper.inkPrimaryHex,
+    surface: paper.surfaceHex,
     dark,
   }
 }

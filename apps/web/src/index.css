@@ -49,18 +49,20 @@ body {
   color: hsl(var(--theme-ink-primary));
 }
 
-/* Paper card on atmosphere — cream plane + dark ink. Tokens from atmosphereContrast. */
+/* Paper card on atmosphere — sealed page + reading ink. Tokens from placement contrast. */
 .theme-reading-plane {
   background-color: hsl(
     var(--theme-surface-reading, var(--theme-surface-paper)) /
-    var(--theme-glass-reading-alpha, 0.88)
+    var(--theme-glass-reading-alpha, 0.96)
   );
   color: hsl(var(--theme-ink-reading, var(--theme-ink-primary)));
   --theme-surface-paper: var(--theme-surface-reading);
   --theme-ink-primary: var(--theme-ink-reading);
   --theme-ink-secondary: var(--theme-ink-reading-secondary, var(--theme-ink-reading));
+  --theme-ink-tertiary: var(--theme-ink-reading-secondary, var(--theme-ink-reading));
   --theme-ink-primary-color: var(--theme-ink-reading-color, hsl(var(--theme-ink-reading)));
   --theme-ink-secondary-color: hsl(var(--theme-ink-reading-secondary, var(--theme-ink-reading)));
+  --theme-ink-tertiary-color: hsl(var(--theme-ink-reading-secondary, var(--theme-ink-reading)));
 }
 
 /* Display density — `keeper-density` in localStorage; `data-density` on <html> (see index.html + Design Board banner) */
@@ -2441,6 +2443,12 @@ button.dialog-prelude:hover {
 
 .keeper-chronicle-panel.keeper-chronicle-panel--focused {
   box-shadow: inset 0 0 32px 0px var(--treatment-color-alpha-12);
+}
+
+.keeper-chronicle-panel .keeper-chronicle-treatment,
+.keeper-chronicle-panel [data-render-context="chronicle"] {
+  flex: 1 1 0%;
+  min-height: 0;
 }
 
 .keeper-chronicle-panel .keeper-panel-scroll {

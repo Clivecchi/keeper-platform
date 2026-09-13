@@ -24,7 +24,8 @@ describe("derivePaletteFromRgbSamples", () => {
     ])
     expect(palette.dark).toBe(false)
     expect(palette.accent).toBe("#2eb1a7")
-    expect(palette.surface).toBe(palette.background)
+    expect(palette.primary).toBe("#231910")
+    expect(palette.surface).not.toBe(palette.accent)
   })
 
   it("marks a dark-brown field as dark", () => {

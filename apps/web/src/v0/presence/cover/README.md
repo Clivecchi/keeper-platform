@@ -55,6 +55,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain card is a reading plane
+- `EntityCoverPresence` uses `.theme-reading-plane` (sealed paper + reading ink). Atmosphere no longer lowers the whole card’s opacity. Type sits on the page, not in the photograph.
+
 ### 2026-08-30 — Domain cover contrast
 - `EntityCoverPresence` sits on `--treatment-surface` so Treatment ink is readable. Body copy uses ink, not accent teal. Domain names wrap instead of clipping to "liv".
 
@@ -210,9 +213,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - When a Dialog is selected as performance context, Chronicle Cover renders `AgentPerformanceInspection`.
 - Training Save verifies persisted `config.voice_prompt` before reporting success. Selecting a performance returns Cover.
 
-### 2026-09-13 — Domain Chronicle scrolls; People is reachable
-- Domain Cover and Configure are pinned to the Chronicle viewport (`absolute inset-0`) so the card can scroll. Extra Domain notes no longer sit as flex siblings that stole height.
-- People sits with identity (before Addresses). Cover has a **People** action that opens Configure at that section.
+### 2026-09-13 — Domain Chronicle height restore
+- Absolute inset pinning collapsed Chronicle to the atmosphere photo. Cover/Configure now use `flex-1 min-h-0` so the Domain card loads again and can scroll.
+- People is on the Domain Cover, in the Configure header, and in the form under identity.
 
 ### 2026-09-12 — Domain People V0
 - People now shows Owner (`Domain.ownerId`), Members (`DomainPermission`), and Pending invitations (`GET /connections`) as distinct relationships.

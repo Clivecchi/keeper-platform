@@ -35,6 +35,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-09-13: Theme tooltip — change this domain’s look, or ask the agent. No longer “go to Stage.”
 - 2026-09-12: **Mobile docked composer** — `composerSize="mobile-docked"` is a one-row chat bar (attach · input · send). Adaptive Universal Board uses this instead of the 58vh staged expand / Message bubble.
 - 2026-09-02: **Keeping Choices** — `DialogueMessageList` renders independent chips from message metadata. Click is a new Lead turn; selected chips cannot be exercised again.
 - 2026-08-31: Composer toolbar is grouped — **Look** (Theme) · **Reach** · **Capture** · **Send**. Theme opens Chronicle (`onOpenTheme`). Not a second Composer.

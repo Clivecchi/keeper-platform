@@ -17,6 +17,8 @@ export interface ChronicleConfigShellProps extends ChronicleSaveBarProps {
   /** When set, the identity name in the header is the editable name. */
   onNameChange?: (value: string) => void
   namePlaceholder?: string
+  /** Always-visible header control (e.g. Domain People). */
+  headerActions?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -27,10 +29,12 @@ function ConfigIdentityHeader({
   onBack,
   onNameChange,
   namePlaceholder,
+  headerActions,
 }: ChronicleConfigIdentity & {
   onBack: () => void
   onNameChange?: (value: string) => void
   namePlaceholder?: string
+  headerActions?: React.ReactNode
 }) {
   const displayAvatar = avatar?.trim() || "◇"
   const isLive =
@@ -101,6 +105,7 @@ function ConfigIdentityHeader({
           </p>
         )}
       </div>
+      {headerActions ? <div className="shrink-0">{headerActions}</div> : null}
     </div>
   )
 }
@@ -113,6 +118,7 @@ export function ChronicleConfigShell({
   onBack,
   onNameChange,
   namePlaceholder,
+  headerActions,
   children,
   saveStatus,
   saveMessage,
@@ -123,7 +129,7 @@ export function ChronicleConfigShell({
 }: ChronicleConfigShellProps) {
   return (
     <motion.div
-      className="flex h-full min-h-0 flex-col overflow-hidden"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 12 }}
@@ -135,6 +141,7 @@ export function ChronicleConfigShell({
         onBack={onBack}
         onNameChange={onNameChange}
         namePlaceholder={namePlaceholder}
+        headerActions={headerActions}
       />
 
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-8">

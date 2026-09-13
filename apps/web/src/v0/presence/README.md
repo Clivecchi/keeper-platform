@@ -11,7 +11,7 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `BoardDefConfigPresence.tsx` — config layout for board definitions (human-readable structure)
 - `GlossaryPresence.tsx` — Object Glossary Chronicle surface (Domain read / Design definition ownership)
 - `ReachChroniclePresence.tsx` — Composer Reach tool in Chronicle (not Composer)
-- `ThemeChroniclePresence.tsx` — Composer Theme tool in Chronicle (Stage inherit / imagery; not `?frame=theme`)
+- `ThemeChroniclePresence.tsx` — Composer Theme tool: Domain paper / accent / cover, ask the lead, Stage inherit when that room is open
 - `KeeperPresenceDefaults.ts` — platform default schemas (journey, moment, keeper, agent, draft, dialog, service, domain, frame, boardDef)
 - `usePresenceSchema.ts` — React hook with 3-level resolution: object override → domain DB → platform default; module-level cache
 - `KeeperPresence.tsx` — schema-driven Chronicle surface; journey focus layout, breadcrumb, related sections, relative timestamps; agent explicit Save + structured prompts
@@ -64,6 +64,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-09-13 — Theme is the Domain look
+- `ThemeChroniclePresence` edits paper, accent, and cover, shows a contrast preview, and can ask the lead to refine. It no longer sends members to Stage to change the Domain look.
 
 ### 2026-09-12 — Agent Board Performance Inspection V0
 - Agent Cover shows class **Role** from `kip_agents.role`. Tagline is no longer labeled Role.

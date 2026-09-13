@@ -56,6 +56,9 @@ StyleScope: effectiveStyleId = gray-earth when domain-resolved (Warm Dark via ?s
 
 ## ?? Update Log
 
+### 2026-09-13 — Placement contrast at creation
+- Palette extraction now uses shared `placementContrast` so a cover average cannot become unreadable Domain-card ink. Sealed paper glass is 0.96 when atmosphere is present.
+
 ### 2026-08-31 — Reading plane for paper cards on atmosphere
 - `atmosphereContrast` now emits `surface.reading`, `ink.reading`, `ink.readingSecondary`, and `glass.reading`. When a cover sits behind the board, the card is cream paper + dark ink so type and frame edges hold. Board chrome stays Warm Dark.
 - CSS class `.theme-reading-plane` remaps paper/ink for Cover and Stage engagement cards. `.v0-style-scope` inherits a real `hsl()` ink so `var(--theme-ink-primary)` without `hsl()` no longer vanishes.

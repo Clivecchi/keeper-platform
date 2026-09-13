@@ -229,6 +229,22 @@ export function DomainConfigPresence({
       saveMessage={saveMessage}
       isDirty={isDirty}
       onSave={onSave}
+      headerActions={
+        <button
+          type="button"
+          onClick={() =>
+            peopleSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })
+          }
+          className="rounded-md px-2 py-1 text-xs font-semibold"
+          style={{
+            border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
+            color: "hsl(var(--theme-ink-primary))",
+            background: "hsl(var(--theme-surface-paper) / 0.65)",
+          }}
+        >
+          People
+        </button>
+      }
     >
       <ChronicleCoverField
         label="Cover image"

@@ -48,6 +48,7 @@ import {
   resolveDomainTreatment,
   type ResolvedDomainTreatment,
 } from "../../treatment/resolveDomainTreatment"
+import { ChronicleTreatmentShell } from "../../treatment/ChronicleTreatmentShell"
 import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 import { ReachChroniclePresence } from "../../presence/ReachChroniclePresence"
@@ -369,7 +370,7 @@ function PanelBody({
     }
 
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <ChronicleRecordView
           objectType={objectType}
           objectId={objectId}
@@ -720,9 +721,13 @@ export function UniversalViewPanel({
             onClose={() => boardCtx.actions.closeComposerReach()}
           />
         ) : boardCtx?.composerThemeOpen ? (
-          <ThemeChroniclePresence
-            onClose={() => boardCtx.actions.closeComposerTheme()}
-          />
+          <ChronicleTreatmentShell treatment={chronicleTreatment}>
+            <ThemeChroniclePresence
+              domainId={domainId}
+              domainSlug={domainSlug}
+              onClose={() => boardCtx.actions.closeComposerTheme()}
+            />
+          </ChronicleTreatmentShell>
         ) : boardCtx?.dialogIngest ? (
           domainId ? (
             <DialogIngestPresence

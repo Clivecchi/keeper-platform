@@ -21,6 +21,7 @@ export * from './structure/index.js';
 export * from './presenceCover.js';
 export * from './objectTheme.js';
 export * from './imagePalette.js';
+export * from './placementContrast.js';
 export * from './domains/domainFrameIdentity.js';
 export * from './domains/domainLeadBindings.js';
 export * from './domains/domainLeadMirror.js';

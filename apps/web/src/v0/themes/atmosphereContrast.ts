@@ -88,7 +88,7 @@ export const GLASS_SEALED: AtmosphereGlassAlphas = {
   chronicle: 0.88,
   composer: 0.82,
   composerInput: 0.94,
-  reading: 0.94,
+  reading: 0.96,
   washStart: 0.42,
   washEnd: 0.86,
   treatmentWashStart: 0.88,

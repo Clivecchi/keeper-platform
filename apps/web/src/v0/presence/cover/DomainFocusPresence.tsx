@@ -14,8 +14,6 @@ import type { ChronicleCoverMedia } from "../chronicleConfig/ChronicleCoverField
 import { useGuidedArrivalOptional } from "../../guidedArrival/GuidedArrivalContext"
 import { useFrameLeadAgentIdentity } from "../../hooks/useFrameLeadAgentIdentity"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
-import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
-import { LibrarySharedContextRoadmapPanel } from "../chronicleDocument/LibrarySharedContextRoadmapPanel"
 
 export interface DomainFocusPresenceProps {
   objectId: string
@@ -85,7 +83,6 @@ export function DomainFocusPresence({
   const primaryAgentName = declaredLeadSlug || declaredLeadName
     ? leadIdentity.displayName
     : null
-  const boardCtx = useUniversalBoardOptional()
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
   const [focusPeople, setFocusPeople] = React.useState(false)
   const [coverRevision, setCoverRevision] = React.useState(0)
@@ -140,12 +137,12 @@ export function DomainFocusPresence({
   }, [record, fieldValues, objectId, coverRevision, guidedArrival?.coverGreeting, primaryAgentName])
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <AnimatePresence mode="wait" initial={false}>
         {coverMode === "cover" ? (
           <motion.div
             key="cover"
-            className="keeper-panel-scroll absolute inset-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-8"
+            className="keeper-panel-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -192,35 +189,15 @@ export function DomainFocusPresence({
                 ))}
               </div>
             )}
-
-            {boardCtx?.actions.requestDialogIngest ? (
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => boardCtx.actions.requestDialogIngest()}
-                  className="text-[13px] underline underline-offset-2"
-                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
-                >
-                  Bring in writing from outside Keeper
-                </button>
-                <p
-                  className="text-[12px] mt-1 leading-snug"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  Starts a conversation with sections you can Gloss — not a Library upload.
-                </p>
-              </div>
-            ) : null}
-            <LibrarySharedContextRoadmapPanel />
           </motion.div>
         ) : (
           <motion.div
             key={`config-${domainId}`}
-            className="absolute inset-0 overflow-hidden"
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 12 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
           <DomainConfigPresence
             domainId={domainId}

@@ -11,7 +11,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
 - `OnStageObjectList.tsx` — On Stage list in Reach and Chronicle (not Composer)
 - `StageEngagementSurface.tsx` — Slide as media field + paper card (public Cover dress; `.theme-reading-plane`)
-- `ThemeChroniclePresence.tsx` (in `presence/`) — Composer Theme tool in Chronicle (inherit domain; Stage look from imagery)
+- `ThemeChroniclePresence.tsx` (in `presence/`) — Composer Theme tool: Domain look editor + ask the lead; Stage inherit when on Stage
 - `stageNowBeat.ts` / `stageFilmstrip.ts` — domain Root (`domain_cover`) + story beats after Forward
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
 - `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
@@ -40,6 +40,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-09-13 — Theme button is the Domain look
+- Composer Theme opens a Chronicle editor for paper, accent, and cover. Members can change the look or ask the lead. Stage imagery remains a Stage-only section.
 
 ### 2026-09-01 — Stage layout is available, not obligated
 - Stage prompt no longer commands `Emit stage.story.layout this turn`. Conversation / advice / no action is a valid successful turn.
