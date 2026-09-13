@@ -20,6 +20,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-12 — Lead voice after Cast
+- `directorDialog.ts` — after-Cast prompts are orchestration context for Lead Judgment, not a synthesis user message. Human direction stays the user turn. Personality / "find the plot" — not 1–3 sentence committee reports.
+
 ### 2026-09-11 — Performance One Resolved Meaning
 - `directorDialog.ts` — Stage + Cast synthesis asks for envelope `resolvedMeaning` (`meaning`, not `claim`). Not a restatement of `response`. Does not emit `stage.story.layout` for expression.
 
@@ -27,7 +30,7 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - `directorDialog.ts` — synthesis lists the advisory `card` that actually crossed. Lead must not claim a report from consult `ok` or “I will give you the report.” Card-only Cast turns are successful.
 
 ### 2026-08-25 — Cast cannot write; Lead talks
-- `directorDialog.ts` — Cast must not say "I'll capture it now." Lead synthesis is 1–3 sentences, not Cloud/Rendr minutes. If Cast promised a Point, Lead emits `draft.update.propose`.
+- `directorDialog.ts` — Cast must not say "I'll capture it now." After Cast, Lead stays in the performance (not Cloud/Rendr minutes). If Cast promised a Point, Lead emits `draft.update.propose`.
 
 ### 2026-08-25 — Rendr Point writes
 - `ensureCastMemberAgent.ts` — refreshes Rendr voice prompt when it still teaches `draft.create` as the Point path.

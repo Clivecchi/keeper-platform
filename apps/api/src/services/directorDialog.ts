@@ -1,5 +1,6 @@
 /**
  * Director dialog — server-side Cueing for IDE board Lead + Cast member turns.
+ * After Cast, orchestration context informs the Lead. It does not impersonate the human.
  */
 
 import { prisma } from '@keeper/database';
@@ -104,7 +105,7 @@ export function buildCastMemberDelegationPrompt(params: {
     lines.push(
       '',
       `Answer in first person as ${params.castMemberLabel}. Keep prose to one short paragraph (or a tight bullet list if they asked for one).`,
-      `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
+      `Be specific to your role. ${params.directorName} (Lead) continues the performance — do not speak as ${params.directorName}.`,
       `When your lane answer is operational (feasibility, stance, design constraint the user must act on), also emit envelope "card" type "summary" or "info" with title + body (optional items). Short prose + card — not a wall of text.`,
     );
   }
@@ -116,6 +117,22 @@ export function buildCastMemberDelegationPrompt(params: {
   );
 
   return lines.join('\n');
+}
+
+function buildLeadJudgmentLines(directorName: string): string[] {
+  return [
+    `ORCHESTRATION CONTEXT — this is not the user's message. The human's direction is the user turn.`,
+    `Orchestration context informs you. It does not impersonate the human.`,
+    `Stay in the performance as Lead (${directorName}). You are not a summarizer. You are the Experience Director.`,
+    `A good Lead does not merely summarize what everyone said. A good Lead recognizes what the scene was actually about. Find the plot.`,
+    `- Recognize what mattered, where Cast converged or conflicted, and what that means next.`,
+    `- Identify consequence. Preserve meaningful tension when it is unresolved.`,
+    `- Recognize decisions the human already made — do not reopen them as suggestions.`,
+    `- Move the performance forward. Do not report on the room.`,
+    `- Do not write a committee report, a roll-call, or "Cloud and Rendr have identified…"`,
+    `- Attribute a stance to a cast member ONLY when a real reply is listed — and then in a clause, not minutes.`,
+    `- Dialog already shows each cast member's voice card. Do not paste ### headings or repeat Cast verbatim.`,
+  ];
 }
 
 export function buildDirectorSynthesisPrompt(params: {
@@ -132,28 +149,25 @@ export function buildDirectorSynthesisPrompt(params: {
   const delivered = params.deliveredAdvice?.trim();
 
   return [
-    `[Director synthesis — ${params.directorName}]`,
+    `[Orchestration context — ${params.directorName} after Cast]`,
     isContinuation
-      ? `The user said "${display}" — continuing their prior request to ${params.castMemberLabel}:`
-      : `The user asked (they may have addressed ${params.castMemberLabel} directly — that is expected when pinned):`,
-    `"${task}"`,
+      ? `The human said "${display}" — continuing their prior request to ${params.castMemberLabel}.`
+      : `The human may have addressed ${params.castMemberLabel} directly — that is expected when pinned.`,
+    `Task in play: "${task}"`,
     '',
-    `${params.castMemberLabel} (Cast member) responded:`,
+    `${params.castMemberLabel} (Cast) contributed:`,
     `"${params.castMemberReply}"`,
     delivered
       ? `Delivered to the human (Dialog already shows this):\n${delivered}`
       : `${params.castMemberLabel} delivered only the prose above — no separate advisory card crossed to the human.`,
     '',
-    `Reply to the user as Lead (${params.directorName}). Talk like a person — 1–3 short sentences.`,
-    `- Integrate ${params.castMemberLabel}'s input; do not repeat it verbatim.`,
-    `- Do NOT paste ### ${params.castMemberLabel} headings — Dialog already shows their voice card.`,
+    ...buildLeadJudgmentLines(params.directorName),
     `- If ${params.castMemberLabel} said they would capture or add a Point, they cannot write the Document. You emit draft.update.propose this turn. Use payload.section when they named a Section.`,
     `- Do NOT claim ${params.castMemberLabel} provided a report, card, or artifact unless it is listed as delivered above.`,
     `- Do NOT treat "I will give you the report" as delivery.`,
     `- Do NOT correct the user about who they addressed.`,
     `- Do NOT tell the user to "try ${params.castMemberLabel} again" or to flag routing issues.`,
     `- Do NOT claim this session starts cold or that earlier thread turns are unavailable — they are in context.`,
-    `- Stay brief when ${params.castMemberLabel} already answered.`,
   ].join('\n');
 }
 
@@ -168,21 +182,20 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
   const isContinuation = task !== display;
 
   return [
-    `[Director synthesis — ${params.directorName}]`,
+    `[Orchestration context — ${params.directorName} after empty Cast]`,
     isContinuation
-      ? `The user said "${display}" — continuing their prior request to ${params.castMemberLabel}:`
-      : `The user addressed ${params.castMemberLabel} on the Build board.`,
-    `"${task}"`,
+      ? `The human said "${display}" — continuing their prior request to ${params.castMemberLabel}.`
+      : `The human addressed ${params.castMemberLabel}.`,
+    `Task in play: "${task}"`,
     '',
     `${params.castMemberLabel} did not return a reply this turn.`,
     '',
-    `Reply as Lead (${params.directorName}). Be honest about the empty consultation.`,
+    ...buildLeadJudgmentLines(params.directorName),
     `- Say plainly that you reached out to ${params.castMemberLabel} and got nothing back.`,
     `- Do NOT invent, paraphrase, or role-play ${params.castMemberLabel}'s voice or opinion.`,
     `- Do NOT claim ${params.castMemberLabel} said, decided, or agreed to anything.`,
-    `- Answer the user's question from your own knowledge only, and mark that clearly if you do.`,
+    `- Answer the human's direction from your own knowledge only, and mark that clearly if you do.`,
     `- Do NOT claim this session starts cold or that earlier thread turns are unavailable.`,
-    `- Stay brief and useful.`,
   ].join('\n');
 }
 
@@ -203,11 +216,11 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   resolvePerformanceMeaning?: boolean;
 }): string {
   const lines = [
-    `[Cast consultation synthesis — ${params.directorName}]`,
-    `The user asked:`,
+    `[Orchestration context — ${params.directorName} after Cast performance]`,
+    `The human's direction (also the user turn — respond to that, not to this block):`,
     `"${params.userMessage.trim()}"`,
     '',
-    'Real consultation results (use ONLY these — never invent missing voices):',
+    'Cast performance results (use ONLY these — never invent missing voices):',
   ];
 
   for (const row of params.consultations) {
@@ -225,17 +238,13 @@ export function buildCastConsultationsSynthesisPrompt(params: {
 
   lines.push(
     '',
-    `Reply as Lead (${params.directorName}). Talk like a person in the room.`,
-    '- The Dialog UI already shows each cast member\'s real reply as their own voice card.',
+    ...buildLeadJudgmentLines(params.directorName),
     '- Do NOT claim a cast member provided a report, card, or artifact unless it is listed as delivered above.',
     '- Do NOT treat "I will give you the report" as delivery.',
-    '- Your reply is 1–3 short sentences in your own voice. Not a committee report.',
-    '- Do NOT use ### Cloud / ### Rendr headings. Do NOT write "Cloud and Rendr have identified…" or "both agree…".',
-    '- Attribute a stance to a cast member ONLY when a real reply is listed above — and then in a clause, not a roll-call.',
     '- If a cast member returned nothing, say plainly you got nothing back from them.',
     '- Never invent, paraphrase-as-quote, or fabricate another agent\'s words.',
     '- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.',
-    '- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
+    '- When the human asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
     params.documentDirection
       ? '- YOU are the Director of this Document. Cast replies are evidence, not your answer. Do not report what Cloud or Rendr think. Propose the rearrangement: emit document.reorganize.propose this turn. Move, section, refine, or name what belongs where. Chronicle Apply is the human.'
       : '- A named Section is draft.update.propose with payload.section. Never document.reorganize.propose to add a Section. Never draft.point.accept — Accept is a human Chronicle action.',
@@ -261,6 +270,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
       '',
       'RESOLVED MEANING (Stage performance — envelope sibling, not your spoken reply):',
       '- Also emit "resolvedMeaning": { "meaning": "...", "because?": "...", "about": [{ "kind", "id", "title?" }], "performedBy": ["slug"] }.',
+      '- Spoken "response" stays in the performance as Lead. resolvedMeaning records what emerged — it is not a summary of Cast.',
       '- "meaning" is what emerged — insight, question, tension, possibility, decision, or direction. It must not be a restatement of "response".',
       '- "about" references Keeper objects on Stage or in Talking in / Working on (ids + optional titles). Do not copy Point or Document bodies.',
       '- "performedBy" is slugs that actually delivered this turn. Never invent a voice.',

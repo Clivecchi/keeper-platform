@@ -333,7 +333,7 @@ type RunAgentOptions = {
   supportingDocs?: Array<{ name: string; preview?: string }>;
   /** Gloss / draft-discuss context from the frontend (domain frame JSON). */
   agentContext?: Record<string, unknown>;
-  /** IDE / Domain director mode — run Cast member before Lead synthesis. */
+  /** IDE / Domain director mode — run Cast member before Lead Judgment. */
   directorDelegation?: DirectorDelegationRequest;
   /** Domain/Realm multi-cast consultation — client already ran sub-turns. */
   castConsultations?: {
@@ -5808,12 +5808,15 @@ export class KipAgentService {
       expanded: 'Provide fuller reasoning and details while staying structured.',
     };
     const outputStyle = (activeModeConfig.outputStyle as OutputStyle) || 'normal';
+    const composePersonality =
+      typeof config.personality === 'string' ? config.personality.trim() : '';
+    const composeIdentity = `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}`.trim();
     const systemParts: string[] = [];
 
     systemParts.push(
       [
         lens?.systemPrompt || '',
-        `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}`.trim(),
+        composePersonality ? `${composeIdentity}\n${composePersonality}` : composeIdentity,
         `Mode: ${activeMode.toUpperCase()}. Output style: ${styleHelper[outputStyle]}`,
         maxChars && maxChars > 0
           ? `Hard limit: keep the Debug Brief under ${maxChars} characters; prefer concise evidence.`
@@ -6174,6 +6177,11 @@ export class KipAgentService {
       reuseMessages?: ModelMessage[];
       /** Stream decoded `response` field tokens to the Dialog. */
       onDelta?: (text: string) => void;
+      /**
+       * Cast / action results for Lead Judgment. System context only —
+       * never replaces the human's user turn.
+       */
+      orchestrationContext?: string | null;
     },
   ): Promise<{
     content: string
@@ -6226,9 +6234,12 @@ export class KipAgentService {
       const outputStyle = (promptOptions?.outputStyle as OutputStyle) || 'normal';
       const maxChars = typeof promptOptions?.maxChars === 'number' ? promptOptions.maxChars : null;
       const mode = promptOptions?.mode || 'domain';
+      const personality =
+        typeof config.personality === 'string' ? config.personality.trim() : '';
+      const identityLine = `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}`.trim();
       const systemPrompt = [
         promptOptions?.lens?.systemPrompt || '',
-        `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}`.trim(),
+        personality ? `${identityLine}\n${personality}` : identityLine,
         `Mode: ${mode.toUpperCase()}. Output style: ${styleHelper[outputStyle]}`,
         maxChars && maxChars > 0
           ? `Hard limit: keep the Debug Brief under ${maxChars} characters; prefer concise evidence.`
@@ -6739,9 +6750,21 @@ export class KipAgentService {
       }
       } // !reusingPrompt
 
+      const orchestrationContext =
+        typeof promptOptions?.orchestrationContext === 'string'
+          ? promptOptions.orchestrationContext.trim()
+          : '';
+      if (orchestrationContext) {
+        messages.push({
+          role: 'system',
+          content: orchestrationContext,
+        });
+      }
+
       if (reusingPrompt) {
-        const reuseInput = typeof input === 'string' && input.trim() ? input : '[No text provided]';
-        messages.push({ role: 'user', content: reuseInput });
+        if (typeof input === 'string' && input.trim()) {
+          messages.push({ role: 'user', content: input.trim() });
+        }
       } else {
       
       // Add current user message (multimodal when images are attached)
@@ -7036,6 +7059,7 @@ export class KipAgentService {
         }
 
         let leadModelInput = input || '';
+        let leadOrchestrationContext: string | undefined;
         let directorDelegationResult: DirectorDelegationResult | undefined;
         /** Persisted on the Lead message so voice cards survive session reload. */
         let castVoicesForPersist:
@@ -7130,7 +7154,7 @@ export class KipAgentService {
           if (castPromisedPointWrite) {
             attachPointTurnObligation('add a point', options?.environment ?? null);
           }
-          leadModelInput = buildCastConsultationsSynthesisPrompt({
+          leadOrchestrationContext = buildCastConsultationsSynthesisPrompt({
             userMessage: cc.userMessage,
             directorName: cc.directorDisplayName,
             consultations: labeled.map((row) => ({
@@ -7143,6 +7167,9 @@ export class KipAgentService {
             documentDirection: detectReorganizeIntent(cc.userMessage) === 'required',
             resolvePerformanceMeaning: workspaceSurfaceFromEnvironment(options?.environment) === 'stage',
           });
+          if (!leadModelInput.trim() && cc.userMessage.trim()) {
+            leadModelInput = cc.userMessage.trim();
+          }
           castVoicesForPersist = labeled.map((row) => {
             const status: 'ok' | 'empty' | 'failed' =
               row.status === 'ok' && (row.reply || row.card)
@@ -7352,7 +7379,7 @@ export class KipAgentService {
               status: 'ok',
               ...(castMemberCard ? { card: castMemberCard } : {}),
             };
-            leadModelInput = buildDirectorSynthesisPrompt({
+            leadOrchestrationContext = buildDirectorSynthesisPrompt({
               userMessage: dd.userMessage,
               taskMessage:
                 resolvedTask.taskMessage !== dd.userMessage.trim()
@@ -7365,6 +7392,9 @@ export class KipAgentService {
                 ? formatKeeperAdviceCardForPrompt(castMemberCard)
                 : null,
             });
+            if (!leadModelInput.trim() && dd.userMessage.trim()) {
+              leadModelInput = dd.userMessage.trim();
+            }
           } else {
             orchestrationMechanism = 'director_instrument_fallback';
             if (!directorDelegationResult) {
@@ -7374,7 +7404,7 @@ export class KipAgentService {
                 status: 'empty',
               };
             }
-            leadModelInput = buildDirectorFallbackSynthesisPrompt({
+            leadOrchestrationContext = buildDirectorFallbackSynthesisPrompt({
               userMessage: dd.userMessage,
               taskMessage:
                 resolvedTask.taskMessage !== dd.userMessage.trim()
@@ -7383,6 +7413,9 @@ export class KipAgentService {
               castMemberLabel,
               directorName: dd.directorDisplayName,
             });
+            if (!leadModelInput.trim() && dd.userMessage.trim()) {
+              leadModelInput = dd.userMessage.trim();
+            }
           }
         }
         
@@ -7459,6 +7492,7 @@ export class KipAgentService {
           timings: options?.timings,
           timingLabel: 'lead_main',
           onDelta: options?.onDelta,
+          orchestrationContext: leadOrchestrationContext,
         });
 
         const response = aiResult.content;
@@ -7695,7 +7729,7 @@ export class KipAgentService {
                 });
                 finalResponseText = formatReadActionResultsForUserFallback(actionResults);
               } else {
-                options?.onStatus?.('Synthesizing what I found…');
+                options?.onStatus?.('Working with what I found…');
                 options?.onReset?.();
                 const followUpInput = buildReadActionFollowUpInput({
                   originalInput: input,
@@ -7705,7 +7739,7 @@ export class KipAgentService {
                 });
                 const followUpResult = await this.callAIModel(
                   agent,
-                  followUpInput,
+                  '',
                   previousMessages,
                   userId,
                   {
@@ -7728,6 +7762,7 @@ export class KipAgentService {
                       ...lastPromptMessages,
                       { role: 'assistant', content: lastResponse },
                     ],
+                    orchestrationContext: followUpInput,
                     onDelta: options?.onDelta,
                   },
                 );

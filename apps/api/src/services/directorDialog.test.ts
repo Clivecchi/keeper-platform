@@ -26,7 +26,7 @@ describe('buildCastMemberDelegationPrompt', () => {
 });
 
 describe('buildCastConsultationsSynthesisPrompt', () => {
-  it('asks Lead to talk, not file minutes, and to write promised Points', () => {
+  it('asks Lead to stay in the performance and to write promised Points', () => {
     const prompt = buildCastConsultationsSynthesisPrompt({
       userMessage: 'that is most certainly a point worth capturing',
       directorName: 'Kip',
@@ -39,7 +39,12 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
       ],
       castPromisedPointWrite: true,
     });
+    expect(prompt).toMatch(/Orchestration context/i);
+    expect(prompt).toMatch(/does not impersonate the human/i);
+    expect(prompt).toMatch(/Find the plot/i);
     expect(prompt).toMatch(/committee report/i);
+    expect(prompt).not.toMatch(/1–3 short sentences/i);
+    expect(prompt).not.toMatch(/Synthesize for the user/i);
     expect(prompt).toMatch(/draft\.update\.propose/);
     expect(prompt).toMatch(/cannot write the Document/i);
     expect(prompt).toMatch(/Never document\.reorganize\.propose/);
@@ -116,6 +121,20 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
 });
 
 describe('buildDirectorSynthesisPrompt', () => {
+  it('keeps Cast results as context, not a synthesis-as-user brief', () => {
+    const prompt = buildDirectorSynthesisPrompt({
+      userMessage: 'Cloud, analyze this architecture',
+      castMemberLabel: 'Cloud',
+      castMemberReply: 'The contract is Form before capability.',
+      directorName: 'Kip',
+    });
+    expect(prompt).toMatch(/Orchestration context/i);
+    expect(prompt).toMatch(/does not impersonate the human/i);
+    expect(prompt).toMatch(/Find the plot/i);
+    expect(prompt).not.toMatch(/1–3 short sentences/i);
+    expect(prompt).not.toMatch(/Stay brief when Cloud already answered/i);
+  });
+
   it('treats card-only Cast advice as delivered and forbids false completion', () => {
     const prompt = buildDirectorSynthesisPrompt({
       userMessage: 'Cloud, analyze this architecture',

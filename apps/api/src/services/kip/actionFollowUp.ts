@@ -364,11 +364,12 @@ export function buildReadActionFollowUpInput(params: {
       return `- ${label}: (nothing returned)`;
     });
     return [
-      `[Cast consultation results — reply as ${params.agentName}.]`,
+      `[Orchestration context — action results for ${params.agentName}. This is not the user's message.]`,
       ...lines,
       '',
-      `Original user message: "${params.originalInput}"`,
-      'Synthesize for the user using ONLY the real results above.',
+      `The human's direction remains: "${params.originalInput}"`,
+      'Stay in the performance as Lead. Use ONLY the real results above.',
+      'Do not summarize the room. Recognize what the scene was about and move it forward.',
       '- Attribute a quote only when a real reply is present.',
       '- If a cast member returned nothing, say plainly you got nothing back from them.',
       '- Never invent another agent\'s words.',
@@ -378,15 +379,15 @@ export function buildReadActionFollowUpInput(params: {
 
   const findings = formatReadActionResultsForFollowUp(params.actionResults);
   return [
-    `[Read action results — reply as ${params.agentName}. Do NOT call draft.read again in this turn unless the user asks for a different draft.]`,
+    `[Orchestration context — read results for ${params.agentName}. This is not the user's message.]`,
     findings,
     '',
     params.priorResponseText?.trim()
-      ? `Your prior message was only: "${params.priorResponseText.trim()}" — replace that with a substantive answer.`
+      ? `Your prior message was only: "${params.priorResponseText.trim()}" — replace that with a substantive answer to the human's direction.`
       : 'Your prior message deferred without answering — fix that now.',
     '',
-    `Original user message: "${params.originalInput}"`,
-    'Answer the user directly using:',
+    `The human's direction remains: "${params.originalInput}"`,
+    'Stay in the performance as Lead. Answer the human directly using:',
     '- The read results above (current draft state)',
     '- This session conversation history (for points or context no longer in the draft)',
     'If library.read returned items and the user asked you to browse or pick from the library:',

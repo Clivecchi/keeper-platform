@@ -40,6 +40,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-09-12 — Lead voice after Cast
+- `actionFollowUp.ts` — consult/read follow-up is orchestration context. Does not say "Synthesize for the user." Reused as a system block so it does not impersonate the human.
+
 ### 2026-09-11 — Performance One Frame append
 - `layoutStageStory.ts` — `appendStageExpressionBeat` appends one `text_slide` with `source.live` = Lead message id. Does not replace the story or rewrite Cover. Idempotent per Lead message.
 

@@ -37,6 +37,25 @@ describe('actionFollowUp', () => {
     ).toBe(true);
   });
 
+  it('treats consult follow-up as orchestration context, not a synthesize-as-user brief', () => {
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'Cue Cloud and Rendr on the contract',
+      agentName: 'Kip',
+      actionResults: [
+        {
+          type: 'delegate.consult',
+          status: 'success',
+          message: 'ok',
+          data: { label: 'Cloud', reply: 'Form before capability.' },
+        },
+      ],
+    });
+    expect(input).toMatch(/Orchestration context/i);
+    expect(input).toContain('Cue Cloud and Rendr on the contract');
+    expect(input).toContain('Form before capability.');
+    expect(input).not.toMatch(/Synthesize for the user/i);
+  });
+
   it('does not skip follow-up for delegate.consult', () => {
     expect(
       responseAlreadyUsesReadResults(
