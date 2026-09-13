@@ -34,7 +34,7 @@ export function resolveStageFilmstrip(input: {
   tagline?: string | null
   domainLabel?: string | null
   beat: StageNowBeatModel
-  waiting: boolean
+  waiting?: boolean
   persisted?: ReadonlyArray<StageSlide> | null
 }): StageSlide[] {
   const root = domainCoverRootSlide({
@@ -54,7 +54,7 @@ export function resolveStageFilmstrip(input: {
       slideType: "text_slide",
       kind: "beat",
       title: input.beat.answer?.name || input.beat.you?.name || "Now",
-      body: beatBody(input.beat, input.waiting),
+      body: beatBody(input.beat, input.waiting ?? false),
     })
   }
   return slides

@@ -8,7 +8,7 @@ import {
   type AgentPerformanceRow,
   type AgentPerformancesResponse,
   type InspectionFactTone,
-} from "./agentPerformanceInspection"
+} from "./agentPerformanceFacts"
 
 export interface AgentPerformanceInspectionProps {
   agentId: string

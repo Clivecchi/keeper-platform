@@ -26,7 +26,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `AgentConfigPresence.tsx` — Config Mode compressed header + editable fields
 - `AgentTrainingPresence.tsx` — Training Mode structured prompt editor
 - `AgentPerformanceInspection.tsx` — Agent Board recorded-performance facts in Chronicle
-- `agentPerformanceInspection.ts` — fact lines + Composer inspection context
+- `agentPerformanceFacts.ts` — fact lines + Composer inspection context
 - `agentNameHighlight.tsx` — accent highlight for agent name in training instructions
 - `trainingSectionEditors.tsx` — per-section voice prompt editors (Identity, Behavior, etc.)
 - `openSession.ts` — Open Session → focus center conversation composer

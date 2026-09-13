@@ -4,7 +4,7 @@ import * as React from "react"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useKeeperStageOptional } from "./useKeeperStage"
-import { resolveStageFilmstrip, type StageSlide } from "./stageFilmstrip"
+import { resolveStageFilmstrip, type StageSlide } from "./stageStorySlides"
 import { resolveStageNowBeat } from "./stageNowBeat"
 
 type StagePresentationValue = {

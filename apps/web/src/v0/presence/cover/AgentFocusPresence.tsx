@@ -18,7 +18,7 @@ import type { AgentCoverMode } from "./coverTypes"
 import {
   buildComposerInspectionContext,
   type AgentPerformanceRow,
-} from "./agentPerformanceInspection"
+} from "./agentPerformanceFacts"
 
 export interface AgentFocusPresenceProps {
   objectId: string

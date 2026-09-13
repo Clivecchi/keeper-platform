@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { buildAgentPerformanceProvenance } from "@keeper/shared"
-import { buildComposerInspectionContext, buildInspectionFacts } from "./agentPerformanceInspection"
+import { buildComposerInspectionContext, buildInspectionFacts } from "./agentPerformanceFacts"
 
-describe("agentPerformanceInspection", () => {
+describe("agentPerformanceFacts", () => {
   it("distinguishes recorded facts from current configured role", () => {
     const provenance = buildAgentPerformanceProvenance({
       source: "derived_from_legacy",

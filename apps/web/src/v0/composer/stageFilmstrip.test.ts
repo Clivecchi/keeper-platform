@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest"
-import { resolveStageFilmstrip } from "./stageFilmstrip"
+import { resolveStageFilmstrip } from "./stageStorySlides"
 
 const emptyBeat = { you: null, answer: null }
 

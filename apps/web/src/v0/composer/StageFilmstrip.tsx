@@ -14,7 +14,7 @@ import {
 import { JourneyInvitationSlide } from "../slides/JourneyInvitationSlide"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { StageEngagementSurface, useStageCoverMedia } from "./StageEngagementSurface"
-import type { StageSlide } from "./stageFilmstrip"
+import type { StageSlide } from "./stageStorySlides"
 import { useStagePresentationOptional } from "./stagePresentation"
 
 function SlideScene({
