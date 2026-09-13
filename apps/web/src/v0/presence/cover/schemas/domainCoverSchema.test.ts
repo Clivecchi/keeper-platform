@@ -16,6 +16,17 @@ describe("domainCoverSchema", () => {
     )
   })
 
+  it("adds a People cover action when the handler is provided", () => {
+    const content = domainCoverSchema.resolve(
+      { name: "ke3p" },
+      {},
+      { objectId: "domain-1" },
+      { onConfigure: () => {}, onPeople: () => {}, onOpenSession: () => {} },
+    )
+
+    expect(content.actions.map((action) => action.id)).toEqual(["configure", "people"])
+  })
+
   it("omits primary agent when the name is not known", () => {
     const content = domainCoverSchema.resolve(
       { name: "ke3p" },

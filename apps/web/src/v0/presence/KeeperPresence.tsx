@@ -1303,7 +1303,7 @@ export function KeeperPresence({
       instanceKey={motionInstanceKey}
       enabled={motionEnabled && !loading && !!record}
     >
-      <div className="flex flex-col h-full min-h-0" data-render-context={context}>
+      <div className="flex h-full min-h-0 flex-col overflow-hidden" data-render-context={context}>
         <KeeperPresenceSurface
         loading={loading}
         record={record}

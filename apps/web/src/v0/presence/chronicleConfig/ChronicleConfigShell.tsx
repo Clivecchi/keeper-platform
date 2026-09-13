@@ -123,7 +123,7 @@ export function ChronicleConfigShell({
 }: ChronicleConfigShellProps) {
   return (
     <motion.div
-      className="flex flex-col h-full min-h-0"
+      className="flex h-full min-h-0 flex-col overflow-hidden"
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 12 }}

@@ -50,6 +50,8 @@ export interface DomainConfigPresenceProps {
     placeholder?: string,
   ) => React.ReactNode
   ideBuildContextFields?: [string, FieldDefinition][]
+  /** Open Configure already scrolled to People (from Cover). */
+  focusPeople?: boolean
 }
 
 /** Display name + brand line — not platform addressing. */
@@ -178,7 +180,9 @@ export function DomainConfigPresence({
   onCoverSaved,
   renderFieldEditor,
   ideBuildContextFields = [],
+  focusPeople = false,
 }: DomainConfigPresenceProps) {
+  const peopleSectionRef = React.useRef<HTMLDivElement>(null)
   const v0Shell = useV0ShellOptional()
   const boardCtx = useUniversalBoardOptional()
   const { user } = useAuth()
@@ -202,6 +206,14 @@ export function DomainConfigPresence({
   const ideKeys = IDE_BUILD_FIELD_ORDER.filter((key) => ideFieldMap.has(key))
 
   const domainTag = fieldValues.slug?.trim() || domainSlug
+
+  React.useEffect(() => {
+    if (!focusPeople) return
+    const frame = window.requestAnimationFrame(() => {
+      peopleSectionRef.current?.scrollIntoView({ block: "start", behavior: "auto" })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [focusPeople])
 
   return (
     <ChronicleConfigShell
@@ -265,6 +277,10 @@ export function DomainConfigPresence({
         </div>
       ) : null}
 
+      <div ref={peopleSectionRef} id="domain-people">
+        <DomainPeopleSection domainId={domainId} />
+      </div>
+
       <DomainAddressesSection
         domainId={domainId}
         domainTag={domainTag}
@@ -322,8 +338,6 @@ export function DomainConfigPresence({
           />
         </div>
       ) : null}
-
-      <DomainPeopleSection domainId={domainId} />
 
       {ideKeys.length > 0 ? (
         <div

@@ -14,6 +14,8 @@ import type { ChronicleCoverMedia } from "../chronicleConfig/ChronicleCoverField
 import { useGuidedArrivalOptional } from "../../guidedArrival/GuidedArrivalContext"
 import { useFrameLeadAgentIdentity } from "../../hooks/useFrameLeadAgentIdentity"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
+import { LibrarySharedContextRoadmapPanel } from "../chronicleDocument/LibrarySharedContextRoadmapPanel"
 
 export interface DomainFocusPresenceProps {
   objectId: string
@@ -83,11 +85,14 @@ export function DomainFocusPresence({
   const primaryAgentName = declaredLeadSlug || declaredLeadName
     ? leadIdentity.displayName
     : null
+  const boardCtx = useUniversalBoardOptional()
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
+  const [focusPeople, setFocusPeople] = React.useState(false)
   const [coverRevision, setCoverRevision] = React.useState(0)
 
   React.useEffect(() => {
     setCoverMode("cover")
+    setFocusPeople(false)
   }, [objectId])
 
   const coverMedia = React.useMemo((): ChronicleCoverMedia => {
@@ -111,7 +116,17 @@ export function DomainFocusPresence({
       },
       fieldValues,
       { objectId },
-      { onConfigure: () => setCoverMode("config"), onOpenSession: () => {} },
+      {
+        onConfigure: () => {
+          setFocusPeople(false)
+          setCoverMode("config")
+        },
+        onPeople: () => {
+          setFocusPeople(true)
+          setCoverMode("config")
+        },
+        onOpenSession: () => {},
+      },
     )
     const arrivalQuote = guidedArrival?.coverGreeting?.trim()
     if (!arrivalQuote) return content
@@ -125,12 +140,12 @@ export function DomainFocusPresence({
   }, [record, fieldValues, objectId, coverRevision, guidedArrival?.coverGreeting, primaryAgentName])
 
   return (
-    <div className="relative flex flex-col h-full min-h-0">
-      <AnimatePresence mode="wait">
+    <div className="relative h-full min-h-0 overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
         {coverMode === "cover" ? (
           <motion.div
             key="cover"
-            className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-8"
+            className="keeper-panel-scroll absolute inset-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -177,10 +192,37 @@ export function DomainFocusPresence({
                 ))}
               </div>
             )}
+
+            {boardCtx?.actions.requestDialogIngest ? (
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => boardCtx.actions.requestDialogIngest()}
+                  className="text-[13px] underline underline-offset-2"
+                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                >
+                  Bring in writing from outside Keeper
+                </button>
+                <p
+                  className="text-[12px] mt-1 leading-snug"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  Starts a conversation with sections you can Gloss — not a Library upload.
+                </p>
+              </div>
+            ) : null}
+            <LibrarySharedContextRoadmapPanel />
           </motion.div>
         ) : (
-          <DomainConfigPresence
+          <motion.div
             key={`config-${domainId}`}
+            className="absolute inset-0 overflow-hidden"
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 12 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+          <DomainConfigPresence
             domainId={domainId}
             domainSlug={
               fieldValues.slug?.trim() ||
@@ -201,7 +243,11 @@ export function DomainFocusPresence({
             saveStatus={saveStatus}
             saveMessage={saveMessage}
             isDirty={isDirty}
-            onBack={() => setCoverMode("cover")}
+            focusPeople={focusPeople}
+            onBack={() => {
+              setFocusPeople(false)
+              setCoverMode("cover")
+            }}
             onSave={() => void onSave()}
             onFieldChange={onFieldChange}
             onCoverSaved={() => {
@@ -210,6 +256,7 @@ export function DomainFocusPresence({
             }}
             renderFieldEditor={renderFieldEditor}
           />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -81,6 +81,8 @@ export interface EntityCoverSchema<TRecord = Record<string, unknown>> {
 
 export interface CoverActionHandlers {
   onConfigure: () => void
+  /** Domain cover — open Configure scrolled to People */
+  onPeople?: () => void
   /** Keys and legacy surfaces — focus conversation composer */
   onOpenSession?: () => void
   /** Agent cover — enter board Training Mode */

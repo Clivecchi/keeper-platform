@@ -131,6 +131,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain Chronicle height
+- Domain idle extras (ingest + Library roadmap) no longer render as flex siblings under `ChronicleRecordView`. That pairing made the Domain card as tall as its content, so Chronicle could not scroll. Those notes now live inside the Domain Cover scroll.
+
 ### 2026-07-13 — Chronicle Layer-1 compat shim (PR4)
 - `UniversalViewPanel` routes via `@keeper/shared` `resolveChronicleView` + `chronicleSubjectToLegacyKindId` instead of inline `resolveKindId` if-chain
 - Legacy flat nullable IDs unchanged; `TrailKind` aliases `ChronicleLegacyKind`

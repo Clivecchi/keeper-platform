@@ -43,6 +43,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-09-13 — Chronicle Config is a bounded scrollport
+- `ChronicleConfigShell` uses `overflow-hidden` on the shell so the inner panel, not the card, is the scroll surface.
+
 ### 2026-09-12 — Domain Board save / scroll honesty
 - `useChronicleConfig` clears dirty/save state when `entityId` or `domainId` changes so a Domain switch cannot keep the previous Domain's unsaved banner.
 - `ChronicleConfigShell` scroll area uses `overscroll-contain` and extra bottom padding so the last Configure fields stay above the Save bar.

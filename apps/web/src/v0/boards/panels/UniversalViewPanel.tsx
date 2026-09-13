@@ -50,7 +50,6 @@ import {
 } from "../../treatment/resolveDomainTreatment"
 import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
-import { LibrarySharedContextRoadmapPanel } from "../../presence/chronicleDocument/LibrarySharedContextRoadmapPanel"
 import { ReachChroniclePresence } from "../../presence/ReachChroniclePresence"
 import { ThemeChroniclePresence } from "../../presence/ThemeChroniclePresence"
 import { OnStageObjectList } from "../../composer/OnStageObjectList"
@@ -370,7 +369,7 @@ function PanelBody({
     }
 
     return (
-      <>
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         <ChronicleRecordView
           objectType={objectType}
           objectId={objectId}
@@ -388,30 +387,7 @@ function PanelBody({
           trailKey={subjectKey}
           treatment={treatment}
         />
-        {boardId === "domain" && subject.kind === "domain" ? (
-          <>
-            {boardCtx?.actions.requestDialogIngest ? (
-              <div className="px-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => boardCtx.actions.requestDialogIngest()}
-                  className="text-[13px] underline underline-offset-2"
-                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
-                >
-                  Bring in writing from outside Keeper
-                </button>
-                <p
-                  className="text-[12px] mt-1 leading-snug"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  Starts a conversation with sections you can Gloss — not a Library upload.
-                </p>
-              </div>
-            ) : null}
-            <LibrarySharedContextRoadmapPanel />
-          </>
-        ) : null}
-      </>
+      </div>
     )
   }
 

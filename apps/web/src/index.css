@@ -2443,8 +2443,17 @@ button.dialog-prelude:hover {
   box-shadow: inset 0 0 32px 0px var(--treatment-color-alpha-12);
 }
 
+.keeper-chronicle-panel .keeper-panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--theme-line-hairline, 0 0% 72%) / 0.55) transparent;
+}
+
 .keeper-chronicle-panel .keeper-panel-scroll::-webkit-scrollbar {
   width: 4px;
+}
+
+.keeper-chronicle-panel .keeper-panel-scroll::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--theme-line-hairline, 0 0% 70%) / 0.4);
 }
 
 .keeper-chronicle-trail-bar {

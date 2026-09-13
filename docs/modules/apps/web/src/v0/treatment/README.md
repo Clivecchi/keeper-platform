@@ -29,6 +29,9 @@ Domain Treatment — named presence configuration stored in `Domain.frame_json.t
 
 ## 📆 Update Log
 
+### 2026-09-13 — Chronicle Treatment shell can shrink
+- `ChronicleTreatmentShell` is `overflow-hidden` + `min-h-0` so Domain Configure can own the scroll instead of growing with the card.
+
 ### 2026-08-30 — Cover card reads on Treatment surface
 - `treatmentShellStyle` exposes `--treatment-surface` so Chronicle cover cards sit on the Treatment floor (not dark board glass). Ink stays paired with that surface.
 

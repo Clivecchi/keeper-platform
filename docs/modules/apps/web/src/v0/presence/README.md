@@ -70,6 +70,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - Domain Assignment and Lead Judgment stay honest read-only. Empty Config save says “No changes to save.”
 - `isLeadAgentRecord` uses role only — not `slug === "kip"`.
 
+### 2026-09-13 — Domain Chronicle scroll + People path
+- Domain Cover/Configure are viewport-pinned so Chronicle can scroll. People is with identity, and Cover has a People action.
+
 ### 2026-09-12 — Domain People + lead visibility
 - Domain Chronicle Configure People recovers owner / members / pending invitations. Enrichment can pass `leadAgentName` / `leadAgentSlug` from the by-slug cache for read-only Primary Agent.
 - Primary Agent stays hidden unless the Domain already declares a lead. Configure remounts when the Domain changes so Addresses and People cannot keep the previous Domain.

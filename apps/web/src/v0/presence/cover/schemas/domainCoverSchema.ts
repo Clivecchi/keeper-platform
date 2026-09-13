@@ -61,6 +61,14 @@ export const domainCoverSchema: EntityCoverSchema = {
       icon: "gear",
       onClick: actions.onConfigure,
     }
+    const peopleAction: CoverActionDef | null = actions.onPeople
+      ? {
+          id: "people",
+          label: "People",
+          variant: "secondary",
+          onClick: actions.onPeople,
+        }
+      : null
 
     return {
       hero: {
@@ -88,7 +96,7 @@ export const domainCoverSchema: EntityCoverSchema = {
           : []),
       ],
       credits: [],
-      actions: [configureAction],
+      actions: peopleAction ? [configureAction, peopleAction] : [configureAction],
     }
   },
 }
