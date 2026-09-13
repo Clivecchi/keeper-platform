@@ -27,6 +27,7 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-09-11-performance-resolved-meaning-seam.md`
 - `2026-09-11-resolved-meaning-performance-one.md`
 - `2026-09-11-performance-one-shipped.md`
+- `2026-09-12-domain-board-kip-inventory.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -35,6 +36,9 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-12 — Domain Board + Kip inventory
+- Added `2026-09-12-domain-board-kip-inventory.md` — Track A Domain Board / membership / peer relationships; Track B Kip identity stack and coordinate-then-summarize collapse. Gloss-only.
+
 ### 2026-09-11 — Performance One shipped
 - Added `2026-09-11-performance-one-shipped.md` — approved vertical slice is live in code. Gloss-only.
 

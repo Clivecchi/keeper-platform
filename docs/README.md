@@ -14,6 +14,7 @@ Primary documentation hub for Keeper architecture, deployment notes, and operati
 - `dialog-cueing-plan.md` — Rename + behavior plan (2026-08-03)
 - `DOMAIN_DEVELOPMENT_PLAN.md`
 - `AUTHENTICATION_HARDENING.md`
+- `2026-09-12-domain-board-kip-inventory.md` — Track A Domain Board + Track B Kip identity inventory (canvas conversion; not a design)
 
 ## 🔄 Data & Behavior
 Docs are maintained as canonical references for architecture, flows, and playbooks. Updates should align with code sources of truth and track changes over time.
@@ -22,6 +23,7 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
+- **2026-09-12**: Added `2026-09-12-domain-board-kip-inventory.md` — markdown conversion of the Domain Board + Kip inventory canvas. Inventory only.
 - **2026-08-17**: Object Glossary — board-emphasis invariant (governing); IDE display rename to Build; in-product Glossary nav (Domain read / Design definition).
 - **2026-08-02**: Landed governing `keeper-object-glossary.md` (working v1) — same tier as EntityKind Recipe; agent read access via Library Item + Training Governance inject.
 - **2026-06-19**: Updated `keeper-ui-experience.md` — Declared Chronicle UI (Focus · Config · Act), `ChronicleActPresence`, no `EngagementForm` on board Acts.
