@@ -73,6 +73,10 @@ import {
   STORY_BUILDER_OBJECT_LINE,
 } from '../../services/kip/buildKeeperCardRenderingPrompt.js';
 import {
+  buildLeadJudgmentContractPrompt,
+  isLeadRole,
+} from '../../services/kip/leadJudgmentContract.js';
+import {
   buildCompactEnvironmentForPrompt,
   measureEnvironmentPromptSize,
 } from '../../services/kip/buildCompactEnvironmentForPrompt.js';
@@ -1198,7 +1202,7 @@ function buildCastHonestySystemPrompt(environment: unknown): string | null {
     'RULE — never invent another agent\'s words (every Dialog turn):',
     'Never invent, paraphrase-as-quote, or fabricate what another agent said.',
     'Only attribute words to another agent when a real consultation result for that agent is present in this turn:',
-    '  - Mechanism A: multi-select cast consultation results (client ran each engaged Cast member, then Lead synthesizes), or',
+    '  - Mechanism A: multi-select cast consultation results (client ran each engaged Cast member, then Lead exercises Judgment), or',
     '  - Mechanism B: delegate.consult action results (Lead-initiated consult during the turn).',
     'These are two distinct mechanisms — do not conflate them. If neither produced a reply for an agent, say plainly you got nothing back — do not invent their voice.',
     skipDelegateConsultFromEnv(environment)
@@ -6255,6 +6259,13 @@ export class KipAgentService {
         role: 'system',
         content: systemPrompt
       });
+
+      if (isLeadRole(agent.role)) {
+        messages.push({
+          role: 'system',
+          content: buildLeadJudgmentContractPrompt(),
+        });
+      }
 
       messages.push({
         role: 'system',

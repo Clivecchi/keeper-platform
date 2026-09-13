@@ -123,8 +123,9 @@ function buildLeadJudgmentLines(directorName: string): string[] {
   return [
     `ORCHESTRATION CONTEXT — this is not the user's message. The human's direction is the user turn.`,
     `Orchestration context informs you. It does not impersonate the human.`,
-    `Stay in the performance as Lead (${directorName}). You are not a summarizer. You are the Experience Director.`,
+    `Stay in the performance as Lead (${directorName}). Lead Judgment (role contract) governs your spoken response — not a recap.`,
     `A good Lead does not merely summarize what everyone said. A good Lead recognizes what the scene was actually about. Find the plot.`,
+    `Do not enumerate Cast voices. Do not emit a Summary card of the room.`,
     `- Recognize what mattered, where Cast converged or conflicted, and what that means next.`,
     `- Identify consequence. Preserve meaningful tension when it is unresolved.`,
     `- Recognize decisions the human already made — do not reopen them as suggestions.`,

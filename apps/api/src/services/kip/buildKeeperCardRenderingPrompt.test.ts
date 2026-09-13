@@ -10,11 +10,13 @@ describe('buildKeeperCardRenderingPrompt', () => {
     expect(prompt).toContain('keepingChoices');
   });
 
-  it('requires Lock/Open/Next Step cards only for asked or multi-cast synthesis', () => {
+  it('requires Lock/Open/Next Step cards only when the human asked — not after Cast', () => {
     const prompt = buildKeeperCardRenderingPrompt();
-    expect(prompt).toContain('The Lock / Open / Next Step summary card is REQUIRED only when:');
-    expect(prompt).toContain('the human explicitly asked for a Lock / Open / Next Step style decision summary');
-    expect(prompt).toContain('synthesizing an actual multi-Cast consult');
+    expect(prompt).toContain(
+      'The Lock / Open / Next Step summary card is REQUIRED only when the human explicitly asked',
+    );
+    expect(prompt).toContain('A multi-Cast performance is not a decision-summary turn');
+    expect(prompt).not.toContain('synthesizing an actual multi-Cast consult');
     expect(prompt).toContain('do not emit a generic summary card with inert "Lock:" / "Open:" / "Next Step:" items');
   });
 

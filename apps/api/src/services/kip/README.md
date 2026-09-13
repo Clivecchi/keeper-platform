@@ -7,7 +7,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
-- `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when asked or multi-Cast synthesis; optional future keeps are `keepingChoices`
+- `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when the human asked — not after Cast; optional future keeps are `keepingChoices`
+- `leadJudgmentContract.ts` — Lead role Agency contract (find the plot). Injected when `role === 'Lead'`. Not Kip-specific.
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `ingestExternalDocument.ts` — External markdown → Dialog + document_manuscript Points + real session (create or attach)
 - `resolveKipActionAllowlistStatus.ts` — session-bound Kip allowlist + canDraft read (MCP / REST)
@@ -39,6 +40,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-09-12 — Lead Judgment contract
+- `leadJudgmentContract.ts` — role Agency: spoken response is Lead value, not Cast recap. Valid outcomes include unresolved tension and no new conclusion.
+- `buildKeeperCardRenderingPrompt.ts` — multi-Cast is not a Summary-card turn.
 
 ### 2026-09-12 — Lead voice after Cast
 - `actionFollowUp.ts` — consult/read follow-up is orchestration context. Does not say "Synthesize for the user." Reused as a system block so it does not impersonate the human.
