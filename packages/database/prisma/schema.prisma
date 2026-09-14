@@ -1451,6 +1451,8 @@ model DomainInvitation {
   expiresAt  DateTime
   acceptedAt DateTime?
   createdAt  DateTime  @default(now())
+  /// Optional notes that seed Domain agents about the invitee. Not email body.
+  seed       Json?
   Domain     Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
   users      users     @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
 

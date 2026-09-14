@@ -62,6 +62,16 @@ export type CompactEnvironmentForPrompt = {
       updatedAt: string;
     }>;
   };
+  peopleNotes?: Array<{
+    email: string;
+    role: string;
+    status: string;
+    seed: {
+      givenName?: string;
+      relation?: string;
+      about?: string;
+    };
+  }>;
   dialogDocumentRef?: {
     dialogId: string;
     title?: string;
@@ -234,6 +244,27 @@ export function buildCompactEnvironmentForPrompt(
       updatedAt: (activeDraft.updatedAt as string | Date) ?? '',
       points: activeDraft.points,
     };
+  }
+
+  if (Array.isArray(env.peopleNotes)) {
+    compact.peopleNotes = env.peopleNotes
+      .map((entry) => {
+        const row = asRecord(entry);
+        if (!row || typeof row.email !== 'string') return null;
+        const seed = asRecord(row.seed) ?? {};
+        return {
+          email: row.email,
+          role: typeof row.role === 'string' ? row.role : '',
+          status: typeof row.status === 'string' ? row.status : '',
+          seed: {
+            ...(typeof seed.givenName === 'string' ? { givenName: seed.givenName } : {}),
+            ...(typeof seed.relation === 'string' ? { relation: seed.relation } : {}),
+            ...(typeof seed.about === 'string' ? { about: seed.about } : {}),
+          },
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      .slice(0, 20);
   }
 
   const domainIndex = asRecord(env.domainIndex);

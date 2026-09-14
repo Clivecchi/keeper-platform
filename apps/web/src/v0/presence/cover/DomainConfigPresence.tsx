@@ -87,7 +87,7 @@ const IDE_BUILD_FIELD_ORDER = [
 ] as const
 
 const sectionLabelStyle: React.CSSProperties = {
-  color: "hsl(var(--theme-ink-tertiary))",
+  color: "hsl(var(--theme-ink-secondary))",
 }
 
 const fieldPlaceholders: Record<string, string> = {
@@ -248,11 +248,13 @@ export function DomainConfigPresence({
                 className="rounded-md px-2.5 py-1 text-[12px] font-semibold"
                 style={{
                   color: selected
-                    ? "hsl(var(--theme-ink-primary))"
-                    : "hsl(var(--theme-ink-tertiary))",
-                  background: selected ? "hsl(var(--theme-surface-paper) / 0.7)" : "transparent",
+                    ? "var(--treatment-ink, hsl(var(--theme-ink-primary)))"
+                    : "hsl(var(--theme-ink-secondary))",
+                  background: selected
+                    ? "var(--treatment-paper, hsl(var(--theme-surface-paper)))"
+                    : "transparent",
                   border: selected
-                    ? "1px solid hsl(var(--theme-border-soft) / 0.55)"
+                    ? "1px solid var(--treatment-accent, hsl(var(--theme-border-soft)))"
                     : "1px solid transparent",
                 }}
                 aria-current={selected ? "page" : undefined}

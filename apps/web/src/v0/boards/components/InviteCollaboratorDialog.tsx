@@ -7,6 +7,12 @@
  */
 
 import * as React from "react"
+import {
+  normalizeInvitationSeed,
+  ROLE_MAP,
+  ROLE_OPTIONS,
+  type DomainRole,
+} from "@keeper/shared"
 import { apiFetch } from "../../../lib/api"
 import { invitationAcceptUrl } from "../../presence/cover/domainPeople"
 
@@ -31,7 +37,10 @@ export function InviteCollaboratorDialog({
   onSettled,
 }: InviteCollaboratorDialogProps) {
   const [identifier, setIdentifier] = React.useState("")
-  const [role, setRole] = React.useState<"connection" | "friend">("connection")
+  const [role, setRole] = React.useState<DomainRole>("connection")
+  const [givenName, setGivenName] = React.useState("")
+  const [relation, setRelation] = React.useState("")
+  const [about, setAbout] = React.useState("")
   const [outcome, setOutcome] = React.useState<InviteOutcome>({ kind: "idle" })
   const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle")
 
@@ -39,6 +48,9 @@ export function InviteCollaboratorDialog({
     if (!open) {
       setIdentifier("")
       setRole("connection")
+      setGivenName("")
+      setRelation("")
+      setAbout("")
       setOutcome({ kind: "idle" })
       setCopyState("idle")
     }
@@ -55,11 +67,16 @@ export function InviteCollaboratorDialog({
       setOutcome({ kind: "working" })
       setCopyState("idle")
       try {
+        const seed = normalizeInvitationSeed({ givenName, relation, about })
         const data = (await apiFetch(
           `/api/domains/${encodeURIComponent(domainId)}/connections/invite`,
           {
             method: "POST",
-            body: JSON.stringify({ identifier: trimmed, role }),
+            body: JSON.stringify({
+              identifier: trimmed,
+              role,
+              ...(seed ? { seed } : {}),
+            }),
           },
         )) as {
           outcome?: string
@@ -119,7 +136,7 @@ export function InviteCollaboratorDialog({
         })
       }
     },
-    [domainId, identifier, onSettled, role],
+    [about, domainId, givenName, identifier, onSettled, relation, role],
   )
 
   const handleCopyAgain = async (acceptUrl: string) => {
@@ -186,10 +203,10 @@ export function InviteCollaboratorDialog({
           </label>
 
           <label className="flex flex-col gap-1 text-[12px]">
-            <span style={{ color: "hsl(var(--theme-ink-secondary))" }}>Role</span>
+            <span style={{ color: "hsl(var(--theme-ink-secondary))" }}>Relationship</span>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as "connection" | "friend")}
+              onChange={(e) => setRole(e.target.value as DomainRole)}
               className="rounded border px-2 py-1.5 text-[13px]"
               style={{
                 background: "hsl(var(--theme-bg))",
@@ -198,9 +215,67 @@ export function InviteCollaboratorDialog({
               }}
               disabled={outcome.kind === "working"}
             >
-              <option value="connection">Connection — read-only access</option>
-              <option value="friend">Friend — collaborator with limited write access</option>
+              {ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {ROLE_MAP[option.value].label} — {ROLE_MAP[option.value].description}
+                </option>
+              ))}
             </select>
+            <span style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              Relationship is access. The notes below seed agents about the person.
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1 text-[12px]">
+            <span style={{ color: "hsl(var(--theme-ink-secondary))" }}>What to call them</span>
+            <input
+              value={givenName}
+              onChange={(e) => setGivenName(e.target.value)}
+              className="rounded border px-2 py-1.5 text-[13px]"
+              style={{
+                background: "hsl(var(--theme-bg))",
+                borderColor: "hsl(var(--theme-border))",
+                color: "hsl(var(--theme-ink))",
+              }}
+              placeholder="Pat Lee"
+              disabled={outcome.kind === "working"}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-[12px]">
+            <span style={{ color: "hsl(var(--theme-ink-secondary))" }}>How they belong</span>
+            <input
+              value={relation}
+              onChange={(e) => setRelation(e.target.value)}
+              className="rounded border px-2 py-1.5 text-[13px]"
+              style={{
+                background: "hsl(var(--theme-bg))",
+                borderColor: "hsl(var(--theme-border))",
+                color: "hsl(var(--theme-ink))",
+              }}
+              placeholder="Colleague from the studio"
+              disabled={outcome.kind === "working"}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-[12px]">
+            <span style={{ color: "hsl(var(--theme-ink-secondary))" }}>What agents should know</span>
+            <textarea
+              value={about}
+              onChange={(e) => setAbout(e.target.value)}
+              rows={3}
+              className="rounded border px-2 py-1.5 text-[13px] resize-y"
+              style={{
+                background: "hsl(var(--theme-bg))",
+                borderColor: "hsl(var(--theme-border))",
+                color: "hsl(var(--theme-ink))",
+              }}
+              placeholder="Knows the Cover work. Speaks for the live Domain."
+              disabled={outcome.kind === "working"}
+            />
+            <span style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              Optional. Stays on the invitation. Not emailed. Agents on this Domain can use it.
+            </span>
           </label>
 
           <button

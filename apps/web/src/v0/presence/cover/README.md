@@ -56,6 +56,15 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-13 — Invitation richness V0
+- Invite can carry what to call them, how they belong, and what agents should know. People shows those notes on pending invitations and on members after accept/grant.
+
+### 2026-09-13 — People roles are the four Domain relationships
+- People always shows Admin, User, Friend, and Connection. Invite uses the same list. Pending invitations now come from members (every role), not the Connection/Friend-only social list. Invitation seeding for agents is not built yet.
+
+### 2026-09-13 — People and Addresses use the same book roles
+- Configure People / Addresses sit on sealed paper. Section labels use Accent, rows get an Accent rail, Invite is Accent outline, Add member / Save actions use Action. Owner is an Alive chip.
+
 ### 2026-09-13 — Domain card uses Alive and Action
 - Active is a signal chip. Configure is a filled Action button. Recent Moments sit on paper with an Accent rail.
 

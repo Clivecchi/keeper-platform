@@ -45,25 +45,29 @@ interface DnsStatusPayload {
 }
 
 const sectionLabelStyle: React.CSSProperties = {
-  color: "hsl(var(--theme-ink-tertiary))",
+  color: "var(--treatment-accent, hsl(var(--theme-ink-secondary)))",
+}
+
+const quietStyle: React.CSSProperties = {
+  color: "hsl(var(--theme-ink-secondary))",
 }
 
 const readOnlyBoxStyle: React.CSSProperties = {
   border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
-  background: "hsl(var(--theme-surface-paper) / 0.35)",
-  color: "hsl(var(--theme-ink-primary))",
+  background: "var(--treatment-paper, hsl(var(--theme-surface-paper)))",
+  color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))",
 }
 
 const inputStyle: React.CSSProperties = {
   border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
-  background: "hsl(var(--theme-surface-paper) / 0.5)",
-  color: "hsl(var(--theme-ink-primary))",
+  background: "var(--treatment-paper, hsl(var(--theme-surface-paper)))",
+  color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))",
 }
 
 const actionButtonStyle: React.CSSProperties = {
-  border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
-  color: "hsl(var(--theme-ink-primary))",
-  background: "hsl(var(--theme-surface-paper) / 0.65)",
+  border: "1px solid var(--treatment-action, hsl(var(--theme-accent-primary)))",
+  background: "var(--treatment-action, hsl(var(--theme-accent-primary)))",
+  color: "var(--treatment-action-ink, hsl(var(--theme-surface-paper)))",
 }
 
 export function DomainAddressesSection({
@@ -304,7 +308,7 @@ export function DomainAddressesSection({
             {domainTagError}
           </p>
         ) : null}
-        <p className="text-[11px] mt-1" style={sectionLabelStyle}>
+        <p className="text-[11px] mt-1" style={quietStyle}>
           Unique across Keeper — lowercase letters, numbers, and hyphens. Use Save to apply
           changes.
         </p>
@@ -319,7 +323,7 @@ export function DomainAddressesSection({
         >
           https://{keeperHostname}
         </div>
-        <p className="text-[11px] mt-1" style={sectionLabelStyle}>
+        <p className="text-[11px] mt-1" style={quietStyle}>
           Derived from your domain tag. Attach{" "}
           <span className="font-mono">{keeperHostname}</span> in Vercel when you are ready for
           tenant hosting.
@@ -382,11 +386,11 @@ export function DomainAddressesSection({
                   ) : dnsStatus?.error ? (
                     <ExclamationTriangleIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }} />
                   ) : (
-                    <ClockIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }} />
+                    <ClockIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--theme-ink-secondary))" }} />
                   )}
                   <div className="min-w-0">
                     <p className="text-sm font-medium">Add to Vercel</p>
-                    <p className="text-[11px]" style={sectionLabelStyle}>
+                    <p className="text-[11px]" style={quietStyle}>
                       {vercelAttached
                         ? "Attached to the Keeper web project"
                         : dnsStatus?.error ?? "Register this hostname on Vercel"}
@@ -424,11 +428,11 @@ export function DomainAddressesSection({
                     ) : dnsConfigured ? (
                       <CheckCircleIcon className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     ) : (
-                      <ClockIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }} />
+                      <ClockIcon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--theme-ink-secondary))" }} />
                     )}
                     <div>
                       <p className="text-sm font-medium">DNS &amp; verification</p>
-                      <p className="text-[11px]" style={sectionLabelStyle}>
+                      <p className="text-[11px]" style={quietStyle}>
                         {dnsVerified
                           ? "Verified — Vercel issues HTTPS automatically"
                           : dnsConfigured
@@ -468,7 +472,7 @@ export function DomainAddressesSection({
             ) : null}
           </div>
         )}
-        <p className="text-[11px] mt-2" style={sectionLabelStyle}>
+        <p className="text-[11px] mt-2" style={quietStyle}>
           Optional public brand URL (e.g. livecchi.us). Separate from your Keeper address above.
         </p>
       </div>

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline"
-import { ROLE_OPTIONS } from "@keeper/shared"
+import { ROLE_MAP, ROLE_OPTIONS } from "@keeper/shared"
 import { apiFetch } from "../../../lib/api"
 import { InviteCollaboratorDialog } from "../../boards/components/InviteCollaboratorDialog"
 import {
@@ -10,6 +10,7 @@ import {
   invitationAcceptUrl,
   parseDomainPeoplePayloads,
   peopleMutationFeedback,
+  peopleSeedLines,
   resolveRoleInfo,
   type DomainMemberRow,
   type DomainOwnerRow,
@@ -32,24 +33,35 @@ interface SearchUserRow {
 }
 
 const sectionLabelStyle: React.CSSProperties = {
-  color: "hsl(var(--theme-ink-tertiary))",
+  color: "var(--treatment-accent, hsl(var(--theme-ink-secondary)))",
+}
+
+const quietStyle: React.CSSProperties = {
+  color: "hsl(var(--theme-ink-secondary))",
 }
 
 const inputStyle: React.CSSProperties = {
   border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
-  background: "hsl(var(--theme-surface-paper) / 0.5)",
-  color: "hsl(var(--theme-ink-primary))",
+  background: "var(--treatment-paper, hsl(var(--theme-surface-paper)))",
+  color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))",
 }
 
-const actionButtonStyle: React.CSSProperties = {
-  border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
-  color: "hsl(var(--theme-ink-primary))",
-  background: "hsl(var(--theme-surface-paper) / 0.65)",
+const actionOutlineStyle: React.CSSProperties = {
+  border: "1px solid var(--treatment-accent, hsl(var(--theme-border-soft)))",
+  color: "var(--treatment-accent, hsl(var(--theme-ink-primary)))",
+  background: "transparent",
+}
+
+const actionFilledStyle: React.CSSProperties = {
+  border: "1px solid var(--treatment-action, hsl(var(--theme-accent-primary)))",
+  background: "var(--treatment-action, hsl(var(--theme-accent-primary)))",
+  color: "var(--treatment-action-ink, hsl(var(--theme-surface-paper)))",
 }
 
 const rowStyle: React.CSSProperties = {
-  border: "1px solid hsl(var(--theme-border-soft) / 0.45)",
-  background: "hsl(var(--theme-surface-paper) / 0.25)",
+  background: "var(--treatment-paper, hsl(var(--theme-surface-elevated)))",
+  boxShadow: "inset 3px 0 0 var(--treatment-accent, hsl(var(--theme-border-strong)))",
+  color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))",
 }
 
 const listScrollStyle: React.CSSProperties = {
@@ -93,6 +105,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
         apiFetch(`/api/domains/${domainId}/members`) as Promise<{
           owner?: DomainOwnerRow | null
           members?: DomainMemberRow[]
+          pendingInvitations?: PendingInvitationRow[]
         }>,
         apiFetch(`/api/domains/${domainId}/connections`) as Promise<{
           pendingInvitations?: PendingInvitationRow[]
@@ -235,8 +248,9 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
     >
       <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start sm:justify-between">
         {embedded ? (
-          <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Who owns this Domain, who belongs, and who has been invited.
+          <p className="text-[13px]" style={{ color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))" }}>
+            Owner is ownership, not a role. Members carry one of four relationships — change
+            it on their row. Invite someone who is not yet on Keeper.
           </p>
         ) : (
           <p
@@ -254,7 +268,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
               setShowAdd(false)
             }}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
-            style={actionButtonStyle}
+            style={actionOutlineStyle}
           >
             Invite
           </button>
@@ -262,7 +276,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
             type="button"
             onClick={() => setShowAdd((open) => !open)}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
-            style={actionButtonStyle}
+            style={showAdd ? actionOutlineStyle : actionFilledStyle}
           >
             {showAdd ? <XMarkIcon className="w-3.5 h-3.5" /> : <PlusIcon className="w-3.5 h-3.5" />}
             {showAdd ? "Cancel" : "Add member"}
@@ -302,7 +316,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                     style={{ color: "hsl(var(--theme-ink-primary))" }}
                   >
                     <span className="font-medium">{user.name || "Unnamed"}</span>
-                    <span className="block text-[11px]" style={sectionLabelStyle}>
+                    <span className="block text-[11px]" style={quietStyle}>
                       {user.email}
                     </span>
                   </button>
@@ -315,7 +329,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="flex-1 min-w-0 text-sm">
                 <p className="font-medium truncate">{selectedUser.name || selectedUser.email}</p>
-                <p className="text-[11px] truncate" style={sectionLabelStyle}>
+                <p className="text-[11px] truncate" style={quietStyle}>
                   {selectedUser.email}
                 </p>
               </div>
@@ -339,7 +353,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                 onClick={() => void handleAddMember()}
                 disabled={adding}
                 className="rounded-md px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
-                style={actionButtonStyle}
+                style={actionFilledStyle}
               >
                 {adding ? "Adding…" : "Add"}
               </button>
@@ -349,11 +363,31 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
       ) : null}
 
       {loading ? (
-        <p className="text-sm" style={sectionLabelStyle}>
+        <p className="text-sm" style={quietStyle}>
           Loading people…
         </p>
       ) : (
         <div className="space-y-4">
+          <div>
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+              style={sectionLabelStyle}
+            >
+              Roles
+            </p>
+            <div className="space-y-1.5">
+              {ROLE_OPTIONS.map((option) => (
+                <p key={option.value} className="text-[12px]" style={quietStyle}>
+                  <span className="font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+                    {ROLE_MAP[option.value].label}
+                  </span>
+                  {" — "}
+                  {ROLE_MAP[option.value].description}
+                </p>
+              ))}
+            </div>
+          </div>
+
           <div>
             <p
               className="text-[11px] font-semibold uppercase tracking-widest mb-2"
@@ -366,7 +400,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{owner.name}</p>
                   {owner.email ? (
-                    <p className="text-[11px] truncate" style={sectionLabelStyle}>
+                    <p className="text-[11px] truncate" style={quietStyle}>
                       {owner.email}
                     </p>
                   ) : null}
@@ -374,15 +408,15 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                 <span
                   className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
                   style={{
-                    color: "hsl(var(--theme-ink-secondary))",
-                    border: "1px solid hsl(var(--theme-border-soft) / 0.55)",
+                    color: "var(--treatment-signal, hsl(var(--theme-status-success)))",
+                    border: "1px solid var(--treatment-signal, hsl(var(--theme-status-success)))",
                   }}
                 >
                   Owner
                 </span>
               </div>
             ) : (
-              <p className="text-sm" style={sectionLabelStyle}>
+              <p className="text-sm" style={quietStyle}>
                 Owner could not be loaded.
               </p>
             )}
@@ -396,7 +430,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
               Members
             </p>
             {members.length === 0 ? (
-              <p className="text-sm" style={sectionLabelStyle}>
+              <p className="text-sm" style={quietStyle}>
                 No members yet. Invite someone, or add a person who already has a Keeper
                 account.
               </p>
@@ -412,9 +446,14 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{member.name}</p>
-                        <p className="text-[11px]" style={sectionLabelStyle}>
+                        <p className="text-[11px]" style={quietStyle}>
                           {roleInfo.label} — {roleInfo.description}
                         </p>
+                        {peopleSeedLines(member.seed).map((line) => (
+                          <p key={line} className="text-[11px] mt-0.5" style={quietStyle}>
+                            {line}
+                          </p>
+                        ))}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <select
@@ -459,7 +498,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
               Pending invitations
             </p>
             {pendingInvitations.length === 0 ? (
-              <p className="text-sm" style={sectionLabelStyle}>
+              <p className="text-sm" style={quietStyle}>
                 No pending invitations. Invite creates a copyable acceptance link — Keeper
                 does not send email yet.
               </p>
@@ -473,11 +512,16 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                   return (
                     <div key={invitation.id} className="rounded-md px-3 py-2 space-y-1.5" style={rowStyle}>
                       <p className="text-sm font-medium truncate">{invitation.email}</p>
-                      <p className="text-[11px]" style={sectionLabelStyle}>
+                      <p className="text-[11px]" style={quietStyle}>
                         {roleInfo.label} — pending
                         {created ? ` · invited ${created}` : ""}
                         {expires ? ` · expires ${expires}` : ""}
                       </p>
+                      {peopleSeedLines(invitation.seed).map((line) => (
+                        <p key={line} className="text-[11px]" style={quietStyle}>
+                          {line}
+                        </p>
+                      ))}
                       {acceptUrl ? (
                         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
                           <code
@@ -494,7 +538,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                             onClick={() => void handleCopyAcceptLink(invitation)}
                             disabled={copyingInviteId === invitation.id}
                             className="rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 shrink-0"
-                            style={actionButtonStyle}
+                            style={actionOutlineStyle}
                           >
                             {copyingInviteId === invitation.id ? "Copying…" : "Copy link"}
                           </button>

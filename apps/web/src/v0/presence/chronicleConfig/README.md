@@ -43,6 +43,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-09-13 — Config uses the Domain reading page
+- `ChronicleConfigShell` is a `.theme-reading-plane`. Header, Save bar, and labels use paper / ink / Action — not faint Warm Dark tertiary on the atmosphere floor.
+
 ### 2026-09-13 — Domain Card frames
 - `ChronicleConfigShell` accepts `subnav` for quiet inner frames under the identity header. Domain Configure uses Domain · People · Addresses · Presence.
 

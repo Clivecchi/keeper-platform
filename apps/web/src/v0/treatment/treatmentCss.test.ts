@@ -38,9 +38,9 @@ describe("treatmentShellStyle", () => {
       ...sample,
       palette: { background: "#8a7a68", accent: "#2d6a7f" },
     })
-    expect(["#f3ebe0", "#26221e"]).toContain(
-      (style as Record<string, string>)["--treatment-surface"],
-    )
+    const paper = (style as Record<string, string>)["--treatment-surface"]
+    expect(["#f3ebe0", "#26221e"]).toContain(paper)
+    expect(style.backgroundColor).toBe(paper)
     expect((style as Record<string, string>)["--theme-ink-primary"]).toMatch(/(12%|94%)$/)
   })
 })

@@ -15,6 +15,9 @@ Each timestamped folder contains SQL migrations that align the database with `sc
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain invitation seed
+- Added `20260914010000_domain_invitation_seed`: nullable `DomainInvitation.seed` JSONB for invitation richness.
+
 ### 2026-08-02 — Restore Dialog.document_paths
 - Added `20260803010000_restore_dialog_document_paths`: renames drifted `document_sections` back to canonical `document_paths` (or adds the column if missing). Fixes production Dialog list/resolve/createSession 500s after an orphaned rename migration left the DB out of sync with Prisma.
 

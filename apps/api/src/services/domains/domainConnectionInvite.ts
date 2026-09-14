@@ -4,6 +4,12 @@ import {
   DomainPermissionService,
   type DomainRole,
 } from '@keeper/database';
+import {
+  invitationSeedHasContent,
+  normalizeInvitationSeed,
+  type DomainPersonNote,
+  type InvitationSeed,
+} from '@keeper/shared';
 
 export const CONNECTION_ROLES = ['friend', 'connection'] as const;
 export type ConnectionRole = (typeof CONNECTION_ROLES)[number];
@@ -35,6 +41,7 @@ export type PendingConnectionInvitation = {
   status: 'pending';
   /** Copyable redeem path for domain admins — email delivery is not wired. */
   acceptPath: string;
+  seed?: InvitationSeed | null;
 };
 
 export function invitationAcceptPath(token: string): string {
@@ -49,6 +56,12 @@ type UserLookupClient = Pick<PrismaClient, 'users' | 'domain' | 'domainPermissio
 
 export function normalizeConnectionRole(role?: string): ConnectionRole {
   return role === 'friend' ? 'friend' : 'connection';
+}
+
+const DOMAIN_ROLES: DomainRole[] = ['admin', 'user', 'friend', 'connection'];
+
+export function normalizeDomainRole(role?: string): DomainRole {
+  return DOMAIN_ROLES.includes(role as DomainRole) ? (role as DomainRole) : 'connection';
 }
 
 export function normalizeIdentifier(identifier: string): string {
@@ -139,8 +152,81 @@ export async function listDomainConnections(
       createdAt: invitation.createdAt,
       status: 'pending' as const,
       acceptPath: invitationAcceptPath(invitation.token),
+      seed: normalizeInvitationSeed(invitation.seed),
     })),
   };
+}
+
+async function persistGrantedInvitationSeed(
+  prisma: UserLookupClient,
+  params: {
+    domainId: string;
+    invitedBy: string;
+    email: string;
+    role: DomainRole;
+    seed: InvitationSeed;
+  },
+): Promise<void> {
+  const expiresAt = new Date();
+  await prisma.domainInvitation.upsert({
+    where: {
+      domainId_email: {
+        domainId: params.domainId,
+        email: params.email,
+      },
+    },
+    create: {
+      domainId: params.domainId,
+      email: params.email,
+      role: params.role,
+      invitedBy: params.invitedBy,
+      token: generateInvitationToken(),
+      expiresAt,
+      acceptedAt: new Date(),
+      seed: params.seed,
+    },
+    update: {
+      role: params.role,
+      invitedBy: params.invitedBy,
+      acceptedAt: new Date(),
+      seed: params.seed,
+    },
+  });
+}
+
+export async function listDomainPeopleNotes(
+  prisma: Pick<PrismaClient, 'domainInvitation'>,
+  domainId: string,
+): Promise<DomainPersonNote[]> {
+  const now = new Date();
+  const invitations = await prisma.domainInvitation.findMany({
+    where: { domainId },
+    select: {
+      email: true,
+      role: true,
+      seed: true,
+      acceptedAt: true,
+      expiresAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 40,
+  });
+
+  const notes: DomainPersonNote[] = [];
+  for (const invitation of invitations) {
+    const seed = normalizeInvitationSeed(invitation.seed);
+    if (!invitationSeedHasContent(seed)) continue;
+    const accepted = Boolean(invitation.acceptedAt);
+    if (!accepted && invitation.expiresAt <= now) continue;
+    notes.push({
+      email: invitation.email,
+      role: invitation.role,
+      status: accepted ? 'member' : 'pending',
+      seed,
+    });
+    if (notes.length >= 20) break;
+  }
+  return notes;
 }
 
 export async function inviteDomainConnection(
@@ -150,11 +236,13 @@ export async function inviteDomainConnection(
     domainId: string;
     invitedBy: string;
     identifier: string;
-    role?: ConnectionRole;
+    role?: DomainRole;
+    seed?: unknown;
   },
 ): Promise<InviteConnectionResult> {
-  const role = normalizeConnectionRole(params.role);
+  const role = normalizeDomainRole(params.role);
   const identifier = normalizeIdentifier(params.identifier);
+  const seed = normalizeInvitationSeed(params.seed);
 
   if (!identifier) {
     throw new Error('Identifier is required');
@@ -199,6 +287,16 @@ export async function inviteDomainConnection(
       grantedBy: params.invitedBy,
     });
 
+    if (seed && invitee.email) {
+      await persistGrantedInvitationSeed(prisma, {
+        domainId: params.domainId,
+        invitedBy: params.invitedBy,
+        email: invitee.email.toLowerCase(),
+        role,
+        seed,
+      });
+    }
+
     return { outcome: 'granted', permission };
   }
 
@@ -221,6 +319,7 @@ export async function inviteDomainConnection(
       invitedBy: params.invitedBy,
       token: generateInvitationToken(),
       expiresAt,
+      ...(seed ? { seed } : {}),
     },
     update: {
       role,
@@ -228,6 +327,7 @@ export async function inviteDomainConnection(
       expiresAt,
       acceptedAt: null,
       token: generateInvitationToken(),
+      ...(seed ? { seed } : {}),
     },
   });
 

@@ -29,6 +29,9 @@ Domain Treatment — named presence configuration stored in `Domain.frame_json.t
 
 ## 📆 Update Log
 
+### 2026-09-13 — Chronicle floor is the reading page
+- `treatmentShellStyle` paints sealed paper (not the raw extracted mid-tone) as Chronicle `backgroundColor`. Atmosphere washes toward that paper. Quiet ink is remapped so Configure / People inherit the same page as the cover.
+
 ### 2026-09-13 — Five living-book roles
 - Treatment palette may include `ink`, `signal`, and `action`. Missing roles are derived. Chronicle CSS exposes `--treatment-paper/ink/accent/signal/action` and maps Alive onto `--theme-status-success`.
 

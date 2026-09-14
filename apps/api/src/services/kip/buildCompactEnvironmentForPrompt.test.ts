@@ -28,4 +28,26 @@ describe('buildCompactEnvironmentForPrompt', () => {
     });
     expect(compact?.agentContext?.secretPrompt).toBeUndefined();
   });
+
+  it('passes invitation people notes into the compact prompt', () => {
+    const compact = buildCompactEnvironmentForPrompt({
+      version: 'env-v1',
+      peopleNotes: [
+        {
+          email: 'pat@example.com',
+          role: 'friend',
+          status: 'pending',
+          seed: { givenName: 'Pat', about: 'Knows Cover.' },
+        },
+      ],
+    });
+    expect(compact?.peopleNotes).toEqual([
+      {
+        email: 'pat@example.com',
+        role: 'friend',
+        status: 'pending',
+        seed: { givenName: 'Pat', about: 'Knows Cover.' },
+      },
+    ]);
+  });
 });

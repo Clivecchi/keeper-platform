@@ -27,7 +27,7 @@ On create (and via `POST /api/domains/:id/provision` repair):
 4. Sets `users.primaryDomainId` when unset.
 5. Calls `ensureDomainHomeBoard`.
 
-`domainConnectionInvite.ts` resolves invitees by case-insensitive email or display name. Known users receive `friend`/`connection` `DomainPermission` rows immediately; unknown email addresses create or refresh `DomainInvitation` tokens (7-day expiry).
+`domainConnectionInvite.ts` resolves invitees by case-insensitive email or display name. Known users receive a `DomainPermission` for the chosen Domain role immediately; unknown email addresses create or refresh `DomainInvitation` tokens (7-day expiry). Optional `seed` notes persist on the invitation (and as an accepted invitation row when an existing account is granted). `listDomainPeopleNotes` feeds Domain agents. `listDomainConnections` still lists Friend/Connection only. Invite create uses all four Domain roles.
 
 Failures in individual steps log warnings and do not fail domain create.
 
@@ -40,6 +40,12 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+
+### 2026-09-13 — Invitation richness V0
+- `normalizeInvitationSeed` + `listDomainPeopleNotes`. Invite stores optional person notes on `DomainInvitation.seed`. Immediate grant writes an accepted invitation row when the person has an email.
+
+### 2026-09-13 — Invite keeps all four Domain roles
+- `normalizeDomainRole` + `inviteDomainConnection` accept Admin, User, Friend, Connection. `listDomainConnections` remains Friend/Connection for the social graph.
 
 ### 2026-09-12 — Invitation accept path
 - `invitationAcceptPath` + pending invitation `acceptPath` on `listDomainConnections` so Domain People can copy a link. Email delivery remains unwired.

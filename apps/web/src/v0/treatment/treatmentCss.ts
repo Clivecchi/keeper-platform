@@ -82,16 +82,19 @@ function applyTreatmentInkVars(
   const vars = style as Record<string, string>
   vars["--theme-ink-primary"] = hslStringToComponents(plane.ink.primary)
   vars["--theme-ink-secondary"] = hslStringToComponents(plane.ink.secondary)
-  vars["--theme-ink-tertiary"] = hslStringToComponents(plane.ink.tertiary)
+  vars["--theme-ink-tertiary"] = hslStringToComponents(plane.ink.secondary)
   vars["--theme-ink-placeholder"] = hslStringToComponents(plane.ink.placeholder)
   vars["--theme-ink-primary-color"] = plane.ink.primary
   vars["--theme-ink-secondary-color"] = plane.ink.secondary
-  vars["--theme-ink-tertiary-color"] = plane.ink.tertiary
+  vars["--theme-ink-tertiary-color"] = plane.ink.secondary
   vars["--theme-ink-placeholder-color"] = plane.ink.placeholder
   vars["--theme-ink-reading"] = hslStringToComponents(plane.ink.primary)
   vars["--theme-ink-reading-secondary"] = hslStringToComponents(plane.ink.secondary)
   vars["--theme-ink-reading-color"] = plane.ink.primary
   vars["--theme-surface-reading"] = plane.surfaceComponents
+  vars["--theme-surface-paper"] = plane.surfaceComponents
+  vars["--theme-surface-elevated"] = plane.surfaceComponents
+  vars["--theme-surface-panel"] = plane.surfaceComponents
   vars["--theme-glass-reading-alpha"] = String(plane.glassAlpha)
   style.color = plane.ink.primary
 }
@@ -121,21 +124,6 @@ export function treatmentShellStyle(
     ? Math.max(Number(contrast["atmosphere.treatmentWashEnd"]), Math.min(1, plane.glassAlpha + 0.02))
     : Number(contrast["atmosphere.treatmentWashEnd"])
 
-  const style: CSSProperties = {
-    backgroundColor: background,
-    fontFamily: treatment.font.family,
-    borderLeft: `3px solid ${treatment.palette.accent}`,
-  }
-
-  if (atmosphereUrl) {
-    const washStart = `${background}${alphaToHexSuffix(washStartAlpha)}`
-    const washEnd = `${background}${alphaToHexSuffix(washEndAlpha)}`
-    style.backgroundImage = `linear-gradient(180deg, ${washStart}, ${washEnd}), url(${atmosphereUrl})`
-    style.backgroundSize = "cover"
-    style.backgroundPosition = "center"
-    style.backgroundRepeat = "no-repeat"
-  }
-
   const swatches = resolveTreatmentSwatches({
     background,
     accent: treatment.palette.accent,
@@ -144,10 +132,24 @@ export function treatmentShellStyle(
     action: treatment.palette.action,
     hasAtmosphere,
   })
+  const paper = swatches.paper
+  const style: CSSProperties = {
+    backgroundColor: paper,
+    fontFamily: treatment.font.family,
+    borderLeft: `3px solid ${swatches.accent}`,
+  }
+
+  if (atmosphereUrl) {
+    const washStart = `${paper}${alphaToHexSuffix(washStartAlpha)}`
+    const washEnd = `${paper}${alphaToHexSuffix(washEndAlpha)}`
+    style.backgroundImage = `linear-gradient(180deg, ${washStart}, ${washEnd}), url(${atmosphereUrl})`
+    style.backgroundSize = "cover"
+    style.backgroundPosition = "center"
+    style.backgroundRepeat = "no-repeat"
+  }
+
   const signalComponents = hexToHslComponents(swatches.signal)
   const actionComponents = hexToHslComponents(swatches.action)
-
-  style.borderLeft = `3px solid ${swatches.accent}`
   applyTreatmentInkVars(style, plane)
   applyTreatmentColorVars(style, swatches.accent)
   ;(style as Record<string, string>)["--treatment-surface"] = swatches.paper

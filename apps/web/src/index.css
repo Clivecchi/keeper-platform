@@ -1933,6 +1933,10 @@ button.dialog-prelude:hover {
   color: hsl(var(--theme-ink-tertiary));
 }
 
+.keeper-chronicle-treatment .keeper-presence-field-label {
+  color: var(--treatment-accent, hsl(var(--theme-ink-secondary)));
+}
+
 .keeper-board-scope .keeper-presence-field-value {
   font-size: 16px;
   line-height: 1.55;
@@ -1942,6 +1946,10 @@ button.dialog-prelude:hover {
 .keeper-board-scope .keeper-presence-field-value-quiet {
   font-size: 14px;
   color: hsl(var(--theme-ink-tertiary));
+}
+
+.keeper-chronicle-treatment .keeper-presence-field-value-quiet {
+  color: hsl(var(--theme-ink-secondary));
 }
 
 /* ─── Realm Playbill rail (Chronicle) ─────────────────────────────────────── */

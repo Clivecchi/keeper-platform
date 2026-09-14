@@ -22,6 +22,12 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 
 ## 📆 Update Log
 
+### 2026-09-13 — Invite carries optional person notes
+- `InviteCollaboratorDialog` still picks a Domain relationship, then optional given name, how they belong, and what agents should know. Notes persist on the invitation. Not emailed.
+
+### 2026-09-13 — Invite uses all four Domain relationships
+- Relationship select is Admin, User, Friend, Connection — the same `ROLE_MAP` People uses.
+
 ### 2026-09-12 — Basic mobile menu
 - Nav drawer header is **Menu**. Adaptive mobile no longer puts Stage / Reach in the top bar.
 

@@ -46,6 +46,7 @@ import {
   isSupportEchoPrompt,
   type DraftDiscussContext,
   displayDraftHostTitle,
+  formatInvitationSeedForAgent,
   collapseDuplicateDraftProposeActions,
   findDuplicateHostPoint,
   pointProposeIdentityFrom,
@@ -6081,6 +6082,12 @@ export class KipAgentService {
           library?: Array<{ id: string; label: string; sourceType: string }>;
           dialogs?: Array<{ id: string; title: string; titleSource: string }>;
         };
+        peopleNotes?: Array<{
+          email: string;
+          role: string;
+          status: 'pending' | 'member';
+          seed: { givenName?: string; relation?: string; about?: string };
+        }>;
       } | undefined;
       if (envWithIndex?.domainIndex) {
         const { keepers, journeys, library, dialogs } = envWithIndex.domainIndex;
@@ -6093,6 +6100,14 @@ export class KipAgentService {
           ?? 'none indexed — use dialog.read to list';
         systemParts.push(
           `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Dialogs: ${dialogList}. Use library.read / dialog.read to list or search when you need more.`,
+        );
+      }
+      if (envWithIndex?.peopleNotes?.length) {
+        const peopleList = envWithIndex.peopleNotes
+          .map((note) => formatInvitationSeedForAgent(note))
+          .join('\n');
+        systemParts.push(
+          `People known on this Domain (from invitations — use this to know the person, not as a directory dump):\n${peopleList}`,
         );
       }
       if (options.keeperId) {
@@ -6671,6 +6686,12 @@ export class KipAgentService {
               library?: Array<{ id: string; label: string; sourceType: string }>;
               dialogs?: Array<{ id: string; title: string; titleSource: string }>;
             };
+            peopleNotes?: Array<{
+              email: string;
+              role: string;
+              status: 'pending' | 'member';
+              seed: { givenName?: string; relation?: string; about?: string };
+            }>;
           } | undefined;
           if (envWithIndex?.domainIndex) {
             const { keepers, journeys, library, dialogs } = envWithIndex.domainIndex;
@@ -6684,6 +6705,14 @@ export class KipAgentService {
             messages.push({
               role: 'system',
               content: `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Dialogs: ${dialogList}. Use library.read / dialog.read to list or search when you need more.`,
+            });
+          }
+          if (envWithIndex?.peopleNotes?.length) {
+            messages.push({
+              role: 'system',
+              content: `People known on this Domain (from invitations — use this to know the person, not as a directory dump):\n${envWithIndex.peopleNotes
+                .map((note) => formatInvitationSeedForAgent(note))
+                .join('\n')}`,
             });
           }
 

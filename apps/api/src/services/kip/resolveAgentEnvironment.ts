@@ -9,8 +9,10 @@ import {
   summarizeDraftPointsForAgent,
   readKeeperStageFromDomainSettings,
   type DialogParticipation,
+  type DomainPersonNote,
   type KeeperStageComposition,
 } from '@keeper/shared';
+import { listDomainPeopleNotes } from '../domains/domainConnectionInvite.js';
 import { getAgentPolicyView } from '../../governance/index.js';
 import type { AgentPolicyView } from '../../governance/types.js';
 import { loadDomainScopedAgents } from '../domains/loadDomainScopedAgents.js';
@@ -99,6 +101,8 @@ export type AgentEnvironmentContext = {
       updatedAt: string;
     }>;
   };
+  /** Invitation notes so agents know people on this Domain. */
+  peopleNotes?: DomainPersonNote[];
   /**
    * Dialog Document (Forward / Step / Paths / manuscript Points) for the active Dialog.
    * Loaded when session.dialog_id (or args.dialogId) is known — same source Chronicle reads.
@@ -504,6 +508,14 @@ export async function resolveAgentEnvironment(args: {
               updatedAt: d.updated_at.toISOString(),
             })),
           };
+          try {
+            environment.peopleNotes = await listDomainPeopleNotes(prisma, primaryDomainId);
+          } catch (error) {
+            console.warn('[resolveAgentEnvironment] people notes lookup failed', {
+              domainId: primaryDomainId,
+              error,
+            });
+          }
           try {
             const baseline = await loadDomainScopedAgents(primaryDomainId);
             let merged = baseline;

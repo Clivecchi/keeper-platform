@@ -1,4 +1,10 @@
-import { ROLE_MAP, type DomainRole } from "@keeper/shared"
+import {
+  formatInvitationSeedLines,
+  normalizeInvitationSeed,
+  ROLE_MAP,
+  type DomainRole,
+  type InvitationSeed,
+} from "@keeper/shared"
 
 export interface DomainOwnerRow {
   userId: string
@@ -13,6 +19,7 @@ export interface DomainMemberRow {
   role: string
   permissions?: string[]
   expiresAt?: string
+  seed?: InvitationSeed | null
 }
 
 export interface PendingInvitationRow {
@@ -24,6 +31,7 @@ export interface PendingInvitationRow {
   expiresAt?: string | Date
   status?: string
   acceptPath?: string
+  seed?: InvitationSeed | null
 }
 
 export function isDomainRole(value: string): value is DomainRole {
@@ -63,25 +71,29 @@ export function parseDomainPeoplePayloads(
   membersResponse: {
     owner?: DomainOwnerRow | null
     members?: DomainMemberRow[]
+    pendingInvitations?: PendingInvitationRow[]
   },
   connectionsResponse: {
     pendingInvitations?: PendingInvitationRow[]
-  },
+  } = {},
 ): {
   owner: DomainOwnerRow | null
   members: DomainMemberRow[]
   pendingInvitations: PendingInvitationRow[]
 } {
   const owner = membersResponse.owner ?? null
+  const pendingFromMembers = membersResponse.pendingInvitations
   return {
     owner,
     members: membersExcludingOwner(
       Array.isArray(membersResponse.members) ? membersResponse.members : [],
       owner?.userId,
     ),
-    pendingInvitations: Array.isArray(connectionsResponse.pendingInvitations)
-      ? connectionsResponse.pendingInvitations
-      : [],
+    pendingInvitations: Array.isArray(pendingFromMembers)
+      ? pendingFromMembers
+      : Array.isArray(connectionsResponse.pendingInvitations)
+        ? connectionsResponse.pendingInvitations
+        : [],
   }
 }
 
@@ -100,6 +112,12 @@ export function peopleMutationFeedback(
     granted: "Member added",
   } as const
   return { ok: true, message: messages[kind] }
+}
+
+export function peopleSeedLines(
+  seed?: InvitationSeed | null,
+): string[] {
+  return formatInvitationSeedLines(normalizeInvitationSeed(seed))
 }
 
 export function formatPeopleDate(value?: string | Date | null): string | null {

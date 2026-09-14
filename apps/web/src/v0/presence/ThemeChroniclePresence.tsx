@@ -229,12 +229,12 @@ export function ThemeChroniclePresence({
   const canEdit = Boolean(user && resolvedSlug)
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-cover-mode="config">
+    <div className="theme-reading-plane flex h-full min-h-0 flex-col" data-cover-mode="config">
       <div
         className="flex shrink-0 items-center gap-3 px-3 py-2.5"
         style={{
           borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)",
-          background: "hsl(var(--theme-surface-elevated) / 0.08)",
+          background: "var(--treatment-paper, hsl(var(--theme-surface-elevated)))",
         }}
       >
         <button
@@ -380,7 +380,7 @@ export function ThemeChroniclePresence({
                 </span>
                 <span
                   className="text-center text-[9px] leading-tight"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
                 >
                   {swatch.hint}
                 </span>
@@ -401,7 +401,7 @@ export function ThemeChroniclePresence({
           </button>
 
           {extracting || saving ? (
-            <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
               {extracting ? "Reading the image…" : "Saving the look…"}
             </p>
           ) : null}
@@ -419,7 +419,7 @@ export function ThemeChroniclePresence({
           >
             <p
               className="text-[11px] font-semibold uppercase tracking-widest"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              style={{ color: "var(--treatment-accent, hsl(var(--theme-ink-secondary)))" }}
             >
               This Stage
             </p>
@@ -444,7 +444,7 @@ export function ThemeChroniclePresence({
               />
               <span>
                 Inherit the domain
-                <span className="mt-0.5 block text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                <span className="mt-0.5 block text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                   On until you grow a Stage look from an image.
                 </span>
               </span>

@@ -65,6 +65,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-13 — Theme editor sits on the reading page
+- `ThemeChroniclePresence` uses `.theme-reading-plane` so paper, hints, and Stage copy stay readable on the sealed Chronicle page.
+
 ### 2026-09-13 — Theme palette is five roles
 - Theme Chronicle edits Paper, Ink, Accent, Alive, and Action. Preview shows the Active chip and a filled Configure button. Existing two-color Treatments still load.
 

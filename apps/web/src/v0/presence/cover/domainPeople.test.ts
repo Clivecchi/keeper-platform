@@ -33,6 +33,41 @@ describe("domainPeople helpers", () => {
     expect(parsed.pendingInvitations).toEqual([])
   })
 
+  it("prefers pending invitations from members so admin and user invites are not dropped", () => {
+    const parsed = parseDomainPeoplePayloads(
+      {
+        owner: { userId: "owner-1", name: "Chuck" },
+        members: [],
+        pendingInvitations: [
+          {
+            id: "inv-admin",
+            email: "pat@example.com",
+            role: "admin",
+            status: "pending",
+            acceptPath: "/invite/accept?token=a",
+            seed: { givenName: "Pat", about: "Knows the Cover work." },
+          },
+        ],
+      },
+      {
+        pendingInvitations: [
+          {
+            id: "inv-connection-only",
+            email: "other@example.com",
+            role: "connection",
+            status: "pending",
+          },
+        ],
+      },
+    )
+
+    expect(parsed.pendingInvitations.map((invitation) => invitation.role)).toEqual(["admin"])
+    expect(parsed.pendingInvitations[0]?.seed).toEqual({
+      givenName: "Pat",
+      about: "Knows the Cover work.",
+    })
+  })
+
   it("keeps pending invitations distinct from members", () => {
     const parsed = parseDomainPeoplePayloads(
       {

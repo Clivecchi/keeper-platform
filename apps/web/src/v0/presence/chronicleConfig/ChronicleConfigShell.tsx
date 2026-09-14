@@ -48,7 +48,7 @@ function ConfigIdentityHeader({
       className="shrink-0 flex items-center gap-3 px-3 py-2.5"
       style={{
         borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)",
-        background: "hsl(var(--theme-surface-elevated) / 0.08)",
+        background: "var(--treatment-paper, hsl(var(--theme-surface-elevated)))",
       }}
     >
       <button
@@ -94,7 +94,7 @@ function ConfigIdentityHeader({
         {status?.trim() && (
           <p
             className="text-[10px] font-mono uppercase tracking-wider flex items-center gap-1"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {isLive && (
               <span
@@ -132,7 +132,7 @@ export function ChronicleConfigShell({
 }: ChronicleConfigShellProps) {
   return (
     <motion.div
-      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      className="theme-reading-plane flex min-h-0 flex-1 flex-col overflow-hidden"
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 12 }}

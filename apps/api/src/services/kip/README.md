@@ -43,6 +43,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 
+### 2026-09-13 — Invitation people notes in environment
+- `resolveAgentEnvironment` loads `peopleNotes` from Domain invitations. Compact prompt + Domain context inject them so agents can know the person.
+
 ### 2026-09-12 — Agent Board Performance Inspection V0
 - `buildAgentBoardContextPrompt.ts` injects observable inspection facts and Training frame context. Compact environment now allowlists those keys.
 - `isLeadRole` is `isLeadAgentRole` — slug is not Lead.

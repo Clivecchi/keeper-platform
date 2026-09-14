@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   invitationAcceptPath,
   looksLikeEmail,
+  listDomainPeopleNotes,
   normalizeConnectionRole,
+  normalizeDomainRole,
   normalizeIdentifier,
   resolveUserByIdentifier,
 } from './domainConnectionInvite.js';
@@ -48,12 +50,76 @@ describe('listDomainConnections pending invitations', () => {
   });
 });
 
+describe('listDomainPeopleNotes', () => {
+  it('keeps only invitations with seed content and skips expired pending', async () => {
+    const now = Date.now();
+    const prisma = {
+      domainInvitation: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            email: 'pat@example.com',
+            role: 'friend',
+            seed: { givenName: 'Pat', about: 'Knows Cover.' },
+            acceptedAt: null,
+            expiresAt: new Date(now + 86_400_000),
+          },
+          {
+            email: 'old@example.com',
+            role: 'user',
+            seed: { givenName: 'Old' },
+            acceptedAt: null,
+            expiresAt: new Date(now - 1_000),
+          },
+          {
+            email: 'member@example.com',
+            role: 'admin',
+            seed: { relation: 'studio' },
+            acceptedAt: new Date(),
+            expiresAt: new Date(now - 1_000),
+          },
+          {
+            email: 'empty@example.com',
+            role: 'connection',
+            seed: {},
+            acceptedAt: new Date(),
+            expiresAt: new Date(now + 86_400_000),
+          },
+        ]),
+      },
+    };
+
+    const notes = await listDomainPeopleNotes(prisma as never, 'domain-1');
+    expect(notes).toEqual([
+      {
+        email: 'pat@example.com',
+        role: 'friend',
+        status: 'pending',
+        seed: { givenName: 'Pat', about: 'Knows Cover.' },
+      },
+      {
+        email: 'member@example.com',
+        role: 'admin',
+        status: 'member',
+        seed: { relation: 'studio' },
+      },
+    ]);
+  });
+});
+
 describe('domainConnectionInvite lookup helpers', () => {
   it('normalizes connection role with friend default override', () => {
     expect(normalizeConnectionRole()).toBe('connection');
     expect(normalizeConnectionRole('connection')).toBe('connection');
     expect(normalizeConnectionRole('friend')).toBe('friend');
     expect(normalizeConnectionRole('admin')).toBe('connection');
+  });
+
+  it('keeps all Domain roles on invite, not only friend and connection', () => {
+    expect(normalizeDomainRole('admin')).toBe('admin');
+    expect(normalizeDomainRole('user')).toBe('user');
+    expect(normalizeDomainRole('friend')).toBe('friend');
+    expect(normalizeDomainRole('connection')).toBe('connection');
+    expect(normalizeDomainRole('unknown')).toBe('connection');
   });
 
   it('detects email-like identifiers', () => {

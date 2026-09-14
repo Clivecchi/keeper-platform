@@ -1,5 +1,6 @@
 export * from './logger.js';
 export * from './roles.js';
+export * from './invitationSeed.js';
 export * from './canonicalBoards.js';
 export * from './universalBoardId.js';
 export * from './cloudMcpCeiling.js';

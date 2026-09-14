@@ -53,6 +53,8 @@ import {
 import { DomainAuthManager } from '@keeper/kam';
 import {
   filterContentByAudience,
+  INVITATION_SEED_LIMITS,
+  normalizeInvitationSeed,
   resolveDomainAudience,
   type DomainAudienceRole,
 } from '@keeper/shared';
@@ -1001,7 +1003,14 @@ const grantPermissionSchema = z.object({
 
 const inviteConnectionSchema = z.object({
   identifier: z.string().min(1),
-  role: z.enum(['friend', 'connection']).optional(),
+  role: z.enum(['admin', 'user', 'friend', 'connection']).optional(),
+  seed: z
+    .object({
+      givenName: z.string().max(INVITATION_SEED_LIMITS.givenName).optional(),
+      relation: z.string().max(INVITATION_SEED_LIMITS.relation).optional(),
+      about: z.string().max(INVITATION_SEED_LIMITS.about).optional(),
+    })
+    .optional(),
 });
 
 const searchDomainsSchema = z.object({
@@ -1425,6 +1434,7 @@ router.post(
         invitedBy: req.user.id,
         identifier: req.body.identifier,
         role: req.body.role,
+        seed: req.body.seed,
       });
 
       if (result.outcome === 'granted') {
@@ -1444,6 +1454,7 @@ router.post(
           /** Copyable redeem path — email delivery is not wired; clipboard is the honest path. */
           token: result.invitation.token,
           acceptPath: invitationAcceptPath(result.invitation.token),
+          seed: normalizeInvitationSeed(result.invitation.seed),
         },
       });
     } catch (error) {
@@ -2241,7 +2252,39 @@ router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async
       email: ownerUser?.email ?? null,
     };
 
-    return res.json({ owner, members });
+    const now = new Date();
+    const invitations = await prisma.domainInvitation.findMany({
+      where: { domainId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const pendingInvitations = invitations
+      .filter((invitation) => !invitation.acceptedAt && invitation.expiresAt > now)
+      .map((invitation) => ({
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        invitedBy: invitation.invitedBy,
+        expiresAt: invitation.expiresAt,
+        createdAt: invitation.createdAt,
+        status: 'pending' as const,
+        acceptPath: invitationAcceptPath(invitation.token),
+        seed: normalizeInvitationSeed(invitation.seed),
+      }));
+
+    const seedByEmail = new Map(
+      invitations
+        .filter((invitation) => invitation.acceptedAt)
+        .map((invitation) => [invitation.email.toLowerCase(), normalizeInvitationSeed(invitation.seed)] as const)
+        .filter((entry) => entry[1]),
+    );
+
+    const membersWithSeed = members.map((member) => ({
+      ...member,
+      seed: member.email ? seedByEmail.get(member.email.toLowerCase()) ?? null : null,
+    }));
+
+    return res.json({ owner, members: membersWithSeed, pendingInvitations });
   } catch (error) {
     console.error('[DomainRoutes] list members error', error);
     return res.status(500).json({ error: 'Internal server error' });

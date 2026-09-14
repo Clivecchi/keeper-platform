@@ -7,6 +7,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `index.ts` – Barrel export for package consumers
 - `logger.ts` – Minimal console logger
 - `roles.ts` – Shared role identifiers
+- `invitationSeed.ts` – Optional invitation notes that seed Domain agents about a person
 - `canonicalBoards.ts` – Canonical logged-in experience board slugs & helpers
 - `universalBoardId.ts` – `build` Board id; `ide` is a URL/frame-JSON alias only
 - `cloudMcpCeiling.ts` – Cloud MCP capability ceiling (shared by API + Build Board def)
@@ -31,6 +32,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-13: `invitationSeed.ts` — givenName / relation / about on a Domain invitation. Caps stay short for agent context. Not a role and not email body.
 - 2026-09-12: `agentRole.ts` + `agentPerformanceProvenance.ts` — Lead is a role. Persist named runtime layers on Lead messages; derive a checklist from older orchestration/card metadata.
 - 2026-09-11: `resolvedMeaning.ts` — `meaning` / `because?` / `about[]` / `performedBy[]` on the Lead envelope. `appendStageStoryBeats` / `findLiveSourcedSlide` append one live-sourced Frame. No taxonomy.
 - 2026-09-02: `keepingChoice.ts` — envelope sibling for deferred semantic direction. Single-selection per offer; siblings stay independent. No `kind` field.
