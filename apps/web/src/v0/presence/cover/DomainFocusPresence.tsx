@@ -6,6 +6,7 @@ import type { FieldDefinition } from "../KeeperPresenceDefaults"
 import type { RelatedSection } from "../presenceEnrichment"
 import { EntityCoverPresence } from "./EntityCoverPresence"
 import { DomainConfigPresence } from "./DomainConfigPresence"
+import { DomainCoverTerrain } from "./DomainCoverTerrain"
 import { domainCoverSchema } from "./schemas/domainCoverSchema"
 import type { ChronicleSaveStatus } from "../chronicleConfig/types"
 import type { AgentCoverMode } from "./coverTypes"
@@ -14,6 +15,7 @@ import type { ChronicleCoverMedia } from "../chronicleConfig/ChronicleCoverField
 import { useGuidedArrivalOptional } from "../../guidedArrival/GuidedArrivalContext"
 import { useFrameLeadAgentIdentity } from "../../hooks/useFrameLeadAgentIdentity"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
 export interface DomainFocusPresenceProps {
   objectId: string
@@ -40,6 +42,8 @@ export interface DomainFocusPresenceProps {
     def: FieldDefinition,
     placeholder?: string,
   ) => React.ReactNode
+  onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
 }
 
 export function DomainFocusPresence({
@@ -60,9 +64,14 @@ export function DomainFocusPresence({
   domainSlug,
   onAddressesUpdated,
   renderFieldEditor,
+  onJourneySelect,
+  onMomentSelect,
 }: DomainFocusPresenceProps) {
   const guidedArrival = useGuidedArrivalOptional()
   const v0Shell = useV0ShellOptional()
+  const boardCtx = useUniversalBoardOptional()
+  const enterJourney = onJourneySelect ?? boardCtx?.actions.onJourneySelect
+  const enterMoment = onMomentSelect ?? boardCtx?.actions.onMomentSelect
   const shellLead = v0Shell?.domainData as
     | { leadAgentSlug?: string | null; leadAgentName?: string | null }
     | null
@@ -150,45 +159,11 @@ export function DomainFocusPresence({
           >
             <EntityCoverPresence content={coverContent} instanceKey={objectId} />
 
-            {relatedSections.length > 0 && (
-              <div className="mt-6">
-                {relatedSections.map((section) => (
-                  <div key={section.title} className="mb-4">
-                    <p
-                      className="text-[11px] font-semibold uppercase tracking-widest mb-2"
-                      style={{ color: "var(--treatment-accent, hsl(var(--theme-ink-tertiary)))" }}
-                    >
-                      {section.title}
-                    </p>
-                    {section.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg px-3 py-2.5 mb-2"
-                        style={{
-                          background: "var(--treatment-paper, hsl(var(--theme-surface-elevated) / 0.35))",
-                          boxShadow: "inset 3px 0 0 var(--treatment-accent, hsl(var(--theme-border-strong)))",
-                        }}
-                      >
-                        <p
-                          className="text-[13px] font-medium"
-                          style={{ color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))" }}
-                        >
-                          {item.label}
-                        </p>
-                        {item.sub && (
-                          <p
-                            className="text-[11px] mt-0.5"
-                            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-                          >
-                            {item.sub}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
+            <DomainCoverTerrain
+              sections={relatedSections}
+              onJourneySelect={enterJourney}
+              onMomentSelect={enterMoment}
+            />
           </motion.div>
         ) : (
           <motion.div

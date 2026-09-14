@@ -26,6 +26,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `agentNameHighlight.tsx` — accent highlight for agent name in training instructions
 - `trainingSectionEditors.tsx` — per-section voice prompt editors (Identity, Behavior, etc.)
 - `openSession.ts` — Open Session → focus center conversation composer
+- `domainCoverTerrain.ts` — judged Domain Cover terrain (Recent Moments, Moving, Present)
+- `DomainCoverTerrain.tsx` — tappable Cover-as-map reaches using existing journey/moment select
 
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
@@ -48,6 +50,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-09-13 — Domain Cover-as-map V0
+- Domain Cover Place stays `EntityCoverPresence`. Judged Terrain (Recent Moments, Moving, Present) is now reachable through existing `onJourneySelect` / `onMomentSelect`.
 
 ### 2026-06-19 — Dialog EntityKind migration
 - Added `dialogCoverSchema.ts`, `DialogFocusPresence.tsx` (Cover · Config)

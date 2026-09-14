@@ -1731,6 +1731,8 @@ function KeeperPresenceSurface({
         onCoverSaved={handlePresenceRefresh}
         onAddressesUpdated={onAddressesUpdated}
         renderFieldEditor={renderFieldEditor}
+        onJourneySelect={onJourneySelect}
+        onMomentSelect={onMomentSelect}
       />
     )
   }

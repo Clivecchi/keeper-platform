@@ -60,6 +60,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain Cover-as-map V0
+- Domain idle Cover terrain (Recent Moments, Moving, Present) enters the existing Journey/Moment Chronicle path. No new Cover renderer or slots.
+
 ### 2026-07-06 — Treatment v0 (Chronicle-only)
 - Domain Config Chronicle saves `frame_json.treatment` (name, background, accent, font)
 - `ChroniclePresenceView` wraps KeeperPresence in `ChronicleTreatmentShell`

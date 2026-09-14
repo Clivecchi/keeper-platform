@@ -59,6 +59,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain Cover-as-map V0
+- Domain idle Cover terrain (Recent Moments, Moving, Present) enters the existing Journey/Moment Chronicle path. No new Cover renderer or slots.
+
 ### 2026-06-13 — Orphan cleanup + Key declaration blocks
 - Deleted unused `AgentIdentityCard.tsx`, `integrationChronicle/IntegrationChronicle.tsx`, `integrationChronicle/blocks/BlockPrimitivesPreview.tsx` (no imports)
 - `declarationChronicle.tsx`: `DeclarationChronicleBlocks` supports `variant="key"` with `connection_status`, `key_health`, `linked_agents` from Key feed
