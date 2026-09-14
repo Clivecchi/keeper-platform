@@ -28,9 +28,12 @@ function isFresh(entry: CacheEntry<unknown>, now = Date.now()): boolean {
 export type DomainMomentRow = {
   id: string
   title?: string
+  body?: string
   keptAt?: string | null
   createdAt?: string
   journeyName?: string
+  coverImage?: string | null
+  coverImageUrl?: string | null
 }
 
 export async function fetchDomainKeptMoments(

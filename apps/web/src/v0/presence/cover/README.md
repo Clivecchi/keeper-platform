@@ -31,8 +31,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `trainingSectionEditors.tsx` — per-section voice prompt editors (Identity, Behavior, etc.)
 - `openSession.ts` — Open Session → focus center conversation composer
 - `domainConfigFrames.ts` — Domain Card inner frames: Domain, People, Addresses, Presence
-- `domainCoverTerrain.ts` — judged Domain Cover terrain (Recent Moments, Moving, Present)
-- `DomainCoverTerrain.tsx` — tappable Cover-as-map reaches using existing journey/moment select
+- `domainCoverTerrain.ts` — judged Domain Cover path (Now / Needs you / Becoming / Present)
+- `DomainCoverTerrain.tsx` — living terrain under Place; optional still; existing journey/moment select
 
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
@@ -57,6 +57,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-09-13 — Cover terrain is a living path
+- Domain Cover under Place reads as one narrative path: What matters here / Living terrain. Reaches wear Now, Needs you, Becoming, or Present. Imagery shows only when a reach has a still; Now may carry a themed seal. Not a warehouse list.
 
 ### 2026-09-13 — Domain Cover and Configure share the Chronicle stack
 - Cover and Configure fill `.keeper-chronicle-stack` so Recent Moments / Save / People stay reachable instead of clipping under `overflow: hidden`.

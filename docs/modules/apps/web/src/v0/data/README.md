@@ -17,6 +17,9 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 
 ## 📆 Update Log
 
+### 2026-09-13 — Moment rows can carry body and cover
+- `DomainMomentRow` may include `body` and cover URLs so Chronicle Cover terrain can show a preview and an optional still.
+
 ### 2026-07-24 — cast-select-must-not-change-atmosphere
 - `loadDomainFrame` cache keys are lowercased (aligned with `domainShellCache`) so soft-switch casing cannot miss the warm frame and fall back to the wrong atmosphere source.
 

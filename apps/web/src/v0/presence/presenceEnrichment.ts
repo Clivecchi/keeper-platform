@@ -921,6 +921,7 @@ async function enrichDomain(
               id: m.id,
               label: m.title?.trim() || "Untitled moment",
               preview: excerptLine(m.body),
+              imageUrl: (m.coverImage ?? m.coverImageUrl)?.trim() || undefined,
               sub: ["Moment", m.journeyName, formatWhenShort(m.keptAt ?? m.createdAt)]
                 .filter(Boolean)
                 .join(" · ") || undefined,
@@ -939,10 +940,11 @@ async function enrichDomain(
         items: moving.map((j) => ({
           id: j.id,
           label: j.name || "Untitled",
+          preview: excerptLine(j.forward),
           sub:
             j.momentCount != null
-              ? `${j.momentCount} moment${j.momentCount === 1 ? "" : "s"}`
-              : undefined,
+              ? `Journey · taking form · ${j.momentCount} moment${j.momentCount === 1 ? "" : "s"}`
+              : "Journey · taking form",
           navigateKind: "journey" as const,
         })),
       })
@@ -954,6 +956,10 @@ async function enrichDomain(
         items: settled.map((j) => ({
           id: j.id,
           label: j.name || "Untitled",
+          preview: excerptLine(j.forward),
+          sub: excerptLine(j.forward)
+            ? "Journey · available"
+            : "Journey · direction unresolved",
           navigateKind: "journey" as const,
         })),
       })

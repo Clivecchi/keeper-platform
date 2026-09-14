@@ -66,6 +66,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain Cover path is living terrain
+- Chronicle Domain Cover flattens judged reaches into one path (Now, Needs you, Becoming, Present). Moment body and journey Forward become the preview. Cover image is optional.
+
 ### 2026-09-13 — Domain Cover-as-map V0
 - Domain idle Cover terrain (Recent Moments, Moving, Present) enters the existing Journey/Moment Chronicle path. No new Cover renderer or slots.
 
