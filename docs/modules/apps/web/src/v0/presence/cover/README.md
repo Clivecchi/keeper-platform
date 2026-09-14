@@ -31,6 +31,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `trainingSectionEditors.tsx` — per-section voice prompt editors (Identity, Behavior, etc.)
 - `openSession.ts` — Open Session → focus center conversation composer
 - `domainConfigFrames.ts` — Domain Card inner frames: Domain, People, Addresses, Presence
+- `domainCoverTerrain.ts` — judged Domain Cover terrain (Recent Moments, Moving, Present)
+- `DomainCoverTerrain.tsx` — tappable Cover-as-map reaches using existing journey/moment select
 
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
@@ -55,6 +57,12 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-09-13 — Domain Cover and Configure share the Chronicle stack
+- Cover and Configure fill `.keeper-chronicle-stack` so Recent Moments / Save / People stay reachable instead of clipping under `overflow: hidden`.
+
+### 2026-09-13 — Domain Cover-as-map V0
+- Domain Cover Place stays `EntityCoverPresence`. Judged Terrain (Recent Moments, Moving, Present) is now reachable through existing `onJourneySelect` / `onMomentSelect`. Cover judges prominence (3 / 3 / 2) so Chronicle does not become a warehouse. Return is still Trail / clearSelection.
 
 ### 2026-09-13 — Invitation richness V0
 - Invite can carry what to call them, how they belong, and what agents should know. People shows those notes on pending invitations and on members after accept/grant.

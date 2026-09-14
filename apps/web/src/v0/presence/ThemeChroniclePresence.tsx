@@ -229,7 +229,7 @@ export function ThemeChroniclePresence({
   const canEdit = Boolean(user && resolvedSlug)
 
   return (
-    <div className="theme-reading-plane flex h-full min-h-0 flex-col" data-cover-mode="config">
+    <div className="theme-reading-plane keeper-chronicle-stack" data-cover-mode="config">
       <div
         className="flex shrink-0 items-center gap-3 px-3 py-2.5"
         style={{

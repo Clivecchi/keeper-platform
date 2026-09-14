@@ -370,7 +370,7 @@ function PanelBody({
     }
 
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="keeper-chronicle-stack">
         <ChronicleRecordView
           objectType={objectType}
           objectId={objectId}
@@ -396,6 +396,7 @@ function PanelBody({
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={subjectKey}
+        className="keeper-chronicle-stack"
         initial={{ opacity: 0 }}
         animate={{
           opacity: 1,
@@ -404,12 +405,6 @@ function PanelBody({
         exit={{
           opacity: 0,
           transition: { duration: 0.14, ease: "easeIn" },
-        }}
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
         }}
       >
         {renderPresence()}
@@ -701,15 +696,7 @@ export function UniversalViewPanel({
         onFeedClick={handleFeedClick}
       />
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <div className="keeper-chronicle-stack">
         {chronicleEngagement ? (
           <ChronicleEngagementSurface
             intent={chronicleEngagement}
@@ -753,11 +740,11 @@ export function UniversalViewPanel({
             />
           )
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="keeper-chronicle-stack">
             {boardCtx?.workspaceSurface === "stage" ? (
               <OnStageObjectList layout="chronicle" />
             ) : null}
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div className="keeper-chronicle-stack">
               <PanelBody
                 subject={liveSubject}
                 subjectKey={contextKey}

@@ -134,6 +134,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-09-13 — Chronicle is one height-locked column
+- The Domain Configure clipper was `overflow: hidden` without being a flex column, so the card grew and Save / Cover actions sat below the fold with nowhere to scroll. Chronicle body is now `.keeper-chronicle-stack`: height passes through; only `.keeper-panel-scroll` moves.
+
 ### 2026-09-13 — Domain Chronicle height
 - Domain idle extras no longer sit as flex siblings under `ChronicleRecordView`. Chronicle body is `flex-1 min-h-0` so the Domain card fills and scrolls.
 

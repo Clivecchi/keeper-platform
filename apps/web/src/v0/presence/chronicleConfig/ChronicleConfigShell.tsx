@@ -132,7 +132,7 @@ export function ChronicleConfigShell({
 }: ChronicleConfigShellProps) {
   return (
     <motion.div
-      className="theme-reading-plane flex min-h-0 flex-1 flex-col overflow-hidden"
+      className="theme-reading-plane keeper-chronicle-stack"
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 12 }}

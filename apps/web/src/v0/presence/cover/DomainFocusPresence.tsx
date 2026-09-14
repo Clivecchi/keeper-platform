@@ -146,7 +146,7 @@ export function DomainFocusPresence({
   }, [record, fieldValues, objectId, coverRevision, guidedArrival?.coverGreeting, primaryAgentName])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="keeper-chronicle-stack">
       <AnimatePresence mode="wait" initial={false}>
         {coverMode === "cover" ? (
           <motion.div
@@ -168,7 +168,7 @@ export function DomainFocusPresence({
         ) : (
           <motion.div
             key={`config-${domainId}`}
-            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            className="keeper-chronicle-stack"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

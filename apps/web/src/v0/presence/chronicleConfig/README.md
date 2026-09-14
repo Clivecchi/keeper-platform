@@ -43,6 +43,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-09-13 — Config shell stays inside the Chronicle column
+- `ChronicleConfigShell` is `.keeper-chronicle-stack` so header and Save stay pinned while the field list is the only scrollport.
+
 ### 2026-09-13 — Config uses the Domain reading page
 - `ChronicleConfigShell` is a `.theme-reading-plane`. Header, Save bar, and labels use paper / ink / Action — not faint Warm Dark tertiary on the atmosphere floor.
 

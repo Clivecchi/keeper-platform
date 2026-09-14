@@ -29,6 +29,9 @@ Domain Treatment — named presence configuration stored in `Domain.frame_json.t
 
 ## 📆 Update Log
 
+### 2026-09-13 — Treatment shell is a Chronicle stack
+- `ChronicleTreatmentShell` is `.keeper-chronicle-stack` so Configure height is bounded and the inner panel can scroll.
+
 ### 2026-09-13 — Chronicle floor is the reading page
 - `treatmentShellStyle` paints sealed paper (not the raw extracted mid-tone) as Chronicle `backgroundColor`. Atmosphere washes toward that paper. Quiet ink is remapped so Configure / People inherit the same page as the cover.
 

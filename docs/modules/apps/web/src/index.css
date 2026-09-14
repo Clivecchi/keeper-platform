@@ -2491,10 +2491,6 @@ button.dialog-prelude:hover {
   overflow-y: auto;
 }
 
-.keeper-chronicle-stack [data-cover-mode="config"] > :not(.keeper-panel-scroll) {
-  flex-shrink: 0;
-}
-
 .keeper-chronicle-panel .keeper-panel-scroll {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--theme-line-hairline, 0 0% 72%) / 0.55) transparent;

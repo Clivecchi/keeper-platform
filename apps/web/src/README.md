@@ -18,6 +18,9 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - [ ] Consolidate legacy and public routes once domain routing is stabilized.
 
 ## 📆 Update Log
+### 2026-09-13 — Chronicle stack is the height lock
+- `.keeper-chronicle-stack` passes a bounded height down Chronicle. `.keeper-panel-scroll` is the only scroller, so Configure Save and Cover actions stay on the page.
+
 ### 2026-09-13 — Chronicle Config labels use Treatment accent
 - `.keeper-chronicle-treatment .keeper-presence-field-label` reads Accent (or ink-secondary), not faint tertiary.
 

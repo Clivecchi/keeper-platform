@@ -69,6 +69,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 ### 2026-09-13 — Domain Cover-as-map V0
 - Domain idle Cover terrain (Recent Moments, Moving, Present) enters the existing Journey/Moment Chronicle path. No new Cover renderer or slots.
 
+### 2026-09-13 — Presence fills the Chronicle stack
+- `KeeperPresence` and Theme use `.keeper-chronicle-stack` so Domain Configure and the Theme editor can scroll and still show their actions.
+
 ### 2026-09-13 — Theme editor sits on the reading page
 - `ThemeChroniclePresence` uses `.theme-reading-plane` so paper, hints, and Stage copy stay readable on the sealed Chronicle page.
 

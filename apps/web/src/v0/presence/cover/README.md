@@ -58,6 +58,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-13 — Domain Cover and Configure share the Chronicle stack
+- Cover and Configure fill `.keeper-chronicle-stack` so Recent Moments / Save / People stay reachable instead of clipping under `overflow: hidden`.
+
 ### 2026-09-13 — Domain Cover-as-map V0
 - Domain Cover Place stays `EntityCoverPresence`. Judged Terrain (Recent Moments, Moving, Present) is now reachable through existing `onJourneySelect` / `onMomentSelect`. Cover judges prominence (3 / 3 / 2) so Chronicle does not become a warehouse. Return is still Trail / clearSelection.
 

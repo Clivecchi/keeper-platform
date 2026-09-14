@@ -29,6 +29,8 @@ export interface RelatedItem {
   label: string
   sub?: string
   preview?: string
+  /** Optional still — Cover shows it only when a reach actually has one. */
+  imageUrl?: string
   navigateKind?: "journey" | "path" | "moment" | "keeper" | "session"
 }
 
@@ -74,7 +76,15 @@ export interface PresenceEnrichmentContext {
 type JourneyBrief = {
   id: string
   name: string
+  forward?: string | null
   momentCount?: number
+}
+
+function excerptLine(value: string | null | undefined, max = 140): string | undefined {
+  const text = value?.replace(/\s+/g, " ").trim()
+  if (!text) return undefined
+  if (text.length <= max) return text
+  return `${text.slice(0, max).trimEnd()}…`
 }
 
 type RecentMoment = {
@@ -910,7 +920,8 @@ async function enrichDomain(
             items: moments.map((m) => ({
               id: m.id,
               label: m.title?.trim() || "Untitled moment",
-              sub: [m.journeyName, formatWhenShort(m.keptAt ?? m.createdAt)]
+              preview: excerptLine(m.body),
+              sub: ["Moment", m.journeyName, formatWhenShort(m.keptAt ?? m.createdAt)]
                 .filter(Boolean)
                 .join(" · ") || undefined,
               navigateKind: "moment" as const,

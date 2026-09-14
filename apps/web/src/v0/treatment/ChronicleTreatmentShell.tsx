@@ -49,7 +49,7 @@ export function ChronicleTreatmentShell({
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col overflow-hidden keeper-chronicle-treatment"
+      className="keeper-chronicle-stack keeper-chronicle-treatment"
       data-treatment-name={resolvedTreatment.name}
       data-treatment-tier="full"
       data-atmosphere={atmosphereUrl ? "image" : "color"}
