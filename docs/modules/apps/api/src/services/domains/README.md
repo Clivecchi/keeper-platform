@@ -41,6 +41,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-09-13 — Prisma JSON write for invitation seed
+- Cast `InvitationSeed` to `Prisma.InputJsonValue` on `DomainInvitation.seed` writes so `tsc` accepts the Json field (Railway `keeper-api` build).
+
 ### 2026-09-13 — Invitation richness V0
 - `normalizeInvitationSeed` + `listDomainPeopleNotes`. Invite stores optional person notes on `DomainInvitation.seed`. Immediate grant writes an accepted invitation row when the person has an email.
 

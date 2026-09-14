@@ -1,5 +1,5 @@
 import type { DomainInvitation, DomainPermission } from '@prisma/client';
-import type { PrismaClient } from '@keeper/database';
+import type { Prisma, PrismaClient } from '@keeper/database';
 import {
   DomainPermissionService,
   type DomainRole,
@@ -75,6 +75,10 @@ export function looksLikeEmail(identifier: string): boolean {
 
 export function generateInvitationToken(): string {
   return `inv_${Date.now()}_${Math.random().toString(36).slice(2, 18)}`;
+}
+
+function invitationSeedJson(seed: InvitationSeed): Prisma.InputJsonValue {
+  return { ...seed } as Prisma.InputJsonValue;
 }
 
 export async function resolveUserByIdentifier(
@@ -183,13 +187,13 @@ async function persistGrantedInvitationSeed(
       token: generateInvitationToken(),
       expiresAt,
       acceptedAt: new Date(),
-      seed: params.seed,
+      seed: invitationSeedJson(params.seed),
     },
     update: {
       role: params.role,
       invitedBy: params.invitedBy,
       acceptedAt: new Date(),
-      seed: params.seed,
+      seed: invitationSeedJson(params.seed),
     },
   });
 }
@@ -319,7 +323,7 @@ export async function inviteDomainConnection(
       invitedBy: params.invitedBy,
       token: generateInvitationToken(),
       expiresAt,
-      ...(seed ? { seed } : {}),
+      ...(seed ? { seed: invitationSeedJson(seed) } : {}),
     },
     update: {
       role,
@@ -327,7 +331,7 @@ export async function inviteDomainConnection(
       expiresAt,
       acceptedAt: null,
       token: generateInvitationToken(),
-      ...(seed ? { seed } : {}),
+      ...(seed ? { seed: invitationSeedJson(seed) } : {}),
     },
   });
 

@@ -30,6 +30,7 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-09-12-domain-board-kip-inventory.md`
 - `2026-09-13-training-vs-agency.md`
 - `2026-09-13-chronicle-cover-agency.md`
+- `2026-09-13-domain-cover-as-map.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -38,6 +39,9 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-13 — Domain Cover-as-map V0
+- Added `2026-09-13-domain-cover-as-map.md` — Domain Cover terrain now reaches Journey/Moment through existing Chronicle select. Gloss-only.
+
 ### 2026-09-13 — Chronicle Cover is a card, not a map
 - Added `2026-09-13-chronicle-cover-agency.md` — Chronicle Cover is a universal identity card; Domain idle and Agent idle share Domain as subject; Agency Board Cover does not exist. Gloss-only.
 
