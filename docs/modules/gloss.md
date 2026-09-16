@@ -32,6 +32,7 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-09-13-chronicle-cover-agency.md`
 - `2026-09-13-domain-cover-as-map.md`
 - `2026-09-13-agency-board-v0.md`
+- `2026-09-13-agency-board-v0-built.md`
 - `2026-09-13-domain-cover-living-path.md`
 
 ## 🔄 Data & Behavior
@@ -41,8 +42,11 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-09-13 — Agency Board V0 built
+- Added `2026-09-13-agency-board-v0-built.md` — locked V0 is in code; runtime id still `agent`; Trail crumb is still Domain name; Now is judged not hardcoded.
+
 ### 2026-09-13 — Agency Board V0
-- Added `2026-09-13-agency-board-v0.md` — smallest truthful Agency Board: Agency Place, People + Agents Nav, contracts reached not categorized. Gloss-only.
+- Added `2026-09-13-agency-board-v0.md` — smallest truthful Agency Board: Agency Place, People + Agents Nav, contracts reached not categorized. Revised against live ke3p roster, People, policy, Lens, and Finding the Plot provenance. Gloss-only.
 
 ### 2026-09-13 — Domain Cover living path
 - Added `2026-09-13-domain-cover-living-path.md` — Chronicle terrain under Place reads as one path. Gloss-only.

@@ -15,6 +15,11 @@ export const NAV_PANE_LABELS: Record<NavPaneId, string> = {
   config: "Config",
 }
 
+export function paneLabelFor(def: UniversalBoardDef, pane: NavPaneId): string {
+  if (pane === "config" && def.boardId === "agent") return "Agency"
+  return NAV_PANE_LABELS[pane]
+}
+
 /** Dialog, Draft, Chatter, Library — always on, every board. Sessions stay Design-gated. Stage is Realm-only. */
 export const UNIVERSAL_NAV_BLOCKS: NavRenderBlock[] = [
   "dialogs",
@@ -38,6 +43,7 @@ export const CONFIG_NAV_BLOCKS: NavRenderBlock[] = [
   "glossary",
   "connections",
   "agents",
+  "people",
   "boardDefs",
   "boards",
 ]
@@ -82,6 +88,8 @@ export function configBlockEnabled(
       return def.boardId === "realm"
     case "agents":
       return def.nav.sections.agents === true
+    case "people":
+      return def.nav.sections.people === true
     case "boardDefs":
       return def.nav.sections.boardDefs === true
     case "boards":

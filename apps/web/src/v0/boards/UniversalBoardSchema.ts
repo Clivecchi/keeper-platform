@@ -212,7 +212,7 @@ export const BUILD_BOARD_SCHEMA: UniversalBoardSchema = {
  */
 export const AGENT_BOARD_SCHEMA: UniversalBoardSchema = {
   boardId: "agent",
-  displayName: "Agent Board",
+  displayName: "Agency Board",
   access: {
     // boardRegistry.ts confirms isPrivate: true.
     // Schema document listed isPrivate: false — diverges from registry. // TODO: verify intent

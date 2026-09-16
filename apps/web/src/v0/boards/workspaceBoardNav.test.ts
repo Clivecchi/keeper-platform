@@ -27,6 +27,13 @@ describe("workspaceBoardNav — Build Board", () => {
     expect(toWorkspaceBoardUrlParam("designer")).toBe("designer")
   })
 
+  it("writes ?board=agency and still reads ?board=agent", () => {
+    expect(parseWorkspaceBoardId(new URLSearchParams("board=agency"))).toBe("agent")
+    expect(parseWorkspaceBoardId(new URLSearchParams("board=agent"))).toBe("agent")
+    expect(applyWorkspaceBoardSwitch(new URLSearchParams(), "agent").get("board")).toBe("agency")
+    expect(toWorkspaceBoardUrlParam("agent")).toBe("agency")
+  })
+
   it("normalizes legacy ?definition=ide to build", () => {
     expect(parseBoardDefinitionId(new URLSearchParams("definition=ide"))).toBe("build")
     expect(parseBoardDefinitionId(new URLSearchParams("definition=build"))).toBe("build")

@@ -101,8 +101,8 @@ import { OBJECT_GLOSSARY_SUBJECT_ID } from "@keeper/shared"
 import { CrossNavIndex, type CrossNavIndexItem } from "./CrossNavIndex"
 import {
   boardHasConfigPane,
-  NAV_PANE_LABELS,
   paneBlocksFor,
+  paneLabelFor,
   type NavPaneId,
 } from "./navPanes"
 
@@ -480,6 +480,10 @@ export function UniversalNavPanel({
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
   const [agents, setAgents] = React.useState<AgentItem[] | null>(null)
+  const [peopleItems, setPeopleItems] = React.useState<
+    Array<{ userId: string; name: string; role: string }> | null
+  >(null)
+  const [peopleError, setPeopleError] = React.useState<string | null>(null)
   const [allKeyRows, setAllKeyRows] = React.useState<KeyNavRow[] | null>(null)
   const [keyError, setKeyError] = React.useState<string | null>(null)
   const [allCapabilityRows, setAllCapabilityRows] = React.useState<CapabilityNavRow[] | null>(null)
@@ -653,7 +657,7 @@ export function UniversalNavPanel({
   const [navPane, setNavPane] = React.useState<NavPaneId>("universal")
 
   React.useEffect(() => {
-    setNavPane("universal")
+    setNavPane(def.boardId === "agent" ? "config" : "universal")
   }, [def.boardId])
 
   React.useEffect(() => {
@@ -954,6 +958,41 @@ export function UniversalNavPanel({
       })
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.agents, agentListVersion])
+
+  React.useEffect(() => {
+    if (!domainId || def.nav.sections.people !== true) return
+    let cancelled = false
+    setPeopleError(null)
+    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/members`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const payload = res as {
+          owner?: { userId?: string; name?: string } | null
+          members?: Array<{ userId?: string; name?: string; role?: string }>
+        }
+        const rows: Array<{ userId: string; name: string; role: string }> = []
+        const ownerId = payload.owner?.userId?.trim()
+        const ownerName = payload.owner?.name?.trim()
+        if (ownerId && ownerName) {
+          rows.push({ userId: ownerId, name: ownerName, role: "owner" })
+        }
+        for (const member of payload.members ?? []) {
+          const userId = member.userId?.trim()
+          const name = member.name?.trim()
+          if (!userId || !name || userId === ownerId) continue
+          rows.push({ userId, name, role: member.role?.trim() || "member" })
+        }
+        setPeopleItems(rows)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setPeopleError(err instanceof Error ? err.message : "Failed to load people")
+        setPeopleItems([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [domainId, def.nav.sections.people])
 
   // ── Fetch: Connections — Realm Board only ─────────────────────────────────
   React.useEffect(() => {
@@ -1752,6 +1791,37 @@ export function UniversalNavPanel({
             )}
           </div>
         )
+      case "people":
+        if (def.nav.sections.people !== true) return null
+        return (
+          <>
+            <SidebarCard
+              className="keeper-sidebar-card"
+              title="People"
+              description={
+                !domainId || peopleItems == null
+                  ? "Loading…"
+                  : peopleItems.length === 1
+                    ? "1 person"
+                    : `${peopleItems.length} people`
+              }
+              items={(peopleItems ?? []).map((person) => ({
+                id: person.userId,
+                label: person.name,
+                isSelected:
+                  boardCtx?.selection.agencyRoom?.kind === "people" &&
+                  boardCtx.selection.agencyRoom.userId === person.userId,
+                onClick: () => boardCtx?.actions.openAgencyPeople(person.userId),
+              }))}
+              onTitleClick={() => boardCtx?.actions.openAgencyPeople()}
+            />
+            {peopleError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {peopleError}
+              </p>
+            )}
+          </>
+        )
       case "agents":
         if (!showAgents) return null
         return (
@@ -1874,7 +1944,7 @@ export function UniversalNavPanel({
                     : pane === "keepers"
                       ? "Keepers"
                       : "More"
-                  : NAV_PANE_LABELS[pane]}
+                  : paneLabelFor(def, pane)}
               </button>
             )
           })}

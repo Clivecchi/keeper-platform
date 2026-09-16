@@ -12,6 +12,7 @@ import {
   configBlockEnabled,
   paneBlocksFor,
   paneForNavBlock,
+  paneLabelFor,
   resolveConfigBlockOrder,
 } from "./navPanes"
 
@@ -71,12 +72,10 @@ describe("nav panes", () => {
     ])
   })
 
-  it("keeps Agent Config as agents plus access summaries", () => {
-    expect(paneBlocksFor(AGENT_BOARD_DEF, "config")).toEqual([
-      "agents",
-      "aiAccess",
-      "externalAccess",
-    ])
+  it("keeps Agency pane as People and Agents only", () => {
+    expect(paneBlocksFor(AGENT_BOARD_DEF, "config")).toEqual(["people", "agents"])
+    expect(paneLabelFor(AGENT_BOARD_DEF, "config")).toBe("Agency")
+    expect(paneForNavBlock("people")).toBe("config")
   })
 
   it("keeps Design Config as glossary and board definitions", () => {

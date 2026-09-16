@@ -4,7 +4,7 @@ import type {
   EntityCoverSchema,
   ResolvedCoverContent,
 } from "../coverTypes"
-import { resolveCoverAvatarDisplay } from "../coverImageUtils"
+import { heroImageFromRecord, resolveCoverAvatarDisplay } from "../coverImageUtils"
 
 function resolveAccent(themeColor?: string): string {
   if (!themeColor?.trim()) return ""
@@ -46,9 +46,7 @@ export const domainCoverSchema: EntityCoverSchema = {
       (typeof record.status === "string" && record.status) ||
       "active"
 
-    const coverUrl =
-      (typeof record.coverImage === "string" && record.coverImage) ||
-      undefined
+    const coverUrl = heroImageFromRecord(record).url ?? undefined
     const primaryAgent =
       (typeof record.leadAgentName === "string" && record.leadAgentName.trim()) ||
       ""

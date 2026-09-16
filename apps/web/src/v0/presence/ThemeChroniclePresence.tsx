@@ -35,6 +35,7 @@ import { ChronicleVisualUploadField } from "./chronicleConfig/ChronicleCoverFiel
 import { patchDomainTreatment } from "./chronicleConfig/chroniclePatch"
 import { extractPaletteFromImageSource } from "../themes/extractImagePalette"
 import { applyDomainVisualFromImage } from "../themes/applyDomainVisualFromImage"
+import { rememberDomainCoverUpload } from "../themes/rememberDomainCoverUpload"
 import { useKeeperStageOptional } from "../composer/useKeeperStage"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
@@ -318,6 +319,10 @@ export function ThemeChroniclePresence({
               value={coverUrl ? { type: "image", url: coverUrl } : null}
               themeBits={domainTheme}
               disabled={!canEdit || extracting || saving}
+              library={{
+                domainId: resolvedDomainId,
+                displayLabel: "Domain cover",
+              }}
               onSave={async (cover) => {
                 setError(null)
                 if (!cover?.url) {
@@ -332,9 +337,12 @@ export function ThemeChroniclePresence({
                     existingTheme: domainTheme,
                     imageUrl: cover.url,
                     imageKey: cover.key ?? null,
-                    createLibraryItem: true,
-                    userId: user?.id,
-                    displayLabel: "Domain cover",
+                    createLibraryItem: false,
+                  })
+                  rememberDomainCoverUpload({
+                    slug: resolvedSlug,
+                    existingTheme: domainTheme,
+                    cover,
                   })
                   await shell?.reloadDomainFrame()
                 } catch (err) {

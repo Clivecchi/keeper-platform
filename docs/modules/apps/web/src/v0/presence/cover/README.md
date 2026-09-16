@@ -5,6 +5,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 🧱 Key Files
 - `coverTypes.ts` — slot names, `EntityCoverSchema`, Theatre.js motion value names
+- `coverImageUtils.ts` — `coverFromRecord` / `heroImageFromRecord` (theme bits, presence, or flat fields)
 - `coverMotion.ts` — Framer Motion hook (`atmosphereOpacity`, `nameReveal`, `statusPulse`, `heroEntrance`)
 - `EntityCoverPresence.tsx` — Layer 1 universal slot renderer (merged hero + identity header)
 - `schemas/agentCoverSchema.ts` — Layer 2 Agent EntityKind fill
@@ -33,6 +34,13 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `domainConfigFrames.ts` — Domain Card inner frames: Domain, People, Addresses, Presence
 - `domainCoverTerrain.ts` — judged Domain Cover path (Now / Needs you / Becoming / Present)
 - `DomainCoverTerrain.tsx` — living terrain under Place; optional still; existing journey/moment select
+- `agencyPlace.ts` — Agency Place facts + Place traits
+- `agencyCoverPath.ts` — judged Agency path (Now / empty Needs you / empty Becoming / Present)
+- `AgencyCoverTerrain.tsx` — living terrain under Agency Place
+- `schemas/agencyCoverSchema.ts` — Agency Place fill of the Domain record
+- `AgencyFocusPresence.tsx` — idle Agency Chronicle (Place / People room / inspect)
+- `AgencyInspectPresence.tsx` — Present inspection (Lens, Contract, provenance)
+- `AgencyRoomShell.tsx` — back-to-Place room chrome without Save
 
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
@@ -57,6 +65,12 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-09-15 — Cover card reads the same image upload writes
+- Domain / Agency / Keeper cards resolve the hero through `heroImageFromRecord` (theme bits, presence cover, then avatar). Domain Configure upload also patches the Domain Card and switcher cache immediately.
+
+### 2026-09-13 — Agency Board V0
+- Agency Place is a Board Cover of the Domain record (`AgencyFocusPresence`). Terrain names a last binding Dialog as Now and Keeper's working Agency as Present. Needs you / Becoming stay empty. People reuses `DomainPeopleSection`. Inspection shows Lens, Contract, and provenance only when they exist.
 
 ### 2026-09-13 — Cover terrain is a living path
 - Domain Cover under Place reads as one narrative path: What matters here / Living terrain. Reaches wear Now, Needs you, Becoming, or Present. Imagery shows only when a reach has a still; Now may carry a themed seal. Not a warehouse list.

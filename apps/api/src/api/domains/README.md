@@ -44,6 +44,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-09-13: **Agency Place read** — `GET /:domainId/agency-place` composes owner, lead, people count, DomainAgentPolicy, Lens, and last domain-scoped Lead performance. No new storage.
 - 2026-09-13: **Invitation richness V0** — Invite accepts optional `seed` (`givenName`, `relation`, `about`). Stored on `DomainInvitation.seed`. Members list returns seed on pending invitations and on members after accept/grant. Agents read the same notes.
 - 2026-09-13: **Domain People roles** — Invite accepts Admin, User, Friend, or Connection. `GET /:id/members` returns all pending `DomainInvitation` rows (not only Friend/Connection). `GET /:id/connections` stays the social-graph list.
 - 2026-09-12: **Domain People** — `GET /:id/members` returns `owner` from `Domain.ownerId` (not a permission row) plus members excluding the owner. `GET /:id/connections` pending invitations include `acceptPath` for copyable links. Email is not sent.

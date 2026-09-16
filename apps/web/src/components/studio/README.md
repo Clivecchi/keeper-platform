@@ -42,6 +42,7 @@ This folder contains specialized React components for the Studio interface, incl
 - [ ] Connect to real backend persistence
 
 ## 📆 Update Log
+- **2026-09-15**: `MediaUploader` waits for `onChange` (the Chronicle save) before showing success. Image dimension probing no longer gates persist.
 - **2025-01-27**: Created AgentKeeperTypeAssignment component with full assignment interface
 - **2025-01-27**: Added memory pattern visualization and system type identification
 - **2025-01-27**: Implemented assignment dialog with available types filtering 

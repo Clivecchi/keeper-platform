@@ -44,6 +44,7 @@ import {
   resolveDomainLeadAgentFromDomain,
 } from '../../services/domains/resolveDomainLeadAgent.js';
 import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
+import { loadAgencyPlace } from '../../services/domains/loadAgencyPlace.js';
 import {
   invitationAcceptPath,
   inviteDomainConnection,
@@ -1622,6 +1623,32 @@ router.get(
     } catch (error) {
       console.error('[domains:policy:get:error]', error);
       return res.status(500).json({ error: 'FAILED_TO_LOAD_POLICY' });
+    }
+  },
+);
+
+// GET /api/domains/:domainId/agency-place — read-only Agency Place facts (no new storage)
+router.get(
+  '/:domainId/agency-place',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const { domainId } = req.params;
+      const payload = await loadAgencyPlace(domainId);
+      if (!payload) {
+        return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+      }
+      return res.json({ success: true, data: payload });
+    } catch (error) {
+      console.error('[domains:agency-place:error]', error);
+      return res.status(500).json({
+        error: 'FAILED_TO_LOAD_AGENCY_PLACE',
+        message: 'Failed to load Agency Place',
+      });
     }
   },
 );

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   buildMcpToolSystemPrompt,
   executeMcpCallAction,
@@ -49,6 +49,55 @@ describe('mcpAgentBridge', () => {
   it('mcp.call web.search uses WebSearchService instead of Unknown tool', async () => {
     const original = process.env.BRAVE_SEARCH_API_KEY;
     delete process.env.BRAVE_SEARCH_API_KEY;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () =>
+          '<a class="result__a" href="https://platform.openai.com/docs/guides/agents">OpenAI Agents</a>',
+        arrayBuffer: async () => Buffer.from(''),
+      }),
+    );
+    try {
+      const outcome = await executeMcpCallAction({
+        toolName: 'web.search',
+        args: { query: 'OpenAI Agent API' },
+        agentCapabilities: [],
+      });
+      expect(outcome).toMatchObject({
+        ok: true,
+        provider: 'duckduckgo',
+        results: [
+          {
+            title: 'OpenAI Agents',
+            url: 'https://platform.openai.com/docs/guides/agents',
+          },
+        ],
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+      if (original === undefined) {
+        delete process.env.BRAVE_SEARCH_API_KEY;
+      } else {
+        process.env.BRAVE_SEARCH_API_KEY = original;
+      }
+    }
+  });
+
+  it('mcp.call web.search still surfaces MISSING_API_KEY when fallbacks are empty', async () => {
+    const original = process.env.BRAVE_SEARCH_API_KEY;
+    delete process.env.BRAVE_SEARCH_API_KEY;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => '<html><body>no results</body></html>',
+        arrayBuffer: async () => Buffer.from('<html><body>no results</body></html>'),
+      }),
+    );
     try {
       await expect(
         executeMcpCallAction({
@@ -61,6 +110,8 @@ describe('mcpAgentBridge', () => {
         errorCode: 'MISSING_API_KEY',
       });
     } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
       if (original === undefined) {
         delete process.env.BRAVE_SEARCH_API_KEY;
       } else {

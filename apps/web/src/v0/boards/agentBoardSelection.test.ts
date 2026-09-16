@@ -27,6 +27,7 @@ const emptySelection = {
 describe("agentBoardSelection", () => {
   it("keeps Agent subject when a Dialog is selected on Agent Board", () => {
     expect(isAgentBoardId("agent")).toBe(true)
+    expect(isAgentBoardId("agency")).toBe(true)
     expect(shouldKeepAgentWhenSelectingDialog("agent", "kip-id")).toBe(true)
     expect(shouldKeepDialogWhenSelectingAgent("agent")).toBe(true)
     expect(shouldKeepAgentWhenSelectingLibrary("agent")).toBe(true)

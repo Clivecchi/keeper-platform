@@ -23,6 +23,8 @@ export interface DomainPeopleSectionProps {
   domainId: string
   /** Hide stacked-section chrome when this is its own Domain Card frame. */
   embedded?: boolean
+  /** Agency Nav — emphasize this person inside the shared People room. */
+  highlightUserId?: string | null
 }
 
 interface SearchUserRow {
@@ -64,13 +66,26 @@ const rowStyle: React.CSSProperties = {
   color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))",
 }
 
+function personRowStyle(highlighted: boolean): React.CSSProperties {
+  if (!highlighted) return rowStyle
+  return {
+    ...rowStyle,
+    boxShadow:
+      "inset 3px 0 0 var(--treatment-action, hsl(var(--theme-accent-primary))), 0 0 0 1px var(--treatment-action, hsl(var(--theme-accent-primary)))",
+  }
+}
+
 const listScrollStyle: React.CSSProperties = {
   maxHeight: "16rem",
   overflowY: "auto",
   overscrollBehavior: "contain",
 }
 
-export function DomainPeopleSection({ domainId, embedded = false }: DomainPeopleSectionProps) {
+export function DomainPeopleSection({
+  domainId,
+  embedded = false,
+  highlightUserId = null,
+}: DomainPeopleSectionProps) {
   const [owner, setOwner] = React.useState<DomainOwnerRow | null>(null)
   const [members, setMembers] = React.useState<DomainMemberRow[]>([])
   const [pendingInvitations, setPendingInvitations] = React.useState<PendingInvitationRow[]>([])
@@ -396,7 +411,10 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
               Owner
             </p>
             {owner ? (
-              <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5" style={rowStyle}>
+              <div
+                className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5"
+                style={personRowStyle(Boolean(highlightUserId && owner.userId === highlightUserId))}
+              >
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{owner.name}</p>
                   {owner.email ? (
@@ -442,7 +460,7 @@ export function DomainPeopleSection({ domainId, embedded = false }: DomainPeople
                     <div
                       key={member.userId}
                       className="flex flex-col gap-2 rounded-md px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                      style={rowStyle}
+                      style={personRowStyle(Boolean(highlightUserId && member.userId === highlightUserId))}
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{member.name}</p>

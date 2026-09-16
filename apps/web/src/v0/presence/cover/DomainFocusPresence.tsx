@@ -31,7 +31,7 @@ export interface DomainFocusPresenceProps {
   isDirty: boolean
   onSave: () => void | Promise<void>
   onFieldChange: (key: string, value: string) => void
-  onCoverSaved?: () => void
+  onCoverSaved?: (cover?: ChronicleCoverMedia) => void
   domainSlug?: string
   onAddressesUpdated?: (patch: {
     customDomain?: string | null
@@ -202,9 +202,9 @@ export function DomainFocusPresence({
             }}
             onSave={() => void onSave()}
             onFieldChange={onFieldChange}
-            onCoverSaved={() => {
+            onCoverSaved={(cover) => {
               setCoverRevision((n) => n + 1)
-              onCoverSaved?.()
+              onCoverSaved?.(cover)
             }}
             renderFieldEditor={renderFieldEditor}
           />

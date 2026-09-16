@@ -6,10 +6,10 @@ import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { KeeperDto } from "./feeds/KeeperFeed"
 import {
   ChronicleVisualUploadField,
-  patchPresenceAvatar,
+  patchPresenceVisual,
   type ChronicleCoverMedia,
 } from "../chronicleConfig/ChronicleCoverField"
-import { avatarFromRecord, themeContainerFromRecord } from "../cover/coverImageUtils"
+import { heroImageFromRecord, themeContainerFromRecord } from "../cover/coverImageUtils"
 
 export type KeeperMetadataFields = {
   display_label: string
@@ -48,14 +48,14 @@ export function KeeperConfigPresence({
   onLabelResolved?: (label: string) => void
 }) {
   const board = useUniversalBoardOptional()
-  const [avatarRevision, setAvatarRevision] = React.useState(0)
+  const [coverRevision, setCoverRevision] = React.useState(0)
   const themeSource = record ?? { presenceSchema: keeper.presenceSchema }
 
-  const avatarMedia = React.useMemo((): ChronicleCoverMedia => {
-    const { avatar, avatarKey } = avatarFromRecord(themeSource)
-    if (!avatar) return null
-    return { type: "image", url: avatar, key: avatarKey ?? undefined }
-  }, [themeSource, avatarRevision])
+  const coverMedia = React.useMemo((): ChronicleCoverMedia => {
+    const hero = heroImageFromRecord(themeSource)
+    if (!hero.url) return null
+    return { type: "image", url: hero.url, key: hero.key ?? undefined }
+  }, [themeSource, coverRevision])
 
   const baselineRef = React.useRef(toMetadataFields(displayLabel, description))
   const [fieldValues, setFieldValues] = React.useState(baselineRef.current)
@@ -135,19 +135,24 @@ export function KeeperConfigPresence({
     >
       <div className="flex flex-col gap-4 px-4 py-4">
         <ChronicleVisualUploadField
-          label="Avatar"
-          uploadRole="avatar"
-          description="Keeper's visual identity. Each upload adds a theme bit to the object theme."
-          value={avatarMedia}
+          label="Cover image"
+          uploadRole="cover"
+          description="Shown on the Keeper cover in Chronicle. The same image is filed on Library shelves."
+          value={coverMedia}
           themeBits={themeContainerFromRecord(themeSource)}
-          onSave={async (avatar) => {
-            await patchPresenceAvatar(
+          library={{
+            domainId,
+            displayLabel: keeper.display_label?.trim() || keeper.title || "Keeper cover",
+            activeKeeperId: keeperId,
+          }}
+          onSave={async (cover) => {
+            await patchPresenceVisual(
               `/api/keepers/${encodeURIComponent(keeperId)}?domainId=${encodeURIComponent(domainId)}`,
-              avatar,
+              cover,
             )
           }}
           onSaved={() => {
-            setAvatarRevision((n) => n + 1)
+            setCoverRevision((n) => n + 1)
             onRefresh?.()
           }}
         />

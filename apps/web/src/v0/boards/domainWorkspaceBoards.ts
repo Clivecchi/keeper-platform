@@ -4,7 +4,7 @@
  * Which workspace boards (`?board=`) are available for a domain slug.
  *
  * Platform (KE3P / slug `ke3p`): Build + Design (+ member boards).
- * All other domains: Domain + Agent (+ Realm home) — no Build or Design.
+ * All other domains: Domain + Agency (+ Realm home) — no Build or Design.
  */
 
 import {
@@ -45,7 +45,7 @@ const WORKSPACE_BOARD_LABELS: Record<WorkspaceBoardId, string> = {
   domain: "Domain",
   build: "Build",
   designer: "Design",
-  agent: "Agent",
+  agent: "Agency",
 }
 
 export function isPlatformDomainSlug(slug: string | null | undefined): boolean {
@@ -67,8 +67,9 @@ export function isWorkspaceBoardAvailableForDomain(
 ): boardId is WorkspaceBoardId {
   if (!boardId) return false
   const id = normalizeUniversalBoardId(boardId)
-  if (!id) return false
-  return resolveAvailableWorkspaceBoardIds(domainSlug).includes(id as WorkspaceBoardId)
+  const resolved = id === "agency" ? "agent" : id
+  if (!resolved) return false
+  return resolveAvailableWorkspaceBoardIds(domainSlug).includes(resolved as WorkspaceBoardId)
 }
 
 /** Desktop default when landing on `/d/:slug` with no `?board=`. */

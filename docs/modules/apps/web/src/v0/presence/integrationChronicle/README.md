@@ -45,6 +45,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-09-15 — Keeper cover upload
+- `KeeperConfigPresence` saves a Cover image (cover + avatar) and files it in Library, same Chronicle upload field as Domain / Journey / Path / Moment.
+
 ### 2026-08-22 — Draft pencil authoring
 - `Cdraft` drops Manage. Pencil makes the title the field (Save / Cancel). Points edit in place through `DraftChronicleBlocks`.
 

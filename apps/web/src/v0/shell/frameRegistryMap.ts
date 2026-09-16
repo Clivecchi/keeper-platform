@@ -55,7 +55,7 @@ export const FRAME_DISPLAY_NAMES: Record<string, string> = {
   keepers: "Keepers",
   journeys: "Journeys",
   profile: "Profile",
-  agent: "Agent Board",
+  agent: "Agency Board",
   kip: "Kip",
   admin: "Admin",
   theme: "Theme",

@@ -121,6 +121,10 @@ export function PathConfigPresence({
       <ChronicleCoverField
         value={coverMedia}
         themeBits={record?.presenceSchema}
+        library={{
+          domainId,
+          displayLabel: name.trim() || "Path cover",
+        }}
         onSave={async (cover) => {
           await patchPresenceCover(`/api/paths/${encodeURIComponent(pathId)}`, cover)
         }}

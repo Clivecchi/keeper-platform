@@ -13,7 +13,8 @@ Houses the theme resolution pipeline for the V0 frame layer. This folder convert
 - `presets/grayEarth.tokens.ts` ? Canonical gray earth tone token set (platform default).
 - `ThemeSwitcher.tsx` ? Developer UI component; updates `?theme=` URL param. Remains a developer preview tool.
 - `extractImagePalette.ts` — canvas sample of a File or image URL.
-- `applyDomainVisualFromImage.ts` — Domain cover upload → cover + extracted Treatment + theme colors (and a Library row for the shelves).
+- `applyDomainVisualFromImage.ts` — Domain cover upload → cover + extracted Treatment + theme colors.
+- `rememberDomainCoverUpload.ts` — patch Domain shell + switcher caches so the Domain Card shows the new cover without a reload.
 - `surfaceLookStore.ts` — surfaced Library look overlay (not written back to the Domain).
 - `atmosphereContrast.ts` — glass alphas + must-read vs muted ink when a cover sits behind the board.
 
@@ -72,6 +73,9 @@ StyleScope: effectiveStyleId = gray-earth when domain-resolved (Warm Dark via ?s
 ### 2026-08-30 — Domain cover is the floor; surfaced items overlay
 - Hierarchy: Domain cover → Domain Treatment / theme. A Library image overlays only while that item is Chronicle/Present subject. Moment → Path → Journey → Keeper `theme_id` still walks over Domain tokens. Cast never changes atmosphere.
 - Cover upload still extracts and writes the Domain look. Library `+` only shelves the file.
+
+### 2026-09-15 — Cover cache follows the upload
+- `rememberDomainCoverUpload` writes the new cover onto the by-slug and switcher caches. Library ingest moved to `ChronicleVisualUploadField` so Domain and Keeper share one shelf path.
 
 ### 2026-08-30 — Image upload extracts the domain look
 - `extractImagePalette` / `applyDomainVisualFromImage` sample the **Domain cover**, write cover + Treatment + theme colors.

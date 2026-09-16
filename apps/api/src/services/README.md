@@ -11,6 +11,7 @@ Central location for API service-layer modules used by route handlers.
 - `customDomainVerificationSync.ts`
 - `LibraryItemIngestionService.ts`
 - `pdfTextExtract.ts`
+- `WebSearchService.ts`
 
 ## 🔄 Data & Behavior
 Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
@@ -64,6 +65,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 
 ### 2026-08-05 — AI provider chat timeouts raised
 - `ModelProviderService.ts` — OpenAI/Anthropic/Together chat AbortController budgets raised (90s / 110s / 90s, env-overridable) so long Sonnet turns stop failing at 30–60s; abort detection covers SDK-wrapped abort errors; Anthropic clears timeout in `finally`.
+
+### 2026-09-15 — web.search works without Brave
+- `WebSearchService.ts` — Brave stays preferred (`BRAVE_SEARCH_API_KEY` or platform key `brave` / `brave-search`). If unset, `web.search` falls back to DuckDuckGo HTML and fetches a public page when the query names a URL or domain. Private/localhost targets are rejected.
 
 ### 2026-09-11 — Cloud mcp.call web.search alias
 - `mcpAgentBridge.ts` — `mcp.call` name `web.search` / `web_search` is not an MCP tool. Rewrite to `WebSearchService` (same Kip action). Prompt tells Cloud never to mcp.call web.search.

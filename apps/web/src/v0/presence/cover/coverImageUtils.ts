@@ -35,10 +35,37 @@ export function coverFromRecord(record: Record<string, unknown>): {
   }
 
   const fromPresence = extractPresenceCover(record.presenceSchema)
-  return {
-    coverImage: fromPresence.coverImage ?? null,
-    coverImageKey: fromPresence.coverImageKey ?? null,
+  if (fromPresence.coverImage) {
+    return {
+      coverImage: fromPresence.coverImage,
+      coverImageKey: fromPresence.coverImageKey ?? null,
+    }
   }
+
+  if (typeof record.coverImage === "string" && record.coverImage.trim()) {
+    return {
+      coverImage: record.coverImage.trim(),
+      coverImageKey:
+        typeof record.coverImageKey === "string" && record.coverImageKey.trim()
+          ? record.coverImageKey.trim()
+          : null,
+    }
+  }
+
+  return { coverImage: null, coverImageKey: null }
+}
+
+/** Chronicle card hero — cover first, then avatar, so Domain/Keeper/Agent share one reader. */
+export function heroImageFromRecord(record: Record<string, unknown>): {
+  url: string | null
+  key: string | null
+} {
+  const cover = coverFromRecord(record)
+  if (cover.coverImage) {
+    return { url: cover.coverImage, key: cover.coverImageKey }
+  }
+  const avatar = avatarFromRecord(record)
+  return { url: avatar.avatar, key: avatar.avatarKey }
 }
 
 export function avatarFromRecord(record: Record<string, unknown>): {

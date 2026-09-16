@@ -3,7 +3,8 @@
  * -----------------
  * URL contract for Board navigation.
  *
- * `?board=`     — active Board (Realm · Domain · Build · Design · Agent). Top bar only.
+ * `?board=`     — active Board (Realm · Domain · Build · Design · Agency). Top bar only.
+ * Canonical Agency URL is `?board=agency`. `?board=agent` remains a compatibility alias.
  * `?definition=` — optional Design deep-link / share projection of Board Definition Nav.
  * Not a second selection OS. Chronicle and Nav highlight follow board context.
  *
@@ -63,6 +64,7 @@ const LEGACY_BOARD_DEF_PARAM = "boardDef"
 
 /** Write the public `?board=` value for an internal Board id. */
 export function toWorkspaceBoardUrlParam(boardId: WorkspaceBoardId): string {
+  if (boardId === "agent") return "agency"
   return boardId
 }
 
@@ -74,7 +76,7 @@ export function parseWorkspaceBoardId(
   if (board === "realm") return "realm"
   if (board === LEGACY_BUILD_BOARD_ALIAS || board === BUILD_BOARD_ID) return "build"
   if (board === "designer") return "designer"
-  if (board === "agent") return "agent"
+  if (board === "agent" || board === "agency") return "agent"
   return null
 }
 

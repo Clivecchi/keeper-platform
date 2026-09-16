@@ -19,6 +19,7 @@ export type KeeperRecord = {
   keeperType: string | null
   memoryPattern: string | null
   avatar?: string | null
+  coverImage?: string | null
   stats?: {
     journeyCount?: number
     pathCount?: number
@@ -79,7 +80,10 @@ export const keeperCoverSchema: EntityCoverSchema<KeeperRecord> = {
 
     return {
       hero: {
-        avatar: resolveCoverAvatarDisplay(record.avatar, avatarFallback),
+        avatar: resolveCoverAvatarDisplay(
+          record.coverImage ?? record.avatar,
+          avatarFallback,
+        ),
         avatarGlow: "active",
         accentColor: "hsl(var(--theme-accent-primary))",
         chromeTitle: "KE3P · KEEPER",

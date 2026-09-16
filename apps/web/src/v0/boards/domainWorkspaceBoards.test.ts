@@ -15,7 +15,7 @@ describe("domainWorkspaceBoards", () => {
     expect(isPlatformDomainSlug("livecchi")).toBe(false)
   })
 
-  it("platform domain includes Realm, Domain, Build, Design, Agent", () => {
+  it("platform domain includes Realm, Domain, Build, Design, Agency", () => {
     expect(resolveAvailableWorkspaceBoardIds("default")).toEqual([
       "realm",
       "domain",
@@ -33,7 +33,7 @@ describe("domainWorkspaceBoards", () => {
       "Domain",
       "Build",
       "Design",
-      "Agent",
+      "Agency",
     ])
   })
 
@@ -48,6 +48,7 @@ describe("domainWorkspaceBoards", () => {
     expect(isWorkspaceBoardAvailableForDomain("designer", "livecchi")).toBe(false)
     expect(isWorkspaceBoardAvailableForDomain("domain", "livecchi")).toBe(true)
     expect(isWorkspaceBoardAvailableForDomain("agent", "livecchi")).toBe(true)
+    expect(isWorkspaceBoardAvailableForDomain("agency", "livecchi")).toBe(true)
   })
 
   it("defaults to Realm board", () => {

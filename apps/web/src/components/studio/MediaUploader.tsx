@@ -30,7 +30,7 @@ interface MediaData {
 
 interface MediaUploaderProps {
   value?: MediaData | null;
-  onChange: (media: MediaData | null) => void;
+  onChange: (media: MediaData | null) => void | Promise<void>;
   disabled?: boolean;
 }
 
@@ -149,30 +149,15 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ value, onChange, disabled
 
       setUploadState(prev => ({ ...prev, progress: 75 }));
 
-      // Step 4: Create media data object with Vercel Blob URL
+      // Persist first. Do not wait on Image.onload — private blob URLs often never fire it,
+      // which used to show success without calling onChange (no DB write, no Library row).
       const mediaData: MediaData = {
         type: getFileType(file),
         url: uploadResponse.data.url,
         key: uploadResponse.data.key
       };
 
-      // For images, try to get dimensions
-      if (mediaData.type === 'image') {
-        try {
-          const img = new Image();
-          img.onload = () => {
-            mediaData.width = img.width;
-            mediaData.height = img.height;
-            onChange(mediaData);
-          };
-          img.src = mediaData.url;
-        } catch {
-          // If we can't load dimensions, just proceed without them
-          onChange(mediaData);
-        }
-      } else {
-        onChange(mediaData);
-      }
+      await Promise.resolve(onChange(mediaData));
 
       setUploadState({ status: 'success', progress: 100 });
       setTimeout(() => setUploadState({ status: 'idle', progress: 0 }), 2000);
@@ -225,7 +210,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ value, onChange, disabled
 
   const handleRemove = useCallback(async () => {
     if (!value?.key) {
-      onChange(null);
+      await Promise.resolve(onChange(null));
       return;
     }
 
@@ -234,8 +219,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ value, onChange, disabled
     } catch (error) {
       console.warn('Failed to delete upload:', error);
     }
-    
-    onChange(null);
+
+    await Promise.resolve(onChange(null));
   }, [value, onChange]);
 
   const handleReplace = useCallback(() => {

@@ -11,6 +11,7 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 - `ChronicleConfigShell.tsx` — universal Config Mode layout shell
 - `ChronicleActPresence.tsx` — engagement template Acts through the same shell (Submit bar, declared fields)
 - `ChronicleCoverField.tsx` — cover image upload (Vercel Blob via `MediaUploader`); saves immediately on upload
+- `saveChronicleCoverUpload.ts` — optional Library shelf row for every Chronicle cover/avatar upload
 - `ChronicleRecordDelete.tsx` — danger-zone delete with confirm for Journey, Path, Moment Config
 
 ## 🔄 Data & Behavior
@@ -42,6 +43,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 | **5** | Retire legacy | Remove standalone `DomainManager` from `?frame=admin`; keep `/admin/domains` for platform admins only |
 
 ## 📆 Update Log
+
+### 2026-09-15 — Chronicle upload is one path
+- `ChronicleVisualUploadField` optionally files the image in Library, then persists the object. Success waits on that save. Domain / Keeper / Journey / Path / Moment use the same field. Keeper PATCH accepts cover + avatar together.
 
 ### 2026-09-13 — Config shell stays inside the Chronicle column
 - `ChronicleConfigShell` is `.keeper-chronicle-stack` so header and Save stay pinned while the field list is the only scrollport.

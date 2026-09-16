@@ -1,10 +1,15 @@
 /**
- * Agent Board selection grammar.
+ * Agency Board selection grammar (runtime id remains `agent`).
  * Agent remains Chronicle subject. A Dialog is performance/environment context.
  */
 
+export type AgencyRoom =
+  | { kind: "people"; userId?: string | null }
+  | { kind: "inspect" }
+
 export function isAgentBoardId(boardId: string | null | undefined): boolean {
-  return boardId?.trim() === "agent"
+  const id = boardId?.trim()
+  return id === "agent" || id === "agency"
 }
 
 export function shouldKeepAgentWhenSelectingDialog(

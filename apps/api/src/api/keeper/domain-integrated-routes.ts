@@ -5,7 +5,11 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { resolveKeeperChronicleDefaults, mergePresenceSchemaAvatar } from '@keeper/shared';
+import {
+  resolveKeeperChronicleDefaults,
+  mergePresenceSchemaAvatar,
+  mergePresenceSchemaCover,
+} from '@keeper/shared';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
@@ -53,6 +57,8 @@ const patchKeeperSchema = z
     description: z.string().max(2000).optional(),
     avatar: z.string().url().nullable().optional(),
     avatarKey: z.string().nullable().optional(),
+    coverImage: z.string().url().nullable().optional(),
+    coverImageKey: z.string().nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',
@@ -409,7 +415,7 @@ router.patch('/:id',
         return res.status(404).json({ error: 'Keeper not found' });
       }
 
-      const { avatar, avatarKey, ...metadata } = body;
+      const { avatar, avatarKey, coverImage, coverImageKey, ...metadata } = body;
       const updateData: {
         display_label?: string;
         title?: string;
@@ -425,12 +431,15 @@ router.patch('/:id',
           : {}),
       };
 
-      if (avatar !== undefined) {
-        updateData.presenceSchema = mergePresenceSchemaAvatar(
-          existing.presenceSchema,
-          avatar,
-          avatarKey,
-        ) as Prisma.InputJsonValue;
+      if (coverImage !== undefined || avatar !== undefined) {
+        let nextSchema = existing.presenceSchema;
+        if (coverImage !== undefined) {
+          nextSchema = mergePresenceSchemaCover(nextSchema, coverImage, coverImageKey);
+        }
+        if (avatar !== undefined) {
+          nextSchema = mergePresenceSchemaAvatar(nextSchema, avatar, avatarKey);
+        }
+        updateData.presenceSchema = nextSchema as Prisma.InputJsonValue;
       }
 
       const keeper = await prisma.keeper.update({

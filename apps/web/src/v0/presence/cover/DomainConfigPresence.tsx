@@ -15,8 +15,6 @@ import {
   type ChronicleCoverMedia,
 } from "../chronicleConfig/ChronicleCoverField"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
-import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
-import { useAuth } from "../../../context/AuthContext"
 import { applyDomainVisualFromImage } from "../../themes/applyDomainVisualFromImage"
 import { DomainAddressesSection } from "./DomainAddressesSection"
 import { DomainPeopleSection } from "./DomainPeopleSection"
@@ -48,7 +46,7 @@ export interface DomainConfigPresenceProps {
   onBack: () => void
   onSave: () => void | Promise<void>
   onFieldChange: (key: string, value: string) => void
-  onCoverSaved?: () => void
+  onCoverSaved?: (cover?: ChronicleCoverMedia) => void
   renderFieldEditor: (
     key: string,
     def: FieldDefinition,
@@ -188,8 +186,6 @@ export function DomainConfigPresence({
   focusPeople = false,
 }: DomainConfigPresenceProps) {
   const v0Shell = useV0ShellOptional()
-  const boardCtx = useUniversalBoardOptional()
-  const { user } = useAuth()
   const [activeFrame, setActiveFrame] = React.useState<DomainConfigFrame>(() =>
     resolveDomainConfigFrame(focusPeople ? "people" : "identity"),
   )
@@ -277,6 +273,10 @@ export function DomainConfigPresence({
         description="The domain's look — board and Chronicle atmosphere, and the colors extracted from this image. Library shelves hold more images without changing this."
         value={coverMedia}
         themeBits={existingTheme}
+        library={{
+          domainId,
+          displayLabel: "Domain cover",
+        }}
         onSave={async (cover) => {
           if (!cover?.url) {
             await patchDomainThemeCover(domainId, existingTheme, cover)
@@ -289,11 +289,8 @@ export function DomainConfigPresence({
             existingTheme,
             imageUrl: cover.url,
             imageKey: cover.key ?? null,
-            createLibraryItem: true,
-            userId: user?.id,
-            displayLabel: "Domain cover",
+            createLibraryItem: false,
           })
-          boardCtx?.actions.bumpLibraryNav()
           await v0Shell?.reloadDomainFrame()
         }}
         onSaved={onCoverSaved}
@@ -314,7 +311,7 @@ export function DomainConfigPresence({
             {primaryAgentName.trim()}
           </p>
           <p className="text-[11px] mt-1" style={sectionLabelStyle}>
-            Who primarily works with this Domain. Change the lead on Agent Board.
+            Who primarily works with this Domain. Change the lead on Agency Board.
           </p>
         </div>
       ) : null}

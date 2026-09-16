@@ -90,6 +90,20 @@ export function setCachedDomainBySlug(slug: string, data: DomainBySlugRecord): v
   bumpDomainShellCacheVersion()
 }
 
+/** Read cached by-slug record even when TTL has expired. */
+export function peekCachedDomainBySlug(slug: string): DomainBySlugRecord | null {
+  return domainStore.get(normalizeSlug(slug))?.data ?? null
+}
+
+export function patchCachedDomainBySlug(
+  slug: string,
+  patch: Partial<DomainBySlugRecord>,
+): void {
+  const existing = peekCachedDomainBySlug(slug)
+  if (!existing) return
+  setCachedDomainBySlug(slug, { ...existing, ...patch })
+}
+
 export function setCachedDomainAudience(slug: string, data: DomainAudienceRecord): void {
   audienceStore.set(normalizeSlug(slug), { fetchedAt: Date.now(), data })
   bumpDomainShellCacheVersion()

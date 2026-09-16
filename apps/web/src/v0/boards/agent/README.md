@@ -1,7 +1,7 @@
 # Agent Board
 
 ## 📌 Purpose
-The Agent Board is the workspace for interacting with registered Kip agents and managing drafts. It uses `KeeperBoardPanelGroup` for resizable three-panel layout (nav / conversation / right panel).
+Agency Board V0 (`AgentBoard.tsx`) mounts Universal Board. Idle Chronicle is Agency Place. The files below are legacy leftovers; live Nav is `UniversalNavPanel`.
 
 ## 🧱 Key Files
 - `AgentBoard.tsx` — Board root. Owns `domainId`, `selectedAgentId`, `selectedDraftId`, `domainError` state. Provides Board-level view state branching in right panel.
@@ -24,6 +24,9 @@ The Agent Board is the workspace for interacting with registered Kip agents and 
 - [ ] Journey list is hard-capped at 5 — no "Show all" affordance yet (Keeper list addressed in Moment 2.2)
 
 ## 📆 Update Log
+### 2026-09-13 — Agency Board V0
+- `AgentBoard` still mounts Universal Board. Display name and idle Chronicle are now Agency Place. Legacy nav/idle files stay unused.
+
 ### 2026-05-04 — Moment 2.2: AgentBoard Reconciliation
 - `AgentBoardNav`: receives `domainId` from Board (was re-resolving independently — primary Keeper defect fixed)
 - `AgentBoardNav`: removed duplicate `/api/domains/by-slug` call; Keeper fetch now keyed on `domainId`

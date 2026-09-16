@@ -100,6 +100,9 @@ Failures in individual steps log warnings and do not fail domain create.
 ### 2026-07-24 — Dialog participation on roster
 - `loadDomainScopedAgents` summary includes `dialogParticipation` from `config.dialog_participation`.
 
+### 2026-09-13 — Agency Place compose
+- `loadAgencyPlace.ts` — read-only Agency Cover facts from Domain + membership + lead + policy + Lens + last Lead performance.
+
 ### 2026-06-28 — Domain-accessible agent roster (Agent board Nav)
 - `loadDomainScopedAgents.ts` — merges domain lead + Kip + platform agents (`cloud`, `rendr`) for every domain.
 - `loadDomainAccessibleAgents()` — full agent rows for `GET /:domainId/kip/agents` (Agent board Nav + Chronicle Config).

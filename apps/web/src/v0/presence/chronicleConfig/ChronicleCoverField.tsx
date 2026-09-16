@@ -5,7 +5,13 @@ import MediaUploader from "../../../components/studio/MediaUploader"
 import { apiFetch } from "../../../lib/api"
 import type { ObjectThemeBitRole } from "@keeper/shared"
 import { extractObjectTheme } from "@keeper/shared"
+import { useAuth } from "../../../context/AuthContext"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { ObjectThemeBitsStrip } from "./ObjectThemeBitsStrip"
+import {
+  attachChronicleUploadToLibrary,
+  type ChronicleCoverLibraryAttach,
+} from "./saveChronicleCoverUpload"
 
 export type ChronicleCoverMedia = {
   type: "image"
@@ -20,7 +26,9 @@ export interface ChronicleVisualUploadFieldProps {
   value: ChronicleCoverMedia
   themeBits?: unknown
   disabled?: boolean
-  onSaved?: () => void
+  /** When set, a successful image upload also creates a Library shelf row. */
+  library?: Omit<ChronicleCoverLibraryAttach, "userId">
+  onSaved?: (cover: ChronicleCoverMedia) => void
   onSave: (cover: ChronicleCoverMedia) => Promise<void>
 }
 
@@ -63,6 +71,22 @@ export async function patchPresenceAvatar(
   })
 }
 
+/** Cover + avatar in one PATCH so Chronicle card and older avatar readers stay aligned. */
+export async function patchPresenceVisual(
+  endpoint: string,
+  media: ChronicleCoverMedia,
+): Promise<void> {
+  await apiFetch(endpoint, {
+    method: "PATCH",
+    body: JSON.stringify({
+      coverImage: media?.url ?? null,
+      coverImageKey: media?.key ?? null,
+      avatar: media?.url ?? null,
+      avatarKey: media?.key ?? null,
+    }),
+  })
+}
+
 /** @deprecated Use ChronicleVisualUploadField */
 export type ChronicleCoverFieldProps = ChronicleVisualUploadFieldProps
 
@@ -73,9 +97,12 @@ export function ChronicleVisualUploadField({
   value,
   themeBits,
   disabled = false,
+  library,
   onSaved,
   onSave,
 }: ChronicleVisualUploadFieldProps) {
+  const { user } = useAuth()
+  const board = useUniversalBoardOptional()
   const [status, setStatus] = React.useState<"idle" | "saving" | "error">("idle")
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const bits = React.useMemo(() => extractObjectTheme(themeBits).bits, [themeBits])
@@ -96,8 +123,18 @@ export function ChronicleVisualUploadField({
         media && media.type === "image"
           ? { type: "image", url: media.url, key: media.key }
           : null
+      if (next?.url && library) {
+        const libraryItemId = await attachChronicleUploadToLibrary({
+          ...library,
+          userId: user?.id,
+          imageUrl: next.url,
+        })
+        if (libraryItemId) {
+          board?.actions.bumpLibraryNav()
+        }
+      }
       await onSave(next)
-      onSaved?.()
+      onSaved?.(next)
       setStatus("idle")
     } catch (error) {
       console.error("[ChronicleVisualUploadField] save failed:", error)

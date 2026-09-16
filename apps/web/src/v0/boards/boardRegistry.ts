@@ -59,7 +59,7 @@ export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
   },
   agent: {
     component: AgentBoard,
-    displayName: "Agent Board",
+    displayName: "Agency Board",
     isPrivate: true,
     isAdminOnly: false,
     def: AGENT_BOARD_DEF,

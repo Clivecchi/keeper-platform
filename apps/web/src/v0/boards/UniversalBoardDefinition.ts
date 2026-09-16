@@ -53,6 +53,8 @@ export type NavRenderBlock =
   | "boards"
   /** Realm Universal pane — opens Stage room, not a board. */
   | "stage"
+  /** Agency pane — Domain People, same membership truth as Domain Configure. */
+  | "people"
 
 export interface NavSectionsDef {
   dialogs: boolean
@@ -60,6 +62,8 @@ export interface NavSectionsDef {
   keepers: boolean
   drafts: boolean
   agents: boolean
+  /** Agency Board: People list from Domain membership. */
+  people?: boolean
   /**
    * Sessions for the selected Dialog — thread picker, not a Nav subject.
    * Same meaning on every board that enables it.
@@ -389,7 +393,7 @@ export const BUILD_BOARD_DEF: UniversalBoardDef = {
 
 export const AGENT_BOARD_DEF: UniversalBoardDef = {
   boardId: "agent",
-  displayName: "Agent Board",
+  displayName: "Agency Board",
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
@@ -398,14 +402,14 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       keepers: true,
       drafts: true,
       agents: true,
+      people: true,
       library: true,
       boardDefs: false,
     },
     primarySection: "agents",
-    navBlockOrder: ["agents", "aiAccess", "externalAccess"],
-    aiAccessSummary: true,
-    externalAccessSummary: true,
-    // Full Keys + platform AI providers live on Build Board only.
+    navBlockOrder: ["people", "agents"],
+    aiAccessSummary: false,
+    externalAccessSummary: false,
   },
   conversation: {
     agentSlug: "kip",

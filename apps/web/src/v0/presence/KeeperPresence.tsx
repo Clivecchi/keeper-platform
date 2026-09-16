@@ -15,11 +15,18 @@ import { isBuildBoardId } from "@keeper/shared"
 import { useLocation, useNavigate } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
+import { isAgentBoardId } from "../boards/agentBoardSelection"
 import {
   patchDomainSwitcherCacheEntry,
   invalidateDomainSwitcherCache,
 } from "../boards/domain/domainSwitcherData"
-import { invalidateDomainShellCache, type DomainBySlugRecord } from "../boards/domain/domainShellCache"
+import {
+  fetchDomainBySlug,
+  invalidateDomainShellCache,
+  type DomainBySlugRecord,
+} from "../boards/domain/domainShellCache"
+import { rememberDomainCoverUpload } from "../themes/rememberDomainCoverUpload"
+import type { ChronicleCoverMedia } from "./chronicleConfig/ChronicleCoverField"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { usePresenceSchema } from "./usePresenceSchema"
 import {
@@ -38,6 +45,7 @@ import {
 import type { PresenceLayout } from "./types"
 import { AgentFocusPresence } from "./cover/AgentFocusPresence"
 import { DomainFocusPresence } from "./cover/DomainFocusPresence"
+import { AgencyFocusPresence } from "./cover/AgencyFocusPresence"
 import { KeyFocusPresence } from "./cover/KeyFocusPresence"
 import { CapabilityFocusPresence } from "./cover/CapabilityFocusPresence"
 import { KeeperFocusPresence } from "./cover/KeeperFocusPresence"
@@ -908,6 +916,37 @@ export function KeeperPresence({
     setPresenceRefresh((n) => n + 1)
   }, [])
 
+  const handleDomainCoverSaved = React.useCallback(
+    (cover?: ChronicleCoverMedia) => {
+      const nextTheme = domainSlug
+        ? rememberDomainCoverUpload({
+            slug: domainSlug,
+            existingTheme:
+              record?.theme && typeof record.theme === "object" && !Array.isArray(record.theme)
+                ? (record.theme as Record<string, unknown>)
+                : undefined,
+            cover: cover ?? null,
+          })
+        : null
+
+      setRecord((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          coverImage: cover?.url ?? null,
+          coverImageKey: cover?.key ?? null,
+          theme: nextTheme ?? prev.theme,
+        }
+      })
+
+      if (domainSlug) {
+        void fetchDomainBySlug(domainSlug, { forceRefresh: true }).catch(() => null)
+      }
+      handlePresenceRefresh()
+    },
+    [domainSlug, handlePresenceRefresh, record?.theme],
+  )
+
   const applyDomainConfigSaveLocally = React.useCallback(
     (patch: Record<string, unknown>) => {
       setRecord((prev) => {
@@ -1712,6 +1751,17 @@ function KeeperPresenceSurface({
       />
     )
 
+    if (isAgentBoardId(boardId)) {
+      return (
+        <AgencyFocusPresence
+          objectId={objectId}
+          domainId={domainId}
+          record={record}
+          fieldValues={fieldValues}
+        />
+      )
+    }
+
     return (
       <DomainFocusPresence
         objectId={objectId}
@@ -1728,7 +1778,7 @@ function KeeperPresenceSurface({
         isDirty={isDirty}
         onSave={() => void onChronicleSave?.()}
         onFieldChange={handleFieldChange}
-        onCoverSaved={handlePresenceRefresh}
+        onCoverSaved={handleDomainCoverSaved}
         onAddressesUpdated={onAddressesUpdated}
         renderFieldEditor={renderFieldEditor}
         onJourneySelect={onJourneySelect}

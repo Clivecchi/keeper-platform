@@ -240,7 +240,7 @@ export function HubFrame({ styleId = "neutral", themeSlug, domainSlug: propSlug 
         },
         {
           id: "agent",
-          label: "Agent Board",
+          label: "Agency Board",
           description: "Full conversation and drafting workspace",
           href: `/d/${domainSlug}?frame=agent`,
           icon: <AgentIcon />,

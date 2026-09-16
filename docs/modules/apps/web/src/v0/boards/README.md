@@ -16,7 +16,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `boardNavDataCache.ts` — In-memory nav list cache (dialogs/journeys/keepers/drafts/agents) across workspace switches
 - `domain/domainShellCache.ts` � Per-slug domain + audience cache for soft domain switch
 - `boardRegistry.ts` � Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
-- `workspaceBoardNav.ts` — Shared `?board=` / `?definition=` URL helpers. Canonical Board id is `build`; `?board=ide` is a URL alias only.
+- `workspaceBoardNav.ts` — Shared `?board=` / `?definition=` URL helpers. Canonical Board id is `build`; `?board=ide` is a URL alias only. Canonical Agency URL is `?board=agency`; `?board=agent` remains compatibility.
 - `domainWorkspaceBoards.ts` � Per-domain allowed workspace boards (KE3P vs member domains)
 - `realm/` � Realm Board (`?board=realm`) � personal domain primary workspace
 - `designer/` � The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
@@ -40,6 +40,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-09-13 — Agency Board V0
+- Display name Agency Board. URL writes `?board=agency`; `?board=agent` still opens the same board. Agency pane is People + Agents. Idle Chronicle is Agency Place, not Domain Cover.
 
 ### 2026-09-12 — Basic mobile chat and nav
 - Adaptive mobile Dialog is a standard chat: docked composer, visual-viewport height, Stage/Reach/Cast chrome off this surface.

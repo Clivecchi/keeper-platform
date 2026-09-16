@@ -209,7 +209,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
               if (row && typeof row === 'object') {
                 const item = row as { title?: string; url?: string; snippet?: string };
                 lines.push(
-                  `- ${item.title ?? '?'} — ${item.url ?? '?'}${item.snippet ? `: ${String(item.snippet).slice(0, 200)}` : ''}`,
+                  `- ${item.title ?? '?'} — ${item.url ?? '?'}${item.snippet ? `: ${String(item.snippet).slice(0, 2500)}` : ''}`,
                 );
               }
             }
@@ -242,6 +242,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           && !(result.type === 'dialog.read' && (data.document || Array.isArray(data.results)))
           && result.type !== 'glossary.read'
           && result.type !== 'library.read'
+          && result.type !== 'web.search'
         ) {
           lines.push(`Data: ${JSON.stringify(data, null, 2).slice(0, 4000)}`);
         }
@@ -271,7 +272,7 @@ export function formatReadActionResultsForUserFallback(results: ActionResultLike
         if (!row || typeof row !== 'object') continue;
         const item = row as { title?: string; url?: string; snippet?: string };
         lines.push(
-          `- ${item.title ?? 'Result'}${item.url ? ` — ${item.url}` : ''}${item.snippet ? `: ${String(item.snippet).slice(0, 160)}` : ''}`,
+          `- ${item.title ?? 'Result'}${item.url ? ` — ${item.url}` : ''}${item.snippet ? `: ${String(item.snippet).slice(0, 2500)}` : ''}`,
         );
       }
       continue;

@@ -40,9 +40,11 @@ import { GuidedArrivalProvider } from "../guidedArrival/GuidedArrivalContext"
 import { clearPrefetchedDialogSession } from "./domain/dialogSessionPrefetch"
 import { nextWorkspaceSurface } from "./workspaceSurface"
 import {
+  isAgentBoardId,
   shouldKeepAgentWhenSelectingDialog,
   shouldKeepAgentWhenSelectingLibrary,
   shouldKeepDialogWhenSelectingAgent,
+  type AgencyRoom,
 } from "./agentBoardSelection"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -163,6 +165,8 @@ export interface UniversalBoardSelection {
   dialogNow: DialogNowLibraryItem | null
   /** Library item inspect overlay over Workspace/Dialog — not Chronicle subject. */
   libraryWorkspaceOverlayId: string | null
+  /** Agency Place rooms — People or working-Agency inspect. Not a Chronicle kind. */
+  agencyRoom: AgencyRoom | null
 }
 
 export interface UniversalBoardActions {
@@ -201,6 +205,9 @@ export interface UniversalBoardActions {
   /** Opens a SOLE memory card in Chronicle; pass null to return to the underlying selection. */
   onSoleMemorySelect: (id: string | null) => void
   clearSelection: () => void
+  openAgencyPeople: (userId?: string | null) => void
+  openAgencyInspect: () => void
+  closeAgencyRoom: () => void
   /** designer mode: selects a board definition — drives right-panel BoardDefView. Pass null to clear. */
   onBoardDefSelect: (id: string | null) => void
   bumpDraftPresence: () => void
@@ -331,6 +338,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   const [selectedKeeperId, setSelectedKeeperId] = React.useState<string | null>(null)
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
+  const [agencyRoom, setAgencyRoom] = React.useState<AgencyRoom | null>(null)
   const [selectedServiceSlug, setSelectedServiceSlug] = React.useState<string | null>(null)
   const [selectedKeyId, setSelectedKeyId] = React.useState<string | null>(null)
   const [selectedCapabilityId, setSelectedCapabilityId] = React.useState<string | null>(null)
@@ -531,9 +539,58 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     [frameCtx],
   )
 
+  const closeAgencyRoom = React.useCallback(() => {
+    setAgencyRoom(null)
+  }, [])
+
+  const openAgencyPeople = React.useCallback((userId?: string | null) => {
+    setLibraryScreenOpen(false)
+    setTrainingMode(false)
+    setSelectedDialogId(null)
+    setSelectedJourneyId(null)
+    setSelectedPathId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
+    setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
+    setSelectedSoleMemoryId(null)
+    setAgencyRoom({ kind: "people", userId: userId?.trim() || null })
+  }, [])
+
+  const openAgencyInspect = React.useCallback(() => {
+    setLibraryScreenOpen(false)
+    setTrainingMode(false)
+    setSelectedDialogId(null)
+    setSelectedJourneyId(null)
+    setSelectedPathId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
+    setSelectedLibraryItemId(null)
+    setSelectedGlossaryId(null)
+    setSelectedBoardDefId(null)
+    setSelectedSoleMemoryId(null)
+    setAgencyRoom({ kind: "inspect" })
+  }, [])
+
+  React.useEffect(() => {
+    if (!isAgentBoardId(boardId)) setAgencyRoom(null)
+  }, [boardId])
+
   const onDialogSelect = React.useCallback((id: string) => {
     leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
+    setAgencyRoom(null)
     clearDraftIdFromUrl()
     setSelectedDialogId(id)
     setSelectedJourneyId(null)
@@ -685,6 +742,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   const onAgentSelect = React.useCallback((id: string) => {
     leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
+    setAgencyRoom(null)
     clearDraftIdFromUrl()
     setTrainingMode(false)
     setSelectedAgentId(id)
@@ -944,6 +1002,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedGlossaryId(null)
     setSelectedSoleMemoryId(null)
     setSelectedBoardDefId(null)
+    setAgencyRoom(null)
   }, [])
 
   const onBoardDefSelect = React.useCallback((id: string | null) => {
@@ -1323,6 +1382,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
         chronicleOpenRequestId,
         dialogNow,
         libraryWorkspaceOverlayId,
+        agencyRoom,
       },
       actions: {
         onSessionSelect,
@@ -1350,6 +1410,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
         closeDialogIngest,
         onSoleMemorySelect,
         clearSelection,
+        openAgencyPeople,
+        openAgencyInspect,
+        closeAgencyRoom,
         onBoardDefSelect,
         bumpDraftPresence,
         bumpKeyNav,
@@ -1448,6 +1511,10 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       chronicleOpenRequestId,
       dialogNow,
       libraryWorkspaceOverlayId,
+      agencyRoom,
+      openAgencyPeople,
+      openAgencyInspect,
+      closeAgencyRoom,
       onSessionSelect,
       onSetActiveJourney,
       onDialogSelect,

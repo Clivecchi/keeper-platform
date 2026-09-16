@@ -6,7 +6,7 @@
  * moment threads, keeper context — without duplicating bespoke view logic.
  */
 
-import { isLeadAgentRole } from "@keeper/shared"
+import { extractDomainThemeCover, isLeadAgentRole } from "@keeper/shared"
 import { apiFetch } from "../../lib/api"
 import {
   getCachedDomainBySlug,
@@ -784,11 +784,12 @@ async function enrichDomain(
     if (typeof colors.primary === "string") {
       record.theme_color = colors.primary
     }
-    if (typeof theme.coverImage === "string") {
-      record.coverImage = theme.coverImage
+    const themeCover = extractDomainThemeCover(theme)
+    if (themeCover.coverImage) {
+      record.coverImage = themeCover.coverImage
     }
-    if (typeof theme.coverImageKey === "string") {
-      record.coverImageKey = theme.coverImageKey
+    if (themeCover.coverImageKey) {
+      record.coverImageKey = themeCover.coverImageKey
     }
     record.theme = theme
 
