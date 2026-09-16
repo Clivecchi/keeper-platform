@@ -70,6 +70,7 @@ export type CompactEnvironmentForPrompt = {
       givenName?: string;
       relation?: string;
       about?: string;
+      briefing?: unknown;
     };
   }>;
   dialogDocumentRef?: {
@@ -260,6 +261,7 @@ export function buildCompactEnvironmentForPrompt(
             ...(typeof seed.givenName === 'string' ? { givenName: seed.givenName } : {}),
             ...(typeof seed.relation === 'string' ? { relation: seed.relation } : {}),
             ...(typeof seed.about === 'string' ? { about: seed.about } : {}),
+            ...(Array.isArray(seed.briefing) ? { briefing: seed.briefing } : {}),
           },
         };
       })

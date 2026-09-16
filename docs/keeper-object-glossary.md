@@ -1031,6 +1031,7 @@ Auth/identity row: email/password tokens, name/avatar, settings Json, primaryDom
 
 ### Known inconsistencies
 - Multiple user surfaces: inline profile routes, `/api/admin/users`, `/api/people`, KAM auth.
+- `invitedFromDomainId` records the first Domain that invited this person onto Keeper. Not membership. No FK (same as `primaryDomainId`).
 
 ---
 

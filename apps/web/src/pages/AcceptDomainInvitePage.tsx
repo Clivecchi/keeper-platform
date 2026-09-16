@@ -6,8 +6,7 @@ import { apiFetch } from "../lib/api"
 import { useAuth } from "../context/AuthContext"
 
 /**
- * Redeem a DomainInvitation token from Cast Header Invite's copyable link.
- * Mounted behind ProtectedRoute — user is already signed in.
+ * Redeem a DomainInvitation token. Mounted behind ProtectedRoute — user is already signed in.
  */
 export default function AcceptDomainInvitePage() {
   const [params] = useSearchParams()
@@ -16,6 +15,7 @@ export default function AcceptDomainInvitePage() {
   const navigate = useNavigate()
   const [status, setStatus] = React.useState<"idle" | "working" | "ok" | "error">("idle")
   const [message, setMessage] = React.useState<string | null>(null)
+  const [domainSlug, setDomainSlug] = React.useState<string | null>(null)
 
   const accept = React.useCallback(async () => {
     if (!token) {
@@ -25,12 +25,18 @@ export default function AcceptDomainInvitePage() {
     }
     setStatus("working")
     try {
-      await apiFetch("/api/domains/invitations/accept", {
+      const data = (await apiFetch("/api/domains/invitations/accept", {
         method: "POST",
         body: JSON.stringify({ token }),
-      })
+      })) as { domainSlug?: string; additionalAccepted?: number }
+      const slug = data.domainSlug?.trim() || null
+      setDomainSlug(slug)
       setStatus("ok")
-      setMessage("Invitation accepted. You now have access to that domain.")
+      const extra =
+        typeof data.additionalAccepted === "number" && data.additionalAccepted > 0
+          ? ` Also joined ${data.additionalAccepted} more Domain${data.additionalAccepted === 1 ? "" : "s"} from the same invitation.`
+          : ""
+      setMessage(`Invitation accepted. You now have access to that Domain.${extra}`)
     } catch (err) {
       setStatus("error")
       setMessage(err instanceof Error ? err.message : "Could not accept invitation.")
@@ -57,9 +63,9 @@ export default function AcceptDomainInvitePage() {
         <button
           type="button"
           className="underline underline-offset-2"
-          onClick={() => navigate("/home")}
+          onClick={() => navigate(domainSlug ? `/d/${encodeURIComponent(domainSlug)}?board=domain` : "/home")}
         >
-          Go to home
+          {domainSlug ? "Open that Domain" : "Go to home"}
         </button>
       ) : null}
       {status === "error" && token ? (

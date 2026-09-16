@@ -896,6 +896,8 @@ model users {
   avatar_url                                           String?
   settings                                             Json?
   primaryDomainId                                      String?
+  /// First Domain that invited this person onto Keeper. Not membership. No FK (same as primaryDomainId).
+  invitedFromDomainId                                  String?
   CollaborationActivity                                CollaborationActivity[]
   CrossDomainCollaboration                             CrossDomainCollaboration[]
   CrossDomainShare                                     CrossDomainShare[]
@@ -1247,6 +1249,7 @@ model Domain {
   users                                                    users                      @relation(fields: [ownerId], references: [id])
   boards                                                   Board[]
   DomainInvitation                                         DomainInvitation[]
+  OriginatedInvitations                                    DomainInvitation[]         @relation("InvitationOriginDomain")
   DomainPermission                                         DomainPermission[]
   DomainTransfer                                           DomainTransfer[]
   DomainUsage                                              DomainUsage[]
@@ -1442,22 +1445,29 @@ model CrossDomainShare {
 }
 
 model DomainInvitation {
-  id         String    @id @default(uuid())
-  domainId   String
-  email      String
-  role       String    @default("user")
-  invitedBy  String
-  token      String    @unique
-  expiresAt  DateTime
-  acceptedAt DateTime?
-  createdAt  DateTime  @default(now())
+  id             String    @id @default(uuid())
+  domainId       String
+  /// Domain the inviter was standing in when they created this invite (or bundle).
+  originDomainId String?
+  /// Groups one invite across several Domains. Null for legacy single-domain rows.
+  bundleId       String?
+  email          String
+  role           String    @default("user")
+  invitedBy      String
+  token          String    @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
   /// Optional notes that seed Domain agents about the invitee. Not email body.
-  seed       Json?
-  Domain     Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  users      users     @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
+  seed           Json?
+  Domain         Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  OriginDomain   Domain?   @relation("InvitationOriginDomain", fields: [originDomainId], references: [id], onDelete: SetNull)
+  users          users     @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@unique([domainId, email])
   @@index([domainId])
+  @@index([originDomainId])
+  @@index([bundleId])
   @@index([token])
   @@index([expiresAt])
 }

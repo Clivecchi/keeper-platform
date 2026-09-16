@@ -48,11 +48,32 @@ export function invitationAcceptPath(token: string): string {
   return `/invite/accept?token=${encodeURIComponent(token)}`;
 }
 
+export type AdditionalInviteResult =
+  | { domainId: string; name: string; slug: string; outcome: 'granted' | 'invited' }
+  | { domainId: string; name: string; slug: string; outcome: 'skipped'; error: string };
+
 export type InviteConnectionResult =
-  | { outcome: 'granted'; permission: DomainPermission }
-  | { outcome: 'invited'; invitation: DomainInvitation };
+  | { outcome: 'granted'; permission: DomainPermission; additional: AdditionalInviteResult[] }
+  | { outcome: 'invited'; invitation: DomainInvitation; additional: AdditionalInviteResult[] };
+
+export type AdministrableDomain = {
+  id: string;
+  name: string;
+  slug: string;
+  via: 'owner' | 'admin';
+};
+
+export type AcceptInvitationResult = {
+  domainId: string;
+  domainSlug: string;
+  additionalAccepted: number;
+};
 
 type UserLookupClient = Pick<PrismaClient, 'users' | 'domain' | 'domainPermission' | 'domainInvitation'>;
+
+export function generateInvitationBundleId(): string {
+  return `bun_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+}
 
 export function normalizeConnectionRole(role?: string): ConnectionRole {
   return role === 'friend' ? 'friend' : 'connection';
@@ -169,6 +190,8 @@ async function persistGrantedInvitationSeed(
     email: string;
     role: DomainRole;
     seed: InvitationSeed;
+    originDomainId: string;
+    bundleId: string;
   },
 ): Promise<void> {
   const expiresAt = new Date();
@@ -181,6 +204,8 @@ async function persistGrantedInvitationSeed(
     },
     create: {
       domainId: params.domainId,
+      originDomainId: params.originDomainId,
+      bundleId: params.bundleId,
       email: params.email,
       role: params.role,
       invitedBy: params.invitedBy,
@@ -192,10 +217,47 @@ async function persistGrantedInvitationSeed(
     update: {
       role: params.role,
       invitedBy: params.invitedBy,
+      originDomainId: params.originDomainId,
+      bundleId: params.bundleId,
       acceptedAt: new Date(),
       seed: invitationSeedJson(params.seed),
     },
   });
+}
+
+export async function listAdministrableDomains(
+  prisma: UserLookupClient,
+  userId: string,
+  excludeDomainId?: string,
+): Promise<AdministrableDomain[]> {
+  const [owned, adminRows] = await Promise.all([
+    prisma.domain.findMany({
+      where: { ownerId: userId, deletedAt: null },
+      select: { id: true, name: true, slug: true },
+    }),
+    prisma.domainPermission.findMany({
+      where: { userId, role: 'admin' },
+      select: {
+        domainId: true,
+        Domain: { select: { id: true, name: true, slug: true, deletedAt: true, ownerId: true } },
+      },
+    }),
+  ]);
+
+  const byId = new Map<string, AdministrableDomain>();
+  for (const domain of owned) {
+    if (excludeDomainId && domain.id === excludeDomainId) continue;
+    byId.set(domain.id, { id: domain.id, name: domain.name, slug: domain.slug, via: 'owner' });
+  }
+  for (const row of adminRows) {
+    const domain = row.Domain;
+    if (!domain || domain.deletedAt) continue;
+    if (excludeDomainId && domain.id === excludeDomainId) continue;
+    if (domain.ownerId === userId) continue;
+    if (byId.has(domain.id)) continue;
+    byId.set(domain.id, { id: domain.id, name: domain.name, slug: domain.slug, via: 'admin' });
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function listDomainPeopleNotes(
@@ -233,25 +295,20 @@ export async function listDomainPeopleNotes(
   return notes;
 }
 
-export async function inviteDomainConnection(
+async function inviteOntoOneDomain(
   prisma: UserLookupClient,
   permissionService: DomainPermissionService,
   params: {
     domainId: string;
+    originDomainId: string;
+    bundleId: string;
     invitedBy: string;
     identifier: string;
-    role?: DomainRole;
-    seed?: unknown;
+    role: DomainRole;
+    seed: InvitationSeed | null;
+    invitee: ResolvedInvitee | null;
   },
 ): Promise<InviteConnectionResult> {
-  const role = normalizeDomainRole(params.role);
-  const identifier = normalizeIdentifier(params.identifier);
-  const seed = normalizeInvitationSeed(params.seed);
-
-  if (!identifier) {
-    throw new Error('Identifier is required');
-  }
-
   const domain = await prisma.domain.findUnique({
     where: { id: params.domainId },
     select: { ownerId: true },
@@ -261,10 +318,13 @@ export async function inviteDomainConnection(
     throw new Error('Domain not found');
   }
 
-  const invitee = await resolveUserByIdentifier(prisma, identifier);
+  const originFields = {
+    originDomainId: params.originDomainId,
+    bundleId: params.bundleId,
+  };
 
-  if (invitee) {
-    if (invitee.id === domain.ownerId) {
+  if (params.invitee) {
+    if (params.invitee.id === domain.ownerId) {
       throw new Error('Domain owner is already a member');
     }
 
@@ -272,7 +332,7 @@ export async function inviteDomainConnection(
       where: {
         domainId_userId: {
           domainId: params.domainId,
-          userId: invitee.id,
+          userId: params.invitee.id,
         },
       },
     });
@@ -286,25 +346,26 @@ export async function inviteDomainConnection(
 
     const permission = await permissionService.grantPermission({
       domainId: params.domainId,
-      userId: invitee.id,
-      role: role as DomainRole,
+      userId: params.invitee.id,
+      role: params.role,
       grantedBy: params.invitedBy,
     });
 
-    if (seed && invitee.email) {
+    if (params.seed && params.invitee.email) {
       await persistGrantedInvitationSeed(prisma, {
         domainId: params.domainId,
         invitedBy: params.invitedBy,
-        email: invitee.email.toLowerCase(),
-        role,
-        seed,
+        email: params.invitee.email.toLowerCase(),
+        role: params.role,
+        seed: params.seed,
+        ...originFields,
       });
     }
 
-    return { outcome: 'granted', permission };
+    return { outcome: 'granted', permission, additional: [] };
   }
 
-  if (!looksLikeEmail(identifier)) {
+  if (!looksLikeEmail(params.identifier)) {
     throw new Error('User not found. Provide an email address to send an invitation.');
   }
 
@@ -313,29 +374,210 @@ export async function inviteDomainConnection(
     where: {
       domainId_email: {
         domainId: params.domainId,
-        email: identifier.toLowerCase(),
+        email: params.identifier.toLowerCase(),
       },
     },
     create: {
       domainId: params.domainId,
-      email: identifier.toLowerCase(),
-      role,
+      email: params.identifier.toLowerCase(),
+      role: params.role,
       invitedBy: params.invitedBy,
       token: generateInvitationToken(),
       expiresAt,
-      ...(seed ? { seed: invitationSeedJson(seed) } : {}),
+      ...originFields,
+      ...(params.seed ? { seed: invitationSeedJson(params.seed) } : {}),
     },
     update: {
-      role,
+      role: params.role,
       invitedBy: params.invitedBy,
       expiresAt,
       acceptedAt: null,
       token: generateInvitationToken(),
-      ...(seed ? { seed: invitationSeedJson(seed) } : {}),
+      ...originFields,
+      ...(params.seed ? { seed: invitationSeedJson(params.seed) } : {}),
     },
   });
 
-  return { outcome: 'invited', invitation };
+  return { outcome: 'invited', invitation, additional: [] };
+}
+
+export async function inviteDomainConnection(
+  prisma: UserLookupClient,
+  permissionService: DomainPermissionService,
+  params: {
+    domainId: string;
+    invitedBy: string;
+    identifier: string;
+    role?: DomainRole;
+    seed?: unknown;
+    additionalDomainIds?: string[];
+  },
+): Promise<InviteConnectionResult> {
+  const role = normalizeDomainRole(params.role);
+  const identifier = normalizeIdentifier(params.identifier);
+  const seed = normalizeInvitationSeed(params.seed);
+
+  if (!identifier) {
+    throw new Error('Identifier is required');
+  }
+
+  const invitee = await resolveUserByIdentifier(prisma, identifier);
+  const bundleId = generateInvitationBundleId();
+  const originDomainId = params.domainId;
+
+  const primary = await inviteOntoOneDomain(prisma, permissionService, {
+    domainId: params.domainId,
+    originDomainId,
+    bundleId,
+    invitedBy: params.invitedBy,
+    identifier,
+    role,
+    seed,
+    invitee,
+  });
+
+  const uniqueAdditionalIds = [...new Set((params.additionalDomainIds ?? []).filter((id) => id && id !== params.domainId))];
+  if (uniqueAdditionalIds.length === 0) {
+    return primary;
+  }
+
+  const administrable = await listAdministrableDomains(prisma, params.invitedBy, params.domainId);
+  const allowed = new Map(administrable.map((domain) => [domain.id, domain]));
+  const additional: AdditionalInviteResult[] = [];
+
+  for (const domainId of uniqueAdditionalIds) {
+    const target = allowed.get(domainId);
+    if (!target) {
+      additional.push({
+        domainId,
+        name: domainId,
+        slug: '',
+        outcome: 'skipped',
+        error: 'You cannot invite people onto that Domain.',
+      });
+      continue;
+    }
+    try {
+      const result = await inviteOntoOneDomain(prisma, permissionService, {
+        domainId,
+        originDomainId,
+        bundleId,
+        invitedBy: params.invitedBy,
+        identifier,
+        role,
+        seed,
+        invitee,
+      });
+      additional.push({
+        domainId: target.id,
+        name: target.name,
+        slug: target.slug,
+        outcome: result.outcome,
+      });
+    } catch (error) {
+      additional.push({
+        domainId: target.id,
+        name: target.name,
+        slug: target.slug,
+        outcome: 'skipped',
+        error: error instanceof Error ? error.message : 'Could not invite onto that Domain.',
+      });
+    }
+  }
+
+  return { ...primary, additional };
+}
+
+export async function revokeDomainInvitation(
+  prisma: UserLookupClient,
+  params: { domainId: string; invitationId: string },
+): Promise<void> {
+  const invitation = await prisma.domainInvitation.findUnique({
+    where: { id: params.invitationId },
+    select: { id: true, domainId: true, acceptedAt: true },
+  });
+  if (!invitation || invitation.domainId !== params.domainId) {
+    throw new Error('Invitation not found');
+  }
+  if (invitation.acceptedAt) {
+    throw new Error('Invitation already accepted');
+  }
+  await prisma.domainInvitation.delete({ where: { id: invitation.id } });
+}
+
+export async function acceptDomainInvitation(
+  prisma: UserLookupClient,
+  permissionService: DomainPermissionService,
+  params: { token: string; userId: string },
+): Promise<AcceptInvitationResult> {
+  const invitation = await prisma.domainInvitation.findUnique({
+    where: { token: params.token },
+  });
+
+  if (!invitation) {
+    throw new Error('Invalid invitation token');
+  }
+  if (invitation.expiresAt < new Date()) {
+    throw new Error('Invitation has expired');
+  }
+  if (invitation.acceptedAt) {
+    throw new Error('Invitation already accepted');
+  }
+
+  const related = invitation.bundleId
+    ? await prisma.domainInvitation.findMany({
+        where: {
+          bundleId: invitation.bundleId,
+          email: invitation.email,
+          acceptedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      })
+    : [invitation];
+
+  let additionalAccepted = 0;
+  for (const row of related) {
+    try {
+      await permissionService.grantPermission({
+        domainId: row.domainId,
+        userId: params.userId,
+        role: normalizeDomainRole(row.role),
+        grantedBy: row.invitedBy,
+      });
+      await prisma.domainInvitation.update({
+        where: { id: row.id },
+        data: { acceptedAt: new Date() },
+      });
+      if (row.id !== invitation.id) additionalAccepted += 1;
+    } catch (error) {
+      if (row.id === invitation.id) {
+        throw error;
+      }
+    }
+  }
+
+  const originDomainId = invitation.originDomainId ?? invitation.domainId;
+  const user = await prisma.users.findUnique({
+    where: { id: params.userId },
+    select: { invitedFromDomainId: true },
+  });
+  if (user && !user.invitedFromDomainId) {
+    await prisma.users.update({
+      where: { id: params.userId },
+      data: { invitedFromDomainId: originDomainId },
+    });
+  }
+
+  const domain = await prisma.domain.findUnique({
+    where: { id: invitation.domainId },
+    select: { slug: true },
+  });
+
+  return {
+    domainId: invitation.domainId,
+    domainSlug: domain?.slug ?? '',
+    additionalAccepted,
+  };
 }
 
 export async function revokeDomainConnection(

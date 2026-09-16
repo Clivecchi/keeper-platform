@@ -312,6 +312,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Client `[AgentTurn]` logs mechanism A vs plain Lead / director instrument before `runAgent`.
 - Docs: Mechanisms A (multi-select) and B (`delegate.consult`) kept distinct; standing honesty lives in live `callAIModel`.
 
+### 2026-09-15 — Invite opens Chronicle People
+- Cast Header Invite calls `openPeopleInvite`. Chronicle People hosts the form. No collaborator popup.
+
 ### 2026-07-23 — becoming-together-complete
 - Domain/Realm multi-select now consults engaged cast members for real minimal replies (or honest empty) before Lead synthesis — not stamp-only.
 - Cast Header Invite opens `InviteCollaboratorDialog` → `POST /connections/invite` with copyable accept link; `/invite/accept` redeems tokens.

@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import type { DomainPermission } from '@prisma/client';
+import { DOMAIN_ROLE_PERMISSIONS, permissionsForDomainRole } from '@keeper/shared';
 import { DomainCacheService } from './DomainCacheService.js';
 import { getFeatureFlagService } from './FeatureFlagService.js';
 import type { 
@@ -24,12 +25,11 @@ export class DomainPermissionService {
   private cacheService: DomainCacheService;
   private featureFlags = getFeatureFlagService();
 
-  // Role hierarchy - roles inherit permissions from lower roles
   private readonly ROLE_HIERARCHY: Record<DomainRole, DomainPermissionType[]> = {
-    connection: ['read'],
-    friend: ['read', 'write'],
-    user: ['read', 'write', 'share'],
-    admin: ['read', 'write', 'share', 'admin', 'invite', 'delete'],
+    connection: [...DOMAIN_ROLE_PERMISSIONS.connection],
+    friend: [...DOMAIN_ROLE_PERMISSIONS.friend],
+    user: [...DOMAIN_ROLE_PERMISSIONS.user],
+    admin: [...DOMAIN_ROLE_PERMISSIONS.admin],
   };
 
   // Permission inheritance - some permissions automatically grant others
@@ -67,7 +67,7 @@ export class DomainPermissionService {
     }
 
     // Validate role and permissions
-    const permissions = request.permissions || this.ROLE_HIERARCHY[request.role];
+    const permissions = request.permissions || (permissionsForDomainRole(request.role) as DomainPermissionType[]);
     if (!this.validatePermissionsForRole(request.role, permissions)) {
       throw new Error(`Invalid permissions for role: ${request.role}`);
     }

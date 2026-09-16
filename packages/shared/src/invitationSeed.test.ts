@@ -22,6 +22,22 @@ describe('invitationSeed', () => {
     expect(seed?.about).toHaveLength(800);
   });
 
+  it('keeps briefing notes as inviter-held agent context', () => {
+    const seed = normalizeInvitationSeed({
+      givenName: 'Pat',
+      briefing: [
+        { kind: 'prompt', title: 'How to greet', body: 'Call them Pat. They know Cover.' },
+        { kind: 'document', title: '', body: '   ' },
+      ],
+    });
+    expect(seed).toEqual({
+      givenName: 'Pat',
+      briefing: [{ kind: 'prompt', title: 'How to greet', body: 'Call them Pat. They know Cover.' }],
+      coOwnership: 'inviter-held',
+    });
+    expect(formatInvitationSeedLines(seed)).toEqual(['Called Pat', 'Prompt: How to greet']);
+  });
+
   it('formats lines for People and a compact agent sentence', () => {
     const seed = { givenName: 'Pat', relation: 'Cover collaborator', about: 'Knows the Domain card work.' };
     expect(invitationSeedHasContent(seed)).toBe(true);

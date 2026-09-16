@@ -85,6 +85,7 @@ export function AgencyFocusPresence({
                 domainId={domainId}
                 embedded
                 highlightUserId={room.userId}
+                inviteRequestId={boardCtx?.selection.peopleInviteRequestId ?? 0}
               />
             </AgencyRoomShell>
           </motion.div>

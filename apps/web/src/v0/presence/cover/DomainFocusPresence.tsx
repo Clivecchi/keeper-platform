@@ -95,11 +95,18 @@ export function DomainFocusPresence({
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
   const [focusPeople, setFocusPeople] = React.useState(false)
   const [coverRevision, setCoverRevision] = React.useState(0)
+  const peopleInviteRequestId = boardCtx?.selection.peopleInviteRequestId ?? 0
 
   React.useEffect(() => {
     setCoverMode("cover")
     setFocusPeople(false)
   }, [objectId])
+
+  React.useEffect(() => {
+    if (peopleInviteRequestId <= 0) return
+    setFocusPeople(true)
+    setCoverMode("config")
+  }, [peopleInviteRequestId])
 
   const coverMedia = React.useMemo((): ChronicleCoverMedia => {
     const { coverImage, coverImageKey } = coverFromRecord(record)
@@ -196,6 +203,7 @@ export function DomainFocusPresence({
             saveMessage={saveMessage}
             isDirty={isDirty}
             focusPeople={focusPeople}
+            inviteRequestId={peopleInviteRequestId}
             onBack={() => {
               setFocusPeople(false)
               setCoverMode("cover")

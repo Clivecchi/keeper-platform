@@ -384,12 +384,11 @@ export class DomainAuthManager {
       throw new Error('Invitation already accepted');
     }
 
-    // Create domain permission
+    // Create domain permission using the invited role's default bundle.
     await this.permissionService.grantPermission({
       domainId: invitation.domainId,
       userId,
       role: invitation.role as any,
-      permissions: ['read', 'write'] as DomainPermissionType[],
       grantedBy: invitation.invitedBy,
     });
 
@@ -400,6 +399,18 @@ export class DomainAuthManager {
         acceptedAt: new Date(),
       },
     });
+
+    const originDomainId = invitation.originDomainId ?? invitation.domainId;
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { invitedFromDomainId: true },
+    });
+    if (user && !user.invitedFromDomainId) {
+      await this.prisma.users.update({
+        where: { id: userId },
+        data: { invitedFromDomainId: originDomainId },
+      });
+    }
 
     // Refresh user's domain permissions
     await this.refreshDomainPermissions(userId);

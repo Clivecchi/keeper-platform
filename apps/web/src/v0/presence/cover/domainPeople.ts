@@ -98,7 +98,7 @@ export function parseDomainPeoplePayloads(
 }
 
 export function peopleMutationFeedback(
-  kind: "member-added" | "role-updated" | "member-removed" | "invited" | "granted" | "failed",
+  kind: "member-added" | "role-updated" | "member-removed" | "invited" | "granted" | "invite-revoked" | "failed",
   errorMessage?: string,
 ): { ok: boolean; message: string } {
   if (kind === "failed") {
@@ -110,6 +110,7 @@ export function peopleMutationFeedback(
     "member-removed": "Member removed",
     invited: "Invitation created",
     granted: "Member added",
+    "invite-revoked": "Invitation revoked",
   } as const
   return { ok: true, message: messages[kind] }
 }

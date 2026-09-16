@@ -2,9 +2,14 @@
 
 import * as React from "react"
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline"
-import { ROLE_MAP, ROLE_OPTIONS } from "@keeper/shared"
+import {
+  CUSTOM_DOMAIN_ROLES_ENABLED,
+  OWNER_ROLE_INFO,
+  ROLE_MAP,
+  ROLE_OPTIONS,
+} from "@keeper/shared"
 import { apiFetch } from "../../../lib/api"
-import { InviteCollaboratorDialog } from "../../boards/components/InviteCollaboratorDialog"
+import { DomainInvitePanel } from "./DomainInvitePanel"
 import {
   formatPeopleDate,
   invitationAcceptUrl,
@@ -25,6 +30,8 @@ export interface DomainPeopleSectionProps {
   embedded?: boolean
   /** Agency Nav — emphasize this person inside the shared People room. */
   highlightUserId?: string | null
+  /** Incremented when Cast / profile Invite asks Chronicle to open this form. */
+  inviteRequestId?: number
 }
 
 interface SearchUserRow {
@@ -85,6 +92,7 @@ export function DomainPeopleSection({
   domainId,
   embedded = false,
   highlightUserId = null,
+  inviteRequestId = 0,
 }: DomainPeopleSectionProps) {
   const [owner, setOwner] = React.useState<DomainOwnerRow | null>(null)
   const [members, setMembers] = React.useState<DomainMemberRow[]>([])
@@ -98,6 +106,7 @@ export function DomainPeopleSection({
   const [newMemberRole, setNewMemberRole] = React.useState("user")
   const [busyUserId, setBusyUserId] = React.useState<string | null>(null)
   const [copyingInviteId, setCopyingInviteId] = React.useState<string | null>(null)
+  const [revokingInviteId, setRevokingInviteId] = React.useState<string | null>(null)
   const [adding, setAdding] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [success, setSuccess] = React.useState<string | null>(null)
@@ -111,6 +120,7 @@ export function DomainPeopleSection({
     setNewMemberRole("user")
     setBusyUserId(null)
     setCopyingInviteId(null)
+    setRevokingInviteId(null)
   }, [])
 
   const loadPeople = React.useCallback(async () => {
@@ -148,6 +158,12 @@ export function DomainPeopleSection({
     setSuccess(null)
     void loadPeople()
   }, [domainId, loadPeople, resetLocalForms])
+
+  React.useEffect(() => {
+    if (inviteRequestId <= 0) return
+    setInviteOpen(true)
+    setShowAdd(false)
+  }, [inviteRequestId])
 
   React.useEffect(() => {
     if (!showAdd) return
@@ -238,6 +254,22 @@ export function DomainPeopleSection({
     }
   }
 
+  const handleRevokeInvitation = async (invitation: PendingInvitationRow) => {
+    setRevokingInviteId(invitation.id)
+    setError(null)
+    try {
+      await apiFetch(`/api/domains/${domainId}/invitations/${invitation.id}`, {
+        method: "DELETE",
+      })
+      setSuccess(peopleMutationFeedback("invite-revoked").message)
+      await loadPeople()
+    } catch (err) {
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
+    } finally {
+      setRevokingInviteId(null)
+    }
+  }
+
   const handleCopyAcceptLink = async (invitation: PendingInvitationRow) => {
     const acceptUrl = invitationAcceptUrl(invitation.acceptPath)
     if (!acceptUrl) {
@@ -264,8 +296,9 @@ export function DomainPeopleSection({
       <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start sm:justify-between">
         {embedded ? (
           <p className="text-[13px]" style={{ color: "var(--treatment-ink, hsl(var(--theme-ink-primary)))" }}>
-            Owner is ownership, not a role. Members carry one of four relationships — change
-            it on their row. Invite someone who is not yet on Keeper.
+            Owner is ownership, not a role you assign. Invite opens here in Chronicle —
+            not a popup. Brief the lead about the person. You can also invite them onto
+            other Domains you administer.
           </p>
         ) : (
           <p
@@ -294,10 +327,21 @@ export function DomainPeopleSection({
             style={showAdd ? actionOutlineStyle : actionFilledStyle}
           >
             {showAdd ? <XMarkIcon className="w-3.5 h-3.5" /> : <PlusIcon className="w-3.5 h-3.5" />}
-            {showAdd ? "Cancel" : "Add member"}
+            {showAdd ? "Cancel" : "Add existing"}
           </button>
         </div>
       </div>
+
+      {inviteOpen ? (
+        <DomainInvitePanel
+          domainId={domainId}
+          onClose={() => setInviteOpen(false)}
+          onSettled={(outcome) => {
+            setSuccess(peopleMutationFeedback(outcome === "granted" ? "granted" : "invited").message)
+            void loadPeople()
+          }}
+        />
+      ) : null}
 
       {showAdd ? (
         <div className="rounded-md p-3 mb-3 space-y-3" style={rowStyle}>
@@ -391,6 +435,13 @@ export function DomainPeopleSection({
               Roles
             </p>
             <div className="space-y-1.5">
+              <p className="text-[12px]" style={quietStyle}>
+                <span className="font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+                  {OWNER_ROLE_INFO.label}
+                </span>
+                {" — "}
+                {OWNER_ROLE_INFO.description}
+              </p>
               {ROLE_OPTIONS.map((option) => (
                 <p key={option.value} className="text-[12px]" style={quietStyle}>
                   <span className="font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
@@ -400,6 +451,15 @@ export function DomainPeopleSection({
                   {ROLE_MAP[option.value].description}
                 </p>
               ))}
+              <p className="text-[12px]" style={quietStyle}>
+                <span className="font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+                  Add role
+                </span>
+                {" — "}
+                {CUSTOM_DOMAIN_ROLES_ENABLED
+                  ? "Create a named relationship for this Domain."
+                  : "Coming next. Custom names will map onto these permission bundles — not a new engine."}
+              </p>
             </div>
           </div>
 
@@ -560,6 +620,15 @@ export function DomainPeopleSection({
                           >
                             {copyingInviteId === invitation.id ? "Copying…" : "Copy link"}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleRevokeInvitation(invitation)}
+                            disabled={revokingInviteId === invitation.id}
+                            className="rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 shrink-0"
+                            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+                          >
+                            {revokingInviteId === invitation.id ? "Removing…" : "Revoke"}
+                          </button>
                         </div>
                       ) : null}
                     </div>
@@ -587,16 +656,6 @@ export function DomainPeopleSection({
           {success}
         </p>
       ) : null}
-
-      <InviteCollaboratorDialog
-        domainId={domainId}
-        open={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        onSettled={(outcome) => {
-          setSuccess(peopleMutationFeedback(outcome === "granted" ? "granted" : "invited").message)
-          void loadPeople()
-        }}
-      />
     </div>
   )
 }

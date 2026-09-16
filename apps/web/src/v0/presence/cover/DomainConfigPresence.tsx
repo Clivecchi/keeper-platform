@@ -53,8 +53,9 @@ export interface DomainConfigPresenceProps {
     placeholder?: string,
   ) => React.ReactNode
   ideBuildContextFields?: [string, FieldDefinition][]
-  /** Open Configure on the People frame (from Cover). */
   focusPeople?: boolean
+  /** Open the People invite form when Cast / profile Invite lands in Chronicle. */
+  inviteRequestId?: number
 }
 
 /** Display name + brand line — not platform addressing. */
@@ -184,6 +185,7 @@ export function DomainConfigPresence({
   renderFieldEditor,
   ideBuildContextFields = [],
   focusPeople = false,
+  inviteRequestId = 0,
 }: DomainConfigPresenceProps) {
   const v0Shell = useV0ShellOptional()
   const [activeFrame, setActiveFrame] = React.useState<DomainConfigFrame>(() =>
@@ -319,7 +321,7 @@ export function DomainConfigPresence({
       ) : null}
 
       {activeFrame === "people" ? (
-        <DomainPeopleSection domainId={domainId} embedded />
+        <DomainPeopleSection domainId={domainId} embedded inviteRequestId={inviteRequestId} />
       ) : null}
 
       {activeFrame === "addresses" ? (

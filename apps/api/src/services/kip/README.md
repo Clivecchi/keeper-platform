@@ -45,6 +45,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ### 2026-09-15 — web.search snippets
 - `actionFollowUp.ts` — web.search follow-up keeps 2500 characters of each snippet so a fetched page body can reach the second model turn.
 
+### 2026-09-15 — Invitation people notes in environment
+- Compact `peopleNotes` now forwards briefing notes/prompts/documents with the invitation seed.
+
 ### 2026-09-13 — Invitation people notes in environment
 - `resolveAgentEnvironment` loads `peopleNotes` from Domain invitations. Compact prompt + Domain context inject them so agents can know the person.
 

@@ -25,6 +25,7 @@ Tracks Prisma schema and SQL migrations for the Keeper Platform database.
 - [ ] Add lint to ensure `IF NOT EXISTS` on additive DDL
 
 ## 📆 Update Log
+- 2026-09-15: **Invitation origin + bundle** — `DomainInvitation.originDomainId` / `bundleId`; `users.invitedFromDomainId` is the first Domain that invited the person. Migration `20260916010000_invitation_origin_and_bundle`.
 - 2026-09-13: **`DomainInvitation.seed`** — optional JSON notes (`givenName`, `relation`, `about`) so Domain agents can know the invitee. Migration `20260914010000_domain_invitation_seed`.
 - 2026-07-22: **`DialogCastMember`** — join table for user-permission-driven cast enablement per Dialog (`dialogId` + `agentId` unique; `homeDomainId`, `enabledByUserId`). Not `CrossDomainShare` (approval-gated domain→domain sharing). Migration `20260723000000_dialog_cast_member`.
 - 2026-02-15: AgentLens deprecated. Removal planned after audit. Use Lens (kip_lenses) + Voice (UserVoicePreferences) instead.

@@ -96,8 +96,9 @@ describe("domainPeople helpers", () => {
   it("surfaces ROLE_MAP labels and descriptions", () => {
     expect(resolveRoleInfo("admin")).toEqual({
       label: "Admin",
-      description: "Full access to manage the domain",
+      description: "Manage People, Config, and invitations on this Domain.",
     })
+    expect(resolveRoleInfo("user").label).toBe("Member")
     expect(resolveRoleInfo("connection").label).toBe("Connection")
     expect(resolveRoleInfo("custom").label).toBe("custom")
   })

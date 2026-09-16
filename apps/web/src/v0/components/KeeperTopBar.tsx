@@ -22,7 +22,6 @@ import { extractDomainThemeCover } from "@keeper/shared"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { resolveDomainCoverUrl } from "../boards/domain/domainShellCache"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
-import { InviteCollaboratorDialog } from "../boards/components/InviteCollaboratorDialog"
 import {
   isReadableDensity,
   toggleReadableDensity,
@@ -247,7 +246,6 @@ export function KeeperTopBar({
   const { user, logout } = useAuth()
   const isMobile = useIsMobile()
   const [profileOpen, setProfileOpen] = React.useState(false)
-  const [inviteOpen, setInviteOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
   const resolvedDomainId = useDomainIdForSlug(domainSlug)
@@ -429,7 +427,7 @@ export function KeeperTopBar({
                 displayName={displayName}
                 roleLabel={roleLabel}
                 onSignOut={handleSignOut}
-                onInvite={domainId ? () => setInviteOpen(true) : undefined}
+                onInvite={domainId ? () => board?.actions.openPeopleInvite() : undefined}
                 onClose={() => setProfileOpen(false)}
                 anchorRef={avatarButtonRef}
               />
@@ -517,14 +515,6 @@ export function KeeperTopBar({
           </button>
         </div>
       </div>
-      ) : null}
-
-      {domainId ? (
-        <InviteCollaboratorDialog
-          domainId={domainId}
-          open={inviteOpen}
-          onClose={() => setInviteOpen(false)}
-        />
       ) : null}
     </div>
   )

@@ -242,9 +242,15 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ### 2026-07-04 — Domain people section (Phase 4)
 - `domainPeople.ts` — owner / member / invitation helpers (no DomainPermission invented for owner)
-- `DomainPeopleSection.tsx` — owner, members, pending invitations, invite from People
+- `DomainPeopleSection.tsx` — owner, members, pending invitations, Chronicle invite
+- `DomainInvitePanel.tsx` — Chronicle People invite form (origin Domain, briefing, extra Domains)
 
 ## 📆 Update Log
+
+### 2026-09-15 — Chronicle People invitation
+- `DomainInvitePanel.tsx` is the invite form in Chronicle People. Cast Header / profile Invite opens this panel — no popup.
+- Roles list Owner, Admin, Member, Friend, Connection. Add role is stubbed.
+- Pending invitations can be revoked. Briefing notes show on the row.
 
 ### 2026-09-12 — Agent Board Performance Inspection V0
 - Cover shows class Role from `record.role`. Tagline remains the billing line, not the Agency role.

@@ -65,7 +65,6 @@ import type { AgentBoardMessaging } from "../data/domain-frame.types"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
-import { InviteCollaboratorDialog } from "./components/InviteCollaboratorDialog"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
@@ -2653,14 +2652,12 @@ export function UniversalConversation({
     [useMobileStagedComposer],
   )
 
-  const [inviteOpen, setInviteOpen] = React.useState(false)
-
   /** Realm trailing access chrome only — agent roster uses CastCueBar. */
   const castAccessActions = React.useMemo(() => {
     if (!def.conversation.castBar) return undefined
     return {
       domainId,
-      onInvite: () => setInviteOpen(true),
+      onInvite: () => actions.openPeopleInvite(),
       onManageAccess: () => actions.onKeySelect("external-access"),
     }
   }, [def.conversation.castBar, domainId, actions])
@@ -2879,14 +2876,6 @@ export function UniversalConversation({
       />
       </StagePresentationProvider>
       </TreatmentAccentShell>
-
-      {domainId ? (
-        <InviteCollaboratorDialog
-          domainId={domainId}
-          open={inviteOpen}
-          onClose={() => setInviteOpen(false)}
-        />
-      ) : null}
     </div>
   )
 }

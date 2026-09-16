@@ -46,12 +46,14 @@ import {
 import { loadDomainAccessibleAgents } from '../../services/domains/loadDomainScopedAgents.js';
 import { loadAgencyPlace } from '../../services/domains/loadAgencyPlace.js';
 import {
+  acceptDomainInvitation,
   invitationAcceptPath,
   inviteDomainConnection,
+  listAdministrableDomains,
   listDomainConnections,
   revokeDomainConnection,
+  revokeDomainInvitation,
 } from '../../services/domains/domainConnectionInvite.js';
-import { DomainAuthManager } from '@keeper/kam';
 import {
   filterContentByAudience,
   INVITATION_SEED_LIMITS,
@@ -898,6 +900,24 @@ router.get('/users/search', authMiddlewareCompat, async (req: Request, res: Resp
   }
 });
 
+// GET /api/domains/administrable — Domains this person can invite onto (owner or admin).
+router.get('/administrable', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const excludeDomainId =
+      typeof req.query.exclude === 'string' && req.query.exclude.trim()
+        ? req.query.exclude.trim()
+        : undefined;
+    const domains = await listAdministrableDomains(prisma, req.user.id, excludeDomainId);
+    return res.json({ domains });
+  } catch (error) {
+    console.error('Error listing administrable domains:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Mount routes first
 router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
@@ -1005,11 +1025,22 @@ const grantPermissionSchema = z.object({
 const inviteConnectionSchema = z.object({
   identifier: z.string().min(1),
   role: z.enum(['admin', 'user', 'friend', 'connection']).optional(),
+  additionalDomainIds: z.array(z.string().uuid()).max(20).optional(),
   seed: z
     .object({
       givenName: z.string().max(INVITATION_SEED_LIMITS.givenName).optional(),
       relation: z.string().max(INVITATION_SEED_LIMITS.relation).optional(),
       about: z.string().max(INVITATION_SEED_LIMITS.about).optional(),
+      briefing: z
+        .array(
+          z.object({
+            kind: z.enum(['note', 'prompt', 'document']).optional(),
+            title: z.string().max(INVITATION_SEED_LIMITS.briefingTitle).optional(),
+            body: z.string().max(INVITATION_SEED_LIMITS.briefingBody),
+          }),
+        )
+        .max(INVITATION_SEED_LIMITS.briefingCount)
+        .optional(),
     })
     .optional(),
 });
@@ -1436,12 +1467,14 @@ router.post(
         identifier: req.body.identifier,
         role: req.body.role,
         seed: req.body.seed,
+        additionalDomainIds: req.body.additionalDomainIds,
       });
 
       if (result.outcome === 'granted') {
         return res.status(201).json({
           outcome: 'granted',
           permission: result.permission,
+          additional: result.additional,
         });
       }
 
@@ -1452,11 +1485,14 @@ router.post(
           email: result.invitation.email,
           role: result.invitation.role,
           expiresAt: result.invitation.expiresAt,
+          originDomainId: result.invitation.originDomainId,
+          bundleId: result.invitation.bundleId,
           /** Copyable redeem path — email delivery is not wired; clipboard is the honest path. */
           token: result.invitation.token,
           acceptPath: invitationAcceptPath(result.invitation.token),
           seed: normalizeInvitationSeed(result.invitation.seed),
         },
+        additional: result.additional,
       });
     } catch (error) {
       console.error('Error inviting domain connection:', error);
@@ -1500,25 +1536,65 @@ router.post('/invitations/accept', authMiddlewareCompat, async (req: Request, re
       return res.status(400).json({ error: 'Invitation token is required' });
     }
 
-    const authManager = new DomainAuthManager(prisma);
-    await authManager.acceptDomainInvitation(token, req.user.id);
-    return res.status(200).json({ outcome: 'accepted' });
+    const accepted = await acceptDomainInvitation(prisma, getPermissionService(), {
+      token,
+      userId: req.user.id,
+    });
+    return res.status(200).json({
+      outcome: 'accepted',
+      domainId: accepted.domainId,
+      domainSlug: accepted.domainSlug,
+      additionalAccepted: accepted.additionalAccepted,
+    });
   } catch (error) {
     console.error('Error accepting domain invitation:', error);
     if (error instanceof Error) {
       if (error.message.includes('Invalid invitation token')) {
         return res.status(404).json({ error: error.message });
       }
-      if (
-        error.message.includes('expired')
-        || error.message.includes('already accepted')
-      ) {
-        return res.status(400).json({ error: error.message });
-      }
+        if (
+          error.message.includes('expired')
+          || error.message.includes('already accepted')
+          || error.message.includes('Insufficient permissions')
+        ) {
+          return res.status(400).json({ error: error.message });
+        }
     }
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// DELETE /api/domains/:id/invitations/:invitationId — cancel a pending invitation
+router.delete(
+  '/:id/invitations/:invitationId',
+  authMiddlewareCompat,
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      if (!(await requireDomainAdminForRoute(req, res, req.params.id))) {
+        return;
+      }
+      await revokeDomainInvitation(prisma, {
+        domainId: req.params.id,
+        invitationId: req.params.invitationId,
+      });
+      return res.status(204).send();
+    } catch (error) {
+      console.error('Error revoking domain invitation:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('Invitation not found')) {
+          return res.status(404).json({ error: error.message });
+        }
+        if (error.message.includes('already accepted')) {
+          return res.status(400).json({ error: error.message });
+        }
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
 
 // DELETE /api/domains/:id/connections/:userId — revoke a connection
 router.delete('/:id/connections/:userId', authMiddlewareCompat, async (req: Request, res: Response) => {
@@ -2292,6 +2368,8 @@ router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async
         email: invitation.email,
         role: invitation.role,
         invitedBy: invitation.invitedBy,
+        originDomainId: invitation.originDomainId,
+        bundleId: invitation.bundleId,
         expiresAt: invitation.expiresAt,
         createdAt: invitation.createdAt,
         status: 'pending' as const,

@@ -8,8 +8,8 @@
 import * as React from "react"
 import { useAuth } from "../../../context/AuthContext"
 import { useV0Shell } from "../../shell/V0ShellContext"
+import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
-import { InviteCollaboratorDialog } from "./InviteCollaboratorDialog"
 
 function getInitials(name: string | null, email: string | null): string {
   if (name?.trim()) {
@@ -32,11 +32,12 @@ function getRoleLabel(audience: string | null): string {
 export function BoardMobileNavAccount() {
   const { user, logout } = useAuth()
   const { domainData, resolvedAudience } = useV0Shell()
+  const board = useUniversalBoardOptional()
   const [profileOpen, setProfileOpen] = React.useState(false)
-  const [inviteOpen, setInviteOpen] = React.useState(false)
+  const shellDomain = domainData as { id?: string } | null | undefined
   const domainId =
-    typeof domainData?.id === "string" && !String(domainData.id).startsWith("fallback-")
-      ? String(domainData.id)
+    typeof shellDomain?.id === "string" && !shellDomain.id.startsWith("fallback-")
+      ? shellDomain.id
       : ""
   const buttonRef = React.useRef<HTMLButtonElement>(null)
   const menuRef = React.useRef<HTMLDivElement>(null)
@@ -162,7 +163,7 @@ export function BoardMobileNavAccount() {
               role="menuitem"
               onClick={() => {
                 setProfileOpen(false)
-                setInviteOpen(true)
+                board?.actions.openPeopleInvite()
               }}
               className="w-full px-3 py-2.5 text-left text-[13px] transition-opacity hover:opacity-80"
               style={{ color: "hsl(var(--theme-ink-primary))" }}
@@ -180,14 +181,6 @@ export function BoardMobileNavAccount() {
             Sign out
           </button>
         </div>
-      ) : null}
-
-      {domainId ? (
-        <InviteCollaboratorDialog
-          domainId={domainId}
-          open={inviteOpen}
-          onClose={() => setInviteOpen(false)}
-        />
       ) : null}
     </div>
   )

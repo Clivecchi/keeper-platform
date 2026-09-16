@@ -16,7 +16,7 @@ export interface DomainConfigFrameDef {
 
 export const DOMAIN_CONFIG_FRAME_DEFS: readonly DomainConfigFrameDef[] = [
   { id: "identity", label: "Domain", hint: "Name, cover, and who leads." },
-  { id: "people", label: "People", hint: "Owner, members, and invitations." },
+  { id: "people", label: "People", hint: "Owner, relationships, and invitations." },
   { id: "addresses", label: "Addresses", hint: "Where this Domain lives." },
   { id: "presence", label: "Presence", hint: "How this Domain shows up and feels." },
   { id: "build", label: "Build", hint: "Repository and environment for this Domain." },

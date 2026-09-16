@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  generateInvitationBundleId,
   invitationAcceptPath,
   looksLikeEmail,
   listDomainPeopleNotes,
@@ -180,5 +181,15 @@ describe('resolveUserByIdentifier', () => {
 
     await expect(resolveUserByIdentifier(prisma, '   ')).resolves.toBeNull();
     expect(findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe('invitation bundle ids', () => {
+  it('creates a distinct bundle id for a multi-domain invite', () => {
+    const first = generateInvitationBundleId();
+    const second = generateInvitationBundleId();
+    expect(first).toMatch(/^bun_/);
+    expect(second).toMatch(/^bun_/);
+    expect(first).not.toBe(second);
   });
 });

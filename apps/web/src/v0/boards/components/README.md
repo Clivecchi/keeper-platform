@@ -10,8 +10,7 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 - `BoardMobileChronicleOverlay.tsx` — Full Chronicle as overlay (replaces Chronicle tab).
 - `LibraryItemWorkspaceOverlay.tsx` — Library item inspect over Workspace/Dialog (X dismiss; Document stays in Chronicle).
 - `BoardMobileNavDrawer.tsx` — Nav as left drawer (replaces Nav tab); account footer via `BoardMobileNavAccount`.
-- `BoardMobileNavAccount.tsx` — Avatar / profile / Invite / sign-out at bottom of Nav drawer (relocated from Top Bar).
-- `InviteCollaboratorDialog.tsx` — email or display-name invite onto the current domain.
+- `BoardMobileNavAccount.tsx` — Avatar / profile / Invite / sign-out at bottom of Nav drawer (relocated from Top Bar). Invite opens Chronicle People.
 - `BoardMobilePanelBar.tsx` — **Deprecated for adaptive Domain/Realm** — three-tab bar retained in repo but no longer mounted by `UniversalBoard`.
 
 ## 🔄 Data & Behavior
@@ -22,8 +21,10 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 
 ## 📆 Update Log
 
+### 2026-09-15 — Invite opens Chronicle People
+- Removed `InviteCollaboratorDialog`. Cast Header, Top Bar, and mobile account Invite call `openPeopleInvite`.
+
 ### 2026-09-13 — Invite carries optional person notes
-- `InviteCollaboratorDialog` still picks a Domain relationship, then optional given name, how they belong, and what agents should know. Notes persist on the invitation. Not emailed.
 
 ### 2026-09-13 — Invite uses all four Domain relationships
 - Relationship select is Admin, User, Friend, Connection — the same `ROLE_MAP` People uses.

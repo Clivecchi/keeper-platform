@@ -41,6 +41,11 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-09-15 — People invite origin, bundle, accept, revoke
+- `inviteDomainConnection` records origin Domain + bundle, can also invite onto administrable Domains, stores briefing seed.
+- `acceptDomainInvitation` grants the invited role's permission bundle (not hardcoded read/write), accepts bundle siblings, writes `users.invitedFromDomainId` once.
+- `revokeDomainInvitation` cancels a pending row. `listAdministrableDomains` feeds the Chronicle invite form.
+
 ### 2026-09-13 — Prisma JSON write for invitation seed
 - Cast `InvitationSeed` to `Prisma.InputJsonValue` on `DomainInvitation.seed` writes so `tsc` accepts the Json field (Railway `keeper-api` build).
 
