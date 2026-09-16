@@ -9,6 +9,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
 - `KeeperStageCanvas.tsx` — Stage **screen** (current Slide only)
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
+- `stageMomentSource.ts` — render-time resolve of `source.kind === 'moment'` to the live Moment row
 - `OnStageObjectList.tsx` — On Stage list in Reach and Chronicle (not Composer)
 - `StageEngagementSurface.tsx` — Slide as media field + paper card (public Cover dress; `.theme-reading-plane`)
 - `ThemeChroniclePresence.tsx` (in `presence/`) — Composer Theme tool: Domain look editor + ask the lead; Stage inherit when on Stage
@@ -19,6 +20,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 
 ## 🔄 Data & Behavior
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
+- Filmstrip slides may carry `source: { kind: 'moment', id }`. Stage **stores** copied title/body plus that pointer; **render** loads `GET /api/moments/:id` and presents the Moment’s current title/narrative. Missing/unresolvable Moments show “Moment unavailable” — they do not fall back to the stored copy. Stage JSON is not rewritten.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
 - **Screen / strip / Reach:** Stage is the presentation screen. Each Slide is a standalone engagement — its own media field and paper card (Root uses the public Cover image). Filmstrip cells sit just above Composer. Objects are **On Stage** in Reach and Chronicle only — not in Composer.
@@ -40,6 +42,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-09-15 — Live Moment source on the filmstrip
+- A beat with `source.kind === 'moment'` and a valid `source.id` resolves the canonical Moment at render. Copied slide strings are not treated as current. Unresolvable references fail honestly and keep the source pointer.
 
 ### 2026-09-13 — Theme button is the Domain look
 - Composer Theme opens a Chronicle editor for paper, accent, and cover. Members can change the look or ask the lead. Stage imagery remains a Stage-only section.

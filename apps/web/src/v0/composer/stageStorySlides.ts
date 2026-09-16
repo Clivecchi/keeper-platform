@@ -3,13 +3,11 @@ import {
   withDomainCoverRoot,
   type StageSlideKind,
   type StageSlideType,
-  type StageStorySlide,
 } from "@keeper/shared"
 import { type StageNowBeatModel } from "./stageNowBeat"
+import type { StageSlide } from "./stageMomentSource"
 
-export type { StageSlideKind, StageSlideType }
-
-export type StageSlide = StageStorySlide
+export type { StageSlideKind, StageSlideType, StageSlide }
 
 function excerpt(text: string, max = 280): string {
   const trimmed = text.replace(/\s+/g, " ").trim()

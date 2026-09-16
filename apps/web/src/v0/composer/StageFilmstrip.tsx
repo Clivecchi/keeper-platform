@@ -17,6 +17,12 @@ import { StageEngagementSurface, useStageCoverMedia } from "./StageEngagementSur
 import type { StageSlide } from "./stageStorySlides"
 import { useStagePresentationOptional } from "./stagePresentation"
 
+function beatCaption(slide: StageSlide): string {
+  if (slide.sourceResolve === "unresolved") return "Unavailable"
+  if (slide.source?.kind === "moment") return "Moment"
+  return "Engagement"
+}
+
 function SlideScene({
   slide,
   onForward,
@@ -48,7 +54,12 @@ function SlideScene({
 
   return (
     <StageEngagementSurface mediaUrl={cover.url} mediaMode={cover.mode}>
-      <article aria-label="Story engagement">
+      <article
+        aria-label="Story engagement"
+        data-stage-source-kind={slide.source?.kind ?? undefined}
+        data-stage-source-id={slide.source?.id ?? undefined}
+        data-stage-source-resolve={slide.sourceResolve ?? undefined}
+      >
         <p
           className="text-[11px] uppercase tracking-[0.1em]"
           style={{
@@ -57,7 +68,7 @@ function SlideScene({
             ...captionMotionStyle(motion),
           }}
         >
-          Engagement
+          {beatCaption(slide)}
         </p>
         <h2
           className="keeper-treatment-title mt-4 text-[32px] leading-tight"
@@ -145,6 +156,9 @@ export function StageSlideStrip() {
           type="button"
           onClick={() => story.setIndex(i)}
           aria-current={i === story.index ? "true" : undefined}
+          data-stage-source-kind={slide.source?.kind ?? undefined}
+          data-stage-source-id={slide.source?.id ?? undefined}
+          data-stage-source-resolve={slide.sourceResolve ?? undefined}
           className="rounded-md px-3 py-2 text-left"
           style={{
             minWidth: 88,
