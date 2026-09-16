@@ -432,7 +432,7 @@ router.patch('/:id',
       };
 
       if (coverImage !== undefined || avatar !== undefined) {
-        let nextSchema = existing.presenceSchema;
+        let nextSchema: unknown = existing.presenceSchema;
         if (coverImage !== undefined) {
           nextSchema = mergePresenceSchemaCover(nextSchema, coverImage, coverImageKey);
         }
