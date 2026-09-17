@@ -46,8 +46,8 @@ export const ROLE_OPTIONS = (Object.entries(ROLE_MAP) as Array<[DomainRole, Role
   ([value, info]) => ({ value, label: info.label, description: info.description }),
 );
 
-/** Custom Domain roles will map onto these bundles. Not a new permission engine yet. */
-export const CUSTOM_DOMAIN_ROLES_ENABLED = false;
+/** Custom Domain roles map onto these bundles. Not a new permission engine. */
+export const CUSTOM_DOMAIN_ROLES_ENABLED = true;
 
 export function isDomainRole(value: string): value is DomainRole {
   return value in ROLE_MAP;

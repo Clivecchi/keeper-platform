@@ -22,6 +22,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `POST /api/domains` runs `provisionDomainOnCreate` after create (frame_json, lead agent, keeper, primaryDomainId, home board).
 - `POST /api/domains/:id/provision` — idempotent repair for domains created before seeding (domain admin).
 - `GET/POST/DELETE /api/domains/:id/connections` — Phase 3.1 social graph: list `friend`/`connection` permissions + pending invitations; invite by email or display name; revoke connection roles (domain admin only).
+- `GET/POST /:id/roles`, `PATCH/DELETE /:id/roles/:roleKey` — People role names and descriptions on `Domain.settings.roles`. Custom roles map onto the four permission bundles.
 - `/:domainId/home-board` ensures and returns the canonical `boardType="domain-home"` board with minimal frame metadata.
 - `/by-slug/:slug/home-board` resolves domain by slug, enforces read permission, and returns the same canonical board.
 - `GET /by-slug/:slug/audience` (optional auth) returns `{ audience, domainRole, isOwner }` via `@keeper/shared` `resolveDomainAudience`.
@@ -44,6 +45,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-09-16: **People role catalog** — `GET/POST /:id/roles`, `PATCH/DELETE /:id/roles/:roleKey`. Members list includes `roles`. Custom names map onto admin/user/friend/connection. Deleting a custom role remaps people onto that bundle.
 - 2026-09-15: **People invitation** — `POST /:id/connections/invite` accepts `additionalDomainIds` + briefing seed. `GET /administrable` lists Domains the inviter can add. `DELETE /:id/invitations/:invitationId` revokes pending. Accept grants role bundles, returns `domainSlug` + `additionalAccepted`.
 - 2026-09-13: **Agency Place read** — `GET /:domainId/agency-place` composes owner, lead, people count, DomainAgentPolicy, Lens, and last domain-scoped Lead performance. No new storage.
 - 2026-09-13: **Invitation richness V0** — Invite accepts optional `seed` (`givenName`, `relation`, `about`). Stored on `DomainInvitation.seed`. Members list returns seed on pending invitations and on members after accept/grant. Agents read the same notes.

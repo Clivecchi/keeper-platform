@@ -5,8 +5,12 @@ import {
   type DomainRole,
 } from '@keeper/database';
 import {
+  findDomainRoleEntry,
   invitationSeedHasContent,
   normalizeInvitationSeed,
+  permissionsForCatalogRole,
+  resolveDomainRoleCatalog,
+  resolveRoleBundle,
   type DomainPersonNote,
   type InvitationSeed,
 } from '@keeper/shared';
@@ -83,6 +87,25 @@ const DOMAIN_ROLES: DomainRole[] = ['admin', 'user', 'friend', 'connection'];
 
 export function normalizeDomainRole(role?: string): DomainRole {
   return DOMAIN_ROLES.includes(role as DomainRole) ? (role as DomainRole) : 'connection';
+}
+
+export function resolveAssignableDomainRole(
+  role: string | undefined,
+  settings: unknown,
+  fallbackBundle?: DomainRole,
+): { role: string; permissions: ReturnType<typeof permissionsForCatalogRole> } {
+  const catalog = resolveDomainRoleCatalog(settings);
+  const requested = role?.trim() || fallbackBundle || 'connection';
+  const entry = findDomainRoleEntry(catalog, requested);
+  if (entry?.assignable) {
+    return { role: entry.key, permissions: permissionsForCatalogRole(entry.key, catalog) };
+  }
+  const fallback = findDomainRoleEntry(catalog, fallbackBundle);
+  if (fallback?.assignable) {
+    return { role: fallback.key, permissions: permissionsForCatalogRole(fallback.key, catalog) };
+  }
+  const normalized = normalizeDomainRole(requested);
+  return { role: normalized, permissions: permissionsForCatalogRole(normalized, catalog) };
 }
 
 export function normalizeIdentifier(identifier: string): string {
@@ -188,7 +211,7 @@ async function persistGrantedInvitationSeed(
     domainId: string;
     invitedBy: string;
     email: string;
-    role: DomainRole;
+    role: string;
     seed: InvitationSeed;
     originDomainId: string;
     bundleId: string;
@@ -304,19 +327,22 @@ async function inviteOntoOneDomain(
     bundleId: string;
     invitedBy: string;
     identifier: string;
-    role: DomainRole;
+    role: string;
+    fallbackBundle?: DomainRole;
     seed: InvitationSeed | null;
     invitee: ResolvedInvitee | null;
   },
 ): Promise<InviteConnectionResult> {
   const domain = await prisma.domain.findUnique({
     where: { id: params.domainId },
-    select: { ownerId: true },
+    select: { ownerId: true, settings: true },
   });
 
   if (!domain) {
     throw new Error('Domain not found');
   }
+
+  const resolved = resolveAssignableDomainRole(params.role, domain.settings, params.fallbackBundle);
 
   const originFields = {
     originDomainId: params.originDomainId,
@@ -339,7 +365,9 @@ async function inviteOntoOneDomain(
 
     if (
       existingPermission &&
-      !CONNECTION_ROLES.includes(existingPermission.role as ConnectionRole)
+      !CONNECTION_ROLES.includes(
+        resolveRoleBundle(existingPermission.role, resolveDomainRoleCatalog(domain.settings)) as ConnectionRole,
+      )
     ) {
       throw new Error('User already has a member role on this domain');
     }
@@ -347,7 +375,8 @@ async function inviteOntoOneDomain(
     const permission = await permissionService.grantPermission({
       domainId: params.domainId,
       userId: params.invitee.id,
-      role: params.role,
+      role: resolved.role,
+      permissions: resolved.permissions,
       grantedBy: params.invitedBy,
     });
 
@@ -356,7 +385,7 @@ async function inviteOntoOneDomain(
         domainId: params.domainId,
         invitedBy: params.invitedBy,
         email: params.invitee.email.toLowerCase(),
-        role: params.role,
+        role: resolved.role,
         seed: params.seed,
         ...originFields,
       });
@@ -380,7 +409,7 @@ async function inviteOntoOneDomain(
     create: {
       domainId: params.domainId,
       email: params.identifier.toLowerCase(),
-      role: params.role,
+      role: resolved.role,
       invitedBy: params.invitedBy,
       token: generateInvitationToken(),
       expiresAt,
@@ -388,7 +417,7 @@ async function inviteOntoOneDomain(
       ...(params.seed ? { seed: invitationSeedJson(params.seed) } : {}),
     },
     update: {
-      role: params.role,
+      role: resolved.role,
       invitedBy: params.invitedBy,
       expiresAt,
       acceptedAt: null,
@@ -408,14 +437,20 @@ export async function inviteDomainConnection(
     domainId: string;
     invitedBy: string;
     identifier: string;
-    role?: DomainRole;
+    role?: string;
     seed?: unknown;
     additionalDomainIds?: string[];
   },
 ): Promise<InviteConnectionResult> {
-  const role = normalizeDomainRole(params.role);
   const identifier = normalizeIdentifier(params.identifier);
   const seed = normalizeInvitationSeed(params.seed);
+  const primaryDomain = await prisma.domain.findUnique({
+    where: { id: params.domainId },
+    select: { settings: true },
+  });
+  const primaryResolved = resolveAssignableDomainRole(params.role, primaryDomain?.settings);
+  const role = primaryResolved.role;
+  const fallbackBundle = resolveRoleBundle(role, resolveDomainRoleCatalog(primaryDomain?.settings));
 
   if (!identifier) {
     throw new Error('Identifier is required');
@@ -432,6 +467,7 @@ export async function inviteDomainConnection(
     invitedBy: params.invitedBy,
     identifier,
     role,
+    fallbackBundle,
     seed,
     invitee,
   });
@@ -465,6 +501,7 @@ export async function inviteDomainConnection(
         invitedBy: params.invitedBy,
         identifier,
         role,
+        fallbackBundle,
         seed,
         invitee,
       });
@@ -538,10 +575,16 @@ export async function acceptDomainInvitation(
   let additionalAccepted = 0;
   for (const row of related) {
     try {
+      const target = await prisma.domain.findUnique({
+        where: { id: row.domainId },
+        select: { settings: true },
+      });
+      const resolved = resolveAssignableDomainRole(row.role, target?.settings);
       await permissionService.grantPermission({
         domainId: row.domainId,
         userId: params.userId,
-        role: normalizeDomainRole(row.role),
+        role: resolved.role,
+        permissions: resolved.permissions,
         grantedBy: row.invitedBy,
       });
       await prisma.domainInvitation.update({

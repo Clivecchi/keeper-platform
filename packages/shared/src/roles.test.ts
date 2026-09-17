@@ -18,7 +18,7 @@ describe('domain roles', () => {
       'friend',
       'connection',
     ]);
-    expect(CUSTOM_DOMAIN_ROLES_ENABLED).toBe(false);
+    expect(CUSTOM_DOMAIN_ROLES_ENABLED).toBe(true);
   });
 
   it('returns the permission bundle for each relationship', () => {

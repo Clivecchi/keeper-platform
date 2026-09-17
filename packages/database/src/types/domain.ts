@@ -23,7 +23,7 @@ export type DomainRole = 'admin' | 'user' | 'friend' | 'connection';
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
 
 export interface UpdatePermissionParams {
-  role?: DomainRole;
+  role?: string;
   permissions?: DomainPermissionType[];
   expiresAt?: Date | null;
   updatedBy: string;
@@ -51,7 +51,7 @@ export interface UserPermissionSummary {
 export interface GrantPermissionRequest {
   domainId: string;
   userId: string;
-  role: DomainRole;
+  role: string;
   permissions?: DomainPermissionType[];
   grantedBy: string;
   expiresAt?: Date;

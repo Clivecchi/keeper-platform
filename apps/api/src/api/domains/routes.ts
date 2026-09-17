@@ -56,11 +56,21 @@ import {
 } from '../../services/domains/domainConnectionInvite.js';
 import {
   filterContentByAudience,
+  findDomainRoleEntry,
   INVITATION_SEED_LIMITS,
   normalizeInvitationSeed,
+  permissionsForCatalogRole,
   resolveDomainAudience,
+  resolveDomainRoleCatalog,
+  resolveRoleBundle,
   type DomainAudienceRole,
 } from '@keeper/shared';
+import {
+  createDomainRole,
+  deleteDomainRole,
+  loadDomainRoleCatalog,
+  updateDomainRole,
+} from '../../services/domains/domainRoleCatalogStore.js';
 import domainAccessKeyRoutes from './domain-access-key-routes.js';
 import domainOauthGrantRoutes from './domain-oauth-grant-routes.js';
 
@@ -121,9 +131,12 @@ function buildDomainAudienceContext(
   user: AuthenticatedRequest['user'] | undefined,
   domainOwnerId: string,
   permissionRole?: string,
+  settings?: unknown,
 ): { audience: DomainAudienceRole; domainRole: string | null; isOwner: boolean } {
   const isOwner = !!user && domainOwnerId === user.id;
-  const domainRole = isOwner ? 'admin' : (permissionRole ?? null);
+  const catalog = resolveDomainRoleCatalog(settings);
+  const storedRole = isOwner ? 'admin' : (permissionRole ?? null);
+  const domainRole = storedRole ? resolveRoleBundle(storedRole, catalog) : null;
   const audience = resolveDomainAudience({
     isAuthenticated: !!user,
     isAdmin: isPlatformAdmin(user),
@@ -131,6 +144,21 @@ function buildDomainAudienceContext(
     domainRole,
   });
   return { audience, domainRole, isOwner };
+}
+
+async function resolveStoredMemberRole(
+  domainId: string,
+  role: string,
+  permissions?: string[],
+): Promise<{ role: string; permissions?: DomainPermissionType[] } | null> {
+  const catalog = await loadDomainRoleCatalog(domainId);
+  const entry = findDomainRoleEntry(catalog, role);
+  if (!entry?.assignable) return null;
+  return {
+    role: entry.key,
+    permissions: (permissions as DomainPermissionType[] | undefined)
+      ?? (permissionsForCatalogRole(entry.key, catalog) as DomainPermissionType[]),
+  };
 }
 
 // GET /api/domains/resolve-host/:hostname — public; verified custom domain → slug
@@ -185,9 +213,10 @@ router.get('/resolve-host/:hostname', async (req: Request, res: Response) => {
 router.get('/by-slug/:slug/audience', optionalAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { slug } = req.params;
-    const domain = await findDomainRecordBySlug<{ id: string; ownerId: string }>(slug, {
+    const domain = await findDomainRecordBySlug<{ id: string; ownerId: string; settings: unknown }>(slug, {
       id: true,
       ownerId: true,
+      settings: true,
     });
 
     if (!domain) {
@@ -204,7 +233,7 @@ router.get('/by-slug/:slug/audience', optionalAuthMiddleware, async (req: Authen
       permissionRole = permission.role;
     }
 
-    const context = buildDomainAudienceContext(req.user, domain.ownerId, permissionRole);
+    const context = buildDomainAudienceContext(req.user, domain.ownerId, permissionRole, domain.settings);
     return res.json(context);
   } catch (error) {
     console.error('[domains:audience:error]', error);
@@ -220,9 +249,10 @@ router.get('/by-slug/:slug/friends-content', authMiddlewareCompat, async (req: A
     }
 
     const { slug } = req.params;
-    const domain = await findDomainRecordBySlug<{ id: string; ownerId: string }>(slug, {
+    const domain = await findDomainRecordBySlug<{ id: string; ownerId: string; settings: unknown }>(slug, {
       id: true,
       ownerId: true,
+      settings: true,
     });
 
     if (!domain) {
@@ -239,7 +269,7 @@ router.get('/by-slug/:slug/friends-content', authMiddlewareCompat, async (req: A
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const { audience } = buildDomainAudienceContext(req.user, domain.ownerId, permission.role);
+    const { audience } = buildDomainAudienceContext(req.user, domain.ownerId, permission.role, domain.settings);
     if (audience === 'guest') {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -1017,14 +1047,27 @@ const updateDomainSchema = z.object({
 
 const grantPermissionSchema = z.object({
   userId: z.string().uuid(),
-  role: z.enum(['admin', 'user', 'friend', 'connection']),
+  role: z.string().min(1).max(40).regex(/^[a-z0-9-]+$/),
   permissions: z.array(z.enum(['read', 'write', 'share', 'admin', 'invite', 'delete'])).optional(),
   expiresAt: z.string().datetime().optional(),
 });
 
+const domainRoleKeySchema = z.string().min(1).max(40).regex(/^[a-z0-9-]+$/);
+const domainRoleMapsToSchema = z.enum(['admin', 'user', 'friend', 'connection']);
+const createDomainRoleSchema = z.object({
+  name: z.string().min(1).max(40),
+  description: z.string().max(160).optional().default(''),
+  mapsTo: domainRoleMapsToSchema.optional(),
+});
+const updateDomainRoleSchema = z.object({
+  label: z.string().min(1).max(40),
+  description: z.string().max(160).optional().default(''),
+  mapsTo: domainRoleMapsToSchema.optional(),
+});
+
 const inviteConnectionSchema = z.object({
   identifier: z.string().min(1),
-  role: z.enum(['admin', 'user', 'friend', 'connection']).optional(),
+  role: domainRoleKeySchema.optional(),
   additionalDomainIds: z.array(z.string().uuid()).max(20).optional(),
   seed: z
     .object({
@@ -2315,6 +2358,79 @@ async function simulateCustomDomainVerification(customDomain: string): Promise<b
   return isValidDomain;
 }
 
+// ----- Domain Role Catalog (People names + descriptions) -----
+
+router.get('/:id/roles', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    return res.json({ roles: await loadDomainRoleCatalog(req.params.id) });
+  } catch (error) {
+    console.error('[DomainRoutes] list roles error', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post(
+  '/:id/roles',
+  authMiddlewareCompat,
+  requireDomainAdminCompat,
+  validationMiddleware(createDomainRoleSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const roles = await createDomainRole(req.params.id, {
+        name: req.body.name,
+        description: req.body.description ?? '',
+        mapsTo: req.body.mapsTo,
+      });
+      return res.status(201).json({ roles });
+    } catch (error) {
+      console.error('[DomainRoutes] create role error', error);
+      const message = error instanceof Error ? error.message : 'Internal server error';
+      const status = message.includes('maximum') || message.includes('required') ? 400 : 500;
+      return res.status(status).json({ error: message });
+    }
+  },
+);
+
+router.patch(
+  '/:id/roles/:roleKey',
+  authMiddlewareCompat,
+  requireDomainAdminCompat,
+  validationMiddleware(updateDomainRoleSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const roles = await updateDomainRole(req.params.id, {
+        key: req.params.roleKey,
+        label: req.body.label,
+        description: req.body.description ?? '',
+        mapsTo: req.body.mapsTo,
+      });
+      return res.json({ roles });
+    } catch (error) {
+      console.error('[DomainRoutes] update role error', error);
+      const message = error instanceof Error ? error.message : 'Internal server error';
+      const status = message.includes('required') || message.includes('not found') ? 400 : 500;
+      return res.status(status).json({ error: message });
+    }
+  },
+);
+
+router.delete(
+  '/:id/roles/:roleKey',
+  authMiddlewareCompat,
+  requireDomainAdminCompat,
+  async (req: Request, res: Response) => {
+    try {
+      const result = await deleteDomainRole(req.params.id, req.params.roleKey);
+      return res.json({ roles: result.catalog, removed: result.removed });
+    } catch (error) {
+      console.error('[DomainRoutes] delete role error', error);
+      const message = error instanceof Error ? error.message : 'Internal server error';
+      const status = message.includes('Only custom') ? 400 : 500;
+      return res.status(status).json({ error: message });
+    }
+  },
+);
+
 // ----- Domain Member Management (User Scope) -----
  
 // GET /api/domains/:id/members - list members (domain admin only)
@@ -2324,6 +2440,7 @@ router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async
       where: { id: req.params.id },
       select: {
         ownerId: true,
+        settings: true,
         users: { select: { id: true, name: true, email: true } },
       },
     });
@@ -2389,7 +2506,12 @@ router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async
       seed: member.email ? seedByEmail.get(member.email.toLowerCase()) ?? null : null,
     }));
 
-    return res.json({ owner, members: membersWithSeed, pendingInvitations });
+    return res.json({
+      owner,
+      members: membersWithSeed,
+      pendingInvitations,
+      roles: resolveDomainRoleCatalog(domain.settings),
+    });
   } catch (error) {
     console.error('[DomainRoutes] list members error', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -2402,11 +2524,14 @@ router.post('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, asyn
     const { userId, role, permissions, expiresAt } = req.body;
     if (!userId || !role) return res.status(400).json({ error: 'userId and role required' });
 
+    const resolved = await resolveStoredMemberRole(req.params.id, role, permissions);
+    if (!resolved) return res.status(400).json({ error: 'Unknown Domain role' });
+
     const permission = await getPermissionService().grantPermission({
       domainId: req.params.id,
       userId,
-      role,
-      permissions,
+      role: resolved.role,
+      permissions: resolved.permissions,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       grantedBy: (req as any).user.id,
     });
@@ -2422,9 +2547,13 @@ router.post('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, asyn
 router.patch('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {
     const { role, permissions, expiresAt } = req.body;
+    const resolved = role
+      ? await resolveStoredMemberRole(req.params.id, role, permissions)
+      : null;
+    if (role && !resolved) return res.status(400).json({ error: 'Unknown Domain role' });
     const permission = await getPermissionService().updatePermission(req.params.id, req.params.userId, {
-      role,
-      permissions,
+      role: resolved?.role,
+      permissions: resolved?.permissions ?? permissions,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       updatedBy: (req as any).user.id,
     });

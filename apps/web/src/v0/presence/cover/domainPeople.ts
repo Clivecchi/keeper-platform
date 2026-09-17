@@ -1,8 +1,11 @@
 import {
   formatInvitationSeedLines,
+  isDomainRole as isPlatformDomainRole,
   normalizeInvitationSeed,
-  ROLE_MAP,
+  resolveDomainRoleCatalog,
+  resolveRoleInfoFromCatalog,
   type DomainRole,
+  type DomainRoleCatalogEntry,
   type InvitationSeed,
 } from "@keeper/shared"
 
@@ -35,17 +38,14 @@ export interface PendingInvitationRow {
 }
 
 export function isDomainRole(value: string): value is DomainRole {
-  return value in ROLE_MAP
+  return isPlatformDomainRole(value)
 }
 
-export function resolveRoleInfo(role: string): { label: string; description: string } {
-  if (isDomainRole(role)) {
-    return ROLE_MAP[role]
-  }
-  return {
-    label: role.trim() || "Unknown",
-    description: "Role recorded on this domain.",
-  }
+export function resolveRoleInfo(
+  role: string,
+  catalog?: DomainRoleCatalogEntry[],
+): { label: string; description: string } {
+  return resolveRoleInfoFromCatalog(role, catalog)
 }
 
 export function membersExcludingOwner(
@@ -72,6 +72,7 @@ export function parseDomainPeoplePayloads(
     owner?: DomainOwnerRow | null
     members?: DomainMemberRow[]
     pendingInvitations?: PendingInvitationRow[]
+    roles?: DomainRoleCatalogEntry[]
   },
   connectionsResponse: {
     pendingInvitations?: PendingInvitationRow[]
@@ -80,6 +81,7 @@ export function parseDomainPeoplePayloads(
   owner: DomainOwnerRow | null
   members: DomainMemberRow[]
   pendingInvitations: PendingInvitationRow[]
+  roles: DomainRoleCatalogEntry[]
 } {
   const owner = membersResponse.owner ?? null
   const pendingFromMembers = membersResponse.pendingInvitations
@@ -94,11 +96,24 @@ export function parseDomainPeoplePayloads(
       : Array.isArray(connectionsResponse.pendingInvitations)
         ? connectionsResponse.pendingInvitations
         : [],
+    roles: Array.isArray(membersResponse.roles)
+      ? membersResponse.roles
+      : resolveDomainRoleCatalog({}),
   }
 }
 
 export function peopleMutationFeedback(
-  kind: "member-added" | "role-updated" | "member-removed" | "invited" | "granted" | "invite-revoked" | "failed",
+  kind:
+    | "member-added"
+    | "role-updated"
+    | "member-removed"
+    | "invited"
+    | "granted"
+    | "invite-revoked"
+    | "role-saved"
+    | "role-added"
+    | "role-removed"
+    | "failed",
   errorMessage?: string,
 ): { ok: boolean; message: string } {
   if (kind === "failed") {
@@ -111,6 +126,9 @@ export function peopleMutationFeedback(
     invited: "Invitation created",
     granted: "Member added",
     "invite-revoked": "Invitation revoked",
+    "role-saved": "Role updated",
+    "role-added": "Role added",
+    "role-removed": "Role removed",
   } as const
   return { ok: true, message: messages[kind] }
 }

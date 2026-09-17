@@ -24,6 +24,13 @@ describe("domainPeople helpers", () => {
     expect(parsed.owner?.userId).toBe("owner-1")
     expect(parsed.members).toEqual([{ userId: "member-1", name: "Pat", role: "user" }])
     expect(parsed.pendingInvitations).toEqual([])
+    expect(parsed.roles.map((role) => role.key)).toEqual([
+      "owner",
+      "admin",
+      "user",
+      "friend",
+      "connection",
+    ])
   })
 
   it("does not treat an authenticated user as a member when no permission rows exist", () => {
@@ -93,7 +100,7 @@ describe("domainPeople helpers", () => {
     expect(parsed.pendingInvitations[0]?.status).toBe("pending")
   })
 
-  it("surfaces ROLE_MAP labels and descriptions", () => {
+  it("surfaces ROLE_MAP labels and catalog overrides", () => {
     expect(resolveRoleInfo("admin")).toEqual({
       label: "Admin",
       description: "Manage People, Config, and invitations on this Domain.",
@@ -101,6 +108,20 @@ describe("domainPeople helpers", () => {
     expect(resolveRoleInfo("user").label).toBe("Member")
     expect(resolveRoleInfo("connection").label).toBe("Connection")
     expect(resolveRoleInfo("custom").label).toBe("custom")
+    expect(resolveRoleInfo("patron", [
+      {
+        key: "patron",
+        kind: "custom",
+        label: "Patron",
+        description: "Supports the work.",
+        mapsTo: "friend",
+        assignable: true,
+        locked: false,
+      },
+    ])).toEqual({
+      label: "Patron",
+      description: "Supports the work.",
+    })
   })
 
   it("builds a copyable acceptance URL from the stored path", () => {

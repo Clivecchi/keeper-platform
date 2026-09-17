@@ -7,12 +7,11 @@
 
 import * as React from "react"
 import {
-  CUSTOM_DOMAIN_ROLES_ENABLED,
+  assignableDomainRoles,
   INVITATION_SEED_LIMITS,
   normalizeInvitationSeed,
-  ROLE_MAP,
-  ROLE_OPTIONS,
-  type DomainRole,
+  resolveDomainRoleCatalog,
+  type DomainRoleCatalogEntry,
   type InvitationBriefingKind,
 } from "@keeper/shared"
 import { apiFetch } from "../../../lib/api"
@@ -20,6 +19,7 @@ import { invitationAcceptUrl } from "./domainPeople"
 
 export interface DomainInvitePanelProps {
   domainId: string
+  roles?: DomainRoleCatalogEntry[]
   onClose: () => void
   onSettled?: (outcome: "granted" | "invited") => void
 }
@@ -54,9 +54,22 @@ const quietStyle: React.CSSProperties = {
   color: "hsl(var(--theme-ink-secondary))",
 }
 
-export function DomainInvitePanel({ domainId, onClose, onSettled }: DomainInvitePanelProps) {
+export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: DomainInvitePanelProps) {
+  const catalog = React.useMemo(
+    () => (roles && roles.length > 0 ? roles : resolveDomainRoleCatalog({})),
+    [roles],
+  )
+  const assignable = React.useMemo(() => assignableDomainRoles(catalog), [catalog])
   const [identifier, setIdentifier] = React.useState("")
-  const [role, setRole] = React.useState<DomainRole>("connection")
+  const [role, setRole] = React.useState(assignable[assignable.length - 1]?.key ?? "connection")
+
+  React.useEffect(() => {
+    setRole((current) => (
+      assignable.some((entry) => entry.key === current)
+        ? current
+        : (assignable[assignable.length - 1]?.key ?? "connection")
+    ))
+  }, [assignable])
   const [givenName, setGivenName] = React.useState("")
   const [relation, setRelation] = React.useState("")
   const [about, setAbout] = React.useState("")
@@ -224,22 +237,17 @@ export function DomainInvitePanel({ domainId, onClose, onSettled }: DomainInvite
         <span style={quietStyle}>Relationship on this Domain</span>
         <select
           value={role}
-          onChange={(e) => setRole(e.target.value as DomainRole)}
+          onChange={(e) => setRole(e.target.value)}
           className="rounded border px-2 py-1.5 text-[13px]"
           style={inputStyle}
           disabled={outcome.kind === "working"}
         >
-          {ROLE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {ROLE_MAP[option.value].label} — {ROLE_MAP[option.value].description}
+          {assignable.map((option) => (
+            <option key={option.key} value={option.key}>
+              {option.label} — {option.description}
             </option>
           ))}
         </select>
-        {!CUSTOM_DOMAIN_ROLES_ENABLED ? (
-          <span style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            Custom Domain roles come next. They will map onto these same permission bundles.
-          </span>
-        ) : null}
       </label>
 
       <label className="flex flex-col gap-1 text-[12px]">

@@ -579,9 +579,13 @@ export class DomainPermissionService {
     return inheritedPermissions.some(inherited => permissions.includes(inherited));
   }
 
-  private validatePermissionsForRole(role: DomainRole, permissions: DomainPermissionType[]): boolean {
-    const allowedPermissions = this.ROLE_HIERARCHY[role];
-    return permissions.every(permission => allowedPermissions.includes(permission));
+  private validatePermissionsForRole(role: string, permissions: DomainPermissionType[]): boolean {
+    const allowedPermissions = this.ROLE_HIERARCHY[role as DomainRole];
+    if (allowedPermissions) {
+      return permissions.every(permission => allowedPermissions.includes(permission));
+    }
+    const knownBundles = Object.values(this.ROLE_HIERARCHY);
+    return knownBundles.some((bundle) => permissions.every((permission) => bundle.includes(permission)));
   }
 
   /**

@@ -1195,6 +1195,7 @@ Domain membership (role/permissions), email invitations, usage events, ownership
 
 ### Known inconsistencies
 - DomainPermission.role is a free String (default `"user"`) while `roles` / `user_roles` tables also exist — dual role systems.
+- People role **names and descriptions** live on `Domain.settings.roles` (Owner/platform overrides + custom keys). Custom keys still map onto admin / user / friend / connection permission bundles — not a new engine.
 
 ---
 

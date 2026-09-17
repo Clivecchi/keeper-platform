@@ -244,8 +244,13 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `domainPeople.ts` — owner / member / invitation helpers (no DomainPermission invented for owner)
 - `DomainPeopleSection.tsx` — owner, members, pending invitations, Chronicle invite
 - `DomainInvitePanel.tsx` — Chronicle People invite form (origin Domain, briefing, extra Domains)
+- `DomainRolesEditor.tsx` — People role names and descriptions; custom roles map onto existing permission bundles
 
 ## 📆 Update Log
+
+### 2026-09-16 — People role catalog
+- Roles in People are editable. Owner plus Admin / Member / Friend / Connection can change name and description. Add role creates a Domain-named relationship that maps onto those same permission bundles.
+- `GET /api/domains/:id/members` now returns `roles`. Invite and member dropdowns use that catalog.
 
 ### 2026-09-15 — Chronicle People invitation
 - `DomainInvitePanel.tsx` is the invite form in Chronicle People. Cast Header / profile Invite opens this panel — no popup.

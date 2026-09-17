@@ -7,6 +7,7 @@ import {
   normalizeConnectionRole,
   normalizeDomainRole,
   normalizeIdentifier,
+  resolveAssignableDomainRole,
   resolveUserByIdentifier,
 } from './domainConnectionInvite.js';
 
@@ -121,6 +122,15 @@ describe('domainConnectionInvite lookup helpers', () => {
     expect(normalizeDomainRole('friend')).toBe('friend');
     expect(normalizeDomainRole('connection')).toBe('connection');
     expect(normalizeDomainRole('unknown')).toBe('connection');
+  });
+
+  it('keeps custom Domain role keys and copies the mapped permission bundle', () => {
+    const resolved = resolveAssignableDomainRole('patron', {
+      roles: { custom: [{ id: 'patron', name: 'Patron', mapsTo: 'friend' }] },
+    });
+    expect(resolved.role).toBe('patron');
+    expect(resolved.permissions).toEqual(['read', 'write']);
+    expect(resolveAssignableDomainRole('unknown', {}).role).toBe('connection');
   });
 
   it('detects email-like identifiers', () => {

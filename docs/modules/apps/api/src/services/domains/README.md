@@ -7,6 +7,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `domainFrameFallback.ts` — platform frame fallback (shared with GET `/:slug/frame`).
 - `buildInitialDomainFrameJson.ts` — personal domain wordmark/tagline/agent wiring.
 - `domainConnectionInvite.ts` — Phase 3.1 connection invite lookup, list, grant, and revoke helpers.
+- `domainRoleCatalogStore.ts` — People role names/descriptions on `Domain.settings.roles`.
 - `provisionDomainOnCreate.ts` — idempotent orchestration after `POST /api/domains`.
 - `repairDomainLeadBindings.ts` — mirror sync via `syncDomainLeadAuthority` (no canonical map).
 - `resolveDomainLeadAgent.ts` — DB-first read (`primaryAgentId` → mirror row lookup); `syncDomainLeadAuthority` one write path.
@@ -104,6 +105,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ### 2026-07-24 — Dialog participation on roster
 - `loadDomainScopedAgents` summary includes `dialogParticipation` from `config.dialog_participation`.
+
+### 2026-09-16 — People role catalog
+- `domainRoleCatalogStore.ts` writes `Domain.settings.roles`. Custom roles remap assigned members/invites onto their permission bundle when removed.
 
 ### 2026-09-13 — Agency Place compose
 - `loadAgencyPlace.ts` — read-only Agency Cover facts from Domain + membership + lead + policy + Lens + last Lead performance.

@@ -7,6 +7,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `index.ts` – Barrel export for package consumers
 - `logger.ts` – Minimal console logger
 - `roles.ts` – Shared role identifiers
+- `domainRoleCatalog.ts` – Domain-scoped People role names/descriptions over the four permission bundles
 - `invitationSeed.ts` – Optional invitation notes that seed Domain agents about a person
 - `canonicalBoards.ts` – Canonical logged-in experience board slugs & helpers
 - `universalBoardId.ts` – `build` Board id; `ide` is a URL/frame-JSON alias only
@@ -32,6 +33,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-16: `domainRoleCatalog.ts` — Domain.settings.roles stores Owner/platform label overrides and custom names. Custom roles map onto admin/user/friend/connection. Not a new permission engine.
 - 2026-09-15: Domain roles — Owner is display-only. `user` labels as Member. Permission bundles live next to the map. Custom Domain roles are stubbed off.
 - 2026-09-15: `invitationSeed.ts` — briefing notes/prompts/documents stay inviter-held until co-ownership exists.
 - 2026-09-13: `invitationSeed.ts` — givenName / relation / about on a Domain invitation. Caps stay short for agent context. Not a role and not email body.

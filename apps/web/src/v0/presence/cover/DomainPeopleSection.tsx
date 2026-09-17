@@ -3,13 +3,13 @@
 import * as React from "react"
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import {
-  CUSTOM_DOMAIN_ROLES_ENABLED,
-  OWNER_ROLE_INFO,
-  ROLE_MAP,
-  ROLE_OPTIONS,
+  assignableDomainRoles,
+  resolveDomainRoleCatalog,
+  type DomainRoleCatalogEntry,
 } from "@keeper/shared"
 import { apiFetch } from "../../../lib/api"
 import { DomainInvitePanel } from "./DomainInvitePanel"
+import { DomainRolesEditor, type RoleDraft } from "./DomainRolesEditor"
 import {
   formatPeopleDate,
   invitationAcceptUrl,
@@ -97,6 +97,8 @@ export function DomainPeopleSection({
   const [owner, setOwner] = React.useState<DomainOwnerRow | null>(null)
   const [members, setMembers] = React.useState<DomainMemberRow[]>([])
   const [pendingInvitations, setPendingInvitations] = React.useState<PendingInvitationRow[]>([])
+  const [roles, setRoles] = React.useState<DomainRoleCatalogEntry[]>(() => resolveDomainRoleCatalog({}))
+  const [busyRoleKey, setBusyRoleKey] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [showAdd, setShowAdd] = React.useState(false)
   const [inviteOpen, setInviteOpen] = React.useState(false)
@@ -131,6 +133,7 @@ export function DomainPeopleSection({
           owner?: DomainOwnerRow | null
           members?: DomainMemberRow[]
           pendingInvitations?: PendingInvitationRow[]
+          roles?: DomainRoleCatalogEntry[]
         }>,
         apiFetch(`/api/domains/${domainId}/connections`) as Promise<{
           pendingInvitations?: PendingInvitationRow[]
@@ -141,12 +144,14 @@ export function DomainPeopleSection({
       setOwner(parsed.owner)
       setMembers(parsed.members)
       setPendingInvitations(parsed.pendingInvitations)
+      setRoles(parsed.roles)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load people")
       setOwner(null)
       setMembers([])
       setPendingInvitations([])
+      setRoles(resolveDomainRoleCatalog({}))
     } finally {
       setLoading(false)
     }
@@ -270,6 +275,76 @@ export function DomainPeopleSection({
     }
   }
 
+  const applyRoleCatalog = (next: unknown) => {
+    const payload = next as { roles?: DomainRoleCatalogEntry[] }
+    if (Array.isArray(payload.roles)) setRoles(payload.roles)
+  }
+
+  const handleSaveRole = async (entry: DomainRoleCatalogEntry, draft: RoleDraft) => {
+    setBusyRoleKey(entry.key)
+    setError(null)
+    try {
+      applyRoleCatalog(
+        await apiFetch(`/api/domains/${domainId}/roles/${encodeURIComponent(entry.key)}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            label: draft.label,
+            description: draft.description,
+            ...(entry.kind === "custom" ? { mapsTo: draft.mapsTo } : {}),
+          }),
+        }),
+      )
+      setSuccess(peopleMutationFeedback("role-saved").message)
+    } catch (err) {
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
+      throw err
+    } finally {
+      setBusyRoleKey(null)
+    }
+  }
+
+  const handleCreateRole = async (draft: RoleDraft) => {
+    setBusyRoleKey("new")
+    setError(null)
+    try {
+      applyRoleCatalog(
+        await apiFetch(`/api/domains/${domainId}/roles`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: draft.label,
+            description: draft.description,
+            mapsTo: draft.mapsTo,
+          }),
+        }),
+      )
+      setSuccess(peopleMutationFeedback("role-added").message)
+    } catch (err) {
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
+      throw err
+    } finally {
+      setBusyRoleKey(null)
+    }
+  }
+
+  const handleDeleteRole = async (entry: DomainRoleCatalogEntry) => {
+    if (!window.confirm(`Remove ${entry.label}? People with this role keep the same permissions.`)) return
+    setBusyRoleKey(entry.key)
+    setError(null)
+    try {
+      applyRoleCatalog(
+        await apiFetch(`/api/domains/${domainId}/roles/${encodeURIComponent(entry.key)}`, {
+          method: "DELETE",
+        }),
+      )
+      setSuccess(peopleMutationFeedback("role-removed").message)
+      await loadPeople()
+    } catch (err) {
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
+    } finally {
+      setBusyRoleKey(null)
+    }
+  }
+
   const handleCopyAcceptLink = async (invitation: PendingInvitationRow) => {
     const acceptUrl = invitationAcceptUrl(invitation.acceptPath)
     if (!acceptUrl) {
@@ -335,6 +410,7 @@ export function DomainPeopleSection({
       {inviteOpen ? (
         <DomainInvitePanel
           domainId={domainId}
+          roles={roles}
           onClose={() => setInviteOpen(false)}
           onSettled={(outcome) => {
             setSuccess(peopleMutationFeedback(outcome === "granted" ? "granted" : "invited").message)
@@ -398,14 +474,11 @@ export function DomainPeopleSection({
                 className="rounded-md px-2 py-1.5 text-xs"
                 style={inputStyle}
               >
-                {ROLE_OPTIONS.map((option) => {
-                  const info = resolveRoleInfo(option.value)
-                  return (
-                    <option key={option.value} value={option.value}>
-                      {info.label} — {info.description}
-                    </option>
-                  )
-                })}
+                {assignableDomainRoles(roles).map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.label} — {option.description}
+                  </option>
+                ))}
               </select>
               <button
                 type="button"
@@ -434,33 +507,13 @@ export function DomainPeopleSection({
             >
               Roles
             </p>
-            <div className="space-y-1.5">
-              <p className="text-[12px]" style={quietStyle}>
-                <span className="font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-                  {OWNER_ROLE_INFO.label}
-                </span>
-                {" — "}
-                {OWNER_ROLE_INFO.description}
-              </p>
-              {ROLE_OPTIONS.map((option) => (
-                <p key={option.value} className="text-[12px]" style={quietStyle}>
-                  <span className="font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-                    {ROLE_MAP[option.value].label}
-                  </span>
-                  {" — "}
-                  {ROLE_MAP[option.value].description}
-                </p>
-              ))}
-              <p className="text-[12px]" style={quietStyle}>
-                <span className="font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-                  Add role
-                </span>
-                {" — "}
-                {CUSTOM_DOMAIN_ROLES_ENABLED
-                  ? "Create a named relationship for this Domain."
-                  : "Coming next. Custom names will map onto these permission bundles — not a new engine."}
-              </p>
-            </div>
+            <DomainRolesEditor
+              roles={roles}
+              busyKey={busyRoleKey}
+              onSave={handleSaveRole}
+              onCreate={handleCreateRole}
+              onDelete={handleDeleteRole}
+            />
           </div>
 
           <div>
@@ -490,7 +543,7 @@ export function DomainPeopleSection({
                     border: "1px solid var(--treatment-signal, hsl(var(--theme-status-success)))",
                   }}
                 >
-                  Owner
+                  {resolveRoleInfo("owner", roles).label}
                 </span>
               </div>
             ) : (
@@ -515,7 +568,7 @@ export function DomainPeopleSection({
             ) : (
               <div className="space-y-2" style={listScrollStyle}>
                 {members.map((member) => {
-                  const roleInfo = resolveRoleInfo(member.role)
+                  const roleInfo = resolveRoleInfo(member.role, roles)
                   return (
                     <div
                       key={member.userId}
@@ -544,8 +597,8 @@ export function DomainPeopleSection({
                           style={inputStyle}
                           aria-label={`Role for ${member.name}`}
                         >
-                          {ROLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
+                          {assignableDomainRoles(roles).map((option) => (
+                            <option key={option.key} value={option.key}>
                               {option.label}
                             </option>
                           ))}
@@ -583,7 +636,7 @@ export function DomainPeopleSection({
             ) : (
               <div className="space-y-2" style={listScrollStyle}>
                 {pendingInvitations.map((invitation) => {
-                  const roleInfo = resolveRoleInfo(invitation.role)
+                  const roleInfo = resolveRoleInfo(invitation.role, roles)
                   const created = formatPeopleDate(invitation.createdAt)
                   const expires = formatPeopleDate(invitation.expiresAt)
                   const acceptUrl = invitationAcceptUrl(invitation.acceptPath)

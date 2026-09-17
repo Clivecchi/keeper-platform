@@ -36,7 +36,7 @@ export interface UserPermissionSummary {
 export interface GrantPermissionRequest {
     domainId: string;
     userId: string;
-    role: DomainRole;
+    role: string;
     permissions?: DomainPermissionType[];
     grantedBy: string;
     expiresAt?: Date;
