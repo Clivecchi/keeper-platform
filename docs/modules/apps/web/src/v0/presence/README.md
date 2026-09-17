@@ -66,6 +66,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-16 — Domain Cover save callback reaches the surface
+- `handleDomainCoverSaved` stayed on `KeeperPresence` after the surface split. Domain focus still referenced it, which crashed Chronicle (`ReferenceError`) behind the panel error boundary. The callback is now passed into `KeeperPresenceSurface`.
+
 ### 2026-09-13 — Domain Cover path is living terrain
 - Chronicle Domain Cover flattens judged reaches into one path (Now, Needs you, Becoming, Present). Moment body and journey Forward become the preview. Cover image is optional.
 

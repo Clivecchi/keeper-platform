@@ -1387,6 +1387,7 @@ export function KeeperPresence({
         visibleFields={visibleFields}
         handleKeeperSelect={handleKeeperSelect}
         handlePresenceRefresh={handlePresenceRefresh}
+        handleDomainCoverSaved={handleDomainCoverSaved}
         onAddressesUpdated={handleAddressesUpdated}
         onLabelResolved={onLabelResolved}
         onJourneySelect={onJourneySelect}
@@ -1437,6 +1438,7 @@ function KeeperPresenceSurface({
   visibleFields,
   handleKeeperSelect,
   handlePresenceRefresh,
+  handleDomainCoverSaved,
   onAddressesUpdated,
   onLabelResolved,
   onJourneySelect,
@@ -1481,6 +1483,7 @@ function KeeperPresenceSurface({
   visibleFields: [string, FieldDefinition][]
   handleKeeperSelect?: (id: string) => void
   handlePresenceRefresh: () => void
+  handleDomainCoverSaved: (cover?: ChronicleCoverMedia) => void
   onAddressesUpdated?: (patch: {
     customDomain?: string | null
     customDomainVerified?: boolean
