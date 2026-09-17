@@ -594,7 +594,7 @@ async function enrichKeeper(
     record,
     meta: { line: metaParts.join(" · ") || undefined },
     relatedSections,
-    hiddenFields: ["keeperType"],
+    hiddenFields: ["keeperType", "customDomain"],
   }
 }
 
@@ -768,10 +768,14 @@ async function enrichDomain(
     record.slug = domain.slug ?? record.slug
     record.status = domain.status ?? record.status
     record.visibility = domain.isPublic === true ? "public" : "private"
-    if (typeof domain.customDomain === "string") {
-      record.customDomain = domain.customDomain
+    if ("customDomain" in domain) {
+      record.customDomain =
+        typeof domain.customDomain === "string" ? domain.customDomain : null
     }
     record.customDomainVerified = domain.customDomainVerified === true
+    if (typeof domain.keeperType === "string" && domain.keeperType.trim()) {
+      record.keeperType = domain.keeperType.trim()
+    }
 
     const theme =
       domain.theme && typeof domain.theme === "object"

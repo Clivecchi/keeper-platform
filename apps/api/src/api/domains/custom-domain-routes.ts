@@ -17,6 +17,7 @@ import { rateLimit } from 'express-rate-limit';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { VercelDomainManagerService } from '../../services/VercelDomainManagerService.js';
 import { syncCustomDomainVerificationIfReady } from '../../services/customDomainVerificationSync.js';
+import { buildKeeperTenantHostname } from '@keeper/shared';
 
 function getVercelService(): VercelDomainManagerService {
   const token = process.env.VERCEL_TOKEN;
@@ -721,6 +722,46 @@ router.get('/:domainId/custom-domain/dns', requireDomainAdminCompat, async (req:
   } catch (err) {
     console.error('Get DNS config error:', err);
     return res.status(500).json({ error: 'Failed to fetch DNS configuration' });
+  }
+});
+
+// GET /api/domains/:domainId/keeper-host/status — {slug}.keeper.domains on the Vercel project
+router.get('/:domainId/keeper-host/status', requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const domain = await domainService.getDomainById(req.params.domainId);
+    if (!domain) return res.status(404).json({ error: 'Domain not found' });
+    const hostname = buildKeeperTenantHostname(domain.slug);
+    try {
+      const status = await getVercelService().getDomainStatus(hostname);
+      return res.json({ hostname, ...status });
+    } catch (err) {
+      return res.json({
+        hostname,
+        attached: false,
+        verified: false,
+        error: err instanceof Error ? err.message : 'Vercel integration not configured',
+      });
+    }
+  } catch (err) {
+    console.error('Keeper host status error:', err);
+    return res.status(500).json({ error: 'Failed to load Keeper address status' });
+  }
+});
+
+// POST /api/domains/:domainId/keeper-host — attach {slug}.keeper.domains to Vercel
+router.post('/:domainId/keeper-host', requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const domain = await domainService.getDomainById(req.params.domainId);
+    if (!domain) return res.status(404).json({ error: 'Domain not found' });
+    const hostname = buildKeeperTenantHostname(domain.slug);
+    const { dnsRecords } = await getVercelService().addDomain(hostname);
+    const status = await getVercelService().getDomainStatus(hostname);
+    return res.json({ success: true, hostname, dnsRecords, ...status });
+  } catch (err) {
+    console.error('Keeper host attach error:', err);
+    return res.status(400).json({
+      error: err instanceof Error ? err.message : 'Failed to host Keeper address',
+    });
   }
 });
 

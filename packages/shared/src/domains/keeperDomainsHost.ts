@@ -50,3 +50,8 @@ export function isKeeperDomainsNonTenantHostname(hostname: string): boolean {
   }
   return resolveTenantSlugFromHostname(host) === null;
 }
+
+/** `{slug}.keeper.domains` tenant host — not apex, www, or reserved infra. */
+export function isKeeperTenantHostname(hostname: string): boolean {
+  return resolveTenantSlugFromHostname(hostname) !== null;
+}

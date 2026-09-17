@@ -29,7 +29,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `GET /by-slug/:slug/friends-content` (auth, read permission) returns journeys/moments filtered by `presenceSchema.realmVisibility` for friend+ audiences.
 - `/:domainId/agent/execute` now auto-assigns Kip as the primary agent when missing, then calls `KipAgentService` and surfaces typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, etc.).
 - Board data routes guard frame IDs via the Domain keeper type template, updating JSON props and flushing cache.
-- Custom domain routes share logic between legacy and `/custom` prefixed paths for compatibility.
+- `GET /by-slug/:slug` returns `keeperType` from `settings.keeperTypeKey` plus `customDomain`.
+- `GET/POST /:domainId/keeper-host` attaches `{slug}.keeper.domains` to the Vercel project (not a custom brand domain).
 - `/:domainId/kip/environment` returns a stable, read-only Kip environment bundle (now with `policy` + `draftsDirectory`); the agent execute route builds the same bundle and injects it into the model payload without changing response shapes.
 - `/:domainId/kip/sole-memory-cards` (Option B) returns domain anchor SOLE memory cards (keeperId null, domainId set) for Cockpit when no keeper is selected.
 - `/:domainId/policy` (GET/PATCH) exposes the resolved domain policy JSON (policy-v1 default) for viewing and editing.
@@ -45,6 +46,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-09-16: **Keeper host + Presence save** — `GET/POST /:domainId/keeper-host` attaches `{savedSlug}.keeper.domains` to Vercel. `GET /by-slug/:slug` returns `keeperType`. Chronicle Save persists `settings.keeperTypeKey` and `customDomain`.
 - 2026-09-16: **People role catalog** — `GET/POST /:id/roles`, `PATCH/DELETE /:id/roles/:roleKey`. Members list includes `roles`. Custom names map onto admin/user/friend/connection. Deleting a custom role remaps people onto that bundle.
 - 2026-09-15: **People invitation** — `POST /:id/connections/invite` accepts `additionalDomainIds` + briefing seed. `GET /administrable` lists Domains the inviter can add. `DELETE /:id/invitations/:invitationId` revokes pending. Accept grants role bundles, returns `domainSlug` + `additionalAccepted`.
 - 2026-09-13: **Agency Place read** — `GET /:domainId/agency-place` composes owner, lead, people count, DomainAgentPolicy, Lens, and last domain-scoped Lead performance. No new storage.

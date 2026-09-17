@@ -192,6 +192,16 @@ export function DomainConfigPresence({
     resolveDomainConfigFrame(focusPeople ? "people" : "identity"),
   )
   const fieldMap = React.useMemo(() => new Map(visibleFields), [visibleFields])
+  const presenceFieldMap = React.useMemo(() => {
+    const defaults = PRESENCE_SCHEMA_DEFAULTS.domain?.fields ?? {}
+    const merged = new Map(fieldMap)
+    for (const key of PRESENCE_FIELD_ORDER) {
+      if (defaults[key] && !merged.has(key)) {
+        merged.set(key, defaults[key])
+      }
+    }
+    return merged
+  }, [fieldMap])
   const treatmentFieldMap = React.useMemo(() => {
     const defaults = PRESENCE_SCHEMA_DEFAULTS.domain?.fields ?? {}
     return new Map(
@@ -206,7 +216,7 @@ export function DomainConfigPresence({
   )
 
   const identityKeys = IDENTITY_FIELD_ORDER.filter((key) => fieldMap.has(key))
-  const presenceKeys = PRESENCE_FIELD_ORDER.filter((key) => fieldMap.has(key))
+  const presenceKeys = PRESENCE_FIELD_ORDER.filter((key) => presenceFieldMap.has(key))
   const treatmentKeys = TREATMENT_FIELD_ORDER.filter((key) => treatmentFieldMap.has(key))
   const ideKeys = IDE_BUILD_FIELD_ORDER.filter((key) => ideFieldMap.has(key))
 
@@ -327,11 +337,14 @@ export function DomainConfigPresence({
       {activeFrame === "addresses" ? (
         <DomainAddressesSection
           domainId={domainId}
+          savedSlug={domainSlug}
           domainTag={domainTag}
           domainTagError={fieldErrors.slug}
           onDomainTagChange={(value) => onFieldChange("slug", value)}
           customDomain={customDomain}
           customDomainVerified={customDomainVerified}
+          customDomainDraft={fieldValues.customDomain ?? ""}
+          onCustomDomainDraftChange={(value) => onFieldChange("customDomain", value)}
           onAddressesUpdated={onAddressesUpdated}
           embedded
         />
@@ -342,7 +355,7 @@ export function DomainConfigPresence({
           {presenceKeys.length > 0 ? (
             <ConfigFieldGroup
               keys={presenceKeys}
-              fieldMap={fieldMap}
+              fieldMap={presenceFieldMap}
               fieldErrors={fieldErrors}
               placeholders={fieldPlaceholders}
               labels={fieldLabels}

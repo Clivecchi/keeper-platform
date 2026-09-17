@@ -23,6 +23,7 @@ Shared constants and helpers for personal domain `frame_json` identity — detec
 - [ ] If fallback shape changes, update markers here and in `domainFrameFallback.ts` together.
 
 ## 📆 Update Log
+- 2026-09-16: `isKeeperTenantHostname` — `{slug}.keeper.domains` vs apex/reserved. Vercel attach uses this so tenant hosts are project domains, not new account registrations.
 - 2026-08-30: Playbill helpers — billing uses the slug when the stored domain name is a short clip. The star is the agent name (`Liv`); only an empty lead falls back to the domain label.
 - 2026-07-11: **Frame-as-mirror** — removed `CANONICAL_DOMAIN_LEAD_BINDINGS`; `domainLeadMirror.ts` + `resolveDomainLeadAgentSlugSync` (DB-enriched fields only).
 - 2026-07-04: Added `keeperDomainsHost.ts` — shared `{slug}.keeper.domains` tenant slug resolution for database services and web/API alignment.

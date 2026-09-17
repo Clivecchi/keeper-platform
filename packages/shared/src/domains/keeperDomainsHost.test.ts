@@ -7,6 +7,7 @@ import {
   buildKeeperTenantOrigin,
   isKeeperDomainsPlatformHostname,
   isKeeperDomainsNonTenantHostname,
+  isKeeperTenantHostname,
 } from './keeperDomainsHost.js';
 
 describe('keeperDomainsHost', () => {
@@ -37,5 +38,12 @@ describe('keeperDomainsHost', () => {
     expect(isKeeperDomainsPlatformHostname('staging.keeper.domains')).toBe(false);
     expect(isKeeperDomainsNonTenantHostname('api.keeper.domains')).toBe(true);
     expect(isKeeperDomainsNonTenantHostname('staging.keeper.domains')).toBe(false);
+  });
+
+  it('treats tenant hosts as Vercel project domains, not account registrations', () => {
+    expect(isKeeperTenantHostname('chuck.keeper.domains')).toBe(true);
+    expect(isKeeperTenantHostname('keeper.domains')).toBe(false);
+    expect(isKeeperTenantHostname('www.keeper.domains')).toBe(false);
+    expect(isKeeperTenantHostname('livecchi.us')).toBe(false);
   });
 });

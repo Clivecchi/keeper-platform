@@ -253,9 +253,14 @@ export function splitDomainChroniclePatch(
         frameBody.kip = { visibility: value }
         break
       case "keeperType":
-        // incomplete — keeperType character mapping may need dedicated API
         settings.keeperTypeKey = value
         break
+      case "customDomain": {
+        const trimmed = value.trim().toLowerCase()
+        domainBody.customDomain = trimmed || null
+        if (!trimmed) domainBody.customDomainVerified = false
+        break
+      }
       case "buildContextName":
         ideBuildContext.name = value
         break

@@ -18,4 +18,5 @@ Database-layer services for hostname-to-Domain resolution, custom domain verific
 - [ ] `dynamicCorsMiddleware` platform allowlist remains in API layer
 
 ## 📆 Update Log
+- **2026-09-16**: `UpdateDomainRequest.customDomain` accepts `null` so Chronicle Save can clear a brand URL.
 - **2026-07-04**: Aligned resolution with `keeper.domains` — tenant slug hosts resolve via `getDomainBySlug`; verification CNAME target `domains.keeper.domains`; reserved custom domains updated from `keeper.tools`.

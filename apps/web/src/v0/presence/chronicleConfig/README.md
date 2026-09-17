@@ -44,6 +44,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-09-16 — Domain Presence and custom domain on Save
+- `splitDomainChroniclePatch` writes `keeperType` → `settings.keeperTypeKey` and `customDomain` onto the Domain row. Empty custom domain clears verification.
+
 ### 2026-09-15 — Chronicle upload is one path
 - `ChronicleVisualUploadField` optionally files the image in Library, then persists the object. Success waits on that save. Domain / Keeper / Journey / Path / Moment use the same field. Keeper PATCH accepts cover + avatar together.
 

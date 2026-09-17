@@ -176,6 +176,7 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
       treatmentFontFamily:   { role: 'ambient',   minDensity: 'standard', editable: true, label: 'Treatment Font' },
       status:      { role: 'quiet',     always: true,                     editable: false },
       slug:        { role: 'ambient',   minDensity: 'comfortable',        editable: true,  label: 'Domain Tag', hiddenByDefault: true },
+      customDomain:{ role: 'ambient',   minDensity: 'comfortable',        editable: true,  label: 'Custom Domain', hiddenByDefault: true },
       buildContextName:        { role: 'secondary', minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Build Context Name' },
       buildContextDescription: { role: 'body',      minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Description' },
       activeRepository:        { role: 'ambient',   minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Active Repository' },

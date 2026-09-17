@@ -66,6 +66,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-16 — Addresses and Presence actually persist
+- Chronicle Save writes `settings.keeperTypeKey` (How it shows up) and `customDomain`. Unsaved Configure edits are not wiped when enrichment reloads.
+- Addresses shows the **saved** `{slug}.keeper.domains` host, Host on Vercel for that hostname, and keeps a typed custom domain on Save. Preview of a draft tag is labeled After Save.
+
 ### 2026-09-16 — Domain Cover save callback reaches the surface
 - `handleDomainCoverSaved` stayed on `KeeperPresence` after the surface split. Domain focus still referenced it, which crashed Chronicle (`ReferenceError`) behind the panel error boundary. The callback is now passed into `KeeperPresenceSurface`.
 

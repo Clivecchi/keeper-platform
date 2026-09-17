@@ -352,6 +352,14 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
     }
 
     const leadAgent = await resolveDomainLeadAgentFromDomain(prisma, domain);
+    const settings =
+      domain.settings && typeof domain.settings === 'object' && !Array.isArray(domain.settings)
+        ? (domain.settings as Record<string, unknown>)
+        : {};
+    const keeperType =
+      typeof settings.keeperTypeKey === 'string' && settings.keeperTypeKey.trim()
+        ? settings.keeperTypeKey.trim()
+        : null;
 
     return res.json({
       id: domain.id,
@@ -361,6 +369,7 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
       isPublic: domain.isPublic,
       customDomain: domain.customDomain,
       customDomainVerified: domain.customDomainVerified,
+      keeperType,
       ownerId: domain.ownerId,
       theme: domain.theme,
       leadAgentId: leadAgent?.id ?? null,
@@ -1038,7 +1047,13 @@ const updateDomainSchema = z.object({
   isPublic: z.boolean().optional(),
   allowRequests: z.boolean().optional(),
   categories: z.array(z.string()).optional(),
-  customDomain: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}$/).optional(),
+  customDomain: z
+    .union([
+      z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}$/),
+      z.literal(""),
+      z.null(),
+    ])
+    .optional(),
   features: z.record(z.any()).optional(),
   limits: z.record(z.any()).optional(),
   theme: z.record(z.any()).optional(),

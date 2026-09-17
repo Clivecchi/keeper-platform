@@ -184,8 +184,9 @@ export function DomainFocusPresence({
           <DomainConfigPresence
             domainId={domainId}
             domainSlug={
-              fieldValues.slug?.trim() ||
-              (typeof record.slug === "string" ? record.slug : domainSlug ?? "")
+              (typeof record.slug === "string" && record.slug.trim()) ||
+              domainSlug ||
+              ""
             }
             primaryAgentName={primaryAgentName}
             customDomain={

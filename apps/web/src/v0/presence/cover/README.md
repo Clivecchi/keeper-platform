@@ -66,6 +66,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-16 — Addresses host the saved tag
+- `DomainAddressesSection` hosts `{savedSlug}.keeper.domains` on Vercel. Draft tags preview as After Save. Custom domain draft binds to Chronicle Save so livecchi.us is not lost if Add domain is skipped.
+
 ### 2026-09-15 — Cover card reads the same image upload writes
 - Domain / Agency / Keeper cards resolve the hero through `heroImageFromRecord` (theme bits, presence cover, then avatar). Domain Configure upload also patches the Domain Card and switcher cache immediately.
 

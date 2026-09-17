@@ -1,5 +1,7 @@
 // Node 18+ provides global fetch; no external dependency required
 
+import { isKeeperTenantHostname } from '@keeper/shared';
+
 interface DNSRecord {
   type: string;
   domain: string;
@@ -112,8 +114,10 @@ export class VercelDomainManagerService {
     });
 
     try {
-      // Ensure domain is registered under the Vercel account first
-      await this.registerDomainIfNeeded(domain);
+      // Tenant hosts are subdomains of keeper.domains, which is already on the account.
+      if (!isKeeperTenantHostname(domain)) {
+        await this.registerDomainIfNeeded(domain);
+      }
 
       const res = await fetch(url, {
         method: 'POST',

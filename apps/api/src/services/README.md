@@ -21,6 +21,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-16 — Tenant hosts skip account registration
+- `VercelDomainManagerService.addDomain` does not call `registerDomainIfNeeded` for `{slug}.keeper.domains`. Those are project domains under the existing apex.
+
 ### 2026-09-12 — Lead voice after Cast
 - `directorDialog.ts` — after-Cast prompts are orchestration context for Lead Judgment, not a synthesis user message. Human direction stays the user turn. Personality / "find the plot" — not 1–3 sentence committee reports.
 

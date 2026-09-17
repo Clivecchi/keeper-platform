@@ -6,6 +6,7 @@ import {
   parseChroniclePatchFieldErrors,
   resolveChronicleFramePatchEndpoint,
   resolveChroniclePatchEndpoint,
+  splitDomainChroniclePatch,
 } from "./chroniclePatch"
 
 vi.mock("../../../lib/api", () => ({
@@ -50,6 +51,28 @@ describe("buildAgentChroniclePatchBody", () => {
       domainId: "dom-1",
       name: "liv",
       memory_enabled: true,
+    })
+  })
+})
+
+describe("splitDomainChroniclePatch", () => {
+  it("persists How it shows up on settings.keeperTypeKey", () => {
+    const split = splitDomainChroniclePatch({
+      keeperType: "the Co-op Brand Builder",
+    })
+    expect(split.domainBody).toEqual({
+      settings: { keeperTypeKey: "the Co-op Brand Builder" },
+    })
+    expect(split.patchKeys).toEqual(["keeperType"])
+  })
+
+  it("persists custom domain on the Domain row", () => {
+    expect(splitDomainChroniclePatch({ customDomain: "Livecchi.US" }).domainBody).toEqual({
+      customDomain: "livecchi.us",
+    })
+    expect(splitDomainChroniclePatch({ customDomain: "  " }).domainBody).toEqual({
+      customDomain: null,
+      customDomainVerified: false,
     })
   })
 })

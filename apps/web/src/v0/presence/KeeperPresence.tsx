@@ -23,6 +23,7 @@ import {
 import {
   fetchDomainBySlug,
   invalidateDomainShellCache,
+  patchCachedDomainBySlug,
   type DomainBySlugRecord,
 } from "../boards/domain/domainShellCache"
 import { rememberDomainCoverUpload } from "../themes/rememberDomainCoverUpload"
@@ -960,6 +961,8 @@ export function KeeperPresence({
         }
         if (typeof patch.tagline === "string") next.tagline = patch.tagline
         if (typeof patch.keeperType === "string") next.keeperType = patch.keeperType
+        if (typeof patch.customDomain === "string") next.customDomain = patch.customDomain
+        if (patch.customDomain === "") next.customDomain = null
         if (typeof patch.theme_color === "string") next.theme_color = patch.theme_color
         if (typeof patch.visibility === "string") next.visibility = patch.visibility
         if (typeof patch.treatmentName === "string") next.treatmentName = patch.treatmentName
@@ -1006,6 +1009,19 @@ export function KeeperPresence({
         switcherPatch.tagline = savedPatch.tagline
       }
       if (nextSlug && nextSlug !== currentSlug) switcherPatch.slug = nextSlug
+
+      if (currentSlug) {
+        const cachePatch: Record<string, unknown> = {}
+        if (typeof savedPatch.name === "string") cachePatch.name = savedPatch.name
+        if (typeof savedPatch.purpose === "string") cachePatch.description = savedPatch.purpose
+        if (typeof savedPatch.keeperType === "string") cachePatch.keeperType = savedPatch.keeperType
+        if (typeof savedPatch.customDomain === "string") {
+          cachePatch.customDomain = savedPatch.customDomain.trim() || null
+        }
+        if (Object.keys(cachePatch).length > 0) {
+          patchCachedDomainBySlug(currentSlug, cachePatch as Partial<DomainBySlugRecord>)
+        }
+      }
 
       if (currentSlug && Object.keys(switcherPatch).length > 0) {
         patchDomainSwitcherCacheEntry(currentSlug, switcherPatch)
@@ -1054,8 +1070,11 @@ export function KeeperPresence({
         }
         return next
       })
+      if (domainSlug && patch.customDomain !== undefined) {
+        patchCachedDomainBySlug(domainSlug, { customDomain: patch.customDomain })
+      }
     },
-    [],
+    [domainSlug],
   )
 
   const objectSchemaOverride =
@@ -1127,6 +1146,7 @@ export function KeeperPresence({
                 "purpose",
                 "theme_color",
                 "visibility",
+                "customDomain",
                 ...DOMAIN_TREATMENT_FIELD_KEYS,
                 "buildContextName",
                 "buildContextDescription",
@@ -1142,6 +1162,7 @@ export function KeeperPresence({
                 "purpose",
                 "theme_color",
                 "visibility",
+                "customDomain",
                 ...DOMAIN_TREATMENT_FIELD_KEYS,
               ]
         const patch: Record<string, string> = {}
@@ -1222,6 +1243,7 @@ export function KeeperPresence({
 
   React.useEffect(() => {
     if (!record) return
+    if (usesExplicitChronicleSave && chronicleConfig.isDirty) return
     const next: Record<string, string> = {}
     for (const key of Object.keys(schema.fields)) {
       next[key] = formatFieldValue(key, record[key], schema.fields[key]?.role ?? "secondary")

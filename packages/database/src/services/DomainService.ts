@@ -41,7 +41,7 @@ export interface UpdateDomainRequest {
   isPublic?: boolean;
   allowRequests?: boolean;
   categories?: string[];
-  customDomain?: string;
+  customDomain?: string | null;
   customDomainVerified?: boolean;
   isActive?: boolean;
   /**
