@@ -43,6 +43,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-09-17 — Invitation send result narrowing
+- `deliverInvitationEmail` reads `result.ok === false` so Railway `tsc` (non-strict) accepts `error` on the failed send branch.
+
 ### 2026-09-16 — Invitation email via Resend
 - `invitationEmail.ts` builds invite and granted-member mail. `ResendService.sendEmail` posts to Resend. Invite create still succeeds if send fails.
 

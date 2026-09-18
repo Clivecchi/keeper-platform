@@ -119,10 +119,10 @@ export async function deliverInvitationEmail(
     text: built.text,
     html: built.html,
   });
-  if (result.ok) {
-    return { sent: true };
+  if (result.ok === false) {
+    return { sent: false, error: result.error };
   }
-  return { sent: false, error: result.error };
+  return { sent: true };
 }
 
 export function jsonEmailDelivery(delivery: InvitationEmailDelivery): {
