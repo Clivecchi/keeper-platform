@@ -8,6 +8,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `buildInitialDomainFrameJson.ts` — personal domain wordmark/tagline/agent wiring.
 - `domainConnectionInvite.ts` — Phase 3.1 connection invite lookup, list, grant, and revoke helpers.
 - `domainRoleCatalogStore.ts` — People role names/descriptions on `Domain.settings.roles`.
+- `invitationEmail.ts` — Resend invitation / “you were added” mail; accept URLs from `PUBLIC_WEB_ORIGIN`.
 - `provisionDomainOnCreate.ts` — idempotent orchestration after `POST /api/domains`.
 - `repairDomainLeadBindings.ts` — mirror sync via `syncDomainLeadAuthority` (no canonical map).
 - `resolveDomainLeadAgent.ts` — DB-first read (`primaryAgentId` → mirror row lookup); `syncDomainLeadAuthority` one write path.
@@ -41,6 +42,9 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+
+### 2026-09-16 — Invitation email via Resend
+- `invitationEmail.ts` builds invite and granted-member mail. `ResendService.sendEmail` posts to Resend. Invite create still succeeds if send fails.
 
 ### 2026-09-15 — People invite origin, bundle, accept, revoke
 - `inviteDomainConnection` records origin Domain + bundle, can also invite onto administrable Domains, stores briefing seed.

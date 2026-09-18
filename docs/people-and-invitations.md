@@ -46,14 +46,13 @@ One invite form in Chronicle People.
 3. Relationship is Admin / Member / Friend / Connection.
 4. Briefing (name, belonging, about, notes/prompts/documents) seeds the Domain lead. Not email body. Held by the inviting Domain until co-ownership exists.
 5. Optional: also invite onto other Domains the inviter owns or administers. Same briefing, same bundle.
-6. Existing accounts receive membership immediately. New emails get a copyable `/invite/accept?token=` link. Keeper does not send email yet.
+6. Existing accounts receive membership immediately and get a “you were added” email. New emails receive an invitation from Keeper (`RESEND_API_KEY` on the API). The accept link is still copyable if send fails. Pending invitations can be resent.
 7. Accept grants the invited role's real permissions (not a hardcoded read/write). Bundle siblings accept together. First origin Domain is written to `users.invitedFromDomainId` once.
 
 Cast Header / profile **Invite** opens Chronicle People. It does not open a modal.
 
 ## ⚠️ Later (not this slice)
 
-- Email delivery
 - Custom Domain roles that persist
 - Briefing becoming co-owned Library / Document
 - File attachments from Library
@@ -61,6 +60,9 @@ Cast Header / profile **Invite** opens Chronicle People. It does not open a moda
 - Platform admin role-matrix bug (`GET /api/admin/roles/users`)
 
 ## 📆 Update Log
+
+### 2026-09-16 — Invitation email
+- Invite and granted-member mail go through Resend. Chronicle reports sent vs copy-link. Pending invitations can be resent.
 
 ### 2026-09-15 — People management first slice
 - Chronicle invite panel replaces the collaborator popup.

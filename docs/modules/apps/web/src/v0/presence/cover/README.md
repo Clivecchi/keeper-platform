@@ -66,6 +66,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-16 — Invitation email
+- `DomainInvitePanel` sends via Resend. Success says the email went; failure keeps the copyable link. Pending rows have **Resend email**.
+
 ### 2026-09-16 — Addresses host the saved tag
 - `DomainAddressesSection` hosts `{savedSlug}.keeper.domains` on Vercel. Draft tags preview as After Save. Custom domain draft binds to Chronicle Save so livecchi.us is not lost if Add domain is skipped.
 

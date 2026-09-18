@@ -21,14 +21,14 @@ export interface DomainInvitePanelProps {
   domainId: string
   roles?: DomainRoleCatalogEntry[]
   onClose: () => void
-  onSettled?: (outcome: "granted" | "invited") => void
+  onSettled?: (outcome: "granted" | "invited", emailSent?: boolean) => void
 }
 
 type InviteOutcome =
   | { kind: "idle" }
   | { kind: "working" }
-  | { kind: "granted"; name: string }
-  | { kind: "invited"; email: string; acceptUrl: string; additionalNote?: string }
+  | { kind: "granted"; name: string; emailSent?: boolean }
+  | { kind: "invited"; email: string; acceptUrl: string; additionalNote?: string; emailSent: boolean; emailError?: string }
   | { kind: "error"; message: string }
 
 interface AdministrableDomain {
@@ -155,14 +155,17 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
           acceptPath?: string
         }
         additional?: Array<{ outcome: string; name?: string; error?: string }>
+        email?: { sent?: boolean; error?: string }
         error?: string
       }
 
       const additionalNote = formatAdditionalNote(data.additional)
+      const emailSent = data.email?.sent === true
+      const emailError = data.email?.error
 
       if (data.outcome === "granted") {
-        setOutcome({ kind: "granted", name: trimmed })
-        onSettled?.("granted")
+        setOutcome({ kind: "granted", name: trimmed, emailSent })
+        onSettled?.("granted", emailSent)
         return
       }
 
@@ -175,7 +178,14 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
                 ? `/invite/accept?token=${encodeURIComponent(data.invitation.token)}`
                 : null),
           ) ?? ""
-        setOutcome({ kind: "invited", email, acceptUrl, additionalNote })
+        setOutcome({
+          kind: "invited",
+          email,
+          acceptUrl,
+          additionalNote,
+          emailSent,
+          emailError,
+        })
         if (acceptUrl) {
           try {
             await navigator.clipboard.writeText(acceptUrl)
@@ -184,7 +194,7 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
             setCopyState("failed")
           }
         }
-        onSettled?.("invited")
+        onSettled?.("invited", emailSent)
         return
       }
 
@@ -206,8 +216,8 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
         <div>
           <p className="text-[13px] font-medium">Invite someone</p>
           <p className="mt-1 text-[12px]" style={quietStyle}>
-            Existing Keeper accounts join immediately. New emails get a copyable acceptance
-            link — Keeper does not send email yet. This Domain is recorded as the one that invited them.
+            Existing Keeper accounts join immediately and get an email. New emails receive
+            an invitation from Keeper. This Domain is recorded as the one that invited them.
           </p>
         </div>
         <button
@@ -376,17 +386,24 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
         }}
         disabled={outcome.kind === "working"}
       >
-        {outcome.kind === "working" ? "Creating…" : "Create invitation"}
+        {outcome.kind === "working" ? "Sending…" : "Send invitation"}
       </button>
 
       {outcome.kind === "granted" ? (
         <p className="text-[12px]" style={quietStyle}>
           {outcome.name} is now a member of this Domain.
+          {outcome.emailSent ? " We emailed them." : ""}
         </p>
       ) : null}
       {outcome.kind === "invited" ? (
         <div className="space-y-1 text-[12px]" style={quietStyle}>
-          <p>Invitation created for {outcome.email}. Keeper did not send email.</p>
+          <p>
+            {outcome.emailSent
+              ? `Invitation emailed to ${outcome.email}.`
+              : `Invitation created for ${outcome.email}. Email could not be sent${
+                  outcome.emailError ? ` (${outcome.emailError})` : ""
+                }. Share the link below.`}
+          </p>
           {outcome.additionalNote ? <p>{outcome.additionalNote}</p> : null}
           {outcome.acceptUrl ? (
             <>

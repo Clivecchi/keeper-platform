@@ -12,6 +12,7 @@ Central location for API service-layer modules used by route handlers.
 - `LibraryItemIngestionService.ts`
 - `pdfTextExtract.ts`
 - `WebSearchService.ts`
+- `ResendService.ts`
 
 ## 🔄 Data & Behavior
 Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
@@ -21,6 +22,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-16 — Invitation email send
+- `ResendService.sendEmail` posts to `https://api.resend.com/emails`. Needs `RESEND_API_KEY` on the API service, or an active platform key with provider `resend`. From address: `RESEND_FROM_EMAIL` or `Keeper <invites@ke3p.com>`.
+
 ### 2026-09-16 — Tenant hosts skip account registration
 - `VercelDomainManagerService.addDomain` does not call `registerDomainIfNeeded` for `{slug}.keeper.domains`. Those are project domains under the existing apex.
 

@@ -108,6 +108,7 @@ export function DomainPeopleSection({
   const [newMemberRole, setNewMemberRole] = React.useState("user")
   const [busyUserId, setBusyUserId] = React.useState<string | null>(null)
   const [copyingInviteId, setCopyingInviteId] = React.useState<string | null>(null)
+  const [resendingInviteId, setResendingInviteId] = React.useState<string | null>(null)
   const [revokingInviteId, setRevokingInviteId] = React.useState<string | null>(null)
   const [adding, setAdding] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -122,6 +123,7 @@ export function DomainPeopleSection({
     setNewMemberRole("user")
     setBusyUserId(null)
     setCopyingInviteId(null)
+    setResendingInviteId(null)
     setRevokingInviteId(null)
   }, [])
 
@@ -275,6 +277,21 @@ export function DomainPeopleSection({
     }
   }
 
+  const handleResendInvitation = async (invitation: PendingInvitationRow) => {
+    setResendingInviteId(invitation.id)
+    setError(null)
+    try {
+      await apiFetch(`/api/domains/${domainId}/invitations/${invitation.id}/resend`, {
+        method: "POST",
+      })
+      setSuccess(peopleMutationFeedback("invite-resent").message)
+    } catch (err) {
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
+    } finally {
+      setResendingInviteId(null)
+    }
+  }
+
   const applyRoleCatalog = (next: unknown) => {
     const payload = next as { roles?: DomainRoleCatalogEntry[] }
     if (Array.isArray(payload.roles)) setRoles(payload.roles)
@@ -412,8 +429,14 @@ export function DomainPeopleSection({
           domainId={domainId}
           roles={roles}
           onClose={() => setInviteOpen(false)}
-          onSettled={(outcome) => {
-            setSuccess(peopleMutationFeedback(outcome === "granted" ? "granted" : "invited").message)
+          onSettled={(outcome, emailSent) => {
+            const kind =
+              outcome === "granted"
+                ? "granted"
+                : emailSent === false
+                  ? "invite-created"
+                  : "invited"
+            setSuccess(peopleMutationFeedback(kind).message)
             void loadPeople()
           }}
         />
@@ -630,8 +653,8 @@ export function DomainPeopleSection({
             </p>
             {pendingInvitations.length === 0 ? (
               <p className="text-sm" style={quietStyle}>
-                No pending invitations. Invite creates a copyable acceptance link — Keeper
-                does not send email yet.
+                No pending invitations. Invite emails the person a Keeper acceptance link.
+                You can still copy the link if you need to share it yourself.
               </p>
             ) : (
               <div className="space-y-2" style={listScrollStyle}>
@@ -653,8 +676,8 @@ export function DomainPeopleSection({
                           {line}
                         </p>
                       ))}
-                      {acceptUrl ? (
-                        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+                      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+                        {acceptUrl ? (
                           <code
                             className="block min-w-0 flex-1 break-all rounded px-2 py-1 text-[11px]"
                             style={{
@@ -664,6 +687,21 @@ export function DomainPeopleSection({
                           >
                             {acceptUrl}
                           </code>
+                        ) : (
+                          <span className="flex-1 text-[11px]" style={quietStyle}>
+                            Acceptance link unavailable — you can still email the invitation.
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void handleResendInvitation(invitation)}
+                          disabled={resendingInviteId === invitation.id}
+                          className="rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 shrink-0"
+                          style={actionOutlineStyle}
+                        >
+                          {resendingInviteId === invitation.id ? "Sending…" : "Resend email"}
+                        </button>
+                        {acceptUrl ? (
                           <button
                             type="button"
                             onClick={() => void handleCopyAcceptLink(invitation)}
@@ -673,17 +711,17 @@ export function DomainPeopleSection({
                           >
                             {copyingInviteId === invitation.id ? "Copying…" : "Copy link"}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleRevokeInvitation(invitation)}
-                            disabled={revokingInviteId === invitation.id}
-                            className="rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 shrink-0"
-                            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-                          >
-                            {revokingInviteId === invitation.id ? "Removing…" : "Revoke"}
-                          </button>
-                        </div>
-                      ) : null}
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => void handleRevokeInvitation(invitation)}
+                          disabled={revokingInviteId === invitation.id}
+                          className="rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50 shrink-0"
+                          style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+                        >
+                          {revokingInviteId === invitation.id ? "Removing…" : "Revoke"}
+                        </button>
+                      </div>
                     </div>
                   )
                 })}

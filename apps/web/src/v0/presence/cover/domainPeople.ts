@@ -108,6 +108,8 @@ export function peopleMutationFeedback(
     | "role-updated"
     | "member-removed"
     | "invited"
+    | "invite-created"
+    | "invite-resent"
     | "granted"
     | "invite-revoked"
     | "role-saved"
@@ -123,7 +125,9 @@ export function peopleMutationFeedback(
     "member-added": "Member added",
     "role-updated": "Role updated",
     "member-removed": "Member removed",
-    invited: "Invitation created",
+    invited: "Invitation emailed",
+    "invite-created": "Invitation created — email could not be sent",
+    "invite-resent": "Invitation emailed again",
     granted: "Member added",
     "invite-revoked": "Invitation revoked",
     "role-saved": "Role updated",

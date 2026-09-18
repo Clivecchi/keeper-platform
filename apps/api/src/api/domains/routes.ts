@@ -55,6 +55,13 @@ import {
   revokeDomainInvitation,
 } from '../../services/domains/domainConnectionInvite.js';
 import {
+  deliverInvitationEmail,
+  domainBoardAbsoluteUrl,
+  invitationAcceptAbsoluteUrl,
+  jsonEmailDelivery,
+  roleLabelForInvitation,
+} from '../../services/domains/invitationEmail.js';
+import {
   filterContentByAudience,
   findDomainRoleEntry,
   INVITATION_SEED_LIMITS,
@@ -113,6 +120,25 @@ function getVerificationService(): DomainVerificationService {
   }
   return verificationService;
 }
+
+async function peopleEmailContext(domainId: string, invitedBy: string) {
+  const [domain, inviter] = await Promise.all([
+    prisma.domain.findUnique({
+      where: { id: domainId },
+      select: { name: true, slug: true },
+    }),
+    prisma.users.findUnique({
+      where: { id: invitedBy },
+      select: { name: true, email: true },
+    }),
+  ]);
+  return {
+    domainName: domain?.name?.trim() || 'a Keeper Domain',
+    domainSlug: domain?.slug?.trim() || '',
+    inviterName: inviter?.name?.trim() || inviter?.email?.trim() || 'Someone on Keeper',
+  };
+}
+
 const featureFlags = getFeatureFlagService();
 const domainPolicySchema = z.object({
   policy: z.record(z.any()).default(DEFAULT_POLICY_PACK_V1 as Record<string, unknown>),
@@ -1528,13 +1554,46 @@ router.post(
         additionalDomainIds: req.body.additionalDomainIds,
       });
 
+      const extraNames = result.additional
+        .filter((row) => row.outcome === 'granted' || row.outcome === 'invited')
+        .map((row) => row.name)
+        .filter(Boolean);
+      const context = await peopleEmailContext(req.params.id, req.user.id);
+
       if (result.outcome === 'granted') {
+        const member = await prisma.users.findUnique({
+          where: { id: result.permission.userId },
+          select: { email: true },
+        });
+        const email = await deliverInvitationEmail({
+          kind: 'granted',
+          to: member?.email,
+          inviterName: context.inviterName,
+          domainName: context.domainName,
+          domainSlug: context.domainSlug,
+          roleLabel: roleLabelForInvitation(result.permission.role),
+          domainUrl: domainBoardAbsoluteUrl(context.domainSlug),
+          additionalDomainNames: extraNames,
+        });
         return res.status(201).json({
           outcome: 'granted',
           permission: result.permission,
           additional: result.additional,
+          email: jsonEmailDelivery(email),
         });
       }
+
+      const email = await deliverInvitationEmail({
+        kind: 'invite',
+        to: result.invitation.email,
+        inviterName: context.inviterName,
+        domainName: context.domainName,
+        domainSlug: context.domainSlug,
+        roleLabel: roleLabelForInvitation(result.invitation.role),
+        acceptUrl: invitationAcceptAbsoluteUrl(result.invitation.token),
+        additionalDomainNames: extraNames,
+        expiresAt: result.invitation.expiresAt,
+      });
 
       return res.status(201).json({
         outcome: 'invited',
@@ -1545,12 +1604,12 @@ router.post(
           expiresAt: result.invitation.expiresAt,
           originDomainId: result.invitation.originDomainId,
           bundleId: result.invitation.bundleId,
-          /** Copyable redeem path — email delivery is not wired; clipboard is the honest path. */
           token: result.invitation.token,
           acceptPath: invitationAcceptPath(result.invitation.token),
           seed: normalizeInvitationSeed(result.invitation.seed),
         },
         additional: result.additional,
+        email: jsonEmailDelivery(email),
       });
     } catch (error) {
       console.error('Error inviting domain connection:', error);
@@ -1621,6 +1680,55 @@ router.post('/invitations/accept', authMiddlewareCompat, async (req: Request, re
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// POST /api/domains/:id/invitations/:invitationId/resend — email the accept link again
+router.post(
+  '/:id/invitations/:invitationId/resend',
+  authMiddlewareCompat,
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      if (!(await requireDomainAdminForRoute(req, res, req.params.id))) {
+        return;
+      }
+      const invitation = await prisma.domainInvitation.findUnique({
+        where: { id: req.params.invitationId },
+      });
+      if (!invitation || invitation.domainId !== req.params.id) {
+        return res.status(404).json({ error: 'Invitation not found' });
+      }
+      if (invitation.acceptedAt) {
+        return res.status(400).json({ error: 'Invitation already accepted' });
+      }
+      if (invitation.expiresAt < new Date()) {
+        return res.status(400).json({ error: 'Invitation has expired' });
+      }
+      const context = await peopleEmailContext(req.params.id, invitation.invitedBy);
+      const email = await deliverInvitationEmail({
+        kind: 'invite',
+        to: invitation.email,
+        inviterName: context.inviterName,
+        domainName: context.domainName,
+        domainSlug: context.domainSlug,
+        roleLabel: roleLabelForInvitation(invitation.role),
+        acceptUrl: invitationAcceptAbsoluteUrl(invitation.token),
+        expiresAt: invitation.expiresAt,
+      });
+      if (!email.sent) {
+        return res.status(502).json({
+          error: email.error || 'Invitation email could not be sent.',
+          email: jsonEmailDelivery(email),
+        });
+      }
+      return res.status(200).json({ email: jsonEmailDelivery(email) });
+    } catch (error) {
+      console.error('Error resending domain invitation:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
 
 // DELETE /api/domains/:id/invitations/:invitationId — cancel a pending invitation
 router.delete(

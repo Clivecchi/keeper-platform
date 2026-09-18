@@ -139,8 +139,12 @@ describe("domainPeople helpers", () => {
     expect(formatPeopleDate("2026-09-12T12:00:00.000Z")).toMatch(/2026/)
   })
 
-  it("reports invitation created, not emailed, and never reports success on failure", () => {
-    expect(peopleMutationFeedback("invited").message).toBe("Invitation created")
+  it("reports emailed invitations honestly, and never reports success on failure", () => {
+    expect(peopleMutationFeedback("invited").message).toBe("Invitation emailed")
+    expect(peopleMutationFeedback("invite-created").message).toBe(
+      "Invitation created — email could not be sent",
+    )
+    expect(peopleMutationFeedback("invite-resent").message).toBe("Invitation emailed again")
     expect(peopleMutationFeedback("granted").message).toBe("Member added")
     expect(peopleMutationFeedback("failed", "No permission").ok).toBe(false)
     expect(peopleMutationFeedback("failed", "No permission").message).toBe("No permission")
