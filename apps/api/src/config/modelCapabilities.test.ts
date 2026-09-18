@@ -33,6 +33,11 @@ describe('getModelCapabilities', () => {
     expect(getModelCapabilities('openai', 'gpt-3.5-turbo').jsonMode).toBe(false);
   });
 
+  it('marks TypeSafe Jev as jsonMode without streaming', () => {
+    expect(getModelCapabilities('typesafe', 'jev-latest').jsonMode).toBe(true);
+    expect(getModelCapabilities('typesafe', 'jev-latest').streaming).toBe(false);
+  });
+
   it('marks all Anthropic models as non-jsonMode', () => {
     expect(getModelCapabilities('anthropic', 'claude-sonnet-4-6').jsonMode).toBe(false);
     expect(getModelCapabilities('anthropic', 'claude-3-5-sonnet-20241022').jsonMode).toBe(false);

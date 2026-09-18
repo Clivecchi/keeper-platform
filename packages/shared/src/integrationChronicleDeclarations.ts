@@ -69,6 +69,14 @@ export const INTEGRATION_CHRONICLE_DECLARATIONS: Record<string, IntegrationChron
       chronicle_blocks: ['connection_status', 'key_health', 'linked_agents'],
       chronicle_actions: ['test_provider', 'manage_keys', 'disconnect'],
     },
+    typesafe: {
+      display_label: 'TypeSafe',
+      description: 'Jev System One — typed decisions with calibrated confidence, not chat',
+      connect_copy: 'Add a TypeSafe API key (TYPESAFE_API_KEY) to evaluate Choice, Score, and Noul questions',
+      is_gateway: true,
+      chronicle_blocks: ['connection_status', 'key_health', 'model_catalog', 'linked_agents'],
+      chronicle_actions: ['test_provider', 'refresh_models', 'manage_keys', 'disconnect'],
+    },
   };
 
 export const DEFAULT_KEY_CHRONICLE_BLOCKS: readonly string[] = [

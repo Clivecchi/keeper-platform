@@ -54,11 +54,18 @@ const ELEVENLABS_MODELS: ModelCatalogEntry[] = [
   { id: 'eleven_turbo_v2', label: 'Turbo v2', provider: 'elevenlabs', capabilities: ['audio'], defaultSettings: { temperature: 0.5, max_tokens: 1000 } },
 ];
 
+const TYPESAFE_MODELS: ModelCatalogEntry[] = [
+  { id: 'jev-latest', label: 'Jev (latest)', provider: 'typesafe', capabilities: ['text'], defaultSettings: { temperature: 0, max_tokens: 1024 } },
+  { id: 'jev-1.13.0', label: 'Jev 1.13', provider: 'typesafe', capabilities: ['text'], defaultSettings: { temperature: 0, max_tokens: 1024 } },
+  { id: 'jev-preview', label: 'Jev (preview)', provider: 'typesafe', capabilities: ['text'], defaultSettings: { temperature: 0, max_tokens: 1024 } },
+];
+
 export const MODEL_CATALOG: Record<ModelProvider, ModelCatalogEntry[]> = {
   openai: OPENAI_MODELS,
   anthropic: ANTHROPIC_MODELS,
   'together-ai': TOGETHER_MODELS,
   elevenlabs: ELEVENLABS_MODELS,
+  typesafe: TYPESAFE_MODELS,
 };
 
 export const DEFAULT_MODEL_BY_PROVIDER: Record<ModelProvider, string> = {
@@ -66,9 +73,10 @@ export const DEFAULT_MODEL_BY_PROVIDER: Record<ModelProvider, string> = {
   anthropic: 'claude-sonnet-4-6',
   'together-ai': 'meta-llama/Llama-2-70b-chat-hf',
   elevenlabs: 'eleven_multilingual_v2',
+  typesafe: 'jev-latest',
 };
 
-export const PROVIDERS: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
+export const PROVIDERS: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs', 'typesafe'];
 
 /**
  * Build default ModelSettings for a provider (used when no model is specified)

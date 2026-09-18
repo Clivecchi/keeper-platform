@@ -288,6 +288,7 @@ export class PlatformApiKeyService {
         return apiKey.startsWith('sk-ant-') && apiKey.length > 30;
       case 'together-ai':
       case 'elevenlabs':
+      case 'typesafe':
         return apiKey.length > 10;
       default:
         return apiKey.length > 5;

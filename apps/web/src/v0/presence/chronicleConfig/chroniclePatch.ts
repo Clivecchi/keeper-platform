@@ -17,7 +17,7 @@ function humanizeChroniclePatchFieldError(field: string, raw: string): string {
     return "Purpose cannot be empty."
   }
   if (field === "model_provider" && /invalid|enum/i.test(raw)) {
-    return "Choose openai, anthropic, together-ai, or elevenlabs."
+    return "Choose openai, anthropic, together-ai, elevenlabs, or typesafe."
   }
   if (raw && raw !== "Validation error") return raw
   return `Check ${field} and try again.`

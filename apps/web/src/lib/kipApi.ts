@@ -62,7 +62,7 @@ const enrichApiError = (error: unknown, fallback: string): ApiErrorShape => {
 };
 
 export type AgentRole = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
-export type ModelProvider = 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs';
+export type ModelProvider = 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs' | 'typesafe';
 
 export interface ModelSettings {
   model: string;
@@ -567,7 +567,7 @@ function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | und
   const requestId = raw.requestId;
 
   return {
-    provider: provider === 'openai' || provider === 'anthropic' || provider === 'together-ai' || provider === 'together' || provider === 'elevenlabs'
+    provider: provider === 'openai' || provider === 'anthropic' || provider === 'together-ai' || provider === 'together' || provider === 'elevenlabs' || provider === 'typesafe'
       ? (provider === 'together' ? 'together-ai' : provider)
       : undefined,
     model: typeof model === 'string' ? model : undefined,
@@ -645,6 +645,8 @@ function getProviderLabel(provider?: ModelProvider | 'together'): string {
       return 'Together AI';
     case 'elevenlabs':
       return 'ElevenLabs';
+    case 'typesafe':
+      return 'TypeSafe';
     default:
       return 'the AI provider';
   }
@@ -2086,6 +2088,7 @@ export class KipApi {
       anthropic: ['claude-sonnet-4-6', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
       'together-ai': ['meta-llama/Llama-2-70b-chat-hf', 'meta-llama/Llama-2-13b-chat-hf', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
       elevenlabs: ['eleven_monolingual_v1', 'eleven_multilingual_v2', 'eleven_turbo_v2'],
+      typesafe: ['jev-latest', 'jev-1.13.0', 'jev-preview'],
     };
     return FALLBACK[provider] ?? [];
   }
@@ -2132,6 +2135,13 @@ export class KipApi {
           model: 'eleven_multilingual_v2',
           temperature: 0.5,
           max_tokens: 1000
+        };
+      case 'typesafe':
+        return {
+          ...baseSettings,
+          model: 'jev-latest',
+          temperature: 0,
+          max_tokens: 1024
         };
       default:
         return baseSettings as ModelSettings;

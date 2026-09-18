@@ -4,8 +4,7 @@
  */
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '@keeper/database';
-import type { ModelProvider } from '@keeper/database';
+import { prisma, MODEL_PROVIDERS, type ModelProvider } from '@keeper/database';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { KipUserKeyService } from '../services/KipUserKeyService.js';
 import { PlatformApiKeyService } from '../services/PlatformApiKeyService.js';
@@ -21,13 +20,13 @@ import { loadDomainTierContext } from '../lib/loadDomainTier.js';
 
 const router: Router = Router();
 
-const VALID_PROVIDERS: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
+const VALID_PROVIDERS: ModelProvider[] = [...MODEL_PROVIDERS];
 const VALID_SOURCES = ['env', 'user', 'platform'] as const;
 const VALID_STATUSES = ['valid', 'invalid', 'expired', 'revoked', 'unknown'] as const;
 
 const createKeySchema = z.object({
   domain_id: z.string().min(1),
-  provider: z.enum(['openai', 'anthropic', 'together-ai', 'elevenlabs']),
+  provider: z.enum(MODEL_PROVIDERS),
   key_source: z.enum(VALID_SOURCES),
   api_key: z.string().min(5).optional(),
   scope: z.string().optional(),
@@ -603,6 +602,11 @@ export const PROVIDER_KEY_META: Record<
     display_label: 'ElevenLabs',
     description: 'Voice synthesis — powers agent voice capabilities',
     scope: 'Text-to-speech and voice synthesis for agents',
+  },
+  typesafe: {
+    display_label: 'TypeSafe',
+    description: 'Jev System One — typed decisions with calibrated confidence',
+    scope: 'Choice, Score, and Noul evaluations via api.typesafe.ai',
   },
 };
 

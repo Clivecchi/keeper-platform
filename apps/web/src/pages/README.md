@@ -17,6 +17,9 @@ Pages parse route params and query string state to decide which surface to rende
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe user keys
+- `UserApiKeyManagerPage` lists TypeSafe with the other AI providers.
+
 ### 2026-09-17 — Invitation handoff
 - Login and register keep `next` from `/invite/accept?token=`. Invite-aware copy uses the public preview. Register no longer says Welcome back to first-time invitees.
 

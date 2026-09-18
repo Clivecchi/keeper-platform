@@ -14,6 +14,7 @@ export const IDE_AI_PROVIDERS = [
   "openai",
   "together-ai",
   "elevenlabs",
+  "typesafe",
 ] as const
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -21,6 +22,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   openai: "OpenAI",
   "together-ai": "Together AI",
   elevenlabs: "ElevenLabs",
+  typesafe: "TypeSafe",
 }
 
 /** Chronicle cover title — matches keyCoverSchema identity.name. */

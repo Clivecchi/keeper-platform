@@ -33,6 +33,11 @@ const PROVIDER_META: Record<
     description: 'Voice synthesis — powers agent voice capabilities',
     scope: 'Text-to-speech and voice synthesis for agents',
   },
+  typesafe: {
+    display_label: 'TypeSafe',
+    description: 'Jev System One — typed decisions with calibrated confidence',
+    scope: 'Choice, Score, and Noul evaluations via api.typesafe.ai',
+  },
 };
 
 const CHRONICLE_BLOCKS = ['connection_status', 'key_health', 'linked_agents'];
@@ -50,6 +55,8 @@ function envKeyForProvider(provider: string): string | null {
       return valid(process.env.TOGETHER_API_KEY);
     case 'elevenlabs':
       return valid(process.env.ELEVENLABS_API_KEY);
+    case 'typesafe':
+      return valid(process.env.TYPESAFE_API_KEY);
     default:
       return null;
   }

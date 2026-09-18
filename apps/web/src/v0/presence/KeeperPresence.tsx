@@ -504,7 +504,7 @@ function agentFieldVisible(
   return Boolean(fieldValues[key])
 }
 
-const MODEL_PROVIDERS: ModelProvider[] = ["openai", "anthropic", "together-ai", "elevenlabs"]
+const MODEL_PROVIDERS: ModelProvider[] = ["openai", "anthropic", "together-ai", "elevenlabs", "typesafe"]
 
 function PresenceFieldEditor({
   fieldKey,

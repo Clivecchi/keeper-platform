@@ -172,6 +172,9 @@ Using `requestId` prevents duplicate operations:
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe ModelProvider
+- Key entity routes accept `typesafe` through `MODEL_PROVIDERS`.
+
 ### 2026-08-19 — Capability Ledger Phase 2
 - `GET /api/capabilities/ledger?domainId=&agentSlug=` — one read of MCP scopes (JWT placeholder), Kip allowlist, and Cloud ceiling. Does not change enforcement. Key stores listed, not merged.
 

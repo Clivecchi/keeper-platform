@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe client catalog
+- `kipApi` ModelProvider includes `typesafe`. Fallback models: `jev-latest`, `jev-1.13.0`, `jev-preview`.
+
 ### 2026-09-17 — Invitation handoff
 - `invitationReturn.ts` keeps `/invite/accept?token=` through auth, writes invite-aware copy, and lands redeemed accounts on `/d/:slug?board=domain`.
 

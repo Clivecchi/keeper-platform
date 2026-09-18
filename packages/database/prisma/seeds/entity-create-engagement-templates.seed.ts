@@ -230,6 +230,7 @@ export default async function seed() {
               { value: 'anthropic', label: 'Anthropic' },
               { value: 'openai', label: 'OpenAI' },
               { value: 'together-ai', label: 'Together AI' },
+              { value: 'typesafe', label: 'TypeSafe' },
             ],
           },
         },

@@ -53,10 +53,17 @@ const UserApiKeyManagerPage: React.FC = () => {
       icon: '🎙️',
       cost: '$',
       getKeyUrl: 'https://elevenlabs.io/app/speech-synthesis'
+    },
+    typesafe: {
+      name: 'TypeSafe',
+      description: 'Jev System One — typed decisions, not chat',
+      icon: '◇',
+      cost: '$',
+      getKeyUrl: 'https://docs.typesafe.ai'
     }
   };
 
-  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
+  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs', 'typesafe'];
 
   useEffect(() => {
     loadUserKeys();

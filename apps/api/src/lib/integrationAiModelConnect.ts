@@ -3,6 +3,7 @@
  */
 
 import type { ModelProvider } from '@keeper/database';
+import { verifyTypeSafeKey } from '../services/TypeSafeProvider.js';
 
 export type AiModelConnectVerifyResult =
   | { ok: true }
@@ -26,6 +27,8 @@ export async function verifyAIModelConnect(
       return verifyAnthropicKey(key);
     case 'elevenlabs':
       return verifyElevenLabsKey(key);
+    case 'typesafe':
+      return verifyTypeSafeKey(key);
     default:
       return { ok: false, error: `Unsupported AI Model provider: ${provider}` };
   }

@@ -30,6 +30,7 @@ const SERVICES = [
   'openai',
   'together-ai',
   'elevenlabs',
+  'typesafe',
 ] as const;
 
 const LAYERS: Record<(typeof SERVICES)[number], Array<keyof IntegrationLayerHealthMetadata>> = {
@@ -40,6 +41,7 @@ const LAYERS: Record<(typeof SERVICES)[number], Array<keyof IntegrationLayerHeal
   openai: ['api'],
   'together-ai': ['api'],
   elevenlabs: ['api'],
+  typesafe: ['api'],
 };
 
 function buildHealth(service: (typeof SERVICES)[number], status: string, now: string): IntegrationLayerHealthMetadata {

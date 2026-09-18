@@ -69,6 +69,15 @@ const ELEVENLABS_DEFAULT: ModelCapabilities = {
   maxOutputTokens: 0,
 };
 
+const TYPESAFE_DEFAULT: ModelCapabilities = {
+  jsonMode: true,
+  functionCalling: false,
+  vision: false,
+  streaming: false,
+  maxContextTokens: 64_000,
+  maxOutputTokens: 1024,
+};
+
 export const MODEL_CAPABILITY_MAP: ModelCapabilityMap = {
   anthropic: {
     'claude-opus-4-6': { ...ANTHROPIC_DEFAULT },
@@ -146,6 +155,12 @@ export const MODEL_CAPABILITY_MAP: ModelCapabilityMap = {
     eleven_multilingual_v2: { ...ELEVENLABS_DEFAULT },
     eleven_turbo_v2: { ...ELEVENLABS_DEFAULT },
     _default: ELEVENLABS_DEFAULT,
+  },
+  typesafe: {
+    'jev-latest': { ...TYPESAFE_DEFAULT },
+    'jev-1.13.0': { ...TYPESAFE_DEFAULT },
+    'jev-preview': { ...TYPESAFE_DEFAULT },
+    _default: TYPESAFE_DEFAULT,
   },
 };
 

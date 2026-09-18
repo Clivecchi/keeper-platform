@@ -44,6 +44,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe in agent provider hint
+- Chronicle PATCH copy lists TypeSafe with the other AI providers.
+
 ### 2026-09-16 — Domain Presence and custom domain on Save
 - `splitDomainChroniclePatch` writes `keeperType` → `settings.keeperTypeKey` and `customDomain` onto the Domain row. Empty custom domain clears verification.
 

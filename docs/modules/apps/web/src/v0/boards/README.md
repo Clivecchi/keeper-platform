@@ -844,3 +844,6 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
+
+### 2026-09-17 — TypeSafe on Build Board
+- Build Board integrations list includes TypeSafe in the AI group.

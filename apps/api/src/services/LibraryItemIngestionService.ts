@@ -2,7 +2,7 @@
  * LibraryItem ingestion — agent perspective generation on create (upload + url only, Pass 1).
  */
 
-import { prisma } from '@keeper/database';
+import { prisma, type ModelProvider } from '@keeper/database';
 import { ModelProviderService } from './ModelProviderService.js';
 import type { ModelContentPart } from './ModelProviderService.js';
 import { embedLibraryItemPerspective } from './LibraryItemEmbeddingService.js';
@@ -292,7 +292,7 @@ async function generatePerspectiveText(params: {
   }
 
   const response = await ModelProviderService.callModel({
-    provider: params.provider as 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs',
+    provider: params.provider as ModelProvider,
     userId: params.userId ?? undefined,
     messages: [
       {

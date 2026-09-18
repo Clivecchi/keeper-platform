@@ -2,7 +2,7 @@
  * Model Provider Service
  * ======================
  * 
- * Abstraction layer for AI model providers (OpenAI, Anthropic, Together, ElevenLabs)
+ * Abstraction layer for AI model providers (OpenAI, Anthropic, Together, ElevenLabs, TypeSafe)
  * Handles dynamic provider resolution, retry logic, and unified response format
  */
 
@@ -11,8 +11,10 @@ import { ModelProvider, ModelSettings } from '@keeper/database';
 import { KipUserKeyService } from './KipUserKeyService.js';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 import { resolveDomainProviderApiKeyWithSource } from '../lib/resolveDomainProviderApiKey.js';
+import { envKeyForProvider, envVarNameForProvider } from '../lib/resolveProviderApiKey.js';
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
 import { getModelCapabilities } from '../config/index.js';
+import { TypeSafeProvider } from './TypeSafeProvider.js';
 
 const DEFAULT_ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
@@ -794,19 +796,8 @@ export class ModelProviderService {
 
     // When stabilization mode is enabled, force env-only keys for runtime
     if (process.env.STABILIZE_MODE === '1') {
-      if (provider === 'openai') {
-        apiKey = validKey(process.env.OPENAI_API_KEY);
-        keySource = apiKey ? 'env' : 'none';
-      } else if (provider === 'anthropic') {
-        apiKey = validKey(process.env.ANTHROPIC_API_KEY);
-        keySource = apiKey ? 'env' : 'none';
-      } else if (provider === 'together-ai') {
-        apiKey = validKey(process.env.TOGETHER_API_KEY);
-        keySource = apiKey ? 'env' : 'none';
-      } else if (provider === 'elevenlabs') {
-        apiKey = validKey(process.env.ELEVENLABS_API_KEY);
-        keySource = apiKey ? 'env' : 'none';
-      }
+      apiKey = envKeyForProvider(provider);
+      keySource = apiKey ? 'env' : 'none';
     } else if (domainId) {
       const domainResolved = await resolveDomainProviderApiKeyWithSource(
         domainId,
@@ -819,22 +810,8 @@ export class ModelProviderService {
       }
     } else {
       // 1. Try environment key first (highest priority, recommended long-term)
-      if (provider === 'openai') {
-        apiKey = validKey(process.env.OPENAI_API_KEY);
-        if (apiKey) keySource = 'env';
-      }
-      if (provider === 'anthropic') {
-        apiKey = validKey(process.env.ANTHROPIC_API_KEY);
-        if (apiKey) keySource = 'env';
-      }
-      if (provider === 'together-ai') {
-        apiKey = validKey(process.env.TOGETHER_API_KEY);
-        if (apiKey) keySource = 'env';
-      }
-      if (provider === 'elevenlabs') {
-        apiKey = validKey(process.env.ELEVENLABS_API_KEY);
-        if (apiKey) keySource = 'env';
-      }
+      apiKey = envKeyForProvider(provider);
+      if (apiKey) keySource = 'env';
 
       // 2. Fall back to user's personal API key if env not set
       if (!apiKey && userId) {
@@ -863,16 +840,10 @@ export class ModelProviderService {
       provider === 'openai' ||
       provider === 'anthropic' ||
       provider === 'together-ai' ||
-      provider === 'elevenlabs';
+      provider === 'elevenlabs' ||
+      provider === 'typesafe';
     if (requiresExplicitKey && !apiKey) {
-      const envVar =
-        provider === 'anthropic'
-          ? 'ANTHROPIC_API_KEY'
-          : provider === 'together-ai'
-            ? 'TOGETHER_API_KEY'
-            : provider === 'elevenlabs'
-              ? 'ELEVENLABS_API_KEY'
-              : 'OPENAI_API_KEY';
+      const envVar = envVarNameForProvider(provider);
       const message = `Add ${envVar} to your Railway environment variables, or configure a platform/user key.`;
       return {
         success: false,
@@ -969,6 +940,8 @@ export class ModelProviderService {
         return TogetherProvider.callModel(messages, settings, apiKey || undefined, jsonMode, onDelta);
       case 'elevenlabs':
         return ElevenLabsProvider.callModel(messages, settings, apiKey || undefined);
+      case 'typesafe':
+        return TypeSafeProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       default:
         throw new Error(`Unsupported model provider: ${provider}`);
     }
@@ -1146,6 +1119,8 @@ function getProviderDisplayName(provider: ModelProvider): string {
       return 'Together AI';
     case 'elevenlabs':
       return 'ElevenLabs';
+    case 'typesafe':
+      return 'TypeSafe';
     default:
       return 'The model provider';
   }

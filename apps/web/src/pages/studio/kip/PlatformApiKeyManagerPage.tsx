@@ -71,10 +71,17 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       icon: '🎙️',
       cost: 'Medium',
       documentation: 'https://elevenlabs.io/docs/api-reference'
+    },
+    typesafe: {
+      name: 'TypeSafe',
+      description: 'Jev System One — typed decisions, not chat',
+      icon: '◇',
+      cost: 'Low',
+      documentation: 'https://docs.typesafe.ai'
     }
   };
 
-  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
+  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs', 'typesafe'];
 
   useEffect(() => {
     if (!authLoading && user?.id) {

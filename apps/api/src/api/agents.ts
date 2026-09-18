@@ -16,7 +16,7 @@ import {
   mergePresenceSchemaAvatar,
   parseAgentPerformanceProvenance,
 } from '@keeper/shared';
-import { prisma, updateKipAgent, type PrismaClient } from '@keeper/database';
+import { prisma, MODEL_PROVIDERS, updateKipAgent, type PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { KipAgentService } from './kip/agents.js';
 import { randomUUID } from 'crypto';
@@ -191,7 +191,7 @@ const patchAgentSchema = z
     model: z.preprocess(blankToUndefined, z.string().min(1).max(100).optional()),
     model_provider: z.preprocess(
       blankToUndefined,
-      z.enum(['openai', 'anthropic', 'together-ai', 'elevenlabs']).optional(),
+      z.enum(MODEL_PROVIDERS).optional(),
     ),
     memory_enabled: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
     visibility: z.preprocess(blankToUndefined, z.enum(['private', 'public', 'shared']).optional()),

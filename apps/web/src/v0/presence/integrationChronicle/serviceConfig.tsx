@@ -647,6 +647,13 @@ export const SERVICE_CONFIG: Record<string, ServiceConfig<unknown>> = {
     label: "ElevenLabs",
     connectCopy: "Connect ElevenLabs to enable voice capabilities for your agents.",
   }),
+  typesafe: createAIModelConfig({
+    slug: "typesafe",
+    label: "TypeSafe",
+    isGateway: true,
+    connectCopy:
+      "Add a TypeSafe API key (TYPESAFE_API_KEY) to evaluate Choice, Score, and Noul questions with Jev.",
+  }),
 }
 
 export function getServiceConfig(serviceSlug: string): ServiceConfig<unknown> | null {
@@ -677,6 +684,10 @@ export function useServiceFeedData(
     ...params,
     enabled: serviceSlug === "elevenlabs",
   })
+  const typesafe = useAIModelFeedDataSlot("typesafe", {
+    ...params,
+    enabled: serviceSlug === "typesafe",
+  })
 
   if (serviceSlug === "railway") return railway
   if (serviceSlug === "vercel") return vercel
@@ -685,6 +696,7 @@ export function useServiceFeedData(
   if (serviceSlug === "openai") return openai
   if (serviceSlug === "together-ai") return togetherAi
   if (serviceSlug === "elevenlabs") return elevenlabs
+  if (serviceSlug === "typesafe") return typesafe
 
   return {
     data: {},

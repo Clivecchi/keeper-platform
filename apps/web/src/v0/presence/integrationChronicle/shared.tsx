@@ -45,6 +45,7 @@ const PLATFORM_SERVICE_INTEGRATION_TYPE: Record<string, IntegrationType> = {
   anthropic: "AI_Model",
   "together-ai": "AI_Model",
   elevenlabs: "AI_Model",
+  typesafe: "AI_Model",
 }
 
 export function resolveServiceIntegrationType(serviceSlug: string): IntegrationType {

@@ -5,6 +5,7 @@ Central location for API service-layer modules used by route handlers.
 
 ## 🧱 Key Files
 - `KipAgentPermissionService.ts`
+- `TypeSafeProvider.ts` — Jev System One (`POST /v1/systemone`); not a chat LLM
 - `PlatformApiKeyService.ts`
 - `SoleMemoryService.ts`
 - `VercelDomainManagerService.ts`
@@ -22,6 +23,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-17 — TypeSafe provider
+- `TypeSafeProvider.ts` calls `POST https://api.typesafe.ai/v1/systemone`. Key: `TYPESAFE_API_KEY` (Railway), then user/platform keys. Jev returns typed Choice/Score/Noul answers — not chat.
+
 ### 2026-09-16 — Invitation email send
 - `ResendService.sendEmail` posts to `https://api.resend.com/emails`. Needs `RESEND_API_KEY` on the API service, or an active platform key with provider `resend`. From address: `RESEND_FROM_EMAIL` or `Keeper <invites@ke3p.com>`.
 

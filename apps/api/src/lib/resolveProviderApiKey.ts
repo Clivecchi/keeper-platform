@@ -11,19 +11,23 @@ function validKey(key: string | null | undefined): string | null {
   return typeof key === 'string' && key.trim().length > 0 ? key.trim() : null;
 }
 
-function envKeyForProvider(provider: ModelProvider): string | null {
+export function envVarNameForProvider(provider: ModelProvider): string {
   switch (provider) {
     case 'openai':
-      return validKey(process.env.OPENAI_API_KEY);
+      return 'OPENAI_API_KEY';
     case 'anthropic':
-      return validKey(process.env.ANTHROPIC_API_KEY);
+      return 'ANTHROPIC_API_KEY';
     case 'together-ai':
-      return validKey(process.env.TOGETHER_API_KEY);
+      return 'TOGETHER_API_KEY';
     case 'elevenlabs':
-      return validKey(process.env.ELEVENLABS_API_KEY);
-    default:
-      return null;
+      return 'ELEVENLABS_API_KEY';
+    case 'typesafe':
+      return 'TYPESAFE_API_KEY';
   }
+}
+
+export function envKeyForProvider(provider: ModelProvider): string | null {
+  return validKey(process.env[envVarNameForProvider(provider)]);
 }
 
 export type ProviderKeySource = 'env' | 'user' | 'platform' | 'none';

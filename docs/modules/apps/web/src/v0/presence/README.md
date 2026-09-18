@@ -66,6 +66,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe as ModelProvider
+- Agent Config provider list includes `typesafe`. Chronicle copy: choose openai, anthropic, together-ai, elevenlabs, or typesafe.
+
 ### 2026-09-16 — Addresses and Presence actually persist
 - Chronicle Save writes `settings.keeperTypeKey` (How it shows up) and `customDomain`. Unsaved Configure edits are not wiped when enrichment reloads.
 - Addresses shows the **saved** `{slug}.keeper.domains` host, Host on Vercel for that hostname, and keeps a typed custom domain on Save. Preview of a draft tag is labeled After Save.

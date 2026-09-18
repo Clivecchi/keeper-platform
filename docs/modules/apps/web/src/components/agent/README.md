@@ -70,6 +70,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - 2026-06-27: **Supporting documents** — large paste captured as ephemeral composer tile (`SupportingDocumentTile`, label "Pasted"); full text sent as supporting context with prompt; transcript shows short label; not saved to Library; file uploads still stage in Thinking Space.
 - 2026-06-26: Restored **director delegation** (Cloud/Rendr beat above Kip) and **agent echo** (subordinate beat below) in `DialogueMessageList` — regressed during UI simplification; hides internal failure copy via `isDirectorDelegationFailureContent`.
 - 2026-06-24: Filtered unsupported `NOT_ALLOWED` action receipts from `DialogueMessageList` so invented/unsupported coordination actions do not render as red failure cards.
+- 2026-09-17: Cockpit provider picker includes TypeSafe (Jev System One — not a chat model).
 - 2026-06-24: Added shared agent error presentation helper; `DialogueMessageList` titles Kip failures by category (overload, quota, timeout, provider key, invalid model) instead of generic "Something went wrong".
 - 2026-06-18: `DialogueMessageList` — hides director delegation beats when content is internal failure copy ("did not respond this turn").
 - 2026-06-17: Clip upload returns Library URL; staged attachments show in Dialog Thinking Space until send (still added to Library + Nav on pick). PDFs attach as `file` type to agent API.

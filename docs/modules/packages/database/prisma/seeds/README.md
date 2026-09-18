@@ -73,6 +73,7 @@ Once seeded, the platform will have:
 - ✅ Foundation for Reflections UI and Kip assistant behavior development 
 
 ## 📆 Update Log
+- 2026-09-17: Provider-keys, integration-health, and engagement templates include TypeSafe (`typesafe` / Jev).
 - 2026-02-10: Added `kip-agents.seed.ts` -- TypeScript seed that upserts Kip Lead agent, CeoX Lead agent, supporting agents (TypeAgent, PlatformAgent, CodeAgent), and CodeCoordinator with full model_provider/model_settings. Wired into main `seed.ts` runner.
 - 2026-02-10: Updated `railway.json` to run `prisma db seed` after `prisma migrate deploy` so seeds are applied on every production deploy.
 - 2026-01-31: Added default domain journeys seed for Commons data.

@@ -440,6 +440,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
                 <option value="anthropic">Anthropic</option>
                 <option value="together-ai">Together AI</option>
                 <option value="elevenlabs">ElevenLabs</option>
+                <option value="typesafe">TypeSafe</option>
               </select>
             </div>
             <div>

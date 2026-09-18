@@ -98,7 +98,14 @@ export type AgentRole = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
 /**
  * Model provider types
  */
-export type ModelProvider = 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs';
+export const MODEL_PROVIDERS = [
+    'openai',
+    'anthropic',
+    'together-ai',
+    'elevenlabs',
+    'typesafe',
+] as const;
+export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 /**
  * Model settings configuration
  */

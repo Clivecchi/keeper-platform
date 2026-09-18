@@ -3,7 +3,7 @@
  * Honest miss: any failure leaves Stage unchanged.
  */
 
-import { ModelSettings } from '@keeper/database';
+import { ModelSettings, type ModelProvider } from '@keeper/database';
 import {
   parseStageExpressionFromModelText,
   withPerformedByFallback,
@@ -103,7 +103,7 @@ export async function expressResolvedMeaningOnStage(
       { role: 'user', content: buildStageExpressionUserPrompt({ resolvedMeaning: resolved, set }) },
     ],
     settings,
-    provider: (rendr.model_provider || 'anthropic') as 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs',
+    provider: (rendr.model_provider || 'anthropic') as ModelProvider,
     userId: input.userId,
     domainId: input.domainId,
     jsonMode: true,

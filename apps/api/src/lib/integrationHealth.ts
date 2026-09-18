@@ -32,6 +32,7 @@ export const INTEGRATION_HEALTH_LAYERS: Record<string, IntegrationHealthLayerKey
   openai: ['api'],
   'together-ai': ['api'],
   elevenlabs: ['api'],
+  typesafe: ['api'],
 };
 
 export type IntegrationHealthLayerDto = {

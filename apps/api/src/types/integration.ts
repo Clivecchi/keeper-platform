@@ -20,6 +20,7 @@ export const AI_MODEL_INTEGRATION_SLUGS = [
   'anthropic',
   'together-ai',
   'elevenlabs',
+  'typesafe',
 ] as const;
 
 export type AIModelIntegrationSlug = (typeof AI_MODEL_INTEGRATION_SLUGS)[number];

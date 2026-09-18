@@ -63,6 +63,13 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
       description: 'Voice synthesis - Get your key from elevenlabs.io',
       keyFormat: 'api_key', 
       placeholder: 'your-elevenlabs-api-key...'
+    },
+    {
+      value: 'typesafe' as ModelProvider,
+      label: 'TypeSafe',
+      description: 'Jev System One - Get your key from the TypeSafe dashboard',
+      keyFormat: 'api_key',
+      placeholder: 'your-typesafe-api-key...'
     }
   ];
 
@@ -85,6 +92,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
         return key.startsWith('sk-ant-') && key.length > 30;
       case 'together-ai':
       case 'elevenlabs':
+      case 'typesafe':
         return key.length > 10;
       default:
         return key.length > 5;

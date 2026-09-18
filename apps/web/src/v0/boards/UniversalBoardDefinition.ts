@@ -366,6 +366,7 @@ export const BUILD_BOARD_DEF: UniversalBoardDef = {
       { id: "openai", label: "OpenAI", group: "ai" },
       { id: "together-ai", label: "Together AI", group: "ai" },
       { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
+      { id: "typesafe", label: "TypeSafe", group: "ai" },
     ],
     navBlockOrder: ["integrations", "keys", "capabilities"],
   },

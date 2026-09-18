@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-17: Platform and user key routes accept `typesafe` via `MODEL_PROVIDERS`. Catalog filter includes TypeSafe Jev models.
 - 2026-09-15: **`web.search` without Brave** — `WebSearchService` prefers `BRAVE_SEARCH_API_KEY` / platform key `brave`, then DuckDuckGo + public page fetch. Cloud can visit a named site without the Railway key.
 - 2026-09-12: **Performance provenance** — Lead memory saves attach `performanceProvenance` (`perf-v1`) on `kip_messages.metadata`. Composer receives Agent Board inspection/training via `collectAgentBoardContextPrompts`. Lead remains role-based.
 - 2026-09-12: **Lead Judgment contract** — `role === 'Lead'` now injects `buildLeadJudgmentContractPrompt` (Agency, not persona). Card renderer no longer treats multi-Cast as a Summary-card synthesis turn. Human message + orchestration context + personality seams unchanged.

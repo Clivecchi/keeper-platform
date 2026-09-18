@@ -39,6 +39,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe Chronicle declaration
+- `integrationChronicleDeclarations.ts` adds the TypeSafe AI Model gateway: Jev System One, not chat. Connect copy points at `TYPESAFE_API_KEY`.
+
 ### 2026-09-17 — Default new MCP key scopes
 - `DEFAULT_NEW_DOMAIN_ACCESS_KEY_SCOPES` mints Library + Dialog + Gloss on a new labeled key (TypeSafe, Claude, Cursor, …), not library-read only.
 

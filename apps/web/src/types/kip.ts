@@ -23,7 +23,7 @@ export type KipThought = {
 // Agent visibility and permission types
 export type AgentVisibility = 'private' | 'public' | 'shared';
 export type AgentPermission = 'run' | 'edit' | 'delete' | 'share';
-export type ModelProvider = 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs';
+export type ModelProvider = 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs' | 'typesafe';
 
 // User API key management
 export interface UserApiKey {

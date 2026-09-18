@@ -164,6 +164,7 @@ When adding new board types:
 *Last updated: January 2025 - Live Data Integration Complete*
 
 ## 📆 Update Log
+- 2026-09-17: Agent PATCH `model_provider` enum includes `typesafe`.
 - 2026-09-12: `GET /api/agents/:id/performances?dialogId=` returns last 20 Lead messages with `perf-v1` provenance or a derived legacy checklist. Lead is `kip_agents.role`, not slug.
 - 2026-08-30: Agent PATCH treats empty optional strings (purpose, model, provider, visibility, prompt) as omitted so a name-only Chronicle save is not a validation error.
 - 2026-07-23: `GET /api/agents/:id` accepts optional `domainId` and scopes `recent_sessions` via `dialog.domain_id` (excludes archived + dialog-less orphans).

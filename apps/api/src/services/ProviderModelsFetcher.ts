@@ -8,6 +8,8 @@
 
 import type { ModelProvider } from '@keeper/database';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
+import { envKeyForProvider } from '../lib/resolveProviderApiKey.js';
+import { transformTypeSafeModels } from './TypeSafeProvider.js';
 import {
   MODEL_CATALOG,
   DEFAULT_MODEL_BY_PROVIDER,
@@ -27,14 +29,8 @@ const cache = new Map<
 >();
 
 function getApiKey(provider: ModelProvider): Promise<string | null> {
-  if (provider === 'openai') {
-    const envKey = process.env.OPENAI_API_KEY;
-    if (envKey) return Promise.resolve(envKey);
-  }
-  if (provider === 'anthropic') {
-    const envKey = process.env.ANTHROPIC_API_KEY;
-    if (envKey) return Promise.resolve(envKey);
-  }
+  const envKey = envKeyForProvider(provider);
+  if (envKey) return Promise.resolve(envKey);
   return PlatformApiKeyService.getKeyForProvider(provider);
 }
 
@@ -75,6 +71,21 @@ async function fetchAnthropicModels(apiKey: string): Promise<NormalizedModel[]> 
   }));
 }
 
+async function fetchTypeSafeModels(apiKey: string): Promise<NormalizedModel[]> {
+  const res = await fetch('https://api.typesafe.ai/v1/models', {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) {
+    throw new Error(`TypeSafe models API: ${res.status} ${res.statusText}`);
+  }
+  const json: unknown = await res.json();
+  return transformTypeSafeModels(json).map((m) => ({
+    id: m.id,
+    displayName: m.label,
+    provider: 'typesafe' as ModelProvider,
+  }));
+}
+
 /**
  * Fetch models from provider API. Falls back to static catalog on failure.
  * Results are cached for 1 hour per provider.
@@ -98,6 +109,8 @@ export async function fetchProviderModels(
       models = await fetchOpenAIModels(apiKey);
     } else if (provider === 'anthropic') {
       models = await fetchAnthropicModels(apiKey);
+    } else if (provider === 'typesafe') {
+      models = await fetchTypeSafeModels(apiKey);
     } else {
       return getStaticModels(provider);
     }

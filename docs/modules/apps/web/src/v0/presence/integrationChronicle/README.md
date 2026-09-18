@@ -45,6 +45,12 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe Chronicle feed
+- `serviceConfig.tsx` and `shared.tsx` treat TypeSafe as an AI_Model gateway. Key feed capabilities: typed decisions + JSON mode.
+
+### 2026-09-17 — TypeSafe AI Access
+- `keyNavUtils` IDE_AI_PROVIDERS includes `typesafe`. That is the outbound provider key path (Railway `TYPESAFE_API_KEY` / AI Access). External Access MCP keys remain a different door.
+
 ### 2026-09-17 — Add TypeSafe (or any) MCP key
 - Chronicle External Access overview now creates a labeled key in place (TypeSafe, Claude, Cursor…). Secret is shown once on that form; MCP URL is `https://api.ke3p.com/mcp`.
 

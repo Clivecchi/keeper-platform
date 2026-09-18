@@ -21,7 +21,7 @@ const router = Router();
  * GET /api/kip/models
  *
  * Query params:
- *   provider (optional) - Filter by provider (openai, anthropic, together-ai, elevenlabs).
+ *   provider (optional) - Filter by provider (openai, anthropic, together-ai, elevenlabs, typesafe).
  *
  * Returns:
  *   providers: string[]

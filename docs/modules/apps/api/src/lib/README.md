@@ -29,6 +29,10 @@ Shared utilities and service clients used across Express routes and middleware.
 
 ## 📆 Update Log
 
+### 2026-09-17 — TypeSafe key path
+- `resolveProviderApiKey.ts` maps `typesafe` → `TYPESAFE_API_KEY`. Same env → user → platform order as the other AI providers.
+- `integrationAiModelConnect.ts` verifies TypeSafe keys against `GET /v1/models`.
+
 ### 2026-08-19 — Agent turn SSE
 - `sse.ts` — open SSE with `X-Accel-Buffering: no`, write named events, heartbeat so Vercel rewrites keep the first-byte window.
 

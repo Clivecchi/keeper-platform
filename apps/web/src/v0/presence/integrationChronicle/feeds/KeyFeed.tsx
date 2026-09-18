@@ -84,6 +84,7 @@ export function useKeyFeedData(keyId: string, domainId: string): {
       }
       if (provider === "together-ai") caps.push("Image generation", "JSON mode")
       if (provider === "elevenlabs") caps.push("Voice synthesis")
+      if (provider === "typesafe") caps.push("Typed decisions", "JSON mode")
       if (provider === "anthropic" || provider === "openai") caps.push("Agent chat")
       setIntegrationCapabilities(caps)
     } catch {

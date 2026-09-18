@@ -5,6 +5,7 @@
 
 import type { CatalogFetcherConfig, CatalogItem } from '../lib/catalogFetcher.js';
 import { MODEL_CATALOG } from './modelCatalog.js';
+import { transformTypeSafeModels } from '../services/TypeSafeProvider.js';
 
 /** Conversational / text-generation model types from Together AI (excludes image, embedding, etc.). */
 const TOGETHER_AGENT_MODEL_TYPES = new Set(['language', 'chat', 'code']);
@@ -58,9 +59,30 @@ export const togetherAICatalogConfig: CatalogFetcherConfig = {
   fallback: togetherAIFallbackModels,
 };
 
+export function typeSafeFallbackModels(): CatalogItem[] {
+  return (MODEL_CATALOG.typesafe ?? []).map((entry) => ({
+    id: entry.id,
+    label: entry.label,
+    type: 'language',
+    metadata: {
+      capabilities: entry.capabilities,
+      defaultSettings: entry.defaultSettings,
+      provider: entry.provider,
+    },
+  }));
+}
+
+export const typeSafeCatalogConfig: CatalogFetcherConfig = {
+  endpoint: 'https://api.typesafe.ai/v1/models',
+  authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
+  transform: transformTypeSafeModels,
+  fallback: typeSafeFallbackModels,
+};
+
 /** Registry of catalog configs keyed by integration service slug. */
 export const CATALOG_CONFIG_BY_SERVICE: Record<string, CatalogFetcherConfig> = {
   'together-ai': togetherAICatalogConfig,
+  typesafe: typeSafeCatalogConfig,
 };
 
 export function getCatalogConfigForService(service: string): CatalogFetcherConfig | null {
