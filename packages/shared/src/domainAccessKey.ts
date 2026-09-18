@@ -32,3 +32,11 @@ export type DomainAccessKeyCreateResult = DomainAccessKeyRecord & {
 export function isDomainAccessKeyScope(value: string): value is DomainAccessKeyScope {
   return (DOMAIN_ACCESS_KEY_SCOPES as readonly string[]).includes(value);
 }
+
+/** Scopes minted for a new labeled MCP key (TypeSafe, Claude, Cursor, …). */
+export const DEFAULT_NEW_DOMAIN_ACCESS_KEY_SCOPES: DomainAccessKeyScope[] = [
+  'library.ro',
+  'dialog.ro',
+  'dialog.rw',
+  'gloss.rw',
+];

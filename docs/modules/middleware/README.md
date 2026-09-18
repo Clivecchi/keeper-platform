@@ -36,3 +36,7 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 - Domain resolution mounted before CORS/auth.
 - CORS limited to `CORS_ALLOWLIST` with dev localhost exceptions.
 - TODO(domains): re-enable subdomains and custom domains post-MVP.
+
+### 2026-09-17 — First Introduction viewer leak
+- `ensureDomainContext` no longer grants authenticated strangers `viewer` read on private Domains.
+- Access is owner → unexpired `DomainPermission` → keeper-in-domain fallback → public Domain read → none.

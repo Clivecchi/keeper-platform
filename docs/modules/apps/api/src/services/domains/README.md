@@ -43,6 +43,17 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-09-17 — First Introduction
+- Invitees always get a home Domain/Lead (`ensureInviteeHomeRealm`); invitation adds `DomainPermission`, it does not replace that Realm.
+- `ensureInvitationArrival` creates or reuses a `Dialog.invitationId` room. `DomainInvitation.seed` is typed onto `context.arrival` as Lead direction (`introductionPurpose: lead-direction`), not a first Dialog message.
+- Accept/redeem is idempotent: grant → home Realm → arrival Dialog → invitee Lead Cast → structural Chronicle. Returns `dialogId` for landing.
+- Invitation-linked Cast lists for anyone with read on the origin Domain (origin owner cannot admin the invitee's Realm).
+
+### 2026-09-17 — Invitation handoff
+- `acceptDomainInvitation` matches the signed-in email, and is safe to call again after register already redeemed the row.
+- `acceptPendingInvitationsForUser` + `redeemInvitationsOnAuth` grant pending invites on login/register.
+- `previewDomainInvitation` feeds invite-aware auth copy. Pending lists mark `hasAccount` when that email exists.
+
 ### 2026-09-17 — Invitation send result narrowing
 - `deliverInvitationEmail` reads `result.ok === false` so Railway `tsc` (non-strict) accepts `error` on the failed send branch.
 

@@ -47,6 +47,7 @@ import {
   type DraftDiscussContext,
   displayDraftHostTitle,
   formatInvitationSeedForAgent,
+  formatDialogArrivalForAgent,
   collapseDuplicateDraftProposeActions,
   findDuplicateHostPoint,
   pointProposeIdentityFrom,
@@ -6088,6 +6089,7 @@ export class KipAgentService {
           status: 'pending' | 'member';
           seed: { givenName?: string; relation?: string; about?: string };
         }>;
+        dialogArrival?: Parameters<typeof formatDialogArrivalForAgent>[0];
       } | undefined;
       if (envWithIndex?.domainIndex) {
         const { keepers, journeys, library, dialogs } = envWithIndex.domainIndex;
@@ -6109,6 +6111,10 @@ export class KipAgentService {
         systemParts.push(
           `People known on this Domain (from invitations — use this to know the person, not as a directory dump):\n${peopleList}`,
         );
+      }
+      const arrival = (environment as AgentEnvironmentContext).dialogArrival;
+      if (arrival) {
+        systemParts.push(formatDialogArrivalForAgent(arrival));
       }
       if (options.keeperId) {
         try {
@@ -6713,6 +6719,13 @@ export class KipAgentService {
               content: `People known on this Domain (from invitations — use this to know the person, not as a directory dump):\n${envWithIndex.peopleNotes
                 .map((note) => formatInvitationSeedForAgent(note))
                 .join('\n')}`,
+            });
+          }
+          const arrival = (environmentContext as AgentEnvironmentContext).dialogArrival;
+          if (arrival) {
+            messages.push({
+              role: 'system',
+              content: formatDialogArrivalForAgent(arrival),
             });
           }
 

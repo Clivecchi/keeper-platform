@@ -32,6 +32,7 @@ import domainRoutes from './api/domains/routes.js';
 import governanceRouter from './api/governance/routes.js';
 import { ensureDomainAgentPolicy, ensureAllDomainsHaveAgentPolicy } from './governance/index.js';
 import { provisionDomainOnCreate } from './services/domains/provisionDomainOnCreate.js';
+import { jsonInvitationArrival, redeemInvitationsOnAuth } from './services/domains/redeemInvitationsOnAuth.js';
 import { ensureAiModelIntegrations } from './lib/ensureAiModelIntegrations.js';
 import flatDomainsRouter from './api/domains.js';
 import realmFeedRouter from './api/realm/feed.js';
@@ -730,6 +731,7 @@ app.post('/api/kam/auth/login', async (req, res) => {
     console.log('[auth] Cookie set for login:', { domain: cookieDomain, user: user.email });
 
     const platformRoles = await getPlatformRolesForUser(user.id);
+    const arrival = jsonInvitationArrival(await redeemInvitationsOnAuth(user.id, user.email));
 
     return res.json({
       success: true,
@@ -742,6 +744,7 @@ app.post('/api/kam/auth/login', async (req, res) => {
           platformRoles,
         },
         token,
+        ...(arrival ? { arrival } : {}),
       },
     });
   } catch (error) {
@@ -782,7 +785,6 @@ app.post('/api/kam/auth/register', async (req, res) => {
       },
     });
 
-    // 🚀 Automatically create a personal primary domain for the new user
     try {
       // Very small slugify helper – keeps alphanumerics, replaces others with dashes
       const slug = name
@@ -829,6 +831,7 @@ app.post('/api/kam/auth/register', async (req, res) => {
     console.log('[auth] Cookie set for register:', { domain: cookieDomain, user: newUser.email });
 
     const platformRoles = await getPlatformRolesForUser(newUser.id);
+    const arrival = jsonInvitationArrival(await redeemInvitationsOnAuth(newUser.id, newUser.email));
 
     return res.status(201).json({
       success: true,
@@ -841,6 +844,7 @@ app.post('/api/kam/auth/register', async (req, res) => {
           platformRoles,
         },
         token,
+        ...(arrival ? { arrival } : {}),
       },
     });
   } catch (error) {

@@ -254,6 +254,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-17 — Invitation handoff
+- Pending invitations include `hasAccount` / `accountName` when that email already registered. People says they have an account and have not arrived yet.
+
 ### 2026-09-16 — People role catalog
 - Roles in People are editable. Owner plus Admin / Member / Friend / Connection can change name and description. Add role creates a Domain-named relationship that maps onto those same permission bundles.
 - `GET /api/domains/:id/members` now returns `roles`. Invite and member dropdowns use that catalog.

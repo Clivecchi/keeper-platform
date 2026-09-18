@@ -48,6 +48,8 @@ One invite form in Chronicle People.
 5. Optional: also invite onto other Domains the inviter owns or administers. Same briefing, same bundle.
 6. Existing accounts receive membership immediately and get a “you were added” email. New emails receive an invitation from Keeper (`RESEND_API_KEY` on the API). The accept link is still copyable if send fails. Pending invitations can be resent.
 7. Accept grants the invited role's real permissions (not a hardcoded read/write). Bundle siblings accept together. First origin Domain is written to `users.invitedFromDomainId` once.
+8. The accept link keeps `?token=` through login and register. Login/register also redeem any pending invitations for that email, then land on the inviting Domain — not empty `/home`. Invited signups skip personal-domain creation.
+9. Pending People shows when that email already has a Keeper account and has not arrived yet.
 
 Cast Header / profile **Invite** opens Chronicle People. It does not open a modal.
 
@@ -60,6 +62,9 @@ Cast Header / profile **Invite** opens Chronicle People. It does not open a moda
 - Platform admin role-matrix bug (`GET /api/admin/roles/users`)
 
 ## 📆 Update Log
+
+### 2026-09-17 — Invitation handoff
+- Accept token is kept through login and register. Register/login redeem pending invitations by email and land on the inviting Domain. Pending People shows registered-not-arrived.
 
 ### 2026-09-16 — Invitation email
 - Invite and granted-member mail go through Resend. Chronicle reports sent vs copy-link. Pending invitations can be resent.

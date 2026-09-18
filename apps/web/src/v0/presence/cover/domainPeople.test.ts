@@ -100,6 +100,25 @@ describe("domainPeople helpers", () => {
     expect(parsed.pendingInvitations[0]?.status).toBe("pending")
   })
 
+  it("keeps hasAccount on pending invitations so People can show registered-not-arrived", () => {
+    const parsed = parseDomainPeoplePayloads({
+      owner: { userId: "owner-1", name: "Chuck" },
+      members: [],
+      pendingInvitations: [
+        {
+          id: "inv-1",
+          email: "sheyenne@example.com",
+          role: "bride",
+          status: "pending",
+          hasAccount: true,
+          accountName: "Sheyenne",
+        },
+      ],
+    })
+    expect(parsed.pendingInvitations[0]?.hasAccount).toBe(true)
+    expect(parsed.pendingInvitations[0]?.accountName).toBe("Sheyenne")
+  })
+
   it("surfaces ROLE_MAP labels and catalog overrides", () => {
     expect(resolveRoleInfo("admin")).toEqual({
       label: "Admin",

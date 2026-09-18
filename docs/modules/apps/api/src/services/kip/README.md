@@ -45,6 +45,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ### 2026-09-15 — web.search snippets
 - `actionFollowUp.ts` — web.search follow-up keeps 2500 characters of each snippet so a fetched page body can reach the second model turn.
 
+### 2026-09-15 — Invitation people notes in environment
+- Compact `peopleNotes` now forwards briefing notes/prompts/documents with the invitation seed.
+
 ### 2026-09-13 — Invitation people notes in environment
 - `resolveAgentEnvironment` loads `peopleNotes` from Domain invitations. Compact prompt + Domain context inject them so agents can know the person.
 
@@ -270,6 +273,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ### 2026-06-30 — Draft point promotion service
 - Added `promoteDraftPoint.ts` — transaction: accepted point → Path + Moments; persists `point.promotion` on spec_json
+
+### 2026-09-17 — First Introduction
+- `dialogVisibility.ts` — Dialog list/get includes `available_to: member` (never guest).
+- `resolveAgentEnvironment` loads typed `dialogArrival` for the origin Lead. Seed is Introduction direction, not a prior message.
 
 ### 2026-06-24 — Lead agent self-heal
 - Added `ensureKnownLeadAgent.ts` — repairs canonical Lead slugs when DB records drift from `role=Lead` and `visibility=public`.

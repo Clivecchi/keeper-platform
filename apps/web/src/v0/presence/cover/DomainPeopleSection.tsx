@@ -671,6 +671,13 @@ export function DomainPeopleSection({
                         {created ? ` · invited ${created}` : ""}
                         {expires ? ` · expires ${expires}` : ""}
                       </p>
+                      {invitation.hasAccount ? (
+                        <p className="text-[11px]" style={quietStyle}>
+                          {invitation.accountName
+                            ? `${invitation.accountName} has an account on Keeper. They have not arrived yet.`
+                            : "This email now has a Keeper account. They have not arrived yet."}
+                        </p>
+                      ) : null}
                       {peopleSeedLines(invitation.seed).map((line) => (
                         <p key={line} className="text-[11px]" style={quietStyle}>
                           {line}

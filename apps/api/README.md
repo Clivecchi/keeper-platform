@@ -33,6 +33,7 @@ Runs Prisma-backed endpoints, CORS hardened for single-domain MVP. Origins are d
 **TODO**: Consolidate auth handlers to use KAM package or clearly document which is canonical.
 
 ## 📆 Update Log
+- **2026-09-17**: Invitation handoff — login/register in `src/index.ts` redeem pending Domain invitations by email (`redeemInvitationsOnAuth`). Invited signups skip personal-domain creation. `data.arrival.domainSlug` is the post-auth landing.
 - **2026-07-19**: DB connection saturation fix — all production routes use shared `prisma` from `@keeper/database` (removed per-file `new PrismaClient()` pools). Pair with `DIRECT_URL` + Railway PgBouncer per `packages/database/CONNECTION_POOLING.md`.
 - **2026-07-04**: CORS — allow credentialed requests from any tenant origin `https://{slug}.keeper.domains` (excludes reserved infra subdomains: www, api, app, studio, docs, support, status, blog, services). Implemented in `src/lib/keeperDomainsCors.ts`; wired into `src/index.ts` and `dynamicCorsMiddleware.ts`. Removed explicit `staging.keeper.domains` allowlist entry (covered by tenant pattern). No wildcard `*` ACAO with credentials.
 - **2025-10-15**: CRITICAL BUG FIX - Fixed missing cookie setting in login handler. The inline handler in `index.ts` (line 628) wasn't setting session cookies, causing all authenticated requests to return 401. Added cookie setting with `Set-Cookie` header directly. Cookie attributes: `keeper_session`, `Domain=.ke3p.com`, `HttpOnly`, `Secure`, `SameSite=None`, 7-day expiry.

@@ -18,6 +18,8 @@ Components here focus on reusable UI state, composition, and cross-feature inter
 - [ ] Confirm which shared components should be migrated into v0-specific folders.
 
 ## 📆 Update Log
+- 2026-09-17: **First Introduction** — `AuthForm` lands invited accounts on the inviting Domain Dialog (`arrival.domainSlug` + `arrival.dialogId`).
+- 2026-09-17: **Invitation handoff** — `AuthForm` lands invited accounts on the inviting Domain (`data.arrival.domainSlug`) instead of `/home` when register/login redeemed pending invitations.
 - 2026-07-24: **AuthForm JWT redaction** — login success logs userId/email only; never logs `data.token`.
 - 2026-07-07: **Brand login path** — `AuthForm` normalizes legacy `/d/:slug` returnTo to `/?board=domain` on brand hosts; shows API error text instead of generic connection failure.
 - 2026-07-07: **Post-login landing** — `AuthForm` awaits async `resolveLandingPathAfterAuth`; brand hosts resolve hostname before route (no cold-cache fallthrough to `/home`).

@@ -404,19 +404,32 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   const [libraryWorkspaceOverlayId, setLibraryWorkspaceOverlayId] = React.useState<string | null>(null)
 
   const urlDraftId = shell?.draftId ?? searchParams.get("draftId")
+  const urlDialogId = searchParams.get("dialogId")?.trim() || null
 
-  /** Remove ?draftId= so nav selections (Dialog, Journey, …) are not overwritten by URL sync. */
-  const clearDraftIdFromUrl = React.useCallback(() => {
+  /** Remove ?draftId= / ?dialogId= so nav selections are not overwritten by URL sync. */
+  const clearUrlSubjectIds = React.useCallback((keep?: { dialogId?: string | null }) => {
     setSearchParams(
       (prev) => {
-        if (!prev.get("draftId")) return prev
         const next = new URLSearchParams(prev)
-        next.delete("draftId")
-        return next
+        let changed = false
+        if (next.get("draftId")) {
+          next.delete("draftId")
+          changed = true
+        }
+        const currentDialog = next.get("dialogId")
+        if (currentDialog && currentDialog !== (keep?.dialogId ?? null)) {
+          next.delete("dialogId")
+          changed = true
+        }
+        return changed ? next : prev
       },
       { replace: true },
     )
   }, [setSearchParams])
+
+  const clearDraftIdFromUrl = React.useCallback(() => {
+    clearUrlSubjectIds()
+  }, [clearUrlSubjectIds])
 
   React.useEffect(() => {
     if (!urlDraftId || urlDraftId === selectedDraftId) return
@@ -621,7 +634,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setAgencyRoom(null)
-    clearDraftIdFromUrl()
+    clearUrlSubjectIds({ dialogId: id })
     setSelectedDialogId(id)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
@@ -645,7 +658,12 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
     setLibraryWorkspaceOverlayId(null)
     setDialogNow((prev) => (prev && prev.dialogId !== id ? null : prev))
-  }, [boardId, selectedAgentId, clearDraftIdFromUrl, leaveStageOnPlatformNav, shell])
+  }, [boardId, selectedAgentId, clearUrlSubjectIds, leaveStageOnPlatformNav, shell])
+
+  React.useEffect(() => {
+    if (!urlDialogId || urlDialogId === selectedDialogId) return
+    onDialogSelect(urlDialogId)
+  }, [urlDialogId, selectedDialogId, onDialogSelect])
 
   const openChronicleDocument = React.useCallback((options: {
     dialogId: string

@@ -14,6 +14,8 @@ import {
   type DomainPersonNote,
   type InvitationSeed,
 } from '@keeper/shared';
+import { ensureInviteeHomeRealm } from './ensureInviteeHomeRealm.js';
+import { ensureInvitationArrival } from './ensureInvitationArrival.js';
 
 export const CONNECTION_ROLES = ['friend', 'connection'] as const;
 export type ConnectionRole = (typeof CONNECTION_ROLES)[number];
@@ -46,6 +48,23 @@ export type PendingConnectionInvitation = {
   /** Copyable redeem path for domain admins — email delivery is not wired. */
   acceptPath: string;
   seed?: InvitationSeed | null;
+  hasAccount?: boolean;
+  accountName?: string | null;
+};
+
+export type InvitationPreview = {
+  domainName: string;
+  domainSlug: string;
+  role: string;
+  inviterName: string;
+  expiresAt: Date;
+};
+
+export type PendingInvitationArrival = {
+  domainId: string;
+  domainSlug: string;
+  additionalAccepted: number;
+  dialogId?: string;
 };
 
 export function invitationAcceptPath(token: string): string {
@@ -71,7 +90,30 @@ export type AcceptInvitationResult = {
   domainId: string;
   domainSlug: string;
   additionalAccepted: number;
+  dialogId?: string;
 };
+
+async function completeFirstIntroduction(
+  invitation: DomainInvitation,
+  userId: string,
+): Promise<string | undefined> {
+  try {
+    const home = await ensureInviteeHomeRealm(userId);
+    const arrival = await ensureInvitationArrival({
+      invitation,
+      userId,
+      inviteeHomeDomainId: home?.id ?? null,
+    });
+    return arrival?.dialogId;
+  } catch (error) {
+    console.warn('[first-introduction] arrival orchestration failed', {
+      invitationId: invitation.id,
+      userId,
+      error,
+    });
+    return undefined;
+  }
+}
 
 type UserLookupClient = Pick<PrismaClient, 'users' | 'domain' | 'domainPermission' | 'domainInvitation'>;
 
@@ -115,6 +157,12 @@ export function normalizeIdentifier(identifier: string): string {
 export function looksLikeEmail(identifier: string): boolean {
   const trimmed = normalizeIdentifier(identifier);
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
+export function emailsMatch(left?: string | null, right?: string | null): boolean {
+  const a = left?.trim().toLowerCase();
+  const b = right?.trim().toLowerCase();
+  return Boolean(a && b && a === b);
 }
 
 export function generateInvitationToken(): string {
@@ -191,18 +239,54 @@ export async function listDomainConnections(
         status: 'active',
       };
     }),
-    pendingInvitations: invitations.map((invitation) => ({
-      id: invitation.id,
-      email: invitation.email,
-      role: invitation.role as ConnectionRole,
-      invitedBy: invitation.invitedBy,
-      expiresAt: invitation.expiresAt,
-      createdAt: invitation.createdAt,
-      status: 'pending' as const,
-      acceptPath: invitationAcceptPath(invitation.token),
-      seed: normalizeInvitationSeed(invitation.seed),
-    })),
+    pendingInvitations: await withInvitationAccountPresence(
+      prisma,
+      invitations.map((invitation) => ({
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role as ConnectionRole,
+        invitedBy: invitation.invitedBy,
+        expiresAt: invitation.expiresAt,
+        createdAt: invitation.createdAt,
+        status: 'pending' as const,
+        acceptPath: invitationAcceptPath(invitation.token),
+        seed: normalizeInvitationSeed(invitation.seed),
+      })),
+    ),
   };
+}
+
+export async function withInvitationAccountPresence<T extends { email: string }>(
+  prisma: Pick<PrismaClient, 'users'>,
+  invitations: T[],
+): Promise<Array<T & { hasAccount: boolean; accountName: string | null }>> {
+  if (invitations.length === 0) return [];
+  const uniqueEmails = [...new Set(invitations.map((row) => row.email.trim()).filter(Boolean))];
+  const accounts =
+    uniqueEmails.length === 0
+      ? []
+      : await prisma.users.findMany({
+          where: {
+            OR: uniqueEmails.map((email) => ({
+              email: { equals: email, mode: 'insensitive' as const },
+            })),
+          },
+          select: { email: true, name: true },
+        });
+  const byEmail = new Map(
+    accounts
+      .filter((account) => account.email)
+      .map((account) => [account.email!.trim().toLowerCase(), account.name?.trim() || null]),
+  );
+  return invitations.map((invitation) => {
+    const key = invitation.email.trim().toLowerCase();
+    const accountName = byEmail.get(key);
+    return {
+      ...invitation,
+      hasAccount: byEmail.has(key),
+      accountName: accountName ?? null,
+    };
+  });
 }
 
 async function persistGrantedInvitationSeed(
@@ -542,6 +626,71 @@ export async function revokeDomainInvitation(
   await prisma.domainInvitation.delete({ where: { id: invitation.id } });
 }
 
+async function domainSlugFor(
+  prisma: UserLookupClient,
+  domainId: string,
+): Promise<string> {
+  const domain = await prisma.domain.findUnique({
+    where: { id: domainId },
+    select: { slug: true },
+  });
+  return domain?.slug ?? '';
+}
+
+async function userMayRedeemInvitation(
+  prisma: UserLookupClient,
+  params: { userId: string; domainId: string },
+): Promise<boolean> {
+  const [domain, permission] = await Promise.all([
+    prisma.domain.findUnique({
+      where: { id: params.domainId },
+      select: { ownerId: true },
+    }),
+    prisma.domainPermission.findUnique({
+      where: {
+        domainId_userId: {
+          domainId: params.domainId,
+          userId: params.userId,
+        },
+      },
+      select: { userId: true },
+    }),
+  ]);
+  return domain?.ownerId === params.userId || Boolean(permission);
+}
+
+export async function previewDomainInvitation(
+  prisma: Pick<PrismaClient, 'domainInvitation' | 'domain' | 'users'>,
+  token: string,
+): Promise<InvitationPreview | null> {
+  const trimmed = token.trim();
+  if (!trimmed) return null;
+  const invitation = await prisma.domainInvitation.findUnique({
+    where: { token: trimmed },
+  });
+  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) {
+    return null;
+  }
+  const [domain, inviter] = await Promise.all([
+    prisma.domain.findUnique({
+      where: { id: invitation.domainId },
+      select: { name: true, slug: true },
+    }),
+    prisma.users.findUnique({
+      where: { id: invitation.invitedBy },
+      select: { name: true, email: true },
+    }),
+  ]);
+  if (!domain) return null;
+  return {
+    domainName: domain.name,
+    domainSlug: domain.slug,
+    role: invitation.role,
+    inviterName: inviter?.name?.trim() || inviter?.email?.trim() || 'Someone on Keeper',
+    expiresAt: invitation.expiresAt,
+  };
+}
+
 export async function acceptDomainInvitation(
   prisma: UserLookupClient,
   permissionService: DomainPermissionService,
@@ -554,11 +703,30 @@ export async function acceptDomainInvitation(
   if (!invitation) {
     throw new Error('Invalid invitation token');
   }
+
+  const user = await prisma.users.findUnique({
+    where: { id: params.userId },
+    select: { email: true, invitedFromDomainId: true },
+  });
+  if (user?.email && !emailsMatch(user.email, invitation.email)) {
+    throw new Error('This invitation was sent to a different email.');
+  }
+
+  if (invitation.acceptedAt) {
+    if (await userMayRedeemInvitation(prisma, { userId: params.userId, domainId: invitation.domainId })) {
+      const dialogId = await completeFirstIntroduction(invitation, params.userId);
+      return {
+        domainId: invitation.domainId,
+        domainSlug: await domainSlugFor(prisma, invitation.domainId),
+        additionalAccepted: 0,
+        ...(dialogId ? { dialogId } : {}),
+      };
+    }
+    throw new Error('Invitation already accepted');
+  }
+
   if (invitation.expiresAt < new Date()) {
     throw new Error('Invitation has expired');
-  }
-  if (invitation.acceptedAt) {
-    throw new Error('Invitation already accepted');
   }
 
   const related = invitation.bundleId
@@ -600,10 +768,6 @@ export async function acceptDomainInvitation(
   }
 
   const originDomainId = invitation.originDomainId ?? invitation.domainId;
-  const user = await prisma.users.findUnique({
-    where: { id: params.userId },
-    select: { invitedFromDomainId: true },
-  });
   if (user && !user.invitedFromDomainId) {
     await prisma.users.update({
       where: { id: params.userId },
@@ -611,15 +775,65 @@ export async function acceptDomainInvitation(
     });
   }
 
-  const domain = await prisma.domain.findUnique({
-    where: { id: invitation.domainId },
-    select: { slug: true },
-  });
-
+  const dialogId = await completeFirstIntroduction(invitation, params.userId);
   return {
     domainId: invitation.domainId,
-    domainSlug: domain?.slug ?? '',
+    domainSlug: await domainSlugFor(prisma, invitation.domainId),
     additionalAccepted,
+    ...(dialogId ? { dialogId } : {}),
+  };
+}
+
+export async function acceptPendingInvitationsForUser(
+  prisma: UserLookupClient,
+  permissionService: DomainPermissionService,
+  params: { userId: string; email: string },
+): Promise<PendingInvitationArrival | null> {
+  const email = params.email.trim();
+  if (!email) return null;
+
+  const pending = await prisma.domainInvitation.findMany({
+    where: {
+      email: { equals: email, mode: 'insensitive' },
+      acceptedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+  if (pending.length === 0) return null;
+
+  const seen = new Set<string>();
+  const tokens: string[] = [];
+  for (const row of pending) {
+    const key = row.bundleId || row.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tokens.push(row.token);
+  }
+
+  let first: AcceptInvitationResult | null = null;
+  let extra = 0;
+  for (const token of tokens) {
+    try {
+      const accepted = await acceptDomainInvitation(prisma, permissionService, {
+        token,
+        userId: params.userId,
+      });
+      if (!first) {
+        first = accepted;
+      } else {
+        extra += 1 + accepted.additionalAccepted;
+      }
+    } catch {
+      // Skip rows that cannot be redeemed; auth must still succeed.
+    }
+  }
+  if (!first) return null;
+  return {
+    domainId: first.domainId,
+    domainSlug: first.domainSlug,
+    additionalAccepted: first.additionalAccepted + extra,
+    ...(first.dialogId ? { dialogId: first.dialogId } : {}),
   };
 }
 

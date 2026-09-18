@@ -734,8 +734,10 @@ model Dialog {
   title_source String   @default("user_set")
   domain_id    String
   user_id      String?  // null for admin/domain-scoped dialogs
-  available_to String[] // ["admin"] | ["keeper"] | ["admin", "keeper"]
-  context      Json     // { board, frame, subject }
+  available_to String[] // ["admin"] | ["keeper"] | ["member"] | combinations — never "guest"
+  context      Json     // { board, frame, subject, arrival? }
+  /// Durable First Introduction link. One Dialog per DomainInvitation.
+  invitationId String?  @unique
   is_archived  Boolean  @default(false)
   /// Document lifecycle — drafts | kept | presented (Nav stages as status, not separate models).
   document_status String @default("drafts")
@@ -760,6 +762,7 @@ model Dialog {
 
   domain   Domain         @relation(fields: [domain_id], references: [id], onDelete: Cascade)
   user     users?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  invitation DomainInvitation? @relation("InvitationArrivalDialog", fields: [invitationId], references: [id], onDelete: SetNull)
   sessions kip_sessions[]
   drafts   kip_drafts[]
   /// Cross-domain cast members — lead agents from domains the enabler administers.
@@ -1458,11 +1461,13 @@ model DomainInvitation {
   expiresAt      DateTime
   acceptedAt     DateTime?
   createdAt      DateTime  @default(now())
-  /// Optional notes that seed Domain agents about the invitee. Not email body.
+  /// Inviter Introduction / direction for the origin Lead. Not the first Dialog message.
+  /// Public invitation copy may later be a sibling field; do not treat seed as that copy.
   seed           Json?
   Domain         Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
   OriginDomain   Domain?   @relation("InvitationOriginDomain", fields: [originDomainId], references: [id], onDelete: SetNull)
   users          users     @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
+  arrivalDialog  Dialog?   @relation("InvitationArrivalDialog")
 
   @@unique([domainId, email])
   @@index([domainId])

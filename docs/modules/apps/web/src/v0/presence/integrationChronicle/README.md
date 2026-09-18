@@ -11,7 +11,7 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `feeds/CapabilityFeed.tsx` — Capability EntityKind feed hook (`useCapabilityFeedData`)
 - `feeds/AIModelFeed.tsx` — AI model provider feed
 - `KeyConfigPresence.tsx` — Key Config Mode CRUD surface
-- `ExternalAccessKeyPresence.tsx` — Domain MCP access key manage surface (label, revoke, overview)
+- `ExternalAccessKeyPresence.tsx` — Domain MCP access key manage surface (label, revoke, overview, add key)
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `libraryNavUtils.ts` — Library titles, image hero, nav cache fetch, browse fetch (`includeArchived`)
@@ -44,6 +44,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-09-17 — Add TypeSafe (or any) MCP key
+- Chronicle External Access overview now creates a labeled key in place (TypeSafe, Claude, Cursor…). Secret is shown once on that form; MCP URL is `https://api.ke3p.com/mcp`.
 
 ### 2026-09-15 — Keeper cover upload
 - `KeeperConfigPresence` saves a Cover image (cover + avatar) and files it in Library, same Chronicle upload field as Domain / Journey / Path / Moment.

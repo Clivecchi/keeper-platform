@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '@keeper/database';
 import { AuthenticatedRequest } from './authMiddleware.js';
+import { resolveParamDomainAccess } from './resolveParamDomainAccess.js';
 
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
 
@@ -493,7 +494,7 @@ async function ensureDomainContext(req: Request, _res: Response): Promise<Domain
   try {
     const domain = await prisma.domain.findUnique({
       where: { id: domainId },
-      select: { id: true, name: true, slug: true, ownerId: true, settings: true },
+      select: { id: true, name: true, slug: true, ownerId: true, settings: true, isPublic: true },
     });
 
     if (!domain) {
@@ -501,49 +502,38 @@ async function ensureDomainContext(req: Request, _res: Response): Promise<Domain
     }
 
     const userId = typed.user?.id;
-    const isOwner = Boolean(userId && domain.ownerId === userId);
+    const perm = userId
+      ? await prisma.domainPermission.findFirst({
+          where: { domainId: domain.id, userId },
+          select: { role: true, permissions: true, expiresAt: true },
+        })
+      : null;
+    const ownsKeeperInDomain = userId
+      ? await prisma.keeper
+          .findFirst({
+            where: { domainId: domain.id, ownerId: userId },
+            select: { id: true },
+          })
+          .then(Boolean)
+          .catch(() => false)
+      : false;
 
-    // Build permissions based on ownership or DomainPermission record
-    let permissions: DomainPermissionType[] = [];
-    let role = 'guest';
-
-    if (isOwner) {
-      permissions = ['read', 'write', 'share', 'admin', 'invite', 'delete'];
-      role = 'owner';
-    } else if (userId) {
-      // Check DomainPermission table
-      const perm = await prisma.domainPermission.findFirst({
-        where: { domainId: domain.id, userId },
-      });
-      if (perm) {
-        permissions = (perm.permissions ?? []) as DomainPermissionType[];
-        role = perm.role ?? 'member';
-      } else {
-        // Fallback: allow read for authenticated users who own entities in this domain
-        const hasRelationship = await prisma.keeper.findFirst({
-          where: { domainId: domain.id, ownerId: userId },
-          select: { id: true },
-        }).then(Boolean).catch(() => false);
-
-        if (hasRelationship) {
-          permissions = ['read', 'write'];
-          role = 'member';
-        } else {
-          // Default read for any authenticated user (single-domain MVP)
-          permissions = ['read'];
-          role = 'viewer';
-        }
-      }
-    }
+    const access = resolveParamDomainAccess({
+      userId,
+      ownerId: domain.ownerId,
+      isPublic: domain.isPublic,
+      permission: perm,
+      ownsKeeperInDomain,
+    });
 
     typed.domainContext = {
       domain: domain as unknown as DomainData,
       isCustomDomain: false,
       originalHostname: req.get('host') || '',
       resolvedSlug: domain.slug,
-      permissions,
-      role,
-      isOwner,
+      permissions: access.permissions,
+      role: access.role,
+      isOwner: access.isOwner,
     };
   } catch (error) {
     console.error('[domainPermission] Failed to resolve domain from params:', error);

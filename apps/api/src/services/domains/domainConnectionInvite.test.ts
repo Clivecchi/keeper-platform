@@ -1,5 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
+  acceptDomainInvitation,
+  acceptPendingInvitationsForUser,
+  emailsMatch,
   generateInvitationBundleId,
   invitationAcceptPath,
   looksLikeEmail,
@@ -7,9 +10,26 @@ import {
   normalizeConnectionRole,
   normalizeDomainRole,
   normalizeIdentifier,
+  previewDomainInvitation,
   resolveAssignableDomainRole,
   resolveUserByIdentifier,
+  withInvitationAccountPresence,
 } from './domainConnectionInvite.js';
+import { ensureInvitationArrival } from './ensureInvitationArrival.js';
+
+vi.mock('./ensureInviteeHomeRealm.js', () => ({
+  ensureInviteeHomeRealm: vi.fn().mockResolvedValue({ id: 'home-1', slug: 'sheyenne-home' }),
+}));
+vi.mock('./ensureInvitationArrival.js', () => ({
+  ensureInvitationArrival: vi.fn().mockResolvedValue({
+    dialogId: 'dlg-1',
+    arrival: { kind: 'invitation-arrival' },
+  }),
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('invitationAcceptPath', () => {
   it('builds the copyable accept path without implying email delivery', () => {
@@ -37,6 +57,9 @@ describe('listDomainConnections pending invitations', () => {
           },
         ]),
       },
+      users: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
 
     const result = await listDomainConnections(prisma as never, 'domain-1');
@@ -47,6 +70,7 @@ describe('listDomainConnections pending invitations', () => {
         email: 'new@example.com',
         status: 'pending',
         acceptPath: '/invite/accept?token=tok%2Fvalue',
+        hasAccount: false,
       }),
     ]);
   });
@@ -203,3 +227,172 @@ describe('invitation bundle ids', () => {
     expect(first).not.toBe(second);
   });
 });
+
+describe('emailsMatch', () => {
+  it('compares invitation emails without case', () => {
+    expect(emailsMatch('Sheyenne@example.com', 'sheyenne@example.com')).toBe(true);
+    expect(emailsMatch('a@example.com', 'b@example.com')).toBe(false);
+  });
+});
+
+describe('withInvitationAccountPresence', () => {
+  it('marks pending invites when the email already has an account', async () => {
+    const prisma = {
+      users: {
+        findMany: vi.fn().mockResolvedValue([
+          { email: 'sheyenne@example.com', name: 'Sheyenne' },
+        ]),
+      },
+    };
+    const rows = await withInvitationAccountPresence(prisma as never, [
+      { email: 'Sheyenne@example.com' },
+      { email: 'pending@example.com' },
+    ]);
+    expect(rows[0]).toEqual({
+      email: 'Sheyenne@example.com',
+      hasAccount: true,
+      accountName: 'Sheyenne',
+    });
+    expect(rows[1]?.hasAccount).toBe(false);
+  });
+});
+
+describe('acceptDomainInvitation', () => {
+  it('refuses a token when the signed-in email does not match', async () => {
+    const prisma = {
+      domainInvitation: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'inv-1',
+          token: 'tok',
+          email: 'sheyenne@example.com',
+          domainId: 'domain-1',
+          acceptedAt: null,
+          expiresAt: new Date(Date.now() + 86_400_000),
+        }),
+      },
+      users: {
+        findUnique: vi.fn().mockResolvedValue({
+          email: 'other@example.com',
+          invitedFromDomainId: null,
+        }),
+      },
+    };
+    await expect(
+      acceptDomainInvitation(prisma as never, {} as never, { token: 'tok', userId: 'user-1' }),
+    ).rejects.toThrow('different email');
+    expect(ensureInvitationArrival).not.toHaveBeenCalled();
+  });
+
+  it('is idempotent when this user already belongs to the Domain', async () => {
+    const prisma = {
+      domainInvitation: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'inv-1',
+          token: 'tok',
+          email: 'sheyenne@example.com',
+          domainId: 'domain-1',
+          acceptedAt: new Date(),
+          expiresAt: new Date(Date.now() + 86_400_000),
+        }),
+      },
+      users: {
+        findUnique: vi.fn().mockResolvedValue({
+          email: 'sheyenne@example.com',
+          invitedFromDomainId: 'domain-1',
+        }),
+      },
+      domain: {
+        findUnique: vi.fn().mockResolvedValue({ ownerId: 'owner-1', slug: 'livecchi' }),
+      },
+      domainPermission: {
+        findUnique: vi.fn().mockResolvedValue({ userId: 'user-1' }),
+      },
+    };
+    await expect(
+      acceptDomainInvitation(prisma as never, {} as never, { token: 'tok', userId: 'user-1' }),
+    ).resolves.toEqual({
+      domainId: 'domain-1',
+      domainSlug: 'livecchi',
+      additionalAccepted: 0,
+      dialogId: 'dlg-1',
+    });
+  });
+});
+
+describe('acceptPendingInvitationsForUser', () => {
+  it('redeems the oldest pending invite for the account email', async () => {
+    const grantPermission = vi.fn().mockResolvedValue({});
+    const invitation = {
+      id: 'inv-1',
+      token: 'tok-1',
+      email: 'sheyenne@example.com',
+      domainId: 'domain-1',
+      originDomainId: 'domain-1',
+      bundleId: null,
+      role: 'bride',
+      invitedBy: 'owner-1',
+      acceptedAt: null,
+      expiresAt: new Date(Date.now() + 86_400_000),
+    };
+    const prisma = {
+      domainInvitation: {
+        findMany: vi.fn().mockResolvedValue([invitation]),
+        findUnique: vi.fn().mockResolvedValue(invitation),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      users: {
+        findUnique: vi.fn().mockResolvedValue({
+          email: 'sheyenne@example.com',
+          invitedFromDomainId: null,
+        }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      domain: {
+        findUnique: vi.fn().mockResolvedValue({ settings: {}, slug: 'livecchi' }),
+      },
+    };
+    const result = await acceptPendingInvitationsForUser(
+      prisma as never,
+      { grantPermission } as never,
+      { userId: 'user-1', email: 'Sheyenne@example.com' },
+    );
+    expect(result).toEqual({
+      domainId: 'domain-1',
+      domainSlug: 'livecchi',
+      additionalAccepted: 0,
+      dialogId: 'dlg-1',
+    });
+    expect(grantPermission).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('previewDomainInvitation', () => {
+  it('returns inviter and Domain for a live token', async () => {
+    const prisma = {
+      domainInvitation: {
+        findUnique: vi.fn().mockResolvedValue({
+          domainId: 'domain-1',
+          invitedBy: 'owner-1',
+          role: 'bride',
+          acceptedAt: null,
+          expiresAt: new Date(Date.now() + 86_400_000),
+        }),
+      },
+      domain: {
+        findUnique: vi.fn().mockResolvedValue({ name: 'Livecchi', slug: 'livecchi' }),
+      },
+      users: {
+        findUnique: vi.fn().mockResolvedValue({ name: 'Chuck', email: 'chuck@example.com' }),
+      },
+    };
+    await expect(previewDomainInvitation(prisma as never, 'tok')).resolves.toEqual(
+      expect.objectContaining({
+        domainName: 'Livecchi',
+        domainSlug: 'livecchi',
+        role: 'bride',
+        inviterName: 'Chuck',
+      }),
+    );
+  });
+});
+

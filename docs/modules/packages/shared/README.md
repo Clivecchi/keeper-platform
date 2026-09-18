@@ -24,6 +24,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 - `src/placementContrast.ts` — paper vs atmosphere contrast (mid-tone seal, 4.5:1 ink)
 - `src/treatmentSwatches.ts` — living-book roles: paper, ink, accent, signal (Alive), action
+- `src/domainAccessKey.ts` — MCP Domain Access Key scopes, including default new-key grant
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -37,6 +38,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-09-17 — Default new MCP key scopes
+- `DEFAULT_NEW_DOMAIN_ACCESS_KEY_SCOPES` mints Library + Dialog + Gloss on a new labeled key (TypeSafe, Claude, Cursor, …), not library-read only.
 
 ### 2026-09-13 — Five treatment roles
 - `treatmentSwatches.ts` expands paper + accent into ink, Alive (signal), and Action. Brown-on-brown domains get gold + teal so type and buttons can pop.
@@ -161,6 +165,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ### 2026-06-19 — GlossAnchor types (Phase 1b)
 - Added `glossAnchor.ts` — `GlossAnchor`, `buildGlossAnchorDataAttribute`, `glossAnchorToDraftDiscuss`
+
+### 2026-09-17 — First Introduction Dialog context
+- Added `dialogContext.ts` — typed `Dialog.context.arrival` snapshot. Seed is Lead direction (`introductionPurpose: lead-direction`), not a Dialog message. Public invitation copy can later be a sibling field without a new Invitation model.
 
 ### 2026-06-17 — Phase 0 draft content-shape + Keeper declarations
 - `canonicalizeDraftSpecJson`, `sectionsToDraftPoints` — points-only writes; legacy sections merged on read

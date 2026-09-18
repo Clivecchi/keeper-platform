@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@keeper/database';
+import { dialogVisibleToUserWhere } from './dialogVisibility.js';
 import type { Prisma } from '@prisma/client';
 import {
   isChronicleEventType,
@@ -142,7 +143,7 @@ export async function createChronicleEvent(input: CreateChronicleEventInput): Pr
 }
 
 /**
- * Uses the same admin/keeper Dialog audience contract as the Document loader.
+ * Uses the same admin / member / keeper Dialog audience contract as the Document loader.
  */
 export async function listChronicleEventsForDialog(input: {
   domainId: string;
@@ -153,10 +154,7 @@ export async function listChronicleEventsForDialog(input: {
     where: {
       id: input.dialogId,
       domain_id: input.domainId,
-      OR: [
-        { available_to: { has: 'admin' } },
-        { user_id: input.userId, available_to: { has: 'keeper' } },
-      ],
+      ...dialogVisibleToUserWhere(input.userId),
     },
     select: { id: true },
   });

@@ -4,6 +4,7 @@
 Core utility functions and API clients for the Keeper web application, including authentication-aware API calls and service integrations.
 
 ## 🧱 Key Files
+- `invitationReturn.ts` - Keep invite `next` through login/register; land invited accounts on the Domain
 - `platformHost.ts` - ke3p.com / `*.keeper.domains` host detection, tenant slug from hostname
 - `resolveHostDomain.ts` - verified custom domain hostname → slug (`GET /api/domains/resolve-host/:hostname`)
 - `realmPaths.ts` - brand hosts render at `/`; platform hosts use `/d/:slug`
@@ -34,6 +35,9 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-09-17 — Invitation handoff
+- `invitationReturn.ts` keeps `/invite/accept?token=` through auth, writes invite-aware copy, and lands redeemed accounts on `/d/:slug?board=domain`.
 
 ### 2026-09-01 — Cast instrumentCard on Kip run
 - `kipApi.runAgent` / stream options accept `instrumentCard` on `directorDelegation` and `castConsultations[]` so the existing advisory card reaches Lead synthesis.
@@ -212,6 +216,9 @@ Core utility functions and API clients for the Keeper web application, including
 ### 2026-07-24 — Debug capture hardening
 - `consoleDiagCapture.ts` redacts JWT/token fields via `@keeper/shared` `redactForLog` before buffering Dialog Diag stream.
 - Client `[AgentTurn]` logs (in `useAgentDialog`) surface orchestration mechanism without dumping secrets.
+
+### 2026-09-17 — First Introduction landing
+- `invitationReturn.domainBoardPath` can append `dialogId`. Auth landing uses that when redeem returns an arrival Dialog.
 
 ### 2026-02-14 - Governance API client
 - Added `governanceApi.ts`: getDomainGovernance, updateDomainGovernance, getContractDetail, getDomainCompliance. Used by DomainGovernanceCard and CockpitPanel compliance panel.

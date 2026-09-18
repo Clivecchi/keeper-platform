@@ -6,6 +6,7 @@ import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
 import { resolveLandingPathAfterAuth } from '@/lib/resolveHostDomain';
 import { buildRealmBoardPath } from '@/lib/realmPaths';
 import { usesCleanRealmPaths } from '@/lib/platformHost';
+import { resolveAuthLandingPath } from '@/lib/invitationReturn';
 
 function resolvePostLoginPath(returnTo?: string): string | undefined {
   if (!returnTo?.trim() || typeof window === 'undefined') return returnTo?.trim();
@@ -56,31 +57,43 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
         body: JSON.stringify(payload),
       });
 
-      if (!isRegister) {
-        // Never log JWT / token payloads — success + user identity only.
-        const data =
+        const resultData =
           result && typeof result === 'object' && 'data' in result
-            ? (result as { data?: { user?: { id?: string; email?: string } } }).data
+            ? (result as {
+                data?: {
+                  user?: { id?: string; email?: string }
+                  arrival?: { domainSlug?: string; dialogId?: string }
+                }
+              }).data
             : undefined;
-        console.log('✅ Login success:', {
-          success: Boolean((result as { success?: boolean })?.success),
-          userId: data?.user?.id ?? null,
-          email: data?.user?.email ?? null,
-        });
-      }
 
       if (result.success) {
+        if (!isRegister) {
+          // Never log JWT / token payloads — success + user identity only.
+          console.log('✅ Login success:', {
+            success: true,
+            userId: resultData?.user?.id ?? null,
+            email: resultData?.user?.email ?? null,
+          });
+        }
         auth.login(result.data);
         await redeemGuestHandoffKeyIfPresent();
         // Non-blocking auth check to confirm env-based API base URL works
         apiFetch('/api/kam/me', { method: 'GET' })
           .then(() => console.log('SystemStatus: /api/kam/me ok'))
           .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
-        const landing =
-          resolvePostLoginPath(returnTo) ??
-          (typeof window !== 'undefined'
+        const arrivalSlug = resultData?.arrival?.domainSlug?.trim();
+        const arrivalDialogId = resultData?.arrival?.dialogId?.trim();
+        const hostnameLanding =
+          typeof window !== 'undefined'
             ? await resolveLandingPathAfterAuth(window.location.hostname, returnTo)
-            : '/home');
+            : '/home';
+        const landing = resolveAuthLandingPath(
+          resolvePostLoginPath(returnTo),
+          arrivalSlug,
+          hostnameLanding,
+          arrivalDialogId,
+        );
         // Absolute return URLs (e.g. api.ke3p.com/oauth/authorize) must full-navigate —
         // React Router navigate() cannot leave the SPA / hit Vercel /oauth rewrites.
         if (

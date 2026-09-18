@@ -24,6 +24,7 @@
  * Audience scoping:
  *   available_to: ["admin"]   — domain-level; user_id is null
  *   available_to: ["keeper"]  — per-user; user_id populated from auth session
+ *   available_to: ["member"]  — Domain members (First Introduction); user_id is null
  *   Guest conversations are ephemeral (Session only) and never create a Dialog.
  *
  * KE3P · Keeper Platform · April 2026
@@ -66,6 +67,7 @@ import {
   ingestExternalDocument,
   IngestExternalDocumentError,
 } from '../../services/kip/ingestExternalDocument.js';
+import { dialogVisibleToUserWhere } from '../../services/kip/dialogVisibility.js';
 
 const router = Router();
 
@@ -347,12 +349,9 @@ router.get(
             ? { user_id: req.user.id, available_to: { has: 'keeper' } }
             : scope === 'admin'
             ? { available_to: { has: 'admin' } }
-            : {
-                OR: [
-                  { available_to: { has: 'admin' } },
-                  { user_id: req.user.id, available_to: { has: 'keeper' } },
-                ],
-              }),
+            : scope === 'member'
+            ? { available_to: { has: 'member' } }
+            : dialogVisibleToUserWhere(req.user.id)),
         },
         include: {
           _count: { select: { sessions: true } },
@@ -478,10 +477,7 @@ router.get(
         where: {
           id: dialogId,
           domain_id: domainId,
-          OR: [
-            { available_to: { has: 'admin' } },
-            { user_id: req.user.id, available_to: { has: 'keeper' } },
-          ],
+          ...dialogVisibleToUserWhere(req.user.id),
         },
         include: {
           sessions: {
@@ -954,12 +950,7 @@ router.patch(
         where: {
           id: dialogId,
           domain_id: domainId,
-          OR: [
-            // Admin-scoped: any authenticated user with domain write can update
-            { available_to: { has: 'admin' } },
-            // Keeper-scoped: only the owning user can update
-            { user_id: req.user.id, available_to: { has: 'keeper' } },
-          ],
+          ...dialogVisibleToUserWhere(req.user.id),
         },
       });
 
@@ -1047,10 +1038,7 @@ router.delete(
         where: {
           id: dialogId,
           domain_id: domainId,
-          OR: [
-            { available_to: { has: 'admin' } },
-            { user_id: req.user.id, available_to: { has: 'keeper' } },
-          ],
+          ...dialogVisibleToUserWhere(req.user.id),
         },
         select: { id: true },
       });

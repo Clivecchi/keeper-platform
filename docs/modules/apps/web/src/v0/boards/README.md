@@ -841,3 +841,6 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-07-17 � Warm Dark board shell restored
 - `UniversalBoard` uses `themeApply="treatment"` for domain-resolved (no `?theme=`) so Dialog/Chronicle stay Warm Dark glass; domain accent still flows via `focus.ring`.
+
+### 2026-09-17 — First Introduction landing
+- `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.

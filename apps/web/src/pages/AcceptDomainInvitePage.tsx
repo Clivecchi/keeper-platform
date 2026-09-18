@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { apiFetch } from "../lib/api"
+import { domainBoardPath } from "../lib/invitationReturn"
 import { useAuth } from "../context/AuthContext"
 
 /**
@@ -16,6 +17,7 @@ export default function AcceptDomainInvitePage() {
   const [status, setStatus] = React.useState<"idle" | "working" | "ok" | "error">("idle")
   const [message, setMessage] = React.useState<string | null>(null)
   const [domainSlug, setDomainSlug] = React.useState<string | null>(null)
+  const [dialogId, setDialogId] = React.useState<string | null>(null)
 
   const accept = React.useCallback(async () => {
     if (!token) {
@@ -28,20 +30,25 @@ export default function AcceptDomainInvitePage() {
       const data = (await apiFetch("/api/domains/invitations/accept", {
         method: "POST",
         body: JSON.stringify({ token }),
-      })) as { domainSlug?: string; additionalAccepted?: number }
+      })) as { domainSlug?: string; additionalAccepted?: number; dialogId?: string }
       const slug = data.domainSlug?.trim() || null
+      const arrivedDialogId = data.dialogId?.trim() || null
       setDomainSlug(slug)
+      setDialogId(arrivedDialogId)
       setStatus("ok")
       const extra =
         typeof data.additionalAccepted === "number" && data.additionalAccepted > 0
           ? ` Also joined ${data.additionalAccepted} more Domain${data.additionalAccepted === 1 ? "" : "s"} from the same invitation.`
           : ""
       setMessage(`Invitation accepted. You now have access to that Domain.${extra}`)
+      if (slug) {
+        navigate(domainBoardPath(slug, arrivedDialogId), { replace: true })
+      }
     } catch (err) {
       setStatus("error")
       setMessage(err instanceof Error ? err.message : "Could not accept invitation.")
     }
-  }, [token])
+  }, [token, navigate])
 
   React.useEffect(() => {
     if (!user) return
@@ -63,7 +70,7 @@ export default function AcceptDomainInvitePage() {
         <button
           type="button"
           className="underline underline-offset-2"
-          onClick={() => navigate(domainSlug ? `/d/${encodeURIComponent(domainSlug)}?board=domain` : "/home")}
+          onClick={() => navigate(domainSlug ? domainBoardPath(domainSlug, dialogId) : "/home")}
         >
           {domainSlug ? "Open that Domain" : "Go to home"}
         </button>

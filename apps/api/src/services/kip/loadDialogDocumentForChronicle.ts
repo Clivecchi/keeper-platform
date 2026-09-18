@@ -15,6 +15,7 @@ import {
   type DocumentReorganizeProposal,
 } from '@keeper/shared';
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
+import { dialogVisibleToUserWhere } from './dialogVisibility.js';
 
 export type ChronicleManuscriptDraft = {
   id: string;
@@ -56,14 +57,7 @@ export async function loadDialogDocumentForChronicle(
     where: {
       id: dialogId,
       domain_id: domainId,
-      ...(userId
-        ? {
-            OR: [
-              { available_to: { has: 'admin' } },
-              { user_id: userId, available_to: { has: 'keeper' } },
-            ],
-          }
-        : {}),
+      ...(userId ? dialogVisibleToUserWhere(userId) : {}),
     },
     select: {
       id: true,

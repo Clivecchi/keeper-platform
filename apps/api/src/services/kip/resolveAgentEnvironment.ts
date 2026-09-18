@@ -8,6 +8,8 @@ import {
   resolveDialogParticipation,
   summarizeDraftPointsForAgent,
   readKeeperStageFromDomainSettings,
+  parseDialogArrivalContext,
+  type DialogArrivalContext,
   type DialogParticipation,
   type DomainPersonNote,
   type KeeperStageComposition,
@@ -103,6 +105,11 @@ export type AgentEnvironmentContext = {
   };
   /** Invitation notes so agents know people on this Domain. */
   peopleNotes?: DomainPersonNote[];
+  /**
+   * First Introduction snapshot for the active Dialog.
+   * Seed is inviter direction for the origin Lead — not a prior Dialog message.
+   */
+  dialogArrival?: DialogArrivalContext;
   /**
    * Dialog Document (Forward / Step / Paths / manuscript Points) for the active Dialog.
    * Loaded when session.dialog_id (or args.dialogId) is known — same source Chronicle reads.
@@ -563,6 +570,22 @@ export async function resolveAgentEnvironment(args: {
           }
 
           if (effectiveDialogId) {
+            try {
+              const dialogRow = await prisma.dialog.findFirst({
+                where: { id: effectiveDialogId, domain_id: primaryDomainId },
+                select: { context: true },
+              });
+              const arrival = parseDialogArrivalContext(dialogRow?.context);
+              if (arrival) {
+                environment.dialogArrival = arrival;
+              }
+            } catch (error) {
+              console.warn('[resolveAgentEnvironment] dialogArrival load failed', {
+                domainId: primaryDomainId,
+                dialogId: effectiveDialogId,
+                error,
+              });
+            }
             try {
               const dialogDocument = await loadDialogDocumentForAgent(
                 effectiveDialogId,

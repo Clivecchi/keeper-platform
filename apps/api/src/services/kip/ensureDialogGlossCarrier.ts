@@ -4,6 +4,7 @@
  */
 import { prisma, type Prisma } from '@keeper/database';
 import { parseGlossThreads, type GlossThread } from '@keeper/shared';
+import { dialogVisibleToUserWhere } from './dialogVisibility.js';
 
 const CARRIER_CONTENT = 'Document Gloss · polish carrier';
 const CARRIER_SESSION_NAME = 'Document Gloss';
@@ -25,10 +26,7 @@ async function authorizeDialog(
       id: dialogId,
       domain_id: domainId,
       is_archived: false,
-      OR: [
-        { available_to: { has: 'admin' } },
-        { user_id: userId, available_to: { has: 'keeper' } },
-      ],
+      ...dialogVisibleToUserWhere(userId),
     },
     select: { id: true },
   });

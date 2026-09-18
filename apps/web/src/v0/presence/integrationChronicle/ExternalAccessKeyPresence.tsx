@@ -6,11 +6,13 @@ import type { DomainAccessKeyRecord } from "@keeper/shared"
 import { ChronicleConfigShell } from "../chronicleConfig/ChronicleConfigShell"
 import type { ChronicleSaveStatus } from "../chronicleConfig/types"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
+import { AccessKeyCreateForm } from "../../boards/domain/AccessKeyCreateForm"
 import {
   domainAccessKeyChronicleId,
   EXTERNAL_ACCESS_OVERVIEW_ID,
   parseDomainAccessKeyChronicleId,
 } from "../../boards/domain/externalAccessKeyIds"
+import { formatScopeList } from "../../boards/domain/externalAccessScopes"
 
 type AccessKeysResponse = { keys: DomainAccessKeyRecord[] }
 
@@ -19,20 +21,6 @@ async function fetchDomainAccessKeys(domainId: string): Promise<DomainAccessKeyR
     `/api/domains/${encodeURIComponent(domainId)}/access-keys`,
   )) as AccessKeysResponse
   return data.keys ?? []
-}
-
-function formatScopeList(scopes: string[]): string {
-  if (!scopes.length) return "No scopes"
-  return scopes
-    .map((scope) => {
-      if (scope === "library.ro") return "Library read"
-      if (scope === "library.rw") return "Library read/write"
-      if (scope === "dialog.ro") return "Dialog read"
-      if (scope === "dialog.rw") return "Bring in writing"
-      if (scope === "gloss.rw") return "Gloss write"
-      return scope
-    })
-    .join(", ")
 }
 
 function formatTimestamp(iso: string | null): string {
@@ -196,9 +184,30 @@ export function ExternalAccessKeyPresence({
             External Access
           </p>
           <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Domain-bound keys for Cursor, Claude, and other MCP clients. Each key grants scoped
-            Library access — never hand out your personal login token.
+            Domain-bound keys for TypeSafe, Cursor, Claude, and other MCP clients. Each key grants
+            Library, Dialog, and Gloss access — never hand out your personal login token.
           </p>
+        </div>
+
+        <div
+          className="rounded-md border px-3 py-3 flex flex-col gap-2"
+          style={{
+            borderColor: "hsl(var(--theme-border-soft) / 0.45)",
+            background: "hsl(var(--theme-surface-panel) / 0.35)",
+          }}
+        >
+          <p className="text-[12px] font-semibold" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+            Add a key
+          </p>
+          <p className="text-[12px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            Label it for the client (TypeSafe, Claude, Cursor…). The secret is shown once.
+          </p>
+          <AccessKeyCreateForm
+            domainId={domainId}
+            onCreated={async () => {
+              await reload()
+            }}
+          />
         </div>
 
         <div
@@ -211,10 +220,10 @@ export function ExternalAccessKeyPresence({
           <p className="text-[12px] font-semibold" style={{ color: "hsl(var(--theme-ink-primary))" }}>
             MCP connection
           </p>
-          <ReadOnlyField label="MCP URL" value="https://api.ke3p.com/api/mcp" />
+          <ReadOnlyField label="MCP URL" value="https://api.ke3p.com/mcp" />
           <ReadOnlyField label="x-domain-id" value={domainId} />
           <p className="text-[12px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Authorization: Bearer &lt;your key secret&gt; — shown once when you create a key in Nav.
+            Authorization: Bearer &lt;your key secret&gt; — shown once when you create the key.
           </p>
         </div>
 
@@ -227,7 +236,7 @@ export function ExternalAccessKeyPresence({
           </p>
           {activeKeys.length === 0 ? (
             <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-              No active keys yet. Create one from the External Access section in Nav.
+              No active keys yet. Add one above.
             </p>
           ) : (
             activeKeys.map((row) => (

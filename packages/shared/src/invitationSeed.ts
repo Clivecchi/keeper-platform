@@ -10,8 +10,9 @@ export const INVITATION_SEED_LIMITS = {
 export type InvitationBriefingKind = 'note' | 'prompt' | 'document';
 
 /**
- * Text the inviter attaches so the Domain lead can know the person.
- * Not email body. Co-ownership of these notes is later — they stay inviter-held.
+ * Text the inviter attaches so the Domain lead can host the person.
+ * Lead Introduction / direction — not email body and not the first Dialog message.
+ * Public invitation copy may later be a sibling field on DomainInvitation.
  */
 export interface InvitationBriefingNote {
   kind: InvitationBriefingKind;
@@ -20,8 +21,8 @@ export interface InvitationBriefingNote {
 }
 
 /**
- * Optional notes on a Domain invitation so agents can know the person
- * before (and after) they arrive. Not a role. Not email body.
+ * Optional notes on a Domain invitation so the origin Lead can host the arrival.
+ * Not a role. Not email body. Not automatically a Dialog message.
  */
 export interface InvitationSeed {
   givenName?: string;

@@ -13,6 +13,8 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - `domainShellPrefetch.ts` ? Re-export of `prefetchDomainShell` (legacy import path).
 - `DomainAiAccessNav.tsx` ? AI provider access summary (Agent Board).
 - `DomainExternalAccessNav.tsx` ? domain MCP access keys for external tools (Domain / Realm / IDE nav).
+- `AccessKeyCreateForm.tsx` ? add-key form (label + Enter/Add key; secret shown once).
+- `externalAccessScopes.ts` ? default new-key scopes (Library + Dialog + Gloss) and labels.
 - `externalAccessKeyIds.ts` ? Chronicle id helpers (`dak:{id}`, `external-access` overview).
 - `domainSwitcherTheme.ts` ? Fixed light-on-dark ink tokens for picker readability.
 
@@ -32,29 +34,32 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## ?? Update Log
 
-### 2026-08-30 ó New domain lands on its own board
+### 2026-09-17 ó Add TypeSafe (or any) MCP key
+- Add-key form moved to the top of External Access with a `+` and a real **Add key** submit (Enter works). New keys are labeled freely (TypeSafe, Claude, CursorÖ) and mint Library + Dialog + Gloss scopes. Secret stays on the form until copied.
+
+### 2026-08-30 ù New domain lands on its own board
 - Creating a domain from the switcher opens `/d/:slug?board=domain`. It does not stay on `/home` or become the Realm anchor. A brand-new domain was showing person-wide feed history as if it belonged there.
 
-### 2026-08-20 ó Universal Nav prefetch
+### 2026-08-20 ù Universal Nav prefetch
 - Reveal curtain always warms Dialogs, Drafts, Keepers, Journeys, and Library. External Access stays on Domain Config.
 
-### 2026-08-17 ó Glossary in Domain Nav
-- Domain `navBlockOrder` inserts **Glossary** after Keeper and before Library. Chronicle read of the Object Glossary ó not nested in Library, not labeled as a Document.
+### 2026-08-17 ù Glossary in Domain Nav
+- Domain `navBlockOrder` inserts **Glossary** after Keeper and before Library. Chronicle read of the Object Glossary ù not nested in Library, not labeled as a Document.
 
-### 2026-08-03 ó dialogCueing rename (Pass 1)
+### 2026-08-03 ù dialogCueing rename (Pass 1)
 - `resolveRevealNavSections.ts`: `def.conversation.dialogOrchestration === "director"` ? `def.conversation.dialogCueing === "directed"` (board def field rename, no behavior change).
 
-### 2026-08-03 ó Dialog+Gloss OAuth scopes
+### 2026-08-03 ù Dialog+Gloss OAuth scopes
 - `DomainExternalAccessNav`: **Add Dialog+Gloss** patches grant scopes to include `dialog.ro` + `gloss.rw` (keeps existing library scopes).
 
-### 2026-08-03 ó External Access OAuth grants
+### 2026-08-03 ù External Access OAuth grants
 - `DomainExternalAccessNav` lists active MCP OAuth grants with revoke; MCP URL copy uses canonical `https://api.ke3p.com/mcp`.
 
-### 2026-07-28 ó Domain picker SWR cache
+### 2026-07-28 ù Domain picker SWR cache
 - `peekDomainSwitcherEntries` returns last-known list after TTL; overlay seeds from cache and never shows "Loading domains" when any list exists (background revalidate).
 - `prefetchDomainSwitcherEntries` refreshes stale cache instead of treating expired TTL as empty.
 
-### 2026-08-17 ó External writing ingest
+### 2026-08-17 ù External writing ingest
 - New External Access keys include `dialog.rw` (Bring in writing) alongside Dialog read and Gloss.
 
 ### 2026-07-24 ? cast-select-must-not-change-atmosphere
@@ -75,7 +80,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 - 2026-07-12: **Playbill dropdown** ? `DomainSwitcher` renders inside `keeper-topbar-playbill-anchor` (no body portal); toggle on header click; add/status panels share anchored dropdown shell.
 - 2026-07-12: **Shell bootstrap** ? `domainShellBootstrap.ts` parallelizes cold-load fetches; Chronicle enrichment reads cached by-slug record (no duplicate `GET /domains/:id`).
-- 2026-07-12: **Phase 1b mobile** ? Domain board on ?767px uses adaptive `UniversalBoard` (Nav ∑ Dialog ∑ Chronicle bottom bar); domain picker via top-bar playbill.
+- 2026-07-12: **Phase 1b mobile** ? Domain board on ?767px uses adaptive `UniversalBoard` (Nav ù Dialog ù Chronicle bottom bar); domain picker via top-bar playbill.
 - 2026-07-11: **DB-first `leadAgentSlug`** ? API resolves from `settings.primaryAgentId`; `domainShellCache` stores `leadAgentSlug` on by-slug fetch.
 - 2026-07-10: Domain picker uses **Playbill** cards (`PlaybillCard`) ? top-bar header + travel list with live stats (`GET /api/domains/:id/stats`).
 - 2026-07-07: `resolvePostLoginDomainSlug` returns `null` when user has no domains ? never falls back to platform slug `default`; `/home` shows explicit empty state until `?domain=` or a domain exists.

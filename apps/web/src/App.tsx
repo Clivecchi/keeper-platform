@@ -143,12 +143,13 @@ function AuthLoadingCurtain({ pathname }: { pathname: string }) {
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, authResolved, isLoading } = useAuth();
   const location = useLocation();
+  const nextTarget = `${location.pathname}${location.search}`;
 
   if (isLoading || !authResolved) {
     return <AuthLoadingCurtain pathname={location.pathname} />;
   }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  return isAuthenticated ? <Outlet /> : <Navigate to={`/login?next=${encodeURIComponent(nextTarget)}`} replace />;
 };
 
 const RequireAdminRoute: React.FC = () => {

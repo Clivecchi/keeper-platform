@@ -53,7 +53,7 @@ export async function userHoldsDomainAdmin(
 async function loadDialogInDomain(domainId: string, dialogId: string) {
   return prisma.dialog.findFirst({
     where: { id: dialogId, domain_id: domainId, is_archived: false },
-    select: { id: true, domain_id: true },
+    select: { id: true, domain_id: true, invitationId: true },
   })
 }
 
@@ -151,8 +151,10 @@ export async function listDialogCastCandidates(params: {
 }
 
 /**
- * Enabled cast members for a Dialog. Re-checks Admin on homeDomainId for the
- * requesting user at read time — revoked admin hides the member.
+ * Enabled cast members for a Dialog. Invitation-linked Dialogs list enabled
+ * leads for anyone with read on the Dialog's Domain (origin owner cannot
+ * admin the invitee's home Realm). Other Dialogs still require Admin on
+ * homeDomainId for the requesting user.
  */
 export async function listDialogCastMembers(params: {
   userId: string
@@ -177,10 +179,13 @@ export async function listDialogCastMembers(params: {
     orderBy: { enabledAt: "asc" },
   })
 
+  const invitationLinked = Boolean(dialog.invitationId)
   const members: DialogCastMemberRow[] = []
   for (const row of rows) {
-    const stillAdmin = await userHoldsDomainAdmin(params.userId, row.homeDomainId)
-    if (!stillAdmin) continue
+    if (!invitationLinked) {
+      const stillAdmin = await userHoldsDomainAdmin(params.userId, row.homeDomainId)
+      if (!stillAdmin) continue
+    }
 
     // Confirm agent is still that domain's lead (reuse resolution — no second path).
     const lead = await resolveDomainLeadAgentFromDomain(prisma, row.homeDomain)

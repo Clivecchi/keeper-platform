@@ -51,8 +51,10 @@ import {
   inviteDomainConnection,
   listAdministrableDomains,
   listDomainConnections,
+  previewDomainInvitation,
   revokeDomainConnection,
   revokeDomainInvitation,
+  withInvitationAccountPresence,
 } from '../../services/domains/domainConnectionInvite.js';
 import {
   deliverInvitationEmail,
@@ -1272,6 +1274,32 @@ router.post('/:id/provision', authMiddlewareCompat, async (req: Request, res: Re
   }
 });
 
+// GET /api/domains/invitations/preview — public invite-aware login/register copy.
+// Must be registered before GET /:id so "invitations" is not treated as an id.
+router.get('/invitations/preview', async (req: Request, res: Response) => {
+  try {
+    const token = typeof req.query.token === 'string' ? req.query.token.trim() : '';
+    if (!token) {
+      return res.status(400).json({ error: 'Invitation token is required' });
+    }
+    const preview = await previewDomainInvitation(prisma, token);
+    if (!preview) {
+      return res.status(404).json({ error: 'Invitation not found' });
+    }
+    return res.json({
+      domainName: preview.domainName,
+      domainSlug: preview.domainSlug,
+      role: preview.role,
+      roleLabel: roleLabelForInvitation(preview.role),
+      inviterName: preview.inviterName,
+      expiresAt: preview.expiresAt,
+    });
+  } catch (error) {
+    console.error('Error previewing domain invitation:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/domains/:id - Get domain by ID
 router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
@@ -1662,6 +1690,7 @@ router.post('/invitations/accept', authMiddlewareCompat, async (req: Request, re
       domainId: accepted.domainId,
       domainSlug: accepted.domainSlug,
       additionalAccepted: accepted.additionalAccepted,
+      ...(accepted.dialogId ? { dialogId: accepted.dialogId } : {}),
     });
   } catch (error) {
     console.error('Error accepting domain invitation:', error);
@@ -1669,6 +1698,9 @@ router.post('/invitations/accept', authMiddlewareCompat, async (req: Request, re
       if (error.message.includes('Invalid invitation token')) {
         return res.status(404).json({ error: error.message });
       }
+        if (error.message.includes('sent to a different email')) {
+          return res.status(403).json({ error: error.message });
+        }
         if (
           error.message.includes('expired')
           || error.message.includes('already accepted')
@@ -2601,21 +2633,24 @@ router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async
       orderBy: { createdAt: 'desc' },
     });
 
-    const pendingInvitations = invitations
-      .filter((invitation) => !invitation.acceptedAt && invitation.expiresAt > now)
-      .map((invitation) => ({
-        id: invitation.id,
-        email: invitation.email,
-        role: invitation.role,
-        invitedBy: invitation.invitedBy,
-        originDomainId: invitation.originDomainId,
-        bundleId: invitation.bundleId,
-        expiresAt: invitation.expiresAt,
-        createdAt: invitation.createdAt,
-        status: 'pending' as const,
-        acceptPath: invitationAcceptPath(invitation.token),
-        seed: normalizeInvitationSeed(invitation.seed),
-      }));
+    const pendingInvitations = await withInvitationAccountPresence(
+      prisma,
+      invitations
+        .filter((invitation) => !invitation.acceptedAt && invitation.expiresAt > now)
+        .map((invitation) => ({
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          invitedBy: invitation.invitedBy,
+          originDomainId: invitation.originDomainId,
+          bundleId: invitation.bundleId,
+          expiresAt: invitation.expiresAt,
+          createdAt: invitation.createdAt,
+          status: 'pending' as const,
+          acceptPath: invitationAcceptPath(invitation.token),
+          seed: normalizeInvitationSeed(invitation.seed),
+        })),
+    );
 
     const seedByEmail = new Map(
       invitations

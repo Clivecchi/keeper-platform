@@ -35,6 +35,8 @@ export interface PendingInvitationRow {
   status?: string
   acceptPath?: string
   seed?: InvitationSeed | null
+  hasAccount?: boolean
+  accountName?: string | null
 }
 
 export function isDomainRole(value: string): value is DomainRole {

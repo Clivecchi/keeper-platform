@@ -8,6 +8,7 @@ import {
   parseDocumentComponentDeclarations,
   type DocumentComponentDeclaration,
 } from '@keeper/shared';
+import { dialogVisibleToUserWhere } from './dialogVisibility.js';
 
 export const DOCUMENT_MANUSCRIPT_KIND = 'document_manuscript';
 
@@ -50,14 +51,7 @@ export async function registerDialogDocumentComponent(params: {
     where: {
       id: params.dialogId,
       domain_id: params.domainId,
-      ...(params.userId
-        ? {
-            OR: [
-              { available_to: { has: 'admin' } },
-              { user_id: params.userId, available_to: { has: 'keeper' } },
-            ],
-          }
-        : {}),
+      ...(params.userId ? dialogVisibleToUserWhere(params.userId) : {}),
     },
     select: { id: true, document_components: true },
   });

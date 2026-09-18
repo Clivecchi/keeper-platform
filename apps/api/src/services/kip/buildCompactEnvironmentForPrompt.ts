@@ -73,6 +73,17 @@ export type CompactEnvironmentForPrompt = {
       briefing?: unknown;
     };
   }>;
+  dialogArrival?: {
+    invitationId: string;
+    role: string;
+    introductionPurpose: string;
+    inviteeHomeDomainId?: string | null;
+    seed?: {
+      givenName?: string;
+      relation?: string;
+      about?: string;
+    } | null;
+  };
   dialogDocumentRef?: {
     dialogId: string;
     title?: string;
@@ -267,6 +278,30 @@ export function buildCompactEnvironmentForPrompt(
       })
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       .slice(0, 20);
+  }
+
+  const dialogArrival = asRecord(env.dialogArrival);
+  if (dialogArrival && typeof dialogArrival.invitationId === 'string') {
+    compact.dialogArrival = {
+      invitationId: dialogArrival.invitationId,
+      role: typeof dialogArrival.role === 'string' ? dialogArrival.role : '',
+      introductionPurpose:
+        typeof dialogArrival.introductionPurpose === 'string'
+          ? dialogArrival.introductionPurpose
+          : 'lead-direction',
+      ...(typeof dialogArrival.inviteeHomeDomainId === 'string'
+        ? { inviteeHomeDomainId: dialogArrival.inviteeHomeDomainId }
+        : {}),
+      seed: (() => {
+        const seed = asRecord(dialogArrival.seed);
+        if (!seed) return null;
+        return {
+          ...(typeof seed.givenName === 'string' ? { givenName: seed.givenName } : {}),
+          ...(typeof seed.relation === 'string' ? { relation: seed.relation } : {}),
+          ...(typeof seed.about === 'string' ? { about: seed.about } : {}),
+        };
+      })(),
+    };
   }
 
   const domainIndex = asRecord(env.domainIndex);

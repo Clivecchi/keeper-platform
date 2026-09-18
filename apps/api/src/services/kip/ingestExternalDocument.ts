@@ -16,6 +16,7 @@ import {
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
 import { resolveDomainLeadAgentFromDomain } from '../domains/resolveDomainLeadAgent.js';
 import { ensureDialogGlossCarrier } from './ensureDialogGlossCarrier.js';
+import { dialogVisibleToUserWhere } from './dialogVisibility.js';
 
 const DEFAULT_SOURCE = 'External';
 
@@ -120,10 +121,7 @@ async function authorizeDialog(
       id: dialogId,
       domain_id: domainId,
       is_archived: false,
-      OR: [
-        { available_to: { has: 'admin' } },
-        { user_id: userId, available_to: { has: 'keeper' } },
-      ],
+      ...dialogVisibleToUserWhere(userId),
     },
     select: { id: true, title: true, document_paths: true },
   });

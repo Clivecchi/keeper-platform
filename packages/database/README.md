@@ -382,3 +382,6 @@ The schema includes:
 - Content management (MemoryCard, ThreadBlob, notes)
 - KIP agents (kip_agents table)
 - Platform configuration (themes, StudioModule, etc.)
+
+## 📆 Update Log
+- 2026-09-17: **First Introduction** — `Dialog.invitationId` unique FK to `DomainInvitation`. Arrival Dialogs are `available_to: member`. Seed remains on `DomainInvitation` as Lead Introduction direction, not a Dialog message. Migration `20260918010000_dialog_invitation_arrival`.

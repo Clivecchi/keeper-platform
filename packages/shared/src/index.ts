@@ -2,6 +2,7 @@ export * from './logger.js';
 export * from './roles.js';
 export * from './domainRoleCatalog.js';
 export * from './invitationSeed.js';
+export * from './dialogContext.js';
 export * from './canonicalBoards.js';
 export * from './universalBoardId.js';
 export * from './cloudMcpCeiling.js';

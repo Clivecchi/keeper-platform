@@ -1,20 +1,19 @@
 "use client"
 
 import * as React from "react"
+import { Plus } from "lucide-react"
 import { apiFetch } from "../../../lib/api"
 import type { DomainAccessKeyRecord, McpOAuthGrantRecord } from "@keeper/shared"
+import { AccessKeyCreateForm } from "./AccessKeyCreateForm"
 import {
   domainAccessKeyChronicleId,
   EXTERNAL_ACCESS_OVERVIEW_ID,
   parseDomainAccessKeyChronicleId,
 } from "./externalAccessKeyIds"
+import { formatScopeList, withDialogAndGlossScopes } from "./externalAccessScopes"
 
 type AccessKeysResponse = { keys: DomainAccessKeyRecord[] }
 type OauthGrantsResponse = { grants: McpOAuthGrantRecord[] }
-
-type CreateKeyResponse = {
-  key: DomainAccessKeyRecord & { secret: string }
-}
 
 async function fetchDomainAccessKeys(domainId: string): Promise<DomainAccessKeyRecord[]> {
   const data = (await apiFetch(
@@ -28,30 +27,6 @@ async function fetchOauthGrants(domainId: string): Promise<McpOAuthGrantRecord[]
     `/api/domains/${encodeURIComponent(domainId)}/oauth-grants`,
   )) as OauthGrantsResponse
   return data.grants ?? []
-}
-
-function formatScopeList(scopes: string[]): string {
-  if (!scopes.length) return "No scopes"
-  return scopes
-    .map((scope) => {
-      if (scope === "library.ro") return "Library read"
-      if (scope === "library.rw") return "Library read/write"
-      if (scope === "dialog.ro") return "Dialog read"
-      if (scope === "dialog.rw") return "Bring in writing"
-      if (scope === "gloss.rw") return "Gloss write"
-      return scope
-    })
-    .join(", ")
-}
-
-/** Library + Dialog read/write + Gloss — Claude Document → Gloss / bring-in chain. */
-function withDialogAndGlossScopes(scopes: string[]): string[] {
-  const next = new Set(scopes)
-  if (!next.has("library.rw")) next.add("library.ro")
-  next.add("dialog.ro")
-  next.add("dialog.rw")
-  next.add("gloss.rw")
-  return [...next]
 }
 
 export interface DomainExternalAccessNavProps {
@@ -68,13 +43,10 @@ export function DomainExternalAccessNav({
   const [keys, setKeys] = React.useState<DomainAccessKeyRecord[] | null>(null)
   const [grants, setGrants] = React.useState<McpOAuthGrantRecord[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
-  const [label, setLabel] = React.useState("")
-  const [creating, setCreating] = React.useState(false)
   const [revokingGrantId, setRevokingGrantId] = React.useState<string | null>(null)
   const [updatingGrantId, setUpdatingGrantId] = React.useState<string | null>(null)
-  const [revealedSecret, setRevealedSecret] = React.useState<string | null>(null)
-  const [copied, setCopied] = React.useState(false)
   const [copiedDomainId, setCopiedDomainId] = React.useState(false)
+  const labelInputRef = React.useRef<HTMLInputElement>(null)
 
   const reload = React.useCallback(async () => {
     if (!domainId) return
@@ -96,41 +68,6 @@ export function DomainExternalAccessNav({
   React.useEffect(() => {
     void reload()
   }, [reload])
-
-  const handleCreate = async () => {
-    if (!domainId || !label.trim()) return
-    setCreating(true)
-    setError(null)
-    setRevealedSecret(null)
-    try {
-      const data = (await apiFetch(
-        `/api/domains/${encodeURIComponent(domainId)}/access-keys`,
-        {
-          method: "POST",
-          body: JSON.stringify({ label: label.trim(), scopes: ["library.ro"] }),
-        },
-      )) as CreateKeyResponse
-      setRevealedSecret(data.key.secret)
-      setLabel("")
-      await reload()
-      onManageKey?.(domainAccessKeyChronicleId(data.key.id))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed")
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleCopySecret = async () => {
-    if (!revealedSecret) return
-    try {
-      await navigator.clipboard.writeText(revealedSecret)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-      setError("Copy failed — select and copy manually")
-    }
-  }
 
   const handleCopyDomainId = async () => {
     if (!domainId) return
@@ -180,6 +117,11 @@ export function DomainExternalAccessNav({
     }
   }
 
+  const focusLabelInput = () => {
+    labelInputRef.current?.focus()
+    labelInputRef.current?.scrollIntoView({ block: "nearest" })
+  }
+
   const activeCount = keys?.filter((k) => k.status === "active").length ?? 0
   const activeKeys = keys?.filter((k) => k.status === "active") ?? []
   const activeGrants = grants?.filter((g) => g.status === "active") ?? []
@@ -193,13 +135,29 @@ export function DomainExternalAccessNav({
       }}
     >
       <div className="px-3 pb-2">
-        <button
-          type="button"
-          className="keeper-nav-section-title text-left w-full"
-          onClick={() => onManageKey?.(EXTERNAL_ACCESS_OVERVIEW_ID)}
-        >
-          External Access
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="keeper-nav-section-title text-left min-w-0 flex-1"
+            onClick={() => onManageKey?.(EXTERNAL_ACCESS_OVERVIEW_ID)}
+          >
+            External Access
+          </button>
+          <button
+            type="button"
+            onClick={focusLabelInput}
+            className="inline-flex items-center justify-center rounded-full border p-1 shrink-0 transition-opacity hover:opacity-80"
+            style={{
+              borderColor: "hsl(var(--theme-border-soft))",
+              color: "var(--theme-ink-secondary-color)",
+              backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
+            }}
+            aria-label="Add access key"
+            title="Add access key"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+        </div>
         <p
           className="text-[13px] mt-1 leading-snug"
           style={{ color: "var(--theme-ink-secondary-color, hsl(40 10% 78%))" }}
@@ -207,7 +165,7 @@ export function DomainExternalAccessNav({
           {!domainId
             ? "Loading…"
             : activeCount === 0 && activeGrants.length === 0
-              ? "Create a key for Cursor, or connect Claude via OAuth"
+              ? "Create a key for TypeSafe, Cursor, Claude, or any MCP client"
               : `${activeCount} key${activeCount === 1 ? "" : "s"} · ${activeGrants.length} OAuth grant${activeGrants.length === 1 ? "" : "s"}`}
         </p>
         {domainId ? (
@@ -225,6 +183,16 @@ export function DomainExternalAccessNav({
             </button>
           </p>
         ) : null}
+      </div>
+
+      <div className="px-3 pb-3">
+        <AccessKeyCreateForm
+          domainId={domainId}
+          inputRef={labelInputRef}
+          onCreated={async () => {
+            await reload()
+          }}
+        />
       </div>
 
       {activeKeys.length > 0 ? (
@@ -308,61 +276,6 @@ export function DomainExternalAccessNav({
               )
             })}
           </ul>
-        </div>
-      ) : null}
-
-      <div className="px-3 pt-2 flex flex-col gap-2">
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Label (e.g. Claude — Chuck laptop)"
-          className="w-full rounded-md border px-2 py-1.5 text-[13px]"
-          style={{
-            borderColor: "hsl(var(--theme-border-soft) / 0.6)",
-            background: "hsl(var(--theme-surface-paper) / 0.5)",
-            color: "hsl(var(--theme-ink-primary))",
-          }}
-        />
-        <button
-          type="button"
-          disabled={!domainId || creating || !label.trim()}
-          onClick={() => void handleCreate()}
-          className="text-[13px] font-medium text-left underline underline-offset-2 disabled:opacity-50"
-          style={{ color: "var(--theme-ink-primary-color, hsl(40 14% 92%))" }}
-        >
-          {creating ? "Creating…" : "Create access key"}
-        </button>
-      </div>
-
-      {revealedSecret ? (
-        <div
-          className="mx-3 mt-3 mb-1 rounded-md border px-3 py-2 flex flex-col gap-2"
-          style={{
-            borderColor: "hsl(var(--theme-accent-primary) / 0.35)",
-            background: "hsl(var(--theme-accent-primary) / 0.08)",
-          }}
-        >
-          <p className="text-[12px] font-semibold" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-            Your key — copy now (shown once)
-          </p>
-          <code
-            className="text-[11px] break-all leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          >
-            {revealedSecret}
-          </code>
-          <button
-            type="button"
-            className="text-[12px] font-medium self-start underline underline-offset-2"
-            onClick={() => void handleCopySecret()}
-          >
-            {copied ? "Copied" : "Copy key"}
-          </button>
-          <p className="text-[11px] leading-relaxed opacity-90" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            In Cursor MCP: Authorization Bearer = this key. Header x-domain-id = domain id above.
-            MCP URL: https://api.ke3p.com/mcp
-          </p>
         </div>
       ) : null}
 
