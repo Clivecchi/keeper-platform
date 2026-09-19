@@ -32,6 +32,131 @@ export type DocumentTurnPostureShadowRecord = {
   parsed: DocumentTurnPostureParsedAnswers;
 };
 
+/** Persisted on Lead orchestration so later Turns can compare Jev vs Cast vs synthesis. */
+export type SystemOneLeadOrientationDelivery = {
+  audience: 'lead';
+  suppliedToLead: boolean;
+  suppliedToCast: false;
+  eligible: boolean;
+  available: boolean;
+  model: string | null;
+  errorCode?: string;
+};
+
+const NESTED_CAST_PROMPT_PATTERN =
+  /^\[(?:Director delegation|Agent Echo —|Platform collaboration —)/i;
+
+/**
+ * Lead Director turn only. Cast consults (including Ceox as a Lead-role voice)
+ * must not receive System One orientation in this V0.
+ */
+export function shouldSupplySystemOneOrientationToLead(params: {
+  ephemeral?: boolean;
+  input?: string | null;
+}): boolean {
+  if (params.ephemeral === true) return false;
+  const input = params.input?.trim() ?? '';
+  return !NESTED_CAST_PROMPT_PATTERN.test(input);
+}
+
+function formatProbabilities(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const rows = Object.entries(value as Record<string, unknown>)
+    .filter(([, probability]) => typeof probability === 'number')
+    .map(([label, probability]) => `${label} ${probability}`);
+  return rows.length ? rows.join(', ') : null;
+}
+
+function formatNoul(value: unknown): string {
+  return typeof value === 'number' ? String(value) : 'unavailable';
+}
+
+/**
+ * Distinct read-only block for Lead. Not Cast synthesis. Not an execute switch.
+ */
+export function buildSystemOneLeadOrientationBlock(
+  shadow: DocumentTurnPostureShadowRecord | null,
+): string | null {
+  if (!shadow) return null;
+
+  const header = [
+    '[System One orientation — Lead only]',
+    'This is orientation to the scene, not the script for the performance.',
+    'It is not authorization. It is not an execution switch.',
+    'It does not choose Cast, route a model, or authorize an action.',
+    'Cast members have not seen this block. Their Agency is independent.',
+    'If you report System One values, quote only what is listed below.',
+    'Do not infer, recreate, summarize, or fabricate TypeSafe values.',
+    'If a primitive is missing or Available is no, say: No System One result was available to me for this Turn.',
+  ];
+
+  if (!shadow.ok || !shadow.answers) {
+    return [
+      ...header,
+      '',
+      'Available: no',
+      `Model: ${shadow.model ?? 'unavailable'}`,
+      shadow.errorCode ? `Reason: ${shadow.errorCode}` : null,
+      shadow.message ? `Message: ${shadow.message}` : null,
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join('\n');
+  }
+
+  const answers = shadow.answers;
+  const turn = answers.turnPosture;
+  const turnRecord = turn && typeof turn === 'object' && !Array.isArray(turn)
+    ? (turn as Record<string, unknown>)
+    : null;
+  const probabilities = formatProbabilities(turnRecord?.probabilities);
+  const questions = shadow.invocation.questions;
+
+  return [
+    ...header,
+    '',
+    'Available: yes',
+    `Model: ${shadow.model ?? 'unavailable'}`,
+    '',
+    `Choice turnPosture — ${questions.turnPosture.instructions}`,
+    `  choice: ${typeof turnRecord?.choice === 'string' ? turnRecord.choice : 'unavailable'}`,
+    `  confidence: ${typeof turnRecord?.confidence === 'number' ? turnRecord.confidence : 'unavailable'}`,
+    probabilities ? `  probabilities: ${probabilities}` : '  probabilities: unavailable',
+    '',
+    `Noul documentReorganizationRequested — ${questions.documentReorganizationRequested.instructions}`,
+    `  noul: ${formatNoul(
+      answers.documentReorganizationRequested
+      && typeof answers.documentReorganizationRequested === 'object'
+      && !Array.isArray(answers.documentReorganizationRequested)
+        ? (answers.documentReorganizationRequested as Record<string, unknown>).noul
+        : null,
+    )}`,
+    '',
+    `Noul documentMutationRequested — ${questions.documentMutationRequested.instructions}`,
+    `  noul: ${formatNoul(
+      answers.documentMutationRequested
+      && typeof answers.documentMutationRequested === 'object'
+      && !Array.isArray(answers.documentMutationRequested)
+        ? (answers.documentMutationRequested as Record<string, unknown>).noul
+        : null,
+    )}`,
+  ].join('\n');
+}
+
+export function buildSystemOneLeadOrientationDelivery(
+  shadow: DocumentTurnPostureShadowRecord | null,
+  suppliedToLead: boolean,
+): SystemOneLeadOrientationDelivery {
+  return {
+    audience: 'lead',
+    suppliedToLead,
+    suppliedToCast: false,
+    eligible: shadow != null,
+    available: shadow?.ok === true && shadow.answers != null,
+    model: shadow?.model ?? null,
+    ...(shadow?.errorCode ? { errorCode: shadow.errorCode } : {}),
+  };
+}
+
 export async function evaluateDocumentTurnPostureShadow(params: {
   turn: string;
   dialogTitle?: string | null;

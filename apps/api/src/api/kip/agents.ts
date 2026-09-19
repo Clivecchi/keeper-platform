@@ -206,7 +206,12 @@ import {
   shouldRunReorganizeProposeFollowUp,
   shouldRunReorganizeRestatementFollowUp,
 } from '../../services/kip/documentReorganizeIntent.js';
-import { evaluateDocumentTurnPostureShadow } from '../../services/kip/documentTurnPostureShadow.js';
+import {
+  buildSystemOneLeadOrientationBlock,
+  buildSystemOneLeadOrientationDelivery,
+  evaluateDocumentTurnPostureShadow,
+  shouldSupplySystemOneOrientationToLead,
+} from '../../services/kip/documentTurnPostureShadow.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocument.js';
 import {
@@ -6262,6 +6267,11 @@ export class KipAgentService {
        * never replaces the human's user turn.
        */
       orchestrationContext?: string | null;
+      /**
+       * Read-only System One orientation for Lead. Distinct from Cast synthesis.
+       * Not authorization and not an execute switch.
+       */
+      systemOneOrientation?: string | null;
     },
   ): Promise<{
     content: string
@@ -6877,6 +6887,16 @@ export class KipAgentService {
         typeof promptOptions?.orchestrationContext === 'string'
           ? promptOptions.orchestrationContext.trim()
           : '';
+      const systemOneOrientation =
+        typeof promptOptions?.systemOneOrientation === 'string'
+          ? promptOptions.systemOneOrientation.trim()
+          : '';
+      if (systemOneOrientation) {
+        messages.push({
+          role: 'system',
+          content: systemOneOrientation,
+        });
+      }
       if (orchestrationContext) {
         messages.push({
           role: 'system',
@@ -7610,19 +7630,49 @@ export class KipAgentService {
         console.info('[AgentTurn]', agentTurnSummary);
 
         const humanTurnForShadow = humanTurnTextForIntent(input, options?.displayContent);
-        const turnPostureShadowPromise = evaluateDocumentTurnPostureShadow({
-          turn: humanTurnForShadow,
-          dialogTitle: dialogDocument?.title ?? null,
-          documentInContext: Boolean(dialogDocument?.dialogId),
-          documentPointCount: Array.isArray(dialogDocument?.points)
-            ? dialogDocument.points.length
-            : null,
-          domainId: options?.domainId ?? null,
-          userId,
-        }).catch((error: unknown) => {
-          console.warn('[AgentTurn] turnPosture shadow failed', error);
-          return null;
+        const supplySystemOneToLead = shouldSupplySystemOneOrientationToLead({
+          ephemeral: options?.ephemeral,
+          input,
         });
+        const turnPostureShadow = supplySystemOneToLead
+          ? await evaluateDocumentTurnPostureShadow({
+              turn: humanTurnForShadow,
+              dialogTitle: dialogDocument?.title ?? null,
+              documentInContext: Boolean(dialogDocument?.dialogId),
+              documentPointCount: Array.isArray(dialogDocument?.points)
+                ? dialogDocument.points.length
+                : null,
+              domainId: options?.domainId ?? null,
+              userId,
+            }).catch((error: unknown) => {
+              console.warn('[AgentTurn] turnPosture shadow failed', error);
+              return null;
+            })
+          : null;
+        const systemOneOrientation = supplySystemOneToLead
+          ? buildSystemOneLeadOrientationBlock(turnPostureShadow)
+          : null;
+        if (turnPostureShadow) {
+          Object.assign(agentTurnSummary, { turnPostureShadow });
+        }
+        Object.assign(agentTurnSummary, {
+          systemOneOrientation: buildSystemOneLeadOrientationDelivery(
+            turnPostureShadow,
+            Boolean(systemOneOrientation),
+          ),
+        });
+        if (turnPostureShadow || systemOneOrientation) {
+          console.info('[AgentTurn] turnPostureShadow', {
+            ok: turnPostureShadow?.ok ?? false,
+            model: turnPostureShadow?.model ?? null,
+            parsed: turnPostureShadow?.parsed ?? null,
+            phraseSignal: turnPostureShadow?.invocation.state.phraseSignal ?? null,
+            executed: turnPostureShadow?.executed ?? false,
+            authorized: turnPostureShadow?.authorized ?? false,
+            suppliedToLead: Boolean(systemOneOrientation),
+            suppliedToCast: false,
+          });
+        }
 
         // Generate response using real AI model with memory context
         const aiResult = await this.callAIModel(agent, leadModelInput, previousMessages, userId, {
@@ -7644,20 +7694,8 @@ export class KipAgentService {
           timingLabel: 'lead_main',
           onDelta: options?.onDelta,
           orchestrationContext: leadOrchestrationContext,
+          systemOneOrientation,
         });
-
-        const turnPostureShadow = await turnPostureShadowPromise;
-        if (turnPostureShadow) {
-          Object.assign(agentTurnSummary, { turnPostureShadow });
-          console.info('[AgentTurn] turnPostureShadow', {
-            ok: turnPostureShadow.ok,
-            model: turnPostureShadow.model,
-            parsed: turnPostureShadow.parsed,
-            phraseSignal: turnPostureShadow.invocation.state.phraseSignal,
-            executed: turnPostureShadow.executed,
-            authorized: turnPostureShadow.authorized,
-          });
-        }
 
         const response = aiResult.content;
         const composedSystemPrompt = aiResult.composedSystemPrompt;
