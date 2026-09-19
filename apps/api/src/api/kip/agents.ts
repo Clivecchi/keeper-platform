@@ -206,6 +206,7 @@ import {
   shouldRunReorganizeProposeFollowUp,
   shouldRunReorganizeRestatementFollowUp,
 } from '../../services/kip/documentReorganizeIntent.js';
+import { evaluateDocumentTurnPostureShadow } from '../../services/kip/documentTurnPostureShadow.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocument.js';
 import {
@@ -2622,16 +2623,16 @@ export async function executeAgentActions(
               type: action.type,
               status: 'success',
               message: openDumpRepaired
-                ? 'Open is not a reorganization. Named Sections stay. Chronicle will ask the Lead to place Points.'
+                ? 'Proposal stored. Open is not a reorganization. Named Sections stay. Apply has not run — accepted work is unchanged.'
                 : oneSectionDumpRepaired
-                ? 'Those Points do not all belong in one existing Section. Chronicle will ask the Lead to place them.'
+                ? 'Proposal stored. Those Points do not all belong in one existing Section. Apply has not run — accepted work is unchanged.'
                 : restatement
-                ? 'This restates the current Document. Chronicle will ask the Lead to propose a better structure.'
+                ? 'Proposal stored. This restates the current Document. Apply has not run — accepted work is unchanged.'
                 : spineOnly
-                ? 'Named Sections — place the existing Points into them. Open is only for Points that do not yet fit.'
+                ? 'Proposal stored: named Sections only. Points were not placed. Apply has not run — accepted work is unchanged.'
                 : identityOnly
-                  ? `Proposed ${identityBits.join(' and ') || 'Document identity'} — open Proposed in Chronicle. Apply when you want it to become truth.`
-                : 'Proposed Document — open Proposed in Chronicle. Apply when you want it to become truth.',
+                  ? `Proposal stored: ${identityBits.join(' and ') || 'Document identity'}. Apply has not run — accepted work is unchanged.`
+                : 'Proposal stored. Open Proposed in Chronicle. Apply has not run — accepted work is unchanged.',
               data: {
                 rationale: stored.proposal.rationale,
                 summary: stored.proposal.rationale
@@ -7608,6 +7609,21 @@ export class KipAgentService {
         };
         console.info('[AgentTurn]', agentTurnSummary);
 
+        const humanTurnForShadow = humanTurnTextForIntent(input, options?.displayContent);
+        const turnPostureShadowPromise = evaluateDocumentTurnPostureShadow({
+          turn: humanTurnForShadow,
+          dialogTitle: dialogDocument?.title ?? null,
+          documentInContext: Boolean(dialogDocument?.dialogId),
+          documentPointCount: Array.isArray(dialogDocument?.points)
+            ? dialogDocument.points.length
+            : null,
+          domainId: options?.domainId ?? null,
+          userId,
+        }).catch((error: unknown) => {
+          console.warn('[AgentTurn] turnPosture shadow failed', error);
+          return null;
+        });
+
         // Generate response using real AI model with memory context
         const aiResult = await this.callAIModel(agent, leadModelInput, previousMessages, userId, {
           mode: activeMode,
@@ -7629,6 +7645,19 @@ export class KipAgentService {
           onDelta: options?.onDelta,
           orchestrationContext: leadOrchestrationContext,
         });
+
+        const turnPostureShadow = await turnPostureShadowPromise;
+        if (turnPostureShadow) {
+          Object.assign(agentTurnSummary, { turnPostureShadow });
+          console.info('[AgentTurn] turnPostureShadow', {
+            ok: turnPostureShadow.ok,
+            model: turnPostureShadow.model,
+            parsed: turnPostureShadow.parsed,
+            phraseSignal: turnPostureShadow.invocation.state.phraseSignal,
+            executed: turnPostureShadow.executed,
+            authorized: turnPostureShadow.authorized,
+          });
+        }
 
         const response = aiResult.content;
         const composedSystemPrompt = aiResult.composedSystemPrompt;

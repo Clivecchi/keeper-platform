@@ -30,6 +30,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 
 ## 📆 Update Log
 
+### 2026-09-18 — Document Turn Posture corpus
+- `run-document-turn-posture-corpus.ts` — live TypeSafe shadow over the known false-positive / genuine-positive Document turns. Writes `tmp/document-turn-posture-corpus-results.json`. Does not mutate a Document.
+
 ### 2026-08-20 — Agency Point-intent conclusions
 - `append-agency-point-intent-points.ts` — appends accepted Points to Becoming Together via `createDraftPoint` / `appendDraftPointToSpec` (same path as `draft.update.propose`). Dry-run default.
 

@@ -521,7 +521,7 @@ export function buildAllActionsFailedSummary(results: ActionResultLike[]): strin
   const lines = consequential.map((result) => {
     const label = result.status === 'skipped' ? 'skipped' : 'failed';
     if (result.type === 'document.reorganize.propose') {
-      return `- document.reorganize.propose (${label}): The proposed Document did not land. Named Sections stay.`;
+      return `- document.reorganize.propose (${label}): The proposal did not land. Apply has not run.`;
     }
     return `- ${result.type} (${label}): ${result.message}`;
   });

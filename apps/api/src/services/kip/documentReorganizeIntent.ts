@@ -59,7 +59,7 @@ export function buildReorganizeProposeFollowUpInput(params: {
   return [
     `[Review & Reorganize unmet — reply as ${params.agentName}. Propose the Document now.]`,
     '',
-    `The human asked you to review and reorganize${named}. Narration is not a proposal.`,
+    `Established Document direction${named} — narration is not a proposal. Do not claim the human asked unless that direction is established.`,
     'Emit document.reorganize.propose in this turn.',
     'Do not draft.update.propose. Do not delegate.consult. You are the Lead — do the Document work.',
     'If they asked to rename the Document or write the Forward, put those on the payload: title, forward: { title, description }.',
@@ -75,7 +75,10 @@ export function buildReorganizeProposeFollowUpInput(params: {
 export function shouldRunReorganizePlacementFollowUp(params: {
   isLead: boolean;
   actionResults: ActionResultLite[];
+  /** Automatic second propose is off unless a later slice warrants it. */
+  warranted?: boolean;
 }): boolean {
+  if (params.warranted !== true) return false;
   if (!params.isLead) return false;
   return params.actionResults.some(
     (result) =>
@@ -115,7 +118,10 @@ export function buildReorganizePlacementFollowUpInput(params: {
 export function shouldRunReorganizeRestatementFollowUp(params: {
   isLead: boolean;
   actionResults: ActionResultLite[];
+  /** Automatic second propose is off unless a later slice warrants it. */
+  warranted?: boolean;
 }): boolean {
+  if (params.warranted !== true) return false;
   if (!params.isLead) return false;
   if (shouldRunReorganizePlacementFollowUp(params)) return false;
   return params.actionResults.some(

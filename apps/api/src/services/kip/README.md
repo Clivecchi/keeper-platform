@@ -24,7 +24,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `glossIntent.ts` — Gloss is depth on a Point (`gloss.append`). Follow-up when the Lead narrates instead of writing Gloss.
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up). Offer-in-prose is an incomplete turn.
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
-- `documentReorganizeIntent.ts` — detect review/reorganize language and prompt the Lead to propose, not rewrite
+- `documentReorganizeIntent.ts` — phrase signal for review/reorganize language. Established direction may prompt Lead to propose. Mention does not.
+- `documentTurnPostureShadow.ts` — TypeSafe shadow Choice/Noul on Document-related Turns. Does not authorize or mutate.
 - `layoutStageStory.ts` — Lead `stage.story.layout` writes `keeperStage.story`; `appendStageExpressionBeat` appends one live-sourced performance Frame
 - `keepingChoicePersist.ts` — stamp / select / reload Keeping Choice records on `kip_messages.metadata`
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
@@ -42,6 +43,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-18 — Document Turn Posture shadow
+- Phrase detection is a signal. TypeSafe shadow records `turnPosture` / `documentReorganizationRequested` / `documentMutationRequested` with raw probabilities. Automatic second propose follow-ups are off unless explicitly warranted.
+
 ### 2026-09-18 — Model Registry V0 provenance
 - Lead persist now writes executed `offeringId`, provider, model, `fallbackUsed`, and both attempts onto performance provenance and turn orchestration. Stored Agent model fields remain preference inputs.
 

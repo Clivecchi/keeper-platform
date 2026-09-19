@@ -20,7 +20,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
 - `sessionActionLog.ts` — Session action receipts for the Lead prompt
-- `documentReorganizeIntent.ts` — Shared detector for Document-review / director language
+- `documentReorganizeIntent.ts` — Phrase signal for Document-review language. Mention ≠ established direction ≠ authorization ≠ execution.
+- `documentTurnPosture.ts` — TypeSafe shadow primitives + diagnostic corpus for Document Turn Posture
 - `agentRole.ts` — `isLeadAgentRole` (class role, not Agent identity)
 - `agentPerformanceProvenance.ts` — `perf-v1` named runtime checklist for Agent Board inspection
 
@@ -33,6 +34,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-18: `documentReorganizeIntent.ts` is a phrase signal. `required` now means established direction only. Known false positives (`not the same thing`, `do not reorganize`, diagnostic questions, restatement complaints) stay `mentioned`. `documentTurnPosture.ts` holds the TypeSafe shadow questions and corpus.
 - 2026-09-18: `agentPerformanceProvenance.ts` — optional `offeringId`, `fallbackUsed`, preference fields, and `executionAttempts` so inspection records the executed offering, not only the Agent's stored model preference.
 - 2026-09-16: `domainRoleCatalog.ts` — Domain.settings.roles stores Owner/platform label overrides and custom names. Custom roles map onto admin/user/friend/connection. Not a new permission engine.
 - 2026-09-15: Domain roles — Owner is display-only. `user` labels as Member. Permission bundles live next to the map. Custom Domain roles are stubbed off.

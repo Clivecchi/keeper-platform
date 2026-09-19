@@ -1,0 +1,311 @@
+{
+  "generatedAt": "2026-09-19T02:48:59.410Z",
+  "results": [
+    {
+      "id": "fp-same-thing",
+      "family": "false_positive",
+      "label": "Model and Provider are not the same thing",
+      "text": "One additional distinction I think matters for the Registry: Model and Provider are not the same thing. A model may eventually be available through multiple connected providers.",
+      "expectedMention": true,
+      "expectedEstablishedDirection": false,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": false,
+        "matched": [
+          "same document/thing/proposal"
+        ],
+        "blockedReason": "not the same thing"
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    },
+    {
+      "id": "fp-do-not-reorganize",
+      "family": "false_positive",
+      "label": "Do not reorganize",
+      "text": "Do not reorganize, propose, apply, or modify anything in response to this Turn.",
+      "expectedMention": true,
+      "expectedEstablishedDirection": false,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": false,
+        "matched": [
+          "reorganize named document"
+        ],
+        "blockedReason": "negation"
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    },
+    {
+      "id": "fp-interpret-review",
+      "family": "false_positive",
+      "label": "What did you interpret as requesting Review & Reorganize?",
+      "text": "What user instruction did you interpret as requesting Review & Reorganize?",
+      "expectedMention": true,
+      "expectedEstablishedDirection": false,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": false,
+        "matched": [
+          "review+reorganize",
+          "reorganize named document"
+        ],
+        "blockedReason": "interpret as requesting"
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    },
+    {
+      "id": "fp-nothing-changed",
+      "family": "false_positive",
+      "label": "Nothing changed",
+      "text": "Nothing changed.",
+      "expectedMention": true,
+      "expectedEstablishedDirection": false,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": false,
+        "matched": [
+          "nothing/anything changed"
+        ],
+        "blockedReason": null
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    },
+    {
+      "id": "fp-thats-useless",
+      "family": "false_positive",
+      "label": "That's useless",
+      "text": "That's useless.",
+      "expectedMention": true,
+      "expectedEstablishedDirection": false,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": false,
+        "matched": [
+          "thats useless/not a proposal"
+        ],
+        "blockedReason": null
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    },
+    {
+      "id": "gp-reorganize-named",
+      "family": "genuine_positive",
+      "label": "Reorganize Finding the Plot",
+      "text": "Reorganize Finding the Plot.",
+      "expectedMention": true,
+      "expectedEstablishedDirection": true,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": true,
+        "matched": [
+          "reorganize named document"
+        ],
+        "blockedReason": null
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    },
+    {
+      "id": "gp-review-propose",
+      "family": "genuine_positive",
+      "label": "Review this Document and propose a better organization",
+      "text": "Review this Document and propose a better organization.",
+      "expectedMention": true,
+      "expectedEstablishedDirection": true,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": true,
+        "matched": [
+          "propose a better document",
+          "review the document"
+        ],
+        "blockedReason": null
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    },
+    {
+      "id": "apply-yes",
+      "family": "apply",
+      "label": "Yes, apply that reorganization",
+      "text": "Yes, apply that reorganization.",
+      "expectedMention": true,
+      "expectedEstablishedDirection": false,
+      "phraseSignal": {
+        "signal": "mentioned",
+        "mention": true,
+        "establishedDirection": false,
+        "matched": [
+          "reorganization noun"
+        ],
+        "blockedReason": null
+      },
+      "typesafe": {
+        "ok": false,
+        "model": "jev-latest",
+        "errorCode": "MISSING_API_KEY",
+        "message": "Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.",
+        "answers": null,
+        "parsed": {
+          "turnPosture": {
+            "choice": null,
+            "confidence": null
+          },
+          "documentReorganizationRequested": {
+            "noul": null
+          },
+          "documentMutationRequested": {
+            "noul": null
+          }
+        },
+        "executed": false,
+        "authorized": false
+      }
+    }
+  ]
+}

@@ -44,6 +44,7 @@ export * from './document.js';
 export * from './documentAuthoring.js';
 export * from './documentReorganize.js';
 export * from './documentReorganizeIntent.js';
+export * from './documentTurnPosture.js';
 export * from './dialogParticipation.js';
 export * from './dialogTitleSource.js';
 export * from './talkingInWorkingOn.js';

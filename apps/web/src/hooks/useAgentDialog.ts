@@ -1023,7 +1023,7 @@ export function useAgentDialog({
 
       const leadDirectsDocument = detectReorganizeIntent(content) === "required"
       if (leadDirectsDocument && consultSlugs.length > 0) {
-        appendThinkingStep("Directing the Document — Cast stays off this turn.")
+        appendThinkingStep("Established Document direction — Cast stays off this turn.")
       }
       if (liveDirectorConfig && consultSlugs.length > 0 && content.trim() && !leadDirectsDocument) {
         onDirectorPhaseChange?.("cast")
