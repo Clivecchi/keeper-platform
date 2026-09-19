@@ -67,7 +67,7 @@ export function conversationToState(messages: TypeSafeMessage[]): string {
     .join('\n\n');
 }
 
-function isQuestionMap(value: unknown): value is TypeSafeQuestions {
+export function isQuestionMap(value: unknown): value is TypeSafeQuestions {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   return Object.values(value as Record<string, unknown>).every((entry) => {
     if (!entry || typeof entry !== 'object') return false;
@@ -109,7 +109,7 @@ export function resolveTypeSafeRequest(
   };
 }
 
-function formatAnswers(answers: Record<string, unknown>): string {
+export function formatTypeSafeAnswers(answers: Record<string, unknown>): string {
   const lines: string[] = [];
   for (const [id, raw] of Object.entries(answers)) {
     if (!raw || typeof raw !== 'object') continue;
@@ -131,25 +131,114 @@ function formatAnswers(answers: Record<string, unknown>): string {
   return lines.length > 0 ? lines.join('\n') : JSON.stringify(answers);
 }
 
-export class TypeSafeProvider {
-  static async callModel(
-    messages: TypeSafeMessage[],
-    settings: { model?: string },
-    apiKey?: string,
-    jsonMode?: boolean,
-  ): Promise<TypeSafeCallResult> {
-    if (!apiKey?.trim()) {
-      throw new Error('TypeSafe API key is not configured. Add TYPESAFE_API_KEY to Railway, or a platform/user key.');
-    }
+export type TypeSafeEvaluateRequest = {
+  state: unknown;
+  questions: TypeSafeQuestions;
+  model: string;
+};
 
-    const request = resolveTypeSafeRequest(messages, settings);
+export type TypeSafeEvaluateSuccess = {
+  ok: true;
+  model: string;
+  answers: Record<string, unknown>;
+  formatted: string;
+};
+
+export type TypeSafeEvaluateFailure = {
+  ok: false;
+  errorCode: 'MISSING_API_KEY' | 'INVALID_QUESTIONS' | 'PROVIDER_ERROR';
+  message: string;
+};
+
+export type TypeSafeEvaluateOutcome = TypeSafeEvaluateSuccess | TypeSafeEvaluateFailure;
+
+function questionType(value: unknown): 'noul' | 'choice' | 'score' | null {
+  return value === 'noul' || value === 'choice' || value === 'score' ? value : null;
+}
+
+export function parseTypeSafeEvaluatePayload(payload: unknown):
+  | { ok: true; request: TypeSafeEvaluateRequest }
+  | { ok: false; errorCode: 'INVALID_QUESTIONS'; message: string } {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { ok: false, errorCode: 'INVALID_QUESTIONS', message: 'typesafe.evaluate requires a payload object' };
+  }
+  const row = payload as Record<string, unknown>;
+  const model =
+    typeof row.model === 'string' && row.model.trim() ? row.model.trim() : TYPESAFE_DEFAULT_MODEL;
+
+  const hasState = row.state !== undefined && row.state !== null && !(typeof row.state === 'string' && !row.state.trim());
+  if (!hasState) {
+    return { ok: false, errorCode: 'INVALID_QUESTIONS', message: 'state is required for typesafe.evaluate' };
+  }
+
+  if (isQuestionMap(row.questions) && Object.keys(row.questions).length > 0) {
+    return { ok: true, request: { state: row.state, questions: row.questions, model } };
+  }
+
+  const questionText =
+    typeof row.question === 'string'
+      ? row.question.trim()
+      : typeof row.instructions === 'string'
+        ? row.instructions.trim()
+        : '';
+  const type = questionType(row.type) ?? 'noul';
+  if (questionText) {
+    const criteria = row.criteria;
+    const question: TypeSafeQuestion =
+      type === 'choice'
+        ? {
+            type: 'choice',
+            instructions: questionText,
+            criteria:
+              criteria && typeof criteria === 'object' && !Array.isArray(criteria)
+                ? (criteria as Record<string, string | null>)
+                : { yes: 'Yes', no: 'No' },
+          }
+        : type === 'score'
+          ? {
+              type: 'score',
+              instructions: questionText,
+              criteria: Array.isArray(criteria) ? criteria.filter((item): item is string => typeof item === 'string') : ['low', 'medium', 'high'],
+            }
+          : { type: 'noul', instructions: questionText };
+    return { ok: true, request: { state: row.state, questions: { q1: question }, model } };
+  }
+
+  return {
+    ok: false,
+    errorCode: 'INVALID_QUESTIONS',
+    message: 'typesafe.evaluate needs questions (map) or a single question string',
+  };
+}
+
+export async function evaluateTypeSafe(params: {
+  state: unknown;
+  questions: TypeSafeQuestions;
+  model?: string;
+  apiKey?: string | null;
+}): Promise<TypeSafeEvaluateOutcome> {
+  const apiKey = params.apiKey?.trim();
+  if (!apiKey) {
+    return {
+      ok: false,
+      errorCode: 'MISSING_API_KEY',
+      message: 'Add TYPESAFE_API_KEY to Railway, or a platform/user key for TypeSafe.',
+    };
+  }
+
+  const model = params.model?.trim() || TYPESAFE_DEFAULT_MODEL;
+  try {
     const res = await fetch(TYPESAFE_SYSTEMONE_URL, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey.trim()}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        state: params.state,
+        questions: params.questions,
+        model,
+      }),
     });
 
     const bodyText = await res.text();
@@ -167,28 +256,61 @@ export class TypeSafeProvider {
           : typeof parsed.message === 'string'
             ? parsed.message
             : bodyText.slice(0, 240) || res.statusText;
-      throw new Error(`TypeSafe API ${res.status}: ${detail}`);
+      return {
+        ok: false,
+        errorCode: 'PROVIDER_ERROR',
+        message: `TypeSafe API ${res.status}: ${detail}`,
+      };
     }
 
     const answers =
       parsed.answers && typeof parsed.answers === 'object' && !Array.isArray(parsed.answers)
         ? (parsed.answers as Record<string, unknown>)
         : parsed;
-    const usageRaw = parsed.usage && typeof parsed.usage === 'object' ? (parsed.usage as Record<string, unknown>) : {};
-    const promptTokens = typeof usageRaw.input_tokens === 'number' ? usageRaw.input_tokens : 0;
-    const completionTokens = typeof usageRaw.output_tokens === 'number' ? usageRaw.output_tokens : 0;
-    const model =
-      typeof parsed.model === 'string' && parsed.model.trim() ? parsed.model.trim() : request.model;
+    const resolvedModel =
+      typeof parsed.model === 'string' && parsed.model.trim() ? parsed.model.trim() : model;
 
     return {
+      ok: true,
+      model: resolvedModel,
+      answers,
+      formatted: formatTypeSafeAnswers(answers),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      errorCode: 'PROVIDER_ERROR',
+      message: err instanceof Error ? err.message : 'Failed to reach TypeSafe',
+    };
+  }
+}
+
+export class TypeSafeProvider {
+  static async callModel(
+    messages: TypeSafeMessage[],
+    settings: { model?: string },
+    apiKey?: string,
+    jsonMode?: boolean,
+  ): Promise<TypeSafeCallResult> {
+    const request = resolveTypeSafeRequest(messages, settings);
+    const outcome = await evaluateTypeSafe({
+      state: request.state,
+      questions: request.questions,
+      model: request.model,
+      apiKey,
+    });
+    if (outcome.ok === false) {
+      throw new Error(outcome.message);
+    }
+    return {
       success: true,
-      content: jsonMode ? JSON.stringify(answers) : formatAnswers(answers),
+      content: jsonMode ? JSON.stringify(outcome.answers) : outcome.formatted,
       usage: {
-        prompt_tokens: promptTokens,
-        completion_tokens: completionTokens,
-        total_tokens: promptTokens + completionTokens,
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
       },
-      model,
+      model: outcome.model,
       retries_used: 0,
       execution_time_ms: 0,
     };

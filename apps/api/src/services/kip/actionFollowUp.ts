@@ -25,6 +25,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'dialog.read',
   'glossary.read',
   'web.search',
+  'typesafe.evaluate',
   'delegate.consult',
 ]);
 
@@ -199,6 +200,16 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
               'No extracted document text. agent_perspective is not the body. Private Google Docs cannot be read via web.search — the human must upload a file or paste the text.',
             );
           }
+        } else if (result.type === 'typesafe.evaluate') {
+          lines.push('TypeSafe answers:');
+          if (typeof data.formatted === 'string' && data.formatted.trim()) {
+            lines.push(data.formatted);
+          } else if (data.answers && typeof data.answers === 'object') {
+            lines.push(JSON.stringify(data.answers));
+          }
+          if (typeof data.model === 'string') {
+            lines.push(`Model: ${data.model}`);
+          }
         } else if (Array.isArray(data.results)) {
           if (result.type === 'web.search') {
             lines.push(`Web results: ${data.results.length}`);
@@ -243,6 +254,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           && result.type !== 'glossary.read'
           && result.type !== 'library.read'
           && result.type !== 'web.search'
+          && result.type !== 'typesafe.evaluate'
         ) {
           lines.push(`Data: ${JSON.stringify(data, null, 2).slice(0, 4000)}`);
         }
@@ -264,6 +276,14 @@ export function formatReadActionResultsForUserFallback(results: ActionResultLike
   for (const result of results) {
     if (result.status !== 'success' || !isReadOnlyActionType(result.type)) continue;
     const data = result.data ?? {};
+
+    if (result.type === 'typesafe.evaluate') {
+      lines.push('TypeSafe answers:');
+      if (typeof data.formatted === 'string' && data.formatted.trim()) {
+        lines.push(data.formatted);
+      }
+      continue;
+    }
 
     if (result.type === 'web.search' && Array.isArray(data.results)) {
       const query = typeof data.query === 'string' ? data.query : 'your search';
@@ -399,6 +419,10 @@ export function buildReadActionFollowUpInput(params: {
     '- Cite the most relevant sources by title and URL',
     '- Summarize what they say; do not invent links that were not returned',
     '- Do NOT call web.search again in this follow-up unless the user asked for a different query',
+    'If typesafe.evaluate returned answers:',
+    '- Report the typed answers (noul / choice / score) and their confidence',
+    '- Do not treat TypeSafe as a person or a chat model',
+    '- Do NOT call typesafe.evaluate again unless the state changed',
     'If they asked to rebuild or restore draft points, use draft.update.propose or draft.update actions now with the content you recover from the session.',
     'If dialog.read returned a Document:',
     '- Use Forward, Step, Paths, and Points from the result — same source Chronicle renders.',

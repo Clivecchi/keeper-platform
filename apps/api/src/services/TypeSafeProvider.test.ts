@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   conversationToState,
+  parseTypeSafeEvaluatePayload,
   resolveTypeSafeRequest,
   TypeSafeProvider,
 } from './TypeSafeProvider.js';
@@ -73,5 +74,28 @@ describe('TypeSafeProvider', () => {
 
   it('conversationToState skips empty messages', () => {
     expect(conversationToState([{ role: 'user', content: '  ' }])).toBe('');
+  });
+
+  it('parses a questions map and a shorthand question', () => {
+    const mapped = parseTypeSafeEvaluatePayload({
+      state: 'Point: Stage is the room.',
+      questions: { should_keep: { type: 'noul', instructions: 'Keep this Point?' } },
+    });
+    expect(mapped.ok).toBe(true);
+    if (mapped.ok) {
+      expect(mapped.request.questions.should_keep?.type).toBe('noul');
+    }
+
+    const short = parseTypeSafeEvaluatePayload({
+      state: 'Point: Stage is the room.',
+      question: 'Is this ready to keep?',
+      type: 'noul',
+    });
+    expect(short.ok).toBe(true);
+    if (short.ok) {
+      expect(short.request.questions.q1?.type).toBe('noul');
+    }
+
+    expect(parseTypeSafeEvaluatePayload({ questions: {} }).ok).toBe(false);
   });
 });

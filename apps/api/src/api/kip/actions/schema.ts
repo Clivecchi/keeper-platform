@@ -339,6 +339,36 @@ export const webSearchPayloadSchema = z.object({
 
 export type WebSearchAction = z.infer<typeof webSearchPayloadSchema> & { type: 'web.search' };
 
+const typeSafeQuestionSchema = z.object({
+  type: z.enum(['noul', 'choice', 'score']),
+  instructions: z.string().min(1),
+  criteria: z.union([z.record(z.string().nullable()), z.array(z.string())]).optional(),
+});
+
+export const typeSafeEvaluatePayloadSchema = z
+  .object({
+    state: z.unknown(),
+    questions: z.record(typeSafeQuestionSchema).optional(),
+    question: z.string().min(1).optional(),
+    instructions: z.string().min(1).optional(),
+    type: z.enum(['noul', 'choice', 'score']).optional(),
+    criteria: z.union([z.record(z.string().nullable()), z.array(z.string())]).optional(),
+    model: z.string().optional(),
+  })
+  .refine((data) => data.state !== undefined && data.state !== null && !(typeof data.state === 'string' && !data.state.trim()), {
+    message: 'state is required',
+  })
+  .refine(
+    (data) =>
+      (data.questions && Object.keys(data.questions).length > 0) ||
+      Boolean(data.question?.trim() || data.instructions?.trim()),
+    { message: 'Provide questions or a single question' },
+  );
+
+export type TypeSafeEvaluateAction = z.infer<typeof typeSafeEvaluatePayloadSchema> & {
+  type: 'typesafe.evaluate';
+};
+
 const mcpCallPayloadSchema = z.object({
   name: z.string().min(1, 'name is required'),
   args: z.record(z.unknown()).optional().default({}),
@@ -385,6 +415,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'document.reorganize.propose': documentReorganizeProposePayloadSchema,
   'stage.story.layout': stageStoryLayoutPayloadSchema,
   'web.search': webSearchPayloadSchema,
+  'typesafe.evaluate': typeSafeEvaluatePayloadSchema,
   'mcp.call': mcpCallPayloadSchema,
   'delegate.consult': delegateConsultPayloadSchema,
 };

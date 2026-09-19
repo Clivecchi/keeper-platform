@@ -229,6 +229,37 @@ describe('actionFollowUp', () => {
     expect(input).toContain('Cite the most relevant sources');
   });
 
+  it('runs follow-up for typesafe.evaluate and formats answers', () => {
+    expect(
+      shouldRunReadActionFollowUp(
+        [{ type: 'typesafe.evaluate' }],
+        [{ type: 'typesafe.evaluate', status: 'success', message: 'TypeSafe evaluated 1 question' }],
+      ),
+    ).toBe(true);
+
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'Should we keep this Point?',
+      agentName: 'Kip',
+      priorResponseText: 'Checking with TypeSafe.',
+      actionResults: [
+        {
+          type: 'typesafe.evaluate',
+          status: 'success',
+          message: 'TypeSafe evaluated 1 question',
+          data: {
+            model: 'jev-latest',
+            formatted: 'should_keep: 0.810',
+            answers: { should_keep: { type: 'noul', noul: 0.81 } },
+          },
+        },
+      ],
+    });
+
+    expect(input).toContain('should_keep: 0.810');
+    expect(input).toContain('typed answers');
+    expect(input).toContain('Do not treat TypeSafe as a person');
+  });
+
   it('treats propose-points as draft work and "let me read" as deferral', () => {
     expect(
       shouldRunMutationDeferralFollowUp({

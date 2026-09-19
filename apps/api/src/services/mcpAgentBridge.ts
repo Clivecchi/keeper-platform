@@ -6,12 +6,18 @@ import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js
 import { withAsyncTimeout } from '../lib/fetchWithTimeout.js';
 import { mcpCallAction, type McpContext } from '../mcp/core.js';
 import { getSchema } from '../mcp/tools.js';
+import { runTypeSafeEvaluateAction } from './TypeSafeEvaluateService.js';
 import { WebSearchService } from './WebSearchService.js';
 
 /** Cloud often mcp.call's the Kip action name. web.search is not an MCP tool. */
 export function isWebSearchMcpAlias(name: string): boolean {
   const normalized = name.trim().toLowerCase().replace(/_/g, '.');
   return normalized === 'web.search';
+}
+
+export function isTypeSafeEvaluateMcpAlias(name: string): boolean {
+  const normalized = name.trim().toLowerCase().replace(/_/g, '.');
+  return normalized === 'typesafe.evaluate';
 }
 
 export class McpCallExecutionError extends Error {
@@ -109,6 +115,7 @@ export function buildMcpToolSystemPrompt(tools: McpToolDescriptor[]): string {
     'Deploy/write tools (railway_trigger_redeploy, vercel_trigger_redeploy) require explicit user confirmation first.',
     'Do NOT tell the user MCP tools are unavailable — they are wired via mcp.call when listed above.',
     'web.search is a Kip action, not an MCP tool. Never mcp.call name "web.search". Emit {"type":"web.search","payload":{"query":"..."}}.',
+    'typesafe.evaluate is a Kip action, not an MCP tool. Never mcp.call name "typesafe.evaluate". Emit {"type":"typesafe.evaluate","payload":{"state":"...","questions":{...}}}.',
   ].join('\n');
 }
 
@@ -121,6 +128,22 @@ export async function executeMcpCallAction(params: {
   if (isWebSearchMcpAlias(params.toolName)) {
     const { query, count } = webSearchQueryFromArgs(params.args ?? {});
     const outcome = await WebSearchService.search({ query, count });
+    if (outcome.ok === false) {
+      throw new McpCallExecutionError(outcome.message, outcome.errorCode);
+    }
+    return outcome;
+  }
+
+  if (isTypeSafeEvaluateMcpAlias(params.toolName)) {
+    const args = params.args ?? {};
+    const nested =
+      args.payload && typeof args.payload === 'object' && !Array.isArray(args.payload)
+        ? args.payload
+        : args;
+    const outcome = await runTypeSafeEvaluateAction({
+      payload: nested,
+      domainId: params.domainId,
+    });
     if (outcome.ok === false) {
       throw new McpCallExecutionError(outcome.message, outcome.errorCode);
     }

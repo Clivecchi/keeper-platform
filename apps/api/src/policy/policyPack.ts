@@ -29,6 +29,7 @@ export const DEFAULT_POLICY_PACK_V1 = {
       'moment.read',
       'keeper.read',
       'web.search',
+      'typesafe.evaluate',
     ],
   },
 } as const;

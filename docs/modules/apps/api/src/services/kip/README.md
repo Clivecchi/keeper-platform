@@ -42,6 +42,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-18 — TypeSafe evaluate follow-up
+- `actionFollowUp.ts` treats `typesafe.evaluate` as a read-only tool so the second turn sees Jev answers.
+
 ### 2026-09-15 — web.search snippets
 - `actionFollowUp.ts` — web.search follow-up keeps 2500 characters of each snippet so a fetched page body can reach the second model turn.
 

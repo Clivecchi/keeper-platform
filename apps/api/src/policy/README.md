@@ -20,6 +20,7 @@ Domain policy pack definitions and helpers that feed Kip environment bundles and
 - [ ] Surface policy version negotiation if a future pack is introduced
 
 ## 📆 Update Log
+- 2026-09-18: **typesafe.evaluate** — golden path + handlers. TypeSafe / Jev is a shared tool, not an agent or chat model.
 - 2026-08-30: **stage.story.layout** — golden path + handlers. Lead writes the Stage filmstrip.
 - 2026-08-25: **gloss.append** — golden path + handlers. Lead Gloss on a Document Point (Chronicle Gloss carrier). Not a rewrite.
 - 2026-08-22: **document.reorganize.propose** — added to golden path + handlers. Lead Review & Reorganize; Apply is a human Chronicle action, not an agent write.

@@ -24,6 +24,13 @@ describe('kipActionAllowlist', () => {
     expect(KIP_ACTION_HANDLERS).toContain('stage.story.layout');
   });
 
+  it('keeps typesafe.evaluate on the Lead golden path as a tool', () => {
+    const allowed = buildAllowedActions(null);
+    expect(allowed.has('typesafe.evaluate')).toBe(true);
+    expect(GOLDEN_PATH_ACTIONS).toContain('typesafe.evaluate');
+    expect(KIP_ACTION_HANDLERS).toContain('typesafe.evaluate');
+  });
+
   it('does not put mcp.call on the Lead allowlist', () => {
     const allowed = buildAllowedActions(null);
     expect(allowed.has('mcp.call')).toBe(false);

@@ -4,6 +4,7 @@ import {
   executeMcpCallAction,
   getMcpToolsForCapabilities,
   hasSuccessfulMcpResults,
+  isTypeSafeEvaluateMcpAlias,
   isWebSearchMcpAlias,
   McpCallExecutionError,
 } from './mcpAgentBridge.js';
@@ -38,12 +39,16 @@ describe('mcpAgentBridge', () => {
     expect(prompt).toContain('railway_get_deployments');
     expect(prompt).toContain('live and callable');
     expect(prompt).toContain('web.search is a Kip action, not an MCP tool');
+    expect(prompt).toContain('typesafe.evaluate is a Kip action, not an MCP tool');
   });
 
   it('treats web.search / web_search as Kip-action aliases, not MCP tools', () => {
     expect(isWebSearchMcpAlias('web.search')).toBe(true);
     expect(isWebSearchMcpAlias('web_search')).toBe(true);
     expect(isWebSearchMcpAlias('railway_get_deployments')).toBe(false);
+    expect(isTypeSafeEvaluateMcpAlias('typesafe.evaluate')).toBe(true);
+    expect(isTypeSafeEvaluateMcpAlias('typesafe_evaluate')).toBe(true);
+    expect(isTypeSafeEvaluateMcpAlias('web.search')).toBe(false);
   });
 
   it('mcp.call web.search uses WebSearchService instead of Unknown tool', async () => {

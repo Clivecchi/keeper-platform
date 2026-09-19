@@ -35,6 +35,7 @@ export const GOLDEN_PATH_ACTIONS = [
   'moment.read',
   'keeper.read',
   'web.search',
+  'typesafe.evaluate',
 ] as const;
 
 export type GoldenPathAction = (typeof GOLDEN_PATH_ACTIONS)[number];
@@ -70,6 +71,7 @@ export const KIP_ACTION_HANDLERS = [
   'moment.read',
   'keeper.read',
   'web.search',
+  'typesafe.evaluate',
   'mcp.call',
   'delegate.consult',
 ] as const;
