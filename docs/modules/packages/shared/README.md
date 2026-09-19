@@ -39,6 +39,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-09-18 — Execution offering on provenance
+- `agentPerformanceProvenance.ts` records optional `offeringId`, `fallbackUsed`, preference fields, and `executionAttempts` so Activity can prove which offering ran.
+
 ### 2026-09-17 — TypeSafe Chronicle declaration
 - `integrationChronicleDeclarations.ts` adds the TypeSafe AI Model gateway: Jev System One, not chat. Connect copy points at `TYPESAFE_API_KEY`.
 

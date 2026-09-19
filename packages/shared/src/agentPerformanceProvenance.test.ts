@@ -78,4 +78,39 @@ describe('agentPerformanceProvenance', () => {
     });
     expect(parseAgentPerformanceProvenance(built)?.agentSlug).toBe('ceox');
   });
+
+  it('records the offering that actually ran, including fallback', () => {
+    const row = buildAgentPerformanceProvenance({
+      agentId: 'a1',
+      agentSlug: 'ceox',
+      agentName: 'Ceox',
+      configuredRole: 'Lead',
+      model: 'claude-sonnet-5',
+      modelProvider: 'anthropic',
+      offeringId: 'anthropic:claude-sonnet-5',
+      fallbackUsed: true,
+      preferenceModel: 'claude-sonnet-4-6',
+      preferenceProvider: 'anthropic',
+      executionAttempts: [
+        {
+          offeringId: 'anthropic:claude-sonnet-4-6',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-6',
+          outcome: 'failed',
+          errorCode: 'INVALID_MODEL',
+        },
+        {
+          offeringId: 'anthropic:claude-sonnet-5',
+          provider: 'anthropic',
+          model: 'claude-sonnet-5',
+          outcome: 'succeeded',
+        },
+      ],
+    });
+    expect(row.offeringId).toBe('anthropic:claude-sonnet-5');
+    expect(row.fallbackUsed).toBe(true);
+    expect(row.preferenceModel).toBe('claude-sonnet-4-6');
+    expect(row.executionAttempts).toHaveLength(2);
+    expect(parseAgentPerformanceProvenance(row)?.fallbackUsed).toBe(true);
+  });
 });

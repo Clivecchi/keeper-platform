@@ -15,6 +15,7 @@ import { envKeyForProvider, envVarNameForProvider } from '../lib/resolveProvider
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
 import { getModelCapabilities } from '../config/index.js';
 import { TypeSafeProvider } from './TypeSafeProvider.js';
+import { isGenuineInvalidModelError } from './modelProviderErrors.js';
 
 const DEFAULT_ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
@@ -1081,7 +1082,13 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
     return new ModelProviderException('MISSING_API_KEY', message, { retryable: false, status });
   }
 
-  if (providerCode === 'model_not_found' || (lowerMessage.includes('model') && lowerMessage.includes('not'))) {
+  if (
+    isGenuineInvalidModelError({
+      providerCode: typeof providerCode === 'string' ? providerCode : null,
+      message,
+      status: typeof status === 'number' ? status : null,
+    })
+  ) {
     return new ModelProviderException('INVALID_MODEL', message, { retryable: false, status });
   }
 

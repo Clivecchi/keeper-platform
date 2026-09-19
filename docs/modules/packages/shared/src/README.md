@@ -33,6 +33,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-18: `agentPerformanceProvenance.ts` — optional `offeringId`, `fallbackUsed`, preference fields, and `executionAttempts` so inspection records the executed offering, not only the Agent's stored model preference.
 - 2026-09-16: `domainRoleCatalog.ts` — Domain.settings.roles stores Owner/platform label overrides and custom names. Custom roles map onto admin/user/friend/connection. Not a new permission engine.
 - 2026-09-15: Domain roles — Owner is display-only. `user` labels as Member. Permission bundles live next to the map. Custom Domain roles are stubbed off.
 - 2026-09-15: `invitationSeed.ts` — briefing notes/prompts/documents stay inviter-held until co-ownership exists.

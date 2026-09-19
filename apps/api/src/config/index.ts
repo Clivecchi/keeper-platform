@@ -15,3 +15,13 @@ export {
   type ModelCapability,
   type ModelCatalogEntry,
 } from './modelCatalog.js';
+
+export {
+  resolveExecutionPlan,
+  DEFAULT_CHAT_OFFERING,
+  PROVIDER_OFFERINGS,
+  type ExecutionPlan,
+  type ExecutionPreference,
+  type ExecutionRecord,
+  type ProviderOffering,
+} from './modelRegistry.js';

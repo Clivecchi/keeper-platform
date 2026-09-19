@@ -51,7 +51,6 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
     { value: 'anthropic' as ModelProvider, label: 'Anthropic', description: 'Claude models (Claude 3.5 Sonnet, etc.)' },
     { value: 'together-ai' as ModelProvider, label: 'Together AI', description: 'Llama and Mixtral models' },
     { value: 'elevenlabs' as ModelProvider, label: 'ElevenLabs', description: 'Voice synthesis models' },
-    { value: 'typesafe' as ModelProvider, label: 'TypeSafe', description: 'Jev System One — typed decisions, not chat' }
   ];
 
   // Get available models for the selected provider (from catalog or fallback)

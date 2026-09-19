@@ -81,6 +81,7 @@ const TYPESAFE_DEFAULT: ModelCapabilities = {
 export const MODEL_CAPABILITY_MAP: ModelCapabilityMap = {
   anthropic: {
     'claude-opus-4-6': { ...ANTHROPIC_DEFAULT },
+    'claude-sonnet-5': { ...ANTHROPIC_DEFAULT, maxContextTokens: 1_000_000, maxOutputTokens: 128_000 },
     'claude-sonnet-4-6': { ...ANTHROPIC_DEFAULT },
     'claude-haiku-4-5': { ...ANTHROPIC_DEFAULT },
     'claude-3-5-sonnet-20241022': { ...ANTHROPIC_DEFAULT },

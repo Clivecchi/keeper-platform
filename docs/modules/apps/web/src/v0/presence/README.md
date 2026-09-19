@@ -66,6 +66,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-18 — TypeSafe off the chat picker
+- Chronicle Agent Config no longer lists TypeSafe as a chat provider. `typesafe.evaluate` remains the tool. Sonnet 5 is selectable via the catalog list.
+
 ### 2026-09-17 — TypeSafe as ModelProvider
 - Agent Config provider list includes `typesafe`. Chronicle copy: choose openai, anthropic, together-ai, elevenlabs, or typesafe.
 

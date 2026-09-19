@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-18: **Model Registry V0** — `callAIModel` and `companion.ts` both use `executeRegisteredChat`. `frame_json.kip.model` is a preference. Actual offering / fallback persist on turn metadata and `[ExecutionPlan]` logs. TypeSafe remains `typesafe.evaluate`, not a chat provider.
 - 2026-09-18: **`typesafe.evaluate`** — Kip/Cloud emit this action to call Jev. Not a TypeSafe agent. Prompt + executor + follow-up. Key: `TYPESAFE_API_KEY`.
 - 2026-09-17: Platform and user key routes accept `typesafe` via `MODEL_PROVIDERS`. Catalog filter includes TypeSafe Jev models.
 - 2026-09-15: **`web.search` without Brave** — `WebSearchService` prefers `BRAVE_SEARCH_API_KEY` / platform key `brave`, then DuckDuckGo + public page fetch. Cloud can visit a named site without the Railway key.

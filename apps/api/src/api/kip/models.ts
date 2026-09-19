@@ -64,6 +64,7 @@ router.get('/', async (req: Request, res: Response) => {
       success: true,
       data: {
         providers,
+        chatProviders: ['openai', 'anthropic', 'together-ai'],
         models,
         defaults,
       },

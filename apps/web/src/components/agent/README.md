@@ -35,6 +35,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-09-18: Cockpit Change model lists chat providers only (no TypeSafe). Save writes `model` + `model_provider` + `model_settings` so the preference fields stay aligned.
 - 2026-09-13: Theme tooltip — change this domain’s look, or ask the agent. No longer “go to Stage.”
 - 2026-09-12: **Mobile docked composer** — `composerSize="mobile-docked"` is a one-row chat bar (attach · input · send). Adaptive Universal Board uses this instead of the 58vh staged expand / Message bubble.
 - 2026-09-02: **Keeping Choices** — `DialogueMessageList` renders independent chips from message metadata. Click is a new Lead turn; selected chips cannot be exercised again.

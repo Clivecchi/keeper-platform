@@ -53,6 +53,17 @@ export interface AgentPerformanceProvenance {
   workspaceSurface: string | null;
   model: string | null;
   modelProvider: string | null;
+  offeringId?: string | null;
+  fallbackUsed?: boolean;
+  preferenceModel?: string | null;
+  preferenceProvider?: string | null;
+  executionAttempts?: Array<{
+    offeringId: string;
+    provider: string;
+    model: string;
+    outcome: string;
+    errorCode?: string;
+  }>;
   orchestrationMechanism: string | null;
   cast: PerformanceCastVoice[];
   cardType: string | null;
@@ -130,6 +141,11 @@ export type BuildProvenanceInput = {
   workspaceSurface?: string | null;
   model?: string | null;
   modelProvider?: string | null;
+  offeringId?: string | null;
+  fallbackUsed?: boolean;
+  preferenceModel?: string | null;
+  preferenceProvider?: string | null;
+  executionAttempts?: AgentPerformanceProvenance['executionAttempts'];
   orchestrationMechanism?: string | null;
   cast?: PerformanceCastVoice[];
   cardType?: string | null;
@@ -173,6 +189,11 @@ export function buildAgentPerformanceProvenance(
     workspaceSurface: input.workspaceSurface?.trim() || null,
     model: input.model?.trim() || null,
     modelProvider: input.modelProvider?.trim() || null,
+    ...(input.offeringId?.trim() ? { offeringId: input.offeringId.trim() } : {}),
+    ...(input.fallbackUsed === true ? { fallbackUsed: true } : {}),
+    ...(input.preferenceModel?.trim() ? { preferenceModel: input.preferenceModel.trim() } : {}),
+    ...(input.preferenceProvider?.trim() ? { preferenceProvider: input.preferenceProvider.trim() } : {}),
+    ...(input.executionAttempts?.length ? { executionAttempts: input.executionAttempts } : {}),
     orchestrationMechanism: mechanism,
     cast,
     cardType: input.cardType?.trim() || null,

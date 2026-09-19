@@ -140,6 +140,10 @@ export interface KipRunErrorDetails {
   providerStatus?: number;
   suggestedAction?: string;
   requestId?: string;
+  offeringId?: string;
+  fallbackUsed?: boolean;
+  preferenceModel?: string;
+  preferenceProvider?: string;
 }
 
 export class KipAgentRunError extends Error {
@@ -545,9 +549,6 @@ export function normalizeKipRunErrorCode(code: unknown, message: unknown): KipRu
   if (lower.includes('api key') || lower.includes('anthropic_api_key') || lower.includes('openai_api_key')) {
     return 'MISSING_API_KEY';
   }
-  if (lower.includes('model') && lower.includes('not')) {
-    return 'INVALID_MODEL';
-  }
 
   return 'UNKNOWN';
 }
@@ -565,6 +566,10 @@ function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | und
   const model = raw.model;
   const suggestedAction = raw.suggestedAction;
   const requestId = raw.requestId;
+  const offeringId = raw.offeringId;
+  const fallbackUsed = raw.fallbackUsed;
+  const preferenceModel = raw.preferenceModel;
+  const preferenceProvider = raw.preferenceProvider;
 
   return {
     provider: provider === 'openai' || provider === 'anthropic' || provider === 'together-ai' || provider === 'together' || provider === 'elevenlabs' || provider === 'typesafe'
@@ -576,6 +581,10 @@ function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | und
     providerStatus: typeof providerStatus === 'number' ? providerStatus : undefined,
     suggestedAction: typeof suggestedAction === 'string' ? suggestedAction : undefined,
     requestId: typeof requestId === 'string' ? requestId : undefined,
+    offeringId: typeof offeringId === 'string' ? offeringId : undefined,
+    fallbackUsed: fallbackUsed === true ? true : undefined,
+    preferenceModel: typeof preferenceModel === 'string' ? preferenceModel : undefined,
+    preferenceProvider: typeof preferenceProvider === 'string' ? preferenceProvider : undefined,
   };
 }
 
@@ -604,8 +613,16 @@ export function formatKipRunErrorMessage(
       return `${label} cannot respond because the AI provider key is out of credits or quota.${modelContext} Add credits or switch to another configured provider key.${suggestedAction}`.trim();
     case 'MISSING_API_KEY':
       return `${label} cannot respond because the AI provider API key is missing or invalid. Add the provider key in Railway or configure a platform/user key.${modelContext}${suggestedAction}`.trim();
-    case 'INVALID_MODEL':
-      return `${label} is configured with a model that ${provider} does not accept.${modelContext} Choose a supported model in Cockpit and retry.${suggestedAction}`.trim();
+    case 'INVALID_MODEL': {
+      const preferenceContext = details?.preferenceModel && details.preferenceModel !== details.model
+        ? ` Stored preference: ${details.preferenceModel}.`
+        : '';
+      const offeringContext = details?.offeringId ? ` Offering: ${details.offeringId}.` : '';
+      const fallbackContext = details?.fallbackUsed
+        ? ' A sibling offering was also tried and did not succeed.'
+        : '';
+      return `${label} is configured with a model that ${provider} does not accept.${modelContext}${preferenceContext}${offeringContext}${fallbackContext} Choose a supported model in Cockpit and retry.${suggestedAction}`.trim();
+    }
     case 'AGENT_MISCONFIGURED':
       return `${label} is not configured correctly for this board.${suggestedAction || ` Check the ${label} agent configuration and try again.`}`.trim();
     case 'UNKNOWN':
@@ -2085,7 +2102,7 @@ export class KipApi {
   static getAvailableModels(provider: ModelProvider): string[] {
     const FALLBACK: Record<ModelProvider, string[]> = {
       openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
-      anthropic: ['claude-sonnet-4-6', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+      anthropic: ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
       'together-ai': ['meta-llama/Llama-2-70b-chat-hf', 'meta-llama/Llama-2-13b-chat-hf', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
       elevenlabs: ['eleven_monolingual_v1', 'eleven_multilingual_v2', 'eleven_turbo_v2'],
       typesafe: ['jev-latest', 'jev-1.13.0', 'jev-preview'],
@@ -2118,7 +2135,7 @@ export class KipApi {
       case 'anthropic':
         return {
           ...baseSettings,
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-5',
           temperature: 0.7,
           max_tokens: 4000
         };

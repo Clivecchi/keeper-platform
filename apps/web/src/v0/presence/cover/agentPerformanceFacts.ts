@@ -53,7 +53,12 @@ export function buildInspectionFacts(
   const environment = [provenance.boardId, provenance.cueingMode, provenance.workspaceSurface]
     .filter(Boolean)
     .join(" · ")
-  const modelBits = [provenance.modelProvider, provenance.model].filter(Boolean).join(" / ")
+  const modelBits = [
+    provenance.modelProvider,
+    provenance.model,
+    provenance.offeringId,
+    provenance.fallbackUsed ? "fallback used" : null,
+  ].filter(Boolean).join(" / ")
 
   return [
     {

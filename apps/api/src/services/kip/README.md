@@ -42,6 +42,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-18 — Model Registry V0 provenance
+- Lead persist now writes executed `offeringId`, provider, model, `fallbackUsed`, and both attempts onto performance provenance and turn orchestration. Stored Agent model fields remain preference inputs.
+
 ### 2026-09-18 — TypeSafe evaluate follow-up
 - `actionFollowUp.ts` treats `typesafe.evaluate` as a read-only tool so the second turn sees Jev answers.
 

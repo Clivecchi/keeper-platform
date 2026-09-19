@@ -106,6 +106,9 @@ export const MODEL_PROVIDERS = [
     'typesafe',
 ] as const;
 export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
+export const CHAT_MODEL_PROVIDERS = ['openai', 'anthropic', 'together-ai'] as const;
+export type ChatModelProvider = (typeof CHAT_MODEL_PROVIDERS)[number];
+export function isChatModelProvider(provider: string): provider is ChatModelProvider;
 /**
  * Model settings configuration
  */

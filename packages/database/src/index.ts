@@ -170,6 +170,6 @@ export type {
   CreateThemeInput
 } from './types.js'
 
-export { MODEL_PROVIDERS } from './types.js'
+export { MODEL_PROVIDERS, CHAT_MODEL_PROVIDERS, isChatModelProvider } from './types.js'
 
 // Authentication types are exported from ./types/domain.ts

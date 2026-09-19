@@ -384,5 +384,6 @@ The schema includes:
 - Platform configuration (themes, StudioModule, etc.)
 
 ## 📆 Update Log
+- 2026-09-18: `CHAT_MODEL_PROVIDERS` (`openai`, `anthropic`, `together-ai`) names chat execution providers. `typesafe` stays on `MODEL_PROVIDERS` for keys/tools only.
 - 2026-09-17: `MODEL_PROVIDERS` includes `typesafe`. Provider list is still a hardcoded const (not a DB registry); keys stay env / user / platform.
 - 2026-09-17: **First Introduction** — `Dialog.invitationId` unique FK to `DomainInvitation`. Arrival Dialogs are `available_to: member`. Seed remains on `DomainInvitation` as Lead Introduction direction, not a Dialog message. Migration `20260918010000_dialog_invitation_arrival`.

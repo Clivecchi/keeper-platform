@@ -39,6 +39,7 @@ describe('getModelCapabilities', () => {
   });
 
   it('marks all Anthropic models as non-jsonMode', () => {
+    expect(getModelCapabilities('anthropic', 'claude-sonnet-5').jsonMode).toBe(false);
     expect(getModelCapabilities('anthropic', 'claude-sonnet-4-6').jsonMode).toBe(false);
     expect(getModelCapabilities('anthropic', 'claude-3-5-sonnet-20241022').jsonMode).toBe(false);
   });

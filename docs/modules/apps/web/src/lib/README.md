@@ -36,6 +36,13 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-18 — Model Registry V0 diagnostics
+- `normalizeKipRunErrorCode` no longer invents `INVALID_MODEL` from any message that contains both "model" and "not". Trust the server code.
+- Error details now carry `offeringId`, `fallbackUsed`, and stored preference so a failed sibling fallback is visible in the banner.
+
+### 2026-09-18 — Chat catalog includes Sonnet 5
+- Anthropic fallback list and default are `claude-sonnet-5` then `claude-sonnet-4-6`. TypeSafe remains a key/tool provider, not a chat picker option.
+
 ### 2026-09-17 — TypeSafe client catalog
 - `kipApi` ModelProvider includes `typesafe`. Fallback models: `jev-latest`, `jev-1.13.0`, `jev-preview`.
 

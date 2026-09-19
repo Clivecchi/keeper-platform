@@ -44,6 +44,7 @@ function formatRoleLine(
 export function formatModelLabel(model?: string): string {
   if (!model?.trim()) return "—"
   const m = model.trim()
+  if (m.includes("claude-sonnet-5") || m.includes("claude-sonnet-5.")) return "Sonnet 5"
   if (m.includes("claude-sonnet-4-6") || m.includes("claude-sonnet-4.6")) return "Sonnet 4.6"
   if (m.includes("claude-opus")) return "Opus"
   if (m.includes("gpt-4o-mini")) return "GPT-4o Mini"

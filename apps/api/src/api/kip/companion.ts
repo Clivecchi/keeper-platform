@@ -5,7 +5,8 @@
  * Guest-accessible — no auth required.
  * Rate limited: 20 requests per minute per IP.
  *
- * Makes a direct Anthropic call using domain frame JSON for system prompt + model.
+ * Resolves intelligence through the Model Registry (same as member Agent turns).
+ * `frame_json.kip.model` is a preference, not a separate execution path.
  * Persists turns to `kip_sessions` / `kip_messages` (guest user_id = null, no Dialog).
  * Clients call POST /api/keys to obtain a handoff token for login promotion.
  *
@@ -16,8 +17,8 @@ import express, { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
-import { KipUserKeyService } from '../../services/KipUserKeyService.js';
-import { PlatformApiKeyService } from '../../services/PlatformApiKeyService.js';
+import { executeRegisteredChat } from '../../services/executeRegisteredChat.js';
+import type { ModelMessage } from '../../services/ModelProviderService.js';
 
 const router = express.Router();
 
@@ -71,7 +72,6 @@ const CompanionRequestSchema = z.object({
   experienceContext: ExperienceContextSchema,
 });
 
-const DEFAULT_MODEL = 'claude-sonnet-4-6';
 const DEFAULT_CONTEXT = 'A visitor exploring Keeper for the first time. Warm welcome. Offer Forward.';
 
 function guestDomainTag(domainId: string): string {
@@ -99,7 +99,7 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
   }
 
   try {
-    let kipModel = DEFAULT_MODEL;
+    let kipModel: string | null = null;
     let guestContext = DEFAULT_CONTEXT;
     let domainOwnerId: string | null = null;
     let domainId: string | null = null;
@@ -118,31 +118,12 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
         if (frame && typeof frame === 'object' && Object.keys(frame).length > 0) {
           const kip = frame.kip as Record<string, unknown> | undefined;
           const kipCtx = frame.kip_context as Record<string, unknown> | undefined;
-          if (kip?.model) kipModel = String(kip.model);
+          if (typeof kip?.model === 'string' && kip.model.trim()) kipModel = kip.model.trim();
           if (kipCtx?.guest) guestContext = String(kipCtx.guest);
         }
       }
     } catch {
       // proceed with defaults
-    }
-
-    let apiKey: string | null = null;
-
-    const envKey = process.env.ANTHROPIC_API_KEY;
-    if (envKey?.trim()) {
-      apiKey = envKey.trim();
-    }
-
-    if (!apiKey && domainOwnerId) {
-      apiKey = await KipUserKeyService.getUserKey('anthropic', domainOwnerId);
-    }
-
-    if (!apiKey) {
-      apiKey = await PlatformApiKeyService.getKeyForProvider('anthropic');
-    }
-
-    if (!apiKey) {
-      return res.status(500).json({ success: false, error: 'Something went wrong.' });
     }
 
     // Prepend board context when the caller identifies the surface
@@ -186,43 +167,49 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
       }
     }
 
-    const priorTurns = conversationHistory.slice(-6).map((h) => ({
+    const priorTurns: ModelMessage[] = conversationHistory.slice(-6).map((h) => ({
       role: h.role as 'user' | 'assistant',
       content: h.content,
     }));
 
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey });
+    const messages: ModelMessage[] = [
+      { role: 'system', content: guestContext },
+      ...priorTurns,
+      { role: 'user', content: rawMessage },
+    ];
 
-    const MODEL_TIMEOUT_MS = 30_000;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+    const executed = await executeRegisteredChat({
+      preference: {
+        provider: 'anthropic',
+        model: kipModel,
+        source: kipModel ? 'companion_frame' : 'default',
+      },
+      messages,
+      settings: {
+        model: kipModel ?? 'claude-sonnet-5',
+        max_tokens: 1024,
+        temperature: 0.7,
+      },
+      userId: domainOwnerId ?? undefined,
+      domainId: domainId ?? undefined,
+    });
 
-    let reply: string;
-    try {
-      const response = await client.messages.create(
-        {
-          model: kipModel,
-          max_tokens: 1024,
-          system: guestContext,
-          messages: [...priorTurns, { role: 'user', content: rawMessage }],
-        } as any,
-        { signal: controller.signal },
-      );
-      clearTimeout(timeoutId);
-
-      const blocks = (response as any).content ?? [];
-      reply = blocks
-        .filter((b: any) => b.type === 'text')
-        .map((b: any) => b.text ?? '')
-        .join('')
-        .trim();
-
-      if (!reply) reply = 'I appreciate your message.';
-    } catch (err) {
-      clearTimeout(timeoutId);
-      throw err;
+    if (!executed.response.success) {
+      console.error('[kip/companion] ExecutionPlan failed', executed.record);
+      return res.status(500).json({ success: false, error: 'Something went wrong.' });
     }
+
+    let reply = executed.response.content.trim();
+    if (!reply) reply = 'I appreciate your message.';
+    const executionMeta = {
+      offeringId: executed.record.offeringId,
+      provider: executed.record.provider,
+      model: executed.record.model,
+      fallbackUsed: executed.record.fallbackUsed,
+      preferenceModel: executed.record.preferenceModel,
+      preferenceProvider: executed.record.preferenceProvider,
+      attempts: executed.record.attempts,
+    };
 
     let persistedSessionId: string | undefined;
     try {
@@ -281,7 +268,7 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
                 sender: 'kip',
                 content: reply,
                 role: 'assistant',
-                metadata: {},
+                metadata: { execution: executionMeta },
               },
             ],
           });

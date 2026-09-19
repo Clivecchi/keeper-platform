@@ -144,6 +144,15 @@ export const MODEL_PROVIDERS = [
 
 export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 
+/** Providers that may power Agent / companion chat. TypeSafe is a tool, not a chat provider. */
+export const CHAT_MODEL_PROVIDERS = ['openai', 'anthropic', 'together-ai'] as const;
+
+export type ChatModelProvider = (typeof CHAT_MODEL_PROVIDERS)[number];
+
+export function isChatModelProvider(provider: string): provider is ChatModelProvider {
+  return (CHAT_MODEL_PROVIDERS as readonly string[]).includes(provider);
+}
+
 /**
  * Model settings configuration
  */

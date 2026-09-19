@@ -302,6 +302,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
         retry: { max_retries: 3, retry_delay_ms: 1000 },
       }
       const updated = await KipApi.updateAgent(agent.id, {
+        model: modelForm.model,
         model_provider: modelForm.provider,
         model_settings,
       })
@@ -440,7 +441,6 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
                 <option value="anthropic">Anthropic</option>
                 <option value="together-ai">Together AI</option>
                 <option value="elevenlabs">ElevenLabs</option>
-                <option value="typesafe">TypeSafe</option>
               </select>
             </div>
             <div>

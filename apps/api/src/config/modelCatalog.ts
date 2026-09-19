@@ -31,7 +31,8 @@ const OPENAI_MODELS: ModelCatalogEntry[] = [
 ];
 
 const ANTHROPIC_MODELS: ModelCatalogEntry[] = [
-  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (recommended for Kip)', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
+  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 (current)', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
   { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
   { id: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
   { id: 'claude-3-opus-20240229', label: 'Claude 3 Opus', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
@@ -70,7 +71,7 @@ export const MODEL_CATALOG: Record<ModelProvider, ModelCatalogEntry[]> = {
 
 export const DEFAULT_MODEL_BY_PROVIDER: Record<ModelProvider, string> = {
   openai: 'gpt-4o',
-  anthropic: 'claude-sonnet-4-6',
+  anthropic: 'claude-sonnet-5',
   'together-ai': 'meta-llama/Llama-2-70b-chat-hf',
   elevenlabs: 'eleven_multilingual_v2',
   typesafe: 'jev-latest',

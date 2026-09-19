@@ -254,6 +254,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-18 — Model Registry V0 inspection
+- Inspection facts show the executed offering (`offeringId`) and `fallback used` when a sibling offering served the turn. Preference fields stay on provenance; they are not the displayed model identity.
+
 ### 2026-09-17 — Invitation handoff
 - Pending invitations include `hasAccount` / `accountName` when that email already registered. People says they have an account and have not arrived yet.
 

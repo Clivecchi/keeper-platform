@@ -120,6 +120,8 @@ import type {
   ModelSettings
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage, ModelContentPart, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
+import { executeRegisteredChat } from '../../services/executeRegisteredChat.js';
+import { resolveExecutionPlan, type ExecutionRecord } from '../../config/modelRegistry.js';
 import { getModelCapabilities } from '../../config/index.js';
 import { ensureKipAgentOutputEnvelope } from '../../services/structure/ensureStructuredOutput.js';
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
@@ -6266,26 +6268,33 @@ export class KipAgentService {
     durationMs: number
     messages: ModelMessage[]
     streamedVisible: boolean
+    execution: ExecutionRecord
   }> {
     try {
       const modelProvider = (agent.model_provider || 'openai') as ModelProvider;
-      const defaults = ModelProviderService.getDefaultSettings(modelProvider);
       const storedSettings =
         agent.model_settings &&
         typeof agent.model_settings === 'object' &&
         !Array.isArray(agent.model_settings)
           ? (agent.model_settings as Partial<ModelSettings>)
           : {};
-      const resolvedModel =
+      const preferenceModel =
         (typeof agent.model === 'string' && agent.model.trim()) ||
         (typeof storedSettings.model === 'string' && storedSettings.model.trim()) ||
-        defaults.model;
+        null;
+      const preference = {
+        provider: modelProvider,
+        model: preferenceModel,
+        source: 'agent_preference' as const,
+      };
+      const plan = resolveExecutionPlan(preference);
+      const defaults = ModelProviderService.getDefaultSettings(plan.offering.provider);
       const modelSettings: ModelSettings = {
         ...defaults,
         ...storedSettings,
-        model: resolvedModel,
+        model: plan.offering.modelId,
       };
-      const capabilities = getModelCapabilities(modelProvider, modelSettings.model);
+      const capabilities = getModelCapabilities(plan.offering.provider, plan.offering.modelId);
       const extractor = createAgentResponseFieldExtractor();
       const onModelDelta = promptOptions?.onDelta
         ? (chunk: string) => {
@@ -6343,7 +6352,7 @@ export class KipAgentService {
       messages.push({
         role: 'system',
         content: [
-          `Runtime model: provider=${modelProvider}, model=${modelSettings.model}.`,
+          `Runtime model: provider=${plan.offering.provider}, model=${plan.offering.modelId}.`,
           'When asked which model, provider, or AI you are running on, answer using exactly these values — do not guess or invent a different model name.',
         ].join(' '),
       });
@@ -6919,16 +6928,17 @@ export class KipAgentService {
       // Call the model provider (jsonMode only when structured output is required and the model supports it)
       const requiresStructuredOutput = !!promptOptions?.environment;
       const modelStartedAt = Date.now();
-      const response = await ModelProviderService.callModel({
+      const executed = await executeRegisteredChat({
+        preference,
         messages,
         settings: modelSettings,
-        provider: modelProvider,
         userId,
         domainId: promptOptions?.domainId,
         environment: promptOptions?.environment ?? undefined,
         jsonMode: requiresStructuredOutput && capabilities.jsonMode,
         onDelta: onModelDelta,
       });
+      const response = executed.response;
       const durationMs = Date.now() - modelStartedAt;
       recordModelCall(
         promptOptions?.timings,
@@ -6943,6 +6953,7 @@ export class KipAgentService {
           durationMs,
           messages,
           streamedVisible: extractor.didEmit(),
+          execution: executed.record,
         };
       }
 
@@ -6950,7 +6961,18 @@ export class KipAgentService {
       throw new AgentExecutionError(
         mappedCode,
         response.error || 'AI model call failed',
-        buildProviderAgentErrorDetails(modelProvider, modelSettings.model, response)
+        {
+          ...buildProviderAgentErrorDetails(
+            executed.usedOffering.provider,
+            executed.usedOffering.modelId,
+            response,
+          ),
+          offeringId: executed.record.offeringId,
+          fallbackUsed: executed.fallbackUsed,
+          attempts: executed.record.attempts,
+          preferenceProvider: executed.record.preferenceProvider,
+          preferenceModel: executed.record.preferenceModel,
+        }
       );
     } catch (error) {
       console.error('Error calling AI model:', error);
@@ -7611,6 +7633,14 @@ export class KipAgentService {
         const response = aiResult.content;
         const composedSystemPrompt = aiResult.composedSystemPrompt;
         let lastPromptMessages = aiResult.messages;
+        logData.model = aiResult.execution.model;
+        Object.assign(agentTurnSummary, {
+          offeringId: aiResult.execution.offeringId,
+          executedModel: aiResult.execution.model,
+          executedProvider: aiResult.execution.provider,
+          fallbackUsed: aiResult.execution.fallbackUsed,
+          attempts: aiResult.execution.attempts,
+        });
 
         const requestId = randomUUID();
         const allowActions = buildAllowedActions(options?.environment ?? null);
@@ -8870,8 +8900,13 @@ export class KipAgentService {
               cueingMode:
                 typeof agentCtxRecord.dialogCueing === 'string' ? agentCtxRecord.dialogCueing : null,
               workspaceSurface: workspaceSurfaceFromEnvironment(options?.environment) ?? null,
-              model: agent.model,
-              modelProvider: agent.model_provider,
+              model: aiResult.execution.model,
+              modelProvider: String(aiResult.execution.provider),
+              offeringId: aiResult.execution.offeringId,
+              fallbackUsed: aiResult.execution.fallbackUsed,
+              preferenceModel: aiResult.execution.preferenceModel,
+              preferenceProvider: aiResult.execution.preferenceProvider,
+              executionAttempts: aiResult.execution.attempts,
               orchestrationMechanism: resolvedMechanism,
               cast:
                 castVoicesForPersist?.map((voice) => ({
@@ -8900,12 +8935,17 @@ export class KipAgentService {
               agent_id: agentId,
               agentName: agent.name,
               senderName: agent.name,
-              model: agent.model,
+              model: aiResult.execution.model,
               actionResults: actionResults.length ? actionResults : undefined,
               orchestration: {
                 ...agentTurnSummary,
                 mechanism: resolvedMechanism,
                 delegateConsultCount: consultActionCount,
+                offeringId: aiResult.execution.offeringId,
+                executedModel: aiResult.execution.model,
+                executedProvider: aiResult.execution.provider,
+                fallbackUsed: aiResult.execution.fallbackUsed,
+                attempts: aiResult.execution.attempts,
               },
               performanceProvenance,
               ...(structured.card ? { card: structured.card } : {}),
@@ -9024,7 +9064,9 @@ export class KipAgentService {
             session_id: currentSessionId || `lead_${agent.slug}_${Date.now()}`,
             memory_enabled: agent.memory_enabled,
             message_count: previousMessages.length + (agent.memory_enabled ? 2 : 0), // +2 for current user/agent messages
-            model: agent.model,
+            model: aiResult.execution.model,
+            offeringId: aiResult.execution.offeringId,
+            fallbackUsed: aiResult.execution.fallbackUsed,
             actions: actionResults,
             ...(structured.card ? { card: structured.card } : {}),
             ...(persistedKeepingChoices.length ? { keepingChoices: persistedKeepingChoices } : {}),
@@ -9196,6 +9238,7 @@ export class KipAgentService {
           onDelta: options?.onDelta,
         });
         let lastSystemPromptMessages = aiResult.messages;
+        logData.model = aiResult.execution.model;
 
         const systemRequestId = randomUUID();
         const systemAllowActions = buildAllowedActions(options?.environment ?? null);
@@ -9568,7 +9611,10 @@ export class KipAgentService {
               agent_id: agentId,
               agentName: agent.name,
               senderName: agent.name,
-              model: agent.model,
+              model: aiResult.execution.model,
+              offeringId: aiResult.execution.offeringId,
+              fallbackUsed: aiResult.execution.fallbackUsed,
+              attempts: aiResult.execution.attempts,
               actionResults: actionResults.length ? actionResults : undefined,
               ...(structured.card ? { card: structured.card } : {}),
             });
@@ -9587,7 +9633,9 @@ export class KipAgentService {
             agent_name: agent.name,
             agent_tagline: (config as Record<string, unknown>).tagline || '',
             session_id: currentSessionId || `system_${agent.slug}_${Date.now()}`,
-            model: agent.model,
+            model: aiResult.execution.model,
+            offeringId: aiResult.execution.offeringId,
+            fallbackUsed: aiResult.execution.fallbackUsed,
             actions: actionResults,
             ...(structured.card ? { card: structured.card } : {}),
             composedSystemPrompt: aiResult.composedSystemPrompt,
