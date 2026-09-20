@@ -548,26 +548,28 @@ function AgentMessageTurn({
           />
         )}
         {message.content.trim() && (
-          <AgentChatBubble
-            grouped
-            variant="lead"
-            name={resolvedAgentName}
-            content={leadContentForSystemOne(
-              sanitizeAgentMessageContent(message.content),
-              message.orchestration,
-            )}
-            card={leadCardForSystemOne(message.keeperCard, message.orchestration)}
-            chronicleChip={message.chronicleChip}
-            onOpenChronicleChip={onOpenChronicleChip}
-            glossMessageId={message.id}
-            glossNodeId="body"
-            glossThreads={message.glossThreads}
-            glossSnapshotText={leadContentForSystemOne(
-              sanitizeAgentMessageContent(message.content),
-              message.orchestration,
-            )}
-          />
-          <SystemOneOrientationCard orchestration={message.orchestration} />
+          <>
+            <AgentChatBubble
+              grouped
+              variant="lead"
+              name={resolvedAgentName}
+              content={leadContentForSystemOne(
+                sanitizeAgentMessageContent(message.content),
+                message.orchestration,
+              )}
+              card={leadCardForSystemOne(message.keeperCard, message.orchestration)}
+              chronicleChip={message.chronicleChip}
+              onOpenChronicleChip={onOpenChronicleChip}
+              glossMessageId={message.id}
+              glossNodeId="body"
+              glossThreads={message.glossThreads}
+              glossSnapshotText={leadContentForSystemOne(
+                sanitizeAgentMessageContent(message.content),
+                message.orchestration,
+              )}
+            />
+            <SystemOneOrientationCard orchestration={message.orchestration} />
+          </>
         )}
         {!message.content.trim() && (message.keeperCard || message.chronicleChip) ? (
           <AgentChatBubble

@@ -36,6 +36,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-09-19: Wrapped the multi-agent Lead bubble + System One card in a fragment so Vite can parse the JSX (Vercel `keeper-web` build).
 - 2026-09-19: Dialog shows System One orientation from persisted Jev answers on the Lead message. Kip's fabricated "unavailable" card/line is suppressed when those answers exist.
 - 2026-09-18: `document.reorganize.propose` receipts label **Proposed Document**, not Completed. Handler copy says proposal stored / Apply has not run.
 - 2026-09-18: Cockpit Change model lists chat providers only (no TypeSafe). Save writes `model` + `model_provider` + `model_settings` so the preference fields stay aligned.

@@ -66,6 +66,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-19 — Domain Cover Terrain import
+- `DomainFocusPresence` imports the terrain component from `DomainCoverTerrain.tsx` so Vite does not pick `domainCoverTerrain.ts` on case-insensitive disks.
+
 ### 2026-09-16 — Invitation email
 - `DomainInvitePanel` sends via Resend. Success says the email went; failure keeps the copyable link. Pending rows have **Resend email**.
 

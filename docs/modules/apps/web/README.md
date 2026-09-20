@@ -22,6 +22,7 @@ Client-rendered UI using React. Styling via Tailwind CSS. Built with Vite. Integ
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-09-19: Raised Workbox precache limit to 5 MiB so the current main chunk (~4.46 MB) does not fail `keeper-web` production builds.
 - 2026-08-17: Object Glossary no longer `?raw`-imports `docs/` (ignored on Vercel). Build copies `docs/keeper-object-glossary.md` into `src/v0/glossary/` when present; `.vercelignore` re-includes `apps/web/**/*.md`.
 - 2026-08-03: Workbox `navigateFallbackDenylist` adds `/oauth`, `/mcp`, `/.well-known` so PWA SW cannot serve SPA shell for MCP OAuth (was causing React Router "No routes matched" on `/oauth/authorize`). Root `vercel.json` SPA rewrite likewise excludes those prefixes.
 - 2026-07-03: Fix favicon 404 noise — Vercel SPA rewrite skips paths with file extensions; Workbox navigateFallback denylist includes favicon/PWA assets.
