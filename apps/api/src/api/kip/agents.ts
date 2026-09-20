@@ -220,14 +220,17 @@ import {
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocument.js';
 import {
+  attachStageContextToCastEnvironment,
   buildCastConsultationsSynthesisPrompt,
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
   annotateCastActionResults,
   buildCastMemberDelegationPrompt,
+  delegateConsultSkipMessage,
   extractActionResultsFromAgentRunResult,
   extractReplyFromAgentRunResult,
   resolveCastMemberLabel,
+  stageContextForDelegatedCast,
   type DirectorDelegationResult,
   type DirectorDelegationRequest,
 } from '../../services/directorDialog.js';

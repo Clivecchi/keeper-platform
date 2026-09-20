@@ -29,16 +29,17 @@ export function stageContextForDelegatedCast(
   return Object.keys(next).length ? next : undefined;
 }
 
-export function attachStageContextToCastEnvironment<T extends { agentContext?: Record<string, unknown> }>(
+export function attachStageContextToCastEnvironment<T>(
   env: T | null | undefined,
   leadContext: Record<string, unknown> | null | undefined,
 ): T | null | undefined {
   const stage = stageContextForDelegatedCast(leadContext);
-  if (!env || !stage) return env;
+  if (!env || !stage || typeof env !== 'object') return env;
+  const current = env as T & { agentContext?: Record<string, unknown> };
   return {
-    ...env,
+    ...current,
     agentContext: {
-      ...(env.agentContext ?? {}),
+      ...(current.agentContext ?? {}),
       ...stage,
     },
   };
