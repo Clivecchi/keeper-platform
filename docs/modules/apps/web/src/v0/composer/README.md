@@ -17,7 +17,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `ComposerStageAgency.tsx` — compact Role / Direction inside elevated Composer
 - `StageAgencyStrip.tsx` — Agency fields (`layout="composer"` | `"stage"`)
 - `useBindStageDialog.ts` — auto-bind Talking in when a Dialog is already on Stage
-- `stageComposeYield.ts` — Compose-on-Stage yield pose + sticky work-forward (not a Scene model)
+- `stageAttention.ts` — Stage attention grammar: Present → Engage → Yield → Perform → Resolve → Return. Dialog is the first occupant. Not a Scene model.
 
 ## 🔄 Data & Behavior
 - Composition persists on `Domain.settings.keeperStage` via `GET/PATCH /api/domains/:domainId/keeper-stage`.
@@ -30,7 +30,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
 - Reach opens from Composer (and the top-bar shortcut) and renders in Chronicle. Composer does not live in Chronicle.
 - Agent turns receive the Stage roster and the current filmstrip via `buildKeeperStagePrompt`. `stage.story.layout` is available to Lead when composing the filmstrip — Stage presence does not require a mutation. Reload after a layout write.
-- **Compose-on-Stage yield:** Composer focus or a working Turn steps Dialog work forward in `KeeperDialogFrame` Zone 2. The current Slide stays; Theatre Presence recedes it (`STAGE_YIELD_MOTION`). Blur does not return. Click the receded Stage or a filmstrip cell after the Turn is idle to restore the held slide. Scene is still experiential — no persistence.
+- **Stage attention:** Present → Engage → Yield → Perform → Resolve → Return. Composer focus or a working Turn leaves Present. Theatre writes `STAGE_YIELD_MOTION` onto the current Frame. Dialog occupies the yielded work surface first — not a second conversation system. Blur does not Return. Click the receded Frame or a filmstrip cell after Resolve. Scene stays experiential.
 
 ## ⚠️ Notes & ToDo
 - [x] Persist filmstrip cells on `Domain.settings.keeperStage.story` (`stage.story.layout`)
@@ -39,15 +39,15 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Stage Config in Chronicle (how this Stage tells) — `ChronicleConfigShell`, no fourth panel
 - [x] Agent layout writes the strip (`stage.story.layout`). No Apply — agents lay it out.
 - [x] Play filmstrip cells on the existing Theatre `slide` Present (not a new Stage project)
-- [x] Compose-on-Stage yield — Dialog work steps forward; Theatre recedes the current Frame
+- [x] Stage attention grammar — Dialog is the first occupant; Theatre recedes the current Frame
 - [ ] Persistent Keeper Cast migration off boardCast defaults
 - [ ] Confirm Finding the Plot is the first object Chuck wants seeded vs brought by hand
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
 
-### 2026-09-20 — Compose-on-Stage yield
-- Composer focus or `isWorking` on Stage opens sticky work-forward. `DialogueMessageList` (Turn, receipts, Lead) renders over the receded current Slide. Theatre writes `STAGE_YIELD_MOTION` onto the current `slide` Presence instance. Return is intentional (receded Stage or filmstrip), waits until the Turn is idle, and restores the held slide id/index. No Scene table.
+### 2026-09-20 — Stage attention grammar
+- Named states: Present → Engage → Yield → Perform → Resolve → Return. Dialog is the first occupant of the yielded work surface. Theatre writes `STAGE_YIELD_MOTION` on the current `slide` Presence instance for every state except Present. Return is intentional after Resolve and restores the held Frame. No Scene table. No second Dialog.
 
 ### 2026-09-15 — Live Moment source on the filmstrip
 - A beat with `source.kind === 'moment'` and a valid `source.id` resolves the canonical Moment at render. Copied slide strings are not treated as current. Unresolvable references fail honestly and keep the source pointer.

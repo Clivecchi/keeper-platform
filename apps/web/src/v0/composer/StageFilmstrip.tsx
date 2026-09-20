@@ -15,7 +15,7 @@ import { JourneyInvitationSlide } from "../slides/JourneyInvitationSlide"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { StageEngagementSurface, useStageCoverMedia } from "./StageEngagementSurface"
 import type { StageSlide } from "./stageStorySlides"
-import { resolveStageComposePose } from "./stageComposeYield"
+import { resolveStageAttentionPose, stageAttentionHoldsFrame } from "./stageAttention"
 import { useStagePresentationOptional } from "./stagePresentation"
 
 function beatCaption(slide: StageSlide): string {
@@ -123,13 +123,14 @@ export function StagePresentationScreen() {
 
   const canForward = Boolean(story && story.slides.length > 1)
   const canContinue = Boolean(story && story.index < story.slides.length - 1)
-  const yielded = story?.composeForward === true
-  const pose = resolveStageComposePose(yielded)
+  const attention = story?.attention ?? "present"
+  const yielded = stageAttentionHoldsFrame(attention)
+  const pose = resolveStageAttentionPose(attention)
 
   return (
     <div
       className="h-full min-h-0 w-full"
-      aria-label={yielded ? "Stage presentation — working" : "Stage presentation"}
+      aria-label={yielded ? "Stage Frame — yielded" : "Stage presentation"}
     >
       <PresentMotionProvider
         key={current.id}
@@ -166,7 +167,7 @@ export function StageSlideStrip() {
           key={slide.id}
           type="button"
           onClick={() => {
-            if (story.composeForward) {
+            if (story.workForward) {
               story.returnToFrame({ index: i })
               return
             }

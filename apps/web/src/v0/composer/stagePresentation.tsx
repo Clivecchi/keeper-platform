@@ -10,13 +10,18 @@ import { useKeeperStageOptional } from "./useKeeperStage"
 import { resolveStageFilmstrip, type StageSlide } from "./stageStorySlides"
 import { resolveStageNowBeat } from "./stageNowBeat"
 import {
-  canReturnFromStageCompose,
+  canReturnFromStageAttention,
   holdStageFrame,
-  nextStageComposeForward,
+  nextStageAttention,
   nextStageFrameIndex,
   restoreHeldStageIndex,
+  stageAttentionHoldsFrame,
+  stageAttentionShowsWork,
   type HeldStageFrame,
-} from "./stageComposeYield"
+  type StageAttentionEvent,
+  type StageAttentionState,
+  type StageAttentionSubject,
+} from "./stageAttention"
 import {
   applyCanonicalMomentsToSlides,
   collectMomentSourceIds,
@@ -79,8 +84,10 @@ type StagePresentationValue = {
   index: number
   setIndex: (index: number) => void
   current: StageSlide | null
-  composeForward: boolean
-  enterCompose: () => void
+  attention: StageAttentionState
+  attentionSubject: StageAttentionSubject | null
+  workForward: boolean
+  engageAttention: () => void
   returnToFrame: (opts?: { index?: number }) => void
 }
 
@@ -142,34 +149,39 @@ export function StagePresentationProvider({
   )
   const last = Math.max(0, slides.length - 1)
   const [index, setIndexState] = React.useState(0)
-  const [composeForward, setComposeForward] = React.useState(false)
+  const [attention, setAttention] = React.useState<StageAttentionState>("present")
   const followStoryRef = React.useRef(false)
   const heldFrameRef = React.useRef<HeldStageFrame | null>(null)
+  const attentionSubject: StageAttentionSubject | null =
+    onStage && stageAttentionHoldsFrame(attention) ? "dialog" : null
 
   const setIndex = React.useCallback((next: number) => {
     followStoryRef.current = next > 0
     setIndexState(next)
   }, [])
 
-  const enterCompose = React.useCallback(() => {
-    setComposeForward((open) => {
-      const next = nextStageComposeForward({
-        currentlyForward: open,
-        onStage: true,
-        composerFocused: true,
-        isWorking: isSending,
-        returnRequested: false,
+  const applyAttention = React.useCallback((event: StageAttentionEvent) => {
+    setAttention((current) => {
+      const next = nextStageAttention({
+        state: current,
+        onStage: event === "leave-stage" ? false : true,
+        event,
       })
-      if (next && !open) {
+      if (stageAttentionHoldsFrame(next) && !stageAttentionHoldsFrame(current)) {
         const currentIndex = Math.min(index, last)
         heldFrameRef.current = holdStageFrame(slides[currentIndex] ?? null, currentIndex)
       }
+      if (next === "present") heldFrameRef.current = null
       return next
     })
-  }, [index, isSending, last, slides])
+  }, [index, last, slides])
+
+  const engageAttention = React.useCallback(() => {
+    applyAttention("engage")
+  }, [applyAttention])
 
   const returnToFrame = React.useCallback((opts?: { index?: number }) => {
-    if (!canReturnFromStageCompose(isSending)) return
+    if (!canReturnFromStageAttention(attention, isSending)) return
     followStoryRef.current = false
     if (typeof opts?.index === "number") {
       setIndexState(opts.index)
@@ -177,21 +189,26 @@ export function StagePresentationProvider({
       const restored = restoreHeldStageIndex(slides, heldFrameRef.current)
       if (restored != null) setIndexState(restored)
     }
-    heldFrameRef.current = null
-    setComposeForward(false)
-  }, [isSending, slides])
+    applyAttention("return")
+  }, [applyAttention, attention, isSending, slides])
 
   React.useEffect(() => {
-    if (!onStage) {
-      heldFrameRef.current = null
-      setComposeForward(false)
-    }
-  }, [onStage])
+    if (!onStage) applyAttention("leave-stage")
+  }, [applyAttention, onStage])
+
+  React.useEffect(() => {
+    if (attention === "engage") applyAttention("yielded")
+  }, [applyAttention, attention])
+
+  React.useEffect(() => {
+    if (!onStage) return
+    applyAttention(isSending ? "working" : "idle")
+  }, [applyAttention, isSending, onStage])
 
   React.useEffect(() => {
     setIndexState((currentIndex) =>
       nextStageFrameIndex({
-        composeForward,
+        attention,
         held: heldFrameRef.current,
         slides,
         followStory: followStoryRef.current,
@@ -199,20 +216,34 @@ export function StagePresentationProvider({
         currentIndex,
       }),
     )
-  }, [composeForward, last, slides, slides[last]?.id, slides[last]?.body])
+  }, [attention, last, slides, slides[last]?.id, slides[last]?.body])
 
   const current = slides[Math.min(index, last)] ?? null
+  const workForward = stageAttentionShowsWork(attention)
   const value = React.useMemo(
     () => ({
       slides,
       index: Math.min(index, last),
       setIndex,
       current,
-      composeForward,
-      enterCompose,
+      attention,
+      attentionSubject,
+      workForward,
+      engageAttention,
       returnToFrame,
     }),
-    [slides, index, last, setIndex, current, composeForward, enterCompose, returnToFrame],
+    [
+      slides,
+      index,
+      last,
+      setIndex,
+      current,
+      attention,
+      attentionSubject,
+      workForward,
+      engageAttention,
+      returnToFrame,
+    ],
   )
 
   return (

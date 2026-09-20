@@ -836,7 +836,7 @@ button.dialog-prelude:hover {
   display: none;
 }
 
-/* Compose-on-Stage yield — Stage stays; Dialog work steps forward. */
+/* Stage attention — Frame stays; work steps forward. Dialog is the first occupant. */
 .stage-frame-layer {
   position: absolute;
   inset: 0;
@@ -852,7 +852,7 @@ button.dialog-prelude:hover {
   pointer-events: none;
 }
 
-.keeper-dialog-frame[data-stage-compose="yield"] .dialog-work-forward {
+.keeper-dialog-frame[data-stage-attention]:not([data-stage-attention="present"]) .stage-attention-work {
   position: absolute;
   z-index: 2;
   inset: 16px 9% 20px;
@@ -865,13 +865,13 @@ button.dialog-prelude:hover {
   pointer-events: auto;
 }
 
-.keeper-dialog-frame[data-stage-compose="yield"] .dialog-message-surface {
+.keeper-dialog-frame[data-stage-attention]:not([data-stage-attention="present"]) .dialog-message-surface {
   -webkit-mask-image: none;
   mask-image: none;
 }
 
 /* Theatre writes the yield pose; this only eases the paint of those Presence props. */
-.keeper-dialog-frame[data-stage-compose="yield"] [aria-label="Slide engagement"] {
+.keeper-dialog-frame[data-stage-attention]:not([data-stage-attention="present"]) [aria-label="Slide engagement"] {
   transition: opacity 0.38s ease, transform 0.38s ease;
 }
 

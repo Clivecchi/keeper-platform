@@ -14,8 +14,9 @@
  *     Stage        — same bottom place; lectern/pit over the Stage
  *                    (`data-composer-placement="pit"`). Agency in Composer.
  *                    Reach opens in Chronicle. Elevation is function, not a move to the top.
- *     Yield        — Composer focus / working steps Dialog work forward in Zone 2
- *                    (`data-stage-compose="yield"`). Stage Frame recedes; stay on Stage.
+ *     Attention    — Present → Engage → Yield → Perform → Resolve → Return
+ *                    (`data-stage-attention`). Dialog is the first occupant.
+ *                    Stage Frame recedes; stay on Stage.
  *
  * While sending: Broadcast Strip expands with live beat + prior story beats.
  * After the reply lands: strip collapses; a one-line dialogic summary sits atop
@@ -447,17 +448,14 @@ export function KeeperDialogFrame({
   }, [isMobile])
 
   const composerOnStage = Boolean(dialogContent) && mode !== "feed"
-  const composeForward = composerOnStage && stagePresentation?.composeForward === true
-  const dialogWorkVisible = mode !== "feed" && (!dialogContent || composeForward)
-
-  React.useEffect(() => {
-    if (composerOnStage && isWorking) stagePresentation?.enterCompose()
-  }, [composerOnStage, isWorking, stagePresentation])
+  const workForward = composerOnStage && stagePresentation?.workForward === true
+  const attention = composerOnStage ? (stagePresentation?.attention ?? "present") : undefined
+  const dialogWorkVisible = mode !== "feed" && (!dialogContent || workForward)
 
   const handleComposerFocus = React.useCallback(
     (focused: boolean) => {
       onComposerFocusChange?.(focused)
-      if (composerOnStage && focused) stagePresentation?.enterCompose()
+      if (composerOnStage && focused) stagePresentation?.engageAttention()
     },
     [composerOnStage, onComposerFocusChange, stagePresentation],
   )
@@ -583,7 +581,10 @@ export function KeeperDialogFrame({
             domainId={domainId}
             dialogueMode={dialogueMode}
             inputValue={inputValue}
-            onInputChange={onInputChange}
+            onInputChange={(value) => {
+              if (composerOnStage) stagePresentation?.engageAttention()
+              onInputChange(value)
+            }}
             onSubmit={handleComposerSubmit}
             onComposerFileUpload={onComposerFileUpload ?? onLibraryFileUpload}
             attachments={pendingAttachments}
@@ -739,8 +740,9 @@ export function KeeperDialogFrame({
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
       data-composer-placement={composerOnStage ? "pit" : "floor"}
-      data-stage-compose={
-        composerOnStage ? (composeForward ? "yield" : "present") : undefined
+      data-stage-attention={attention}
+      data-stage-attention-subject={
+        workForward ? (stagePresentation?.attentionSubject ?? "dialog") : undefined
       }
       data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
@@ -1022,12 +1024,12 @@ export function KeeperDialogFrame({
       {/* ── Dialog Space — messages, or the Stage table. Composer stays at the bottom. ── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
-        {composeForward && dialogContent ? (
+        {workForward && dialogContent ? (
           <div
             className="stage-frame-layer"
             role="button"
             tabIndex={0}
-            aria-label="Return to Stage"
+            aria-label="Return to Stage Frame"
             aria-disabled={isWorking || undefined}
             onClick={() => {
               if (!isWorking) stagePresentation?.returnToFrame()
@@ -1047,12 +1049,12 @@ export function KeeperDialogFrame({
         ) : null}
         <div
           ref={scrollRef}
-          className={composeForward ? "dialog-message-surface dialog-work-forward" : "dialog-message-surface"}
-          onClick={composeForward ? (event) => event.stopPropagation() : undefined}
+          className={workForward ? "dialog-message-surface stage-attention-work" : "dialog-message-surface"}
+          onClick={workForward ? (event) => event.stopPropagation() : undefined}
         >
           {mode === "feed"
             ? feedContent
-            : composeForward
+            : workForward
               ? dialogueWork
               : dialogContent ?? dialogueWork
           }
@@ -1063,8 +1065,8 @@ export function KeeperDialogFrame({
           <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
         ) : null}
 
-        {/* Horizon dissolve — Dialog floor. Stage uses the lectern except while yielded. */}
-        {mode !== "feed" && (!composerOnStage || composeForward) && (
+        {/* Horizon dissolve — Dialog floor. Stage Present uses the lectern. */}
+        {mode !== "feed" && (!composerOnStage || workForward) && (
           <div
             className={[
               "dialog-horizon-band",
