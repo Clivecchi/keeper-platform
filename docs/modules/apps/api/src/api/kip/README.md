@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-20: **TypeSafe NL questions + execution truth** — `typesafe.evaluate` accepts natural-language questions (string / string[] / id→string). After Cast, Lead synthesis lists action receipts so failed TypeSafe calls cannot be narrated as initiated findings.
 - 2026-09-19: **`jev.probe`** — Cloud/Lead emit this action to run a Jev Probe over supplied evidence. Parsed evaluations (answer + confidence). Prompt + executor + follow-up. Same TypeSafe key as `typesafe.evaluate`. No Probe persistence.
 - 2026-09-18: **System One → Lead orientation** — `evaluateDocumentTurnPostureShadow()` finishes before Lead generation. Kip receives a separate read-only System One block (actual primitives/probabilities, or unavailable). Not folded into Cast synthesis. Not sent to Rendr/Cloud/Ceox. Not routing, Cast selection, or action authorization.
 - 2026-09-18: **Document Turn Posture** — `detectReorganizeIntent` is a phrase signal. Lead Review & Reorganize follow-up and Cast-skip require established direction. TypeSafe shadow records posture/noul evidence on the Turn and does not mutate the Document. Reorganize receipts say proposal stored, not completed.

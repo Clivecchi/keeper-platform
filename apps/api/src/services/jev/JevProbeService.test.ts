@@ -24,6 +24,7 @@ describe('JevProbeService', () => {
     expect(prompt).toContain('Capability: jev.probe');
     expect(prompt).toContain('Never mcp.call name "jev.probe"');
     expect(prompt).toContain('does not persist a Probe');
+    expect(prompt).toContain('Natural-language questions are valid');
   });
 
   it('evaluates evidence with the TypeSafe key and returns parsed evaluations', async () => {

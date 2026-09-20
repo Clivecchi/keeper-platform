@@ -7376,6 +7376,7 @@ export class KipAgentService {
             castPromisedPointWrite,
             documentDirection: detectReorganizeIntent(cc.userMessage) === 'required',
             resolvePerformanceMeaning: workspaceSurfaceFromEnvironment(options?.environment) === 'stage',
+            actionReceipts: labeled.flatMap((row) => row.castReceipts as Array<Record<string, unknown>>),
           });
           if (!leadModelInput.trim() && cc.userMessage.trim()) {
             leadModelInput = cc.userMessage.trim();
@@ -7601,6 +7602,7 @@ export class KipAgentService {
               deliveredAdvice: castMemberCard
                 ? formatKeeperAdviceCardForPrompt(castMemberCard)
                 : null,
+              actionReceipts: serverCastActionResults as Array<Record<string, unknown>>,
             });
             if (!leadModelInput.trim() && dd.userMessage.trim()) {
               leadModelInput = dd.userMessage.trim();
@@ -7622,6 +7624,7 @@ export class KipAgentService {
                   : undefined,
               castMemberLabel,
               directorName: dd.directorDisplayName,
+              actionReceipts: serverCastActionResults as Array<Record<string, unknown>>,
             });
             if (!leadModelInput.trim() && dd.userMessage.trim()) {
               leadModelInput = dd.userMessage.trim();

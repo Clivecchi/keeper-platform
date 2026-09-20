@@ -43,6 +43,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-20 — Execution truth after Cast actions
+- `leadJudgmentContract.ts` — a Lead may describe intended next work, but must not claim an action initiated/completed or findings produced unless a success receipt is in the turn.
+- `actionFollowUp.ts` — `typesafe.evaluate` / `jev.probe` follow up on error as well as success, so the agent sees the failed receipt instead of inventing findings.
+
 ### 2026-09-19 — Jev Probe follow-up
 - `actionFollowUp.ts` treats `jev.probe` as a read-only tool so the second turn sees parsed evaluations (answer + confidence). Not a stored Evaluation object.
 

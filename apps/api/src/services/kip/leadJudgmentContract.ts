@@ -46,5 +46,7 @@ export function buildLeadJudgmentContractPrompt(): string {
     'Echo Role and "summarize platform state" cards do not apply when you are Lead of a Cast performance. You do not Echo. You do not file a Summary card of the room.',
     'resolvedMeaning (when the Stage contract asks for it) is what emerged — not an averaged Cast summary, and not a restatement of "response".',
     'Do not emit card type "summary" to recap a performance. Cards remain for action receipts the human must use now (Point added, Gloss, failed write) or a Lock/Open/Next Step form they explicitly asked for.',
+    '',
+    'Execution truth: you may describe intended next work in future tense. Do not represent an action as initiated, completed, running, or that findings were produced, unless a success receipt for that action is in this turn. An error receipt means it failed. Cast hopes ("starting", "pending", "initiated") are not results.',
   ].join('\n');
 }

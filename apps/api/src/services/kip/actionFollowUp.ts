@@ -44,6 +44,9 @@ export function shouldRunReadActionFollowUp(
   if (actions.some((action) => action.type === 'delegate.consult')) {
     return results.some((result) => result.type === 'delegate.consult');
   }
+  if (actions.some((action) => action.type === 'typesafe.evaluate' || action.type === 'jev.probe')) {
+    return results.some((result) => result.type === 'typesafe.evaluate' || result.type === 'jev.probe');
+  }
   return results.some(
     (result) => result.status === 'success' && isReadOnlyActionType(result.type),
   );
@@ -120,7 +123,11 @@ function summarizeDraftSpec(spec: unknown): string {
 
 export function formatReadActionResultsForFollowUp(results: ActionResultLike[]): string {
   return results
-    .filter((result) => result.status === 'success' && isReadOnlyActionType(result.type))
+    .filter((result) => {
+      if (!isReadOnlyActionType(result.type)) return false;
+      if (result.type === 'typesafe.evaluate' || result.type === 'jev.probe') return true;
+      return result.status === 'success';
+    })
     .map((result) => {
       const lines = [`Action: ${result.type}`, `Status: ${result.status}`, `Message: ${result.message}`];
       const data = result.data;
@@ -202,16 +209,20 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
             );
           }
         } else if (result.type === 'typesafe.evaluate' || result.type === 'jev.probe') {
-          lines.push(result.type === 'jev.probe' ? 'Jev Probe evaluations:' : 'TypeSafe answers:');
-          if (typeof data.formatted === 'string' && data.formatted.trim()) {
-            lines.push(data.formatted);
-          } else if (Array.isArray(data.evaluations) && data.evaluations.length > 0) {
-            lines.push(JSON.stringify(data.evaluations));
-          } else if (data.answers && typeof data.answers === 'object') {
-            lines.push(JSON.stringify(data.answers));
-          }
-          if (typeof data.model === 'string') {
-            lines.push(`Model: ${data.model}`);
+          if (result.status !== 'success') {
+            lines.push('The evaluation did not complete. Do not report findings or that a Probe was initiated.');
+          } else {
+            lines.push(result.type === 'jev.probe' ? 'Jev Probe evaluations:' : 'TypeSafe answers:');
+            if (typeof data.formatted === 'string' && data.formatted.trim()) {
+              lines.push(data.formatted);
+            } else if (Array.isArray(data.evaluations) && data.evaluations.length > 0) {
+              lines.push(JSON.stringify(data.evaluations));
+            } else if (data.answers && typeof data.answers === 'object') {
+              lines.push(JSON.stringify(data.answers));
+            }
+            if (typeof data.model === 'string') {
+              lines.push(`Model: ${data.model}`);
+            }
           }
         } else if (Array.isArray(data.results)) {
           if (result.type === 'web.search') {
@@ -427,6 +438,8 @@ export function buildReadActionFollowUpInput(params: {
     '- Report the typed answers (noul / choice / score) and their confidence',
     '- Do not treat TypeSafe as a person or a chat model',
     '- Do NOT call typesafe.evaluate again unless the state changed',
+    'If typesafe.evaluate or jev.probe failed:',
+    '- Say the evaluation failed. Do not report findings or that a Probe was initiated.',
     'If jev.probe returned evaluations:',
     '- Report each answer and its confidence. This is a Probe over supplied evidence, not a stored Evaluation object.',
     '- Do not treat Jev as a person or a chat model',

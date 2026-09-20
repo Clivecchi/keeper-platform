@@ -118,6 +118,32 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).not.toContain('Keeping Judgment Contract — Architectural Report');
     expect(prompt).toMatch(/Do NOT treat "I will give you the report" as delivery/);
   });
+
+  it('grounds Lead in action receipts so failed tools are not reported as findings', () => {
+    const prompt = buildCastConsultationsSynthesisPrompt({
+      userMessage: 'Cloud, probe GET /api/journeys',
+      directorName: 'Kip',
+      consultations: [
+        {
+          label: 'Cloud',
+          reply: 'TypeSafe Probe initiated; high-confidence routes identified.',
+          status: 'ok',
+        },
+      ],
+      actionReceipts: [
+        {
+          type: 'typesafe.evaluate',
+          status: 'error',
+          errorCode: 'INVALID_QUESTIONS',
+          message: 'typesafe.evaluate needs questions (map) or a single question string',
+          data: { attributedTo: 'Cloud' },
+        },
+      ],
+    });
+    expect(prompt).toContain('Cloud · typesafe.evaluate: error (INVALID_QUESTIONS)');
+    expect(prompt).toMatch(/Do not represent an action as initiated/);
+    expect(prompt).toMatch(/An error receipt means that action failed/);
+  });
 });
 
 describe('buildDirectorSynthesisPrompt', () => {

@@ -260,6 +260,39 @@ describe('actionFollowUp', () => {
     expect(input).toContain('Do not treat TypeSafe as a person');
   });
 
+  it('follows up on a failed typesafe.evaluate so the agent cannot invent findings', () => {
+    expect(
+      shouldRunReadActionFollowUp(
+        [{ type: 'typesafe.evaluate' }],
+        [
+          {
+            type: 'typesafe.evaluate',
+            status: 'error',
+            message: 'typesafe.evaluate needs questions (map) or a single question string',
+          },
+        ],
+      ),
+    ).toBe(true);
+
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'Cloud, probe GET /api/journeys',
+      agentName: 'Cloud',
+      priorResponseText: 'TypeSafe Probe initiated.',
+      actionResults: [
+        {
+          type: 'typesafe.evaluate',
+          status: 'error',
+          message: 'typesafe.evaluate needs questions (map) or a single question string',
+          data: { attributedTo: 'Cloud' },
+        },
+      ],
+    });
+
+    expect(input).toContain('Status: error');
+    expect(input).toContain('The evaluation did not complete');
+    expect(input).toContain('Do not report findings or that a Probe was initiated');
+  });
+
   it('runs follow-up for jev.probe and formats evaluations', () => {
     expect(
       shouldRunReadActionFollowUp(

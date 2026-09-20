@@ -26,6 +26,11 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-20 — Natural-language TypeSafe questions
+- `parseTypeSafeEvaluatePayload` accepts string / string[] / id→string questions (typed as noul unless `type` is set). `evidence` / `situation` alias `state`.
+- `typesafeEvaluatePromptBlock` teaches that NL questions are valid so Agents do not need a typed map to invoke TypeSafe.
+- `directorDialog.ts` lists Cast action receipts in Lead synthesis. Lead must not claim a tool initiated/completed or findings produced without a success receipt.
+
 ### 2026-09-19 — Jev Probe core
 - `jev/runJevProbe.ts` — reusable evaluation core extracted from the Code X-ray harness. CLI and `jev.probe` consume it. Does not persist Probes or Evaluation objects.
 

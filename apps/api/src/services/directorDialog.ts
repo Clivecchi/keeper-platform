@@ -133,7 +133,42 @@ function buildLeadJudgmentLines(directorName: string): string[] {
     `- Do not write a committee report, a roll-call, or "Cloud and Rendr have identified…"`,
     `- Attribute a stance to a cast member ONLY when a real reply is listed — and then in a clause, not minutes.`,
     `- Dialog already shows each cast member's voice card. Do not paste ### headings or repeat Cast verbatim.`,
+    `- Execution truth: intended next work may be future tense. Do not claim an action was initiated, completed, or running, or that findings were produced, unless a success receipt for that action is listed in this context.`,
+    `- An error receipt means that action failed. Cast hopes ("starting", "pending", "initiated") are not results.`,
   ];
+}
+
+export function formatActionReceiptsForLead(receipts: Array<Record<string, unknown>> | undefined): string[] {
+  if (!receipts?.length) {
+    return [
+      'Action receipts this turn: none.',
+      'Cast prose is not execution. Do not report a tool, Probe, or evaluation as initiated, completed, or that findings were produced.',
+    ];
+  }
+
+  const lines = ['Action receipts this turn (ground truth — use these, not Cast hopes):'];
+  for (const row of receipts) {
+    const data =
+      row.data && typeof row.data === 'object' && !Array.isArray(row.data)
+        ? (row.data as Record<string, unknown>)
+        : {};
+    const who =
+      (typeof row.attributedTo === 'string' && row.attributedTo.trim())
+      || (typeof data.attributedTo === 'string' && data.attributedTo.trim())
+      || null;
+    const type = typeof row.type === 'string' && row.type.trim() ? row.type.trim() : 'action';
+    const status = typeof row.status === 'string' && row.status.trim() ? row.status.trim() : 'unknown';
+    const code = typeof row.errorCode === 'string' && row.errorCode.trim() ? ` (${row.errorCode.trim()})` : '';
+    const message = typeof row.message === 'string' ? row.message.trim() : '';
+    const prefix = who ? `${who} · ${type}` : type;
+    lines.push(`- ${prefix}: ${status}${code}${message ? ` — ${message}` : ''}`);
+  }
+  lines.push(
+    'You may describe intended next work in future tense.',
+    'Do not represent an action as initiated, completed, running, or that findings were produced unless a success receipt for that action is listed above.',
+    'An error receipt means that action failed. Cast hopes ("starting", "pending", "initiated") are not results.',
+  );
+  return lines;
 }
 
 export function buildDirectorSynthesisPrompt(params: {
@@ -143,6 +178,7 @@ export function buildDirectorSynthesisPrompt(params: {
   castMemberReply: string;
   directorName: string;
   deliveredAdvice?: string | null;
+  actionReceipts?: Array<Record<string, unknown>>;
 }): string {
   const display = params.userMessage.trim();
   const task = params.taskMessage?.trim() || display;
@@ -162,6 +198,8 @@ export function buildDirectorSynthesisPrompt(params: {
       ? `Delivered to the human (Dialog already shows this):\n${delivered}`
       : `${params.castMemberLabel} delivered only the prose above — no separate advisory card crossed to the human.`,
     '',
+    ...formatActionReceiptsForLead(params.actionReceipts),
+    '',
     ...buildLeadJudgmentLines(params.directorName),
     `- If ${params.castMemberLabel} said they would capture or add a Point, they cannot write the Document. You emit draft.update.propose this turn. Use payload.section when they named a Section.`,
     `- Do NOT claim ${params.castMemberLabel} provided a report, card, or artifact unless it is listed as delivered above.`,
@@ -177,6 +215,7 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
   taskMessage?: string;
   castMemberLabel: string;
   directorName: string;
+  actionReceipts?: Array<Record<string, unknown>>;
 }): string {
   const display = params.userMessage.trim();
   const task = params.taskMessage?.trim() || display;
@@ -190,6 +229,8 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
     `Task in play: "${task}"`,
     '',
     `${params.castMemberLabel} did not return a reply this turn.`,
+    '',
+    ...formatActionReceiptsForLead(params.actionReceipts),
     '',
     ...buildLeadJudgmentLines(params.directorName),
     `- Say plainly that you reached out to ${params.castMemberLabel} and got nothing back.`,
@@ -215,6 +256,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   documentDirection?: boolean;
   /** Stage + Cast performance — emit resolvedMeaning on the envelope, not by rewriting response. */
   resolvePerformanceMeaning?: boolean;
+  /** Cast action receipts this turn — ground truth for what ran. */
+  actionReceipts?: Array<Record<string, unknown>>;
 }): string {
   const lines = [
     `[Orchestration context — ${params.directorName} after Cast performance]`,
@@ -238,6 +281,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   }
 
   lines.push(
+    '',
+    ...formatActionReceiptsForLead(params.actionReceipts),
     '',
     ...buildLeadJudgmentLines(params.directorName),
     '- Do NOT claim a cast member provided a report, card, or artifact unless it is listed as delivered above.',

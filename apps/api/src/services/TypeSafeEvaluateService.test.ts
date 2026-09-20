@@ -23,6 +23,8 @@ describe('TypeSafeEvaluateService', () => {
     expect(prompt).toContain('typesafe.evaluate');
     expect(prompt).toContain('not an agent');
     expect(prompt).toContain('Do not set model_provider to typesafe');
+    expect(prompt).toContain('Natural-language questions are valid');
+    expect(prompt).toContain('"questions":["Could an unauthenticated caller list journeys across domains?"]');
   });
 
   it('evaluates with the Railway key and returns answers', async () => {
@@ -67,5 +69,39 @@ describe('TypeSafeEvaluateService', () => {
 
     const invalid = await runTypeSafeEvaluateAction({ payload: { state: 'A decision.' } });
     expect(invalid).toMatchObject({ ok: false, errorCode: 'INVALID_QUESTIONS' });
+  });
+
+  it('evaluates a natural-language question string array', async () => {
+    resolveKey.mockResolvedValue('ts-tool-key');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          model: 'jev-latest',
+          answers: { q1: { type: 'noul', noul: 0.74 } },
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const outcome = await runTypeSafeEvaluateAction({
+      payload: {
+        state: 'GET /api/journeys: domainId is optional.',
+        questions: ['Could an unauthenticated caller list journeys across domains?'],
+      },
+    });
+
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.formatted).toContain('q1: 0.740');
+    }
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as {
+      questions: Record<string, { type: string; instructions: string }>;
+    };
+    expect(body.questions.q1).toMatchObject({
+      type: 'noul',
+      instructions: 'Could an unauthenticated caller list journeys across domains?',
+    });
   });
 });

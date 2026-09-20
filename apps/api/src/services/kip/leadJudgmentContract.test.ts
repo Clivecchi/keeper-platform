@@ -32,4 +32,11 @@ describe('leadJudgmentContract', () => {
     expect(prompt).toMatch(/Do not emit card type "summary" to recap a performance/);
     expect(prompt).toMatch(/You do not Echo/);
   });
+
+  it('forbids claiming initiated findings without a success receipt', () => {
+    const prompt = buildLeadJudgmentContractPrompt();
+    expect(prompt).toMatch(/Execution truth/);
+    expect(prompt).toMatch(/Do not represent an action as initiated/);
+    expect(prompt).toMatch(/An error receipt means it failed/);
+  });
 });

@@ -121,7 +121,7 @@ export function buildMcpToolSystemPrompt(tools: McpToolDescriptor[]): string {
     'Deploy/write tools (railway_trigger_redeploy, vercel_trigger_redeploy) require explicit user confirmation first.',
     'Do NOT tell the user MCP tools are unavailable — they are wired via mcp.call when listed above.',
     'web.search is a Kip action, not an MCP tool. Never mcp.call name "web.search". Emit {"type":"web.search","payload":{"query":"..."}}.',
-    'typesafe.evaluate is a Kip action, not an MCP tool. Never mcp.call name "typesafe.evaluate". Emit {"type":"typesafe.evaluate","payload":{"state":"...","questions":{...}}}.',
+    'typesafe.evaluate is a Kip action, not an MCP tool. Never mcp.call name "typesafe.evaluate". Emit {"type":"typesafe.evaluate","payload":{"state":"...","questions":["Is Domain authorization established before the query?"]}}.',
     'jev.probe is a Kip action, not an MCP tool. Never mcp.call name "jev.probe". Emit {"type":"jev.probe","payload":{"evidence":"...","questions":{...}}}.',
   ].join('\n');
 }

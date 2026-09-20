@@ -52,6 +52,15 @@ describe('Jev Probe core', () => {
     });
     expect(fromState.ok).toBe(true);
 
+    const fromNl = parseJevProbePayload({
+      evidence: 'GET /api/journeys: domainId is optional.',
+      questions: ['Could an unauthenticated caller list journeys across domains?'],
+    });
+    expect(fromNl.ok).toBe(true);
+    if (fromNl.ok) {
+      expect(fromNl.request.questions.q1?.type).toBe('noul');
+    }
+
     expect(parseJevProbePayload({ questions: { q1: { type: 'noul', instructions: 'Ready?' } } })).toMatchObject({
       ok: false,
       errorCode: 'INVALID_QUESTIONS',

@@ -176,6 +176,117 @@ function questionType(value: unknown): 'noul' | 'choice' | 'score' | null {
   return value === 'noul' || value === 'choice' || value === 'score' ? value : null;
 }
 
+function hasTypeSafeState(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string' && !value.trim()) return false;
+  return true;
+}
+
+function questionFromText(
+  text: string,
+  type: 'noul' | 'choice' | 'score',
+  criteria?: unknown,
+): TypeSafeQuestion {
+  const instructions = text.trim();
+  if (type === 'choice') {
+    return {
+      type: 'choice',
+      instructions,
+      criteria:
+        criteria && typeof criteria === 'object' && !Array.isArray(criteria)
+          ? (criteria as Record<string, string | null>)
+          : { yes: 'Yes', no: 'No' },
+    };
+  }
+  if (type === 'score') {
+    return {
+      type: 'score',
+      instructions,
+      criteria: Array.isArray(criteria)
+        ? criteria.filter((item): item is string => typeof item === 'string')
+        : ['low', 'medium', 'high'],
+    };
+  }
+  return { type: 'noul', instructions };
+}
+
+function questionTextFromUnknown(value: unknown): string {
+  if (typeof value === 'string') return value.trim();
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+  const row = value as Record<string, unknown>;
+  if (typeof row.instructions === 'string' && row.instructions.trim()) return row.instructions.trim();
+  if (typeof row.question === 'string' && row.question.trim()) return row.question.trim();
+  if (typeof row.prompt === 'string' && row.prompt.trim()) return row.prompt.trim();
+  if (typeof row.text === 'string' && row.text.trim()) return row.text.trim();
+  return '';
+}
+
+function coerceQuestionEntry(
+  value: unknown,
+  fallbackType: 'noul' | 'choice' | 'score',
+  fallbackCriteria: unknown,
+): TypeSafeQuestion | null {
+  if (typeof value === 'string') {
+    const text = value.trim();
+    return text ? questionFromText(text, fallbackType, fallbackCriteria) : null;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  const text = questionTextFromUnknown(row);
+  if (!text) return null;
+  const type = questionType(row.type) ?? fallbackType;
+  return questionFromText(text, type, row.criteria ?? fallbackCriteria);
+}
+
+function coerceTypeSafeQuestions(row: Record<string, unknown>): TypeSafeQuestions | null {
+  const fallbackType = questionType(row.type) ?? 'noul';
+  const fallbackCriteria = row.criteria;
+
+  if (isQuestionMap(row.questions) && Object.keys(row.questions).length > 0) {
+    return row.questions;
+  }
+
+  if (typeof row.questions === 'string' && row.questions.trim()) {
+    return { q1: questionFromText(row.questions, fallbackType, fallbackCriteria) };
+  }
+
+  if (Array.isArray(row.questions)) {
+    const map: TypeSafeQuestions = {};
+    row.questions.forEach((item, index) => {
+      const question = coerceQuestionEntry(item, fallbackType, fallbackCriteria);
+      if (!question) return;
+      const id =
+        item && typeof item === 'object' && !Array.isArray(item) && typeof (item as { id?: unknown }).id === 'string'
+          ? (item as { id: string }).id.trim() || `q${index + 1}`
+          : `q${index + 1}`;
+      map[id] = question;
+    });
+    return Object.keys(map).length ? map : null;
+  }
+
+  if (row.questions && typeof row.questions === 'object') {
+    const map: TypeSafeQuestions = {};
+    for (const [id, value] of Object.entries(row.questions as Record<string, unknown>)) {
+      const question = coerceQuestionEntry(value, fallbackType, fallbackCriteria);
+      if (question) map[id] = question;
+    }
+    if (Object.keys(map).length) return map;
+  }
+
+  const questionText =
+    typeof row.question === 'string'
+      ? row.question.trim()
+      : typeof row.instructions === 'string'
+        ? row.instructions.trim()
+        : typeof row.query === 'string'
+          ? row.query.trim()
+          : '';
+  if (questionText) {
+    return { q1: questionFromText(questionText, fallbackType, fallbackCriteria) };
+  }
+  return null;
+}
+
 export function parseTypeSafeEvaluatePayload(payload: unknown):
   | { ok: true; request: TypeSafeEvaluateRequest }
   | { ok: false; errorCode: 'INVALID_QUESTIONS'; message: string } {
@@ -186,49 +297,22 @@ export function parseTypeSafeEvaluatePayload(payload: unknown):
   const model =
     typeof row.model === 'string' && row.model.trim() ? row.model.trim() : TYPESAFE_DEFAULT_MODEL;
 
-  const hasState = row.state !== undefined && row.state !== null && !(typeof row.state === 'string' && !row.state.trim());
-  if (!hasState) {
+  const state =
+    row.state !== undefined ? row.state : row.evidence !== undefined ? row.evidence : row.situation;
+  if (!hasTypeSafeState(state)) {
     return { ok: false, errorCode: 'INVALID_QUESTIONS', message: 'state is required for typesafe.evaluate' };
   }
 
-  if (isQuestionMap(row.questions) && Object.keys(row.questions).length > 0) {
-    return { ok: true, request: { state: row.state, questions: row.questions, model } };
+  const questions = coerceTypeSafeQuestions(row);
+  if (!questions) {
+    return {
+      ok: false,
+      errorCode: 'INVALID_QUESTIONS',
+      message: 'typesafe.evaluate needs questions (map) or a single question string',
+    };
   }
 
-  const questionText =
-    typeof row.question === 'string'
-      ? row.question.trim()
-      : typeof row.instructions === 'string'
-        ? row.instructions.trim()
-        : '';
-  const type = questionType(row.type) ?? 'noul';
-  if (questionText) {
-    const criteria = row.criteria;
-    const question: TypeSafeQuestion =
-      type === 'choice'
-        ? {
-            type: 'choice',
-            instructions: questionText,
-            criteria:
-              criteria && typeof criteria === 'object' && !Array.isArray(criteria)
-                ? (criteria as Record<string, string | null>)
-                : { yes: 'Yes', no: 'No' },
-          }
-        : type === 'score'
-          ? {
-              type: 'score',
-              instructions: questionText,
-              criteria: Array.isArray(criteria) ? criteria.filter((item): item is string => typeof item === 'string') : ['low', 'medium', 'high'],
-            }
-          : { type: 'noul', instructions: questionText };
-    return { ok: true, request: { state: row.state, questions: { q1: question }, model } };
-  }
-
-  return {
-    ok: false,
-    errorCode: 'INVALID_QUESTIONS',
-    message: 'typesafe.evaluate needs questions (map) or a single question string',
-  };
+  return { ok: true, request: { state, questions, model } };
 }
 
 export async function evaluateTypeSafe(params: {

@@ -12,7 +12,7 @@ Reusable evaluation core: ask typed Jev questions over supplied evidence and ret
 ## 🔄 Data & Behavior
 `runJevProbe` wraps `evaluateTypeSafe`. Optional `context` becomes `{ context, evidence }` in the TypeSafe state. Parsed evaluations preserve Choice/Noul/Score plus confidence and probabilities. Key path is unchanged (`TYPESAFE_API_KEY` → platform/user keys). Does not persist.
 
-Agent payload: `{ evidence, questions, context?, model? }`. `state` is accepted as an alias for evidence.
+Agent payload: `{ evidence, questions, context?, model? }`. `state` is accepted as an alias for evidence. Natural-language questions (string / string[] / id → string) are typed as noul unless `type` is set.
 
 ## ⚠️ Notes & ToDo
 - [ ] Cloud runtime seed (`ensureCastMemberAgent`) merges `jev.probe` onto the Cloud record
@@ -20,5 +20,8 @@ Agent payload: `{ evidence, questions, context?, model? }`. `state` is accepted 
 - [ ] Behavior to confirm with Kip: whether Lead should prefer `jev.probe` over `typesafe.evaluate` for evidence-in-hand turns
 
 ## 📆 Update Log
+### 2026-09-20 — Natural-language questions
+- `parseJevProbePayload` inherits TypeSafe NL question coercion (string / string[] / id→string → noul). Agent prompt says a typed map is optional.
+
 ### 2026-09-19 — Extracted from Code X-ray
 - Pulled the X-ray evaluation loop into `runJevProbe`. CLI remains a consumer. `jev.probe` is the smallest Agent capability/action for Cloud.

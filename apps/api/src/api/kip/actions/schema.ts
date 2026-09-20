@@ -345,25 +345,69 @@ const typeSafeQuestionSchema = z.object({
   criteria: z.union([z.record(z.string().nullable()), z.array(z.string())]).optional(),
 });
 
+/** Agents often emit NL questions. Keeper types a string as noul unless `type` is set. */
+const typeSafeQuestionInputSchema = z.union([
+  z.string().min(1),
+  typeSafeQuestionSchema,
+  z
+    .object({
+      id: z.string().optional(),
+      type: z.enum(['noul', 'choice', 'score']).optional(),
+      instructions: z.string().optional(),
+      question: z.string().optional(),
+      prompt: z.string().optional(),
+      text: z.string().optional(),
+      criteria: z.union([z.record(z.string().nullable()), z.array(z.string())]).optional(),
+    })
+    .passthrough(),
+]);
+
+function hasTypeSafeEvaluateState(data: {
+  state?: unknown;
+  evidence?: unknown;
+  situation?: unknown;
+}): boolean {
+  const state = data.state !== undefined ? data.state : data.evidence !== undefined ? data.evidence : data.situation;
+  return state !== undefined && state !== null && !(typeof state === 'string' && !state.trim());
+}
+
+function hasTypeSafeEvaluateQuestions(data: {
+  questions?: unknown;
+  question?: string;
+  instructions?: string;
+  query?: string;
+}): boolean {
+  if (typeof data.questions === 'string' && data.questions.trim()) return true;
+  if (Array.isArray(data.questions) && data.questions.length > 0) return true;
+  if (data.questions && typeof data.questions === 'object' && Object.keys(data.questions).length > 0) return true;
+  return Boolean(data.question?.trim() || data.instructions?.trim() || data.query?.trim());
+}
+
 export const typeSafeEvaluatePayloadSchema = z
   .object({
-    state: z.unknown(),
-    questions: z.record(typeSafeQuestionSchema).optional(),
+    state: z.unknown().optional(),
+    evidence: z.unknown().optional(),
+    situation: z.unknown().optional(),
+    questions: z
+      .union([
+        z.string().min(1),
+        z.array(typeSafeQuestionInputSchema),
+        z.record(typeSafeQuestionInputSchema),
+      ])
+      .optional(),
     question: z.string().min(1).optional(),
+    query: z.string().min(1).optional(),
     instructions: z.string().min(1).optional(),
     type: z.enum(['noul', 'choice', 'score']).optional(),
     criteria: z.union([z.record(z.string().nullable()), z.array(z.string())]).optional(),
     model: z.string().optional(),
   })
-  .refine((data) => data.state !== undefined && data.state !== null && !(typeof data.state === 'string' && !data.state.trim()), {
+  .refine((data) => hasTypeSafeEvaluateState(data), {
     message: 'state is required',
   })
-  .refine(
-    (data) =>
-      (data.questions && Object.keys(data.questions).length > 0) ||
-      Boolean(data.question?.trim() || data.instructions?.trim()),
-    { message: 'Provide questions or a single question' },
-  );
+  .refine((data) => hasTypeSafeEvaluateQuestions(data), {
+    message: 'Provide questions or a single question',
+  });
 
 export type TypeSafeEvaluateAction = z.infer<typeof typeSafeEvaluatePayloadSchema> & {
   type: 'typesafe.evaluate';
@@ -374,8 +418,15 @@ export const jevProbePayloadSchema = z
     evidence: z.unknown().optional(),
     state: z.unknown().optional(),
     context: z.unknown().optional(),
-    questions: z.record(typeSafeQuestionSchema).optional(),
+    questions: z
+      .union([
+        z.string().min(1),
+        z.array(typeSafeQuestionInputSchema),
+        z.record(typeSafeQuestionInputSchema),
+      ])
+      .optional(),
     question: z.string().min(1).optional(),
+    query: z.string().min(1).optional(),
     instructions: z.string().min(1).optional(),
     type: z.enum(['noul', 'choice', 'score']).optional(),
     criteria: z.union([z.record(z.string().nullable()), z.array(z.string())]).optional(),
@@ -388,12 +439,9 @@ export const jevProbePayloadSchema = z
     },
     { message: 'evidence is required (state is accepted as an alias)' },
   )
-  .refine(
-    (data) =>
-      (data.questions && Object.keys(data.questions).length > 0) ||
-      Boolean(data.question?.trim() || data.instructions?.trim()),
-    { message: 'Provide questions or a single question' },
-  );
+  .refine((data) => hasTypeSafeEvaluateQuestions(data), {
+    message: 'Provide questions or a single question',
+  });
 
 export type JevProbeAction = z.infer<typeof jevProbePayloadSchema> & {
   type: 'jev.probe';

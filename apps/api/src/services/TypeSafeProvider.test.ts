@@ -103,4 +103,37 @@ describe('TypeSafeProvider', () => {
 
     expect(parseTypeSafeEvaluatePayload({ questions: {} }).ok).toBe(false);
   });
+
+  it('coerces natural-language questions into noul', () => {
+    const asArray = parseTypeSafeEvaluatePayload({
+      state: 'GET /api/journeys: domainId is optional.',
+      questions: ['Could an unauthenticated caller list journeys across domains?'],
+    });
+    expect(asArray.ok).toBe(true);
+    if (asArray.ok) {
+      expect(asArray.request.questions.q1).toEqual({
+        type: 'noul',
+        instructions: 'Could an unauthenticated caller list journeys across domains?',
+      });
+    }
+
+    const asMap = parseTypeSafeEvaluatePayload({
+      state: 'GET /api/journeys: domainId is optional.',
+      questions: { cross_domain: 'Could this list journeys across domains?' },
+    });
+    expect(asMap.ok).toBe(true);
+    if (asMap.ok) {
+      expect(asMap.request.questions.cross_domain?.type).toBe('noul');
+    }
+
+    const asString = parseTypeSafeEvaluatePayload({
+      evidence: 'GET /api/journeys optional domainId',
+      questions: 'Is Domain authorization established before the query?',
+    });
+    expect(asString.ok).toBe(true);
+    if (asString.ok) {
+      expect(asString.request.state).toBe('GET /api/journeys optional domainId');
+      expect(asString.request.questions.q1?.type).toBe('noul');
+    }
+  });
 });
