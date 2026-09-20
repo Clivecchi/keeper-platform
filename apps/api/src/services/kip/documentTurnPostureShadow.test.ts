@@ -134,6 +134,8 @@ describe('System One Lead orientation V0', () => {
     expect(block).toContain('not authorization');
     expect(block).toContain('Cast members have not seen this block');
     expect(block).toContain('Available: yes');
+    expect(block).toContain('WAS returned for this Turn');
+    expect(block).not.toContain('No System One result was available to me for this Turn.');
     expect(block).toContain('Model: jev-1.13.0');
     expect(block).toContain('choice: diagnose');
     expect(block).toContain('confidence: 0.58');

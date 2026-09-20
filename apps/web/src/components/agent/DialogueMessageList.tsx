@@ -26,6 +26,11 @@ import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
 import {
+  leadCardForSystemOne,
+  leadContentForSystemOne,
+  SystemOneOrientationCard,
+} from "./SystemOneOrientationCard"
+import {
   MessageSenderLabel,
   type MessageSenderVariant,
 } from "./MessageSenderLabel"
@@ -450,11 +455,12 @@ function AgentMessageTurn({
           }}
         >
           <AgentMessageContent
-            content={visibleContent}
-            card={message.keeperCard}
+            content={leadContentForSystemOne(visibleContent, message.orchestration)}
+            card={leadCardForSystemOne(message.keeperCard, message.orchestration)}
             chronicleChip={message.chronicleChip}
             onOpenChronicleChip={onOpenChronicleChip}
           />
+          <SystemOneOrientationCard orchestration={message.orchestration} />
           {message.arrivalInvitations?.length && onArrivalInvitation ? (
             <RealmInvitationButtons
               invitations={message.arrivalInvitations}
@@ -546,15 +552,22 @@ function AgentMessageTurn({
             grouped
             variant="lead"
             name={resolvedAgentName}
-            content={sanitizeAgentMessageContent(message.content)}
-            card={message.keeperCard}
+            content={leadContentForSystemOne(
+              sanitizeAgentMessageContent(message.content),
+              message.orchestration,
+            )}
+            card={leadCardForSystemOne(message.keeperCard, message.orchestration)}
             chronicleChip={message.chronicleChip}
             onOpenChronicleChip={onOpenChronicleChip}
             glossMessageId={message.id}
             glossNodeId="body"
             glossThreads={message.glossThreads}
-            glossSnapshotText={sanitizeAgentMessageContent(message.content)}
+            glossSnapshotText={leadContentForSystemOne(
+              sanitizeAgentMessageContent(message.content),
+              message.orchestration,
+            )}
           />
+          <SystemOneOrientationCard orchestration={message.orchestration} />
         )}
         {!message.content.trim() && (message.keeperCard || message.chronicleChip) ? (
           <AgentChatBubble

@@ -212,3 +212,74 @@ export function parseDocumentTurnPostureAnswers(
 export function shouldShadowDocumentTurnPosture(detection: ReorganizeDetection): boolean {
   return detection.mention || detection.establishedDirection;
 }
+
+export type SystemOneOrientationView = {
+  available: boolean;
+  model: string | null;
+  turnPosture: {
+    choice: string | null;
+    confidence: number | null;
+    probabilities: Record<string, number> | null;
+  };
+  documentReorganizationRequested: { noul: number | null };
+  documentMutationRequested: { noul: number | null };
+  suppliedToLead: boolean | null;
+  suppliedToCast: boolean | null;
+};
+
+function numberRecord(value: unknown): Record<string, number> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    (row): row is [string, number] => typeof row[1] === 'number',
+  );
+  return entries.length ? Object.fromEntries(entries) : null;
+}
+
+/**
+ * Read System One evidence from persisted Lead orchestration.
+ * Prefers raw Jev answers on turnPostureShadow — not Lead prose.
+ */
+export function parseSystemOneOrientationView(
+  orchestration: unknown,
+): SystemOneOrientationView | null {
+  if (!orchestration || typeof orchestration !== 'object' || Array.isArray(orchestration)) {
+    return null;
+  }
+  const orch = orchestration as Record<string, unknown>;
+  const shadow = asRecord(orch.turnPostureShadow);
+  if (!shadow) return null;
+  const answers = asRecord(shadow.answers);
+  const parsed = parseDocumentTurnPostureAnswers(answers);
+  const turnAnswers = asRecord(answers?.turnPosture);
+  const delivery = asRecord(orch.systemOneOrientation);
+  return {
+    available: shadow.ok === true && answers != null,
+    model: typeof shadow.model === 'string' ? shadow.model : null,
+    turnPosture: {
+      choice: parsed.turnPosture.choice,
+      confidence: parsed.turnPosture.confidence,
+      probabilities: numberRecord(turnAnswers?.probabilities),
+    },
+    documentReorganizationRequested: parsed.documentReorganizationRequested,
+    documentMutationRequested: parsed.documentMutationRequested,
+    suppliedToLead: typeof delivery?.suppliedToLead === 'boolean' ? delivery.suppliedToLead : null,
+    suppliedToCast: typeof delivery?.suppliedToCast === 'boolean' ? delivery.suppliedToCast : null,
+  };
+}
+
+export function isFabricatedSystemOneUnavailableCard(card: {
+  title?: string;
+  body?: string;
+} | null | undefined): boolean {
+  if (!card) return false;
+  return (
+    /system one orientation/i.test(card.title ?? '')
+    && /no system one result was available/i.test(card.body ?? '')
+  );
+}
+
+export function stripFabricatedSystemOneUnavailableLine(content: string): string {
+  return content
+    .replace(/\n*No System One result was available to me for this Turn\.?\s*$/i, '')
+    .trim();
+}

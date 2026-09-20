@@ -442,6 +442,7 @@ export function extractRunAgentPayload(result: unknown): {
   keepingChoiceAlreadySelected?: boolean
   resolvedMeaning?: NonNullable<ReturnType<typeof parseResolvedMeaning>>
   stageExpression?: NonNullable<ReturnType<typeof parseStageExpressionStamp>>
+  orchestration?: Record<string, unknown>
 } {
   const outer = (result as { data?: Record<string, unknown> })?.data
   const inner =
@@ -485,6 +486,11 @@ export function extractRunAgentPayload(result: unknown): {
   const keepingChoiceAlreadySelected = extractKeepingChoiceAlreadySelected(result)
   const resolvedMeaning = extractResolvedMeaningFromRunResult(result)
   const stageExpression = extractStageExpressionFromRunResult(result)
+  const orchestrationRaw = inner?.orchestration ?? outer?.orchestration
+  const orchestration =
+    orchestrationRaw && typeof orchestrationRaw === "object" && !Array.isArray(orchestrationRaw)
+      ? (orchestrationRaw as Record<string, unknown>)
+      : undefined
   return {
     actions: Array.isArray(actions) ? actions : undefined,
     sessionId: typeof sessionRaw === "string" && sessionRaw.trim() ? sessionRaw.trim() : undefined,
@@ -493,6 +499,7 @@ export function extractRunAgentPayload(result: unknown): {
     ...(keepingChoiceAlreadySelected ? { keepingChoiceAlreadySelected: true } : {}),
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
     ...(stageExpression ? { stageExpression } : {}),
+    ...(orchestration ? { orchestration } : {}),
   }
 }
 
@@ -1396,6 +1403,7 @@ export function useAgentDialog({
           keepingChoiceAlreadySelected,
           resolvedMeaning: resultResolvedMeaning,
           stageExpression: resultStageExpression,
+          orchestration: resultOrchestration,
         } = extractRunAgentPayload(result)
 
         if (keepingChoiceAlreadySelected) {
@@ -1478,6 +1486,7 @@ export function useAgentDialog({
             && !resultKeepingChoices?.length
             && !resultResolvedMeaning
             && !resultStageExpression
+            && !resultOrchestration
           ) {
             return withUser
           }
@@ -1496,6 +1505,7 @@ export function useAgentDialog({
             ...(resultKeepingChoices?.length ? { keepingChoices: resultKeepingChoices } : {}),
             ...(resultResolvedMeaning ? { resolvedMeaning: resultResolvedMeaning } : {}),
             ...(resultStageExpression ? { stageExpression: resultStageExpression } : {}),
+            ...(resultOrchestration ? { orchestration: resultOrchestration } : {}),
           }
           return updated
         }
@@ -1507,6 +1517,7 @@ export function useAgentDialog({
             return {
               ...message,
               content: replyText?.trim() || message.content,
+              ...(resultOrchestration ? { orchestration: resultOrchestration } : {}),
             }
           })
           return mergeOntoLastAgent(painted)

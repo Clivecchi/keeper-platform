@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-19 — System One on the live Lead turn
+- `extractRunAgentPayload` keeps `orchestration` so the Dialog can stamp stored Jev values onto the streaming Lead message.
+
 ### 2026-09-12 — Agent Board performance metadata
 - Persisted Dialog messages keep `orchestration` and `performanceProvenance` so Chronicle can inspect a recorded Lead turn.
 

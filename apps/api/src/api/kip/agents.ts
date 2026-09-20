@@ -7629,7 +7629,8 @@ export class KipAgentService {
         };
         console.info('[AgentTurn]', agentTurnSummary);
 
-        const humanTurnForShadow = humanTurnTextForIntent(input, options?.displayContent);
+        const humanTurnForShadow = (input ?? '').trim()
+          || humanTurnTextForIntent(input, options?.displayContent);
         const supplySystemOneToLead = shouldSupplySystemOneOrientationToLead({
           ephemeral: options?.ephemeral,
           input,

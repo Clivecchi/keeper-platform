@@ -43,6 +43,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-19 — System One visible from stored Jev
+- Shadow judges the assembled Lead input, not the short `see attached` label. Success block says the result WAS returned. Dialog renders primitives from `turnPostureShadow` so Lead prose cannot hide them.
+
 ### 2026-09-18 — System One orientation to Lead
 - Shadow completes before Lead `callAIModel`. Actual Jev Choice/Noul values are a distinct read-only system block for Kip only. Cast consults (including Ceox) do not receive it. Delivery metadata records `suppliedToLead` / `suppliedToCast: false` for later comparison.
 

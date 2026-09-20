@@ -13,6 +13,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `JourneyCard.tsx` -- Detail view for a Journey (Draft UI style): title, forward, paths, moments, Set as Active, ← Dialogue.
 - `KeeperCard.tsx` -- Detail view for a Keeper (Draft UI style): title, purpose, domain, Set as Active, ← Dialogue.
 - `DialogueMessageList.tsx` -- Scrollable conversation message list with action receipts, skeleton loading, and error states. Agent name is dynamic (passed as prop, never hardcoded).
+- `SystemOneOrientationCard.tsx` -- Renders stored TypeSafe/Jev values from Lead `orchestration.turnPostureShadow`. Evidence, not Lead prose.
 - `KeepingChoiceControls.tsx` -- Independent Keeping Choice chips. Selected is one-use; siblings stay available.
 - `errorPresentation.ts` -- Shared category/tone mapping for Kip dialogue errors such as provider overloads, quota, timeouts, missing keys, and invalid models.
 - `SessionCard.tsx` -- Clickable session card for conversation session lists. Compact and full variants.
@@ -35,6 +36,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-09-19: Dialog shows System One orientation from persisted Jev answers on the Lead message. Kip's fabricated "unavailable" card/line is suppressed when those answers exist.
 - 2026-09-18: `document.reorganize.propose` receipts label **Proposed Document**, not Completed. Handler copy says proposal stored / Apply has not run.
 - 2026-09-18: Cockpit Change model lists chat providers only (no TypeSafe). Save writes `model` + `model_provider` + `model_settings` so the preference fields stay aligned.
 - 2026-09-13: Theme tooltip — change this domain’s look, or ask the agent. No longer “go to Stage.”

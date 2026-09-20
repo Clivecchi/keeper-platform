@@ -87,7 +87,6 @@ export function buildSystemOneLeadOrientationBlock(
     'Cast members have not seen this block. Their Agency is independent.',
     'If you report System One values, quote only what is listed below.',
     'Do not infer, recreate, summarize, or fabricate TypeSafe values.',
-    'If a primitive is missing or Available is no, say: No System One result was available to me for this Turn.',
   ];
 
   if (!shadow.ok || !shadow.answers) {
@@ -98,6 +97,7 @@ export function buildSystemOneLeadOrientationBlock(
       `Model: ${shadow.model ?? 'unavailable'}`,
       shadow.errorCode ? `Reason: ${shadow.errorCode}` : null,
       shadow.message ? `Message: ${shadow.message}` : null,
+      'If asked for System One values, say: No System One result was available to me for this Turn.',
     ]
       .filter((line): line is string => Boolean(line))
       .join('\n');
@@ -114,7 +114,8 @@ export function buildSystemOneLeadOrientationBlock(
   return [
     ...header,
     '',
-    'Available: yes',
+    'Available: yes — a System One result WAS returned for this Turn.',
+    'Quote these values in any System One Orientation section. Do not say that no result was available.',
     `Model: ${shadow.model ?? 'unavailable'}`,
     '',
     `Choice turnPosture — ${questions.turnPosture.instructions}`,

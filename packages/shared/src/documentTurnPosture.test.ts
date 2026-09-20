@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { detectReorganizeDetection, detectReorganizeIntent } from './documentReorganizeIntent.js';
 import {
   DOCUMENT_TURN_POSTURE_CORPUS,
+  isFabricatedSystemOneUnavailableCard,
   parseDocumentTurnPostureAnswers,
+  parseSystemOneOrientationView,
   shouldShadowDocumentTurnPosture,
+  stripFabricatedSystemOneUnavailableLine,
 } from './documentTurnPosture.js';
 
 describe('document turn posture phrase signal', () => {
@@ -62,5 +65,39 @@ describe('document turn posture phrase signal', () => {
     expect(parsed.turnPosture).toEqual({ choice: 'diagnose', confidence: 0.91 });
     expect(parsed.documentReorganizationRequested.noul).toBe(0.04);
     expect(parsed.documentMutationRequested.noul).toBe(0.02);
+  });
+
+  it('reads Jev values from persisted Lead orchestration, not Lead prose', () => {
+    const view = parseSystemOneOrientationView({
+      turnPostureShadow: {
+        ok: true,
+        model: 'jev-1.13.0',
+        answers: {
+          turnPosture: {
+            type: 'choice',
+            choice: 'diagnose',
+            confidence: 0.63,
+            probabilities: { diagnose: 0.7, explore: 0.12 },
+          },
+          documentReorganizationRequested: { type: 'noul', noul: 0.06 },
+          documentMutationRequested: { type: 'noul', noul: 0.09 },
+        },
+      },
+      systemOneOrientation: { suppliedToLead: false, suppliedToCast: false },
+    });
+    expect(view?.available).toBe(true);
+    expect(view?.model).toBe('jev-1.13.0');
+    expect(view?.turnPosture.choice).toBe('diagnose');
+    expect(view?.turnPosture.probabilities?.diagnose).toBe(0.7);
+    expect(view?.documentReorganizationRequested.noul).toBe(0.06);
+    expect(isFabricatedSystemOneUnavailableCard({
+      title: 'System One Orientation',
+      body: 'No System One result was available to me for this Turn.',
+    })).toBe(true);
+    expect(
+      stripFabricatedSystemOneUnavailableLine(
+        'Cast spoke.\n\nNo System One result was available to me for this Turn.',
+      ),
+    ).toBe('Cast spoke.');
   });
 });
