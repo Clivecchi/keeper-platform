@@ -20,6 +20,9 @@ Agent payload: `{ evidence, questions, context?, model? }`. `state` is accepted 
 - [ ] Behavior to confirm with Kip: whether Lead should prefer `jev.probe` over `typesafe.evaluate` for evidence-in-hand turns
 
 ## 📆 Update Log
+### 2026-09-20 — Railway tsc: JevAnswerType re-export
+- `runJevProbe.ts` re-exports `JevAnswerType` from `./types`. The type was missing from the import, so `pnpm --filter keeper-api build` failed.
+
 ### 2026-09-20 — Natural-language questions
 - `parseJevProbePayload` inherits TypeSafe NL question coercion (string / string[] / id→string → noul). Agent prompt says a typed map is optional.
 

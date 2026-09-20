@@ -11,6 +11,7 @@ import {
   type TypeSafeQuestions,
 } from '../TypeSafeProvider.js';
 import type {
+  JevAnswerType,
   JevParsedAnswer,
   JevProbeFailure,
   JevProbeOutcome,
