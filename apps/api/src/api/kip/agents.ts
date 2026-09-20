@@ -13,12 +13,14 @@ import { prisma } from '@keeper/database';
 import { Prisma } from '@prisma/client';
 import {
   buildAgentPerformanceProvenance,
+  buildHumanTurnRecord,
   buildKeepingChoiceExercisePrompt,
   extractKeeperAdviceCardFromRunResult,
   formatKeeperAdviceCardForPrompt,
   logger,
   parseKeeperAdviceCard,
   redactForLog,
+  resolveHumanTurnId,
   withoutAdviseOnlySkips,
 } from '@keeper/shared';
 import {
@@ -208,9 +210,9 @@ import {
 } from '../../services/kip/documentReorganizeIntent.js';
 import {
   buildSystemOneLeadOrientationBlock,
-  buildSystemOneLeadOrientationDelivery,
   evaluateDocumentTurnPostureShadow,
-  shouldSupplySystemOneOrientationToLead,
+  resolveHumanTurnSystemOne,
+  shadowFromHumanTurnBinding,
 } from '../../services/kip/documentTurnPostureShadow.js';
 import { ensureDialogDocumentManuscript } from '../../services/kip/ensureDialogDocumentManuscript.js';
 import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocument.js';
@@ -369,6 +371,8 @@ type RunAgentOptions = {
    * Cast consults use this so Realm feed is not flooded with orphan delegation sessions.
    */
   ephemeral?: boolean;
+  /** Client-minted Human Turn id. Cast and Lead of one send share it. */
+  humanTurnId?: string;
   /** Kip Echo / platform-collaboration sub-run — must not write Document Points. */
   supportEcho?: boolean;
   /** Human asked to Gloss a Point — skip rewrite / new Draft substitutes. */
@@ -5230,6 +5234,8 @@ const AgentRunSchema = z.object({
     .optional(),
   /** Skip session create/persist when sessionId is absent (cast consults). */
   ephemeral: z.boolean().optional(),
+  /** Client-minted Human Turn id shared by Cast + Lead of one send. */
+  humanTurnId: z.string().uuid().optional(),
   /** Dialog streams tokens as SSE (`delta` / `reset` / `done`). */
   stream: z.boolean().optional(),
 }).refine(
@@ -7186,6 +7192,7 @@ export class KipAgentService {
               const savedUser = await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId,
+                ...(options?.humanTurnId ? { humanTurnId: options.humanTurnId } : {}),
                 ...(displayContent ? { displayContent } : {}),
                 ...(options?.attachments?.length ? { attachments: options.attachments } : {}),
                 ...(options?.supportingDocs?.length
@@ -7629,14 +7636,14 @@ export class KipAgentService {
         };
         console.info('[AgentTurn]', agentTurnSummary);
 
+        const humanTurnId = resolveHumanTurnId(options?.humanTurnId);
         const humanTurnForShadow = (input ?? '').trim()
           || humanTurnTextForIntent(input, options?.displayContent);
-        const supplySystemOneToLead = shouldSupplySystemOneOrientationToLead({
+        const humanTurnSystemOne = await resolveHumanTurnSystemOne({
           ephemeral: options?.ephemeral,
           input,
-        });
-        const turnPostureShadow = supplySystemOneToLead
-          ? await evaluateDocumentTurnPostureShadow({
+          evaluate: () =>
+            evaluateDocumentTurnPostureShadow({
               turn: humanTurnForShadow,
               dialogTitle: dialogDocument?.title ?? null,
               documentInContext: Boolean(dialogDocument?.dialogId),
@@ -7648,30 +7655,27 @@ export class KipAgentService {
             }).catch((error: unknown) => {
               console.warn('[AgentTurn] turnPosture shadow failed', error);
               return null;
-            })
-          : null;
-        const systemOneOrientation = supplySystemOneToLead
-          ? buildSystemOneLeadOrientationBlock(turnPostureShadow)
-          : null;
-        if (turnPostureShadow) {
-          Object.assign(agentTurnSummary, { turnPostureShadow });
-        }
+            }),
+        });
+        const turnPostureShadow = shadowFromHumanTurnBinding(humanTurnSystemOne);
+        const systemOneOrientation = buildSystemOneLeadOrientationBlock(turnPostureShadow);
         Object.assign(agentTurnSummary, {
-          systemOneOrientation: buildSystemOneLeadOrientationDelivery(
-            turnPostureShadow,
-            Boolean(systemOneOrientation),
-          ),
+          humanTurnId,
+          turnPostureShadow: turnPostureShadow ?? undefined,
+          systemOneOrientation: humanTurnSystemOne.delivery,
         });
         if (turnPostureShadow || systemOneOrientation) {
           console.info('[AgentTurn] turnPostureShadow', {
+            humanTurnId,
             ok: turnPostureShadow?.ok ?? false,
             model: turnPostureShadow?.model ?? null,
             parsed: turnPostureShadow?.parsed ?? null,
             phraseSignal: turnPostureShadow?.invocation.state.phraseSignal ?? null,
             executed: turnPostureShadow?.executed ?? false,
             authorized: turnPostureShadow?.authorized ?? false,
-            suppliedToLead: Boolean(systemOneOrientation),
+            suppliedToLead: humanTurnSystemOne.delivery.suppliedToLead,
             suppliedToCast: false,
+            evaluatedOnce: humanTurnSystemOne.evaluatedOnce,
           });
         }
 
@@ -7822,6 +7826,7 @@ export class KipAgentService {
               ...lastPromptMessages,
               { role: 'assistant', content: lastResponse },
             ],
+            systemOneOrientation,
           });
           lastPromptMessages = retryResult.messages;
           lastResponse = retryResult.content;
@@ -7974,6 +7979,7 @@ export class KipAgentService {
                       { role: 'assistant', content: lastResponse },
                     ],
                     orchestrationContext: followUpInput,
+                    systemOneOrientation,
                     onDelta: options?.onDelta,
                   },
                 );
@@ -8072,6 +8078,7 @@ export class KipAgentService {
                 ...lastPromptMessages,
                 { role: 'assistant', content: lastResponse },
               ],
+              systemOneOrientation,
               onDelta: options?.onDelta,
             },
           );
@@ -8183,6 +8190,7 @@ export class KipAgentService {
                 ...lastPromptMessages,
                 { role: 'assistant', content: finalResponseText },
               ],
+              systemOneOrientation,
               onDelta: options?.onDelta,
             },
           );
@@ -8274,6 +8282,7 @@ export class KipAgentService {
                 ...lastPromptMessages,
                 { role: 'assistant', content: finalResponseText },
               ],
+              systemOneOrientation,
               onDelta: options?.onDelta,
             },
           );
@@ -8361,6 +8370,7 @@ export class KipAgentService {
                 ...lastPromptMessages,
                 { role: 'assistant', content: finalResponseText },
               ],
+              systemOneOrientation,
               onDelta: options?.onDelta,
             },
           );
@@ -8452,6 +8462,7 @@ export class KipAgentService {
                 ...lastPromptMessages,
                 { role: 'assistant', content: finalResponseText },
               ],
+              systemOneOrientation,
               onDelta: options?.onDelta,
             },
           );
@@ -8539,6 +8550,7 @@ export class KipAgentService {
                 ...lastPromptMessages,
                 { role: 'assistant', content: finalResponseText },
               ],
+              systemOneOrientation,
               onDelta: options?.onDelta,
             },
           );
@@ -8623,6 +8635,7 @@ export class KipAgentService {
                 ...lastPromptMessages,
                 { role: 'assistant', content: finalResponseText },
               ],
+              systemOneOrientation,
               onDelta: options?.onDelta,
             },
           );
@@ -8925,6 +8938,27 @@ export class KipAgentService {
         const persistedResolvedMeaning: ResolvedMeaning | undefined = structured.resolvedMeaning
           ? withPerformedByFallback(structured.resolvedMeaning, deliveredCastSlugs)
           : undefined;
+        const humanTurnRecord = buildHumanTurnRecord({
+          id: humanTurnId,
+          dialogId: dialogDocument?.dialogId ?? options?.dialogId ?? null,
+          sessionId: currentSessionId ?? null,
+          role: humanTurnSystemOne.evaluatedOnce ? 'lead' : 'cast',
+          systemOne: humanTurnSystemOne,
+          cast: (castVoicesForPersist ?? []).map((voice) => ({
+            slug: voice.slug,
+            attributedTo: voice.attributedTo,
+            status: voice.status,
+            receivedOrientation: false as const,
+          })),
+          leadGenerations: (options?.timings?.modelCalls ?? []).map((call) => ({
+            label: call.label,
+            receivedOrientation: Boolean(systemOneOrientation),
+          })),
+          actions: actionResults.map((row) => ({
+            type: row.type,
+            status: row.status,
+          })),
+        });
         let stageExpressionStamp: StageExpressionStamp | undefined;
 
         // Save agent response to memory if we have a session (skip gloss sub-turns)
@@ -9014,6 +9048,7 @@ export class KipAgentService {
                 executedProvider: aiResult.execution.provider,
                 fallbackUsed: aiResult.execution.fallbackUsed,
                 attempts: aiResult.execution.attempts,
+                humanTurn: humanTurnRecord,
               },
               performanceProvenance,
               ...(structured.card ? { card: structured.card } : {}),
@@ -9151,6 +9186,7 @@ export class KipAgentService {
                   ? 'delegate_consult_b'
                   : orchestrationMechanism,
               delegateConsultCount: consultActionCountForResult,
+              humanTurn: humanTurnRecord,
             },
             ...(castVoicesForPersist?.length ? { castVoices: castVoicesForPersist } : {}),
             ...(directorDelegationResult
@@ -10332,6 +10368,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             directorDelegation: (req.body as { directorDelegation?: unknown })?.directorDelegation,
             castConsultations: (req.body as { castConsultations?: unknown })?.castConsultations,
             ephemeral: (req.body as { ephemeral?: unknown })?.ephemeral,
+            humanTurnId: (req.body as { humanTurnId?: unknown })?.humanTurnId,
             stream: (req.body as { stream?: unknown })?.stream === true,
           });
           if (!validation.success) {
@@ -10508,6 +10545,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               : undefined,
             agentContext: validation.data.agentContext,
             ephemeral: validation.data.ephemeral === true,
+            humanTurnId: validation.data.humanTurnId,
             timings: runTimings,
             ...(wantsStream
               ? {

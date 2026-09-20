@@ -246,7 +246,9 @@ export function parseSystemOneOrientationView(
     return null;
   }
   const orch = orchestration as Record<string, unknown>;
-  const shadow = asRecord(orch.turnPostureShadow);
+  const humanTurn = asRecord(orch.humanTurn);
+  const boundSystemOne = asRecord(humanTurn?.systemOne);
+  const shadow = asRecord(boundSystemOne?.shadow) ?? asRecord(orch.turnPostureShadow);
   if (!shadow) return null;
   const answers = asRecord(shadow.answers);
   const parsed = parseDocumentTurnPostureAnswers(answers);

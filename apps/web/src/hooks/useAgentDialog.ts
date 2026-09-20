@@ -20,6 +20,7 @@ import {
   parseKeepingChoiceRecords,
   parseResolvedMeaning,
   parseStageExpressionStamp,
+  createHumanTurnId,
   type KeepingChoiceExercise,
   withoutAdviseOnlySkips,
 } from "@keeper/shared"
@@ -961,6 +962,7 @@ export function useAgentDialog({
 
       const activeDialogId = dialogIdRef.current ?? undefined
       const liveDirectorConfig = directorConfigRef.current
+      const humanTurnId = createHumanTurnId()
       const baseAgentContext =
         mode === "designer" && frameKey
           ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
@@ -982,6 +984,7 @@ export function useAgentDialog({
         attachments: attachments?.length ? attachments : undefined,
         displayContent: displayContent?.trim() || undefined,
         supportingDocs: supportingDocs?.length ? [...supportingDocs] : undefined,
+        humanTurnId,
       }
 
       const directorSlugNorm = liveDirectorConfig?.directorAgentSlug?.trim().toLowerCase() || ""
@@ -1040,6 +1043,7 @@ export function useAgentDialog({
           consultSlugs,
           sessionId,
           dialogId: activeDialogId ?? null,
+          humanTurnId,
           agentDisplayName,
         })
         // Run cast consults in parallel — sequential Cloud→Rendr→Lead stacks
@@ -1309,6 +1313,7 @@ export function useAgentDialog({
         phase: "director",
         sessionId,
         dialogId: activeDialogId ?? null,
+        humanTurnId,
         agentDisplayName,
         // Accurate counts — never report requested consults as if they succeeded.
         consultRequestedCount: consultRows.length,

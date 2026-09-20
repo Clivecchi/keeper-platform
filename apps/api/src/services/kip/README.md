@@ -25,7 +25,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up). Offer-in-prose is an incomplete turn.
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — phrase signal for review/reorganize language. Established direction may prompt Lead to propose. Mention does not.
-- `documentTurnPostureShadow.ts` — TypeSafe shadow Choice/Noul on Document-related Turns. Lead-only orientation block after the shadow completes. Does not authorize or mutate. Does not go to Cast.
+- `documentTurnPostureShadow.ts` — TypeSafe shadow Choice/Noul bound to a Human Turn. Jev runs once. Every later Lead pass renders the same record. Does not authorize or mutate. Does not go to Cast.
 - `layoutStageStory.ts` — Lead `stage.story.layout` writes `keeperStage.story`; `appendStageExpressionBeat` appends one live-sourced performance Frame
 - `keepingChoicePersist.ts` — stamp / select / reload Keeping Choice records on `kip_messages.metadata`
 - `ensureDialogDocumentManuscript.ts` — lazily creates the Dialog `document_manuscript` so named Dialogs can receive Points
@@ -43,6 +43,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-19 — Human Turn binds System One
+- Orientation is bound to a client-minted Human Turn id, not to `lead_main`. Jev evaluates once. `lead_main` and later Lead follow-ups receive the same structured record. Cast consults still do not.
+
 ### 2026-09-19 — System One visible from stored Jev
 - Shadow judges the assembled Lead input, not the short `see attached` label. Success block says the result WAS returned. Dialog renders primitives from `turnPostureShadow` so Lead prose cannot hide them.
 

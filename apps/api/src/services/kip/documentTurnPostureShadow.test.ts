@@ -9,6 +9,7 @@ import {
   buildSystemOneLeadOrientationBlock,
   buildSystemOneLeadOrientationDelivery,
   evaluateDocumentTurnPostureShadow,
+  resolveHumanTurnSystemOne,
   shouldSupplySystemOneOrientationToLead,
   type DocumentTurnPostureShadowRecord,
 } from './documentTurnPostureShadow.js';
@@ -168,5 +169,75 @@ describe('System One Lead orientation V0', () => {
     expect(delivery.available).toBe(false);
     expect(delivery.suppliedToLead).toBe(true);
     expect(delivery.errorCode).toBe('MISSING_API_KEY');
+  });
+});
+
+describe('Human Turn System One binding', () => {
+  afterEach(() => {
+    evaluate.mockReset();
+  });
+
+  it('evaluates Jev once for a Lead Turn and reuses the same record on later Lead passes', async () => {
+    evaluate.mockResolvedValue({
+      ok: true,
+      model: 'jev-1.13.0',
+      answers: {
+        turnPosture: { type: 'choice', choice: 'explore', confidence: 0.89 },
+        documentReorganizationRequested: { type: 'noul', noul: 0.07 },
+        documentMutationRequested: { type: 'noul', noul: 0.09 },
+      },
+      formatted: 'turnPosture: explore',
+    });
+    const humanText = 'Cast, talk this through with me. Do not reorganize Finding the Plot.';
+    const first = await resolveHumanTurnSystemOne({
+      input: humanText,
+      evaluate: () => evaluateDocumentTurnPostureShadow({ turn: humanText }),
+    });
+    expect(evaluate).toHaveBeenCalledTimes(1);
+    expect(first.evaluatedOnce).toBe(true);
+    expect(first.delivery.suppliedToLead).toBe(true);
+    expect(first.delivery.suppliedToCast).toBe(false);
+    const firstBlock = buildSystemOneLeadOrientationBlock(
+      first.shadow as unknown as DocumentTurnPostureShadowRecord,
+    );
+    expect(firstBlock).toContain('choice: explore');
+    expect(firstBlock).toContain('confidence: 0.89');
+    expect(firstBlock).toContain('noul: 0.07');
+    expect(firstBlock).toContain('noul: 0.09');
+
+    const later = await resolveHumanTurnSystemOne({
+      input: '[Orchestration context — Kip after Cast performance]\nThe human\'s direction...',
+      existing: first,
+      evaluate: () => evaluateDocumentTurnPostureShadow({
+        turn: '[Orchestration context — Kip after Cast performance]',
+      }),
+    });
+    expect(evaluate).toHaveBeenCalledTimes(1);
+    expect(later.shadow).toBe(first.shadow);
+    expect(later.delivery).toEqual(first.delivery);
+    expect(
+      buildSystemOneLeadOrientationBlock(later.shadow as unknown as DocumentTurnPostureShadowRecord),
+    ).toBe(firstBlock);
+  });
+
+  it('does not evaluate or supply orientation for the Cast consult in the same Turn', async () => {
+    const binding = await resolveHumanTurnSystemOne({
+      ephemeral: true,
+      input: [
+        '[Director delegation — Cloud on the Build board]',
+        'The user addressed Cloud (Cast member pinned on the Build board).',
+        'Kip (Lead) relayed:',
+        '"Cast, talk this through with me. Do not reorganize Finding the Plot."',
+      ].join('\n'),
+      evaluate: () => evaluateDocumentTurnPostureShadow({
+        turn: 'Cast, talk this through with me. Do not reorganize Finding the Plot.',
+      }),
+    });
+    expect(evaluate).not.toHaveBeenCalled();
+    expect(binding.evaluatedOnce).toBe(false);
+    expect(binding.shadow).toBeNull();
+    expect(binding.delivery.suppliedToLead).toBe(false);
+    expect(binding.delivery.suppliedToCast).toBe(false);
+    expect(buildSystemOneLeadOrientationBlock(null)).toBeNull();
   });
 });

@@ -67,6 +67,48 @@ describe('document turn posture phrase signal', () => {
     expect(parsed.documentMutationRequested.noul).toBe(0.02);
   });
 
+  it('prefers the Human Turn System One record over a top-level shadow', () => {
+    const view = parseSystemOneOrientationView({
+      turnPostureShadow: {
+        ok: true,
+        model: 'stale',
+        answers: {
+          turnPosture: { type: 'choice', choice: 'diagnose', confidence: 0.1 },
+          documentReorganizationRequested: { type: 'noul', noul: 0.99 },
+          documentMutationRequested: { type: 'noul', noul: 0.99 },
+        },
+      },
+      humanTurn: {
+        version: 'human-turn-v0',
+        id: '11111111-1111-4111-8111-111111111111',
+        systemOne: {
+          evaluatedOnce: true,
+          shadow: {
+            ok: true,
+            model: 'jev-1.13.0',
+            answers: {
+              turnPosture: {
+                type: 'choice',
+                choice: 'explore',
+                confidence: 0.89,
+                probabilities: { explore: 0.89 },
+              },
+              documentReorganizationRequested: { type: 'noul', noul: 0.07 },
+              documentMutationRequested: { type: 'noul', noul: 0.09 },
+            },
+          },
+          delivery: { suppliedToLead: true, suppliedToCast: false },
+        },
+      },
+    });
+    expect(view?.available).toBe(true);
+    expect(view?.model).toBe('jev-1.13.0');
+    expect(view?.turnPosture.choice).toBe('explore');
+    expect(view?.turnPosture.confidence).toBe(0.89);
+    expect(view?.documentReorganizationRequested.noul).toBe(0.07);
+    expect(view?.documentMutationRequested.noul).toBe(0.09);
+  });
+
   it('reads Jev values from persisted Lead orchestration, not Lead prose', () => {
     const view = parseSystemOneOrientationView({
       turnPostureShadow: {

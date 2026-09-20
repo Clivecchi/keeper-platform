@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-19 — Human Turn id on send
+- Each send mints a Human Turn id and passes it to Cast consults and the Lead run. Cast still does not receive System One. The Lead HTTP binds Jev to that id.
+
 ### 2026-09-19 — System One on the live Lead turn
 - `extractRunAgentPayload` keeps `orchestration` so the Dialog can stamp stored Jev values onto the streaming Lead message.
 

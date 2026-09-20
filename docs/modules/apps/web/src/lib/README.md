@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-19 — Human Turn id on runAgent
+- `runAgent` / `runAgentStream` forward optional `humanTurnId` so Cast and Lead of one send share a Turn identity.
+
 ### 2026-09-18 — Model Registry V0 diagnostics
 - `normalizeKipRunErrorCode` no longer invents `INVALID_MODEL` from any message that contains both "model" and "not". Trust the server code.
 - Error details now carry `offeringId`, `fallbackUsed`, and stored preference so a failed sibling fallback is visible in the banner.

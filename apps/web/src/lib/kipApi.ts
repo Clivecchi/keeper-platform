@@ -979,6 +979,8 @@ export class KipApi {
        * "[Director delegation — …]" orphan sessions.
        */
       ephemeral?: boolean
+      /** Client-minted Human Turn id shared by Cast + Lead of one send. */
+      humanTurnId?: string
     },
   ): Promise<AgentResponse> {
     const response = await apiFetch('/api/kip/agents', {
@@ -1004,6 +1006,7 @@ export class KipApi {
         directorDelegation: options?.directorDelegation ?? undefined,
         castConsultations: options?.castConsultations ?? undefined,
         ephemeral: options?.ephemeral === true ? true : undefined,
+        humanTurnId: options?.humanTurnId ?? undefined,
       })
     });
 
@@ -1090,6 +1093,7 @@ export class KipApi {
           directorDelegation: options?.directorDelegation ?? undefined,
           castConsultations: options?.castConsultations ?? undefined,
           ephemeral: options?.ephemeral === true ? true : undefined,
+          humanTurnId: options?.humanTurnId ?? undefined,
         }),
       })
     } catch (err) {

@@ -6,10 +6,13 @@
 import {
   buildDocumentTurnPostureState,
   DOCUMENT_TURN_POSTURE_QUESTIONS,
+  emptyHumanTurnSystemOneBinding,
   parseDocumentTurnPostureAnswers,
   shouldShadowDocumentTurnPosture,
   type DocumentTurnPostureParsedAnswers,
   type DocumentTurnPostureState,
+  type HumanTurnSystemOneBinding,
+  type HumanTurnSystemOneDelivery,
 } from '@keeper/shared';
 import { TYPESAFE_DEFAULT_MODEL, TYPESAFE_SYSTEMONE_URL } from '../TypeSafeProvider.js';
 import { runTypeSafeEvaluateAction } from '../TypeSafeEvaluateService.js';
@@ -33,15 +36,7 @@ export type DocumentTurnPostureShadowRecord = {
 };
 
 /** Persisted on Lead orchestration so later Turns can compare Jev vs Cast vs synthesis. */
-export type SystemOneLeadOrientationDelivery = {
-  audience: 'lead';
-  suppliedToLead: boolean;
-  suppliedToCast: false;
-  eligible: boolean;
-  available: boolean;
-  model: string | null;
-  errorCode?: string;
-};
+export type SystemOneLeadOrientationDelivery = HumanTurnSystemOneDelivery;
 
 const NESTED_CAST_PROMPT_PATTERN =
   /^\[(?:Director delegation|Agent Echo —|Platform collaboration —)/i;
@@ -155,6 +150,42 @@ export function buildSystemOneLeadOrientationDelivery(
     available: shadow?.ok === true && shadow.answers != null,
     model: shadow?.model ?? null,
     ...(shadow?.errorCode ? { errorCode: shadow.errorCode } : {}),
+  };
+}
+
+export function shadowFromHumanTurnBinding(
+  binding: HumanTurnSystemOneBinding,
+): DocumentTurnPostureShadowRecord | null {
+  if (!binding.shadow) return null;
+  return binding.shadow as unknown as DocumentTurnPostureShadowRecord;
+}
+
+/**
+ * Bind Jev to a Human Turn once. Later Lead passes reuse the same structured record.
+ * Cast / ephemeral runs do not evaluate and do not receive orientation.
+ */
+export async function resolveHumanTurnSystemOne(params: {
+  ephemeral?: boolean;
+  input?: string | null;
+  existing?: HumanTurnSystemOneBinding | null;
+  evaluate: () => Promise<DocumentTurnPostureShadowRecord | null>;
+}): Promise<HumanTurnSystemOneBinding> {
+  if (params.existing?.evaluatedOnce) {
+    return params.existing;
+  }
+  if (!shouldSupplySystemOneOrientationToLead({
+    ephemeral: params.ephemeral,
+    input: params.input,
+  })) {
+    return emptyHumanTurnSystemOneBinding();
+  }
+  const shadow = await params.evaluate();
+  const block = buildSystemOneLeadOrientationBlock(shadow);
+  return {
+    judgedAt: new Date().toISOString(),
+    evaluatedOnce: true,
+    shadow: shadow ? (shadow as unknown as Record<string, unknown>) : null,
+    delivery: buildSystemOneLeadOrientationDelivery(shadow, Boolean(block)),
   };
 }
 
