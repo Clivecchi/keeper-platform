@@ -8,7 +8,7 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - `presentMotionProps.ts` — Theatre prop definitions shared by every Present sheet
 - `buildPresentProjectState.ts` — five default Present sequences as Theatre project state
 - `defaultSequences.ts` — `getPresentProject()` singleton loader
-- `usePresentMotion.ts` — hook + `PresentMotionProvider` / `usePresentMotionValues()`
+- `usePresentMotion.ts` — hook + `PresentMotionProvider` / `usePresentMotionValues()`; optional `pose` writes the same Presence props
 - `presentMotionStyles.ts` — maps motion values to CSS (primary, secondary, context, etc.)
 - `theatre/TheatreStudioLoader.tsx` — dev-only lazy Studio init
 - `theatre/initTheatreStudio.dev.ts` — initializes Studio + loads Keeper Presents project
@@ -20,6 +20,7 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - `@theatre/studio` is dev-only; production bundle uses `@theatre/core` only
 - Motion runs when `KeeperPresence` `layout="focus"` and record is loaded; config layout skips animation
 - Stage filmstrip plays the same `slide` Present when the current cell is shown (`StageFilmstrip`)
+- Optional `pose` on `PresentMotionProvider` pauses the current sheet and writes the same Presence props via Theatre `initialValue` (Compose-on-Stage yield). Not a second project or parallel tween.
 
 ## ⚠️ Notes & ToDo
 - [ ] Domain-level Present sequence overrides from Rendr (domain JSON precedence)
@@ -27,6 +28,9 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - [ ] Wire `context` prop to future feed/journey surfaces beyond Chronicle
 
 ## 📆 Update Log
+
+### 2026-09-20 — Presence pose
+- `usePresentMotion` / `PresentMotionProvider` accept `pose`. Stage yield writes `STAGE_YIELD_MOTION` onto the current `slide` Presence instance through Theatre. Chronicle callers omit `pose` and stay sequence-only. Return plays the same sequence forward from a hold.
 
 ### 2026-08-30 — Stage filmstrip uses `slide`
 - `StageFilmstrip` plays the existing `slide` sequence. Theatre authors motion, not the story title.

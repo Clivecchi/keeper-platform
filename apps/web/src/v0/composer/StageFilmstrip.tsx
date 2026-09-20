@@ -15,6 +15,7 @@ import { JourneyInvitationSlide } from "../slides/JourneyInvitationSlide"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { StageEngagementSurface, useStageCoverMedia } from "./StageEngagementSurface"
 import type { StageSlide } from "./stageStorySlides"
+import { resolveStageComposePose } from "./stageComposeYield"
 import { useStagePresentationOptional } from "./stagePresentation"
 
 function beatCaption(slide: StageSlide): string {
@@ -28,32 +29,35 @@ function SlideScene({
   onForward,
   onContinue,
   forwardDisabled,
+  yielded,
 }: {
   slide: StageSlide
   onForward?: () => void
   onContinue?: () => void
   forwardDisabled?: boolean
+  yielded?: boolean
 }) {
   const motion = usePresentMotionValues()
   const shell = useV0ShellOptional()
   const cover = useStageCoverMedia()
+  const locked = Boolean(yielded)
 
   if (slide.kind === "root") {
     return (
-      <StageEngagementSurface mediaUrl={cover.url} mediaMode={cover.mode}>
+      <StageEngagementSurface mediaUrl={cover.url} mediaMode={cover.mode} motion={motion}>
         <JourneyInvitationSlide
           wordmark={slide.title}
           tagline={slide.body}
           forwardLabel={shell?.domainFrame?.forward.label ?? "Forward"}
           onForward={() => onForward?.()}
-          forwardDisabled={forwardDisabled}
+          forwardDisabled={forwardDisabled || locked}
         />
       </StageEngagementSurface>
     )
   }
 
   return (
-    <StageEngagementSurface mediaUrl={cover.url} mediaMode={cover.mode}>
+    <StageEngagementSurface mediaUrl={cover.url} mediaMode={cover.mode} motion={motion}>
       <article
         aria-label="Story engagement"
         data-stage-source-kind={slide.source?.kind ?? undefined}
@@ -92,7 +96,7 @@ function SlideScene({
             {slide.body}
           </p>
         ) : null}
-        {onContinue ? (
+        {onContinue && !locked ? (
           <button
             type="button"
             onClick={onContinue}
@@ -119,17 +123,24 @@ export function StagePresentationScreen() {
 
   const canForward = Boolean(story && story.slides.length > 1)
   const canContinue = Boolean(story && story.index < story.slides.length - 1)
+  const yielded = story?.composeForward === true
+  const pose = resolveStageComposePose(yielded)
 
   return (
-    <div className="h-full min-h-0 w-full" aria-label="Stage presentation">
+    <div
+      className="h-full min-h-0 w-full"
+      aria-label={yielded ? "Stage presentation — working" : "Stage presentation"}
+    >
       <PresentMotionProvider
         key={current.id}
         present="slide"
         instanceKey={toPresentInstanceKey("stage", current.id)}
+        pose={pose}
         enabled
       >
         <SlideScene
           slide={current}
+          yielded={yielded}
           onForward={current.kind === "root" && canForward ? () => story?.setIndex(1) : undefined}
           onContinue={
             current.kind === "beat" && canContinue
@@ -154,7 +165,13 @@ export function StageSlideStrip() {
         <button
           key={slide.id}
           type="button"
-          onClick={() => story.setIndex(i)}
+          onClick={() => {
+            if (story.composeForward) {
+              story.returnToFrame({ index: i })
+              return
+            }
+            story.setIndex(i)
+          }}
           aria-current={i === story.index ? "true" : undefined}
           data-stage-source-kind={slide.source?.kind ?? undefined}
           data-stage-source-id={slide.source?.id ?? undefined}

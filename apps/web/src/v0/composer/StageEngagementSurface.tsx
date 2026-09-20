@@ -9,6 +9,7 @@ import * as React from "react"
 import { extractDomainThemeCover } from "@keeper/shared"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { resolveDomainCoverUrl } from "../boards/domain/domainShellCache"
+import type { PresentMotionValues } from "../presents/types"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { stageThemeCssVars } from "../themes/stageThemeCss"
 import { useKeeperStageOptional } from "./useKeeperStage"
@@ -28,10 +29,12 @@ export function useStageCoverMedia(): { url: string | null; mode: "cover" | "til
 export function StageEngagementSurface({
   mediaUrl,
   mediaMode = "cover",
+  motion,
   children,
 }: {
   mediaUrl: string | null
   mediaMode?: "cover" | "tile"
+  motion?: PresentMotionValues
   children: React.ReactNode
 }) {
   const stageTheme = useKeeperStageOptional()?.stage.theme
@@ -43,11 +46,18 @@ export function StageEngagementSurface({
         backgroundRepeat: mediaMode === "tile" ? "repeat" : "no-repeat",
       }
     : { backgroundColor: "hsl(var(--theme-surface-page))" }
+  const poseStyle = motion
+    ? {
+        opacity: motion.atmosphereOpacity,
+        transform: `scale(${motion.mediaScale}) translateY(${motion.contentOffsetY}px)`,
+        transformOrigin: "center center",
+      }
+    : undefined
 
   return (
     <div
       className="relative flex h-full min-h-0 w-full items-center justify-center px-8 py-10"
-      style={{ ...field, ...stageThemeCssVars(stageTheme) }}
+      style={{ ...field, ...stageThemeCssVars(stageTheme), ...poseStyle }}
       aria-label="Slide engagement"
     >
       <div

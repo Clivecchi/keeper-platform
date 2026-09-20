@@ -14,6 +14,8 @@
  *     Stage        — same bottom place; lectern/pit over the Stage
  *                    (`data-composer-placement="pit"`). Agency in Composer.
  *                    Reach opens in Chronicle. Elevation is function, not a move to the top.
+ *     Yield        — Composer focus / working steps Dialog work forward in Zone 2
+ *                    (`data-stage-compose="yield"`). Stage Frame recedes; stay on Stage.
  *
  * While sending: Broadcast Strip expands with live beat + prior story beats.
  * After the reply lands: strip collapses; a one-line dialogic summary sits atop
@@ -59,6 +61,7 @@ import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
+import { useStagePresentationOptional } from "../../composer/stagePresentation"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
 import "../../../components/gloss/gloss.css"
@@ -377,6 +380,7 @@ export function KeeperDialogFrame({
   const broadcastStripRef = React.useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
   const board = useUniversalBoardOptional()
+  const stagePresentation = useStagePresentationOptional()
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
   const [debugPanelOpen, setDebugPanelOpen] = React.useState(false)
@@ -442,12 +446,28 @@ export function KeeperDialogFrame({
     setDialogScrollInset(broadcastHeight + fadeHeight)
   }, [isMobile])
 
+  const composerOnStage = Boolean(dialogContent) && mode !== "feed"
+  const composeForward = composerOnStage && stagePresentation?.composeForward === true
+  const dialogWorkVisible = mode !== "feed" && (!dialogContent || composeForward)
+
+  React.useEffect(() => {
+    if (composerOnStage && isWorking) stagePresentation?.enterCompose()
+  }, [composerOnStage, isWorking, stagePresentation])
+
+  const handleComposerFocus = React.useCallback(
+    (focused: boolean) => {
+      onComposerFocusChange?.(focused)
+      if (composerOnStage && focused) stagePresentation?.enterCompose()
+    },
+    [composerOnStage, onComposerFocusChange, stagePresentation],
+  )
+
   React.useLayoutEffect(() => {
-    if (mode === "feed" || dialogContent) return
+    if (!dialogWorkVisible) return
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, showBroadcastStrip])
+  }, [dialogWorkVisible, measureDialogScrollInset, isSending, isFileUploading, showBroadcastStrip])
 
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
@@ -508,7 +528,7 @@ export function KeeperDialogFrame({
 
   // Auto-scroll so the newest message clears the Broadcast Strip + fade overlay
   React.useEffect(() => {
-    if (mode === "feed" || dialogContent) return
+    if (!dialogWorkVisible) return
     const el = scrollRef.current
     if (!el) return
 
@@ -529,7 +549,7 @@ export function KeeperDialogFrame({
     }
 
     requestAnimationFrame(run)
-  }, [messages, isSending, dialogContent, mode, measureDialogScrollInset, isMobile])
+  }, [messages, isSending, dialogWorkVisible, measureDialogScrollInset, isMobile])
 
   const hasCoordinates = Boolean(
     bannerContext?.stage || bannerContext?.talkingIn || bannerContext?.workingOn,
@@ -543,8 +563,6 @@ export function KeeperDialogFrame({
   const isMobileStaged = dialogLayout === "mobile-staged" && mode !== "feed"
   const mobileComposerSize = isMobileStaged ? "mobile-docked" : "default"
   const hideMobileComposerFooter = isMobileStaged
-
-  const composerOnStage = Boolean(dialogContent) && mode !== "feed"
 
   const composerZone = mode === "feed" ? null : (
       <div className="dialog-bottom-zone">
@@ -577,7 +595,7 @@ export function KeeperDialogFrame({
             disabled={disabled}
             inputPlaceholder={inputPlaceholder}
             submitOnEnter
-            onInputFocusChange={onComposerFocusChange}
+            onInputFocusChange={handleComposerFocus}
             composerSize={mobileComposerSize}
             talkMode={talkMode}
             talkState={talkState}
@@ -631,11 +649,99 @@ export function KeeperDialogFrame({
       </div>
   )
 
+  const dialogueWork = (
+    <div
+      className="dialog-column pt-2"
+      style={{ paddingBottom: dialogScrollInset }}
+    >
+      {glossConfig ? (
+        <GlossProvider
+          config={{
+            agentId: glossConfig.agentId,
+            sessionId: glossConfig.sessionId,
+            domainId: glossConfig.domainId,
+            domainSlug: glossConfig.domainSlug,
+            agentContext: glossConfig.agentContext,
+            agentName: glossConfig.agentName,
+          }}
+          onUpdateMessageThreads={glossConfig.onUpdateMessageThreads}
+        >
+          <DialogueMessageList
+            isLoading={false}
+            messages={messages}
+            isSending={isSending}
+            error={error}
+            agentName={agentName}
+            userName={userName}
+            echoAgentName={echoAgentName}
+            onOpenDraft={onOpenDraft}
+            onOpenPoint={onOpenPoint}
+            conversationDialogTitle={conversationDialogTitle}
+            talkingDialogId={talkingDialogId}
+            onOpenMoment={onOpenMoment}
+            onOpenJourney={onOpenJourney}
+            onOpenLibraryItem={onOpenLibraryItem}
+            onOpenChronicleChip={onOpenChronicleChip}
+            onKeepAsMoment={onKeepAsMoment}
+            onOpenSoleMemory={onOpenSoleMemory}
+            onConfirmDraftUpdate={onConfirmDraftUpdate}
+            onApplyTreatmentProposal={onApplyTreatmentProposal}
+            applyingTreatmentProposal={applyingTreatmentProposal}
+            onAcceptDraftPoint={onAcceptDraftPoint}
+            acceptedDraftPointIds={acceptedDraftPointIds}
+            acceptingDraftPointId={acceptingDraftPointId}
+            onExerciseKeepingChoice={onExerciseKeepingChoice}
+            agentBubbleFullWidth={agentBubbleFullWidth}
+            agentBoardMessaging={agentBoardMessaging}
+            scrollContainerRef={scrollRef}
+            horizonThinking
+            onArrivalInvitation={onArrivalInvitation}
+          />
+        </GlossProvider>
+      ) : (
+        <DialogueMessageList
+          isLoading={false}
+          messages={messages}
+          isSending={isSending}
+          error={error}
+          agentName={agentName}
+          userName={userName}
+          echoAgentName={echoAgentName}
+          onOpenDraft={onOpenDraft}
+          onOpenPoint={onOpenPoint}
+          conversationDialogTitle={conversationDialogTitle}
+          talkingDialogId={talkingDialogId}
+          onOpenMoment={onOpenMoment}
+          onOpenJourney={onOpenJourney}
+          onOpenLibraryItem={onOpenLibraryItem}
+          onOpenChronicleChip={onOpenChronicleChip}
+          onKeepAsMoment={onKeepAsMoment}
+          onOpenSoleMemory={onOpenSoleMemory}
+          onConfirmDraftUpdate={onConfirmDraftUpdate}
+          onApplyTreatmentProposal={onApplyTreatmentProposal}
+          applyingTreatmentProposal={applyingTreatmentProposal}
+          onAcceptDraftPoint={onAcceptDraftPoint}
+          acceptedDraftPointIds={acceptedDraftPointIds}
+          acceptingDraftPointId={acceptingDraftPointId}
+          onExerciseKeepingChoice={onExerciseKeepingChoice}
+          agentBubbleFullWidth={agentBubbleFullWidth}
+          agentBoardMessaging={agentBoardMessaging}
+          scrollContainerRef={scrollRef}
+          horizonThinking
+          onArrivalInvitation={onArrivalInvitation}
+        />
+      )}
+    </div>
+  )
+
   return (
     <div
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
       data-composer-placement={composerOnStage ? "pit" : "floor"}
+      data-stage-compose={
+        composerOnStage ? (composeForward ? "yield" : "present") : undefined
+      }
       data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
       data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
@@ -916,102 +1022,49 @@ export function KeeperDialogFrame({
       {/* ── Dialog Space — messages, or the Stage table. Composer stays at the bottom. ── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
-        <div ref={scrollRef} className="dialog-message-surface">
-          {mode === 'feed'
+        {composeForward && dialogContent ? (
+          <div
+            className="stage-frame-layer"
+            role="button"
+            tabIndex={0}
+            aria-label="Return to Stage"
+            aria-disabled={isWorking || undefined}
+            onClick={() => {
+              if (!isWorking) stagePresentation?.returnToFrame()
+            }}
+            onKeyDown={(event) => {
+              if (isWorking) return
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                stagePresentation?.returnToFrame()
+              }
+            }}
+          >
+            <div className="stage-frame-layer-canvas">
+              {dialogContent}
+            </div>
+          </div>
+        ) : null}
+        <div
+          ref={scrollRef}
+          className={composeForward ? "dialog-message-surface dialog-work-forward" : "dialog-message-surface"}
+          onClick={composeForward ? (event) => event.stopPropagation() : undefined}
+        >
+          {mode === "feed"
             ? feedContent
-            : dialogContent ?? (
-                <div
-                  className="dialog-column pt-2"
-                  style={{ paddingBottom: dialogScrollInset }}
-                >
-                  {glossConfig ? (
-                    <GlossProvider
-                      config={{
-                        agentId: glossConfig.agentId,
-                        sessionId: glossConfig.sessionId,
-                        domainId: glossConfig.domainId,
-                        domainSlug: glossConfig.domainSlug,
-                        agentContext: glossConfig.agentContext,
-                        agentName: glossConfig.agentName,
-                      }}
-                      onUpdateMessageThreads={glossConfig.onUpdateMessageThreads}
-                    >
-                      <DialogueMessageList
-                        isLoading={false}
-                        messages={messages}
-                        isSending={isSending}
-                        error={error}
-                        agentName={agentName}
-                        userName={userName}
-                        echoAgentName={echoAgentName}
-                        onOpenDraft={onOpenDraft}
-                        onOpenPoint={onOpenPoint}
-                        conversationDialogTitle={conversationDialogTitle}
-                        talkingDialogId={talkingDialogId}
-                        onOpenMoment={onOpenMoment}
-                        onOpenJourney={onOpenJourney}
-                        onOpenLibraryItem={onOpenLibraryItem}
-                        onOpenChronicleChip={onOpenChronicleChip}
-                        onKeepAsMoment={onKeepAsMoment}
-                        onOpenSoleMemory={onOpenSoleMemory}
-                        onConfirmDraftUpdate={onConfirmDraftUpdate}
-                        onApplyTreatmentProposal={onApplyTreatmentProposal}
-                        applyingTreatmentProposal={applyingTreatmentProposal}
-                        onAcceptDraftPoint={onAcceptDraftPoint}
-                        acceptedDraftPointIds={acceptedDraftPointIds}
-                        acceptingDraftPointId={acceptingDraftPointId}
-                        onExerciseKeepingChoice={onExerciseKeepingChoice}
-                        agentBubbleFullWidth={agentBubbleFullWidth}
-                        agentBoardMessaging={agentBoardMessaging}
-                        scrollContainerRef={scrollRef}
-                        horizonThinking
-                        onArrivalInvitation={onArrivalInvitation}
-                      />
-                    </GlossProvider>
-                  ) : (
-                  <DialogueMessageList
-                    isLoading={false}
-                    messages={messages}
-                    isSending={isSending}
-                    error={error}
-                    agentName={agentName}
-                    userName={userName}
-                    echoAgentName={echoAgentName}
-                    onOpenDraft={onOpenDraft}
-                    onOpenPoint={onOpenPoint}
-                    conversationDialogTitle={conversationDialogTitle}
-                    talkingDialogId={talkingDialogId}
-                    onOpenMoment={onOpenMoment}
-                    onOpenJourney={onOpenJourney}
-                    onOpenChronicleChip={onOpenChronicleChip}
-                    onKeepAsMoment={onKeepAsMoment}
-                    onOpenSoleMemory={onOpenSoleMemory}
-                    onConfirmDraftUpdate={onConfirmDraftUpdate}
-                    onApplyTreatmentProposal={onApplyTreatmentProposal}
-                    applyingTreatmentProposal={applyingTreatmentProposal}
-                    onAcceptDraftPoint={onAcceptDraftPoint}
-                    acceptedDraftPointIds={acceptedDraftPointIds}
-                    acceptingDraftPointId={acceptingDraftPointId}
-                    onExerciseKeepingChoice={onExerciseKeepingChoice}
-                    agentBubbleFullWidth={agentBubbleFullWidth}
-                    agentBoardMessaging={agentBoardMessaging}
-                    scrollContainerRef={scrollRef}
-                    horizonThinking
-                    onArrivalInvitation={onArrivalInvitation}
-                  />
-                  )}
-                </div>
-              )
+            : composeForward
+              ? dialogueWork
+              : dialogContent ?? dialogueWork
           }
         </div>
 
-        {!isMobile ? <DialogScrollRail scrollRef={scrollRef} /> : null}
-        {!isMobile ? (
+        {!isMobile && dialogWorkVisible ? <DialogScrollRail scrollRef={scrollRef} /> : null}
+        {!isMobile && dialogWorkVisible ? (
           <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
         ) : null}
 
-        {/* Horizon dissolve — Dialog floor. Stage uses the lectern instead. */}
-        {mode !== "feed" && !composerOnStage && (
+        {/* Horizon dissolve — Dialog floor. Stage uses the lectern except while yielded. */}
+        {mode !== "feed" && (!composerOnStage || composeForward) && (
           <div
             className={[
               "dialog-horizon-band",

@@ -836,6 +836,45 @@ button.dialog-prelude:hover {
   display: none;
 }
 
+/* Compose-on-Stage yield — Stage stays; Dialog work steps forward. */
+.stage-frame-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.stage-frame-layer-canvas {
+  height: 100%;
+  pointer-events: none;
+}
+
+.keeper-dialog-frame[data-stage-compose="yield"] .dialog-work-forward {
+  position: absolute;
+  z-index: 2;
+  inset: 16px 9% 20px;
+  overflow-y: auto;
+  border-radius: 16px;
+  background: hsl(var(--theme-surface-paper) / 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 40px hsl(var(--theme-ink-primary) / 0.16);
+  pointer-events: auto;
+}
+
+.keeper-dialog-frame[data-stage-compose="yield"] .dialog-message-surface {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Theatre writes the yield pose; this only eases the paint of those Presence props. */
+.keeper-dialog-frame[data-stage-compose="yield"] [aria-label="Slide engagement"] {
+  transition: opacity 0.38s ease, transform 0.38s ease;
+}
+
 .dialog-bottom-zone::before {
   content: "";
   position: absolute;

@@ -10,6 +10,14 @@ import { useKeeperStageOptional } from "./useKeeperStage"
 import { resolveStageFilmstrip, type StageSlide } from "./stageStorySlides"
 import { resolveStageNowBeat } from "./stageNowBeat"
 import {
+  canReturnFromStageCompose,
+  holdStageFrame,
+  nextStageComposeForward,
+  nextStageFrameIndex,
+  restoreHeldStageIndex,
+  type HeldStageFrame,
+} from "./stageComposeYield"
+import {
   applyCanonicalMomentsToSlides,
   collectMomentSourceIds,
   parseCanonicalMomentResponse,
@@ -71,6 +79,9 @@ type StagePresentationValue = {
   index: number
   setIndex: (index: number) => void
   current: StageSlide | null
+  composeForward: boolean
+  enterCompose: () => void
+  returnToFrame: (opts?: { index?: number }) => void
 }
 
 const StagePresentationCtx = React.createContext<StagePresentationValue | null>(null)
@@ -93,6 +104,8 @@ export function StagePresentationProvider({
   children: React.ReactNode
 }) {
   const stageApi = useKeeperStageOptional()
+  const board = useUniversalBoardOptional()
+  const onStage = board?.workspaceSurface === "stage"
   const shell = useV0ShellOptional()
   const beat = React.useMemo(
     () => resolveStageNowBeat(messages, { userName, agentName }),
@@ -129,25 +142,77 @@ export function StagePresentationProvider({
   )
   const last = Math.max(0, slides.length - 1)
   const [index, setIndexState] = React.useState(0)
+  const [composeForward, setComposeForward] = React.useState(false)
   const followStoryRef = React.useRef(false)
+  const heldFrameRef = React.useRef<HeldStageFrame | null>(null)
 
   const setIndex = React.useCallback((next: number) => {
     followStoryRef.current = next > 0
     setIndexState(next)
   }, [])
 
-  React.useEffect(() => {
-    if (followStoryRef.current && last > 0) {
-      setIndexState(last)
+  const enterCompose = React.useCallback(() => {
+    setComposeForward((open) => {
+      const next = nextStageComposeForward({
+        currentlyForward: open,
+        onStage: true,
+        composerFocused: true,
+        isWorking: isSending,
+        returnRequested: false,
+      })
+      if (next && !open) {
+        const currentIndex = Math.min(index, last)
+        heldFrameRef.current = holdStageFrame(slides[currentIndex] ?? null, currentIndex)
+      }
+      return next
+    })
+  }, [index, isSending, last, slides])
+
+  const returnToFrame = React.useCallback((opts?: { index?: number }) => {
+    if (!canReturnFromStageCompose(isSending)) return
+    followStoryRef.current = false
+    if (typeof opts?.index === "number") {
+      setIndexState(opts.index)
     } else {
-      setIndexState((currentIndex) => Math.min(currentIndex, last))
+      const restored = restoreHeldStageIndex(slides, heldFrameRef.current)
+      if (restored != null) setIndexState(restored)
     }
-  }, [slides.length, slides[last]?.id, slides[last]?.body, last])
+    heldFrameRef.current = null
+    setComposeForward(false)
+  }, [isSending, slides])
+
+  React.useEffect(() => {
+    if (!onStage) {
+      heldFrameRef.current = null
+      setComposeForward(false)
+    }
+  }, [onStage])
+
+  React.useEffect(() => {
+    setIndexState((currentIndex) =>
+      nextStageFrameIndex({
+        composeForward,
+        held: heldFrameRef.current,
+        slides,
+        followStory: followStoryRef.current,
+        last,
+        currentIndex,
+      }),
+    )
+  }, [composeForward, last, slides, slides[last]?.id, slides[last]?.body])
 
   const current = slides[Math.min(index, last)] ?? null
   const value = React.useMemo(
-    () => ({ slides, index: Math.min(index, last), setIndex, current }),
-    [slides, index, last, setIndex, current],
+    () => ({
+      slides,
+      index: Math.min(index, last),
+      setIndex,
+      current,
+      composeForward,
+      enterCompose,
+      returnToFrame,
+    }),
+    [slides, index, last, setIndex, current, composeForward, enterCompose, returnToFrame],
   )
 
   return (

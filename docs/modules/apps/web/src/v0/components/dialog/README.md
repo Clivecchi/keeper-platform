@@ -64,7 +64,7 @@ All transitions use `0.4s ease`. No JavaScript required.
 ### Sibling Structure Invariant
 All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Strip sits between Dialog Space and Composer — not nested inside either.
 
-- Auto-scroll to bottom fires on message changes; disabled in feed mode or when `dialogContent` is in use.
+- Auto-scroll to bottom fires on message changes; disabled in feed mode or when Stage fills Zone 2. Enabled again during Compose-on-Stage yield.
 - CSS classes live in `apps/web/src/index.css` under the `KeeperDialogFrame` section.
 
 ## ⚠️ Notes & ToDo
@@ -72,10 +72,12 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] User-facing **Readable** density toggle on boards (`keeper-density` + avatar **Larger type**).
 - [ ] Additional Broadcast Strip streams beyond Debug (live server-side phase events).
 - [x] Stage `dialogContent` reads the current beat via **Now** (last Turn + reply). Full transcript stays on Dialog view.
+- [x] Compose-on-Stage yield brings `DialogueMessageList` forward in Zone 2 without leaving Stage (`data-stage-compose="yield"`).
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-09-20: **Compose-on-Stage yield** — On Stage, Composer focus or a working Turn recedes the current Slide (Theatre Presence pose) and mounts the real `DialogueMessageList` in Zone 2. Stay on Stage. Return is a click on the receded Frame or a filmstrip cell after the Turn is idle; blur does not exit. `data-stage-compose="present|yield"`.
 - 2026-09-12: **Mobile chat is docked** — Adaptive `mobile-staged` uses `composerSize="mobile-docked"`: composer stays pinned, send stays visible, Cast/footer/scroll-rail stay off the phone surface.
 - 2026-09-02: **Keeping Choice** — `KeeperDialogFrame` forwards exercise to `DialogueMessageList`. Click is a Composer send, not a card Accept.
 - 2026-08-30: **Stage screen + strip** — presentation fills Dialog Space; filmstrip sits just above Composer. Objects select from Reach / Chronicle, not the screen.
