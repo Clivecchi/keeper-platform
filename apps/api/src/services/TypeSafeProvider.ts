@@ -137,12 +137,32 @@ export type TypeSafeEvaluateRequest = {
   model: string;
 };
 
+export type TypeSafeUsage = {
+  input_tokens?: number;
+  output_tokens?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+};
+
 export type TypeSafeEvaluateSuccess = {
   ok: true;
   model: string;
   answers: Record<string, unknown>;
   formatted: string;
+  usage?: TypeSafeUsage;
 };
+
+function readTypeSafeUsage(parsed: Record<string, unknown>): TypeSafeUsage | undefined {
+  const raw = parsed.usage;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const row = raw as Record<string, unknown>;
+  const usage: TypeSafeUsage = {};
+  for (const key of ['input_tokens', 'output_tokens', 'prompt_tokens', 'completion_tokens', 'total_tokens'] as const) {
+    if (typeof row[key] === 'number') usage[key] = row[key];
+  }
+  return Object.keys(usage).length > 0 ? usage : undefined;
+}
 
 export type TypeSafeEvaluateFailure = {
   ok: false;
@@ -275,6 +295,7 @@ export async function evaluateTypeSafe(params: {
       model: resolvedModel,
       answers,
       formatted: formatTypeSafeAnswers(answers),
+      usage: readTypeSafeUsage(parsed),
     };
   } catch (err) {
     return {
@@ -302,13 +323,15 @@ export class TypeSafeProvider {
     if (outcome.ok === false) {
       throw new Error(outcome.message);
     }
+    const inputTokens = outcome.usage?.input_tokens ?? outcome.usage?.prompt_tokens ?? 0;
+    const outputTokens = outcome.usage?.output_tokens ?? outcome.usage?.completion_tokens ?? 0;
     return {
       success: true,
       content: jsonMode ? JSON.stringify(outcome.answers) : outcome.formatted,
       usage: {
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        total_tokens: 0,
+        prompt_tokens: inputTokens,
+        completion_tokens: outputTokens,
+        total_tokens: outcome.usage?.total_tokens ?? inputTokens + outputTokens,
       },
       model: outcome.model,
       retries_used: 0,

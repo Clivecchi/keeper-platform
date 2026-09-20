@@ -12,6 +12,7 @@ Provides same-origin API access for board data, eliminating mock data and connec
 - `boards.ts` - Main board configuration and metadata endpoints
 - `agents.ts` - Agent data for AgentBoard (connects to kip_agents table)
 - `journeys.ts` - Journey data for JourneyBoard (connects to Journey, Path, Moment tables)
+- `journeyListScope.ts` — mounted `GET /api/journeys` list scope + Domain read authorization
 - `keeper-types.ts` - Keeper type data for KeeperTypeBoard (connects to KeeperType table)
 - `people.ts` - User/people data for PeopleBoard (connects to users, roles, permissions)
 
@@ -164,6 +165,7 @@ When adding new board types:
 *Last updated: January 2025 - Live Data Integration Complete*
 
 ## 📆 Update Log
+- 2026-09-20: Mounted `GET /api/journeys` requires `domainId` and/or `keeperId` and Domain read for every Domain the request can see. Unscoped platform-wide list is rejected. `GET /:id` / POST / PATCH / DELETE on this router are an adjacent authorization follow-up — not changed.
 - 2026-09-17: Agent PATCH `model_provider` enum includes `typesafe`.
 - 2026-09-12: `GET /api/agents/:id/performances?dialogId=` returns last 20 Lead messages with `perf-v1` provenance or a derived legacy checklist. Lead is `kip_agents.role`, not slug.
 - 2026-08-30: Agent PATCH treats empty optional strings (purpose, model, provider, visibility, prompt) as omitted so a name-only Chronicle save is not a validation error.

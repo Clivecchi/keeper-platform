@@ -67,6 +67,11 @@ describe('TypeSafeProvider', () => {
     expect(result.success).toBe(true);
     expect(result.content).toContain('is_urgent: 0.920');
     expect(result.model).toBe('jev-1.13.0');
+    expect(result.usage).toEqual({
+      prompt_tokens: 12,
+      completion_tokens: 3,
+      total_tokens: 15,
+    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.headers).toMatchObject({ Authorization: 'Bearer ts-test-key' });

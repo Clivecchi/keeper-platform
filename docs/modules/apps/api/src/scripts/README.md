@@ -17,6 +17,8 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `append-boards-as-lenses-lock.ts` — accepted Presentational-lenses decision Point + Dialog Step tip (dry-run; `--execute`)
 - `append-agency-point-intent-points.ts` — first Agency obligation conclusions onto Becoming Together manuscript (dry-run; `--execute`)
 
+- `run-jev-codebase-xray.ts` — Jev semantic X-ray of curated Keeper units → `tmp/jev-xray/` Code Map (read-only)
+
 ## 🔄 Data & Behavior
 Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/database` prisma. Destructive or production-writing scripts must default to dry-run and require an explicit `--execute` flag.
 Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_turn` (same as scoped MCP). See `.cursor/rules/cursor-gloss-becoming-together.mdc`.
@@ -29,6 +31,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 - [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-09-19 — Jev codebase X-ray
+- `run-jev-codebase-xray.ts` + `jev-xray/` — first TypeSafe/Jev semantic X-ray of curated Keeper units. Reuses `evaluateTypeSafe`. Writes `tmp/jev-xray/results.json` + `code-map.md`. `--dry-run` selects units only. Does not mutate Keeper state.
 
 ### 2026-09-18 — Document Turn Posture corpus
 - `run-document-turn-posture-corpus.ts` — live TypeSafe shadow over the known false-positive / genuine-positive Document turns. Writes `tmp/document-turn-posture-corpus-results.json`. Does not mutate a Document.

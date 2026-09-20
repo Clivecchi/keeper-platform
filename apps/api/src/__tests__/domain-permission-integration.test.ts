@@ -272,20 +272,10 @@ describe('Domain Permission Integration', () => {
         .expect(400);
     });
 
-    test('should filter journeys by domain permissions', async () => {
-      const user = testUsers[0];
-      const token = authTokens.get(user.id);
-
-      const response = await request(app)
-        .get('/api/journeys')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
-
-      // All returned journeys should be from accessible domains
-      response.body.journeys.forEach((journey: unknown) => {
-        expect(user.accessibleDomains).toContain(journey.domainId);
-      });
-    });
+    // Removed: this file's `app` is a vi.fn() stub, and the old assertion
+    // described the unmounted membership-wide list. Mounted contract:
+    // GET /api/journeys without domainId or keeperId is rejected.
+    // Covered by api/journeys.list-scope.test.ts and api/journeyListScope.test.ts.
   });
 
   describe('Moment API Integration', () => {

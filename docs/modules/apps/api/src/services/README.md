@@ -28,6 +28,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - `executeRegisteredChat.ts` — Agent and companion chat go through `resolveExecutionPlan` then `ModelProviderService`. One sibling fallback (Sonnet 4.6 ↔ 5) only after a genuine `INVALID_MODEL`. Both attempts are logged on `[ExecutionPlan]`.
 - `modelProviderErrors.ts` — tight INVALID_MODEL classifier. Messages that merely contain "model" and "not" are no longer treated as a bad model ID.
 
+### 2026-09-19 — TypeSafe usage passthrough
+- `evaluateTypeSafe` now returns provider `usage` (input/output/total tokens) when TypeSafe includes it. Needed for the Jev codebase X-ray cost report; `TypeSafeProvider.callModel` no longer hard-codes zeros.
+
 ### 2026-09-18 — TypeSafe as a Kip tool
 - `TypeSafeEvaluateService.ts` runs `typesafe.evaluate` for any allowed agent. Key path unchanged. Agents stay on their own model.
 

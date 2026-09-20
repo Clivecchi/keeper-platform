@@ -525,6 +525,15 @@ async function enrichJourney(record: Record<string, unknown>): Promise<Enrichmen
   }
 }
 
+export function buildKeeperRelatedJourneysPath(domainId: string, keeperId: string): string {
+  const params = new URLSearchParams({
+    domainId,
+    keeperId,
+    limit: "20",
+  })
+  return `/api/journeys?${params.toString()}`
+}
+
 async function enrichKeeper(
   record: Record<string, unknown>,
   keeperId: string,
@@ -533,9 +542,7 @@ async function enrichKeeper(
   const relatedSections: RelatedSection[] = []
 
   try {
-    const journeysRes = await apiFetch(
-      `/api/journeys?keeperId=${encodeURIComponent(keeperId)}&limit=20`,
-    )
+    const journeysRes = await apiFetch(buildKeeperRelatedJourneysPath(domainId, keeperId))
     const journeyList =
       (journeysRes as { data?: { journeys?: Array<Record<string, unknown>> } })?.data
         ?.journeys ?? []

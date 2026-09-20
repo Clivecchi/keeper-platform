@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { mergePresenceSchemaCover } from '@keeper/shared';
 import { prisma, type Prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
+import { authorizeJourneyListScope } from './journeyListScope.js';
 
 const router: Router = Router();
 // Validation schemas
@@ -24,7 +25,10 @@ const journeyQuerySchema = z.object({
 });
 
 /**
- * GET /api/journeys - Get all journeys
+ * GET /api/journeys — scoped Journey list.
+ * Requires domainId and/or keeperId. Never lists the platform.
+ * Domain read is required for every Domain this request can see.
+ * Adjacent follow-up: GET /:id, POST, PATCH, DELETE on this router still lack Domain authorization.
  */
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
@@ -35,13 +39,11 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const where: any = {};
-    if (domainId) {
-      where.domainId = domainId;
+    const scope = await authorizeJourneyListScope(prisma, { userId, domainId, keeperId });
+    if (scope.ok === false) {
+      return res.status(scope.status).json(scope.body);
     }
-    if (keeperId) {
-      where.keeperId = keeperId;
-    }
+    const where = scope.where;
 
     if (nav) {
       const journeys = await prisma.journey.findMany({

@@ -66,6 +66,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-20 — Keeper related Journeys send Domain + Keeper
+- `enrichKeeper` lists related Journeys via `domainId` + `keeperId` on mounted `GET /api/journeys`. Keeper-only unscoped list is no longer used.
+
 ### 2026-09-18 — TypeSafe off the chat picker
 - Chronicle Agent Config no longer lists TypeSafe as a chat provider. `typesafe.evaluate` remains the tool. Sonnet 5 is selectable via the catalog list.
 
