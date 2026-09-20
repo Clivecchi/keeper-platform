@@ -15,6 +15,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-09-20: `ActionReceiptCard` expands `web.search` — query, provider, and each title / URL / snippet. No more count-only stub.
 - 2026-08-26: `DraftPointProposeCard` Accept is wired in Dialog. Proposed Points wait for the human. **Already on this document** has no Accept.
 - 2026-08-26: `DraftPointProposeCard` can render **Already on this document** when Keeper refused a duplicate Point write.
 - 2026-08-25: `DraftPointProposeCard` names the Dialog/Draft and is clickable — opens that Point in Chronicle.

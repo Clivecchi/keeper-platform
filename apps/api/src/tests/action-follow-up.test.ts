@@ -65,6 +65,24 @@ describe('actionFollowUp', () => {
     ).toBe(false);
   });
 
+  it('keeps consult-only turns eligible for a Lead follow-up that may write', () => {
+    expect(
+      shouldRunReadActionFollowUp(
+        [{ type: 'delegate.consult' }],
+        [{ type: 'delegate.consult', status: 'success', message: 'Rendr responded', data: { reply: 'Open quieter.' } }],
+      ),
+    ).toBe(true);
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'Improve the current Stage. Involve the Cast if you need them.',
+      agentName: 'Kip',
+      actionResults: [
+        { type: 'delegate.consult', status: 'success', message: 'ok', data: { label: 'Rendr', reply: 'Open quieter.' } },
+      ],
+    });
+    expect(input).toMatch(/Do NOT call delegate\.consult again/);
+    expect(input).not.toMatch(/Do not emit stage\.story\.layout/);
+  });
+
   it('skips follow-up when write actions are present', () => {
     expect(
       shouldRunReadActionFollowUp(

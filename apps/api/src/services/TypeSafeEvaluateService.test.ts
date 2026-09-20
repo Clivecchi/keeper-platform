@@ -24,6 +24,7 @@ describe('TypeSafeEvaluateService', () => {
     expect(prompt).toContain('not an agent');
     expect(prompt).toContain('Do not set model_provider to typesafe');
     expect(prompt).toContain('Natural-language questions are valid');
+    expect(prompt).toContain('Do not defer to Kip');
     expect(prompt).toContain('"questions":["Could an unauthenticated caller list journeys across domains?"]');
   });
 

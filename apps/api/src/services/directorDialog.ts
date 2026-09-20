@@ -3,10 +3,52 @@
  * After Cast, orchestration context informs the Lead. It does not impersonate the human.
  */
 
+import { buildCastSpeechAndAgencyLines } from '@keeper/shared';
 import { prisma } from '@keeper/database';
 
 /** Agent slug cued by Lead on director-mode boards (IDE tools or domain lead agents). */
 export type CastMemberSlug = string;
+
+/** Stage / board coordinates Lead already has — copy onto Mechanism B Cast runs. */
+export function stageContextForDelegatedCast(
+  leadContext: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | undefined {
+  if (!leadContext || typeof leadContext !== 'object' || Array.isArray(leadContext)) {
+    return undefined;
+  }
+  const next: Record<string, unknown> = {};
+  if (leadContext.workspaceSurface === 'stage') {
+    next.workspaceSurface = 'stage';
+  }
+  if (typeof leadContext.boardId === 'string' && leadContext.boardId.trim()) {
+    next.boardId = leadContext.boardId.trim();
+  }
+  if (typeof leadContext.dialogCueing === 'string' && leadContext.dialogCueing.trim()) {
+    next.dialogCueing = leadContext.dialogCueing.trim();
+  }
+  return Object.keys(next).length ? next : undefined;
+}
+
+export function attachStageContextToCastEnvironment<T extends { agentContext?: Record<string, unknown> }>(
+  env: T | null | undefined,
+  leadContext: Record<string, unknown> | null | undefined,
+): T | null | undefined {
+  const stage = stageContextForDelegatedCast(leadContext);
+  if (!env || !stage) return env;
+  return {
+    ...env,
+    agentContext: {
+      ...(env.agentContext ?? {}),
+      ...stage,
+    },
+  };
+}
+
+export function delegateConsultSkipMessage(composerConsultedThisTurn: boolean): string {
+  return composerConsultedThisTurn
+    ? 'delegate.consult skipped — Composer Cast chips already consulted this turn'
+    : 'delegate.consult blocked in nested cast run (loop prevention)';
+}
 
 export type DirectorDelegationRequest = {
   instrumentSlug: CastMemberSlug;
@@ -76,7 +118,6 @@ export function buildCastMemberDelegationPrompt(params: {
   dialogStyle?: 'vibe' | string | null;
 }): string {
   const task = params.userMessage.trim();
-  const vibe = params.dialogStyle === 'vibe';
   const lines = [`[Director delegation — ${params.castMemberLabel} on the Build board]`];
 
   if (params.continuityCue?.trim()) {
@@ -93,22 +134,14 @@ export function buildCastMemberDelegationPrompt(params: {
     );
   }
 
-  if (vibe) {
-    lines.push(
-      '',
-      `DIALOG STYLE: Vibe — you are in the room for rhythm and presence, not a report.`,
-      `Answer in first person as ${params.castMemberLabel}. Default: one short beat (a few words up to two sentences) — "Cool.", "Heard.", "Makes sense — …".`,
-      `Only go longer when you have a Document-worthy Point to surface; then keep it to one tight sentence plus the Point title.`,
-      `${params.directorName} (Lead) carries the song — do not speak as ${params.directorName}.`,
-    );
-  } else {
-    lines.push(
-      '',
-      `Answer in first person as ${params.castMemberLabel}. Keep prose to one short paragraph (or a tight bullet list if they asked for one).`,
-      `Be specific to your role. ${params.directorName} (Lead) continues the performance — do not speak as ${params.directorName}.`,
-      `When your lane answer is operational (feasibility, stance, design constraint the user must act on), also emit envelope "card" type "summary" or "info" with title + body (optional items). Short prose + card — not a wall of text.`,
-    );
-  }
+  lines.push(
+    '',
+    ...buildCastSpeechAndAgencyLines({
+      castMemberLabel: params.castMemberLabel,
+      directorName: params.directorName,
+      dialogStyle: params.dialogStyle,
+    }),
+  );
 
   lines.push(
     `You cannot write the Document. Do not say "I'll capture it now" or "I'll add a Point" as if the write already happened.`,

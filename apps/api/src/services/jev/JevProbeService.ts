@@ -13,7 +13,7 @@ export function jevProbePromptBlock(): string {
   return [
     'JEV PROBE — jev.probe action:',
     '- Jev Probe asks typed questions over supplied evidence. It is a tool, not an agent and not your chat model. Stay yourself.',
-    '- Capability: jev.probe. Emit the Kip action jev.probe. Never mcp.call name "jev.probe".',
+    '- Capability: jev.probe. Golden-path action — available to every agent on this Dialog. Fire it when useful. Do not defer to Kip. Never mcp.call name "jev.probe".',
     '- Use when you have evidence in hand (code, a route, a situation) and need calibrated Choice / Noul / Score answers with confidence.',
     '- Payload: { evidence (required), questions, context? (optional wrapper), model? (default jev-latest) }.',
     '- Natural-language questions are valid (string, string[], or id → string). Keeper types a string as noul unless you set type.',

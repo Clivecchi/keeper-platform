@@ -5,6 +5,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 🧱 Key Files
 - `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
+- `webSearchPrompt.ts` — Shared web.search agency prompt (Lead + System)
 - `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when the human asked — not after Cast; optional future keeps are `keepingChoices`
@@ -67,6 +68,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ### 2026-09-18 — TypeSafe evaluate follow-up
 - `actionFollowUp.ts` treats `typesafe.evaluate` as a read-only tool so the second turn sees Jev answers.
+
+### 2026-09-20 — web.search agency
+- `webSearchPrompt.ts` — golden-path web.search for every Dialog agent. Do not defer to Kip. Cite titles/URLs; X/Twitter is not this tool.
 
 ### 2026-09-15 — web.search snippets
 - `actionFollowUp.ts` — web.search follow-up keeps 2500 characters of each snippet so a fetched page body can reach the second model turn.

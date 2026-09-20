@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { formatKeeperAdviceCardForPrompt } from '@keeper/shared';
 import {
+  attachStageContextToCastEnvironment,
   buildCastConsultationsSynthesisPrompt,
   buildCastMemberDelegationPrompt,
   buildDirectorSynthesisPrompt,
+  delegateConsultSkipMessage,
+  stageContextForDelegatedCast,
 } from './directorDialog.js';
 
 const keepingJudgmentCard = {
@@ -22,6 +25,10 @@ describe('buildCastMemberDelegationPrompt', () => {
     });
     expect(prompt).toMatch(/cannot write the Document/i);
     expect(prompt).toMatch(/I['’]ll capture it now/i);
+    expect(prompt).toMatch(/Do not write one undifferentiated paragraph/i);
+    expect(prompt).not.toMatch(/one short paragraph/i);
+    expect(prompt).toMatch(/Do not defer to Kip/i);
+    expect(prompt).toMatch(/Never say a search or evaluation did not run/i);
   });
 });
 
@@ -182,5 +189,46 @@ describe('buildDirectorSynthesisPrompt', () => {
     });
     expect(prompt).toContain('no separate advisory card crossed to the human');
     expect(prompt).toMatch(/Do NOT treat "I will give you the report" as delivery/);
+  });
+});
+
+describe('Mechanism B Stage context + skip receipts', () => {
+  it('copies Stage surface onto delegated Cast without skipDelegateConsult', () => {
+    const stage = stageContextForDelegatedCast({
+      workspaceSurface: 'stage',
+      boardId: 'domain',
+      dialogCueing: 'directed',
+      skipDelegateConsult: true,
+      keepingChoice: { choiceId: 'x' },
+    });
+    expect(stage).toEqual({
+      workspaceSurface: 'stage',
+      boardId: 'domain',
+      dialogCueing: 'directed',
+    });
+    expect(stage).not.toHaveProperty('skipDelegateConsult');
+  });
+
+  it('leaves dialog-only Lead context empty for Cast Stage injection', () => {
+    expect(stageContextForDelegatedCast({ boardId: 'domain' })).toEqual({ boardId: 'domain' });
+    expect(stageContextForDelegatedCast({ skipDelegateConsult: true })).toBeUndefined();
+  });
+
+  it('merges Stage context onto a Cast environment', () => {
+    const attached = attachStageContextToCastEnvironment(
+      { agentContext: { audience: 'member' } },
+      { workspaceSurface: 'stage', boardId: 'domain' },
+    );
+    expect(attached?.agentContext).toEqual({
+      audience: 'member',
+      workspaceSurface: 'stage',
+      boardId: 'domain',
+    });
+  });
+
+  it('uses nested-cast copy only for actual nested skips', () => {
+    expect(delegateConsultSkipMessage(false)).toMatch(/nested cast run/);
+    expect(delegateConsultSkipMessage(true)).toMatch(/Composer Cast chips already consulted/);
+    expect(delegateConsultSkipMessage(true)).not.toMatch(/nested cast run/);
   });
 });

@@ -39,9 +39,10 @@ describe('mcpAgentBridge', () => {
     expect(prompt).toContain('mcp.call');
     expect(prompt).toContain('railway_get_deployments');
     expect(prompt).toContain('live and callable');
-    expect(prompt).toContain('web.search is a Kip action, not an MCP tool');
-    expect(prompt).toContain('typesafe.evaluate is a Kip action, not an MCP tool');
-    expect(prompt).toContain('jev.probe is a Kip action, not an MCP tool');
+    expect(prompt).toContain('web.search is a golden-path action available to you, not an MCP tool');
+    expect(prompt).toContain('typesafe.evaluate is a golden-path action available to you, not an MCP tool');
+    expect(prompt).toContain('jev.probe is a golden-path action available to you, not an MCP tool');
+    expect(prompt).toContain('Do not defer to Kip');
   });
 
   it('treats web.search / web_search as Kip-action aliases, not MCP tools', () => {

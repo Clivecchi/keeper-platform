@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   annotateCastActionResults,
+  buildCastDelegationPrompt,
   buildDomainCollaborationPrompt,
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
@@ -284,5 +285,20 @@ describe("sanitizeAgentMessageContent", () => {
     expect(sanitizeAgentMessageContent(raw)).toBe(
       "### Cloud\nReading the thread: Rendr described actions instead of executing them.",
     )
+  })
+})
+
+describe("buildCastDelegationPrompt", () => {
+  it("asks for structured speech and golden-path tools, not one paragraph", () => {
+    const prompt = buildCastDelegationPrompt({
+      userMessage: "What were the 3 web results?",
+      instrumentLabel: "Cloud",
+      directorName: "Kip",
+    })
+    expect(prompt).toMatch(/Do not write one undifferentiated paragraph/i)
+    expect(prompt).not.toMatch(/one focused paragraph/i)
+    expect(prompt).toMatch(/Do not defer to Kip/i)
+    expect(prompt).toMatch(/Never say a search or evaluation did not run/i)
+    expect(prompt).toMatch(/web\.search/i)
   })
 })

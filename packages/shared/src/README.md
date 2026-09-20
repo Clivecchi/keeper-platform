@@ -19,7 +19,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
-- `sessionActionLog.ts` — Session action receipts for the Lead prompt
+- `sessionActionLog.ts` — Dialog session action receipts + web.search evidence for every agent prompt
+- `castDelegationVoice.ts` — Shared Cast speech, golden-path agency, and receipt honesty lines
 - `documentReorganizeIntent.ts` — Phrase signal for Document-review language. Mention ≠ established direction ≠ authorization ≠ execution.
 - `documentTurnPosture.ts` — TypeSafe shadow primitives + diagnostic corpus for Document Turn Posture. `parseSystemOneOrientationView` reads stored Jev from `humanTurn.systemOne` first, then top-level `turnPostureShadow`.
 - `humanTurn.ts` — Human Turn id + `human-turn-v0` performance record. Dialog → Scene → Turns seam. No Scene model.
@@ -35,6 +36,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-20: Cast honesty / agency / speech — `sessionActionLog` lists web.search titles and URLs; ephemeral consults may read the Dialog session and must not write it (`resolveEphemeralSessionAccess`). `castDelegationVoice` stops the one-paragraph rule and tells every cued agent to fire golden-path tools.
 - 2026-09-19: `humanTurn.ts` mints a Human Turn id and stores the structured System One record on that Turn. Later Lead passes reuse it. Cast does not receive it.
 - 2026-09-19: `parseSystemOneOrientationView` reads stored Jev Choice/Noul answers from Lead orchestration so the Dialog can show them without trusting Lead prose.
 - 2026-09-18: `documentReorganizeIntent.ts` is a phrase signal. `required` now means established direction only. Known false positives (`not the same thing`, `do not reorganize`, diagnostic questions, restatement complaints) stay `mentioned`. `documentTurnPosture.ts` holds the TypeSafe shadow questions and corpus.

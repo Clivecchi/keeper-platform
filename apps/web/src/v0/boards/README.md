@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-09-20 — Empty chips leave Mechanism B open
+- `UniversalConversation` comment: empty Composer Cast chips skip client consult (A). Lead may still `delegate.consult` (B). Not a Composer redesign.
+
 ### 2026-09-13 — Agency Board V0
 - Display name Agency Board. URL writes `?board=agency`; `?board=agent` still opens the same board. Agency pane is People + Agents. Idle Chronicle is Agency Place, not Domain Cover.
 
@@ -844,6 +847,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
+
+### 2026-09-20 — Cast speech and agency
+- `directorDialog.ts` `buildCastDelegationPrompt` uses shared Cast voice: structured replies, golden-path tools for every cued agent, never deny a listed receipt.
 
 ### 2026-09-17 — TypeSafe on Build Board
 - Build Board integrations list includes TypeSafe in the AI group.

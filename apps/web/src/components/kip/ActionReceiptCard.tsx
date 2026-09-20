@@ -8,7 +8,12 @@
  */
 
 import React from "react"
-import { shapeRecordTitle, buildMessageGlossAnchor, type GlossThread } from "@keeper/shared"
+import {
+  shapeRecordTitle,
+  buildMessageGlossAnchor,
+  extractWebSearchReceiptResults,
+  type GlossThread,
+} from "@keeper/shared"
 import { GlossSurface } from "../gloss/GlossSurface"
 
 export interface ActionReceipt {
@@ -79,6 +84,7 @@ function getActionLabel(actionType: string, receipt?: ActionReceipt): string {
     "path.create": "Path created",
     "path.update": "Path updated",
     "library.read": "Library item",
+    "web.search": "Searched the web",
   }
   return labels[actionType] || "Completed"
 }
@@ -102,6 +108,95 @@ function EntityLink({
     >
       {children}
     </button>
+  )
+}
+
+function WebSearchReceiptCard({
+  query,
+  provider,
+  results,
+}: {
+  query?: string
+  provider?: string
+  results: ReturnType<typeof extractWebSearchReceiptResults>
+}) {
+  return (
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{
+        borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+        background: "hsl(var(--theme-surface-paper) / 0.95)",
+      }}
+    >
+      <div
+        className="px-3 py-1.5 border-b flex items-center gap-1.5"
+        style={{
+          borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+          background: "hsl(var(--theme-surface-elevated) / 0.6)",
+        }}
+      >
+        <span
+          className="text-[9px] font-bold uppercase tracking-widest"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Web search
+        </span>
+        <span
+          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide"
+          style={{
+            background: "hsl(38 40% 94%)",
+            color: "hsl(38 50% 30%)",
+            border: "1px solid hsl(38 30% 82%)",
+          }}
+        >
+          {results.length} result{results.length === 1 ? "" : "s"}
+        </span>
+        {provider ? (
+          <span className="text-[10px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            {provider}
+          </span>
+        ) : null}
+      </div>
+      <div className="px-3 py-2.5 space-y-2">
+        {query ? (
+          <p className="text-[11px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            {query}
+          </p>
+        ) : null}
+        <ol className="space-y-2">
+          {results.map((row, index) => (
+            <li key={`${row.url || row.title}-${index}`} className="min-w-0">
+              {row.url ? (
+                <a
+                  href={row.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] font-semibold leading-snug underline-offset-2 hover:underline"
+                  style={{ color: "hsl(var(--theme-ink-primary))" }}
+                >
+                  {row.title}
+                </a>
+              ) : (
+                <p
+                  className="text-[13px] font-semibold leading-snug"
+                  style={{ color: "hsl(var(--theme-ink-primary))" }}
+                >
+                  {row.title}
+                </p>
+              )}
+              {row.snippet ? (
+                <p
+                  className="mt-0.5 text-[11px] leading-relaxed"
+                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                >
+                  {row.snippet}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
   )
 }
 
@@ -657,6 +752,17 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   const isSoleSave = type === "sole.save"
   const isImageGenerate = type === "image.generate"
   const isLibraryRead = type === "library.read"
+  const webSearchResults = type === "web.search" ? extractWebSearchReceiptResults(data) : []
+
+  if (status === "success" && type === "web.search" && webSearchResults.length > 0) {
+    return (
+      <WebSearchReceiptCard
+        query={typeof data?.query === "string" ? data.query : undefined}
+        provider={typeof data?.provider === "string" ? data.provider : undefined}
+        results={webSearchResults}
+      />
+    )
+  }
 
   // Library item retrieved — rich tappable card
   if (status === "success" && isLibraryRead && libraryItem && libraryItemId) {

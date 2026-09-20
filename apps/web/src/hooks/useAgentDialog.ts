@@ -970,22 +970,6 @@ export function useAgentDialog({
       const withKeepingChoice = exercisedChoice
         ? { ...(baseAgentContext ?? {}), keepingChoice: exercisedChoice }
         : baseAgentContext
-      const runOpts = {
-        domainSlug: domainSlug || undefined,
-        domainId: resolvedDomainId || domainId || undefined,
-        dialogId: activeDialogId,
-        mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
-        activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
-        activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
-        activeDraftId: activeDraftId ?? null,
-        agentContext: liveDirectorConfig
-          ? { ...(withKeepingChoice ?? {}), skipDelegateConsult: true }
-          : withKeepingChoice,
-        attachments: attachments?.length ? attachments : undefined,
-        displayContent: displayContent?.trim() || undefined,
-        supportingDocs: supportingDocs?.length ? [...supportingDocs] : undefined,
-        humanTurnId,
-      }
 
       const directorSlugNorm = liveDirectorConfig?.directorAgentSlug?.trim().toLowerCase() || ""
       // Exclude director from cast consults — Lead run is the director's turn.
@@ -997,6 +981,7 @@ export function useAgentDialog({
             .filter((slug) => !directorSlugNorm || slug !== directorSlugNorm),
         ),
       )
+      const leadDirectsDocument = detectReorganizeIntent(content) === "required"
       const castMember = liveDirectorConfig
         ? resolveDirectorCastMember({
             pinned: liveDirectorConfig.activeCastMember,
@@ -1004,6 +989,33 @@ export function useAgentDialog({
             knownSlugs: Object.keys(liveDirectorConfig.castLabels),
           })
         : null
+      // Mechanism A only — skip Lead delegate.consult when the client already
+      // ran Cast this Turn (chips or a pinned/addressed member). Empty chips
+      // and no pin leave Mechanism B open.
+      const clientCastConsultThisTurn = Boolean(
+        liveDirectorConfig
+        && content.trim()
+        && (
+          (consultSlugs.length > 0 && !leadDirectsDocument)
+          || (consultSlugs.length === 0 && Boolean(castMember))
+        ),
+      )
+      const runOpts = {
+        domainSlug: domainSlug || undefined,
+        domainId: resolvedDomainId || domainId || undefined,
+        dialogId: activeDialogId,
+        mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
+        activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
+        activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
+        activeDraftId: activeDraftId ?? null,
+        agentContext: clientCastConsultThisTurn
+          ? { ...(withKeepingChoice ?? {}), skipDelegateConsult: true }
+          : withKeepingChoice,
+        attachments: attachments?.length ? attachments : undefined,
+        displayContent: displayContent?.trim() || undefined,
+        supportingDocs: supportingDocs?.length ? [...supportingDocs] : undefined,
+        humanTurnId,
+      }
 
       const castMemberLabel =
         liveDirectorConfig && castMember
@@ -1031,7 +1043,6 @@ export function useAgentDialog({
       /** Cast-run action receipts — previously discarded by text-only extract. */
       const castActionResults: unknown[] = []
 
-      const leadDirectsDocument = detectReorganizeIntent(content) === "required"
       if (leadDirectsDocument && consultSlugs.length > 0) {
         appendThinkingStep("Established Document direction — Cast stays off this turn.")
       }
@@ -1083,10 +1094,11 @@ export function useAgentDialog({
                 castAgent.id,
                 castPrompt,
                 userId ?? undefined,
-                undefined,
+                sessionId,
                 {
                   ...runOpts,
-                  // Cast consults must not mint orphan sessions that pollute Realm feed.
+                  // Read the Dialog session action log. Do not persist the consult
+                  // (avoids orphan "[Director delegation]" sessions on Realm feed).
                   ephemeral: true,
                 },
               )
@@ -1204,7 +1216,7 @@ export function useAgentDialog({
               castAgent.id,
               castPrompt,
               userId ?? undefined,
-              undefined,
+              sessionId,
               {
                 ...runOpts,
                 ephemeral: true,

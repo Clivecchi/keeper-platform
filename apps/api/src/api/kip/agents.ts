@@ -54,6 +54,7 @@ import {
   findDuplicateHostPoint,
   pointProposeIdentityFrom,
   buildSessionActionLogPrompt,
+  resolveEphemeralSessionAccess,
   shapeRecordTitle,
   isGlossAnchor,
   buildTalkingInWorkingOnPrompt,
@@ -110,6 +111,7 @@ import {
 import { readObjectGlossary } from '../../services/kip/loadObjectGlossary.js';
 import { WebSearchService } from '../../services/WebSearchService.js';
 import { runTypeSafeEvaluateAction, typesafeEvaluatePromptBlock } from '../../services/TypeSafeEvaluateService.js';
+import { webSearchPromptBlock } from '../../services/kip/webSearchPrompt.js';
 import { runJevProbeAction, jevProbePromptBlock } from '../../services/jev/JevProbeService.js';
 import type { 
   AgentInput, 
@@ -1503,6 +1505,10 @@ function buildExecuteAgentActionsCtx(
       obligation,
       actor,
     ),
+    attachments: options?.attachments,
+    agentContext: options?.agentContext,
+    environment: options?.environment ?? null,
+    composerConsultedThisTurn: options?.agentContext?.skipDelegateConsult === true,
     manuscriptDraftId:
       obligation?.manuscriptDraftId ?? env?.dialogDocument?.manuscriptDraftId,
     pointConstraint: obligation?.constrained === true,
@@ -1792,6 +1798,11 @@ export async function executeAgentActions(
     supportEcho?: boolean;
     glossRequired?: boolean;
     castAdviseOnly?: boolean;
+    attachments?: AgentAttachmentInput[];
+    agentContext?: Record<string, unknown>;
+    environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
+    /** Mechanism A already ran this Turn — not the nested-cast loop gate. */
+    composerConsultedThisTurn?: boolean;
   },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
@@ -2022,7 +2033,7 @@ export async function executeAgentActions(
         if (ctx.skipActionTypes?.has(action.type)) {
           const skipMessage =
             action.type === 'delegate.consult'
-              ? 'delegate.consult blocked in nested cast run (loop prevention)'
+              ? delegateConsultSkipMessage(ctx.composerConsultedThisTurn === true)
               : ctx.supportEcho
                 && (
                   action.type.startsWith('draft.')
@@ -4529,29 +4540,44 @@ export async function executeAgentActions(
                 break;
               }
               const castMemberLabel = await resolveCastMemberLabel(agentSlug);
+              const leadAgentContext = ctx.agentContext;
               const castMemberPrompt = buildCastMemberDelegationPrompt({
                 userMessage:
                   question || 'Please share a brief, minimal perspective on the current thread.',
                 castMemberLabel,
                 directorName: 'Lead',
+                dialogStyle:
+                  typeof leadAgentContext?.dialogStyle === 'string'
+                    ? leadAgentContext.dialogStyle
+                    : null,
               });
-              const castMemberEnvironment = await buildCastMemberRunEnvironment({
+              const resolvedCastEnvironment = await buildCastMemberRunEnvironment({
                 castMemberAgentId: castMemberAgent.id,
                 castMemberSlug: agentSlug,
                 userId: ctx.userId ?? undefined,
                 domainId: ctx.domainId,
                 sessionId: ctx.sessionId ?? undefined,
                 dialogId: ctx.dialogId ?? undefined,
+                fallback: ctx.environment,
               });
+              const nestedStageContext = stageContextForDelegatedCast(leadAgentContext);
+              const castMemberEnvironment = attachStageContextToCastEnvironment(
+                resolvedCastEnvironment,
+                leadAgentContext,
+              );
               const castMemberRun = await KipAgentService.runAgent(
                 castMemberAgent.id,
                 castMemberPrompt,
                 ctx.userId ?? undefined,
-                undefined,
+                ctx.sessionId ?? undefined,
                 {
                   domainId: ctx.domainId,
                   domainSlug: ctx.domainSlug,
+                  dialogId: ctx.dialogId ?? undefined,
                   environment: castMemberEnvironment ?? undefined,
+                  attachments: ctx.attachments,
+                  agentContext: nestedStageContext,
+                  ephemeral: true,
                   // Loop prevention only — nested cast must still execute and
                   // surface draft/mcp/treatment receipts like client cast-consult.
                   // Lead-path mcp.call NOT_ALLOWED stays on the Lead allowlist.
@@ -6050,13 +6076,7 @@ export class KipAgentService {
           '- Generate images purposefully, not reflexively. A well-timed image is memorable. An image on every response is noise.',
           '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
           '',
-          'WEB SEARCH — web.search action:',
-          '- Use web.search for current public information on the open web. Payload: { query (required), count? (1–10, default 5) }.',
-          '- Prefer library.read for domain Library material; use web.search for the internet.',
-          '- library.read { id } returns extracted_text as the file body. agent_perspective is a short summary, not the document.',
-          '- Private Google Docs cannot be fetched; ask for a PDF upload or a paste. Do not retry them via web.search.',
-          '- Cite returned titles and URLs; never invent links.',
-          '- Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
+          webSearchPromptBlock(),
           '',
           typesafeEvaluatePromptBlock(),
           '',
@@ -6098,6 +6118,8 @@ export class KipAgentService {
         '',
         'After a tool call completes, always report the substance of what was returned',
         'in your response — not just that the action completed.',
+        'Use structured prose or a short list. Do not write one undifferentiated paragraph.',
+        'If web.search ran, list the titles and URLs. Never say a search did not run when a receipt exists.',
         '',
         'For sole.read: summarize the cards retrieved. How many. What topics.',
         'Quote the most relevant content directly if it answers the question.',
@@ -6305,6 +6327,11 @@ export class KipAgentService {
       attachments?: { url: string; name: string; type: 'image' | 'file' }[];
       /** Visible composer text — Point/reorganize intent must not scan pasted supporting docs. */
       displayContent?: string | null;
+      /**
+       * Ephemeral Cast consults: Dialog session receipts without treating
+       * that transcript as this agent's own chat history.
+       */
+      sessionActionLogOverride?: string;
       /** Optional mutable timing bag from the parent run. */
       timings?: AgentRunPhaseTimings;
       /** Label for this model call in timings.modelCalls (default: model). */
@@ -6676,7 +6703,7 @@ export class KipAgentService {
                   mcpToolPrompt,
                   agent.slug === 'rendr'
                     ? RENDR_IDENTITY_LOCK
-                    : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed. Live internet search is the Kip action web.search — never mcp.call name "web.search". TypeSafe is the Kip action typesafe.evaluate — never mcp.call name "typesafe.evaluate". Jev Probe is the Kip action jev.probe — never mcp.call name "jev.probe".',
+                    : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed. Live internet search is the golden-path action web.search — available to you; never mcp.call name "web.search". TypeSafe is typesafe.evaluate — available to you; never mcp.call that name. Jev Probe is jev.probe — available to you; never mcp.call that name. Fire these when useful. Do not defer to Kip.',
                 ]
               : [
             skipDelegateConsultFromEnv(environmentContext)
@@ -6708,13 +6735,7 @@ export class KipAgentService {
             '- Generate images purposefully, not reflexively. A well-timed image is memorable. An image on every response is noise.',
             '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
             '',
-            'WEB SEARCH — web.search action:',
-            '- Use web.search for current public information on the open web. Payload: { query (required), count? (1–10, default 5) }.',
-            '- Prefer library.read for domain Library material; use web.search for the internet.',
-            '- library.read { id } returns extracted_text as the file body. agent_perspective is a short summary, not the document.',
-            '- Private Google Docs cannot be fetched; ask for a PDF upload or a paste. Do not retry them via web.search.',
-            '- Cite returned titles and URLs; never invent links.',
-            '- Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
+            webSearchPromptBlock(),
             '',
             typesafeEvaluatePromptBlock(),
             '',
@@ -6908,13 +6929,14 @@ export class KipAgentService {
 
       messages.push({
         role: 'system',
-        content: buildSessionActionLogPrompt(
-          recentMessages.map((msg) => ({
-            sender: msg.sender,
-            created_at: msg.created_at,
-            metadata: msg.metadata,
-          })),
-        ),
+        content: promptOptions?.sessionActionLogOverride
+          ?? buildSessionActionLogPrompt(
+            recentMessages.map((msg) => ({
+              sender: msg.sender,
+              created_at: msg.created_at,
+              metadata: msg.metadata,
+            })),
+          ),
       });
 
       const continuity = resolveLeadThreadReply({
@@ -7151,7 +7173,11 @@ export class KipAgentService {
       if (agent.role === 'Lead') {
         leadTurn: {
         let currentSessionId = sessionId;
+        if (options?.ephemeral === true) {
+          currentSessionId = undefined;
+        }
         let previousMessages: KipMessageWithRelations[] = [];
+        let sessionActionLogOverride: string | undefined;
         let keepingExerciseForTurn = readKeepingChoiceExercise(options?.agentContext);
         if (keepingExerciseForTurn) {
           const gate = await isKeepingChoiceExercisable(keepingExerciseForTurn);
@@ -7180,11 +7206,30 @@ export class KipAgentService {
         
         // Handle memory for memory-enabled agents
         if (agent.memory_enabled) {
-          if (sessionId) {
-            // Load existing session memory
+          const sessionAccess = resolveEphemeralSessionAccess({
+            ephemeral: options?.ephemeral === true,
+            sessionId,
+          });
+          currentSessionId = sessionAccess.persistSessionId ?? undefined;
+          if (sessionAccess.loadSessionId) {
+            // Ephemeral Cast consults read the Dialog session log; they do not write it.
             try {
               const memoryStartedAt = Date.now();
-              previousMessages = await this.getSessionMemoryForAgent(sessionId, agentId);
+              const loaded = await this.getSessionMemoryForAgent(
+                sessionAccess.loadSessionId,
+                agentId,
+              );
+              if (sessionAccess.persistSessionId) {
+                previousMessages = loaded;
+              } else {
+                sessionActionLogOverride = buildSessionActionLogPrompt(
+                  loaded.map((msg) => ({
+                    sender: msg.sender,
+                    created_at: msg.created_at,
+                    metadata: msg.metadata,
+                  })),
+                );
+              }
               if (options?.timings) {
                 options.timings.sessionMemoryMs = Date.now() - memoryStartedAt;
               }
@@ -7192,13 +7237,12 @@ export class KipAgentService {
               console.warn('Failed to load session memory:', error);
               // Continue without memory if loading fails
             }
-            // Update session's journey/keeper context if provided
             const newJourneyId = options?.activeJourneyId ?? null;
             const newKeeperId = options?.activeKeeperId ?? null;
-            if (newJourneyId || newKeeperId) {
+            if (sessionAccess.persistSessionId && (newJourneyId || newKeeperId)) {
               try {
                 await prisma.kip_sessions.update({
-                  where: { id: sessionId },
+                  where: { id: sessionAccess.persistSessionId },
                   data: {
                     ...(newJourneyId ? { primary_journey_id: newJourneyId } : {}),
                     ...(newKeeperId ? { primary_keeper_id: newKeeperId } : {}),
@@ -7501,28 +7545,40 @@ export class KipAgentService {
                     ? options.agentContext.dialogStyle
                     : null,
               });
-              const castMemberEnvironment = await buildCastMemberRunEnvironment({
-                castMemberAgentId: castMemberAgent.id,
-                castMemberSlug: dd.instrumentSlug,
+              const castMemberEnvironment = attachStageContextToCastEnvironment(
+                await buildCastMemberRunEnvironment({
+                  castMemberAgentId: castMemberAgent.id,
+                  castMemberSlug: dd.instrumentSlug,
+                  userId,
+                  domainId: options.domainId,
+                  sessionId: currentSessionId,
+                  dialogId:
+                    options.dialogId
+                    ?? (options.environment as AgentEnvironmentContext | null | undefined)
+                      ?.dialogDocument?.dialogId
+                    ?? undefined,
+                  fallback: options.environment,
+                }),
+                options.agentContext,
+              );
+              const castMemberRun = await this.runAgent(
+                castMemberAgent.id,
+                castMemberPrompt,
                 userId,
-                domainId: options.domainId,
-                sessionId: currentSessionId,
-                dialogId:
-                  options.dialogId
-                  ?? (options.environment as AgentEnvironmentContext | null | undefined)
-                    ?.dialogDocument?.dialogId
-                  ?? undefined,
-                fallback: options.environment,
-              });
-              const castMemberRun = await this.runAgent(castMemberAgent.id, castMemberPrompt, userId, undefined, {
-                domainId: options.domainId,
-                domainSlug: options.domainSlug,
-                mode: options.mode,
-                environment: castMemberEnvironment ?? options.environment,
-                activeJourneyId: options.activeJourneyId,
-                activeKeeperId: options.activeKeeperId,
-                attachments: options?.attachments,
-              });
+                currentSessionId,
+                {
+                  domainId: options.domainId,
+                  domainSlug: options.domainSlug,
+                  dialogId: options.dialogId,
+                  mode: options.mode,
+                  environment: castMemberEnvironment ?? options.environment,
+                  activeJourneyId: options.activeJourneyId,
+                  activeKeeperId: options.activeKeeperId,
+                  attachments: options?.attachments,
+                  agentContext: stageContextForDelegatedCast(options.agentContext),
+                  ephemeral: true,
+                },
+              );
               if (!('success' in castMemberRun) || !castMemberRun.success) {
                 const errData = 'data' in castMemberRun ? (castMemberRun.data as Record<string, unknown> | undefined) : undefined;
                 const errMsg =
@@ -7749,6 +7805,7 @@ export class KipAgentService {
           timingLabel: 'lead_main',
           onDelta: options?.onDelta,
           orchestrationContext: leadOrchestrationContext,
+          sessionActionLogOverride,
           systemOneOrientation,
         });
 
@@ -9319,10 +9376,37 @@ export class KipAgentService {
         }
       } else if (agent.role === 'System') {
         // System agents (e.g. Cloud) — real AI dialog with session persistence, action execution, no Kip persona overlay.
-        let currentSessionId = sessionId ?? undefined;
+        const sessionAccess = resolveEphemeralSessionAccess({
+          ephemeral: options?.ephemeral === true,
+          sessionId,
+        });
+        let currentSessionId = sessionAccess.persistSessionId ?? undefined;
         let previousMessages: KipMessageWithRelations[] = [];
+        let sessionActionLogOverride: string | undefined;
 
-        if (!currentSessionId && userId) {
+        if (sessionAccess.loadSessionId) {
+          try {
+            const loaded = await this.getSessionMemoryForAgent(
+              sessionAccess.loadSessionId,
+              agentId,
+            );
+            if (sessionAccess.persistSessionId) {
+              previousMessages = loaded;
+            } else {
+              sessionActionLogOverride = buildSessionActionLogPrompt(
+                loaded.map((msg) => ({
+                  sender: msg.sender,
+                  created_at: msg.created_at,
+                  metadata: msg.metadata,
+                })),
+              );
+            }
+          } catch (error) {
+            console.warn('[System agent] Failed to load session memory:', error);
+          }
+        }
+
+        if (!currentSessionId && userId && options?.ephemeral !== true) {
           try {
             const newSession = await this.createSession(agentId, userId, undefined, {
               primaryJourneyId: options?.activeJourneyId ?? null,
@@ -9335,11 +9419,6 @@ export class KipAgentService {
         }
 
         if (currentSessionId) {
-          try {
-            previousMessages = await this.getSessionMemoryForAgent(currentSessionId, agentId);
-          } catch (error) {
-            console.warn('[System agent] Failed to load session memory:', error);
-          }
           try {
             const textToSave =
               input?.trim() ||
@@ -9390,6 +9469,7 @@ export class KipAgentService {
           timings: options?.timings,
           timingLabel: 'system_main',
           onDelta: options?.onDelta,
+          sessionActionLogOverride,
         });
         let lastSystemPromptMessages = aiResult.messages;
         logData.model = aiResult.execution.model;

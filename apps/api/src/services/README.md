@@ -26,6 +26,14 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-20 — Cast honesty, agency, speech
+- `directorDialog.ts` uses shared Cast voice: structured replies, golden-path tools for every cued agent, never deny a listed receipt.
+- `mcpAgentBridge.ts` + TypeSafe / Jev prompt blocks: "Kip action" means the framework, not "only Kip."
+- `kip/webSearchPrompt.ts` — one web.search prompt for Lead and System.
+
+### 2026-09-20 — Mechanism B Stage context helpers
+- `directorDialog.ts` — `stageContextForDelegatedCast` / `attachStageContextToCastEnvironment` copy Stage surface onto nested consults. `delegateConsultSkipMessage` distinguishes Composer-chip skip from a real nested-cast loop.
+
 ### 2026-09-20 — Natural-language TypeSafe questions
 - `parseTypeSafeEvaluatePayload` accepts string / string[] / id→string questions (typed as noul unless `type` is set). `evidence` / `situation` alias `state`.
 - `typesafeEvaluatePromptBlock` teaches that NL questions are valid so Agents do not need a typed map to invoke TypeSafe.

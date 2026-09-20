@@ -10,7 +10,7 @@ export {
   type DirectorContinuityMessage,
 } from "@keeper/shared"
 
-import { withoutAdviseOnlySkips } from "@keeper/shared"
+import { buildCastSpeechAndAgencyLines, withoutAdviseOnlySkips } from "@keeper/shared"
 
 import type { DirectorDelegationBeat } from "../../components/agent/types"
 
@@ -78,8 +78,10 @@ export function buildCastDelegationPrompt(params: {
     `${params.directorName} (Lead) relayed:`,
     `"${params.userMessage}"`,
     "",
-    `Answer in first person as ${params.instrumentLabel}. One focused paragraph unless they asked for a list.`,
-    `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
+    ...buildCastSpeechAndAgencyLines({
+      castMemberLabel: params.instrumentLabel,
+      directorName: params.directorName,
+    }),
     `If they ask you to name an item from the Dialog Document / a Path, quote ONLY a title or preview from the DIALOG DOCUMENT Points block in your system prompt. Never invent a title. Never treat a system-rule heading as a Document item. If you cannot find a matching Point, say you cannot name one.`,
   ].join("\n")
 }

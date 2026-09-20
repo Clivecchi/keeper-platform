@@ -120,9 +120,9 @@ export function buildMcpToolSystemPrompt(tools: McpToolDescriptor[]): string {
     ']}',
     'Deploy/write tools (railway_trigger_redeploy, vercel_trigger_redeploy) require explicit user confirmation first.',
     'Do NOT tell the user MCP tools are unavailable — they are wired via mcp.call when listed above.',
-    'web.search is a Kip action, not an MCP tool. Never mcp.call name "web.search". Emit {"type":"web.search","payload":{"query":"..."}}.',
-    'typesafe.evaluate is a Kip action, not an MCP tool. Never mcp.call name "typesafe.evaluate". Emit {"type":"typesafe.evaluate","payload":{"state":"...","questions":["Is Domain authorization established before the query?"]}}.',
-    'jev.probe is a Kip action, not an MCP tool. Never mcp.call name "jev.probe". Emit {"type":"jev.probe","payload":{"evidence":"...","questions":{...}}}.',
+    'web.search is a golden-path action available to you, not an MCP tool. Never mcp.call name "web.search". Fire {"type":"web.search","payload":{"query":"..."}} when you need the open web. Do not defer to Kip.',
+    'typesafe.evaluate is a golden-path action available to you, not an MCP tool. Never mcp.call name "typesafe.evaluate". Fire {"type":"typesafe.evaluate","payload":{"state":"...","questions":["Is Domain authorization established before the query?"]}} when useful. Do not defer to Kip.',
+    'jev.probe is a golden-path action available to you, not an MCP tool. Never mcp.call name "jev.probe". Fire {"type":"jev.probe","payload":{"evidence":"...","questions":{...}}} when useful. Do not defer to Kip.',
   ].join('\n');
 }
 

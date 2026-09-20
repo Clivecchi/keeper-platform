@@ -31,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-20 — Mechanism B when Composer chips are empty
+- `skipDelegateConsult` is set only when Mechanism A actually runs (cued Cast chips on this Turn). Empty chips leave Lead free to `delegate.consult`. Human-directed Cast (A) and Keeper-directed Cast (B) stay distinct.
+
 ### 2026-09-19 — Human Turn id on send
 - Each send mints a Human Turn id and passes it to Cast consults and the Lead run. Cast still does not receive System One. The Lead HTTP binds Jev to that id.
 

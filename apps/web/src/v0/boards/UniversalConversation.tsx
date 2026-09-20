@@ -931,9 +931,9 @@ export function UniversalConversation({
   }, [domainDirectorCast])
 
   /**
-   * Multi-select cast cue targets.
-   * Empty cue selection means "Lead only" — no cast member is consulted and the
-   * director answers solo. Explicit chip cues narrow to just those cast members.
+   * Multi-select cast cue targets (Mechanism A).
+   * Empty cue selection means the client does not consult Cast — Lead may still
+   * Mechanism B (`delegate.consult`). Explicit chip cues run those members first.
    */
   const resolvedCuedCastSlugs = React.useMemo(() => {
     if (!castMultiSelect || !isDirectedCueing) return [] as string[]

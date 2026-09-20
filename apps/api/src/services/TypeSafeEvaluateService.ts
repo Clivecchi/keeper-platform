@@ -29,7 +29,7 @@ export function typesafeEvaluatePromptBlock(): string {
     '- Shorthand: { state, question: "Is Domain authorization established before the query?" } — one noul question named q1.',
     '- Example NL: {"type":"agent_output","response":"Evaluating this list route.","actions":[{"type":"typesafe.evaluate","payload":{"state":"GET /api/journeys: domainId is optional.","questions":["Could an unauthenticated caller list journeys across domains?"]}}]}',
     '- Use the returned answers. Do not re-ask the same questions unless the state changed.',
-    '- typesafe.evaluate is a Kip action, not an MCP tool. Never mcp.call name "typesafe.evaluate".',
+    '- typesafe.evaluate is a golden-path action, available to every agent on this Dialog. Fire it when useful. Do not defer to Kip. Never mcp.call name "typesafe.evaluate".',
     '- Typed example: {"type":"agent_output","response":"Checking whether this Point is ready.","actions":[{"type":"typesafe.evaluate","payload":{"state":"Point: Stage is the room, not the story.","questions":{"should_keep":{"type":"noul","instructions":"Should this Point be kept on the Document?"}}}}]}',
   ].join('\n');
 }
