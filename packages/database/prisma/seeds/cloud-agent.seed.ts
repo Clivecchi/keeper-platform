@@ -4,7 +4,7 @@
  * Cloud platform agent seed — infra read capabilities for Railway/Vercel/GitHub Chronicle.
  *
  * Canonical capability list matches apps/api/src/capabilities/infraCapabilities.ts
- * `CLOUD_AGENT_CAPABILITIES` (infra read + GitHub MCP tools).
+ * `CLOUD_AGENT_CAPABILITIES` (infra read + GitHub MCP tools + jev.probe).
  *
  * Idempotent — creates Cloud agent or ensures read infra capabilities are present.
  */
@@ -41,6 +41,7 @@ export const CLOUD_AGENT_CAPABILITIES = [
   'infra.github.write',
   ...GITHUB_MCP_TOOL_CAPABILITIES,
   ...INTEGRATION_MCP_TOOL_CAPABILITIES,
+  'jev.probe',
 ] as const;
 
 function mergeCloudCapabilities(existing: string[]): string[] {

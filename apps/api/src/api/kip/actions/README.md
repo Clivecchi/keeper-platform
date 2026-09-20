@@ -19,6 +19,7 @@ Normalize and validate structured Kip agent actions before `executeAgentActions`
 - [ ] Confirm with Chuck: cast agents proposing on journey drafts should stay `proposed` (human Accept)
 
 ## 📆 Update Log
+- 2026-09-19: `jev.probe` payload schema — `{ evidence, questions }` (or shorthand). `state` is an alias for evidence. Optional `context`.
 - 2026-09-18: `typesafe.evaluate` payload schema — `{ state, questions }` or shorthand `{ state, question, type? }`.
 - 2026-09-02: `keepingChoices` is an optional envelope sibling. Unknown items must not fail action extraction. Offers are never executed.
 - 2026-08-30: `stage.story.layout` — Lead lays out the Stage filmstrip (`slides[]`). Writes `keeperStage.story`. Not a Document action.

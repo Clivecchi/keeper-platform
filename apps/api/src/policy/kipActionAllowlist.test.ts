@@ -31,6 +31,13 @@ describe('kipActionAllowlist', () => {
     expect(KIP_ACTION_HANDLERS).toContain('typesafe.evaluate');
   });
 
+  it('keeps jev.probe on the golden path as the evidence-facing Jev Probe', () => {
+    const allowed = buildAllowedActions(null);
+    expect(allowed.has('jev.probe')).toBe(true);
+    expect(GOLDEN_PATH_ACTIONS).toContain('jev.probe');
+    expect(KIP_ACTION_HANDLERS).toContain('jev.probe');
+  });
+
   it('does not put mcp.call on the Lead allowlist', () => {
     const allowed = buildAllowedActions(null);
     expect(allowed.has('mcp.call')).toBe(false);

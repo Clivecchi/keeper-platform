@@ -110,6 +110,7 @@ import {
 import { readObjectGlossary } from '../../services/kip/loadObjectGlossary.js';
 import { WebSearchService } from '../../services/WebSearchService.js';
 import { runTypeSafeEvaluateAction, typesafeEvaluatePromptBlock } from '../../services/TypeSafeEvaluateService.js';
+import { runJevProbeAction, jevProbePromptBlock } from '../../services/jev/JevProbeService.js';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -4148,6 +4149,46 @@ export async function executeAgentActions(
             break;
           }
 
+          case 'jev.probe': {
+            try {
+              const outcome = await runJevProbeAction({
+                payload: action.payload ?? {},
+                domainId: ctx.domainId,
+                userId: ctx.userId,
+              });
+              if (outcome.ok === false) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: outcome.message,
+                  errorCode: outcome.errorCode,
+                });
+              } else {
+                results.push({
+                  type: action.type,
+                  status: 'success',
+                  message: `Jev Probe evaluated ${outcome.evaluations.length} question${outcome.evaluations.length === 1 ? '' : 's'}`,
+                  data: {
+                    model: outcome.model,
+                    answers: outcome.answers,
+                    evaluations: outcome.evaluations,
+                    formatted: outcome.formatted,
+                  },
+                });
+              }
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : 'Failed to run Jev Probe';
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
           case 'library.read': {
             const payload = action.payload ?? {};
             const itemId = typeof payload.id === 'string' ? payload.id.trim() : '';
@@ -6019,6 +6060,8 @@ export class KipAgentService {
           '',
           typesafeEvaluatePromptBlock(),
           '',
+          jevProbePromptBlock(),
+          '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
           'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
@@ -6118,6 +6161,8 @@ export class KipAgentService {
         'Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
         '',
         typesafeEvaluatePromptBlock(),
+        '',
+        jevProbePromptBlock(),
         '',
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
@@ -6631,7 +6676,7 @@ export class KipAgentService {
                   mcpToolPrompt,
                   agent.slug === 'rendr'
                     ? RENDR_IDENTITY_LOCK
-                    : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed. Live internet search is the Kip action web.search — never mcp.call name "web.search". TypeSafe is the Kip action typesafe.evaluate — never mcp.call name "typesafe.evaluate".',
+                    : 'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed. Live internet search is the Kip action web.search — never mcp.call name "web.search". TypeSafe is the Kip action typesafe.evaluate — never mcp.call name "typesafe.evaluate". Jev Probe is the Kip action jev.probe — never mcp.call name "jev.probe".',
                 ]
               : [
             skipDelegateConsultFromEnv(environmentContext)
@@ -6672,6 +6717,8 @@ export class KipAgentService {
             '- Example: {"type":"agent_output","response":"Searching now.","actions":[{"type":"web.search","payload":{"query":"Brave Search API pricing","count":5}}]}',
             '',
             typesafeEvaluatePromptBlock(),
+            '',
+            jevProbePromptBlock(),
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',

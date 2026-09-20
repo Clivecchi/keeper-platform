@@ -260,6 +260,46 @@ describe('actionFollowUp', () => {
     expect(input).toContain('Do not treat TypeSafe as a person');
   });
 
+  it('runs follow-up for jev.probe and formats evaluations', () => {
+    expect(
+      shouldRunReadActionFollowUp(
+        [{ type: 'jev.probe' }],
+        [{ type: 'jev.probe', status: 'success', message: 'Jev Probe evaluated 1 question' }],
+      ),
+    ).toBe(true);
+
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'Is this list Domain-scoped?',
+      agentName: 'Cloud',
+      priorResponseText: 'Probing the route.',
+      actionResults: [
+        {
+          type: 'jev.probe',
+          status: 'success',
+          message: 'Jev Probe evaluated 1 question',
+          data: {
+            model: 'jev-latest',
+            formatted: 'domainScoped: yes (confidence 0.93)',
+            evaluations: [
+              {
+                questionId: 'domainScoped',
+                question: 'Does this list require Domain scope?',
+                type: 'choice',
+                answer: 'yes',
+                confidence: 0.93,
+                probabilities: null,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(input).toContain('domainScoped: yes');
+    expect(input).toContain('Jev Probe evaluations');
+    expect(input).toContain('Do NOT call jev.probe again');
+  });
+
   it('treats propose-points as draft work and "let me read" as deferral', () => {
     expect(
       shouldRunMutationDeferralFollowUp({

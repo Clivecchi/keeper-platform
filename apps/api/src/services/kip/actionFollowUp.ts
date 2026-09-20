@@ -26,6 +26,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'glossary.read',
   'web.search',
   'typesafe.evaluate',
+  'jev.probe',
   'delegate.consult',
 ]);
 
@@ -200,10 +201,12 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
               'No extracted document text. agent_perspective is not the body. Private Google Docs cannot be read via web.search — the human must upload a file or paste the text.',
             );
           }
-        } else if (result.type === 'typesafe.evaluate') {
-          lines.push('TypeSafe answers:');
+        } else if (result.type === 'typesafe.evaluate' || result.type === 'jev.probe') {
+          lines.push(result.type === 'jev.probe' ? 'Jev Probe evaluations:' : 'TypeSafe answers:');
           if (typeof data.formatted === 'string' && data.formatted.trim()) {
             lines.push(data.formatted);
+          } else if (Array.isArray(data.evaluations) && data.evaluations.length > 0) {
+            lines.push(JSON.stringify(data.evaluations));
           } else if (data.answers && typeof data.answers === 'object') {
             lines.push(JSON.stringify(data.answers));
           }
@@ -255,6 +258,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           && result.type !== 'library.read'
           && result.type !== 'web.search'
           && result.type !== 'typesafe.evaluate'
+          && result.type !== 'jev.probe'
         ) {
           lines.push(`Data: ${JSON.stringify(data, null, 2).slice(0, 4000)}`);
         }
@@ -277,8 +281,8 @@ export function formatReadActionResultsForUserFallback(results: ActionResultLike
     if (result.status !== 'success' || !isReadOnlyActionType(result.type)) continue;
     const data = result.data ?? {};
 
-    if (result.type === 'typesafe.evaluate') {
-      lines.push('TypeSafe answers:');
+    if (result.type === 'typesafe.evaluate' || result.type === 'jev.probe') {
+      lines.push(result.type === 'jev.probe' ? 'Jev Probe evaluations:' : 'TypeSafe answers:');
       if (typeof data.formatted === 'string' && data.formatted.trim()) {
         lines.push(data.formatted);
       }
@@ -423,6 +427,10 @@ export function buildReadActionFollowUpInput(params: {
     '- Report the typed answers (noul / choice / score) and their confidence',
     '- Do not treat TypeSafe as a person or a chat model',
     '- Do NOT call typesafe.evaluate again unless the state changed',
+    'If jev.probe returned evaluations:',
+    '- Report each answer and its confidence. This is a Probe over supplied evidence, not a stored Evaluation object.',
+    '- Do not treat Jev as a person or a chat model',
+    '- Do NOT call jev.probe again unless the evidence changed',
     'If they asked to rebuild or restore draft points, use draft.update.propose or draft.update actions now with the content you recover from the session.',
     'If dialog.read returned a Document:',
     '- Use Forward, Step, Paths, and Points from the result — same source Chronicle renders.',

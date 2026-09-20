@@ -43,6 +43,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-19 — Jev Probe follow-up
+- `actionFollowUp.ts` treats `jev.probe` as a read-only tool so the second turn sees parsed evaluations (answer + confidence). Not a stored Evaluation object.
+
 ### 2026-09-19 — Human Turn binds System One
 - Orientation is bound to a client-minted Human Turn id, not to `lead_main`. Jev evaluates once. `lead_main` and later Lead follow-ups receive the same structured record. Cast consults still do not.
 

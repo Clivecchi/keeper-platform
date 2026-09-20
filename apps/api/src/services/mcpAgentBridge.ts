@@ -6,6 +6,7 @@ import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js
 import { withAsyncTimeout } from '../lib/fetchWithTimeout.js';
 import { mcpCallAction, type McpContext } from '../mcp/core.js';
 import { getSchema } from '../mcp/tools.js';
+import { runJevProbeAction } from './jev/JevProbeService.js';
 import { runTypeSafeEvaluateAction } from './TypeSafeEvaluateService.js';
 import { WebSearchService } from './WebSearchService.js';
 
@@ -18,6 +19,11 @@ export function isWebSearchMcpAlias(name: string): boolean {
 export function isTypeSafeEvaluateMcpAlias(name: string): boolean {
   const normalized = name.trim().toLowerCase().replace(/_/g, '.');
   return normalized === 'typesafe.evaluate';
+}
+
+export function isJevProbeMcpAlias(name: string): boolean {
+  const normalized = name.trim().toLowerCase().replace(/_/g, '.');
+  return normalized === 'jev.probe';
 }
 
 export class McpCallExecutionError extends Error {
@@ -116,6 +122,7 @@ export function buildMcpToolSystemPrompt(tools: McpToolDescriptor[]): string {
     'Do NOT tell the user MCP tools are unavailable — they are wired via mcp.call when listed above.',
     'web.search is a Kip action, not an MCP tool. Never mcp.call name "web.search". Emit {"type":"web.search","payload":{"query":"..."}}.',
     'typesafe.evaluate is a Kip action, not an MCP tool. Never mcp.call name "typesafe.evaluate". Emit {"type":"typesafe.evaluate","payload":{"state":"...","questions":{...}}}.',
+    'jev.probe is a Kip action, not an MCP tool. Never mcp.call name "jev.probe". Emit {"type":"jev.probe","payload":{"evidence":"...","questions":{...}}}.',
   ].join('\n');
 }
 
@@ -141,6 +148,22 @@ export async function executeMcpCallAction(params: {
         ? args.payload
         : args;
     const outcome = await runTypeSafeEvaluateAction({
+      payload: nested,
+      domainId: params.domainId,
+    });
+    if (outcome.ok === false) {
+      throw new McpCallExecutionError(outcome.message, outcome.errorCode);
+    }
+    return outcome;
+  }
+
+  if (isJevProbeMcpAlias(params.toolName)) {
+    const args = params.args ?? {};
+    const nested =
+      args.payload && typeof args.payload === 'object' && !Array.isArray(args.payload)
+        ? args.payload
+        : args;
+    const outcome = await runJevProbeAction({
       payload: nested,
       domainId: params.domainId,
     });

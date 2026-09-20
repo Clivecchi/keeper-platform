@@ -32,6 +32,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 
 ## 📆 Update Log
 
+### 2026-09-19 — Jev Probe CLI consumer
+- `run-jev-codebase-xray.ts` now calls `runJevProbe` (reusable core). Same Code Map output. Does not mutate Keeper state.
+
 ### 2026-09-19 — Jev codebase X-ray
 - `run-jev-codebase-xray.ts` + `jev-xray/` — first TypeSafe/Jev semantic X-ray of curated Keeper units. Reuses `evaluateTypeSafe`. Writes `tmp/jev-xray/results.json` + `code-map.md`. `--dry-run` selects units only. Does not mutate Keeper state.
 

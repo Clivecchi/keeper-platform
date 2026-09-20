@@ -1,6 +1,6 @@
 /**
  * Jev Keeper Codebase X-Ray — developer experiment.
- * Reuses evaluateTypeSafe. Does not mutate Keeper state.
+ * CLI consumer of `runJevProbe`. Does not mutate Keeper state.
  *
  * From apps/api:
  *   pnpm exec tsx src/scripts/run-jev-codebase-xray.ts --dry-run

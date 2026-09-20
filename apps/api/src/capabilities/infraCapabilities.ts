@@ -3,6 +3,8 @@
  * Seeded onto agent records and board defs as data; resolved at runtime.
  */
 
+import { JEV_PROBE_CAPABILITY } from './agentCapabilityConstants.js';
+
 export const INFRA_CAPABILITIES = {
   RAILWAY_READ: 'infra.railway.read',
   RAILWAY_DEPLOY: 'infra.railway.deploy',
@@ -44,6 +46,7 @@ export const LIBRARY_MCP_TOOL_CAPABILITIES: readonly string[] = ['library.ro'];
 export const GLOSS_MCP_TOOL_CAPABILITIES: readonly string[] = ['gloss.rw'];
 
 export { CLOUD_MCP_CEILING } from '@keeper/shared';
+export { JEV_PROBE_CAPABILITY };
 
 /** Read-only infra capabilities seeded on Cloud. */
 export const CLOUD_INFRA_READ_CAPABILITIES: readonly string[] = [
@@ -54,7 +57,7 @@ export const CLOUD_INFRA_READ_CAPABILITIES: readonly string[] = [
   INFRA_CAPABILITIES.RESEND_READ,
 ];
 
-/** Full Cloud infra + MCP capability set. */
+/** Full Cloud infra + MCP capability set, plus Jev Probe (Kip action, not MCP). */
 export const CLOUD_AGENT_CAPABILITIES: readonly string[] = [
   ...CLOUD_INFRA_READ_CAPABILITIES,
   INFRA_CAPABILITIES.GITHUB_WRITE,
@@ -62,4 +65,5 @@ export const CLOUD_AGENT_CAPABILITIES: readonly string[] = [
   ...INTEGRATION_MCP_TOOL_CAPABILITIES,
   ...LIBRARY_MCP_TOOL_CAPABILITIES,
   ...GLOSS_MCP_TOOL_CAPABILITIES,
+  JEV_PROBE_CAPABILITY,
 ];

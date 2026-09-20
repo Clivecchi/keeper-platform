@@ -7,6 +7,8 @@ Central location for API service-layer modules used by route handlers.
 - `KipAgentPermissionService.ts`
 - `TypeSafeProvider.ts` — Jev System One (`POST /v1/systemone`); not a chat LLM
 - `TypeSafeEvaluateService.ts` — Kip `typesafe.evaluate` tool wrapper + agent prompt
+- `jev/runJevProbe.ts` — reusable Jev Probe core (evidence + questions → evaluations)
+- `jev/JevProbeService.ts` — Kip `jev.probe` wrapper + agent prompt
 - `PlatformApiKeyService.ts`
 - `SoleMemoryService.ts`
 - `VercelDomainManagerService.ts`
@@ -24,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-19 — Jev Probe core
+- `jev/runJevProbe.ts` — reusable evaluation core extracted from the Code X-ray harness. CLI and `jev.probe` consume it. Does not persist Probes or Evaluation objects.
+
 ### 2026-09-18 — Model Registry execution
 - `executeRegisteredChat.ts` — Agent and companion chat go through `resolveExecutionPlan` then `ModelProviderService`. One sibling fallback (Sonnet 4.6 ↔ 5) only after a genuine `INVALID_MODEL`. Both attempts are logged on `[ExecutionPlan]`.
 - `modelProviderErrors.ts` — tight INVALID_MODEL classifier. Messages that merely contain "model" and "not" are no longer treated as a bad model ID.

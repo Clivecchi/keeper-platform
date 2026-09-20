@@ -14,4 +14,7 @@ export const CORE_CAPABILITIES = {
   DRAFTS_CREATE: 'drafts.create',
 } as const;
 
+/** Jev Probe — typed questions over supplied evidence. Kip action, not an MCP tool. */
+export const JEV_PROBE_CAPABILITY = 'jev.probe';
+
 export type CoreCapability = (typeof CORE_CAPABILITIES)[keyof typeof CORE_CAPABILITIES];

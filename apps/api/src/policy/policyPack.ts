@@ -30,6 +30,7 @@ export const DEFAULT_POLICY_PACK_V1 = {
       'keeper.read',
       'web.search',
       'typesafe.evaluate',
+      'jev.probe',
     ],
   },
 } as const;

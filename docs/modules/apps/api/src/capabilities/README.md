@@ -5,7 +5,7 @@ Canonical capability strings and runtime resolution for agent/board capability d
 
 ## 🧱 Key Files
 - `infraCapabilities.ts` — `INFRA_CAPABILITIES` constants and Cloud read seed set
-- `agentCapabilityConstants.ts` — core capability strings (actions, sessions, SOLE, drafts)
+- `agentCapabilityConstants.ts` — core capability strings (actions, sessions, SOLE, drafts) plus `jev.probe`
 - `boardCapabilityCeilings.ts` — board-level ceilings (Build Board uses `CLOUD_MCP_CEILING`)
 - `resolveCapabilities.ts` — agent record ∩ board ceiling resolution (`ide` normalizes to `build`)
 - `boardCeilingStatus.ts` — read-only Cloud MCP ceiling descriptor (MCP `cloud_ceiling_list`, `GET /api/capabilities/ceiling`)
@@ -25,6 +25,7 @@ Canonical capability strings and runtime resolution for agent/board capability d
 - [ ] Chronicle editing of agent capabilities and board ceilings (future)
 
 ## 📆 Update Log
+- 2026-09-19: **`jev.probe`** — Cloud agent capability for the Jev Probe Kip action. Seeded on Cloud. Not on `CLOUD_MCP_CEILING` (not an MCP tool). Grant plus operational prompt knowledge.
 - 2026-08-19: **Capability Ledger Phase 2** — `capabilityLedger.ts` + `GET /api/capabilities/ledger` + MCP `capability_ledger`. One read of MCP scopes, Kip allowlist, and Cloud ceiling. Key stores listed, not merged. No enforcement changes.
 - 2026-08-19: Retired `ide` ceiling identity. `CLOUD_MCP_CEILING` lives in `@keeper/shared`. MCP tool is `cloud_ceiling_list`. Cloud `mcp.call` uses the agent record — it does not invent a Board id.
 - 2026-08-19: **Capability Ledger Phase 1** — `boardCeilingStatus.ts` + `GET /api/capabilities/ceiling` + MCP `cloud_ceiling_list`. Read-only exposure of `CLOUD_MCP_CEILING` (and agent ∩ ceiling when context is present). No enforcement changes.

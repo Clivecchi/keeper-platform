@@ -30,7 +30,7 @@ export function typesafeEvaluatePromptBlock(): string {
   ].join('\n');
 }
 
-async function resolveTypeSafeToolKey(params: {
+export async function resolveTypeSafeToolKey(params: {
   domainId?: string | null;
   userId?: string | null;
 }): Promise<string | null> {

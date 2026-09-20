@@ -2,6 +2,7 @@
  * Aggregate Jev answers into a Keeper Code Map. Confidence is preserved.
  */
 
+import { parseJevRawAnswer } from '../../services/jev/runJevProbe.js';
 import type {
   XrayAnswer,
   XrayCodeMap,
@@ -66,22 +67,12 @@ function viewRows(
 }
 
 export function parseChoiceAnswer(raw: unknown): Omit<XrayAnswer, 'questionId' | 'question' | 'family'> | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const row = raw as Record<string, unknown>;
-  const answer = typeof row.choice === 'string' ? row.choice : null;
-  if (!answer) return null;
-  const probabilities =
-    row.probabilities && typeof row.probabilities === 'object' && !Array.isArray(row.probabilities)
-      ? Object.fromEntries(
-          Object.entries(row.probabilities as Record<string, unknown>).filter(
-            (entry): entry is [string, number] => typeof entry[1] === 'number',
-          ),
-        )
-      : null;
+  const parsed = parseJevRawAnswer(raw);
+  if (!parsed || parsed.type !== 'choice' || typeof parsed.answer !== 'string') return null;
   return {
-    answer,
-    confidence: typeof row.confidence === 'number' ? row.confidence : null,
-    probabilities: probabilities && Object.keys(probabilities).length > 0 ? probabilities : null,
+    answer: parsed.answer,
+    confidence: parsed.confidence,
+    probabilities: parsed.probabilities,
   };
 }
 

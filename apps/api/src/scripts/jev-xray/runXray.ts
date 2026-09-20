@@ -1,8 +1,9 @@
 /**
- * Evaluate curated Keeper units with the existing TypeSafe/Jev client.
+ * Evaluate curated Keeper units. CLI consumer of the reusable Jev Probe core.
  */
 
-import { evaluateTypeSafe, TYPESAFE_DEFAULT_MODEL, type TypeSafeUsage } from '../../services/TypeSafeProvider.js';
+import { TYPESAFE_DEFAULT_MODEL, type TypeSafeUsage } from '../../services/TypeSafeProvider.js';
+import { runJevProbe } from '../../services/jev/runJevProbe.js';
 import { KEEPER_XRAY_ARCHITECTURE_CONTEXT } from './architectureContext.js';
 import { KEEPER_XRAY_QUESTIONS, toTypeSafeQuestions } from './questions.js';
 import { answersFromTypeSafe } from './report.js';
@@ -54,8 +55,13 @@ export async function evaluateUnit(
   model: string,
 ): Promise<XrayUnitResult> {
   const started = Date.now();
-  const outcome = await evaluateTypeSafe({
-    state: buildState(unit),
+  const state = buildState(unit);
+  const outcome = await runJevProbe({
+    evidence: {
+      unit: state.unit,
+      code: state.code,
+    },
+    context: state.architecture,
     questions: toTypeSafeQuestions(),
     model,
     apiKey,
