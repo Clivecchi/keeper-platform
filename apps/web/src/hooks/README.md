@@ -17,6 +17,7 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - `useViewerContext.ts` – Syncs viewer state with layout shell.
 - `useUserSettings.ts` – Fetches user preference data (themes, toggles) when a bearer token is available.
 - `useTalkMode.ts` — Web Speech API hook for Talk mode (listen → transcript → composer confirm → send). Shared by mobile Kip and future Realm Screen composer.
+- `useConversationProfile.ts` — Composer Conversation Profile (`current` | `conversation`). Browser-local. Does not write Dialog Style / Cueing.
 
 ## 🔄 Data & Behavior
 - Hooks always read from context/providers (`useAuth`, `useTheme`, etc.) instead of accessing storage directly.
@@ -30,6 +31,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-09-21 — Conversation Profile
+- `useConversationProfile.ts` — `keeper.conversationProfile` in localStorage. Composer and send paths share it so the selected profile travels on `agentContext.conversationProfile`.
 
 ### 2026-09-20 — Mechanism B when Composer chips are empty
 - `skipDelegateConsult` is set only when Mechanism A actually runs (cued Cast chips on this Turn). Empty chips leave Lead free to `delegate.consult`. Human-directed Cast (A) and Keeper-directed Cast (B) stay distinct.

@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-09-21 — Conversation Profile
+- `UniversalConversation` puts Composer `conversationProfile` on `agentContext`. Dialog Style and Dialog Cueing stay their own fields. Profile does not rewrite Style or Cueing.
+
 ### 2026-09-21 — Orientation refresh
 - A successful `document.orientation.update` bumps Chronicle the same way a Document proposal does, so the compass shows the map the Cast just received.
 

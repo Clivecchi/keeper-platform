@@ -198,6 +198,7 @@ describe('Mechanism B Stage context + skip receipts', () => {
       workspaceSurface: 'stage',
       boardId: 'domain',
       dialogCueing: 'directed',
+      conversationProfile: 'conversation',
       skipDelegateConsult: true,
       keepingChoice: { choiceId: 'x' },
     });
@@ -205,6 +206,7 @@ describe('Mechanism B Stage context + skip receipts', () => {
       workspaceSurface: 'stage',
       boardId: 'domain',
       dialogCueing: 'directed',
+      conversationProfile: 'conversation',
     });
     expect(stage).not.toHaveProperty('skipDelegateConsult');
   });

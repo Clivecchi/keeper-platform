@@ -8,6 +8,7 @@ describe('buildCompactEnvironmentForPrompt', () => {
       agentContext: {
         boardId: 'agent',
         dialogCueing: 'monologue',
+        conversationProfile: 'conversation',
         agentTraining: { frame: 'currently', agentName: 'Kip' },
         agentPerformanceInspection: {
           agentName: 'Kip',
@@ -18,6 +19,7 @@ describe('buildCompactEnvironmentForPrompt', () => {
     });
     expect(compact?.agentContext?.boardId).toBe('agent');
     expect(compact?.agentContext?.dialogCueing).toBe('monologue');
+    expect(compact?.agentContext?.conversationProfile).toBe('conversation');
     expect(compact?.agentContext?.agentTraining).toEqual({
       frame: 'currently',
       agentName: 'Kip',

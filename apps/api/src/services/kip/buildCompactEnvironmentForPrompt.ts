@@ -143,6 +143,7 @@ function slimAgentContext(raw: unknown): Record<string, unknown> | undefined {
     'designBoard',
     'workspaceSurface',
     'dialogStyle',
+    'conversationProfile',
     'keepingChoice',
     'boardId',
     'dialogCueing',

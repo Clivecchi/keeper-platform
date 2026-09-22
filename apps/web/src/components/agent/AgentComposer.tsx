@@ -36,6 +36,7 @@ import {
 import { formatDialogueAsMarkdown } from "./helpers"
 import type { AgentDialogueMessage } from "./types"
 import { SupportingDocumentTile } from "./SupportingDocumentTile"
+import { useConversationProfile } from "../../hooks/useConversationProfile"
 
 const SURFACE = {
   inkPrimary: "var(--theme-ink-primary-color)",
@@ -193,6 +194,54 @@ function ComposerToolDivider() {
       className="mx-0.5 h-4 w-px shrink-0"
       style={{ background: "hsl(var(--theme-border-soft) / 0.65)" }}
     />
+  )
+}
+
+function ConversationProfileControl({
+  disabled,
+  compact = false,
+}: {
+  disabled: boolean
+  compact?: boolean
+}) {
+  const {
+    conversationProfile,
+    conversationProfileLabel,
+    cycleConversationProfile,
+  } = useConversationProfile()
+  const isExperimental = conversationProfile === "conversation"
+  const title = isExperimental
+    ? "Conversation Profile: Conversation — experimental reduced standing instruction. Click for Current."
+    : "Conversation Profile: Current — existing Keeper prompt. Click for Conversation."
+
+  return (
+    <button
+      type="button"
+      onClick={cycleConversationProfile}
+      disabled={disabled}
+      className={[
+        "flex items-center gap-1 rounded-md disabled:pointer-events-none disabled:opacity-40",
+        compact ? "h-8 px-1.5" : "h-7 px-2",
+      ].join(" ")}
+      title={title}
+      aria-label={`Conversation Profile: ${conversationProfileLabel}`}
+      aria-pressed={isExperimental}
+      style={{
+        color: isExperimental
+          ? "hsl(var(--theme-focus-ring))"
+          : SURFACE.inkSecondary,
+        backgroundColor: compact
+          ? "transparent"
+          : "hsl(var(--theme-surface-page) / 0.45)",
+      }}
+    >
+      <ChatBubbleLeftRightIcon
+        className={compact ? "h-4 w-4" : "h-3.5 w-3.5"}
+        strokeWidth={1.75}
+        aria-hidden
+      />
+      <span className="text-xs font-medium">{conversationProfileLabel}</span>
+    </button>
   )
 }
 
@@ -563,6 +612,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             </div>
           ) : null}
           <div className="keeper-composer-docked-row">
+            <ConversationProfileControl disabled={disabled || isSending} compact />
             {stageFileUpload ? (
               <>
                 <input
@@ -742,6 +792,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 <option value="debug">Debug</option>
               </select>
             )}
+            <ConversationProfileControl disabled={disabled} />
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             {onOpenTheme ? (

@@ -60,6 +60,7 @@ import {
   type KeepingChoiceRecord,
 } from "@keeper/shared"
 import { useAgentDialog, extractRunAgentPayload, type AgentContext } from "../../hooks/useAgentDialog"
+import { useConversationProfile } from "../../hooks/useConversationProfile"
 import { buildExperienceAgentContext } from "../lib/buildExperienceAgentContext"
 import type { AgentBoardMessaging } from "../data/domain-frame.types"
 import { useDraftContext } from "../../hooks/useDraftContext"
@@ -999,6 +1000,7 @@ export function UniversalConversation({
   const [directorSendPhase, setDirectorSendPhase] = React.useState<DirectorSendPhase | null>(null)
 
   const designerDraftCtx = useDesignerDraftOptional()
+  const { conversationProfile } = useConversationProfile()
 
   // ── agentContext — computed once, shared across all modes ─────────────
   const agentContext = React.useMemo(() => {
@@ -1071,6 +1073,7 @@ export function UniversalConversation({
       ...(merged ?? {}),
       boardId: def.boardId,
       dialogCueing: def.conversation.dialogCueing ?? "monologue",
+      conversationProfile,
     }
 
     if (kipMode === "agent" && selection.agentPerformanceInspection) {
@@ -1097,6 +1100,7 @@ export function UniversalConversation({
     workspaceSurface,
     def.boardId,
     def.conversation.dialogCueing,
+    conversationProfile,
     selection.agentPerformanceInspection,
   ])
 

@@ -26,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-21 — Conversation Profile on Cast Stage context
+- `stageContextForDelegatedCast` copies `conversationProfile` so Mechanism B Cast uses the same prompt family as Lead. Does not copy Dialog Style or other Composer settings.
+
 ### 2026-09-20 — Cast honesty, agency, speech
 - `directorDialog.ts` uses shared Cast voice: structured replies, golden-path tools for every cued agent, never deny a listed receipt.
 - `mcpAgentBridge.ts` + TypeSafe / Jev prompt blocks: "Kip action" means the framework, not "only Kip."

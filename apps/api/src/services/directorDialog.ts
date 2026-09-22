@@ -26,6 +26,9 @@ export function stageContextForDelegatedCast(
   if (typeof leadContext.dialogCueing === 'string' && leadContext.dialogCueing.trim()) {
     next.dialogCueing = leadContext.dialogCueing.trim();
   }
+  if (typeof leadContext.conversationProfile === 'string' && leadContext.conversationProfile.trim()) {
+    next.conversationProfile = leadContext.conversationProfile.trim();
+  }
   return Object.keys(next).length ? next : undefined;
 }
 

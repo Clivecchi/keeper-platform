@@ -51,6 +51,7 @@ export * from './humanTurn.js';
 export * from './dialogParticipation.js';
 export * from './dialogTitleSource.js';
 export * from './talkingInWorkingOn.js';
+export * from './conversationProfile.js';
 export * from './keeperStage.js';
 export * from './keeperAdviceCard.js';
 export * from './keepingChoice.js';

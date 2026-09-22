@@ -28,6 +28,7 @@ import type { KipAgent, KipDraftSummary, KipDraft, KipDraftStatus, KipMessage, A
 import { useAgentSessions } from "../../../hooks/useAgentSessions"
 import { extractRunAgentPayload } from "../../../hooks/useAgentDialog"
 import { useComposerDraftAutosave } from "../../../hooks/useComposerDraftAutosave"
+import { useConversationProfile } from "../../../hooks/useConversationProfile"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
 import { useAgentWorkspaceView } from "../../shell/useAgentWorkspaceView"
@@ -121,6 +122,7 @@ export function AgentBoardFrame({
   const ab = domainFrame?.agent_board
   const frameCtx = useFrameContextOptional()
   const { isAuthenticated, isAdmin, refreshSession, user } = useAuth()
+  const { conversationProfile } = useConversationProfile()
   const [view, setView] = useAgentWorkspaceView()
 
   // ── Agent state ──
@@ -493,8 +495,9 @@ export function AgentBoardFrame({
             isVisibleToAudience(d.available_to, audience),
           ),
           kip_context: domainFrame.kip_context[audience] ?? domainFrame.kip_context.friend ?? domainFrame.kip_context.keeper ?? "",
+          conversationProfile,
         }
-      : undefined
+      : { conversationProfile }
 
     try {
       let result: Awaited<ReturnType<typeof KipApi.runAgent>>

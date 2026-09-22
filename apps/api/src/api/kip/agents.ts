@@ -272,6 +272,11 @@ import {
 } from '../../services/treatment/normalizeTreatmentProposal.js';
 import { RENDR_IDENTITY_LOCK } from '../../services/rendr/rendrAgentConfig.js';
 import {
+  buildConversationProfileLeadPrompt,
+  buildConversationProfileProtocolPrompt,
+  conversationProfileFromEnvironment,
+} from '../../services/kip/conversationProfilePrompt.js';
+import {
   parseActionsOrThrow,
   safeParseActions,
   isActionParseSuccess,
@@ -6560,10 +6565,17 @@ export class KipAgentService {
         content: systemPrompt
       });
 
+      const conversationProfile = conversationProfileFromEnvironment(
+        promptOptions?.environment ?? null,
+      );
+      const conversationProfileExperimental = conversationProfile === 'conversation';
+
       if (isLeadRole(agent.role)) {
         messages.push({
           role: 'system',
-          content: buildLeadJudgmentContractPrompt(),
+          content: conversationProfileExperimental
+            ? buildConversationProfileLeadPrompt()
+            : buildLeadJudgmentContractPrompt(),
         });
       }
 
@@ -6814,6 +6826,21 @@ export class KipAgentService {
 
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
         const draftKinds = (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
+        if (conversationProfileExperimental) {
+          messages.push({
+            role: 'system',
+            content: [
+              ...(capabilities.jsonMode
+                ? []
+                : [
+                    'CRITICAL: This model does not support API-level JSON mode. You MUST still reply with valid raw JSON only — no prose before or after, no markdown fences. Any non-JSON text will break the system.',
+                  ]),
+              buildConversationProfileProtocolPrompt(allowList),
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          });
+        } else {
         messages.push({
           role: 'system',
           content: [
@@ -6889,13 +6916,17 @@ export class KipAgentService {
             .filter(Boolean)
             .join('\n'),
         });
+        }
 
         // ── Response rendering governance — keeper-card versus prose ──────────────
         // Shared helper — same text as Cockpit compose (buildComposedSystemPrompt).
+        // Conversation Profile `conversation` keeps the JSON envelope without this essay.
+        if (!conversationProfileExperimental) {
         messages.push({
           role: 'system',
           content: buildKeeperCardRenderingPrompt(),
         });
+        }
         const keepingChoiceExercise = readKeepingChoiceExercise(agentContextRecord);
         if (keepingChoiceExercise) {
           messages.push({
@@ -6945,7 +6976,8 @@ export class KipAgentService {
       // SOLE exists at domain level and is always accessible. Keeper association sharpens for that keeper.
       if (environmentContext) {
         try {
-          // Base SOLE instruction: always injected when in domain context
+          // Conversation Profile `conversation` keeps SOLE cards (state) and skips the loop/architecture essays.
+          if (!conversationProfileExperimental) {
           messages.push({
             role: 'system',
             content: SoleMemoryService.getSoleMemoryLoopInstruction(),
@@ -6954,6 +6986,7 @@ export class KipAgentService {
             role: 'system',
             content: SoleMemoryService.getSoleArchitecturePrompt(),
           });
+          }
 
           const envWithIndex = environmentContext as {
             domainIndex?: {
@@ -7844,6 +7877,12 @@ export class KipAgentService {
           agentSlug: agent.slug,
           model: agent.model,
           modelProvider: agent.model_provider,
+          conversationProfile: conversationProfileFromEnvironment(
+            options?.environment
+              ?? (options?.agentContext
+                ? { agentContext: options.agentContext }
+                : null),
+          ),
           sessionId: currentSessionId,
           dialogId: dialogDocument?.dialogId ?? null,
           documentInContext: Boolean(dialogDocument?.dialogId),

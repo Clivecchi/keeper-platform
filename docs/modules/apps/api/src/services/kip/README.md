@@ -10,6 +10,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when the human asked — not after Cast; optional future keeps are `keepingChoices`
 - `leadJudgmentContract.ts` — Lead role Agency contract (find the plot). Injected when `role === 'Lead'`. Not Kip-specific.
+- `conversationProfilePrompt.ts` — thin Lead + protocol for Conversation Profile `conversation`. Current profile keeps the existing stack.
 - `buildAgentBoardContextPrompt.ts` — Agent Board Training + Performance Inspection Composer grounding
 - `agentPerformanceProvenance` lives in `@keeper/shared` — named runtime checklist on persisted Lead messages
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
@@ -44,6 +45,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-21 — Conversation Profile
+- `conversationProfilePrompt.ts` — `conversation` uses a short Lead line + JSON envelope + allowlist names + receipt rule. Compact env keeps `conversationProfile`. Does not change model, Dialog, Document, Domain, history, Dialog Style, or Cueing.
+
 ### 2026-09-21 — Document Orientation in the standing block
 - `loadDialogDocumentForAgent` / Chronicle load read `Dialog.orientation`. The agent block includes the map and landmarks for Lead and Cast. `dialog.read` follow-up repeats the stored map. Not regenerated each turn.
 

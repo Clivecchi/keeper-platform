@@ -27,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-09-21: AgentBoardFrame send path includes Composer `conversationProfile` on `agentContext`. Same family as Universal Board; does not change Dialog Style.
 - 2026-08-09: Composer props include `dialogueMessages` (loaded session transcript) for Dialog markdown export in Margin / AgentComposer.
 - 2026-02-28: Session banner redesign: Replaced WorkspaceHeader + AgentContextBar with unified SessionBannerCard in dialogue workspace. Session title is editable inline; banner includes Journey, Keeper, SOLE, Session ID, and Model; Change model button opens cockpit.
 - 2026-02-28: Theme variable fix: ink vars hold HSL components; using var(--theme-ink-primary) for color produced invalid CSS. Added --theme-ink-*-color vars (full colors) to styleRegistry; updated SidebarCard, DialogueMessageList, ActionReceiptCard, DraftUpdateProposeCard, WorkspaceHeader, AgentContextBar, AgentContextBanner, AgentBoardFrame to use -color vars; fixed index.css @theme and dialogue hsl() usage.

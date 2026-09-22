@@ -22,6 +22,9 @@ Screen components for Universal Mobile shell tabs — Domains picker, Moment cap
 
 ## 📆 Update Log
 
+### 2026-09-21 — Conversation Profile
+- `KipScreen` includes Composer `conversationProfile` on `agentContext` so mobile Dialog uses the same profile as desktop Composer.
+
 ### 2026-07-03 — Home routing + domain entry
 - `RealmScreen` domain tap navigates to `/d/:slug?board=domain` (not realm board on domain URL).
 - `RealmsRedirect` lands on `/home` (user-scoped Home).

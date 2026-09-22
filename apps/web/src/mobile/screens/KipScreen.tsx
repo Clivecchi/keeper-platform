@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { normalizeActionReceipt } from "../../components/agent/types";
 import { KeeperDialogFrame } from "../../v0/components/dialog/KeeperDialogFrame";
 import { useAgentDialog } from "../../hooks/useAgentDialog";
+import { useConversationProfile } from "../../hooks/useConversationProfile";
 import { useV0Shell } from "../../v0/shell/V0ShellContext";
 import { getApiBase } from "../../lib/apiFetch";
 import { apiFetch } from "../../lib/api";
@@ -43,6 +44,7 @@ export function KipScreen() {
   } = useUniversalMobile();
   const { domainFrame, resolvedAudience, shellMode, domainData } = useV0Shell();
   const { refreshSession, user } = useAuth();
+  const { conversationProfile } = useConversationProfile();
   const [composerFocused, setComposerFocused] = React.useState(false);
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null);
   const [momentCount, setMomentCount] = React.useState<number | null>(null);
@@ -84,7 +86,7 @@ export function KipScreen() {
       ?? (domainLead.slug ? frameLeadIdentity.displayName : "Kip");
 
   const agentContext = React.useMemo(() => {
-    if (!domainFrame) return undefined;
+    if (!domainFrame) return { conversationProfile };
     const audience = resolvedAudience ?? "keeper";
     const base = {
       audience,
@@ -94,6 +96,7 @@ export function KipScreen() {
         isVisibleToAudience(d.available_to, audience),
       ),
       kip_context: domainFrame.kip_context[audience] ?? domainFrame.kip_context.friend ?? domainFrame.kip_context.keeper ?? "",
+      conversationProfile,
     };
     if (!kipFocusMomentId) return base;
     return {
@@ -101,7 +104,7 @@ export function KipScreen() {
       focusMomentId: kipFocusMomentId,
       focusMomentTitle: focusMomentTitle ?? undefined,
     };
-  }, [domainFrame, resolvedAudience, kipFocusMomentId, focusMomentTitle]);
+  }, [domainFrame, resolvedAudience, kipFocusMomentId, focusMomentTitle, conversationProfile]);
 
   const {
     messages,
