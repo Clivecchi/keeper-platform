@@ -1452,7 +1452,10 @@ export function UniversalConversation({
             actions.bumpDraftPresence()
             return
           }
-          if (receipt.type === "document.reorganize.propose") {
+          if (
+            receipt.type === "document.reorganize.propose"
+            || receipt.type === "document.orientation.update"
+          ) {
             actions.bumpDraftPresence()
             return
           }
@@ -1512,7 +1515,10 @@ export function UniversalConversation({
             actions.bumpDraftPresence()
             return
           }
-          if (receipt.type === "document.reorganize.propose") {
+          if (
+            receipt.type === "document.reorganize.propose"
+            || receipt.type === "document.orientation.update"
+          ) {
             actions.bumpDraftPresence()
             return
           }
@@ -1790,6 +1796,7 @@ export function UniversalConversation({
             "draft.point.rewrite",
             "gloss.append",
             "document.reorganize.propose",
+            "document.orientation.update",
             "draft.point.accept",
             "draft.delete",
             "draft.setActive",

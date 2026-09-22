@@ -68,6 +68,10 @@ export function useDocumentAuthoring(input: {
           document_status: cycleDocumentLifecycleStatus(input.status),
         }),
       ),
+    saveOrientation: (body: string) => {
+      const next = body.trim()
+      return run(() => patchDocument({ orientation: next || null }))
+    },
     saveForward: (title: string, description: string) => {
       const nextTitle = title.trim()
       const nextDescription = description.trim()

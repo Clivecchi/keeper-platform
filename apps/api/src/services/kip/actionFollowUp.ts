@@ -166,10 +166,14 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           const doc = data.document as {
             title?: string;
             status?: string;
+            orientation?: { body?: string };
             points?: Array<{ type?: string; preview?: string; status?: string }>;
           };
           const points = Array.isArray(doc.points) ? doc.points : [];
           lines.push(`Document: ${doc.title ?? 'untitled'}${doc.status ? ` [${doc.status}]` : ''}`);
+          if (typeof doc.orientation?.body === 'string' && doc.orientation.body.trim()) {
+            lines.push(`Orientation: ${doc.orientation.body.trim()}`);
+          }
           if (data.documentUnbuilt === true || points.length === 0) {
             lines.push(
               typeof data.honesty === 'string'

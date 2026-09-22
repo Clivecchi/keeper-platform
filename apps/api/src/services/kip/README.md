@@ -18,7 +18,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `streamAgentOutput.ts` — Incremental extractor for the streamed `response` field inside `agent_output` JSON
 - `loadDialogDocumentForChronicle.ts` — Chronicle Document loader (Forward/Step/Paths + manuscripts with Points)
-- `loadDialogDocumentForAgent.ts` — Agent-facing Document summary (prompt injection); Points listed under their Section
+- `loadDialogDocumentForAgent.ts` — Agent-facing Document summary (prompt injection); Points listed under their Section; Orientation map when stored
 - `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
 - `promoteDraftPoint.ts` — Keeps accepted `journey_spec` Points as Moments with identity preserved (`Moment.id = Point.id`); supports evolution + path-at-keep / pathless keep
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
@@ -44,6 +44,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-21 — Document Orientation in the standing block
+- `loadDialogDocumentForAgent` / Chronicle load read `Dialog.orientation`. The agent block includes the map and landmarks for Lead and Cast. `dialog.read` follow-up repeats the stored map. Not regenerated each turn.
+
 ### 2026-09-20 — Execution truth after Cast actions
 - `leadJudgmentContract.ts` — a Lead may describe intended next work, but must not claim an action initiated/completed or findings produced unless a success receipt is in the turn.
 - `actionFollowUp.ts` — `typesafe.evaluate` / `jev.probe` follow up on error as well as success, so the agent sees the failed receipt instead of inventing findings.

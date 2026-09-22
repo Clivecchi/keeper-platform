@@ -402,6 +402,9 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
   return false;
 }
 
+const DOCUMENT_ORIENTATION_ACTION_LINE =
+  'document.orientation.update — Lead only. Rewrite the persistent Document Orientation when the shared understanding of how to read this Document materially changes. Payload: { body }. Body is a short operational map (not a turn summary, not Forward, not a Point). Cite existing Section titles and Point numbers from DIALOG DOCUMENT (for example "Point 4" and the Section title). Do not emit this on ordinary turns, after a single Point, or to recap the conversation. Omit the action unless the map itself should change.';
+
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
     '- When adding NEW Points, use draft.update.propose with payload.content (body) and payload.prelude or payload.title (short story-label — not a cut of the body). On a Dialog Document Point turn, omit payload.id — Keeper fills the manuscript. Optional payload.author or payload.proposedBy, optional payload.closer, optional payload.moments ([{ title, narrative? }]), optional payload.referencesPointId, optional payload.section (Section title — Keeper creates it if missing), optional payload.sectionId, and optional payload.type (moment | decision | context | general — default general). When the human names a Section, set payload.section to that title. Do not dump named work into Open. Put the full point text in payload.content as a string — never nest content as an object. Never put Domain Contract, action rules, or draft ids in Point content. Each propose appends a proposed Point. Keeper shows a card in Dialog. The human taps Accept. '
@@ -418,10 +421,14 @@ function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unk
       : '';
   const glossPoints =
     '- When the human asks to Gloss a Point — depth beside the Point, not a rewrite of the body — use gloss.append. payload.pointId is 1–N from DIALOG DOCUMENT or the current title (omit it to Gloss the latest Point). payload.content is the Gloss. Do not draft.point.rewrite. Do not weave Gloss into the Point body. Do not draft.create or draft.setActive. Include a keeper-card when the Gloss lands.';
+  const orientation =
+    agent.role === 'Lead'
+      ? `- ${DOCUMENT_ORIENTATION_ACTION_LINE}`
+      : '';
   if (isOperationalDraftAgent(agent)) {
     return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}\n- For a working Draft's METADATA (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Document name and Forward are not draft metadata — use document.reorganize.propose. Never invent action types like add_point or edit — only use actions from the allowlist.`;
   }
-  return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}`.trim();
+  return `${proposePoints}\n${rewritePoints}\n${preservePoints}\n${acceptPoints}\n${reorganizeDocument}\n${glossPoints}\n${orientation}`.trim();
 }
 
 /**
@@ -1433,6 +1440,7 @@ function mergePointSkipActionTypes(
     next.add('draft.create');
     next.add('draft.point.rewrite');
     next.add('document.reorganize.propose');
+    next.add('document.orientation.update');
     next.add('gloss.append');
   }
   if (actor === 'cast') {
@@ -1440,6 +1448,7 @@ function mergePointSkipActionTypes(
     next.add('draft.create');
     next.add('draft.point.rewrite');
     next.add('document.reorganize.propose');
+    next.add('document.orientation.update');
     next.add('stage.story.layout');
     next.add('gloss.append');
   }
@@ -1470,6 +1479,7 @@ const GLOSS_SKIP_SUBSTITUTES = [
   'draft.point.rewrite',
   'draft.update.propose',
   'document.reorganize.propose',
+  'document.orientation.update',
 ] as const;
 
 function buildExecuteAgentActionsCtx(
@@ -2038,6 +2048,9 @@ export async function executeAgentActions(
             action.type === 'delegate.consult'
               ? delegateConsultSkipMessage(ctx.composerConsultedThisTurn === true)
               : ctx.supportEcho
+                && action.type === 'document.orientation.update'
+                ? 'Skipped — Document Orientation is Lead-maintained.'
+              : ctx.supportEcho
                 && (
                   action.type.startsWith('draft.')
                   || action.type === 'document.reorganize.propose'
@@ -2055,6 +2068,9 @@ export async function executeAgentActions(
                   || action.type === 'stage.story.layout'
                 )
                 ? 'Skipped — Gloss is depth on a Point. Use gloss.append; do not rewrite, add a Point, create a Draft, or switch Working on.'
+              : ctx.castAdviseOnly
+                && action.type === 'document.orientation.update'
+                ? 'Skipped — Document Orientation is Lead-maintained. Cast reads it; the Lead updates it.'
               : ctx.castAdviseOnly
                 && (
                   action.type === 'draft.update.propose'
@@ -2569,6 +2585,113 @@ export async function executeAgentActions(
                 rationale: rationale || summary,
                 summary,
                 proposal,
+              },
+            });
+            break;
+          }
+          case 'document.orientation.update': {
+            const payload =
+              action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+                ? (action.payload as Record<string, unknown>)
+                : {};
+            const body = typeof payload.body === 'string' ? payload.body.trim() : '';
+            if (!body) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Orientation body is required. This is the map, not a turn summary.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (body.length > 2000) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Orientation is a short map — keep it within 2000 characters.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            if (!ctx.domainId || !ctx.dialogId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Talk in a Dialog first — Orientation belongs on that Document.',
+                errorCode: 'NO_DIALOG',
+              });
+              break;
+            }
+            const agentRow = ctx.agentId
+              ? await tx.kip_agents.findUnique({
+                  where: { id: ctx.agentId },
+                  select: { role: true, name: true },
+                })
+              : null;
+            if (!agentRow || agentRow.role !== 'Lead') {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Document Orientation is Lead-maintained. Cast reads it; the Lead updates it.',
+                errorCode: 'LEAD_ONLY',
+              });
+              break;
+            }
+            const existing = await tx.dialog.findFirst({
+              where: { id: ctx.dialogId, domain_id: ctx.domainId, is_archived: false },
+              select: { id: true, orientation: true },
+            });
+            if (!existing) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Dialog not found for Orientation.',
+                errorCode: 'NOT_FOUND',
+              });
+              break;
+            }
+            const updatedBy = agentRow.name?.trim() || 'Lead';
+            if ((existing.orientation ?? '').trim() === body) {
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: 'Orientation unchanged — the Document already carries this map.',
+                data: { dialogId: existing.id, body, updatedBy, unchanged: true },
+              });
+              break;
+            }
+            const updatedAt = new Date();
+            await tx.dialog.update({
+              where: { id: existing.id },
+              data: {
+                orientation: body,
+                orientation_updated_at: updatedAt,
+                orientation_updated_by: updatedBy,
+              },
+            });
+            const envDoc = (
+              ctx.environment as {
+                dialogDocument?: {
+                  orientation?: { body: string; updatedAt?: string; updatedBy?: string };
+                };
+              } | null
+            )?.dialogDocument;
+            if (envDoc) {
+              envDoc.orientation = {
+                body,
+                updatedAt: updatedAt.toISOString(),
+                updatedBy,
+              };
+            }
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: 'Orientation updated. It stays on the Document until the Lead changes it again.',
+              data: {
+                dialogId: existing.id,
+                body,
+                updatedBy,
+                updatedAt: updatedAt.toISOString(),
               },
             });
             break;
@@ -4386,6 +4509,7 @@ export async function executeAgentActions(
                           status: document.status,
                           forward: document.forward,
                           step: document.step,
+                          orientation: document.orientation,
                           paths: document.paths,
                           points,
                           manuscriptDraftId: document.manuscriptDraftId,
@@ -5444,6 +5568,7 @@ const SUPPORT_ECHO_SKIP_ACTIONS = [
   'draft.update.propose',
   'draft.point.rewrite',
   'document.reorganize.propose',
+  'document.orientation.update',
   'stage.story.layout',
   'gloss.append',
 ] as const;
@@ -6192,6 +6317,7 @@ export class KipAgentService {
         'draft.read / draft.get — retrieves full draft spec (including points with exact pointId UUIDs). Payload: { id } or { kind, key }.',
         'draft.point.rewrite — rewrite or retitle one Point. Payload: { pointId (number, title, or UUID), prelude/title?, content? }. Omit content to keep the body. Omit id on a Dialog Document. Journey accepted points are anchors; document_manuscript accepted Points are rewritable by Lead.',
         'gloss.append — Gloss an existing Point (depth beside it). Payload: { pointId (1–N or title; omit for the latest Point), content }. Not a rewrite. Not a new Draft. Chronicle shows Gloss on the Point. Include a keeper-card.',
+        `${DOCUMENT_ORIENTATION_ACTION_LINE}`,
         'document.reorganize.propose — Lead only. Propose the better Document. Current is evidence, not a constraint. Document name is payload.title; Forward is payload.forward: { title, description }. Those are not Points. Does not change accepted work until Apply. Chronicle shows Current vs Proposed (New · Refined · Moved from… · Merged · Retire). Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change (unchanged|new|refine|move|merge|retire), fromSectionId?, originalContent?, replacesPointIds? }] }. Nest Points under the Section they should belong to, or set sectionId to that title (change: move). Omit sectionId only when you are not moving that Point. Never dump named work into Open. Do not emit a Section named Open. Refer to existing Points by number or title from DIALOG DOCUMENT — Keeper resolves identities. Omit unchanged Points. Identity-only (title/Forward) is valid. Never silently rewrite with draft.point.rewrite when the human asked to review or reorganize. Rename/retitle Points on the live Document only is draft.point.rewrite.',
         'stage.story.layout — Lead only. Available when composing the Stage filmstrip. Keeper places the Cover (`domain_cover`). Your slides are text_slide beats Forward opens. Payload: { rationale?, slides: [{ title, body?, source?: { kind: live|point|moment|path|keeper|journey, id? } }] }. Do not emit the Root. Not a Document write. Stage presence does not require this action.',
         'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
@@ -6748,6 +6874,7 @@ export class KipAgentService {
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
             'draft.point.rewrite payload schema: pointId (1–N from DIALOG DOCUMENT, current title, or UUID), prelude/title (Point title — short story-label), content (body, optional when only retitling). Omit id on a Dialog Document.',
             'gloss.append payload schema: pointId (1–N or current title; omit to Gloss the latest Point), content (the Gloss — depth beside the Point). Do not rewrite. Do not create a Draft. Include a card.',
+            DOCUMENT_ORIENTATION_ACTION_LINE,
             'document.reorganize.propose — Lead only. Propose the better Document without changing accepted work. Current is evidence. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Nest Points under the Section they should belong to. Omit sectionId only when you are not moving that Point. Never dump named work into Open. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
             'stage.story.layout — Lead only. Available when composing the Stage filmstrip. Payload: { rationale?, slides: [{ title, body?, source? }] }. Do not emit the Cover. Not document.reorganize.propose. Stage presence does not require this action.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',

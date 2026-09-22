@@ -5,6 +5,7 @@
  * malformed or unknown actions from being silently ignored.
  */
 
+import { DOCUMENT_ORIENTATION_MAX_CHARS } from '@keeper/shared';
 import { z } from 'zod';
 
 /**
@@ -306,6 +307,14 @@ export type DocumentReorganizeProposeAction = z.infer<
   typeof documentReorganizeProposePayloadSchema
 > & { type: 'document.reorganize.propose' };
 
+const documentOrientationUpdatePayloadSchema = z.object({
+  body: z.string().min(1).max(DOCUMENT_ORIENTATION_MAX_CHARS),
+});
+
+export type DocumentOrientationUpdateAction = z.infer<
+  typeof documentOrientationUpdatePayloadSchema
+> & { type: 'document.orientation.update' };
+
 const stageStorySlidePayloadSchema = z.object({
   id: z.string().min(1).max(80).optional(),
   kind: z.enum(['root', 'beat', 'title']).optional(),
@@ -491,6 +500,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'image.generate': imageGeneratePayloadSchema,
   'treatment.propose': treatmentProposePayloadSchema,
   'document.reorganize.propose': documentReorganizeProposePayloadSchema,
+  'document.orientation.update': documentOrientationUpdatePayloadSchema,
   'stage.story.layout': stageStoryLayoutPayloadSchema,
   'web.search': webSearchPayloadSchema,
   'typesafe.evaluate': typeSafeEvaluatePayloadSchema,

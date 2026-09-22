@@ -28,6 +28,9 @@ Point read shell + Document container helpers for Chronicle Focus ? shared consu
 - [ ] Wire real Step from self-organizing lineage (not faked) ? Back/Forward stay disabled until then
 
 ## 📆 Update Log
+### 2026-09-21 — Document Orientation control
+- Compass beside the Document pencil opens a closed panel: current map, landmarks, who set it, and a revise field. The reading itself does not grow a second Forward block.
+
 ### 2026-08-29 — Proposed overlay
 - `proposalOverlay` hides Accept / Updated chrome. Changed Points expand with Now vs Proposed. Unchanged Points stay quiet as **As now**. `Moved from…` shows whenever the Section actually changes.
 

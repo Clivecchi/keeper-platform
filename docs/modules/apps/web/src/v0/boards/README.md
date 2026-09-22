@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-09-21 — Orientation refresh
+- A successful `document.orientation.update` bumps Chronicle the same way a Document proposal does, so the compass shows the map the Cast just received.
+
 ### 2026-09-20 — Empty chips leave Mechanism B open
 - `UniversalConversation` comment: empty Composer Cast chips skip client consult (A). Lead may still `delegate.consult` (B). Not a Composer redesign.
 

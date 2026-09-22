@@ -17,6 +17,13 @@ describe('kipActionAllowlist', () => {
     expect(allowed.has('journey.read')).toBe(true);
   });
 
+  it('keeps document.orientation.update on the Lead golden path', () => {
+    const allowed = buildAllowedActions(null);
+    expect(allowed.has('document.orientation.update')).toBe(true);
+    expect(GOLDEN_PATH_ACTIONS).toContain('document.orientation.update');
+    expect(KIP_ACTION_HANDLERS).toContain('document.orientation.update');
+  });
+
   it('keeps stage.story.layout available to Lead without requiring a phrase detector', () => {
     const allowed = buildAllowedActions(null);
     expect(allowed.has('stage.story.layout')).toBe(true);

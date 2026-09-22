@@ -78,6 +78,7 @@ function getActionLabel(actionType: string, receipt?: ActionReceipt): string {
     "image.generate": "Image generated",
     "treatment.propose": "Proposed treatment",
     "document.reorganize.propose": "Proposed Document",
+    "document.orientation.update": "Updated Orientation",
     "delegate.consult": "Consulted",
     "journey.create": "Journey created",
     "journey.update": "Journey updated",

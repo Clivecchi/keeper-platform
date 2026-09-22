@@ -39,6 +39,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-09-21 — Document Orientation landmarks
+- `documentOrientation.ts` derives Section titles and Point numbers cited in a stored Orientation. Shared by the agent block and the Chronicle panel.
+
 ### 2026-09-18 — Execution offering on provenance
 - `agentPerformanceProvenance.ts` records optional `offeringId`, `fallbackUsed`, preference fields, and `executionAttempts` so Activity can prove which offering ran.
 

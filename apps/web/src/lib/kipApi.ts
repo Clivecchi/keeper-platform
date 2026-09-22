@@ -1312,6 +1312,7 @@ export class KipApi {
     status?: string;
     forward?: { title: string; description: string };
     step?: { title: string; body: string };
+    orientation?: { body: string; updatedAt?: string; updatedBy?: string };
     paths: Array<{ id: string; title: string; prelude?: string }>;
     manuscripts: KipDraft[];
     reorganizeProposal?: DocumentReorganizeProposal;
@@ -1343,6 +1344,22 @@ export class KipApi {
         : {}),
       ...(document.step && typeof document.step === 'object'
         ? { step: document.step as { title: string; body: string } }
+        : {}),
+      ...(document.orientation
+        && typeof document.orientation === 'object'
+        && !Array.isArray(document.orientation)
+        && typeof (document.orientation as { body?: unknown }).body === 'string'
+        ? {
+            orientation: {
+              body: (document.orientation as { body: string }).body,
+              ...(typeof (document.orientation as { updatedAt?: unknown }).updatedAt === 'string'
+                ? { updatedAt: (document.orientation as { updatedAt: string }).updatedAt }
+                : {}),
+              ...(typeof (document.orientation as { updatedBy?: unknown }).updatedBy === 'string'
+                ? { updatedBy: (document.orientation as { updatedBy: string }).updatedBy }
+                : {}),
+            },
+          }
         : {}),
       paths: Array.isArray(document.paths)
         ? (document.paths as Array<{ id: string; title: string; prelude?: string }>)
@@ -1400,6 +1417,7 @@ export class KipApi {
       document_status?: 'drafts' | 'kept' | 'presented';
       forward_title?: string | null;
       forward_description?: string | null;
+      orientation?: string | null;
       document_paths?: Array<{ id: string; title: string; prelude?: string }>;
     },
   ): Promise<void> {

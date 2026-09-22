@@ -6,11 +6,13 @@
 import { prisma } from '@keeper/database';
 import {
   DOCUMENT_OPEN_SECTION,
+  formatOrientationForAgent,
   isAuthoredDocumentForward,
   isOpenSectionId,
   parseDocumentPathDeclarations,
   resolveDocumentForward,
   summarizeDraftPointsForAgent,
+  type DocumentOrientation,
 } from '@keeper/shared';
 
 export type AgentDialogDocument = {
@@ -20,6 +22,7 @@ export type AgentDialogDocument = {
   forward?: { title: string; description: string };
   forwardAuthored?: boolean;
   step?: { title: string; body: string };
+  orientation?: DocumentOrientation;
   paths: ReturnType<typeof parseDocumentPathDeclarations>;
   points: ReturnType<typeof summarizeDraftPointsForAgent>;
   manuscriptDraftId?: string;
@@ -38,6 +41,7 @@ export type DialogDocumentPromptInput = {
   forward?: { title: string; description: string };
   forwardAuthored?: boolean;
   step?: { title: string; body: string };
+  orientation?: DocumentOrientation;
   paths?: Array<{ id: string; title: string; prelude?: string }>;
   points?: Array<{
     preview?: string;
@@ -96,6 +100,16 @@ export function formatDialogDocumentForAgent(doc: DialogDocumentPromptInput): st
 
   const hosts = (doc.points ?? []).filter((point) => !point.referencesPointId);
   const numbered = hosts.slice(0, 80).map((point, index) => ({ point, n: index + 1 }));
+  lines.push(
+    ...formatOrientationForAgent({
+      orientation: doc.orientation,
+      sections: (doc.paths ?? []).map((section) => ({ id: section.id, title: section.title })),
+      points: numbered.map((row) => ({
+        number: row.n,
+        title: row.point.prelude?.trim() || row.point.preview?.trim() || undefined,
+      })),
+    }),
+  );
   const sections = doc.paths ?? [];
 
   if (sections.length > 0) {
@@ -180,6 +194,9 @@ export async function loadDialogDocumentForAgent(
       forward_description: true,
       step_title: true,
       step_body: true,
+      orientation: true,
+      orientation_updated_at: true,
+      orientation_updated_by: true,
       document_paths: true,
     },
   });
@@ -225,6 +242,19 @@ export async function loadDialogDocumentForAgent(
     }),
     ...(stepTitle && stepBody
       ? { step: { title: stepTitle, body: stepBody } }
+      : {}),
+    ...(dialog.orientation?.trim()
+      ? {
+          orientation: {
+            body: dialog.orientation.trim(),
+            ...(dialog.orientation_updated_at
+              ? { updatedAt: dialog.orientation_updated_at.toISOString() }
+              : {}),
+            ...(dialog.orientation_updated_by?.trim()
+              ? { updatedBy: dialog.orientation_updated_by.trim() }
+              : {}),
+          },
+        }
       : {}),
     paths: parseDocumentPathDeclarations(dialog.document_paths),
     points,

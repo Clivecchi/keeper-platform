@@ -77,6 +77,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-09-21: Thinking trace labels `document.orientation.update` as Updated Orientation.
 - 2026-09-20: **Stage attention** — Present → Engage → Yield → Perform → Resolve → Return. Dialog occupies the yielded work surface first. Theatre recedes the current Frame. Stay on Stage. Return after Resolve via the receded Frame or filmstrip. `data-stage-attention` + `data-stage-attention-subject="dialog"`.
 - 2026-09-12: **Mobile chat is docked** — Adaptive `mobile-staged` uses `composerSize="mobile-docked"`: composer stays pinned, send stays visible, Cast/footer/scroll-rail stay off the phone surface.
 - 2026-09-02: **Keeping Choice** — `KeeperDialogFrame` forwards exercise to `DialogueMessageList`. Click is a Composer send, not a card Accept.

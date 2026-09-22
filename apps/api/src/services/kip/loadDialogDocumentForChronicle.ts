@@ -12,6 +12,7 @@ import {
   readReorganizeProposalFromSpec,
   resolveDocumentForward,
   type DocumentComponentDraft,
+  type DocumentOrientation,
   type DocumentReorganizeProposal,
 } from '@keeper/shared';
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
@@ -36,6 +37,7 @@ export type ChronicleDialogDocument = {
   status?: string;
   forward?: { title: string; description: string };
   step?: { title: string; body: string };
+  orientation?: DocumentOrientation;
   paths: ReturnType<typeof parseDocumentPathDeclarations>;
   manuscripts: ChronicleManuscriptDraft[];
   /** Non-manuscript drafts explicitly registered on Dialog.document_components. */
@@ -67,6 +69,9 @@ export async function loadDialogDocumentForChronicle(
       forward_description: true,
       step_title: true,
       step_body: true,
+      orientation: true,
+      orientation_updated_at: true,
+      orientation_updated_by: true,
       document_paths: true,
       document_components: true,
     },
@@ -154,6 +159,19 @@ export async function loadDialogDocumentForChronicle(
     ...(forward ? { forward } : {}),
     ...(stepTitle && stepBody
       ? { step: { title: stepTitle, body: stepBody } }
+      : {}),
+    ...((dialog.orientation?.trim() || dialog.orientation_updated_at)
+      ? {
+          orientation: {
+            body: dialog.orientation?.trim() ?? '',
+            ...(dialog.orientation_updated_at
+              ? { updatedAt: dialog.orientation_updated_at.toISOString() }
+              : {}),
+            ...(dialog.orientation_updated_by?.trim()
+              ? { updatedBy: dialog.orientation_updated_by.trim() }
+              : {}),
+          },
+        }
       : {}),
     paths: parseDocumentPathDeclarations(dialog.document_paths),
     manuscripts: manuscripts.map((row) => ({

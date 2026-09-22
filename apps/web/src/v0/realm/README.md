@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-09-21 — Orientation stays off the reading
+- `DomainRealmStory` passes stored Orientation into a compass control on the Document header. Saving revises it. The Document body is unchanged.
+
 ### 2026-08-30 — New domain is not last week's feed
 - Creating a domain no longer stays on `/home` wearing that domain as the Realm face. Sessions without a Dialog domain are not labeled as the new domain.
 

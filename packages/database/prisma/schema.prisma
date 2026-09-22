@@ -747,6 +747,10 @@ model Dialog {
   /// Document Step (honest current tip of the lineage) — role, not a new entity.
   step_title String?
   step_body  String?
+  /// Lead-authored operational map for how to read this Document. Beside Forward. Not a turn summary.
+  orientation            String?   @db.Text
+  orientation_updated_at DateTime?
+  orientation_updated_by String?
   /// Declared Path groups for Document Points — [{ id, title, prelude? }], not Journey Path rows.
   document_paths Json?
   /// Non-manuscript drafts registered as Document components — [{ draftId, order?, label? }].

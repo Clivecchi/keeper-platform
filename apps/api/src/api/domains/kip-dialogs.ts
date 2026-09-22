@@ -10,7 +10,7 @@
  *   GET    /kip/dialogs             — list Dialogs for a domain (filtered by scope)
  *   GET    /kip/dialogs/:dialogId   — get a single Dialog with its sessions
  *   GET    /kip/dialogs/:dialogId/document — Chronicle Document (Forward/Step/Sections + manuscripts + components)
- *   PATCH  /kip/dialogs/:dialogId/document — author title, Forward, stage, Sections
+ *   PATCH  /kip/dialogs/:dialogId/document — author title, Forward, Orientation, stage, Sections
  *   POST   /kip/dialogs/:dialogId/document/reorganize/apply — Apply a stored Review & Reorganize proposal
  *   POST   /kip/dialogs/:dialogId/document/reorganize/dismiss — drop a stored proposal without writing the Document
  *   POST   /kip/dialogs/:dialogId/document/points — author add Point
@@ -34,6 +34,7 @@ import { Router, type Response } from 'express';
 import { prisma } from '@keeper/database';
 import { z } from 'zod';
 import {
+  DOCUMENT_ORIENTATION_MAX_CHARS,
   logger,
   parseDocumentComponentDeclarations,
   parseDocumentPathDeclarations,
@@ -145,6 +146,7 @@ const authorDocumentSchema = z.object({
   document_status: documentStatusSchema.optional(),
   forward_title: z.string().min(1).max(300).nullable().optional(),
   forward_description: z.string().max(8000).nullable().optional(),
+  orientation: z.string().max(DOCUMENT_ORIENTATION_MAX_CHARS).nullable().optional(),
   document_paths: z.array(documentPathDeclarationSchema).max(40).optional(),
 });
 
@@ -564,7 +566,7 @@ router.patch(
 
       const existing = await prisma.dialog.findFirst({
         where: { id: dialogId, domain_id: domainId, is_archived: false },
-        select: { id: true, document_paths: true },
+        select: { id: true, document_paths: true, orientation: true },
       });
       if (!existing) {
         return res.status(404).json({ error: 'DIALOG_NOT_FOUND' });
@@ -576,6 +578,9 @@ router.patch(
         document_status?: 'drafts' | 'kept' | 'presented';
         forward_title?: string | null;
         forward_description?: string | null;
+        orientation?: string | null;
+        orientation_updated_at?: Date;
+        orientation_updated_by?: string;
         document_paths?: object;
       } = {};
       if (parsed.data.title !== undefined) {
@@ -592,6 +597,15 @@ router.patch(
         data.forward_description = parsed.data.forward_description?.trim()
           ? parsed.data.forward_description
           : null;
+      }
+      if (parsed.data.orientation !== undefined) {
+        const next = parsed.data.orientation?.trim() || null;
+        const previous = existing.orientation?.trim() || null;
+        if (next !== previous) {
+          data.orientation = next;
+          data.orientation_updated_at = new Date();
+          data.orientation_updated_by = req.user.name?.trim() || req.user.email || 'Member';
+        }
       }
       if (parsed.data.document_paths !== undefined) {
         const nextPaths = parseDocumentPathDeclarations(parsed.data.document_paths);

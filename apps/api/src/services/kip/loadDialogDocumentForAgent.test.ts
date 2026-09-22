@@ -43,5 +43,21 @@ describe('formatDialogDocumentForAgent', () => {
     expect(prompt).toContain('  3. Loose beat — Not placed yet.');
     expect(prompt).toContain('evidence, not a lock');
     expect(prompt).toContain('Never dump named work into Open');
+    expect(prompt).toContain('Orientation — not written yet');
+  });
+
+  it('puts a stored Orientation in the standing block with landmarks', () => {
+    const prompt = formatDialogDocumentForAgent({
+      dialogId: 'dlg-1',
+      orientation: { body: 'Read Point 1 in The Plot.', updatedBy: 'Kip' },
+      paths: [{ id: 'plot', title: 'The Plot' }],
+      points: [
+        { prelude: 'The plot', preview: 'First finding about the plot.', pathGroupId: 'plot' },
+      ],
+    });
+    expect(prompt).toContain('Read Point 1 in The Plot.');
+    expect(prompt).toContain('Point 1 — The plot');
+    expect(prompt).toContain('last set by Kip');
+    expect(prompt).toContain('not a turn summary');
   });
 });

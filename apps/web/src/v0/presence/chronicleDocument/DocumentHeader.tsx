@@ -16,6 +16,8 @@ export interface DocumentHeaderProps {
   onCycleStatus?: () => void
   onFocusSections?: () => void
   documentControl?: React.ReactNode
+  /** Closed operational control. Sits with the pencil, not in the reading. */
+  headerAside?: React.ReactNode
   busy?: boolean
 }
 
@@ -34,6 +36,7 @@ export function DocumentHeader({
   onCycleStatus,
   onFocusSections,
   documentControl,
+  headerAside,
   busy = false,
 }: DocumentHeaderProps) {
   const [draftTitle, setDraftTitle] = React.useState(title)
@@ -67,6 +70,7 @@ export function DocumentHeader({
           ) : (
             <h1 className="cdraft-title min-w-0 flex-1">{title}</h1>
           )}
+          {headerAside}
           {onToggleEdit ? (
             <button
               type="button"

@@ -3,6 +3,7 @@
 import * as React from "react"
 import type {
   DocumentForward,
+  DocumentOrientation,
   DocumentPathDeclaration,
   DocumentReorganizeProposal,
   DocumentStep,
@@ -24,6 +25,7 @@ import {
   type DocumentGlossThreadInfo,
 } from "../presence/chronicleDocument/DocumentShell"
 import { DocumentHeader } from "../presence/chronicleDocument/DocumentHeader"
+import { DocumentOrientationControl } from "../presence/chronicleDocument/DocumentOrientationControl"
 import {
   DOCUMENT_EMPTY_POINTS_COPY,
   DOCUMENT_LOADING_COPY,
@@ -65,6 +67,7 @@ type DialogDocumentMeta = {
   status?: string
   forward?: DocumentForward
   step?: DocumentStep
+  orientation?: DocumentOrientation
   paths: DocumentPathDeclaration[]
   components: Array<{
     draftId: string
@@ -270,6 +273,7 @@ export function DomainRealmStory({
           ...(document.status?.trim() ? { status: document.status.trim() } : {}),
           ...(document.forward ? { forward: document.forward } : {}),
           ...(document.step ? { step: document.step } : {}),
+          ...(document.orientation ? { orientation: document.orientation } : {}),
           paths: parseDocumentPathDeclarations(document.paths),
           components: Array.isArray(document.components) ? document.components : [],
         }
@@ -601,6 +605,21 @@ export function DomainRealmStory({
           onToggleEdit={domainId && !showingProposal ? authoring.toggleEdit : undefined}
           onTitleSave={authoring.saveTitle}
           onCycleStatus={authoring.cycleStatus}
+          headerAside={
+            <DocumentOrientationControl
+              orientation={documentMeta.orientation}
+              sections={documentMeta.paths.map((path) => ({
+                id: path.id,
+                title: path.title,
+              }))}
+              points={currentStoryEntries.map((entry, index) => ({
+                number: index + 1,
+                title: entry.point.title || entry.label,
+              }))}
+              busy={authoring.busy}
+              onSave={authoring.saveOrientation}
+            />
+          }
           onFocusSections={() => {
             document.getElementById("document-linked-sections")?.scrollIntoView({
               behavior: "smooth",
