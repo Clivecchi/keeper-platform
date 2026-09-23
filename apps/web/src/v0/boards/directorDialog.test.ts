@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   annotateCastActionResults,
   buildCastDelegationPrompt,
+  clientCastDialogContinuity,
   buildDomainCollaborationPrompt,
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
@@ -285,6 +286,43 @@ describe("sanitizeAgentMessageContent", () => {
     expect(sanitizeAgentMessageContent(raw)).toBe(
       "### Cloud\nReading the thread: Rendr described actions instead of executing them.",
     )
+  })
+})
+
+describe("client Cast dialog continuity", () => {
+  const symptom = "The Conversation Profile took a moment to change."
+  const ask = "Kip, you should have asked Cloud about that delay."
+
+  function handoff(label: "chip consult" | "pinned consult") {
+    const turns = clientCastDialogContinuity(
+      [
+        { role: "user", content: symptom },
+        { role: "agent", content: "The toggle did lag for a moment." },
+      ],
+      ask,
+    )
+    const delegation = buildCastDelegationPrompt({
+      userMessage: ask,
+      instrumentLabel: "Cloud",
+      directorName: "Kip",
+    })
+    const messages = [...turns, { role: "user" as const, content: delegation }]
+    const symptomIndex = messages.findIndex(
+      (message) => message.role === "user" && message.content === symptom,
+    )
+    const delegationIndex = messages.findIndex((message) => message.content === delegation)
+    expect(symptomIndex).toBeGreaterThanOrEqual(0)
+    expect(delegationIndex).toBeGreaterThan(symptomIndex)
+    expect(delegation).not.toContain(symptom)
+    expect(label).toMatch(/consult/)
+  }
+
+  it("chip consult — Cloud receives the symptom without a restatement in the prompt", () => {
+    handoff("chip consult")
+  })
+
+  it("pinned consult — Cloud receives the symptom without a restatement in the prompt", () => {
+    handoff("pinned consult")
   })
 })
 

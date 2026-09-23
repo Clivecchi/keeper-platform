@@ -32,6 +32,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-23 — Cast receives recent Dialog turns
+- `useAgentDialog` passes `dialogContinuity` on chip consults and pinned consults. The turns are the transcript already on screen plus this human message. Cast stays ephemeral.
+
 ### 2026-09-21 — Conversation Profile
 - `useConversationProfile.ts` — `keeper.conversationProfile` in localStorage. Composer and send paths share it so the selected profile travels on `agentContext.conversationProfile`.
 

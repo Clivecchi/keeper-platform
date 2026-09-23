@@ -10,7 +10,12 @@ export {
   type DirectorContinuityMessage,
 } from "@keeper/shared"
 
-import { buildCastSpeechAndAgencyLines, withoutAdviseOnlySkips } from "@keeper/shared"
+import {
+  buildCastSpeechAndAgencyLines,
+  recentDialogForCast,
+  withoutAdviseOnlySkips,
+  type DialogContinuityTurn,
+} from "@keeper/shared"
 
 import type { DirectorDelegationBeat } from "../../components/agent/types"
 
@@ -65,6 +70,28 @@ export function resolveDirectorCastMember(params: {
   const match = params.userMessage.trim().match(pattern)
   if (!match) return null
   return match[1].toLowerCase()
+}
+
+/**
+ * Recent Dialog turns for a client Cast run (chip consult or pinned consult).
+ * The current human utterance is included when it is not already the last turn.
+ */
+export function clientCastDialogContinuity(
+  messages: readonly { role: string; content: string }[],
+  currentHumanMessage: string,
+): DialogContinuityTurn[] {
+  return recentDialogForCast({
+    loadedTurns: messages.map((message) => ({
+      role: message.role,
+      content:
+        message.role === "user"
+          ? sanitizeUserMessageContent(message.content)
+          : message.role === "agent" || message.role === "assistant"
+            ? sanitizeAgentMessageContent(message.content)
+            : "",
+    })),
+    currentHumanMessage,
+  })
 }
 
 export function buildCastDelegationPrompt(params: {
@@ -145,7 +172,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     `The user asked:`,
     `"${params.userMessage.trim()}"`,
     "",
-    "Real consultation results (use ONLY these — never invent missing voices):",
+    "Real consultation results (never invent a voice that is not listed here):",
   ]
   for (const row of params.consultations) {
     if (row.status === "ok" && row.reply?.trim()) {

@@ -10,6 +10,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/logger.ts` – simple console logger
 - `src/draftPoints.ts` – Draft Point types and `spec_json.points` helpers
 - `src/integrationChronicleDeclarations.ts` – Integration/Key Chronicle declaration defaults and backfill helpers
+- `src/dialogContinuity.ts` — recent Dialog turns handed to Cast as read-only conversational context
 
 ## 🔄 Data & Behavior
 This package exposes pure functions and type definitions; it holds no runtime state. The logger writes to stdout in all environments, ensuring messages surface in Railway / Vercel logs.
@@ -23,6 +24,9 @@ Integration and Key Chronicle declaration defaults (`INTEGRATION_CHRONICLE_DECLA
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-09-23 — Dialog continuity for Cast
+- `dialogContinuity.ts` — recent Dialog turns passed into a Cast handoff as read-only conversational context.
 
 ### 2026-06-13 — Integration/Key Chronicle declaration defaults
 - Added `integrationChronicleDeclarations.ts` — shared declaration map, create/backfill helpers for Integration and Key rows

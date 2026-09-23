@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-23: **Dialog continuity on Cast** — ephemeral Cast runs take `dialogContinuity` as read-only chat turns (chip consults, pinned consults, `delegate.consult`). They still do not persist that transcript. Lead publishes the turns it already loaded before handing off.
 - 2026-09-21: **Conversation Profile** — `agentContext.conversationProfile` (`current` | `conversation`) selects the standing-instruction stack in `callAIModel`. Current is unchanged. Conversation skips Lead Judgment / action sermons / keeper-card essay / SOLE loop+arch. `[AgentTurn]` and persisted `orchestration` stamp `conversationProfile`. Isolation: model, Dialog, Document, Domain, history, Dialog Style, and Cueing are untouched.
 - 2026-09-21: **Document Orientation** — Lead `document.orientation.update` writes `Dialog.orientation`. Standing `DIALOG DOCUMENT` block includes it for Lead and both Cast paths. Not a turn summary. Cast and Echo cannot write it.
 - 2026-09-20: **Cast consults read the Dialog session log** — `ephemeral` + `sessionId` injects receipts (including web.search titles/URLs) without treating the Dialog transcript as that agent's chat history, and without persisting the consult. Agents must not deny a visible search receipt. Golden-path tools (`web.search`, `typesafe.evaluate`, `jev.probe`) are available to every cued agent.

@@ -28,6 +28,7 @@ import { apiFetch } from "../lib/api"
 import {
   annotateCastActionResults,
   buildCastDelegationPrompt,
+  clientCastDialogContinuity,
   buildInstrumentUnavailableDelegationBeat,
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
@@ -1021,6 +1022,13 @@ export function useAgentDialog({
         liveDirectorConfig && castMember
           ? liveDirectorConfig.castLabels[castMember] ?? castMember
           : null
+      const dialogContinuity = clientCastDialogContinuity(
+        messagesRef.current.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+        displayContent?.trim() || content,
+      )
 
       let directorTaskMessage: string | undefined
       let clientCastMemberReply: string | null = null
@@ -1100,6 +1108,7 @@ export function useAgentDialog({
                   // Read the Dialog session action log. Do not persist the consult
                   // (avoids orphan "[Director delegation]" sessions on Realm feed).
                   ephemeral: true,
+                  dialogContinuity,
                 },
               )
               const reply = extractAgentReplyFromRunResult(castResult)
@@ -1220,6 +1229,7 @@ export function useAgentDialog({
               {
                 ...runOpts,
                 ephemeral: true,
+                dialogContinuity,
               },
             )
             clientCastMemberReply = extractAgentReplyFromRunResult(castResult)

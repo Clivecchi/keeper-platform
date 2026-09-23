@@ -301,7 +301,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     `The human's direction (also the user turn — respond to that, not to this block):`,
     `"${params.userMessage.trim()}"`,
     '',
-    'Cast performance results (use ONLY these — never invent missing voices):',
+    'Cast performance results (never invent a voice that is not listed here):',
   ];
 
   for (const row of params.consultations) {

@@ -42,6 +42,7 @@ import {
   type DraftPoint,
   type DraftPointType,
   type DirectorContinuityMessage,
+  type DialogContinuityTurn,
   resolveDirectorDelegationMessage,
   resolveLeadThreadReply,
   buildLeadContinuitySystemPrompt,
@@ -234,6 +235,10 @@ import {
   type DirectorDelegationResult,
   type DirectorDelegationRequest,
 } from '../../services/directorDialog.js';
+import {
+  ephemeralCastHistory,
+  leadDialogContinuity,
+} from '../../services/dialogContinuityHandoff.js';
 import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
 import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
 import {
@@ -384,6 +389,11 @@ type RunAgentOptions = {
   ephemeral?: boolean;
   /** Client-minted Human Turn id. Cast and Lead of one send share it. */
   humanTurnId?: string;
+  /**
+   * Recent Dialog turns for an ephemeral Cast run.
+   * Read-only conversational context. Not persisted as Cast's own chat.
+   */
+  dialogContinuity?: DialogContinuityTurn[];
   /** Kip Echo / platform-collaboration sub-run — must not write Document Points. */
   supportEcho?: boolean;
   /** Human asked to Gloss a Point — skip rewrite / new Draft substitutes. */
@@ -1527,6 +1537,7 @@ function buildExecuteAgentActionsCtx(
     agentContext: options?.agentContext,
     environment: options?.environment ?? null,
     composerConsultedThisTurn: options?.agentContext?.skipDelegateConsult === true,
+    dialogContinuity: options?.dialogContinuity,
     manuscriptDraftId:
       obligation?.manuscriptDraftId ?? env?.dialogDocument?.manuscriptDraftId,
     pointConstraint: obligation?.constrained === true,
@@ -1821,6 +1832,8 @@ export async function executeAgentActions(
     environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
     /** Mechanism A already ran this Turn — not the nested-cast loop gate. */
     composerConsultedThisTurn?: boolean;
+    /** Lead's recent Dialog turns — read-only on a nested Cast run. */
+    dialogContinuity?: DialogContinuityTurn[];
   },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
@@ -4710,6 +4723,7 @@ export async function executeAgentActions(
                   attachments: ctx.attachments,
                   agentContext: nestedStageContext,
                   ephemeral: true,
+                  dialogContinuity: ctx.dialogContinuity,
                   // Loop prevention only — nested cast must still execute and
                   // surface draft/mcp/treatment receipts like client cast-consult.
                   // Lead-path mcp.call NOT_ALLOWED stays on the Lead allowlist.
@@ -5433,6 +5447,11 @@ const AgentRunSchema = z.object({
     .optional(),
   /** Skip session create/persist when sessionId is absent (cast consults). */
   ephemeral: z.boolean().optional(),
+  /** Recent Dialog turns for an ephemeral Cast run. Not persisted. */
+  dialogContinuity: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().min(1).max(200_000),
+  })).max(40).optional(),
   /** Client-minted Human Turn id shared by Cast + Lead of one send. */
   humanTurnId: z.string().uuid().optional(),
   /** Dialog streams tokens as SSE (`delta` / `reset` / `done`). */
@@ -5582,6 +5601,30 @@ function clipSessionHistoryContent(content: string, indexFromEnd: number): strin
   if (indexFromEnd < SESSION_HISTORY_FULL_RECENT) return content;
   if (content.length <= SESSION_HISTORY_OLDER_MAX_CHARS) return content;
   return `${content.slice(0, SESSION_HISTORY_OLDER_MAX_CHARS)}\n…`;
+}
+
+function sessionMessagesFromContinuity(
+  turns: readonly DialogContinuityTurn[] | null | undefined,
+): KipMessageWithRelations[] {
+  return ephemeralCastHistory(turns).map((turn) => ({
+    sender: turn.role === 'user' ? 'user' : 'agent',
+    role: turn.role === 'user' ? 'user' : 'agent',
+    content: turn.content,
+    metadata: {},
+  })) as KipMessageWithRelations[];
+}
+
+/** Non-ephemeral runs publish the Dialog they already loaded for a later Cast handoff. */
+function publishLeadDialogContinuity(
+  options: RunAgentOptions | undefined,
+  previousMessages: readonly KipMessageWithRelations[],
+  input: string,
+): void {
+  if (!options || options.ephemeral === true) return;
+  options.dialogContinuity = leadDialogContinuity({
+    loadedMessages: previousMessages,
+    currentHumanMessage: humanTurnTextForIntent(input, options.displayContent),
+  });
 }
 
 /**
@@ -6462,8 +6505,9 @@ export class KipAgentService {
       /** Visible composer text — Point/reorganize intent must not scan pasted supporting docs. */
       displayContent?: string | null;
       /**
-       * Ephemeral Cast consults: Dialog session receipts without treating
-       * that transcript as this agent's own chat history.
+       * Ephemeral Cast consults: Dialog session receipts, plus any
+       * dialogContinuity turns supplied as read-only chat context.
+       * Those turns are not this agent's persisted history.
        */
       sessionActionLogOverride?: string;
       /** Optional mutable timing bag from the parent run. */
@@ -7475,6 +7519,11 @@ export class KipAgentService {
           }
         }
 
+        if (options?.ephemeral === true) {
+          previousMessages = sessionMessagesFromContinuity(options.dialogContinuity);
+        }
+        publishLeadDialogContinuity(options, previousMessages, input || '');
+
         let leadModelInput = input || '';
         let leadOrchestrationContext: string | undefined;
         let directorDelegationResult: DirectorDelegationResult | undefined;
@@ -7740,6 +7789,7 @@ export class KipAgentService {
                   attachments: options?.attachments,
                   agentContext: stageContextForDelegatedCast(options.agentContext),
                   ephemeral: true,
+                  dialogContinuity: options.dialogContinuity,
                 },
               );
               if (!('success' in castMemberRun) || !castMemberRun.success) {
@@ -9612,6 +9662,11 @@ export class KipAgentService {
           }
         }
 
+        if (options?.ephemeral === true) {
+          previousMessages = sessionMessagesFromContinuity(options.dialogContinuity);
+        }
+        publishLeadDialogContinuity(options, previousMessages, input || '');
+
         const systemModeConfig: ModeConfig = {
           outputStyle: 'normal',
           limits: { maxChars: 0 },
@@ -10667,6 +10722,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             directorDelegation: (req.body as { directorDelegation?: unknown })?.directorDelegation,
             castConsultations: (req.body as { castConsultations?: unknown })?.castConsultations,
             ephemeral: (req.body as { ephemeral?: unknown })?.ephemeral,
+            dialogContinuity: (req.body as { dialogContinuity?: unknown })?.dialogContinuity,
             humanTurnId: (req.body as { humanTurnId?: unknown })?.humanTurnId,
             stream: (req.body as { stream?: unknown })?.stream === true,
           });
@@ -10844,6 +10900,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               : undefined,
             agentContext: validation.data.agentContext,
             ephemeral: validation.data.ephemeral === true,
+            dialogContinuity: validation.data.dialogContinuity,
             humanTurnId: validation.data.humanTurnId,
             timings: runTimings,
             ...(wantsStream

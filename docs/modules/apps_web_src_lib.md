@@ -98,6 +98,9 @@ Core utility functions and API clients for the Keeper web application, including
 - **kipApi.ts**: Cast `agentResult.data` to `any` before accessing `.error`/`.errorCode` — `AgentResponse.data` is typed as `unknown`, so direct property access caused TS2339.
 - **DomainsPage.tsx**: Removed broken `import { __internal }` from `apiFetch` (symbol does not exist).
 
+### 2026-09-23 — dialogContinuity on runAgent
+- `kipApi.runAgent` and `runAgentStream` forward `dialogContinuity` for ephemeral Cast runs.
+
 ### 2026-02-14 - Governance API client
 - Added `governanceApi.ts`: getDomainGovernance, updateDomainGovernance, getContractDetail, getDomainCompliance. Used by DomainGovernanceCard and CockpitPanel compliance panel.
 

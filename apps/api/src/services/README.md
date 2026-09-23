@@ -17,6 +17,7 @@ Central location for API service-layer modules used by route handlers.
 - `pdfTextExtract.ts`
 - `WebSearchService.ts`
 - `ResendService.ts`
+- `dialogContinuityHandoff.ts` — Lead Dialog turns supplied to ephemeral Cast as read-only chat
 
 ## 🔄 Data & Behavior
 Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
@@ -26,6 +27,10 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-23 — Cast reads the Lead's recent Dialog
+- `dialogContinuityHandoff.ts` — ephemeral Cast model history is the supplied Dialog turns. The session is still not written.
+- `directorDialog.ts` — multi-cast synthesis no longer tells Lead that consultation results are the only context, so a Cast denial of prior turns is not adopted as the Dialog.
+
 ### 2026-09-21 — Conversation Profile on Cast Stage context
 - `stageContextForDelegatedCast` copies `conversationProfile` so Mechanism B Cast uses the same prompt family as Lead. Does not copy Dialog Style or other Composer settings.
 

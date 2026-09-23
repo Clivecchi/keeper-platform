@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-23 — dialogContinuity on runAgent
+- `kipApi.runAgent` and `runAgentStream` forward `dialogContinuity` for ephemeral Cast runs. The field is not a session write.
+
 ### 2026-09-21 — Document Orientation on the Dialog document
 - `getDialogDocument` returns `orientation`. `updateDialogDocument` accepts `orientation` so Chronicle can revise the map.
 

@@ -21,6 +21,7 @@ Shared utilities, TypeScript types, and lightweight helpers reused across the Ke
 - `src/dialogTitleSource.ts` — Chatter vs named Dialog vs Document-bearing (`user_set` only)
 - `src/talkingInWorkingOn.ts` — Talking in (Dialog/session) vs Working on (Document/Draft) + Point write-target helper
 - `src/conversationProfile.ts` — Conversation Profile family (`current` | `conversation`). Distinct from Dialog Style / Cueing.
+- `src/dialogContinuity.ts` — recent Dialog turns handed to Cast as read-only conversational context
 - `src/keeperStage.ts` — Stage composition (object references as story assets + contextual Agency); `displayKeeperStageTitle(title, domainLabel?)`; not Theatre-as-database
 - `src/imagePalette.ts` — derive Treatment / theme colors from sampled RGB pixels
 - `src/placementContrast.ts` — paper vs atmosphere contrast (mid-tone seal, 4.5:1 ink)
@@ -39,6 +40,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 - [ ] Consider adding a shared UI primitives package later
 
 ## 📆 Update Log
+
+### 2026-09-23 — Dialog continuity for Cast
+- `dialogContinuity.ts` — recent Dialog turns passed into a Cast handoff. Read-only conversational context. Not Cast's persisted chat, and not an instruction.
 
 ### 2026-09-21 — Conversation Profile
 - `conversationProfile.ts` — semantic family `current` | `conversation` for which standing-instruction environment the agent enters. Not Dialog Style. Not a `useReducedPrompt` boolean.

@@ -604,6 +604,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Created `boards/` directory and `boardRegistry.ts` (Step 3 of designer-to-board migration)
 - Moved designer files from `frames/designer/` to `boards/designer/` (Step 2)
 
+### 2026-09-23 — Client Cast dialog continuity
+- `clientCastDialogContinuity` builds the recent Dialog turns chip consults and pinned consults send with the Cast run.
+
 ### 2026-07-17 � Curtain awaits Nav warm
 - `prepareBoardNavData` / `isBoardNavWarm` in `boardNavDataCache` � await required nav slices under the load curtain.
 - `prepareDomainBoardReveal` awaits board-def sections (not fire-and-forget) so Nav is not empty after reveal.
