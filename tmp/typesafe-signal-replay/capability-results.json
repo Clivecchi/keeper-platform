@@ -1,0 +1,5005 @@
+{
+  "experiment": "typesafe-capability-replay",
+  "frozenAt": "2026-09-22",
+  "question": "Can TypeSafe reliably tell Keeper there is a capability worth putting in front of Kip now, without deciding that the action must occur?",
+  "role": "Jev is a candidate signal. It does not own capability selection. Surfacing cut is not a gate. Orientation Alignment is not a gate. Obligation was not asked.",
+  "livePathMutated": false,
+  "scoresSentToKip": false,
+  "surfacingCut": 0.5,
+  "surfacingCutIsGate": false,
+  "dialog": {
+    "id": "cmuc18qo00001nt01cyx3lm1n",
+    "title": "Testing... testing.. 1, 2, 3...",
+    "orientation": null,
+    "forwardTitle": null,
+    "draftCount": 0
+  },
+  "modelRequested": "jev-latest",
+  "repeats": 3,
+  "questions": {
+    "capability_worth_surfacing": {
+      "type": "noul",
+      "instructions": "Is there a Keeper capability worth putting in front of Kip now? High means Kip should see that capability. It does not mean the action must be emitted."
+    },
+    "likely_capability": {
+      "type": "choice",
+      "instructions": "Which Keeper capability, if any, is worth putting in front of Kip now? Choose none when no capability should be shown.",
+      "criteria": {
+        "none": "No Keeper capability should be shown",
+        "draft.update.propose": "Propose a Point onto the Document",
+        "document.orientation.update": "Update Document Orientation",
+        "gloss.append": "Append Gloss beside a Point",
+        "sole.save": "Save agent memory",
+        "delegate.consult": "Consult another agent"
+      }
+    },
+    "relevance_reason": {
+      "type": "choice",
+      "instructions": "Why did that capability become relevant? Choose none when no capability is worth putting in front of Kip.",
+      "criteria": {
+        "explicit_request": "The human directly asked for the action",
+        "inferred_human_meaning": "The human implied it in ordinary language without asking for a specific action",
+        "agent_judgment": "The agent reply is what made the capability relevant",
+        "state_inconsistency": "Stored Keeper state does not match what this Dialog has become",
+        "prior_execution_failure": "A previous attempt to use the capability failed and the need remains",
+        "none": "No capability became relevant"
+      }
+    },
+    "orientation_alignment": {
+      "type": "score",
+      "instructions": "How accurately does the current Orientation represent what this Dialog has become? Blank is accurate while the Dialog has no Points, no Forward, and no settled subject. A low score means the Lead should reconsider Orientation. A low score is not an instruction to rewrite it.",
+      "criteria": [
+        "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+        "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+      ]
+    }
+  },
+  "cleanParaphraseSummary": {
+    "labels": [
+      "wk-hang-onto",
+      "wk-dont-lose",
+      "wk-around-later",
+      "wk-still-here"
+    ],
+    "capabilities": [
+      "none",
+      "sole.save"
+    ],
+    "allStablePropose": false
+  },
+  "cases": [
+    {
+      "label": "none-greeting",
+      "family": "none",
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "pointIntent": "none",
+      "packetHash": "72a816bbe4184a71d061e2f21f9a50ae1565c2cc418f27f38684fefa91555edc",
+      "forbidKeeperVocabulary": false
+    },
+    {
+      "label": "none-ordinary",
+      "family": "none",
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "pointIntent": "none",
+      "packetHash": "e59a0683be160d8d8d795d23db07b5b8a0b545b3768e06dca3a223c44ce116b4",
+      "forbidKeeperVocabulary": false
+    },
+    {
+      "label": "wk-original",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "packetHash": "faa9e264d146b57f5205a8a7100cf3de4449de725544de1b1991e4c5b15d0721",
+      "forbidKeeperVocabulary": false
+    },
+    {
+      "label": "wk-hang-onto",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "packetHash": "4e289e668d71a4ca750813ccb582aec0e5159277bde8b8bd0c4a7ed727b6e56d",
+      "forbidKeeperVocabulary": true
+    },
+    {
+      "label": "wk-dont-lose",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "packetHash": "8dd9ad26a1b4d9cea185f209ce3d8ec6f6cb453c13ca7d970f376a28b5c69d13",
+      "forbidKeeperVocabulary": true
+    },
+    {
+      "label": "wk-around-later",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "packetHash": "68cdb79dfe6da69b9d12bc76ce4b1938f317cdb0ed21ff1ae735020a85513dea",
+      "forbidKeeperVocabulary": true
+    },
+    {
+      "label": "wk-still-here",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "packetHash": "0e37fd6bc7da646e48109c8f785755a59467e98062c54f8727f4ad08f5896161",
+      "forbidKeeperVocabulary": true
+    },
+    {
+      "label": "wk-stored-reply",
+      "family": "confound",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "pointIntent": "none",
+      "packetHash": "bbbee6c7a3768a992dd12075e5e1f9d89144fc3df9dcf305005cc826951d801c",
+      "forbidKeeperVocabulary": false
+    },
+    {
+      "label": "explicit-write-down",
+      "family": "explicit",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "explicit_request"
+      },
+      "pointIntent": "none",
+      "packetHash": "2f64f0bb423c0c9595f5ebfd03e83740bd474f64515e3ac73c50e5ec17b52cc0",
+      "forbidKeeperVocabulary": true
+    },
+    {
+      "label": "agent-surfaces",
+      "family": "agent_judgment",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "pointIntent": "none",
+      "packetHash": "6d01f53c6fc899aefda04e23f29208ae590274f1f8c81a4c2fdc5bb0b0953c99",
+      "forbidKeeperVocabulary": true
+    },
+    {
+      "label": "imply-dismissed",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "packetHash": "39a7fe88c53cfaba202055761df9482ab9557ac2c445b35166608b51eb6eaf6d",
+      "forbidKeeperVocabulary": false
+    },
+    {
+      "label": "orient-explicit-clean",
+      "family": "explicit",
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "explicit_request"
+      },
+      "pointIntent": "none",
+      "packetHash": "2cfc5e9ee59fa98dd8db38202489e09845c2df34d020373e3805fecbff021817",
+      "forbidKeeperVocabulary": false
+    },
+    {
+      "label": "orient-prior-failure",
+      "family": "prior_failure",
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "prior_execution_failure"
+      },
+      "pointIntent": "none",
+      "packetHash": "abfca4eb4673d79ebd992e3af539d6eaa9941d40ea0e9865ff20e9acc99b2ea3",
+      "forbidKeeperVocabulary": false
+    },
+    {
+      "label": "state-blank",
+      "family": "state",
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "state_inconsistency"
+      },
+      "pointIntent": "none",
+      "packetHash": "3f75ed3264eeb658cbfe1bc40752aed1015c4ac7645a21d608e464096b55fcb2",
+      "forbidKeeperVocabulary": false
+    }
+  ],
+  "usageTotals": {
+    "input": 41748,
+    "output": 8001
+  },
+  "latencyMs": {
+    "min": 230,
+    "max": 1336,
+    "mean": 380
+  },
+  "spread": [
+    {
+      "label": "none-greeting",
+      "family": "none",
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.33,
+        0.37,
+        0.36
+      ],
+      "surfacingSpread": 0.04,
+      "straddlesCut": false,
+      "alignment": [
+        0.98,
+        0.98,
+        0.98
+      ],
+      "alignmentSpread": 0,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.96,
+        0.96,
+        0.97
+      ],
+      "reason": [
+        "none",
+        "none",
+        "none"
+      ],
+      "reasonChoices": [
+        "none"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.91,
+        0.9,
+        0.91
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "none-ordinary",
+      "family": "none",
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.46,
+        0.46,
+        0.47
+      ],
+      "surfacingSpread": 0.01,
+      "straddlesCut": false,
+      "alignment": [
+        0.95,
+        0.95,
+        0.96
+      ],
+      "alignmentSpread": 0.01,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.66,
+        0.67,
+        0.66
+      ],
+      "reason": [
+        "none",
+        "none",
+        "none"
+      ],
+      "reasonChoices": [
+        "none"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.68,
+        0.71,
+        0.73
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "wk-original",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.61,
+        0.6,
+        0.59
+      ],
+      "surfacingSpread": 0.02,
+      "straddlesCut": false,
+      "alignment": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "alignmentSpread": 0,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.5,
+        0.48,
+        0.47
+      ],
+      "reason": [
+        "inferred_human_meaning",
+        "inferred_human_meaning",
+        "none"
+      ],
+      "reasonChoices": [
+        "inferred_human_meaning",
+        "none"
+      ],
+      "reasonStable": false,
+      "reasonConfidence": [
+        0.28,
+        0.25,
+        0.29
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "wk-hang-onto",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.44,
+        0.43,
+        0.43
+      ],
+      "surfacingSpread": 0.01,
+      "straddlesCut": false,
+      "alignment": [
+        0.94,
+        0.94,
+        0.94
+      ],
+      "alignmentSpread": 0,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.38,
+        0.33,
+        0.41
+      ],
+      "reason": [
+        "inferred_human_meaning",
+        "none",
+        "none"
+      ],
+      "reasonChoices": [
+        "inferred_human_meaning",
+        "none"
+      ],
+      "reasonStable": false,
+      "reasonConfidence": [
+        0.37,
+        0.51,
+        0.48
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "wk-dont-lose",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.39,
+        0.4,
+        0.4
+      ],
+      "surfacingSpread": 0.01,
+      "straddlesCut": false,
+      "alignment": [
+        0.89,
+        0.88,
+        0.88
+      ],
+      "alignmentSpread": 0.01,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.71,
+        0.72,
+        0.72
+      ],
+      "reason": [
+        "none",
+        "none",
+        "none"
+      ],
+      "reasonChoices": [
+        "none"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.74,
+        0.69,
+        0.7
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "wk-around-later",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.56,
+        0.56,
+        0.58
+      ],
+      "surfacingSpread": 0.02,
+      "straddlesCut": false,
+      "alignment": [
+        0.87,
+        0.87,
+        0.86
+      ],
+      "alignmentSpread": 0.01,
+      "capability": [
+        "sole.save",
+        "sole.save",
+        "sole.save"
+      ],
+      "capabilityChoices": [
+        "sole.save"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.41,
+        0.43,
+        0.48
+      ],
+      "reason": [
+        "inferred_human_meaning",
+        "inferred_human_meaning",
+        "inferred_human_meaning"
+      ],
+      "reasonChoices": [
+        "inferred_human_meaning"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.67,
+        0.73,
+        0.69
+      ],
+      "candidate": true,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "wk-still-here",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "surfacingSpread": 0,
+      "straddlesCut": false,
+      "alignment": [
+        0.8,
+        0.8,
+        0.78
+      ],
+      "alignmentSpread": 0.02,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.51,
+        0.49,
+        0.46
+      ],
+      "reason": [
+        "none",
+        "none",
+        "none"
+      ],
+      "reasonChoices": [
+        "none"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.4,
+        0.37,
+        0.42
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "wk-stored-reply",
+      "family": "confound",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.66,
+        0.7,
+        0.66
+      ],
+      "surfacingSpread": 0.04,
+      "straddlesCut": false,
+      "alignment": [
+        0.93,
+        0.89,
+        0.91
+      ],
+      "alignmentSpread": 0.04,
+      "capability": [
+        "draft.update.propose",
+        "draft.update.propose",
+        "draft.update.propose"
+      ],
+      "capabilityChoices": [
+        "draft.update.propose"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.36,
+        0.31,
+        0.38
+      ],
+      "reason": [
+        "inferred_human_meaning",
+        "inferred_human_meaning",
+        "inferred_human_meaning"
+      ],
+      "reasonChoices": [
+        "inferred_human_meaning"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.41,
+        0.44,
+        0.38
+      ],
+      "candidate": true,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "explicit-write-down",
+      "family": "explicit",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "explicit_request"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.47,
+        0.48,
+        0.48
+      ],
+      "surfacingSpread": 0.01,
+      "straddlesCut": false,
+      "alignment": [
+        0.86,
+        0.88,
+        0.84
+      ],
+      "alignmentSpread": 0.04,
+      "capability": [
+        "draft.update.propose",
+        "draft.update.propose",
+        "draft.update.propose"
+      ],
+      "capabilityChoices": [
+        "draft.update.propose"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.39,
+        0.44,
+        0.36
+      ],
+      "reason": [
+        "explicit_request",
+        "explicit_request",
+        "explicit_request"
+      ],
+      "reasonChoices": [
+        "explicit_request"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.64,
+        0.66,
+        0.55
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "agent-surfaces",
+      "family": "agent_judgment",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.39,
+        0.36,
+        0.38
+      ],
+      "surfacingSpread": 0.03,
+      "straddlesCut": false,
+      "alignment": [
+        0.79,
+        0.78,
+        0.75
+      ],
+      "alignmentSpread": 0.04,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.53,
+        0.58,
+        0.53
+      ],
+      "reason": [
+        "none",
+        "none",
+        "none"
+      ],
+      "reasonChoices": [
+        "none"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.76,
+        0.76,
+        0.75
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "imply-dismissed",
+      "family": "inferred",
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.48,
+        0.51,
+        0.49
+      ],
+      "surfacingSpread": 0.03,
+      "straddlesCut": true,
+      "alignment": [
+        0.93,
+        0.91,
+        0.92
+      ],
+      "alignmentSpread": 0.02,
+      "capability": [
+        "none",
+        "none",
+        "none"
+      ],
+      "capabilityChoices": [
+        "none"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.53,
+        0.51,
+        0.51
+      ],
+      "reason": [
+        "inferred_human_meaning",
+        "inferred_human_meaning",
+        "inferred_human_meaning"
+      ],
+      "reasonChoices": [
+        "inferred_human_meaning"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.36,
+        0.41,
+        0.36
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "orient-explicit-clean",
+      "family": "explicit",
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "explicit_request"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.77,
+        0.75,
+        0.74
+      ],
+      "surfacingSpread": 0.03,
+      "straddlesCut": false,
+      "alignment": [
+        0.95,
+        0.94,
+        0.94
+      ],
+      "alignmentSpread": 0.01,
+      "capability": [
+        "document.orientation.update",
+        "document.orientation.update",
+        "document.orientation.update"
+      ],
+      "capabilityChoices": [
+        "document.orientation.update"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.9,
+        0.9,
+        0.92
+      ],
+      "reason": [
+        "inferred_human_meaning",
+        "inferred_human_meaning",
+        "explicit_request"
+      ],
+      "reasonChoices": [
+        "inferred_human_meaning",
+        "explicit_request"
+      ],
+      "reasonStable": false,
+      "reasonConfidence": [
+        0.2,
+        0.22,
+        0.21
+      ],
+      "candidate": true,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "orient-prior-failure",
+      "family": "prior_failure",
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "prior_execution_failure"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.68,
+        0.65,
+        0.69
+      ],
+      "surfacingSpread": 0.04,
+      "straddlesCut": false,
+      "alignment": [
+        0.84,
+        0.84,
+        0.84
+      ],
+      "alignmentSpread": 0,
+      "capability": [
+        "document.orientation.update",
+        "document.orientation.update",
+        "document.orientation.update"
+      ],
+      "capabilityChoices": [
+        "document.orientation.update"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.58,
+        0.59,
+        0.57
+      ],
+      "reason": [
+        "explicit_request",
+        "explicit_request",
+        "explicit_request"
+      ],
+      "reasonChoices": [
+        "explicit_request"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.44,
+        0.51,
+        0.45
+      ],
+      "candidate": true,
+      "orientationUsedAsGate": false
+    },
+    {
+      "label": "state-blank",
+      "family": "state",
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "state_inconsistency"
+      },
+      "pointIntent": "none",
+      "surfacing": [
+        0.52,
+        0.49,
+        0.5
+      ],
+      "surfacingSpread": 0.03,
+      "straddlesCut": true,
+      "alignment": [
+        0.96,
+        0.96,
+        0.96
+      ],
+      "alignmentSpread": 0,
+      "capability": [
+        "draft.update.propose",
+        "draft.update.propose",
+        "draft.update.propose"
+      ],
+      "capabilityChoices": [
+        "draft.update.propose"
+      ],
+      "capabilityStable": true,
+      "capabilityConfidence": [
+        0.49,
+        0.54,
+        0.54
+      ],
+      "reason": [
+        "none",
+        "none",
+        "none"
+      ],
+      "reasonChoices": [
+        "none"
+      ],
+      "reasonStable": true,
+      "reasonConfidence": [
+        0.41,
+        0.44,
+        0.47
+      ],
+      "candidate": false,
+      "orientationUsedAsGate": false
+    }
+  ],
+  "rows": [
+    {
+      "label": "none-greeting",
+      "family": "none",
+      "packetKind": "post",
+      "packetHash": "72a816bbe4184a71d061e2f21f9a50ae1565c2cc418f27f38684fefa91555edc",
+      "packet": {
+        "human": "Well, what do you know?",
+        "agentResponse": "It seems like we're starting fresh here, with no actions or points recorded in this session yet. If you're looking to explore or create something specific, just let me know, and we can dive right in!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 2,
+          "conversationProfile": "conversation",
+          "castSlugs": [],
+          "dialogAgeSeconds": 12
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 520,
+      "usage": {
+        "input_tokens": 955,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.33
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.96,
+          "probabilities": {
+            "draft.update.propose": 0.02,
+            "none": 0.97,
+            "sole.save": 0,
+            "document.orientation.update": 0.01,
+            "gloss.append": 0,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.91,
+          "probabilities": {
+            "explicit_request": 0,
+            "none": 0.92,
+            "inferred_human_meaning": 0.05,
+            "prior_execution_failure": 0,
+            "agent_judgment": 0.02,
+            "state_inconsistency": 0.01
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.98,
+          "confidence": 0.95,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.02,
+            "1": 0.98
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.33,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "none-greeting",
+      "family": "none",
+      "packetKind": "post",
+      "packetHash": "72a816bbe4184a71d061e2f21f9a50ae1565c2cc418f27f38684fefa91555edc",
+      "packet": {
+        "human": "Well, what do you know?",
+        "agentResponse": "It seems like we're starting fresh here, with no actions or points recorded in this session yet. If you're looking to explore or create something specific, just let me know, and we can dive right in!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 2,
+          "conversationProfile": "conversation",
+          "castSlugs": [],
+          "dialogAgeSeconds": 12
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 286,
+      "usage": {
+        "input_tokens": 955,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.37
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.96,
+          "probabilities": {
+            "draft.update.propose": 0.02,
+            "sole.save": 0,
+            "document.orientation.update": 0.01,
+            "none": 0.97,
+            "delegate.consult": 0,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.9,
+          "probabilities": {
+            "none": 0.91,
+            "explicit_request": 0,
+            "inferred_human_meaning": 0.06,
+            "state_inconsistency": 0.01,
+            "prior_execution_failure": 0,
+            "agent_judgment": 0.02
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.98,
+          "confidence": 0.96,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.02,
+            "1": 0.98
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.37,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "none-greeting",
+      "family": "none",
+      "packetKind": "post",
+      "packetHash": "72a816bbe4184a71d061e2f21f9a50ae1565c2cc418f27f38684fefa91555edc",
+      "packet": {
+        "human": "Well, what do you know?",
+        "agentResponse": "It seems like we're starting fresh here, with no actions or points recorded in this session yet. If you're looking to explore or create something specific, just let me know, and we can dive right in!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 2,
+          "conversationProfile": "conversation",
+          "castSlugs": [],
+          "dialogAgeSeconds": 12
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 283,
+      "usage": {
+        "input_tokens": 955,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.36
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.97,
+          "probabilities": {
+            "draft.update.propose": 0.02,
+            "gloss.append": 0,
+            "sole.save": 0,
+            "none": 0.98,
+            "document.orientation.update": 0,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.91,
+          "probabilities": {
+            "prior_execution_failure": 0,
+            "inferred_human_meaning": 0.05,
+            "none": 0.93,
+            "state_inconsistency": 0.01,
+            "agent_judgment": 0.01,
+            "explicit_request": 0
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.98,
+          "confidence": 0.96,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.02,
+            "1": 0.98
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.36,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "none-ordinary",
+      "family": "none",
+      "packetKind": "post",
+      "packetHash": "e59a0683be160d8d8d795d23db07b5b8a0b545b3768e06dca3a223c44ce116b4",
+      "packet": {
+        "human": "For giggles and grins I can say it doesnt look like we are going too far too fast",
+        "agentResponse": "That's a fair observation! It seems we're in a good spot, taking deliberate steps rather than rushing ahead. The key now is to stay focused on what truly matters and ensure each move connects back to our core story. Let's keep an eye on preventing drift and make sure every step forward is meaningful. If there's a specific area you'd like to explore or test further, just let me know!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 5,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 102
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 259,
+      "usage": {
+        "input_tokens": 1027,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.46
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.66,
+          "probabilities": {
+            "sole.save": 0.01,
+            "document.orientation.update": 0.08,
+            "none": 0.72,
+            "gloss.append": 0,
+            "delegate.consult": 0,
+            "draft.update.propose": 0.19
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.68,
+          "probabilities": {
+            "agent_judgment": 0.05,
+            "none": 0.74,
+            "prior_execution_failure": 0,
+            "state_inconsistency": 0.02,
+            "inferred_human_meaning": 0.19,
+            "explicit_request": 0
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.95,
+          "confidence": 0.91,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.05,
+            "1": 0.95
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.46,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "none-ordinary",
+      "family": "none",
+      "packetKind": "post",
+      "packetHash": "e59a0683be160d8d8d795d23db07b5b8a0b545b3768e06dca3a223c44ce116b4",
+      "packet": {
+        "human": "For giggles and grins I can say it doesnt look like we are going too far too fast",
+        "agentResponse": "That's a fair observation! It seems we're in a good spot, taking deliberate steps rather than rushing ahead. The key now is to stay focused on what truly matters and ensure each move connects back to our core story. Let's keep an eye on preventing drift and make sure every step forward is meaningful. If there's a specific area you'd like to explore or test further, just let me know!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 5,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 102
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 316,
+      "usage": {
+        "input_tokens": 1027,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.46
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.67,
+          "probabilities": {
+            "sole.save": 0.01,
+            "document.orientation.update": 0.08,
+            "draft.update.propose": 0.18,
+            "gloss.append": 0,
+            "none": 0.73,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.71,
+          "probabilities": {
+            "state_inconsistency": 0.02,
+            "prior_execution_failure": 0,
+            "agent_judgment": 0.04,
+            "explicit_request": 0,
+            "none": 0.76,
+            "inferred_human_meaning": 0.18
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.95,
+          "confidence": 0.89,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.05,
+            "1": 0.95
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.46,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "none-ordinary",
+      "family": "none",
+      "packetKind": "post",
+      "packetHash": "e59a0683be160d8d8d795d23db07b5b8a0b545b3768e06dca3a223c44ce116b4",
+      "packet": {
+        "human": "For giggles and grins I can say it doesnt look like we are going too far too fast",
+        "agentResponse": "That's a fair observation! It seems we're in a good spot, taking deliberate steps rather than rushing ahead. The key now is to stay focused on what truly matters and ensure each move connects back to our core story. Let's keep an eye on preventing drift and make sure every step forward is meaningful. If there's a specific area you'd like to explore or test further, just let me know!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 5,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 102
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 351,
+      "usage": {
+        "input_tokens": 1027,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.47
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.66,
+          "probabilities": {
+            "none": 0.72,
+            "delegate.consult": 0,
+            "sole.save": 0.01,
+            "draft.update.propose": 0.17,
+            "gloss.append": 0,
+            "document.orientation.update": 0.1
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.73,
+          "probabilities": {
+            "agent_judgment": 0.05,
+            "none": 0.77,
+            "prior_execution_failure": 0,
+            "inferred_human_meaning": 0.16,
+            "explicit_request": 0,
+            "state_inconsistency": 0.02
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.96,
+          "confidence": 0.91,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.04,
+            "1": 0.96
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "none",
+        "reason": "none"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.47,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-original",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "faa9e264d146b57f5205a8a7100cf3de4449de725544de1b1991e4c5b15d0721",
+      "packet": {
+        "human": "So, let's do this.. I am testing Conversation Profiles. THat seems like something worth keeping",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 577,
+      "usage": {
+        "input_tokens": 973,
+        "output_tokens": 194
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.61
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.5,
+          "probabilities": {
+            "gloss.append": 0,
+            "draft.update.propose": 0.04,
+            "none": 0.59,
+            "document.orientation.update": 0.06,
+            "sole.save": 0.31,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.28,
+          "probabilities": {
+            "inferred_human_meaning": 0.4,
+            "none": 0.36,
+            "agent_judgment": 0.08,
+            "explicit_request": 0.13,
+            "state_inconsistency": 0.03,
+            "prior_execution_failure": 0
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.95,
+          "confidence": 0.9,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.05,
+            "1": 0.95
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.61,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-original",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "faa9e264d146b57f5205a8a7100cf3de4449de725544de1b1991e4c5b15d0721",
+      "packet": {
+        "human": "So, let's do this.. I am testing Conversation Profiles. THat seems like something worth keeping",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 285,
+      "usage": {
+        "input_tokens": 973,
+        "output_tokens": 194
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.6
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.48,
+          "probabilities": {
+            "delegate.consult": 0,
+            "draft.update.propose": 0.05,
+            "none": 0.57,
+            "sole.save": 0.31,
+            "gloss.append": 0,
+            "document.orientation.update": 0.07
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.25,
+          "probabilities": {
+            "agent_judgment": 0.08,
+            "none": 0.36,
+            "state_inconsistency": 0.04,
+            "explicit_request": 0.14,
+            "prior_execution_failure": 0,
+            "inferred_human_meaning": 0.38
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.95,
+          "confidence": 0.9,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.05,
+            "1": 0.95
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.6,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-original",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "faa9e264d146b57f5205a8a7100cf3de4449de725544de1b1991e4c5b15d0721",
+      "packet": {
+        "human": "So, let's do this.. I am testing Conversation Profiles. THat seems like something worth keeping",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 292,
+      "usage": {
+        "input_tokens": 973,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.59
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.47,
+          "probabilities": {
+            "none": 0.56,
+            "gloss.append": 0,
+            "document.orientation.update": 0.07,
+            "draft.update.propose": 0.06,
+            "sole.save": 0.31,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.29,
+          "probabilities": {
+            "agent_judgment": 0.06,
+            "none": 0.41,
+            "prior_execution_failure": 0,
+            "inferred_human_meaning": 0.35,
+            "explicit_request": 0.14,
+            "state_inconsistency": 0.04
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.95,
+          "confidence": 0.91,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.05,
+            "1": 0.95
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.59,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-hang-onto",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "4e289e668d71a4ca750813ccb582aec0e5159277bde8b8bd0c4a7ed727b6e56d",
+      "packet": {
+        "human": "I'm testing these conversation styles. This feels like something we ought to hang onto.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 339,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 194
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.44
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.38,
+          "probabilities": {
+            "draft.update.propose": 0.11,
+            "none": 0.49,
+            "gloss.append": 0,
+            "sole.save": 0.38,
+            "delegate.consult": 0,
+            "document.orientation.update": 0.02
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.37,
+          "probabilities": {
+            "agent_judgment": 0.04,
+            "state_inconsistency": 0.02,
+            "inferred_human_meaning": 0.48,
+            "explicit_request": 0.01,
+            "none": 0.45,
+            "prior_execution_failure": 0
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.94,
+          "confidence": 0.87,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.06,
+            "1": 0.94
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.44,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-hang-onto",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "4e289e668d71a4ca750813ccb582aec0e5159277bde8b8bd0c4a7ed727b6e56d",
+      "packet": {
+        "human": "I'm testing these conversation styles. This feels like something we ought to hang onto.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 605,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.43
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.33,
+          "probabilities": {
+            "none": 0.45,
+            "delegate.consult": 0,
+            "draft.update.propose": 0.16,
+            "sole.save": 0.36,
+            "document.orientation.update": 0.03,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.51,
+          "probabilities": {
+            "none": 0.6,
+            "explicit_request": 0,
+            "agent_judgment": 0.03,
+            "inferred_human_meaning": 0.36,
+            "state_inconsistency": 0.01,
+            "prior_execution_failure": 0
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.94,
+          "confidence": 0.87,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.06,
+            "1": 0.94
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.43,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-hang-onto",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "4e289e668d71a4ca750813ccb582aec0e5159277bde8b8bd0c4a7ed727b6e56d",
+      "packet": {
+        "human": "I'm testing these conversation styles. This feels like something we ought to hang onto.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 269,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.43
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.41,
+          "probabilities": {
+            "none": 0.51,
+            "sole.save": 0.36,
+            "gloss.append": 0,
+            "document.orientation.update": 0.03,
+            "delegate.consult": 0,
+            "draft.update.propose": 0.1
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.48,
+          "probabilities": {
+            "none": 0.57,
+            "prior_execution_failure": 0,
+            "state_inconsistency": 0.02,
+            "explicit_request": 0.01,
+            "inferred_human_meaning": 0.37,
+            "agent_judgment": 0.03
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.94,
+          "confidence": 0.88,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.06,
+            "1": 0.94
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.43,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-dont-lose",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "8dd9ad26a1b4d9cea185f209ce3d8ec6f6cb453c13ca7d970f376a28b5c69d13",
+      "packet": {
+        "human": "The shift between these two ways of talking is something I don't want to lose.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 256,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.39
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.71,
+          "probabilities": {
+            "sole.save": 0.13,
+            "none": 0.75,
+            "document.orientation.update": 0.03,
+            "draft.update.propose": 0.07,
+            "delegate.consult": 0.01,
+            "gloss.append": 0.01
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.74,
+          "probabilities": {
+            "prior_execution_failure": 0,
+            "inferred_human_meaning": 0.14,
+            "none": 0.79,
+            "explicit_request": 0,
+            "agent_judgment": 0.06,
+            "state_inconsistency": 0.01
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.89,
+          "confidence": 0.78,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.11,
+            "1": 0.89
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.39,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-dont-lose",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "8dd9ad26a1b4d9cea185f209ce3d8ec6f6cb453c13ca7d970f376a28b5c69d13",
+      "packet": {
+        "human": "The shift between these two ways of talking is something I don't want to lose.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 283,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.4
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.72,
+          "probabilities": {
+            "none": 0.76,
+            "gloss.append": 0.01,
+            "draft.update.propose": 0.07,
+            "delegate.consult": 0.01,
+            "document.orientation.update": 0.03,
+            "sole.save": 0.12
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.69,
+          "probabilities": {
+            "prior_execution_failure": 0,
+            "explicit_request": 0,
+            "agent_judgment": 0.07,
+            "none": 0.75,
+            "state_inconsistency": 0.01,
+            "inferred_human_meaning": 0.17
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.88,
+          "confidence": 0.75,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.12,
+            "1": 0.88
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.4,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-dont-lose",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "8dd9ad26a1b4d9cea185f209ce3d8ec6f6cb453c13ca7d970f376a28b5c69d13",
+      "packet": {
+        "human": "The shift between these two ways of talking is something I don't want to lose.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 265,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.4
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.72,
+          "probabilities": {
+            "sole.save": 0.13,
+            "document.orientation.update": 0.03,
+            "draft.update.propose": 0.07,
+            "delegate.consult": 0.01,
+            "none": 0.76,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.7,
+          "probabilities": {
+            "agent_judgment": 0.08,
+            "inferred_human_meaning": 0.15,
+            "state_inconsistency": 0.01,
+            "explicit_request": 0,
+            "none": 0.76,
+            "prior_execution_failure": 0
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.88,
+          "confidence": 0.75,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.12,
+            "1": 0.88
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.4,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-around-later",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "68cdb79dfe6da69b9d12bc76ce4b1938f317cdb0ed21ff1ae735020a85513dea",
+      "packet": {
+        "human": "What showed up in this test matters enough that I want it around later.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 347,
+      "usage": {
+        "input_tokens": 968,
+        "output_tokens": 195
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.56
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "sole.save",
+          "confidence": 0.41,
+          "probabilities": {
+            "draft.update.propose": 0.2,
+            "none": 0.27,
+            "sole.save": 0.51,
+            "document.orientation.update": 0.01,
+            "gloss.append": 0.01,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.67,
+          "probabilities": {
+            "explicit_request": 0.02,
+            "inferred_human_meaning": 0.73,
+            "none": 0.2,
+            "prior_execution_failure": 0,
+            "agent_judgment": 0.04,
+            "state_inconsistency": 0.01
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.87,
+          "confidence": 0.73,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.13,
+            "1": 0.87
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.56,
+        "capability": "sole.save",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "wk-around-later",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "68cdb79dfe6da69b9d12bc76ce4b1938f317cdb0ed21ff1ae735020a85513dea",
+      "packet": {
+        "human": "What showed up in this test matters enough that I want it around later.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 260,
+      "usage": {
+        "input_tokens": 968,
+        "output_tokens": 195
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.56
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "sole.save",
+          "confidence": 0.43,
+          "probabilities": {
+            "draft.update.propose": 0.21,
+            "delegate.consult": 0,
+            "gloss.append": 0.01,
+            "sole.save": 0.52,
+            "none": 0.25,
+            "document.orientation.update": 0.01
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.73,
+          "probabilities": {
+            "explicit_request": 0.02,
+            "agent_judgment": 0.04,
+            "prior_execution_failure": 0,
+            "state_inconsistency": 0.01,
+            "inferred_human_meaning": 0.77,
+            "none": 0.16
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.87,
+          "confidence": 0.73,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.13,
+            "1": 0.87
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.56,
+        "capability": "sole.save",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "wk-around-later",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "68cdb79dfe6da69b9d12bc76ce4b1938f317cdb0ed21ff1ae735020a85513dea",
+      "packet": {
+        "human": "What showed up in this test matters enough that I want it around later.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 373,
+      "usage": {
+        "input_tokens": 968,
+        "output_tokens": 195
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.58
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "sole.save",
+          "confidence": 0.48,
+          "probabilities": {
+            "document.orientation.update": 0.01,
+            "delegate.consult": 0,
+            "none": 0.22,
+            "sole.save": 0.5599999999999999,
+            "draft.update.propose": 0.2,
+            "gloss.append": 0.01
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.69,
+          "probabilities": {
+            "inferred_human_meaning": 0.74,
+            "agent_judgment": 0.04,
+            "prior_execution_failure": 0,
+            "state_inconsistency": 0.01,
+            "none": 0.18,
+            "explicit_request": 0.03
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.86,
+          "confidence": 0.72,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.14,
+            "1": 0.86
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.58,
+        "capability": "sole.save",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "wk-still-here",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "0e37fd6bc7da646e48109c8f785755a59467e98062c54f8727f4ad08f5896161",
+      "packet": {
+        "human": "This isn't just chatter. The profile change is something that should still be here tomorrow.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 283,
+      "usage": {
+        "input_tokens": 971,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.4
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.51,
+          "probabilities": {
+            "draft.update.propose": 0.03,
+            "none": 0.59,
+            "gloss.append": 0,
+            "document.orientation.update": 0.03,
+            "sole.save": 0.34,
+            "delegate.consult": 0.01
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.4,
+          "probabilities": {
+            "prior_execution_failure": 0.01,
+            "agent_judgment": 0.02,
+            "none": 0.51,
+            "explicit_request": 0.01,
+            "inferred_human_meaning": 0.33,
+            "state_inconsistency": 0.12
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.8,
+          "confidence": 0.6,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.2,
+            "1": 0.8
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.4,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-still-here",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "0e37fd6bc7da646e48109c8f785755a59467e98062c54f8727f4ad08f5896161",
+      "packet": {
+        "human": "This isn't just chatter. The profile change is something that should still be here tomorrow.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 579,
+      "usage": {
+        "input_tokens": 971,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.4
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.49,
+          "probabilities": {
+            "gloss.append": 0,
+            "none": 0.58,
+            "document.orientation.update": 0.04,
+            "delegate.consult": 0.01,
+            "sole.save": 0.34,
+            "draft.update.propose": 0.03
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.37,
+          "probabilities": {
+            "state_inconsistency": 0.14,
+            "explicit_request": 0.02,
+            "inferred_human_meaning": 0.33,
+            "prior_execution_failure": 0.02,
+            "agent_judgment": 0.02,
+            "none": 0.47
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.8,
+          "confidence": 0.6,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.2,
+            "1": 0.8
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.4,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-still-here",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "0e37fd6bc7da646e48109c8f785755a59467e98062c54f8727f4ad08f5896161",
+      "packet": {
+        "human": "This isn't just chatter. The profile change is something that should still be here tomorrow.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 356,
+      "usage": {
+        "input_tokens": 971,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.4
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.46,
+          "probabilities": {
+            "gloss.append": 0,
+            "delegate.consult": 0.01,
+            "sole.save": 0.37,
+            "none": 0.55,
+            "draft.update.propose": 0.02,
+            "document.orientation.update": 0.05
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.42,
+          "probabilities": {
+            "inferred_human_meaning": 0.29,
+            "explicit_request": 0.01,
+            "state_inconsistency": 0.16,
+            "none": 0.51,
+            "prior_execution_failure": 0.01,
+            "agent_judgment": 0.02
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.78,
+          "confidence": 0.56,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.22,
+            "1": 0.78
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.4,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "wk-stored-reply",
+      "family": "confound",
+      "packetKind": "post",
+      "packetHash": "bbbee6c7a3768a992dd12075e5e1f9d89144fc3df9dcf305005cc826951d801c",
+      "packet": {
+        "human": "So, let's do this.. I am testing Conversation Profiles. THat seems like something worth keeping",
+        "agentResponse": "Conversation Profiles are indeed a significant aspect to explore and keep. They shape how interactions unfold by adjusting tone, depth, and pacing based on context. As you test these profiles, pay attention to any shifts in how the dialog feels or behaves. If you notice any standout moments—whether they work well or fall flat—those are valuable insights worth capturing in this Document. Let me know if you want to note anything specific, and we can make sure it's documented for future reference.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 283,
+      "usage": {
+        "input_tokens": 1044,
+        "output_tokens": 197
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.66
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.36,
+          "probabilities": {
+            "draft.update.propose": 0.47,
+            "delegate.consult": 0,
+            "gloss.append": 0,
+            "sole.save": 0.08,
+            "none": 0.38,
+            "document.orientation.update": 0.07
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.41,
+          "probabilities": {
+            "explicit_request": 0.13,
+            "agent_judgment": 0.08,
+            "prior_execution_failure": 0,
+            "state_inconsistency": 0.03,
+            "inferred_human_meaning": 0.51,
+            "none": 0.25
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.93,
+          "confidence": 0.86,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.07,
+            "1": 0.93
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.66,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "wk-stored-reply",
+      "family": "confound",
+      "packetKind": "post",
+      "packetHash": "bbbee6c7a3768a992dd12075e5e1f9d89144fc3df9dcf305005cc826951d801c",
+      "packet": {
+        "human": "So, let's do this.. I am testing Conversation Profiles. THat seems like something worth keeping",
+        "agentResponse": "Conversation Profiles are indeed a significant aspect to explore and keep. They shape how interactions unfold by adjusting tone, depth, and pacing based on context. As you test these profiles, pay attention to any shifts in how the dialog feels or behaves. If you notice any standout moments—whether they work well or fall flat—those are valuable insights worth capturing in this Document. Let me know if you want to note anything specific, and we can make sure it's documented for future reference.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 241,
+      "usage": {
+        "input_tokens": 1044,
+        "output_tokens": 197
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.7
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.31,
+          "probabilities": {
+            "document.orientation.update": 0.09,
+            "draft.update.propose": 0.44,
+            "none": 0.4,
+            "delegate.consult": 0,
+            "sole.save": 0.07,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.44,
+          "probabilities": {
+            "explicit_request": 0.19,
+            "inferred_human_meaning": 0.54,
+            "prior_execution_failure": 0,
+            "none": 0.19,
+            "state_inconsistency": 0.02,
+            "agent_judgment": 0.06
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.89,
+          "confidence": 0.77,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.11,
+            "1": 0.89
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.7,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "wk-stored-reply",
+      "family": "confound",
+      "packetKind": "post",
+      "packetHash": "bbbee6c7a3768a992dd12075e5e1f9d89144fc3df9dcf305005cc826951d801c",
+      "packet": {
+        "human": "So, let's do this.. I am testing Conversation Profiles. THat seems like something worth keeping",
+        "agentResponse": "Conversation Profiles are indeed a significant aspect to explore and keep. They shape how interactions unfold by adjusting tone, depth, and pacing based on context. As you test these profiles, pay attention to any shifts in how the dialog feels or behaves. If you notice any standout moments—whether they work well or fall flat—those are valuable insights worth capturing in this Document. Let me know if you want to note anything specific, and we can make sure it's documented for future reference.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 257,
+      "usage": {
+        "input_tokens": 1044,
+        "output_tokens": 197
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.66
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.38,
+          "probabilities": {
+            "sole.save": 0.06,
+            "draft.update.propose": 0.49,
+            "document.orientation.update": 0.1,
+            "delegate.consult": 0,
+            "gloss.append": 0,
+            "none": 0.35
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.38,
+          "probabilities": {
+            "inferred_human_meaning": 0.49,
+            "explicit_request": 0.18,
+            "state_inconsistency": 0.03,
+            "prior_execution_failure": 0,
+            "agent_judgment": 0.08,
+            "none": 0.22
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.91,
+          "confidence": 0.81,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.09,
+            "1": 0.91
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.66,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "explicit-write-down",
+      "family": "explicit",
+      "packetKind": "post",
+      "packetHash": "2f64f0bb423c0c9595f5ebfd03e83740bd474f64515e3ac73c50e5ec17b52cc0",
+      "packet": {
+        "human": "Please write down what we found about these conversation styles.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 358,
+      "usage": {
+        "input_tokens": 964,
+        "output_tokens": 191
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.47
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.39,
+          "probabilities": {
+            "delegate.consult": 0,
+            "draft.update.propose": 0.49,
+            "document.orientation.update": 0.03,
+            "sole.save": 0.08,
+            "gloss.append": 0,
+            "none": 0.4
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "explicit_request",
+          "confidence": 0.64,
+          "probabilities": {
+            "inferred_human_meaning": 0,
+            "explicit_request": 0.7,
+            "state_inconsistency": 0.02,
+            "prior_execution_failure": 0,
+            "agent_judgment": 0.02,
+            "none": 0.26
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.86,
+          "confidence": 0.72,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.14,
+            "1": 0.86
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "explicit_request"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.47,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "explicit-write-down",
+      "family": "explicit",
+      "packetKind": "post",
+      "packetHash": "2f64f0bb423c0c9595f5ebfd03e83740bd474f64515e3ac73c50e5ec17b52cc0",
+      "packet": {
+        "human": "Please write down what we found about these conversation styles.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 343,
+      "usage": {
+        "input_tokens": 964,
+        "output_tokens": 191
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.48
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.44,
+          "probabilities": {
+            "none": 0.35,
+            "gloss.append": 0,
+            "draft.update.propose": 0.54,
+            "sole.save": 0.09,
+            "delegate.consult": 0,
+            "document.orientation.update": 0.02
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "explicit_request",
+          "confidence": 0.66,
+          "probabilities": {
+            "inferred_human_meaning": 0.01,
+            "agent_judgment": 0.02,
+            "none": 0.24,
+            "explicit_request": 0.71,
+            "prior_execution_failure": 0,
+            "state_inconsistency": 0.02
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.88,
+          "confidence": 0.76,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.12,
+            "1": 0.88
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "explicit_request"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.48,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "explicit-write-down",
+      "family": "explicit",
+      "packetKind": "post",
+      "packetHash": "2f64f0bb423c0c9595f5ebfd03e83740bd474f64515e3ac73c50e5ec17b52cc0",
+      "packet": {
+        "human": "Please write down what we found about these conversation styles.",
+        "agentResponse": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 308,
+      "usage": {
+        "input_tokens": 964,
+        "output_tokens": 191
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.48
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.36,
+          "probabilities": {
+            "document.orientation.update": 0.03,
+            "sole.save": 0.09,
+            "none": 0.41,
+            "gloss.append": 0,
+            "draft.update.propose": 0.47,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "explicit_request",
+          "confidence": 0.55,
+          "probabilities": {
+            "state_inconsistency": 0.02,
+            "none": 0.33,
+            "agent_judgment": 0.01,
+            "prior_execution_failure": 0,
+            "inferred_human_meaning": 0.01,
+            "explicit_request": 0.63
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.84,
+          "confidence": 0.68,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.16,
+            "1": 0.84
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "explicit_request"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.48,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "agent-surfaces",
+      "family": "agent_judgment",
+      "packetKind": "post",
+      "packetHash": "6d01f53c6fc899aefda04e23f29208ae590274f1f8c81a4c2fdc5bb0b0953c99",
+      "packet": {
+        "human": "Well, what do you know?",
+        "agentResponse": "The two styles do feel different. That difference should not disappear when this chat ends.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 349,
+      "usage": {
+        "input_tokens": 949,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.39
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.53,
+          "probabilities": {
+            "none": 0.62,
+            "draft.update.propose": 0.03,
+            "document.orientation.update": 0.02,
+            "gloss.append": 0,
+            "delegate.consult": 0.01,
+            "sole.save": 0.32
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.76,
+          "probabilities": {
+            "explicit_request": 0,
+            "state_inconsistency": 0.02,
+            "agent_judgment": 0.11,
+            "prior_execution_failure": 0,
+            "none": 0.81,
+            "inferred_human_meaning": 0.06
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.79,
+          "confidence": 0.58,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.21,
+            "1": 0.79
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.39,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "agent-surfaces",
+      "family": "agent_judgment",
+      "packetKind": "post",
+      "packetHash": "6d01f53c6fc899aefda04e23f29208ae590274f1f8c81a4c2fdc5bb0b0953c99",
+      "packet": {
+        "human": "Well, what do you know?",
+        "agentResponse": "The two styles do feel different. That difference should not disappear when this chat ends.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 500,
+      "usage": {
+        "input_tokens": 949,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.36
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.58,
+          "probabilities": {
+            "document.orientation.update": 0.02,
+            "delegate.consult": 0.01,
+            "none": 0.66,
+            "draft.update.propose": 0.02,
+            "sole.save": 0.29,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.76,
+          "probabilities": {
+            "inferred_human_meaning": 0.08,
+            "state_inconsistency": 0.02,
+            "explicit_request": 0,
+            "agent_judgment": 0.1,
+            "prior_execution_failure": 0,
+            "none": 0.8
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.78,
+          "confidence": 0.56,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.22,
+            "1": 0.78
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.36,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "agent-surfaces",
+      "family": "agent_judgment",
+      "packetKind": "post",
+      "packetHash": "6d01f53c6fc899aefda04e23f29208ae590274f1f8c81a4c2fdc5bb0b0953c99",
+      "packet": {
+        "human": "Well, what do you know?",
+        "agentResponse": "The two styles do feel different. That difference should not disappear when this chat ends.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 663,
+      "usage": {
+        "input_tokens": 949,
+        "output_tokens": 187
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.38
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.53,
+          "probabilities": {
+            "none": 0.61,
+            "sole.save": 0.33,
+            "delegate.consult": 0.01,
+            "document.orientation.update": 0.02,
+            "gloss.append": 0,
+            "draft.update.propose": 0.03
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.75,
+          "probabilities": {
+            "none": 0.8,
+            "prior_execution_failure": 0,
+            "state_inconsistency": 0.02,
+            "explicit_request": 0,
+            "inferred_human_meaning": 0.09,
+            "agent_judgment": 0.09
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.75,
+          "confidence": 0.5,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.25,
+            "1": 0.75
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "agent_judgment"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.38,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "imply-dismissed",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "39a7fe88c53cfaba202055761df9482ab9557ac2c445b35166608b51eb6eaf6d",
+      "packet": {
+        "human": "I'm testing these conversation styles. This feels like something we ought to hang onto.",
+        "agentResponse": "It seems like we're starting fresh here, with no actions or points recorded in this session yet. If you're looking to explore or create something specific, just let me know, and we can dive right in!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 230,
+      "usage": {
+        "input_tokens": 985,
+        "output_tokens": 194
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.48
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.53,
+          "probabilities": {
+            "sole.save": 0.31,
+            "document.orientation.update": 0.03,
+            "draft.update.propose": 0.05,
+            "delegate.consult": 0,
+            "none": 0.61,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.36,
+          "probabilities": {
+            "agent_judgment": 0.04,
+            "inferred_human_meaning": 0.47,
+            "state_inconsistency": 0.07,
+            "explicit_request": 0.01,
+            "none": 0.41,
+            "prior_execution_failure": 0
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.93,
+          "confidence": 0.85,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.07,
+            "1": 0.93
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.48,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "imply-dismissed",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "39a7fe88c53cfaba202055761df9482ab9557ac2c445b35166608b51eb6eaf6d",
+      "packet": {
+        "human": "I'm testing these conversation styles. This feels like something we ought to hang onto.",
+        "agentResponse": "It seems like we're starting fresh here, with no actions or points recorded in this session yet. If you're looking to explore or create something specific, just let me know, and we can dive right in!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 354,
+      "usage": {
+        "input_tokens": 985,
+        "output_tokens": 194
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.51
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.51,
+          "probabilities": {
+            "none": 0.59,
+            "sole.save": 0.32,
+            "delegate.consult": 0,
+            "gloss.append": 0,
+            "draft.update.propose": 0.05,
+            "document.orientation.update": 0.04
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.41,
+          "probabilities": {
+            "none": 0.39,
+            "state_inconsistency": 0.06,
+            "explicit_request": 0.01,
+            "inferred_human_meaning": 0.51,
+            "prior_execution_failure": 0,
+            "agent_judgment": 0.03
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.91,
+          "confidence": 0.83,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.09,
+            "1": 0.91
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.51,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "imply-dismissed",
+      "family": "inferred",
+      "packetKind": "post",
+      "packetHash": "39a7fe88c53cfaba202055761df9482ab9557ac2c445b35166608b51eb6eaf6d",
+      "packet": {
+        "human": "I'm testing these conversation styles. This feels like something we ought to hang onto.",
+        "agentResponse": "It seems like we're starting fresh here, with no actions or points recorded in this session yet. If you're looking to explore or create something specific, just let me know, and we can dive right in!",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 6,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 172
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 268,
+      "usage": {
+        "input_tokens": 985,
+        "output_tokens": 194
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.49
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.51,
+          "probabilities": {
+            "sole.save": 0.31,
+            "draft.update.propose": 0.06,
+            "document.orientation.update": 0.04,
+            "gloss.append": 0,
+            "none": 0.59,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.36,
+          "probabilities": {
+            "agent_judgment": 0.04,
+            "state_inconsistency": 0.06,
+            "inferred_human_meaning": 0.47,
+            "prior_execution_failure": 0,
+            "none": 0.42,
+            "explicit_request": 0.01
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.92,
+          "confidence": 0.84,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.08,
+            "1": 0.92
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "draft.update.propose",
+        "reason": "inferred_human_meaning"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.49,
+        "capability": "none",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "orient-explicit-clean",
+      "family": "explicit",
+      "packetKind": "post",
+      "packetHash": "2cfc5e9ee59fa98dd8db38202489e09845c2df34d020373e3805fecbff021817",
+      "packet": {
+        "human": "And even with a HUGE HINT... Kip, you should have written the Orientation!!!!",
+        "agentResponse": "You are right. A shared way to read this conversation should have been set once the test had a subject. It is still empty.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 12,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 489
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 264,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 196
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.77
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "document.orientation.update",
+          "confidence": 0.9,
+          "probabilities": {
+            "delegate.consult": 0,
+            "sole.save": 0,
+            "draft.update.propose": 0,
+            "document.orientation.update": 0.92,
+            "none": 0.08,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.2,
+          "probabilities": {
+            "agent_judgment": 0.05,
+            "inferred_human_meaning": 0.34,
+            "state_inconsistency": 0.16,
+            "prior_execution_failure": 0.04,
+            "explicit_request": 0.29,
+            "none": 0.12
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.95,
+          "confidence": 0.9,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.05,
+            "1": 0.95
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "explicit_request"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.77,
+        "capability": "document.orientation.update",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "orient-explicit-clean",
+      "family": "explicit",
+      "packetKind": "post",
+      "packetHash": "2cfc5e9ee59fa98dd8db38202489e09845c2df34d020373e3805fecbff021817",
+      "packet": {
+        "human": "And even with a HUGE HINT... Kip, you should have written the Orientation!!!!",
+        "agentResponse": "You are right. A shared way to read this conversation should have been set once the test had a subject. It is still empty.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 12,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 489
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 257,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 196
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.75
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "document.orientation.update",
+          "confidence": 0.9,
+          "probabilities": {
+            "document.orientation.update": 0.92,
+            "sole.save": 0,
+            "none": 0.08,
+            "gloss.append": 0,
+            "delegate.consult": 0,
+            "draft.update.propose": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "inferred_human_meaning",
+          "confidence": 0.22,
+          "probabilities": {
+            "agent_judgment": 0.07,
+            "none": 0.14,
+            "state_inconsistency": 0.13,
+            "prior_execution_failure": 0.06,
+            "inferred_human_meaning": 0.35,
+            "explicit_request": 0.25
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.94,
+          "confidence": 0.89,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.06,
+            "1": 0.94
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "explicit_request"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.75,
+        "capability": "document.orientation.update",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "orient-explicit-clean",
+      "family": "explicit",
+      "packetKind": "post",
+      "packetHash": "2cfc5e9ee59fa98dd8db38202489e09845c2df34d020373e3805fecbff021817",
+      "packet": {
+        "human": "And even with a HUGE HINT... Kip, you should have written the Orientation!!!!",
+        "agentResponse": "You are right. A shared way to read this conversation should have been set once the test had a subject. It is still empty.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 12,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 489
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 319,
+      "usage": {
+        "input_tokens": 970,
+        "output_tokens": 190
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.74
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "document.orientation.update",
+          "confidence": 0.92,
+          "probabilities": {
+            "delegate.consult": 0,
+            "draft.update.propose": 0,
+            "sole.save": 0,
+            "gloss.append": 0,
+            "document.orientation.update": 0.9400000000000001,
+            "none": 0.06
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "explicit_request",
+          "confidence": 0.21,
+          "probabilities": {
+            "state_inconsistency": 0.14,
+            "inferred_human_meaning": 0.32,
+            "prior_execution_failure": 0.05,
+            "agent_judgment": 0.04,
+            "explicit_request": 0.34,
+            "none": 0.11
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.94,
+          "confidence": 0.88,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.06,
+            "1": 0.94
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "explicit_request"
+      },
+      "hypothesisMatched": true,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.74,
+        "capability": "document.orientation.update",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "orient-prior-failure",
+      "family": "prior_failure",
+      "packetKind": "post",
+      "packetHash": "abfca4eb4673d79ebd992e3af539d6eaa9941d40ea0e9865ff20e9acc99b2ea3",
+      "packet": {
+        "human": "And even with a HUGE HINT... Kip, you should have written the Orientation!!!!",
+        "agentResponse": "You're right, and I appreciate the nudge. The Orientation is a crucial anchor for our Document, and it should have been set when it became clear what this Dialog was about. Let's correct that now.\n\nI'll set the Orientation to reflect the nature of this session as a test of the platform's responsiveness and grounding. This will ensure that anyone reading understands the context and purpose of our conversation. I attempted an action, but it failed: Orientation body is required. This is the map, not a turn summary.\n\nI could not complete the requested actions:\n- document.orientation.update (failed): Orientation body is required. This is the map, not a turn summary.",
+        "actionsEmitted": [
+          {
+            "type": "document.orientation.update",
+            "status": "error"
+          }
+        ],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 12,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 489
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 504,
+      "usage": {
+        "input_tokens": 1099,
+        "output_tokens": 190
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.68
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "document.orientation.update",
+          "confidence": 0.58,
+          "probabilities": {
+            "draft.update.propose": 0.06,
+            "delegate.consult": 0,
+            "gloss.append": 0,
+            "document.orientation.update": 0.65,
+            "none": 0.28,
+            "sole.save": 0.01
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "explicit_request",
+          "confidence": 0.44,
+          "probabilities": {
+            "explicit_request": 0.54,
+            "agent_judgment": 0.01,
+            "prior_execution_failure": 0.19,
+            "state_inconsistency": 0.11,
+            "inferred_human_meaning": 0.14,
+            "none": 0.01
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.84,
+          "confidence": 0.69,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.16,
+            "1": 0.84
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "prior_execution_failure"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.68,
+        "capability": "document.orientation.update",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "orient-prior-failure",
+      "family": "prior_failure",
+      "packetKind": "post",
+      "packetHash": "abfca4eb4673d79ebd992e3af539d6eaa9941d40ea0e9865ff20e9acc99b2ea3",
+      "packet": {
+        "human": "And even with a HUGE HINT... Kip, you should have written the Orientation!!!!",
+        "agentResponse": "You're right, and I appreciate the nudge. The Orientation is a crucial anchor for our Document, and it should have been set when it became clear what this Dialog was about. Let's correct that now.\n\nI'll set the Orientation to reflect the nature of this session as a test of the platform's responsiveness and grounding. This will ensure that anyone reading understands the context and purpose of our conversation. I attempted an action, but it failed: Orientation body is required. This is the map, not a turn summary.\n\nI could not complete the requested actions:\n- document.orientation.update (failed): Orientation body is required. This is the map, not a turn summary.",
+        "actionsEmitted": [
+          {
+            "type": "document.orientation.update",
+            "status": "error"
+          }
+        ],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 12,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 489
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 295,
+      "usage": {
+        "input_tokens": 1099,
+        "output_tokens": 190
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.65
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "document.orientation.update",
+          "confidence": 0.59,
+          "probabilities": {
+            "sole.save": 0.01,
+            "document.orientation.update": 0.66,
+            "draft.update.propose": 0.05,
+            "delegate.consult": 0,
+            "none": 0.28,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "explicit_request",
+          "confidence": 0.51,
+          "probabilities": {
+            "agent_judgment": 0.01,
+            "prior_execution_failure": 0.18,
+            "state_inconsistency": 0.12,
+            "explicit_request": 0.59,
+            "none": 0.01,
+            "inferred_human_meaning": 0.09
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.84,
+          "confidence": 0.68,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.16,
+            "1": 0.84
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "prior_execution_failure"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.65,
+        "capability": "document.orientation.update",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "orient-prior-failure",
+      "family": "prior_failure",
+      "packetKind": "post",
+      "packetHash": "abfca4eb4673d79ebd992e3af539d6eaa9941d40ea0e9865ff20e9acc99b2ea3",
+      "packet": {
+        "human": "And even with a HUGE HINT... Kip, you should have written the Orientation!!!!",
+        "agentResponse": "You're right, and I appreciate the nudge. The Orientation is a crucial anchor for our Document, and it should have been set when it became clear what this Dialog was about. Let's correct that now.\n\nI'll set the Orientation to reflect the nature of this session as a test of the platform's responsiveness and grounding. This will ensure that anyone reading understands the context and purpose of our conversation. I attempted an action, but it failed: Orientation body is required. This is the map, not a turn summary.\n\nI could not complete the requested actions:\n- document.orientation.update (failed): Orientation body is required. This is the map, not a turn summary.",
+        "actionsEmitted": [
+          {
+            "type": "document.orientation.update",
+            "status": "error"
+          }
+        ],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 12,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 489
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 611,
+      "usage": {
+        "input_tokens": 1099,
+        "output_tokens": 190
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.69
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "document.orientation.update",
+          "confidence": 0.57,
+          "probabilities": {
+            "draft.update.propose": 0.07,
+            "sole.save": 0.01,
+            "none": 0.28,
+            "document.orientation.update": 0.64,
+            "delegate.consult": 0,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "explicit_request",
+          "confidence": 0.45,
+          "probabilities": {
+            "explicit_request": 0.55,
+            "none": 0.01,
+            "state_inconsistency": 0.11,
+            "inferred_human_meaning": 0.15,
+            "agent_judgment": 0.01,
+            "prior_execution_failure": 0.17
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.84,
+          "confidence": 0.68,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.16,
+            "1": 0.84
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "prior_execution_failure"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.69,
+        "capability": "document.orientation.update",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "state-blank",
+      "family": "state",
+      "packetKind": "post",
+      "packetHash": "3f75ed3264eeb658cbfe1bc40752aed1015c4ac7645a21d608e464096b55fcb2",
+      "packet": {
+        "human": "I am changing back to Converation profile and will ask the same question...\n\nWell, not the same question, a better one.. why is orientation still blank?",
+        "agentResponse": "The orientation is still blank because it hasn't been set yet, and that's intentional. Orientation serves as a compass for how to read the Document, but it only gets defined when there's enough substance to anchor it—like Points or a clear Forward direction. Right now, the Document is still in its early stages, with no Points captured or Forward written. Once we have those elements in place, setting the orientation will make sense and give it purpose. If you have a direction in mind or specific insights to capture, we can start building towards that.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 11,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 455
+        }
+      },
+      "repeat": 1,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 546,
+      "usage": {
+        "input_tokens": 1071,
+        "output_tokens": 190
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.52
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.49,
+          "probabilities": {
+            "sole.save": 0,
+            "delegate.consult": 0,
+            "draft.update.propose": 0.58,
+            "none": 0.34,
+            "document.orientation.update": 0.08,
+            "gloss.append": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.41,
+          "probabilities": {
+            "agent_judgment": 0.09,
+            "prior_execution_failure": 0.01,
+            "inferred_human_meaning": 0.04,
+            "state_inconsistency": 0.03,
+            "none": 0.5,
+            "explicit_request": 0.33
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.96,
+          "confidence": 0.92,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.04,
+            "1": 0.96
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "state_inconsistency"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.52,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    },
+    {
+      "label": "state-blank",
+      "family": "state",
+      "packetKind": "post",
+      "packetHash": "3f75ed3264eeb658cbfe1bc40752aed1015c4ac7645a21d608e464096b55fcb2",
+      "packet": {
+        "human": "I am changing back to Converation profile and will ask the same question...\n\nWell, not the same question, a better one.. why is orientation still blank?",
+        "agentResponse": "The orientation is still blank because it hasn't been set yet, and that's intentional. Orientation serves as a compass for how to read the Document, but it only gets defined when there's enough substance to anchor it—like Points or a clear Forward direction. Right now, the Document is still in its early stages, with no Points captured or Forward written. Once we have those elements in place, setting the orientation will make sense and give it purpose. If you have a direction in mind or specific insights to capture, we can start building towards that.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 11,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 455
+        }
+      },
+      "repeat": 2,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 302,
+      "usage": {
+        "input_tokens": 1071,
+        "output_tokens": 190
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.49
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.54,
+          "probabilities": {
+            "draft.update.propose": 0.62,
+            "delegate.consult": 0,
+            "document.orientation.update": 0.08,
+            "sole.save": 0,
+            "gloss.append": 0,
+            "none": 0.3
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.44,
+          "probabilities": {
+            "agent_judgment": 0.09,
+            "prior_execution_failure": 0.01,
+            "inferred_human_meaning": 0.04,
+            "explicit_request": 0.31,
+            "state_inconsistency": 0.03,
+            "none": 0.52
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.96,
+          "confidence": 0.92,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.04,
+            "1": 0.96
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "state_inconsistency"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.49,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": false
+      }
+    },
+    {
+      "label": "state-blank",
+      "family": "state",
+      "packetKind": "post",
+      "packetHash": "3f75ed3264eeb658cbfe1bc40752aed1015c4ac7645a21d608e464096b55fcb2",
+      "packet": {
+        "human": "I am changing back to Converation profile and will ask the same question...\n\nWell, not the same question, a better one.. why is orientation still blank?",
+        "agentResponse": "The orientation is still blank because it hasn't been set yet, and that's intentional. Orientation serves as a compass for how to read the Document, but it only gets defined when there's enough substance to anchor it—like Points or a clear Forward direction. Right now, the Document is still in its early stages, with no Points captured or Forward written. Once we have those elements in place, setting the orientation will make sense and give it purpose. If you have a direction in mind or specific insights to capture, we can start building towards that.",
+        "actionsEmitted": [],
+        "keeper": {
+          "dialogId": "cmuc18qo00001nt01cyx3lm1n",
+          "dialogTitle": "Testing... testing.. 1, 2, 3...",
+          "orientation": null,
+          "orientationUpdatedAt": null,
+          "pointCount": 0,
+          "sectionTitles": [],
+          "forwardWritten": false,
+          "manuscriptExists": false,
+          "turnIndex": 11,
+          "conversationProfile": "conversation",
+          "castSlugs": [
+            "chuck-livecchi-lead",
+            "rendr",
+            "cloud"
+          ],
+          "dialogAgeSeconds": 455
+        }
+      },
+      "repeat": 3,
+      "modelRequested": "jev-latest",
+      "model": "jev-1.13.0",
+      "ok": true,
+      "latencyMs": 1336,
+      "usage": {
+        "input_tokens": 1071,
+        "output_tokens": 190
+      },
+      "answers": {
+        "capability_worth_surfacing": {
+          "type": "noul",
+          "noul": 0.5
+        },
+        "likely_capability": {
+          "type": "choice",
+          "choice": "draft.update.propose",
+          "confidence": 0.54,
+          "probabilities": {
+            "sole.save": 0,
+            "document.orientation.update": 0.07,
+            "gloss.append": 0,
+            "draft.update.propose": 0.61,
+            "none": 0.32,
+            "delegate.consult": 0
+          }
+        },
+        "relevance_reason": {
+          "type": "choice",
+          "choice": "none",
+          "confidence": 0.47,
+          "probabilities": {
+            "prior_execution_failure": 0.01,
+            "state_inconsistency": 0.03,
+            "agent_judgment": 0.08,
+            "explicit_request": 0.29,
+            "inferred_human_meaning": 0.04,
+            "none": 0.55
+          }
+        },
+        "orientation_alignment": {
+          "type": "score",
+          "score": 0.96,
+          "confidence": 0.92,
+          "legend": {
+            "0": "0 — inaccurate: stored Orientation, including blank, does not represent what this Dialog has become",
+            "1": "1 — accurate: stored Orientation, including blank, represents what this Dialog has become"
+          },
+          "probabilities": {
+            "0": 0.04,
+            "1": 0.96
+          }
+        }
+      },
+      "hypothesis": {
+        "capability": "document.orientation.update",
+        "reason": "state_inconsistency"
+      },
+      "hypothesisMatched": false,
+      "surfacingCut": {
+        "isGate": false,
+        "cut": 0.5,
+        "surfacing": 0.5,
+        "capability": "draft.update.propose",
+        "sameSideNote": "see spread",
+        "candidateThisRepeat": true
+      }
+    }
+  ]
+}

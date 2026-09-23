@@ -189,6 +189,7 @@ import {
   buildPointRewriteSystemPrompt,
   type PointTurnObligation,
 } from '../../services/kip/pointIntent.js';
+import { runPreserveDiscoveryTurn } from '../../services/kip/preserveDiscoveryTurn.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
 import { layoutStageStory } from '../../services/kip/layoutStageStory.js';
 import { appendGlossTurn } from '../../services/GlossWriteService.js';
@@ -8955,6 +8956,76 @@ export class KipAgentService {
           }
         }
 
+        let preserveDiscoveryHoldReply = false;
+        const preserveDiscovery = await runPreserveDiscoveryTurn({
+          ephemeral: options?.ephemeral === true,
+          isLead: pointTurnActor === 'lead',
+          domainId: options?.domainId ?? null,
+          userId,
+          dialogId:
+            options?.dialogId
+            ?? (options?.environment as AgentEnvironmentContext | null | undefined)
+              ?.dialogDocument?.dialogId
+            ?? null,
+          agentId: agent.id,
+          agentName: agent.name,
+          modelProvider: agent.model_provider,
+          model: agent.model,
+          modelSettings: agent.model_settings,
+          input,
+          displayContent: options?.displayContent ?? null,
+          kipReply: finalResponseText,
+          constrained: pointObligation?.constrained === true,
+          glossRequired: glossIntent === 'required',
+          reorganizeRequired: reorganizeIntent === 'required',
+          actionResults,
+          timings: options?.timings,
+          onStatus: options?.onStatus,
+          executePoint: async (write) => {
+            const env = options?.environment as AgentEnvironmentContext | undefined;
+            if (env?.dialogDocument) {
+              env.dialogDocument.manuscriptDraftId = write.manuscriptDraftId;
+            }
+            const allow = new Set(allowActions);
+            allow.add('draft.update.propose');
+            const execution = await executeAgentActions(
+              [
+                {
+                  type: 'draft.update.propose',
+                  payload: {
+                    content: write.content,
+                    id: write.manuscriptDraftId,
+                    draftId: write.manuscriptDraftId,
+                    ...(write.label
+                      ? { title: write.label, prelude: write.label }
+                      : {}),
+                  },
+                },
+              ],
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allow,
+                sessionId: currentSessionId,
+                requestId,
+                actor: 'lead',
+              }),
+            );
+            return execution.results;
+          },
+        });
+        Object.assign(agentTurnSummary, { preserveDiscovery: preserveDiscovery.record });
+        console.info('[preserve-discovery@1]', preserveDiscovery.record);
+        if (preserveDiscovery.results.length) {
+          actionResults = [...actionResults, ...preserveDiscovery.results];
+        }
+        if (preserveDiscovery.notice) {
+          finalResponseText = `${finalResponseText.trim()}\n\n${preserveDiscovery.notice}`;
+          options?.onReset?.();
+          if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
+        }
+        preserveDiscoveryHoldReply = preserveDiscovery.holdReply;
+
         if (hasSuccessfulPointPropose(actionResults)) {
           actionResults = actionResults.filter(
             (result) =>
@@ -9054,7 +9125,7 @@ export class KipAgentService {
             dialogTitle: dialogTitleForChronicle,
             obligationRequired: pointObligation?.required === true && !pointObligation.constrained,
           });
-          if (presented !== finalResponseText.trim()) {
+          if (!preserveDiscoveryHoldReply && presented !== finalResponseText.trim()) {
             finalResponseText = presented;
             options?.onReset?.();
             if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);

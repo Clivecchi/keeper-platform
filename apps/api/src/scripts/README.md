@@ -18,6 +18,8 @@ Manually invoked operational scripts for domain diagnostics, frame repair, seedi
 - `append-agency-point-intent-points.ts` — first Agency obligation conclusions onto Becoming Together manuscript (dry-run; `--execute`)
 
 - `run-jev-codebase-xray.ts` — Jev semantic X-ray of curated Keeper units → `tmp/jev-xray/` Code Map (read-only)
+- `replay-typesafe-signal-layer.ts` — offline three-repeat TypeSafe replay of Dialog `cmuc18qo00001nt01cyx3lm1n`. Writes `tmp/typesafe-signal-replay/results.json`. Does not touch the live turn path.
+- `replay-typesafe-capability.ts` — post-response capability replay (paraphrases, explicit, agent-surfaced, none). Writes `tmp/typesafe-signal-replay/capability-results.json`. Obligation is not asked. Does not touch the live turn path.
 
 ## 🔄 Data & Behavior
 Scripts load `apps/api/.env` (or cwd dotenv) and talk to Postgres via `@keeper/database` prisma. Destructive or production-writing scripts must default to dry-run and require an explicit `--execute` flag.
@@ -31,6 +33,12 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 - [ ] Re-run `deploy-object-glossary-read-access.ts --execute` after glossary content changes if `agent_perspective` / Governance block should refresh; embeddings need a valid OpenAI platform key
 
 ## 📆 Update Log
+
+### 2026-09-22 — TypeSafe capability replay
+- `replay-typesafe-capability.ts` asks only whether a capability is worth putting in front of Kip. Frozen paraphrases of “worth keeping” exclude Keeper vocabulary. Three repeats. Orientation Alignment is measured and is not a gate. No live-path change.
+
+### 2026-09-22 — TypeSafe signal-layer replay
+- `replay-typesafe-signal-layer.ts` scores four frozen turns from the Conversation Profile specimen, pre-reply and post-reply, three repeats, frozen questions. Jev is a candidate signal. Scores are not sent to Kip. No prompt, obligation, or action change.
 
 ### 2026-09-19 — Jev Probe CLI consumer
 - `run-jev-codebase-xray.ts` now calls `runJevProbe` (reusable core). Same Code Map output. Does not mutate Keeper state.

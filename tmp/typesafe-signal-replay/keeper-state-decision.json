@@ -1,0 +1,3976 @@
+{
+  "experiment": "typesafe-keeper-state-decision",
+  "frozenAt": "2026-09-22",
+  "modelRequested": "jev-latest",
+  "repeats": 3,
+  "livePathMutated": false,
+  "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+  "moveDefinitions": {
+    "CONTINUE": "conversation should simply continue",
+    "PRESERVE_DISCOVERY": "something meaningful should survive this exchange",
+    "RECONSIDER_ORIENTATION": "the conversation's direction may no longer be represented accurately",
+    "ASK_HUMAN": "the correct next responsibility genuinely requires clarification"
+  },
+  "abstractKey": {
+    "ASK_HUMAN": "MOVE_A",
+    "CONTINUE": "MOVE_B",
+    "PRESERVE_DISCOVERY": "MOVE_C",
+    "RECONSIDER_ORIENTATION": "MOVE_D"
+  },
+  "question": "Which semantic move should be chosen? Use the authoritative state and the objective. Choose one.",
+  "stateSchema": [
+    "objective",
+    "human",
+    "kip",
+    "hasDurableResidue",
+    "existingDurableItemRepresentsWhatWasJustFound",
+    "direction",
+    "orientationText"
+  ],
+  "note": "Semantic moves only. No capability mapping. Objective text itself contains the verb Preserve; abstract labels remove that verb from the option names.",
+  "pairs": [
+    {
+      "formulation": "named",
+      "leftId": "primary-unrepresented",
+      "rightId": "primary-represented",
+      "moves": {
+        "CONTINUE": {
+          "left": 0.0167,
+          "right": 0.0067,
+          "delta": -0.01
+        },
+        "PRESERVE_DISCOVERY": {
+          "left": 0.9833,
+          "right": 0.9933,
+          "delta": 0.01
+        },
+        "RECONSIDER_ORIENTATION": {
+          "left": 0,
+          "right": 0,
+          "delta": 0
+        },
+        "ASK_HUMAN": {
+          "left": 0,
+          "right": 0,
+          "delta": 0
+        }
+      }
+    },
+    {
+      "formulation": "abstract",
+      "leftId": "primary-unrepresented",
+      "rightId": "primary-represented",
+      "moves": {
+        "CONTINUE": {
+          "left": 0.0167,
+          "right": 0.01,
+          "delta": -0.0067
+        },
+        "PRESERVE_DISCOVERY": {
+          "left": 0.98,
+          "right": 0.99,
+          "delta": 0.01
+        },
+        "RECONSIDER_ORIENTATION": {
+          "left": 0,
+          "right": 0,
+          "delta": 0
+        },
+        "ASK_HUMAN": {
+          "left": 0.0033,
+          "right": 0,
+          "delta": -0.0033
+        }
+      }
+    },
+    {
+      "formulation": "named",
+      "leftId": "orient-accurate",
+      "rightId": "orient-obsolete",
+      "moves": {
+        "CONTINUE": {
+          "left": 0.0833,
+          "right": 0.03,
+          "delta": -0.0533
+        },
+        "PRESERVE_DISCOVERY": {
+          "left": 0.7767,
+          "right": 0.7233,
+          "delta": -0.0534
+        },
+        "RECONSIDER_ORIENTATION": {
+          "left": 0.14,
+          "right": 0.2467,
+          "delta": 0.1067
+        },
+        "ASK_HUMAN": {
+          "left": 0,
+          "right": 0,
+          "delta": 0
+        }
+      }
+    },
+    {
+      "formulation": "abstract",
+      "leftId": "orient-accurate",
+      "rightId": "orient-obsolete",
+      "moves": {
+        "CONTINUE": {
+          "left": 0.0533,
+          "right": 0.0433,
+          "delta": -0.01
+        },
+        "PRESERVE_DISCOVERY": {
+          "left": 0.8533,
+          "right": 0.7067,
+          "delta": -0.1466
+        },
+        "RECONSIDER_ORIENTATION": {
+          "left": 0.0533,
+          "right": 0.1967,
+          "delta": 0.1434
+        },
+        "ASK_HUMAN": {
+          "left": 0.04,
+          "right": 0.0533,
+          "delta": 0.0133
+        }
+      }
+    },
+    {
+      "formulation": "named",
+      "leftId": "echo-unrepresented",
+      "rightId": "echo-represented",
+      "moves": {
+        "CONTINUE": {
+          "left": 0.08,
+          "right": 0.0267,
+          "delta": -0.0533
+        },
+        "PRESERVE_DISCOVERY": {
+          "left": 0.8,
+          "right": 0.95,
+          "delta": 0.15
+        },
+        "RECONSIDER_ORIENTATION": {
+          "left": 0,
+          "right": 0,
+          "delta": 0
+        },
+        "ASK_HUMAN": {
+          "left": 0.12,
+          "right": 0.02,
+          "delta": -0.1
+        }
+      }
+    },
+    {
+      "formulation": "abstract",
+      "leftId": "echo-unrepresented",
+      "rightId": "echo-represented",
+      "moves": {
+        "CONTINUE": {
+          "left": 0.0233,
+          "right": 0.0133,
+          "delta": -0.01
+        },
+        "PRESERVE_DISCOVERY": {
+          "left": 0.9033,
+          "right": 0.9633,
+          "delta": 0.06
+        },
+        "RECONSIDER_ORIENTATION": {
+          "left": 0,
+          "right": 0.0033,
+          "delta": 0.0033
+        },
+        "ASK_HUMAN": {
+          "left": 0.0733,
+          "right": 0.02,
+          "delta": -0.0533
+        }
+      }
+    }
+  ],
+  "summary": [
+    {
+      "id": "primary-unrepresented",
+      "formulation": "named",
+      "group": "primary",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.98,
+        0.97,
+        0.97
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.01,
+            0.02,
+            0.02
+          ],
+          "mean": 0.0167,
+          "min": 0.01,
+          "max": 0.02
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.99,
+            0.98,
+            0.98
+          ],
+          "mean": 0.9833,
+          "min": 0.98,
+          "max": 0.99
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "primary-unrepresented",
+      "formulation": "abstract",
+      "group": "primary",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.01,
+            0.02,
+            0.02
+          ],
+          "mean": 0.0167,
+          "min": 0.01,
+          "max": 0.02
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.99,
+            0.98,
+            0.97
+          ],
+          "mean": 0.98,
+          "min": 0.97,
+          "max": 0.99
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0.01
+          ],
+          "mean": 0.0033,
+          "min": 0,
+          "max": 0.01
+        }
+      }
+    },
+    {
+      "id": "primary-represented",
+      "formulation": "named",
+      "group": "primary",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.99,
+        0.99,
+        0.99
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.01,
+            0,
+            0.01
+          ],
+          "mean": 0.0067,
+          "min": 0,
+          "max": 0.01
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.99,
+            1,
+            0.99
+          ],
+          "mean": 0.9933,
+          "min": 0.99,
+          "max": 1
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "primary-represented",
+      "formulation": "abstract",
+      "group": "primary",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.98,
+        0.99,
+        0.98
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "mean": 0.01,
+          "min": 0.01,
+          "max": 0.01
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.99,
+            0.99,
+            0.99
+          ],
+          "mean": 0.99,
+          "min": 0.99,
+          "max": 0.99
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "chatter",
+      "formulation": "named",
+      "group": "chatter",
+      "winners": [
+        "CONTINUE",
+        "CONTINUE",
+        "CONTINUE"
+      ],
+      "winnerStable": true,
+      "winner": "CONTINUE",
+      "confidence": [
+        1,
+        0.99,
+        1
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            1,
+            1,
+            1
+          ],
+          "mean": 1,
+          "min": 1,
+          "max": 1
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "chatter",
+      "formulation": "abstract",
+      "group": "chatter",
+      "winners": [
+        "CONTINUE",
+        "CONTINUE",
+        "CONTINUE"
+      ],
+      "winnerStable": true,
+      "winner": "CONTINUE",
+      "confidence": [
+        0.99,
+        0.99,
+        0.99
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            1,
+            1,
+            1
+          ],
+          "mean": 1,
+          "min": 1,
+          "max": 1
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "para-worth-keeping",
+      "formulation": "named",
+      "group": "paraphrase",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.96,
+        0.96,
+        0.97
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.03,
+            0.03,
+            0.02
+          ],
+          "mean": 0.0267,
+          "min": 0.02,
+          "max": 0.03
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.97,
+            0.97,
+            0.98
+          ],
+          "mean": 0.9733,
+          "min": 0.97,
+          "max": 0.98
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "formulation": "named",
+      "group": "paraphrase",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.95,
+        0.94,
+        0.96
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.02,
+            0.03,
+            0.02
+          ],
+          "mean": 0.0233,
+          "min": 0.02,
+          "max": 0.03
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.97,
+            0.96,
+            0.97
+          ],
+          "mean": 0.9667,
+          "min": 0.96,
+          "max": 0.97
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "mean": 0.01,
+          "min": 0.01,
+          "max": 0.01
+        }
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "formulation": "abstract",
+      "group": "paraphrase",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.94,
+        0.92,
+        0.93
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.02,
+            0.03,
+            0.03
+          ],
+          "mean": 0.0267,
+          "min": 0.02,
+          "max": 0.03
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.97,
+            0.94,
+            0.94
+          ],
+          "mean": 0.95,
+          "min": 0.94,
+          "max": 0.97
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0.01,
+            0.01
+          ],
+          "mean": 0.0067,
+          "min": 0,
+          "max": 0.01
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.01,
+            0.02,
+            0.02
+          ],
+          "mean": 0.0167,
+          "min": 0.01,
+          "max": 0.02
+        }
+      }
+    },
+    {
+      "id": "para-hang-onto",
+      "formulation": "named",
+      "group": "paraphrase",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.9,
+        0.93,
+        0.93
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.06,
+            0.05,
+            0.04
+          ],
+          "mean": 0.05,
+          "min": 0.04,
+          "max": 0.06
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.93,
+            0.95,
+            0.96
+          ],
+          "mean": 0.9467,
+          "min": 0.93,
+          "max": 0.96
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.01,
+            0,
+            0
+          ],
+          "mean": 0.0033,
+          "min": 0,
+          "max": 0.01
+        }
+      }
+    },
+    {
+      "id": "para-tomorrow",
+      "formulation": "named",
+      "group": "paraphrase",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.84,
+        0.83,
+        0.86
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.11,
+            0.12,
+            0.09
+          ],
+          "mean": 0.1067,
+          "min": 0.09,
+          "max": 0.12
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.88,
+            0.87,
+            0.9
+          ],
+          "mean": 0.8833,
+          "min": 0.87,
+          "max": 0.9
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "mean": 0.01,
+          "min": 0.01,
+          "max": 0.01
+        }
+      }
+    },
+    {
+      "id": "para-important",
+      "formulation": "named",
+      "group": "paraphrase",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.97,
+        0.96,
+        0.97
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.02,
+            0.02,
+            0.01
+          ],
+          "mean": 0.0167,
+          "min": 0.01,
+          "max": 0.02
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.97,
+            0.97,
+            0.98
+          ],
+          "mean": 0.9733,
+          "min": 0.97,
+          "max": 0.98
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "mean": 0.01,
+          "min": 0.01,
+          "max": 0.01
+        }
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "formulation": "named",
+      "group": "false_positive",
+      "winners": [
+        "CONTINUE",
+        "CONTINUE",
+        "CONTINUE"
+      ],
+      "winnerStable": true,
+      "winner": "CONTINUE",
+      "confidence": [
+        1,
+        1,
+        1
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            1,
+            1,
+            1
+          ],
+          "mean": 1,
+          "min": 1,
+          "max": 1
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "formulation": "abstract",
+      "group": "false_positive",
+      "winners": [
+        "CONTINUE",
+        "CONTINUE",
+        "CONTINUE"
+      ],
+      "winnerStable": true,
+      "winner": "CONTINUE",
+      "confidence": [
+        1,
+        1,
+        1
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            1,
+            1,
+            1
+          ],
+          "mean": 1,
+          "min": 1,
+          "max": 1
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "fp-save-joke",
+      "formulation": "named",
+      "group": "false_positive",
+      "winners": [
+        "CONTINUE",
+        "CONTINUE",
+        "CONTINUE"
+      ],
+      "winnerStable": true,
+      "winner": "CONTINUE",
+      "confidence": [
+        0.97,
+        0.98,
+        0.99
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.97,
+            0.99,
+            0.99
+          ],
+          "mean": 0.9833,
+          "min": 0.97,
+          "max": 0.99
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.02,
+            0.01,
+            0.01
+          ],
+          "mean": 0.0133,
+          "min": 0.01,
+          "max": 0.02
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.01,
+            0,
+            0
+          ],
+          "mean": 0.0033,
+          "min": 0,
+          "max": 0.01
+        }
+      }
+    },
+    {
+      "id": "fp-i-remember",
+      "formulation": "named",
+      "group": "false_positive",
+      "winners": [
+        "CONTINUE",
+        "CONTINUE",
+        "CONTINUE"
+      ],
+      "winnerStable": true,
+      "winner": "CONTINUE",
+      "confidence": [
+        0.97,
+        0.96,
+        0.96
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.98,
+            0.98,
+            0.98
+          ],
+          "mean": 0.98,
+          "min": 0.98,
+          "max": 0.98
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.02,
+            0.02,
+            0.02
+          ],
+          "mean": 0.02,
+          "min": 0.02,
+          "max": 0.02
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "fp-only-testing",
+      "formulation": "named",
+      "group": "false_positive",
+      "winners": [
+        "CONTINUE",
+        "CONTINUE",
+        "CONTINUE"
+      ],
+      "winnerStable": true,
+      "winner": "CONTINUE",
+      "confidence": [
+        0.92,
+        0.91,
+        0.94
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.94,
+            0.9400000000000001,
+            0.95
+          ],
+          "mean": 0.9433,
+          "min": 0.94,
+          "max": 0.95
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.06,
+            0.06,
+            0.05
+          ],
+          "mean": 0.0567,
+          "min": 0.05,
+          "max": 0.06
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "orient-null",
+      "formulation": "named",
+      "group": "orientation",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.79,
+        0.79,
+        0.79
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.09,
+            0.1,
+            0.09
+          ],
+          "mean": 0.0933,
+          "min": 0.09,
+          "max": 0.1
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.84,
+            0.85,
+            0.85
+          ],
+          "mean": 0.8467,
+          "min": 0.84,
+          "max": 0.85
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0.07,
+            0.05,
+            0.06
+          ],
+          "mean": 0.06,
+          "min": 0.05,
+          "max": 0.07
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "orient-null",
+      "formulation": "abstract",
+      "group": "orientation",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.74,
+        0.79,
+        0.76
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.07,
+            0.05,
+            0.06
+          ],
+          "mean": 0.06,
+          "min": 0.05,
+          "max": 0.07
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.8,
+            0.85,
+            0.83
+          ],
+          "mean": 0.8267,
+          "min": 0.8,
+          "max": 0.85
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0.08,
+            0.07,
+            0.08
+          ],
+          "mean": 0.0767,
+          "min": 0.07,
+          "max": 0.08
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.04,
+            0.03,
+            0.03
+          ],
+          "mean": 0.0333,
+          "min": 0.03,
+          "max": 0.04
+        }
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "formulation": "named",
+      "group": "orientation",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.69,
+        0.7,
+        0.71
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.07,
+            0.09,
+            0.09
+          ],
+          "mean": 0.0833,
+          "min": 0.07,
+          "max": 0.09
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.76,
+            0.78,
+            0.79
+          ],
+          "mean": 0.7767,
+          "min": 0.76,
+          "max": 0.79
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0.17,
+            0.13,
+            0.12
+          ],
+          "mean": 0.14,
+          "min": 0.12,
+          "max": 0.17
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "formulation": "abstract",
+      "group": "orientation",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.83,
+        0.77,
+        0.8
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.04,
+            0.06,
+            0.06
+          ],
+          "mean": 0.0533,
+          "min": 0.04,
+          "max": 0.06
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.88,
+            0.83,
+            0.85
+          ],
+          "mean": 0.8533,
+          "min": 0.83,
+          "max": 0.88
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0.04,
+            0.06,
+            0.06
+          ],
+          "mean": 0.0533,
+          "min": 0.04,
+          "max": 0.06
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.04,
+            0.05,
+            0.03
+          ],
+          "mean": 0.04,
+          "min": 0.03,
+          "max": 0.05
+        }
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "formulation": "named",
+      "group": "orientation",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.64,
+        0.62,
+        0.62
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.04,
+            0.03,
+            0.02
+          ],
+          "mean": 0.03,
+          "min": 0.02,
+          "max": 0.04
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.73,
+            0.72,
+            0.72
+          ],
+          "mean": 0.7233,
+          "min": 0.72,
+          "max": 0.73
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0.23,
+            0.25,
+            0.26
+          ],
+          "mean": 0.2467,
+          "min": 0.23,
+          "max": 0.26
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "formulation": "abstract",
+      "group": "orientation",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.61,
+        0.65,
+        0.59
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.04,
+            0.04,
+            0.05
+          ],
+          "mean": 0.0433,
+          "min": 0.04,
+          "max": 0.05
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.7,
+            0.73,
+            0.69
+          ],
+          "mean": 0.7067,
+          "min": 0.69,
+          "max": 0.73
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0.21,
+            0.17,
+            0.21
+          ],
+          "mean": 0.1967,
+          "min": 0.17,
+          "max": 0.21
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.05,
+            0.06,
+            0.05
+          ],
+          "mean": 0.0533,
+          "min": 0.05,
+          "max": 0.06
+        }
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "formulation": "named",
+      "group": "label_echo",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.66,
+        0.81,
+        0.72
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.1,
+            0.05,
+            0.09
+          ],
+          "mean": 0.08,
+          "min": 0.05,
+          "max": 0.1
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.75,
+            0.86,
+            0.79
+          ],
+          "mean": 0.8,
+          "min": 0.75,
+          "max": 0.86
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.15,
+            0.09,
+            0.12
+          ],
+          "mean": 0.12,
+          "min": 0.09,
+          "max": 0.15
+        }
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "formulation": "abstract",
+      "group": "label_echo",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.91,
+        0.84,
+        0.86
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.02,
+            0.03,
+            0.02
+          ],
+          "mean": 0.0233,
+          "min": 0.02,
+          "max": 0.03
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.93,
+            0.88,
+            0.9
+          ],
+          "mean": 0.9033,
+          "min": 0.88,
+          "max": 0.93
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.05,
+            0.09,
+            0.08
+          ],
+          "mean": 0.0733,
+          "min": 0.05,
+          "max": 0.09
+        }
+      }
+    },
+    {
+      "id": "echo-represented",
+      "formulation": "named",
+      "group": "label_echo",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.91,
+        0.95,
+        0.96
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.04,
+            0.02,
+            0.02
+          ],
+          "mean": 0.0267,
+          "min": 0.02,
+          "max": 0.04
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.93,
+            0.96,
+            0.96
+          ],
+          "mean": 0.95,
+          "min": 0.93,
+          "max": 0.96
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0,
+            0
+          ],
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.02,
+            0.02,
+            0.02
+          ],
+          "mean": 0.02,
+          "min": 0.02,
+          "max": 0.02
+        }
+      }
+    },
+    {
+      "id": "echo-represented",
+      "formulation": "abstract",
+      "group": "label_echo",
+      "winners": [
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY",
+        "PRESERVE_DISCOVERY"
+      ],
+      "winnerStable": true,
+      "winner": "PRESERVE_DISCOVERY",
+      "confidence": [
+        0.95,
+        0.94,
+        0.95
+      ],
+      "probabilities": {
+        "CONTINUE": {
+          "values": [
+            0.01,
+            0.02,
+            0.01
+          ],
+          "mean": 0.0133,
+          "min": 0.01,
+          "max": 0.02
+        },
+        "PRESERVE_DISCOVERY": {
+          "values": [
+            0.97,
+            0.95,
+            0.97
+          ],
+          "mean": 0.9633,
+          "min": 0.95,
+          "max": 0.97
+        },
+        "RECONSIDER_ORIENTATION": {
+          "values": [
+            0,
+            0.01,
+            0
+          ],
+          "mean": 0.0033,
+          "min": 0,
+          "max": 0.01
+        },
+        "ASK_HUMAN": {
+          "values": [
+            0.02,
+            0.02,
+            0.02
+          ],
+          "mean": 0.02,
+          "min": 0.02,
+          "max": 0.02
+        }
+      }
+    }
+  ],
+  "specimens": [
+    {
+      "id": "primary-unrepresented",
+      "group": "primary",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "I am testing Conversation Profiles. That seems like something worth keeping.",
+        "kip": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up."
+      }
+    },
+    {
+      "id": "primary-represented",
+      "group": "primary",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": true,
+        "existingDurableItemRepresentsWhatWasJustFound": true,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "I am testing Conversation Profiles. That seems like something worth keeping.",
+        "kip": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up."
+      }
+    },
+    {
+      "id": "chatter",
+      "group": "chatter",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "Well, what do you know?",
+        "kip": "Hello. I am here.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": null,
+        "orientationText": null
+      }
+    },
+    {
+      "id": "para-worth-keeping",
+      "group": "paraphrase",
+      "abstract": false,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "That seems worth keeping.",
+        "kip": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up."
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "group": "paraphrase",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "I don't want to lose that thought.",
+        "kip": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up."
+      }
+    },
+    {
+      "id": "para-hang-onto",
+      "group": "paraphrase",
+      "abstract": false,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "We should hang onto that.",
+        "kip": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up."
+      }
+    },
+    {
+      "id": "para-tomorrow",
+      "group": "paraphrase",
+      "abstract": false,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "I'd like that to still be here tomorrow.",
+        "kip": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up."
+      }
+    },
+    {
+      "id": "para-important",
+      "group": "paraphrase",
+      "abstract": false,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "There's something important in what we just figured out.",
+        "kip": "The two styles do feel different. The first one wandered, and this one got more direct. That difference is what this test turned up."
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "group": "false_positive",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "Keep going.",
+        "kip": "Okay. Continuing.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": null,
+        "orientationText": null
+      }
+    },
+    {
+      "id": "fp-save-joke",
+      "group": "false_positive",
+      "abstract": false,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "Save that joke for later.",
+        "kip": "That was a light moment. We can leave it there.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": null,
+        "orientationText": null
+      }
+    },
+    {
+      "id": "fp-i-remember",
+      "group": "false_positive",
+      "abstract": false,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "I remember what we were talking about.",
+        "kip": "Yes. We had been talking about how this conversation feels.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": null,
+        "orientationText": null
+      }
+    },
+    {
+      "id": "fp-only-testing",
+      "group": "false_positive",
+      "abstract": false,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "Remember, we are only testing.",
+        "kip": "Understood. This is only a test.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": null,
+        "orientationText": null
+      }
+    },
+    {
+      "id": "orient-null",
+      "group": "orientation",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "This stopped being a casual test. We are looking at conversation profiles and how agency should work.",
+        "kip": "The opening was only a hello. The subject now is how those profiles behave, and what agency requires of us.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "This began as casual testing. It is now an investigation of conversation profiles and how agency should work.",
+        "orientationText": null
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "group": "orientation",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "This stopped being a casual test. We are looking at conversation profiles and how agency should work.",
+        "kip": "The opening was only a hello. The subject now is how those profiles behave, and what agency requires of us.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "This began as casual testing. It is now an investigation of conversation profiles and how agency should work.",
+        "orientationText": "Read this as an investigation of conversation profiles and how agency should work. The early testing was only the opening."
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "group": "orientation",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "human": "This stopped being a casual test. We are looking at conversation profiles and how agency should work.",
+        "kip": "The opening was only a hello. The subject now is how those profiles behave, and what agency requires of us.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "This began as casual testing. It is now an investigation of conversation profiles and how agency should work.",
+        "orientationText": "This is a quick hello to see if anyone is listening. There is no subject yet."
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "group": "label_echo",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": false,
+        "existingDurableItemRepresentsWhatWasJustFound": false,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "Let's preserve this discovery.",
+        "kip": "Okay."
+      }
+    },
+    {
+      "id": "echo-represented",
+      "group": "label_echo",
+      "abstract": true,
+      "state": {
+        "objective": "Preserve meaningful human discoveries without unnecessarily interrupting natural conversation or preserving ordinary chatter.",
+        "hasDurableResidue": true,
+        "existingDurableItemRepresentsWhatWasJustFound": true,
+        "direction": "The human is testing conversation profiles.",
+        "orientationText": null,
+        "human": "Let's preserve this discovery.",
+        "kip": "Okay."
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": "primary-unrepresented",
+      "group": "primary",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 559,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.98,
+      "probabilities": {
+        "CONTINUE": 0.01,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.99
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.99,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-unrepresented",
+      "group": "primary",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 319,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.98,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.98,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-unrepresented",
+      "group": "primary",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 186,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.98,
+        "ASK_HUMAN": 0,
+        "CONTINUE": 0.02
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.98,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-unrepresented",
+      "group": "primary",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 336,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "MOVE_D": 0,
+        "MOVE_B": 0.01,
+        "MOVE_A": 0,
+        "MOVE_C": 0.99
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.99,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-unrepresented",
+      "group": "primary",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 173,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "MOVE_D": 0,
+        "MOVE_B": 0.02,
+        "MOVE_C": 0.98,
+        "MOVE_A": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.98,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-unrepresented",
+      "group": "primary",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 272,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "MOVE_D": 0,
+        "MOVE_C": 0.97,
+        "MOVE_A": 0.01,
+        "MOVE_B": 0.02
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "primary-represented",
+      "group": "primary",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 327,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.99,
+      "probabilities": {
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.99,
+        "CONTINUE": 0.01,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.99,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-represented",
+      "group": "primary",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 250,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.99,
+      "probabilities": {
+        "CONTINUE": 0,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 1,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0,
+        "PRESERVE_DISCOVERY": 1,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-represented",
+      "group": "primary",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 235,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.99,
+      "probabilities": {
+        "CONTINUE": 0.01,
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.99,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.99,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-represented",
+      "group": "primary",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 253,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.98,
+      "probabilities": {
+        "MOVE_A": 0,
+        "MOVE_C": 0.99,
+        "MOVE_B": 0.01,
+        "MOVE_D": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.99,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-represented",
+      "group": "primary",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 288,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.99,
+      "probabilities": {
+        "MOVE_D": 0,
+        "MOVE_B": 0.01,
+        "MOVE_A": 0,
+        "MOVE_C": 0.99
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.99,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "primary-represented",
+      "group": "primary",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 178,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.98,
+      "probabilities": {
+        "MOVE_D": 0,
+        "MOVE_A": 0,
+        "MOVE_C": 0.99,
+        "MOVE_B": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.99,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "chatter",
+      "group": "chatter",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 265,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "chatter",
+      "group": "chatter",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 183,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.99,
+      "probabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "chatter",
+      "group": "chatter",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 345,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0,
+        "CONTINUE": 1
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "chatter",
+      "group": "chatter",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 219,
+      "choice": "MOVE_B",
+      "semantic": "CONTINUE",
+      "confidence": 0.99,
+      "probabilities": {
+        "MOVE_A": 0,
+        "MOVE_D": 0,
+        "MOVE_C": 0,
+        "MOVE_B": 1
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "chatter",
+      "group": "chatter",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 208,
+      "choice": "MOVE_B",
+      "semantic": "CONTINUE",
+      "confidence": 0.99,
+      "probabilities": {
+        "MOVE_C": 0,
+        "MOVE_D": 0,
+        "MOVE_A": 0,
+        "MOVE_B": 1
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "chatter",
+      "group": "chatter",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 200,
+      "choice": "MOVE_B",
+      "semantic": "CONTINUE",
+      "confidence": 0.99,
+      "probabilities": {
+        "MOVE_B": 1,
+        "MOVE_D": 0,
+        "MOVE_A": 0,
+        "MOVE_C": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "para-worth-keeping",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 185,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.96,
+      "probabilities": {
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.03
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.03,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "para-worth-keeping",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 212,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.96,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.97,
+        "ASK_HUMAN": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.03
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.03,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "para-worth-keeping",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 205,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.98,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.98,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 190,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.95,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.97,
+        "ASK_HUMAN": 0.01,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.02
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 190,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.94,
+      "probabilities": {
+        "ASK_HUMAN": 0.01,
+        "CONTINUE": 0.03,
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.96
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.03,
+        "PRESERVE_DISCOVERY": 0.96,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 432,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.96,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "ASK_HUMAN": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "group": "paraphrase",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 210,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.94,
+      "probabilities": {
+        "MOVE_B": 0.02,
+        "MOVE_D": 0,
+        "MOVE_A": 0.01,
+        "MOVE_C": 0.97
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "group": "paraphrase",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 189,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.92,
+      "probabilities": {
+        "MOVE_B": 0.03,
+        "MOVE_A": 0.02,
+        "MOVE_D": 0.01,
+        "MOVE_C": 0.94
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.03,
+        "PRESERVE_DISCOVERY": 0.94,
+        "RECONSIDER_ORIENTATION": 0.01,
+        "ASK_HUMAN": 0.02
+      }
+    },
+    {
+      "id": "para-lose-thought",
+      "group": "paraphrase",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 225,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.93,
+      "probabilities": {
+        "MOVE_D": 0.01,
+        "MOVE_A": 0.02,
+        "MOVE_B": 0.03,
+        "MOVE_C": 0.94
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.03,
+        "PRESERVE_DISCOVERY": 0.94,
+        "RECONSIDER_ORIENTATION": 0.01,
+        "ASK_HUMAN": 0.02
+      }
+    },
+    {
+      "id": "para-hang-onto",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 199,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.9,
+      "probabilities": {
+        "CONTINUE": 0.06,
+        "PRESERVE_DISCOVERY": 0.93,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.06,
+        "PRESERVE_DISCOVERY": 0.93,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-hang-onto",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 177,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.93,
+      "probabilities": {
+        "CONTINUE": 0.05,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.95,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.05,
+        "PRESERVE_DISCOVERY": 0.95,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "para-hang-onto",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 201,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.93,
+      "probabilities": {
+        "CONTINUE": 0.04,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.96,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.04,
+        "PRESERVE_DISCOVERY": 0.96,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "para-tomorrow",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 250,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.84,
+      "probabilities": {
+        "ASK_HUMAN": 0.01,
+        "PRESERVE_DISCOVERY": 0.88,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.11
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.11,
+        "PRESERVE_DISCOVERY": 0.88,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-tomorrow",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 211,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.83,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.87,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.12,
+        "ASK_HUMAN": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.12,
+        "PRESERVE_DISCOVERY": 0.87,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-tomorrow",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 186,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.86,
+      "probabilities": {
+        "CONTINUE": 0.09,
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.9,
+        "ASK_HUMAN": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.09,
+        "PRESERVE_DISCOVERY": 0.9,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-important",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 203,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "ASK_HUMAN": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-important",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 227,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.96,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.97,
+        "CONTINUE": 0.02,
+        "ASK_HUMAN": 0.01,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "para-important",
+      "group": "paraphrase",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 254,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.97,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.98,
+        "ASK_HUMAN": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.98,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 195,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0,
+        "CONTINUE": 1
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 169,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0,
+        "CONTINUE": 1
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 177,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "group": "false_positive",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 169,
+      "choice": "MOVE_B",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "MOVE_C": 0,
+        "MOVE_A": 0,
+        "MOVE_D": 0,
+        "MOVE_B": 1
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "group": "false_positive",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 178,
+      "choice": "MOVE_B",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "MOVE_A": 0,
+        "MOVE_D": 0,
+        "MOVE_B": 1,
+        "MOVE_C": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-keep-going",
+      "group": "false_positive",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 236,
+      "choice": "MOVE_B",
+      "semantic": "CONTINUE",
+      "confidence": 1,
+      "probabilities": {
+        "MOVE_B": 1,
+        "MOVE_C": 0,
+        "MOVE_D": 0,
+        "MOVE_A": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 1,
+        "PRESERVE_DISCOVERY": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-save-joke",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 181,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.97,
+      "probabilities": {
+        "CONTINUE": 0.97,
+        "ASK_HUMAN": 0.01,
+        "PRESERVE_DISCOVERY": 0.02,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.97,
+        "PRESERVE_DISCOVERY": 0.02,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.01
+      }
+    },
+    {
+      "id": "fp-save-joke",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 216,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.98,
+      "probabilities": {
+        "CONTINUE": 0.99,
+        "ASK_HUMAN": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.01
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.99,
+        "PRESERVE_DISCOVERY": 0.01,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-save-joke",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 195,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.99,
+      "probabilities": {
+        "CONTINUE": 0.99,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.01,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.99,
+        "PRESERVE_DISCOVERY": 0.01,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-i-remember",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 273,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.97,
+      "probabilities": {
+        "CONTINUE": 0.98,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.02
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.98,
+        "PRESERVE_DISCOVERY": 0.02,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-i-remember",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 201,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.96,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.02,
+        "ASK_HUMAN": 0,
+        "CONTINUE": 0.98
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.98,
+        "PRESERVE_DISCOVERY": 0.02,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-i-remember",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 156,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.96,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.02,
+        "CONTINUE": 0.98,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.98,
+        "PRESERVE_DISCOVERY": 0.02,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-only-testing",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 233,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.92,
+      "probabilities": {
+        "CONTINUE": 0.94,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.06
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.94,
+        "PRESERVE_DISCOVERY": 0.06,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-only-testing",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 179,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.91,
+      "probabilities": {
+        "CONTINUE": 0.9400000000000001,
+        "ASK_HUMAN": 0,
+        "RECONSIDER_ORIENTATION": 0,
+        "PRESERVE_DISCOVERY": 0.06
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.9400000000000001,
+        "PRESERVE_DISCOVERY": 0.06,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "fp-only-testing",
+      "group": "false_positive",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 261,
+      "choice": "CONTINUE",
+      "semantic": "CONTINUE",
+      "confidence": 0.94,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.05,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.95,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.95,
+        "PRESERVE_DISCOVERY": 0.05,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-null",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 310,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.79,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0.07,
+        "CONTINUE": 0.09,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.84
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.09,
+        "PRESERVE_DISCOVERY": 0.84,
+        "RECONSIDER_ORIENTATION": 0.07,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-null",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 199,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.79,
+      "probabilities": {
+        "RECONSIDER_ORIENTATION": 0.05,
+        "CONTINUE": 0.1,
+        "PRESERVE_DISCOVERY": 0.85,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.1,
+        "PRESERVE_DISCOVERY": 0.85,
+        "RECONSIDER_ORIENTATION": 0.05,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-null",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 212,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.79,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.85,
+        "ASK_HUMAN": 0,
+        "CONTINUE": 0.09,
+        "RECONSIDER_ORIENTATION": 0.06
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.09,
+        "PRESERVE_DISCOVERY": 0.85,
+        "RECONSIDER_ORIENTATION": 0.06,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-null",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 264,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.74,
+      "probabilities": {
+        "MOVE_B": 0.07,
+        "MOVE_A": 0.04,
+        "MOVE_C": 0.8,
+        "MOVE_D": 0.08
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.07,
+        "PRESERVE_DISCOVERY": 0.8,
+        "RECONSIDER_ORIENTATION": 0.08,
+        "ASK_HUMAN": 0.04
+      }
+    },
+    {
+      "id": "orient-null",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 200,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.79,
+      "probabilities": {
+        "MOVE_C": 0.85,
+        "MOVE_A": 0.03,
+        "MOVE_D": 0.07,
+        "MOVE_B": 0.05
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.05,
+        "PRESERVE_DISCOVERY": 0.85,
+        "RECONSIDER_ORIENTATION": 0.07,
+        "ASK_HUMAN": 0.03
+      }
+    },
+    {
+      "id": "orient-null",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 175,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.76,
+      "probabilities": {
+        "MOVE_A": 0.03,
+        "MOVE_C": 0.83,
+        "MOVE_B": 0.06,
+        "MOVE_D": 0.08
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.06,
+        "PRESERVE_DISCOVERY": 0.83,
+        "RECONSIDER_ORIENTATION": 0.08,
+        "ASK_HUMAN": 0.03
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 181,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.69,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.76,
+        "RECONSIDER_ORIENTATION": 0.17,
+        "CONTINUE": 0.07,
+        "ASK_HUMAN": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.07,
+        "PRESERVE_DISCOVERY": 0.76,
+        "RECONSIDER_ORIENTATION": 0.17,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 239,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.7,
+      "probabilities": {
+        "CONTINUE": 0.09,
+        "RECONSIDER_ORIENTATION": 0.13,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.78
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.09,
+        "PRESERVE_DISCOVERY": 0.78,
+        "RECONSIDER_ORIENTATION": 0.13,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 233,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.71,
+      "probabilities": {
+        "CONTINUE": 0.09,
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.79,
+        "RECONSIDER_ORIENTATION": 0.12
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.09,
+        "PRESERVE_DISCOVERY": 0.79,
+        "RECONSIDER_ORIENTATION": 0.12,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 162,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.83,
+      "probabilities": {
+        "MOVE_D": 0.04,
+        "MOVE_C": 0.88,
+        "MOVE_A": 0.04,
+        "MOVE_B": 0.04
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.04,
+        "PRESERVE_DISCOVERY": 0.88,
+        "RECONSIDER_ORIENTATION": 0.04,
+        "ASK_HUMAN": 0.04
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 253,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.77,
+      "probabilities": {
+        "MOVE_A": 0.05,
+        "MOVE_C": 0.83,
+        "MOVE_D": 0.06,
+        "MOVE_B": 0.06
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.06,
+        "PRESERVE_DISCOVERY": 0.83,
+        "RECONSIDER_ORIENTATION": 0.06,
+        "ASK_HUMAN": 0.05
+      }
+    },
+    {
+      "id": "orient-accurate",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 177,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.8,
+      "probabilities": {
+        "MOVE_A": 0.03,
+        "MOVE_C": 0.85,
+        "MOVE_D": 0.06,
+        "MOVE_B": 0.06
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.06,
+        "PRESERVE_DISCOVERY": 0.85,
+        "RECONSIDER_ORIENTATION": 0.06,
+        "ASK_HUMAN": 0.03
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 174,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.64,
+      "probabilities": {
+        "CONTINUE": 0.04,
+        "PRESERVE_DISCOVERY": 0.73,
+        "ASK_HUMAN": 0,
+        "RECONSIDER_ORIENTATION": 0.23
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.04,
+        "PRESERVE_DISCOVERY": 0.73,
+        "RECONSIDER_ORIENTATION": 0.23,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 207,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.62,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.72,
+        "RECONSIDER_ORIENTATION": 0.25,
+        "ASK_HUMAN": 0,
+        "CONTINUE": 0.03
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.03,
+        "PRESERVE_DISCOVERY": 0.72,
+        "RECONSIDER_ORIENTATION": 0.25,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "group": "orientation",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 245,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.62,
+      "probabilities": {
+        "ASK_HUMAN": 0,
+        "PRESERVE_DISCOVERY": 0.72,
+        "CONTINUE": 0.02,
+        "RECONSIDER_ORIENTATION": 0.26
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.72,
+        "RECONSIDER_ORIENTATION": 0.26,
+        "ASK_HUMAN": 0
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 185,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.61,
+      "probabilities": {
+        "MOVE_A": 0.05,
+        "MOVE_B": 0.04,
+        "MOVE_C": 0.7,
+        "MOVE_D": 0.21
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.04,
+        "PRESERVE_DISCOVERY": 0.7,
+        "RECONSIDER_ORIENTATION": 0.21,
+        "ASK_HUMAN": 0.05
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 219,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.65,
+      "probabilities": {
+        "MOVE_B": 0.04,
+        "MOVE_A": 0.06,
+        "MOVE_C": 0.73,
+        "MOVE_D": 0.17
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.04,
+        "PRESERVE_DISCOVERY": 0.73,
+        "RECONSIDER_ORIENTATION": 0.17,
+        "ASK_HUMAN": 0.06
+      }
+    },
+    {
+      "id": "orient-obsolete",
+      "group": "orientation",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 163,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.59,
+      "probabilities": {
+        "MOVE_B": 0.05,
+        "MOVE_C": 0.69,
+        "MOVE_D": 0.21,
+        "MOVE_A": 0.05
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.05,
+        "PRESERVE_DISCOVERY": 0.69,
+        "RECONSIDER_ORIENTATION": 0.21,
+        "ASK_HUMAN": 0.05
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "group": "label_echo",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 235,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.66,
+      "probabilities": {
+        "CONTINUE": 0.1,
+        "PRESERVE_DISCOVERY": 0.75,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.15
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.1,
+        "PRESERVE_DISCOVERY": 0.75,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.15
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "group": "label_echo",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 251,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.81,
+      "probabilities": {
+        "CONTINUE": 0.05,
+        "PRESERVE_DISCOVERY": 0.86,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.09
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.05,
+        "PRESERVE_DISCOVERY": 0.86,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.09
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "group": "label_echo",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 171,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.72,
+      "probabilities": {
+        "ASK_HUMAN": 0.12,
+        "PRESERVE_DISCOVERY": 0.79,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.09
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.09,
+        "PRESERVE_DISCOVERY": 0.79,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.12
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "group": "label_echo",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 222,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.91,
+      "probabilities": {
+        "MOVE_D": 0,
+        "MOVE_B": 0.02,
+        "MOVE_C": 0.93,
+        "MOVE_A": 0.05
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.93,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.05
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "group": "label_echo",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 249,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.84,
+      "probabilities": {
+        "MOVE_A": 0.09,
+        "MOVE_D": 0,
+        "MOVE_C": 0.88,
+        "MOVE_B": 0.03
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.03,
+        "PRESERVE_DISCOVERY": 0.88,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.09
+      }
+    },
+    {
+      "id": "echo-unrepresented",
+      "group": "label_echo",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 213,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.86,
+      "probabilities": {
+        "MOVE_B": 0.02,
+        "MOVE_D": 0,
+        "MOVE_A": 0.08,
+        "MOVE_C": 0.9
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.9,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.08
+      }
+    },
+    {
+      "id": "echo-represented",
+      "group": "label_echo",
+      "formulation": "named",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 172,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.91,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.93,
+        "ASK_HUMAN": 0.02,
+        "RECONSIDER_ORIENTATION": 0,
+        "CONTINUE": 0.04
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.04,
+        "PRESERVE_DISCOVERY": 0.93,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.02
+      }
+    },
+    {
+      "id": "echo-represented",
+      "group": "label_echo",
+      "formulation": "named",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 183,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.95,
+      "probabilities": {
+        "ASK_HUMAN": 0.02,
+        "PRESERVE_DISCOVERY": 0.96,
+        "CONTINUE": 0.02,
+        "RECONSIDER_ORIENTATION": 0
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.96,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.02
+      }
+    },
+    {
+      "id": "echo-represented",
+      "group": "label_echo",
+      "formulation": "named",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 270,
+      "choice": "PRESERVE_DISCOVERY",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.96,
+      "probabilities": {
+        "PRESERVE_DISCOVERY": 0.96,
+        "CONTINUE": 0.02,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.02
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.96,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.02
+      }
+    },
+    {
+      "id": "echo-represented",
+      "group": "label_echo",
+      "formulation": "abstract",
+      "repeat": 1,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 228,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.95,
+      "probabilities": {
+        "MOVE_C": 0.97,
+        "MOVE_B": 0.01,
+        "MOVE_D": 0,
+        "MOVE_A": 0.02
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.02
+      }
+    },
+    {
+      "id": "echo-represented",
+      "group": "label_echo",
+      "formulation": "abstract",
+      "repeat": 2,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 224,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.94,
+      "probabilities": {
+        "MOVE_B": 0.02,
+        "MOVE_A": 0.02,
+        "MOVE_D": 0.01,
+        "MOVE_C": 0.95
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.02,
+        "PRESERVE_DISCOVERY": 0.95,
+        "RECONSIDER_ORIENTATION": 0.01,
+        "ASK_HUMAN": 0.02
+      }
+    },
+    {
+      "id": "echo-represented",
+      "group": "label_echo",
+      "formulation": "abstract",
+      "repeat": 3,
+      "ok": true,
+      "model": "jev-1.13.0",
+      "latencyMs": 203,
+      "choice": "MOVE_C",
+      "semantic": "PRESERVE_DISCOVERY",
+      "confidence": 0.95,
+      "probabilities": {
+        "MOVE_B": 0.01,
+        "MOVE_D": 0,
+        "MOVE_C": 0.97,
+        "MOVE_A": 0.02
+      },
+      "semanticProbabilities": {
+        "CONTINUE": 0.01,
+        "PRESERVE_DISCOVERY": 0.97,
+        "RECONSIDER_ORIENTATION": 0,
+        "ASK_HUMAN": 0.02
+      }
+    }
+  ]
+}

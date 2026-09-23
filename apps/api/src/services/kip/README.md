@@ -25,6 +25,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
 - `glossIntent.ts` — Gloss is depth on a Point (`gloss.append`). Follow-up when the Lead narrates instead of writing Gloss.
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up). Offer-in-prose is an incomplete turn.
+- `preserveDiscoveryGate.ts` — preserve-discovery@1 frozen Choice, probability gate, completion parse. No storage vocabulary.
+- `preserveDiscoveryTurn.ts` — post-reply runner: one Choice, Keeper checks, short `{survives, label?}` completion, one proposed Point.
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — phrase signal for review/reorganize language. Established direction may prompt Lead to propose. Mention does not.
 - `documentTurnPostureShadow.ts` — TypeSafe shadow Choice/Noul bound to a Human Turn. Jev runs once. Every later Lead pass renders the same record. Does not authorize or mutate. Does not go to Cast.
@@ -45,6 +47,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-22 — preserve-discovery@1
+- After the Lead reply, one frozen Jev Choice. Opens only when preserve probability is at least 0.85 and reconsider is under 0.10, the human did not constrain a write, Lead owns the turn, and the Dialog still has no durable item.
+- Kip’s short completion returns `{ survives, label? }` only. Keeper opens the manuscript if needed and writes one proposed Point. The original reply stays. No second score. No Cast. No Orientation gate.
+
 ### 2026-09-21 — Conversation Profile
 - `conversationProfilePrompt.ts` — `conversation` uses a short Lead line + JSON envelope + allowlist names + receipt rule. Compact env keeps `conversationProfile`. Does not change model, Dialog, Document, Domain, history, Dialog Style, or Cueing.
 
