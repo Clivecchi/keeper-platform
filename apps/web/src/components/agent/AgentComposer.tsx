@@ -514,6 +514,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       attachments: agentAttachments,
       supportingDocs: supportingDocs.length ? supportingDocs : undefined,
     })
+    if (composerSize === "default") {
+      setComposerOpen(false)
+      textareaRef.current?.blur()
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -529,12 +533,31 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   }
 
   const focusAfterExpandRef = React.useRef(false)
+  /** Desktop composer opens on selection and closes again after send. */
+  const [composerOpen, setComposerOpen] = React.useState(false)
+  const composerCollapsed = composerSize === "default" && !composerOpen
 
-  // Auto-resize textarea (respect mobile-staged compact/expanded floors)
+  const handleInputFocus = () => {
+    if (composerSize === "default") setComposerOpen(true)
+    onInputFocusChange?.(true)
+  }
+
+  const handleInputBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+    onInputFocusChange?.(false)
+    if (composerSize !== "default") return
+    const next = e.relatedTarget
+    if (next instanceof Node && formRef.current?.contains(next)) return
+    const draft = (textareaRef.current?.value ?? "").trim()
+    if (draft.length > 0 || attachments.length > 0) return
+    setComposerOpen(false)
+  }
+
+  // Auto-resize textarea (respect mobile-staged compact/expanded floors).
+  // Idle desktop composer is one line until selected; CSS min-height owns that size.
   React.useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
-    if (composerSize === "mobile-compact") {
+    if (composerSize === "mobile-compact" || composerCollapsed) {
       ta.style.height = ""
       return
     }
@@ -547,7 +570,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       Math.max(minRows * lineHeight, ta.scrollHeight),
     )
     ta.style.height = `${newHeight}px`
-  }, [inputValue, composerSize])
+  }, [inputValue, composerSize, composerCollapsed])
 
   // Bubble → expand: focus the textarea once the expanded composer mounts.
   React.useEffect(() => {
@@ -1004,18 +1027,21 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onPaste={handlePaste}
-            onFocus={() => onInputFocusChange?.(true)}
-            onBlur={() => onInputFocusChange?.(false)}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={isSending || disabled}
             rows={
-              composerSize === "mobile-expanded"
-                ? 10
-                : MIN_ROWS
+              composerCollapsed
+                ? 1
+                : composerSize === "mobile-expanded"
+                  ? 10
+                  : MIN_ROWS
             }
             className={[
-              "keeper-composer-input w-full resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none",
+              "keeper-composer-input w-full resize-none rounded-md border text-sm leading-5 focus:outline-none",
+              composerCollapsed ? "keeper-composer-input--collapsed overflow-hidden" : "overflow-y-auto",
               composerSize === "mobile-expanded"
                 ? "min-h-[58vh] max-h-[66vh]"
                 : "min-h-[44px] max-h-[120px]",

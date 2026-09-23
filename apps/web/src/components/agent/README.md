@@ -36,6 +36,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-09-23: **Composer collapses after send** — desktop `AgentComposer` closes to one line when the message is sent (and when an empty field is left). Selecting the field opens the full composer again. Unsent drafts stay open. Mobile docked/expanded sizes are unchanged.
 - 2026-09-21: **Conversation Profile** — Composer toolbar (and mobile docked bar) cycles `Current` ↔ `Conversation`. Visible which standing-instruction stack this send uses. Distinct from Dialog Style / Cueing in the header.
 - 2026-09-19: Wrapped the multi-agent Lead bubble + System One card in a fragment so Vite can parse the JSX (Vercel `keeper-web` build).
 - 2026-09-19: Dialog shows System One orientation from persisted Jev answers on the Lead message. Kip's fabricated "unavailable" card/line is suppressed when those answers exist.

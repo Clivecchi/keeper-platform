@@ -2746,6 +2746,27 @@ button.dialog-prelude:hover {
   box-shadow: 0 0 0 2px var(--treatment-color-alpha-20);
 }
 
+/* Idle composer is one line. Selection removes --collapsed and restores the open field. */
+.dialog-bottom-zone .keeper-composer-input,
+.keeper-board-scope .dialog-bottom-zone .keeper-composer-input {
+  transition:
+    min-height 0.18s ease,
+    max-height 0.18s ease,
+    height 0.18s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.dialog-bottom-zone .keeper-composer-input.keeper-composer-input--collapsed,
+.keeper-board-scope .dialog-bottom-zone .keeper-composer-input.keeper-composer-input--collapsed,
+.keeper-dialog-frame[data-has-uploads="true"] .keeper-composer-input.keeper-composer-input--collapsed {
+  /* One text line plus the field's vertical padding and border. */
+  min-height: calc(1.6em + 34px);
+  max-height: calc(1.6em + 34px);
+  height: calc(1.6em + 34px);
+  overflow: hidden;
+}
+
 .dialog-bottom-zone .keeper-composer-send {
   background: hsl(var(--treatment-color)) !important;
   color: hsl(0 0% 98%) !important;
