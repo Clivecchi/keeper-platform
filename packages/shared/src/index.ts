@@ -19,6 +19,7 @@ export * from './glossThread.js';
 export * from './integrationChronicleDeclarations.js';
 export * from './serviceBindings.js';
 export * from './directorContinuity.js';
+export * from './dialogContinuity.js';
 export * from './domainTier.js';
 export * from './guidedArrival.js';
 export * from './structure/index.js';

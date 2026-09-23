@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-09-23 — Client Cast dialog continuity
+- `clientCastDialogContinuity` builds the recent Dialog turns chip consults and pinned consults send with the Cast run. No extra instruction is added to the delegation prompt.
+
 ### 2026-09-21 — Conversation Profile
 - `UniversalConversation` puts Composer `conversationProfile` on `agentContext`. Dialog Style and Dialog Cueing stay their own fields. Profile does not rewrite Style or Cueing.
 

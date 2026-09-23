@@ -11,6 +11,7 @@ Central location for API service-layer modules used by route handlers.
 - `customDomainVerificationSync.ts`
 - `LibraryItemIngestionService.ts`
 - `pdfTextExtract.ts`
+- `dialogContinuityHandoff.ts` — Lead Dialog turns supplied to ephemeral Cast as read-only chat
 
 ## 🔄 Data & Behavior
 Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
@@ -165,6 +166,9 @@ Services are stateless classes instantiated on demand by route handlers or other
   - **Benefits**: Aligns with 12-factor app principles, avoids stale key issues, better DevOps
 
 ## 📆 Update Log
+
+### 2026-09-23 — Cast reads the Lead's recent Dialog
+- `dialogContinuityHandoff.ts` supplies ephemeral Cast chat turns. `directorDialog.ts` multi-cast synthesis no longer treats consultation results as the only context.
 
 ### 2026-06-28
 - Added `imageArchiveService.ts` — archives Together/external image URLs to Vercel Blob + `LibraryItem`; used by `POST /v0/moments/:id/keep` and `POST /api/uploads/import-url`.
