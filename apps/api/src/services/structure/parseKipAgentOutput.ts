@@ -2,8 +2,10 @@ import {
   logger,
   parseKeepingChoiceOffers,
   parseResolvedMeaning,
+  parseSelectedVoices,
   type KeepingChoiceOffer,
   type ResolvedMeaning,
+  type SelectedVoice,
 } from '@keeper/shared';
 import {
   ActionValidationError,
@@ -23,8 +25,10 @@ export type ParsedAgentOutput = {
   card?: KeeperResponseCard;
   /** Deferred semantic directions — never executed this turn. */
   keepingChoices?: KeepingChoiceOffer[];
-  /** Lead-resolved meaning of a Stage performance — not spoken prose. */
+  /** Lead-resolved meaning of a performed Frame — not spoken prose. */
   resolvedMeaning?: ResolvedMeaning;
+  /** Lines the Lead chose from real Cast replies. */
+  selectedVoices?: SelectedVoice[];
   ignoredReason?: string;
   validationError?: ActionValidationError;
   repaired?: boolean;
@@ -67,7 +71,7 @@ export function extractJsonFromResponse(raw: string): string | null {
   } catch {
     /* not valid JSON, try extraction */
   }
-  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions|keepingChoices|resolvedMeaning)"[\s\S]*\}/);
+  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions|keepingChoices|resolvedMeaning|selectedVoices)"[\s\S]*\}/);
   if (jsonMatch) {
     const candidate = jsonMatch[0];
     try {
@@ -80,6 +84,7 @@ export function extractJsonFromResponse(raw: string): string | null {
           || Array.isArray(obj.actions)
           || Array.isArray(obj.keepingChoices)
           || (obj.resolvedMeaning && typeof obj.resolvedMeaning === 'object')
+          || Array.isArray(obj.selectedVoices)
         )
       ) {
         return candidate;
@@ -135,6 +140,7 @@ function parseEnvelopeObject(
 
   const keepingChoices = parseKeepingChoiceOffers(parsed.keepingChoices);
   const resolvedMeaning = parseResolvedMeaning(parsed.resolvedMeaning);
+  const selectedVoices = parseSelectedVoices(parsed.selectedVoices);
   if (isActionParseSuccess(actionsResult)) {
     return {
       responseText,
@@ -143,6 +149,7 @@ function parseEnvelopeObject(
       card: parseKeeperCardField(parsed.card),
       ...(keepingChoices.length ? { keepingChoices } : {}),
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
+      ...(selectedVoices.length ? { selectedVoices } : {}),
     };
   }
 
@@ -165,6 +172,7 @@ function parseEnvelopeObject(
       card: parseKeeperCardField(parsed.card),
       ...(keepingChoices.length ? { keepingChoices } : {}),
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
+      ...(selectedVoices.length ? { selectedVoices } : {}),
       ignoredReason: 'missing_agent_output_envelope',
       validationError,
     };
@@ -177,6 +185,7 @@ function parseEnvelopeObject(
     card: parseKeeperCardField(parsed.card),
     ...(keepingChoices.length ? { keepingChoices } : {}),
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
+    ...(selectedVoices.length ? { selectedVoices } : {}),
     validationError,
   };
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { StageStorySlide } from "@keeper/shared"
+import type { FramePerformance, StageStorySlide } from "@keeper/shared"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
@@ -9,6 +9,7 @@ import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useKeeperStageOptional } from "./useKeeperStage"
 import { resolveStageFilmstrip, type StageSlide } from "./stageStorySlides"
 import { resolveStageNowBeat } from "./stageNowBeat"
+import type { FrameCastVoice } from "./FramePerformanceView"
 import {
   canReturnFromStageAttention,
   holdStageFrame,
@@ -79,11 +80,17 @@ function useStageMomentSourceLookup(slides: ReadonlyArray<StageStorySlide> | nul
   return { lookup, pending: overlayPending }
 }
 
+export type LiveFrameHit = {
+  performance: FramePerformance
+  castVoices: FrameCastVoice[]
+}
+
 type StagePresentationValue = {
   slides: ReadonlyArray<StageSlide>
   index: number
   setIndex: (index: number) => void
   current: StageSlide | null
+  liveFrames: ReadonlyMap<string, LiveFrameHit>
   attention: StageAttentionState
   attentionSubject: StageAttentionSubject | null
   workForward: boolean
@@ -98,8 +105,9 @@ export function StagePresentationProvider({
   userName,
   agentName,
   isSending,
-  storyTitle,
+  storyTitle: _storyTitle,
   domainLabel,
+  focusSourceId,
   children,
 }: {
   messages: ReadonlyArray<AgentDialogueMessage>
@@ -108,6 +116,8 @@ export function StagePresentationProvider({
   isSending: boolean
   storyTitle?: string | null
   domainLabel?: string | null
+  /** Lead message id whose live-sourced cell should be the current Stage frame. */
+  focusSourceId?: string | null
   children: React.ReactNode
 }) {
   const stageApi = useKeeperStageOptional()
@@ -135,6 +145,21 @@ export function StagePresentationProvider({
     if (!persisted) return null
     return applyCanonicalMomentsToSlides(persisted, lookup, pending)
   }, [persisted, lookup, pending])
+  const liveFrames = React.useMemo(() => {
+    const map = new Map<string, LiveFrameHit>()
+    for (const message of messages) {
+      if (!message.framePerformance?.beats.length || !message.framePerformance.title) continue
+      map.set(message.id, {
+        performance: message.framePerformance,
+        castVoices: (message.castVoices ?? []).map((voice) => ({
+          slug: voice.slug,
+          attributedTo: voice.attributedTo,
+          content: voice.content,
+        })),
+      })
+    }
+    return map
+  }, [messages])
   const slides = React.useMemo(
     () =>
       resolveStageFilmstrip({
@@ -218,6 +243,14 @@ export function StagePresentationProvider({
     )
   }, [attention, last, slides, slides[last]?.id, slides[last]?.body])
 
+  React.useEffect(() => {
+    if (!focusSourceId) return
+    const next = slides.findIndex(
+      (slide) => slide.source?.kind === "live" && slide.source.id === focusSourceId,
+    )
+    if (next >= 0) setIndex(next)
+  }, [focusSourceId, setIndex, slides])
+
   const current = slides[Math.min(index, last)] ?? null
   const workForward = stageAttentionShowsWork(attention)
   const value = React.useMemo(
@@ -226,6 +259,7 @@ export function StagePresentationProvider({
       index: Math.min(index, last),
       setIndex,
       current,
+      liveFrames,
       attention,
       attentionSubject,
       workForward,
@@ -238,6 +272,7 @@ export function StagePresentationProvider({
       last,
       setIndex,
       current,
+      liveFrames,
       attention,
       attentionSubject,
       workForward,

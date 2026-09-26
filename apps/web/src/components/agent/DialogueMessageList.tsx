@@ -11,7 +11,7 @@ import { ActionReceiptCard, type KeepAsMomentPayload } from "../kip/ActionReceip
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
 import { DraftPointProposeCard } from "../kip/DraftPointProposeCard"
 import { KeepingChoiceControls } from "./KeepingChoiceControls"
-import type { KeepingChoiceRecord } from "@keeper/shared"
+import { turnPresentsFrame, type KeepingChoiceRecord } from "@keeper/shared"
 import { TreatmentProposeCard } from "../kip/TreatmentProposeCard"
 import type { DomainFrameTreatment } from "../../v0/data/domain-frame.types"
 import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
@@ -25,6 +25,7 @@ import { buildMessageGlossAnchor, displayDraftHostTitle, type DraftPoint } from 
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
+import { FramePerformanceView } from "../../v0/composer/FramePerformanceView"
 import {
   leadCardForSystemOne,
   leadContentForSystemOne,
@@ -407,6 +408,54 @@ function AgentMessageTurn({
   const isMultiAgentTurn = Boolean(castVoices.length > 0 || delegation || echo)
   const resolvedAgentName = message.senderName?.trim() || agentName
   const visibleContent = sanitizeAgentMessageContent(message.content)
+  const framePerformance = message.framePerformance
+
+  if (framePerformance && turnPresentsFrame(message)) {
+    return (
+      <div className="max-w-xl min-w-0 space-y-3">
+        <FramePerformanceView
+          performance={framePerformance}
+          placement="dialog"
+          messageId={message.id}
+          castVoices={castVoices.map((voice) => ({
+            slug: voice.slug,
+            attributedTo: voice.attributedTo,
+            content: voice.content,
+          }))}
+        />
+        {message.keepingChoices?.length ? (
+          <KeepingChoiceControls
+            choices={message.keepingChoices}
+            disabled={keepingChoiceBusy}
+            onExercise={onExerciseKeepingChoice}
+          />
+        ) : null}
+        <MessageAttachments
+          message={message}
+          onOpenDraft={onOpenDraft}
+          onOpenMoment={onOpenMoment}
+          onOpenJourney={onOpenJourney}
+          onOpenLibraryItem={onOpenLibraryItem}
+          onKeepAsMoment={onKeepAsMoment}
+          onConfirmDraftUpdate={onConfirmDraftUpdate}
+          onApplyTreatmentProposal={onApplyTreatmentProposal}
+          applyingTreatmentProposal={applyingTreatmentProposal}
+          onOpenPoint={onOpenPoint}
+          conversationDialogTitle={conversationDialogTitle}
+          talkingDialogId={talkingDialogId}
+          onAcceptDraftPoint={onAcceptDraftPoint}
+          acceptedDraftPointIds={acceptedDraftPointIds}
+          acceptingDraftPointId={acceptingDraftPointId}
+        />
+        <MessageSenderFooter
+          name={resolvedAgentName}
+          variant="agent"
+          timestamp={formatTime(message.createdAt)}
+          timestampStyle={{ color: "var(--theme-ink-tertiary-color)" }}
+        />
+      </div>
+    )
+  }
 
   if (!isMultiAgentTurn) {
     if (

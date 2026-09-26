@@ -10,6 +10,8 @@ import { apiFetch } from "../../lib/api"
 import {
   bringOntoStage,
   emptyKeeperStage,
+  appendStageStoryBeats,
+  findLiveSourcedSlide,
   parseKeeperStage,
   removeStagePresence,
   selectStagePresence,
@@ -46,6 +48,7 @@ type KeeperStageContextValue = {
   updateAgency: (presenceId: string, patch: { contextualRole?: string | null; direction?: string | null }) => void
   remove: (presenceId: string) => void
   setTheme: (theme: KeeperStageTheme | null) => void
+  appendLiveBeat: (input: { leadMessageId: string; title: string; body: string }) => void
   selected: StagePresence | null
 }
 
@@ -190,6 +193,23 @@ export function KeeperStageProvider({
     apply({ ...stageRef.current, theme })
   }, [apply])
 
+  const appendLiveBeat = React.useCallback((input: {
+    leadMessageId: string
+    title: string
+    body: string
+  }) => {
+    const current = stageRef.current
+    if (findLiveSourcedSlide(current.story, input.leadMessageId)) return
+    const story = appendStageStoryBeats(current.story, [{
+      id: `live-${input.leadMessageId}`.slice(0, 80),
+      title: input.title,
+      body: input.body,
+      source: { kind: "live", id: input.leadMessageId },
+    }])
+    if (!story) return
+    apply({ ...current, story })
+  }, [apply])
+
   const selected = React.useMemo(
     () => stage.presences.find((p) => p.id === stage.selectedPresenceId) ?? null,
     [stage],
@@ -207,8 +227,9 @@ export function KeeperStageProvider({
     updateAgency,
     remove,
     setTheme,
+    appendLiveBeat,
     selected,
-  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, setTheme, selected])
+  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, setTheme, appendLiveBeat, selected])
 
   return React.createElement(KeeperStageCtx.Provider, { value }, children)
 }

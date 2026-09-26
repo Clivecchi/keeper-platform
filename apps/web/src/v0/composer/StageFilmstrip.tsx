@@ -17,6 +17,7 @@ import { StageEngagementSurface, useStageCoverMedia } from "./StageEngagementSur
 import type { StageSlide } from "./stageStorySlides"
 import { resolveStageAttentionPose, stageAttentionHoldsFrame } from "./stageAttention"
 import { useStagePresentationOptional } from "./stagePresentation"
+import { FramePerformanceView } from "./FramePerformanceView"
 
 function beatCaption(slide: StageSlide): string {
   if (slide.sourceResolve === "unresolved") return "Unavailable"
@@ -120,6 +121,21 @@ export function StagePresentationScreen() {
   const story = useStagePresentationOptional()
   const current = story?.current
   if (!current) return null
+
+  const liveId = current.source?.kind === "live" ? current.source.id : null
+  const liveFrame = liveId ? story?.liveFrames.get(liveId) : undefined
+  if (liveFrame && current.kind !== "root" && liveId) {
+    return (
+      <div className="h-full min-h-0 w-full" aria-label="Stage presentation">
+        <FramePerformanceView
+          performance={liveFrame.performance}
+          placement="stage"
+          messageId={liveId}
+          castVoices={liveFrame.castVoices}
+        />
+      </div>
+    )
+  }
 
   const canForward = Boolean(story && story.slides.length > 1)
   const canContinue = Boolean(story && story.index < story.slides.length - 1)

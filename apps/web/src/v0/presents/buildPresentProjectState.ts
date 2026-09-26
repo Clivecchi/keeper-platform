@@ -308,12 +308,74 @@ const MOMENT_SEQUENCE: PresentSequenceDef = {
   ],
 }
 
+/**
+ * Frame — compact performed turn.
+ * Context, then Point/beat title, then narrative, then a woven quote.
+ * Same project as the other Presents. Not a second Theatre system.
+ */
+const FRAME_SEQUENCE: PresentSequenceDef = {
+  length: 1.7,
+  tracks: [
+    {
+      prop: "atmosphereOpacity",
+      keyframes: [
+        { position: 0, value: 0, handles: EASE.outSoft },
+        { position: 0.35, value: 1, handles: EASE.outSoft },
+      ],
+    },
+    {
+      prop: "contextOpacity",
+      keyframes: [
+        { position: 0, value: 0, handles: EASE.hold, type: "hold" },
+        { position: 0.12, value: 0, handles: EASE.hold, type: "hold" },
+        { position: 0.45, value: 1, handles: EASE.inOut },
+      ],
+    },
+    {
+      prop: "primaryOpacity",
+      keyframes: [
+        { position: 0, value: 0, handles: EASE.outSnappy },
+        { position: 0.28, value: 0, handles: EASE.hold, type: "hold" },
+        { position: 0.72, value: 1, handles: EASE.outSnappy },
+      ],
+    },
+    {
+      prop: "secondaryOpacity",
+      keyframes: [
+        { position: 0, value: 0, handles: EASE.hold, type: "hold" },
+        { position: 0.55, value: 0, handles: EASE.hold, type: "hold" },
+        { position: 1.05, value: 1, handles: EASE.outSoft },
+      ],
+    },
+    {
+      prop: "captionOpacity",
+      keyframes: [
+        { position: 0, value: 0, handles: EASE.hold, type: "hold" },
+        { position: 0.9, value: 0, handles: EASE.hold, type: "hold" },
+        { position: 1.35, value: 1, handles: EASE.inOut },
+      ],
+    },
+    {
+      prop: "contentOffsetY",
+      keyframes: [
+        { position: 0, value: 10, handles: EASE.outSoft },
+        { position: 0.72, value: 0, handles: EASE.outSoft },
+      ],
+    },
+    {
+      prop: "mediaScale",
+      keyframes: [{ position: 0, value: 1 }],
+    },
+  ],
+}
+
 export const PRESENT_SEQUENCE_DEFS = {
   cover: COVER_SEQUENCE,
   slide: SLIDE_SEQUENCE,
   media: MEDIA_SEQUENCE,
   journey: JOURNEY_SEQUENCE,
   moment: MOMENT_SEQUENCE,
+  frame: FRAME_SEQUENCE,
 } as const satisfies Record<string, PresentSequenceDef>
 
 const DEFAULT_EASE: [number, number, number, number] = [0.42, 0, 0.58, 1]
@@ -370,15 +432,14 @@ function buildSheetState(def: PresentSequenceDef) {
 }
 
 export function buildDefaultPresentProjectState(): __UNSTABLE_Project_OnDiskState {
-  const sheetsById = {} as __UNSTABLE_Project_OnDiskState["sheetsById"]
+  const sheetsById: Record<string, ReturnType<typeof buildSheetState>> = {}
 
   for (const [sheetId, def] of Object.entries(PRESENT_SEQUENCE_DEFS)) {
-    sheetsById[sheetId as keyof typeof PRESENT_SEQUENCE_DEFS & string] =
-      buildSheetState(def)
+    sheetsById[sheetId] = buildSheetState(def)
   }
 
   return {
-    sheetsById,
+    sheetsById: sheetsById as __UNSTABLE_Project_OnDiskState["sheetsById"],
     revisionHistory: ["keeper-presents-tuned-v1"],
     definitionVersion: PROJECT_DEFINITION_VERSION,
   }

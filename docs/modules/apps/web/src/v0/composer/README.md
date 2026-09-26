@@ -4,7 +4,10 @@
 Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument) at the bottom. On Stage it is a lectern over the table — same place, more function (Agency, Reach in Chronicle). Placed objects are **assets**. The Stage workspace is a **Frame-driven story** (presentation), not a second Document of Points.
 
 ## 🧱 Key Files
-- `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX)
+- `FramePerformanceView.tsx` — one performed turn; `placement="dialog" | "stage"`. Beats replace inside the viewport. Theatre `frame` Present plays the layers.
+- `frameCue.tsx` — Keep, review Cast, open Point, and Take to Stage handlers shared by both placements
+- `spatial/loadSpatialFrameHost.tsx` — optional lazy Three.js host. Dialog frames do not call it.
+- `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX). `appendLiveBeat` points one filmstrip cell at a Lead message.
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
 - `KeeperStageCanvas.tsx` — Stage **screen** (current Slide only)
@@ -45,6 +48,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+
+### 2026-09-23 — Frame Performance placement
+- `FramePerformanceView` renders the same Lead-message performance in Dialog and, when a filmstrip cell’s live source matches that message, on Stage. `appendLiveBeat` adds one cell. Internal beats stay on the message.
 
 ### 2026-09-20 — Stage attention grammar
 - Named states: Present → Engage → Yield → Perform → Resolve → Return. Dialog is the first occupant of the yielded work surface. Theatre writes `STAGE_YIELD_MOTION` on the current `slide` Presence instance for every state except Present. Return is intentional after Resolve and restores the held Frame. No Scene table. No second Dialog.

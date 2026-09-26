@@ -47,6 +47,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-23 — Performance contract wording
+- Lead Judgment names `resolvedMeaning` as the performance contract, on Dialog and on Stage.
+
 ### 2026-09-22 — preserve-discovery@1
 - After the Lead reply, one frozen Jev Choice. Opens only when preserve probability is at least 0.85 and reconsider is under 0.10, the human did not constrain a write, Lead owns the turn, and the Dialog still has no durable item.
 - Kip’s short completion returns `{ survives, label? }` only. Keeper opens the manuscript if needed and writes one proposed Point. The original reply stays. No second score. No Cast. No Orientation gate.

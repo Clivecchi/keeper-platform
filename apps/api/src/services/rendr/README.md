@@ -5,8 +5,9 @@ Rendr agent identity and Design-board Treatment prompt. Presence partner — not
 
 ## 🧱 Key Files
 - `rendrAgentConfig.ts` — purpose, voice prompt, identity lock (seed + runtime)
-- `composeStageExpression.ts` — constrained Rendr prompt: Resolved Meaning + compact Set only
-- `expressResolvedMeaningOnStage.ts` — post-Lead ephemeral handoff; Keeper appends one Frame
+- `composeFramePerformance.ts` — Rendr prompt for a turn-scoped Frame Performance (meaning + selected lines, not the transcript)
+- `composeStageExpression.ts` — compact Set used by that prompt
+- `expressResolvedMeaningOnStage.ts` — post-Lead handoff. Persists `framePerformance` on the Lead message. Appends one live-sourced Stage cell only when the turn is already on Stage.
 
 ## 🔄 Data & Behavior
 Treatment changes use `treatment.propose` on Design Board. Dialog Points use `draft.update.propose` on Working on (Chronicle Document or focused Draft). `draft.create` is only for a new working Draft, never as a substitute for Points on the focused Document.
@@ -15,6 +16,9 @@ Treatment changes use `treatment.propose` on Design Board. Dialog Points use `dr
 - [ ] Spatial/motion primitives (Float, Weight, Motion contract) remain queued behind Chronicle becoming
 
 ## 📆 Update Log
+
+### 2026-09-23 — Frame Performance
+- Rendr composes `FramePerformance` after the Lead emits `resolvedMeaning`. Dialog turns do not write internal beats onto the domain filmstrip. A Stage cell, when created, points at the Lead message.
 
 ### 2026-09-11 — Performance One expression
 - Post-Lead handoff receives Resolved Meaning + compact Set/coordinates only. Rendr returns one `stage_expression` beat. Keeper appends it. Timeout or parse miss leaves Stage unchanged. Does not use `stage.story.layout`.

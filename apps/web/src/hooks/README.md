@@ -32,6 +32,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-09-23 — Frame Performance on the turn
+- `useAgentDialog` reads `framePerformance` from message metadata and from the Lead `done` payload, and aligns the live turn id with the saved Lead message.
+
 ### 2026-09-21 — Conversation Profile
 - `useConversationProfile.ts` — `keeper.conversationProfile` in localStorage. Composer and send paths share it so the selected profile travels on `agentContext.conversationProfile`.
 

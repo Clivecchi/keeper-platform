@@ -15,7 +15,7 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 
 ## 🔄 Data & Behavior
 - Default catalog ships in code (`DEFAULT_PRESENT_PROJECT_STATE`) — Rendr overrides later via domain JSON
-- Each Present maps to a Theatre sheet (`cover`, `slide`, `media`, `journey`, `moment`)
+- Each Present maps to a Theatre sheet (`cover`, `slide`, `media`, `journey`, `moment`, `frame`)
 - Sheet instance id = `{objectType}:{objectId}` so concurrent Chronicle selections do not collide
 - `@theatre/studio` is dev-only; production bundle uses `@theatre/core` only
 - Motion runs when `KeeperPresence` `layout="focus"` and record is loaded; config layout skips animation
@@ -28,6 +28,9 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 - [ ] Wire `context` prop to future feed/journey surfaces beyond Chronicle
 
 ## 📆 Update Log
+
+### 2026-09-23 — Frame Present
+- Added the `frame` sheet on Keeper Presents. It sequences context, title, narrative, and caption for a Dialog Frame beat. Same project. State stays in code.
 
 ### 2026-09-20 — Presence pose
 - `usePresentMotion` / `PresentMotionProvider` accept `pose`. Stage attention writes `STAGE_YIELD_MOTION` onto the current `slide` Presence instance through Theatre for Engage / Yield / Perform / Resolve. Chronicle callers omit `pose` and stay sequence-only. Return plays the same sequence forward from a hold.

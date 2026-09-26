@@ -8,6 +8,7 @@ import type {
   AgentPerformanceProvenance,
   GlossThread,
   KeepingChoiceRecord,
+  FramePerformance,
   ResolvedMeaning,
   StageExpressionStamp,
 } from "@keeper/shared"
@@ -73,8 +74,10 @@ export interface AgentDialogueMessage {
   }
   /** Deferred keeping judgments — not actions, not proposals. */
   keepingChoices?: KeepingChoiceRecord[]
-  /** Lead-resolved meaning of a Stage performance — not spoken content. */
+  /** Lead-resolved meaning. The signal that this turn may become a Frame. */
   resolvedMeaning?: ResolvedMeaning
+  /** Rendr's telling of that meaning. Primary human-facing turn when present. */
+  framePerformance?: FramePerformance
   /** Named orchestration metadata persisted on the Lead message. */
   orchestration?: Record<string, unknown>
   /** Named runtime-layer checklist for Agent Board inspection. */

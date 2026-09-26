@@ -291,7 +291,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   castPromisedPointWrite?: boolean;
   /** Human asked the Lead to review / reorganize / direct the Document. */
   documentDirection?: boolean;
-  /** Stage + Cast performance — emit resolvedMeaning on the envelope, not by rewriting response. */
+  /** Cast performance — emit resolvedMeaning on the envelope, not by rewriting response. */
   resolvePerformanceMeaning?: boolean;
   /** Cast action receipts this turn — ground truth for what ran. */
   actionReceipts?: Array<Record<string, unknown>>;
@@ -351,13 +351,15 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   if (params.resolvePerformanceMeaning) {
     lines.push(
       '',
-      'RESOLVED MEANING (Stage performance — envelope sibling, not your spoken reply):',
+      'RESOLVED MEANING (performed Frame — envelope sibling, not your spoken reply):',
       '- Also emit "resolvedMeaning": { "meaning": "...", "because?": "...", "about": [{ "kind", "id", "title?" }], "performedBy": ["slug"] }.',
-      '- Spoken "response" stays in the performance as Lead. resolvedMeaning records what emerged — it is not a summary of Cast.',
+      '- Also emit "selectedVoices": [{ "slug": "cloud", "line": "exact words from that Cast reply" }] for lines that deserve to be heard inside the telling.',
+      '- Copy selectedVoices from the Cast results above. Never invent, paraphrase, or improve a line. Omit selectedVoices when no line should be quoted.',
+      '- Spoken "response" stays available as text if no Frame is composed. resolvedMeaning records what emerged — it is not a summary of Cast.',
       '- "meaning" is what emerged — insight, question, tension, possibility, decision, or direction. It must not be a restatement of "response".',
-      '- "about" references Keeper objects on Stage or in Talking in / Working on (ids + optional titles). Do not copy Point or Document bodies.',
+      '- "about" references Keeper objects already in Talking in / Working on (ids + optional titles). Do not copy Point or Document bodies. A Point does not need a Section.',
       '- "performedBy" is slugs that actually delivered this turn. Never invent a voice.',
-      '- If nothing resolved, omit resolvedMeaning. Do not invent meaning so a Frame can appear.',
+      '- resolvedMeaning is the signal that this turn deserves a performed Frame. If nothing resolved, omit resolvedMeaning. Do not invent meaning so a Frame can appear.',
       '- Do not emit stage.story.layout for this. Expression is not your job this turn.',
     );
   }

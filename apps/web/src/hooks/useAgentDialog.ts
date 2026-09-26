@@ -18,6 +18,7 @@ import {
   parseKeeperAdviceCard,
   parseKeepingChoiceExercise,
   parseKeepingChoiceRecords,
+  parseFramePerformance,
   parseResolvedMeaning,
   parseStageExpressionStamp,
   createHumanTurnId,
@@ -157,6 +158,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
         : undefined
   const keepingChoices = parseKeepingChoiceRecords(meta?.keepingChoices)
   const resolvedMeaning = parseResolvedMeaning(meta?.resolvedMeaning)
+  const framePerformance = parseFramePerformance(meta?.framePerformance)
   const stageExpression = parseStageExpressionStamp(meta?.stageExpression)
   const orchestration =
     meta?.orchestration && typeof meta.orchestration === "object" && !Array.isArray(meta.orchestration)
@@ -215,6 +217,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(keeperCard ? { keeperCard } : {}),
     ...(keepingChoices.length ? { keepingChoices } : {}),
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
+    ...(framePerformance ? { framePerformance } : {}),
     ...(stageExpression ? { stageExpression } : {}),
     ...(orchestration ? { orchestration } : {}),
     ...(performanceProvenance ? { performanceProvenance } : {}),
@@ -423,6 +426,34 @@ function extractResolvedMeaningFromRunResult(result: unknown): ReturnType<typeof
   return visit(result)
 }
 
+function extractFramePerformanceFromRunResult(result: unknown): ReturnType<typeof parseFramePerformance> {
+  const visit = (node: unknown, depth = 0): ReturnType<typeof parseFramePerformance> => {
+    if (!node || typeof node !== "object" || depth > 5) return null
+    const obj = node as Record<string, unknown>
+    const fromHere = parseFramePerformance(obj.framePerformance)
+    if (fromHere) return fromHere
+    if (obj.data !== undefined) return visit(obj.data, depth + 1)
+    return null
+  }
+  return visit(result)
+}
+
+function extractLeadMessageIdFromRunResult(result: unknown): string | undefined {
+  const visit = (node: unknown, depth = 0): string | undefined => {
+    if (!node || typeof node !== "object" || depth > 5) return undefined
+    const obj = node as Record<string, unknown>
+    if (typeof obj.messageId === "string" && obj.messageId.trim() && obj.framePerformance) {
+      return obj.messageId.trim()
+    }
+    if (typeof obj.messageId === "string" && obj.messageId.trim() && obj.response) {
+      return obj.messageId.trim()
+    }
+    if (obj.data !== undefined) return visit(obj.data, depth + 1)
+    return undefined
+  }
+  return visit(result)
+}
+
 function extractStageExpressionFromRunResult(result: unknown): ReturnType<typeof parseStageExpressionStamp> {
   const visit = (node: unknown, depth = 0): ReturnType<typeof parseStageExpressionStamp> => {
     if (!node || typeof node !== "object" || depth > 5) return null
@@ -442,6 +473,8 @@ export function extractRunAgentPayload(result: unknown): {
   keepingChoices?: ReturnType<typeof extractKeepingChoicesFromRunResult>
   keepingChoiceAlreadySelected?: boolean
   resolvedMeaning?: NonNullable<ReturnType<typeof parseResolvedMeaning>>
+  framePerformance?: NonNullable<ReturnType<typeof parseFramePerformance>>
+  leadMessageId?: string
   stageExpression?: NonNullable<ReturnType<typeof parseStageExpressionStamp>>
   orchestration?: Record<string, unknown>
 } {
@@ -486,6 +519,8 @@ export function extractRunAgentPayload(result: unknown): {
   const keepingChoices = extractKeepingChoicesFromRunResult(result)
   const keepingChoiceAlreadySelected = extractKeepingChoiceAlreadySelected(result)
   const resolvedMeaning = extractResolvedMeaningFromRunResult(result)
+  const framePerformance = extractFramePerformanceFromRunResult(result)
+  const leadMessageId = extractLeadMessageIdFromRunResult(result)
   const stageExpression = extractStageExpressionFromRunResult(result)
   const orchestrationRaw = inner?.orchestration ?? outer?.orchestration
   const orchestration =
@@ -499,6 +534,8 @@ export function extractRunAgentPayload(result: unknown): {
     ...(keepingChoices.length ? { keepingChoices } : {}),
     ...(keepingChoiceAlreadySelected ? { keepingChoiceAlreadySelected: true } : {}),
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
+    ...(framePerformance ? { framePerformance } : {}),
+    ...(leadMessageId ? { leadMessageId } : {}),
     ...(stageExpression ? { stageExpression } : {}),
     ...(orchestration ? { orchestration } : {}),
   }
@@ -1419,6 +1456,8 @@ export function useAgentDialog({
           keepingChoices: resultKeepingChoices,
           keepingChoiceAlreadySelected,
           resolvedMeaning: resultResolvedMeaning,
+          framePerformance: resultFramePerformance,
+          leadMessageId: resultLeadMessageId,
           stageExpression: resultStageExpression,
           orchestration: resultOrchestration,
         } = extractRunAgentPayload(result)
@@ -1502,6 +1541,7 @@ export function useAgentDialog({
             && !castVoices?.length
             && !resultKeepingChoices?.length
             && !resultResolvedMeaning
+            && !resultFramePerformance
             && !resultStageExpression
             && !resultOrchestration
           ) {
@@ -1512,6 +1552,7 @@ export function useAgentDialog({
           if (lastAgentIdx < 0) return withUser
           updated[lastAgentIdx] = {
             ...updated[lastAgentIdx],
+            ...(resultLeadMessageId ? { id: resultLeadMessageId } : {}),
             // Multi-voice turns own the Cast beats; skip single-delegation duplicate.
             ...(castVoices?.length
               ? { castVoices }
@@ -1521,6 +1562,7 @@ export function useAgentDialog({
             ...(actionsArr?.length ? { actionResults: actionsArr as RunAgentActionInput[] } : {}),
             ...(resultKeepingChoices?.length ? { keepingChoices: resultKeepingChoices } : {}),
             ...(resultResolvedMeaning ? { resolvedMeaning: resultResolvedMeaning } : {}),
+            ...(resultFramePerformance ? { framePerformance: resultFramePerformance } : {}),
             ...(resultStageExpression ? { stageExpression: resultStageExpression } : {}),
             ...(resultOrchestration ? { orchestration: resultOrchestration } : {}),
           }

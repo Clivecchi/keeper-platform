@@ -104,6 +104,7 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
       resolvePerformanceMeaning: true,
     });
     expect(prompt).toContain('resolvedMeaning');
+    expect(prompt).toContain('selectedVoices');
     expect(prompt).toMatch(/must not be a restatement of "response"/i);
     expect(prompt).toMatch(/Do not emit stage\.story\.layout for this/);
     expect(prompt).not.toMatch(/Emit stage\.story\.layout this turn/);

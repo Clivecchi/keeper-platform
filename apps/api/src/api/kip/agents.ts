@@ -61,8 +61,11 @@ import {
   buildKeeperStagePrompt,
   resolveTalkingInWorkingOn,
   parseKeeperStage,
+  parseSelectedVoices,
   withPerformedByFallback,
+  type FramePerformance,
   type ResolvedMeaning,
+  type SelectedVoice,
   type StageExpressionStamp,
   coerceDocumentReorganizePayload,
   hasDocumentIdentityProposal,
@@ -7583,7 +7586,7 @@ export class KipAgentService {
             })),
             castPromisedPointWrite,
             documentDirection: detectReorganizeIntent(cc.userMessage) === 'required',
-            resolvePerformanceMeaning: workspaceSurfaceFromEnvironment(options?.environment) === 'stage',
+            resolvePerformanceMeaning: true,
             actionReceipts: labeled.flatMap((row) => row.castReceipts as Array<Record<string, unknown>>),
           });
           if (!leadModelInput.trim() && cc.userMessage.trim()) {
@@ -9285,6 +9288,7 @@ export class KipAgentService {
         const persistedResolvedMeaning: ResolvedMeaning | undefined = structured.resolvedMeaning
           ? withPerformedByFallback(structured.resolvedMeaning, deliveredCastSlugs)
           : undefined;
+        const persistedSelectedVoices: SelectedVoice[] = parseSelectedVoices(structured.selectedVoices);
         const humanTurnRecord = buildHumanTurnRecord({
           id: humanTurnId,
           dialogId: dialogDocument?.dialogId ?? options?.dialogId ?? null,
@@ -9307,6 +9311,8 @@ export class KipAgentService {
           })),
         });
         let stageExpressionStamp: StageExpressionStamp | undefined;
+        let framePerformanceResult: FramePerformance | undefined;
+        let savedLeadMessageId: string | undefined;
 
         // Save agent response to memory if we have a session (skip gloss sub-turns)
         if (
@@ -9374,9 +9380,7 @@ export class KipAgentService {
               domainContractActive: Boolean(options?.domainId),
               cardRenderingActive: true,
               actionPolicyActive: true,
-              resolvedMeaningContractActive:
-                workspaceSurfaceFromEnvironment(options?.environment) === 'stage'
-                && Boolean(options?.castConsultations?.consultations?.length),
+              resolvedMeaningContractActive: Boolean(options?.castConsultations?.consultations?.length),
             });
 
             const savedAgent = await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
@@ -9406,45 +9410,51 @@ export class KipAgentService {
                 ? { delegation: directorDelegationResult }
                 : {}),
               ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
+              ...(persistedSelectedVoices.length ? { selectedVoices: persistedSelectedVoices } : {}),
             });
-            const onStagePerformance =
-              workspaceSurfaceFromEnvironment(options?.environment) === 'stage'
-              && Boolean(options?.castConsultations?.consultations?.length);
-            if (onStagePerformance && persistedResolvedMeaning && savedAgent && options?.domainId) {
+            savedLeadMessageId = savedAgent.id;
+            const placeOnStage = workspaceSurfaceFromEnvironment(options?.environment) === 'stage';
+            if (persistedResolvedMeaning && savedAgent && options?.domainId) {
               try {
+                const voiceLabels: Record<string, string> = {};
+                for (const voice of castVoicesForPersist ?? []) {
+                  if (voice.slug && voice.attributedTo) voiceLabels[voice.slug] = voice.attributedTo;
+                }
                 const expressed = await expressResolvedMeaningOnStage({
                   domainId: options.domainId,
                   userId,
                   leadMessageId: savedAgent.id,
                   resolvedMeaning: persistedResolvedMeaning,
+                  selectedVoices: persistedSelectedVoices,
                   deliveredCastSlugs,
+                  voiceLabels,
                   environment: options.environment,
+                  actionResults: actionResults as Array<Record<string, unknown>>,
+                  hasCastVoices: Boolean(castVoicesForPersist?.length),
+                  placeOnStage,
                 });
                 if (expressed.ok === false) {
-                  console.info('[AgentTurn] stage expression skipped', {
+                  console.info('[AgentTurn] frame performance skipped', {
                     reason: expressed.reason,
                     message: expressed.message,
                     leadMessageId: savedAgent.id,
                   });
                 } else {
+                  framePerformanceResult = expressed.performance;
                   stageExpressionStamp = expressed.stamp;
                   if (userId) {
                     await this.updateMessageMetadata(savedAgent.id, userId, {
-                      stageExpression: expressed.stamp,
+                      framePerformance: expressed.performance,
+                      ...(expressed.stamp ? { stageExpression: expressed.stamp } : {}),
                     });
                   }
                 }
               } catch (error) {
-                console.warn('[AgentTurn] stage expression failed — Stage unchanged', {
+                console.warn('[AgentTurn] frame performance failed — turn stays text', {
                   leadMessageId: savedAgent.id,
                   error: error instanceof Error ? error.message : error,
                 });
               }
-            } else if (onStagePerformance && !persistedResolvedMeaning) {
-              console.info('[AgentTurn] stage expression skipped', {
-                reason: 'no_resolved_meaning',
-                message: 'Lead did not emit resolvedMeaning. Stage unchanged.',
-              });
             }
             if (structured.keepingChoices?.length && savedAgent && currentSessionId) {
               persistedKeepingChoices = stampOfferedKeepingChoices({
@@ -9540,6 +9550,9 @@ export class KipAgentService {
               ? { directorDelegation: directorDelegationResult }
               : {}),
             ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
+            ...(persistedSelectedVoices.length ? { selectedVoices: persistedSelectedVoices } : {}),
+            ...(framePerformanceResult ? { framePerformance: framePerformanceResult } : {}),
+            ...(savedLeadMessageId ? { messageId: savedLeadMessageId } : {}),
             ...(stageExpressionStamp ? { stageExpression: stageExpressionStamp } : {}),
           }
         };

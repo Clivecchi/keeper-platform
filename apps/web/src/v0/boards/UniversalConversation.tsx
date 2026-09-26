@@ -98,7 +98,9 @@ import type { GlossThread } from "@keeper/shared"
 import { KeeperStageCanvas } from "../composer/KeeperStageCanvas"
 import { displayStageTitle } from "../composer/stageNowBeat"
 import { StagePresentationProvider } from "../composer/stagePresentation"
+import { FrameCueProvider } from "../composer/frameCue"
 import { useKeeperStageOptional } from "../composer/useKeeperStage"
+import type { FramePerformance } from "@keeper/shared"
 import {
   CAST_MEMBER_LABELS,
   extractAgentReplyFromRunResult,
@@ -2446,6 +2448,35 @@ export function UniversalConversation({
     setError,
   })
 
+  const [stageFocusSourceId, setStageFocusSourceId] = React.useState<string | null>(null)
+
+  const openStagePerformance = React.useCallback((messageId: string, performance: FramePerformance) => {
+    keeperStage?.appendLiveBeat({
+      leadMessageId: messageId,
+      title: performance.title,
+      body: performance.beats[0]?.body ?? "",
+    })
+    setStageFocusSourceId(messageId)
+    actions.openStageRoom()
+  }, [actions, keeperStage])
+
+  const openPerformedPoint = React.useCallback((input: {
+    draftId: string
+    pointId: string
+    kind?: string
+    dialogId?: string | null
+  }) => {
+    const dialogId = input.dialogId || selection.selectedDialogId
+    if (input.kind === "document_manuscript" && dialogId) {
+      actions.openChronicleDocument({
+        dialogId,
+        pointId: input.pointId,
+      })
+      return
+    }
+    onDraftSelect(input.draftId)
+  }, [actions, onDraftSelect, selection.selectedDialogId])
+
   const handleComposerFileUpload = React.useCallback(
     async (file: File) => {
       if (!domainId || !user?.id) {
@@ -2749,6 +2780,13 @@ export function UniversalConversation({
       )}
 
       <TreatmentAccentShell treatment={dialogTreatment} className="keeper-dialog-treatment min-h-0 flex-1">
+      <FrameCueProvider
+        value={{
+          onOpenPoint: openPerformedPoint,
+          onAcceptDraftPoint: domainId ? handleAcceptDraftPoint : undefined,
+          onOpenStagePerformance: openStagePerformance,
+        }}
+      >
       <StagePresentationProvider
         messages={dialogMessages}
         userName={dialogUserDisplayName}
@@ -2756,6 +2794,7 @@ export function UniversalConversation({
         isSending={isSending}
         storyTitle={dialogTitle}
         domainLabel={domainName}
+        focusSourceId={stageFocusSourceId}
       >
       <KeeperDialogFrame
         bannerContext={bannerContext}
@@ -2826,17 +2865,7 @@ export function UniversalConversation({
         echoAgentName={isLeadLedDomain ? KIP_FALLBACK_DISPLAY_NAME : defaultAgentName}
         agentBoardMessaging={agentBoardMessaging}
         onOpenDraft={onDraftSelect}
-        onOpenPoint={(input) => {
-          const dialogId = input.dialogId || selection.selectedDialogId
-          if (input.kind === "document_manuscript" && dialogId) {
-            actions.openChronicleDocument({
-              dialogId,
-              pointId: input.pointId,
-            })
-            return
-          }
-          onDraftSelect(input.draftId)
-        }}
+        onOpenPoint={openPerformedPoint}
         conversationDialogTitle={dialogTitle}
         talkingDialogId={selectedDialogId}
         onOpenMoment={onMomentSelect}
@@ -2886,6 +2915,7 @@ export function UniversalConversation({
         }}
       />
       </StagePresentationProvider>
+      </FrameCueProvider>
       </TreatmentAccentShell>
     </div>
   )
