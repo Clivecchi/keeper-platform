@@ -29,6 +29,15 @@ export function domainBoardPath(slug: string, dialogId?: string | null): string 
   return id ? `${base}&dialogId=${encodeURIComponent(id)}` : base
 }
 
+/** Invitee lands on her Realm. The Dialog there lists doors into the inviting Domains. */
+export function homeArrivalPath(homeSlug: string, dialogId?: string | null): string {
+  const params = new URLSearchParams()
+  params.set("domain", homeSlug.trim())
+  const id = dialogId?.trim()
+  if (id) params.set("dialogId", id)
+  return `/home?${params.toString()}`
+}
+
 export function resolveAuthLandingPath(
   returnTo: string | undefined,
   arrivalSlug: string | undefined,
@@ -54,7 +63,7 @@ export function inviteAuthCopy(
       title: mode === 'register' ? 'Create your account' : "You're invited",
       subtitle:
         mode === 'register'
-          ? `${arrival} Then you will arrive on that Domain.`
+          ? `${arrival} Then you arrive home, with doors into what you were invited to.`
           : `${arrival} Sign in, or create an account if you are new to Keeper.`,
     }
   }

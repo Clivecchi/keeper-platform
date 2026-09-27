@@ -1,20 +1,20 @@
 # V0 Styles System
 
-## 📌 Purpose
+## ?? Purpose
 Manages the appearance (Style) and atmosphere (Tone) of V0 frames. Provides CSS custom properties for theming components consistently.
 
-## 🧱 Key Files
+## ?? Key Files
 - `styles.ts` - Legacy style definitions (being phased out)
 - `styleRegistry.ts` - New comprehensive style registry with full token spec
 - `StyleScope.tsx` - React component that applies style variables to its children
 - `StyleOverrideProvider.tsx` - Context provider for live token editing
 
-## 🔄 Lens/Style/Tone Model
+## ?? Lens/Style/Tone Model
 - **Lens** = selection/meaning layer (future - not implemented)
 - **Style** = appearance layer (current - how things look)
 - **Tone** = attribute of Style (current - mood/atmosphere)
 
-## 🎨 Token Specification
+## ?? Token Specification
 Styles use a comprehensive token system covering:
 - **Surface**: page, paper, panel, elevated colors
 - **Ink**: primary, secondary, tertiary, placeholder text colors
@@ -23,21 +23,22 @@ Styles use a comprehensive token system covering:
 - **Effects**: shadow, focus ring, hover/press surface colors
 - **Layout**: sheet radius, frame/sheet padding
 
-## 📆 Update Log
+## ?? Update Log
+- 2026-09-27: Member `treatment` uses open Warm Dark glass again. Sealed glass (atmosphere present) was hiding the cover. `isStyleId` rejects theme slugs (`domain-resolved`) so they cannot select a style. V0Shell ignores an unknown `?style=` and stays on Warm Dark `neutral`.
 - 2026-09-26: `themeApply=treatment` always builds the Warm Dark `neutral` shell before atmosphere contrast. Light styles were keeping cream surfaces while contrast emitted near-white ink, so Nav and Dialog type disappeared.
 - 2026-07-16: StyleScope prefers live `getRuntimeThemeTokens` each paint so curtain/V0Shell re-registers are not frozen behind the first DEFAULT snapshot.
 - 2026-06-29: StyleScope reads runtime domain theme synchronously when registered (avoids theme-loading spinner / style flash on public Cover).
-- 2026-06-29: Added `gray-earth` style id (platform default merge base when domain-resolved). `neutral` remains Warm Dark board shell — opt in via `?style=neutral`.
-- 2026-05-31: Focus Color System — `tokensToCSSVars` emits `--treatment-color` and alpha variants (`-08`, `-12`, `-20`) derived from `focus.ring` (domain Treatment accent). Used by composer glow, nav selection, and Chronicle focus frame in `index.css`.
-- 2026-05-30: Rendr treatment correction — `neutral` style renamed Warm Dark; cold indigo-violet tokens shifted to warm dark register (hsl 28–38 hue). Platform teal accent (`--theme-accent-primary`, `--theme-focus-ring`, status success). Dialogue tokens: teal user bubbles, warm charcoal agent bubbles.
+- 2026-06-29: Added `gray-earth` style id (platform default merge base when domain-resolved). `neutral` remains Warm Dark board shell ? opt in via `?style=neutral`.
+- 2026-05-31: Focus Color System ? `tokensToCSSVars` emits `--treatment-color` and alpha variants (`-08`, `-12`, `-20`) derived from `focus.ring` (domain Treatment accent). Used by composer glow, nav selection, and Chronicle focus frame in `index.css`.
+- 2026-05-30: Rendr treatment correction ? `neutral` style renamed Warm Dark; cold indigo-violet tokens shifted to warm dark register (hsl 28?38 hue). Platform teal accent (`--theme-accent-primary`, `--theme-focus-ring`, status success). Dialogue tokens: teal user bubbles, warm charcoal agent bubbles.
 - 2026-04-01: `StyleScope` accepts optional `className` (merged with `v0-style-scope`) so board shells can apply `flex flex-1 flex-col min-h-0` without an extra wrapper.
 
-## ⚠️ Notes & ToDo
+## ?? Notes & ToDo
 - Lens-driven behavior is not yet implemented
 - Styles are applied via CSS custom properties (--theme-*) for consistency with platform ThemeProvider
 - Each Style has an associated Tone for categorization
 - Style Editor at `/v0/style` provides live token editing for rapid iteration
-### 2026-07-17 � Domain accent + reactive StyleScope
+### 2026-07-17 ? Domain accent + reactive StyleScope
 - `StyleScope` uses `useSyncExternalStore` on the runtime theme registry so Curtain/V0Shell re-registers re-paint.
 - `tokensToCSSVars` sets `--theme-accent-primary` from `focus.ring` (domain Treatment) instead of hard-coded teal.
 
@@ -45,6 +46,6 @@ Styles use a comprehensive token system covering:
 - `themeApply=treatment` now merges atmosphere contrast (glass alphas + high-contrast vs muted ink) from the theme engine. Domain cream surfaces still do not replace the Warm Dark shell.
 - `tokensToCSSVars` emits `--theme-glass-*-alpha` and `--theme-atmosphere-wash-*`. Board CSS must use these instead of literal opacities.
 
-### 2026-07-17 � Board chrome themeApply=treatment
+### 2026-07-17 ? Board chrome themeApply=treatment
 - `StyleScope` supports `themeApply`: `full` (Cover / `?theme=`) vs `treatment` (Warm Dark glass shell + domain `focus.ring` only).
 - Stops domain light cream surfaces from overwriting member Universal Board panels.

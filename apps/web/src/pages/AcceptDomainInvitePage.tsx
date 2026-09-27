@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { apiFetch } from "../lib/api"
-import { domainBoardPath } from "../lib/invitationReturn"
+import { domainBoardPath, homeArrivalPath } from "../lib/invitationReturn"
 import { useAuth } from "../context/AuthContext"
 
 type ArrivalStatus = "pending" | "accepted" | "expired"
@@ -100,11 +100,21 @@ export default function AcceptDomainInvitePage() {
     const data = (await apiFetch("/api/domains/invitations/accept", {
       method: "POST",
       body: JSON.stringify({ token }),
-    })) as { domainSlug?: string; dialogId?: string }
+    })) as {
+      domainSlug?: string
+      dialogId?: string
+      homeRealmSlug?: string
+      homeDialogId?: string
+    }
+    const homeSlug = data.homeRealmSlug?.trim()
+    if (homeSlug) {
+      navigate(homeArrivalPath(homeSlug, data.homeDialogId ?? data.dialogId), { replace: true })
+      return
+    }
     const slug = data.domainSlug?.trim() || preview?.domainSlug
-    if (!slug) throw new Error("The invitation was accepted, but the Domain could not be opened.")
+    if (!slug) throw new Error("The invitation was accepted, but home could not be opened.")
     enterDomain(slug, data.dialogId)
-  }, [enterDomain, preview?.domainSlug, token])
+  }, [enterDomain, navigate, preview?.domainSlug, token])
 
   React.useEffect(() => {
     if (!authResolved || isLoading || !preview || !user?.email) return
@@ -115,10 +125,6 @@ export default function AcceptDomainInvitePage() {
     setBusy(true)
     setMessage(null)
     const run = async () => {
-      if (preview.status === "accepted") {
-        enterDomain(preview.domainSlug)
-        return
-      }
       await acceptAndEnter()
     }
     void run().catch((err) => {
@@ -166,10 +172,6 @@ export default function AcceptDomainInvitePage() {
         throw new Error(result.error || "Could not sign in.")
       }
       login(result.data)
-      if (preview.status === "accepted") {
-        enterDomain(preview.domainSlug)
-        return
-      }
       await acceptAndEnter()
     } catch (err) {
       const text = errorMessage(err, "Could not continue.")
@@ -330,10 +332,10 @@ export default function AcceptDomainInvitePage() {
                 className="w-full rounded-md bg-slate-900 py-3 text-white disabled:opacity-50"
               >
                 {busy
-                  ? "Entering…"
+                  ? "Arriving…"
                   : needsAccount
-                    ? `Create account and enter ${preview.domainName}`
-                    : `Sign in and enter ${preview.domainName}`}
+                    ? "Create account and arrive home"
+                    : "Sign in and arrive home"}
               </button>
               {!needsAccount ? (
                 <button

@@ -137,6 +137,10 @@ import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { persistImageToLibrary } from '../../services/imageArchiveService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import {
+  dialogHasHumanMembers,
+  userIsDialogHumanMember,
+} from '../../services/domains/dialogHumanMembership.js';
+import {
   buildConsultChapterMeta,
   buildKeptChronicleMeta,
   closeSessionWithAuthoredMeta,
@@ -5792,14 +5796,39 @@ export class KipAgentService {
         dialogId = dialog.id;
       }
       
+      let sessionUserId: string | null = userId;
+      if (dialogId && (await dialogHasHumanMembers(dialogId))) {
+        const existing = await prisma.kip_sessions.findFirst({
+          where: {
+            dialog_id: dialogId,
+            agent_id: agent.id,
+            is_archived: false,
+          },
+          orderBy: { updated_at: 'desc' },
+          select: { id: true },
+        });
+        if (existing) {
+          const shared = await getKipSessionById(existing.id);
+          if (shared) return shared;
+        }
+        sessionUserId = null;
+      }
+
       const sessionData: KipSessionInput = {
         agent_id: agent.id,
-        user_id: userId,
+        user_id: sessionUserId ?? userId,
         session_name: sessionName || `Session with ${agent.name}`,
         ...(context?.primaryJourneyId ? { primary_journey_id: context.primaryJourneyId } : {}),
         ...(context?.primaryKeeperId ? { primary_keeper_id: context.primaryKeeperId } : {}),
         ...(dialogId ? { dialog_id: dialogId } : {}),
       };
+
+      if (sessionUserId === null) {
+        return await createKipSession({
+          ...sessionData,
+          user_id: null,
+        } as KipSessionInput);
+      }
 
       return await createKipSession(sessionData);
     } catch (error) {
@@ -5960,11 +5989,14 @@ export class KipAgentService {
     const message = await prisma.kip_messages.findUnique({
       where: { id: messageId },
       include: {
-        kip_sessions: { select: { user_id: true } },
+        kip_sessions: { select: { user_id: true, dialog_id: true } },
       },
     });
 
-    if (!message || message.kip_sessions.user_id !== userId) {
+    const sharesDialog = message
+      ? await userIsDialogHumanMember(userId, message.kip_sessions.dialog_id)
+      : false;
+    if (!message || (message.kip_sessions.user_id !== userId && !sharesDialog)) {
       throw new Error('Message not found');
     }
 
@@ -11209,10 +11241,13 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           const { sessionId } = validation.data;
           const existingSession = await prisma.kip_sessions.findUnique({
             where: { id: sessionId },
-            select: { id: true, user_id: true, agent_id: true },
+            select: { id: true, user_id: true, agent_id: true, dialog_id: true },
           });
 
-          if (!existingSession || existingSession.user_id !== resolvedUserId) {
+          const sharesDialog = existingSession
+            ? await userIsDialogHumanMember(resolvedUserId, existingSession.dialog_id)
+            : false;
+          if (!existingSession || (existingSession.user_id !== resolvedUserId && !sharesDialog)) {
             console.warn('[kip/agents] updateSessionMetadata ownership mismatch', {
               requestId,
               sessionId,

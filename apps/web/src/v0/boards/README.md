@@ -865,3 +865,6 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-09-26 — Atmosphere no longer washes Nav and Dialog
 - The board-level light-ink override washed Nav and Dialog out: near-white type on panels that were still near-white. That override is gone. Warm Dark shell tokens now come from `StyleScope` `themeApply="treatment"` (`neutral` surfaces), so ink and panel fill stay paired. Chronicle still keeps its own treatment wash.
+
+### 2026-09-27 — People in the Dialog
+- `UniversalConversation` loads human members and the arrival snapshot, and shows them above the messages. Guided arrival does not clear a Dialog that was opened on purpose.

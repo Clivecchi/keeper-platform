@@ -5,6 +5,7 @@ Shared conversation shell used across Build Board, Agent Board, Domain Board, Re
 
 ## 🧱 Key Files
 - `KeeperDialogFrame.tsx` — Main shell. Composer stays at the bottom. On Stage it is a lectern (`data-composer-placement="pit"`).
+- `DialogRoomPreface.tsx` — Arrival doors and the people in the Dialog, above the messages.
 - `DialogBroadcastStrip.tsx` — Unified working surface: live beat + prior-beat ticker (CRT lower third).
 - `DialogScrollHint.tsx` — “Latest” pill above the Broadcast Strip when the user scrolls up.
 - `DialogUploadStream.tsx` — Pending uploads in Broadcast Strip (Library item created at clip; sent with next message).
@@ -77,6 +78,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-09-27: **Dialog room** — `DialogRoomPreface` sits above messages on mobile and desktop: arrival doors, the people in the Dialog, and add/remove.
 - 2026-09-21: Thinking trace labels `document.orientation.update` as Updated Orientation.
 - 2026-09-20: **Stage attention** — Present → Engage → Yield → Perform → Resolve → Return. Dialog occupies the yielded work surface first. Theatre recedes the current Frame. Stay on Stage. Return after Resolve via the receded Frame or filmstrip. `data-stage-attention` + `data-stage-attention-subject="dialog"`.
 - 2026-09-12: **Mobile chat is docked** — Adaptive `mobile-staged` uses `composerSize="mobile-docked"`: composer stays pinned, send stays visible, Cast/footer/scroll-rail stay off the phone surface.

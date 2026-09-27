@@ -162,6 +162,13 @@ export const styleRegistry: StyleDefinition[] = [
   },
 ]
 
+const STYLE_IDS = new Set<string>(styleRegistry.map((style) => style.id))
+
+/** True only for registry styles. Theme slugs such as `domain-resolved` are not styles. */
+export function isStyleId(value: string | null | undefined): value is StyleId {
+  return typeof value === "string" && STYLE_IDS.has(value)
+}
+
 export function getStyleDefinition(styleId: StyleId): StyleDefinition | undefined {
   return styleRegistry.find(style => style.id === styleId)
 }

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { isGuidedArrivalPending } from "@keeper/shared"
 import { apiFetch } from "../../lib/api"
+import { useSearchParams } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { isMemberMobileBoard } from "../boards/workspaceBoardNav"
@@ -47,6 +48,8 @@ function resolveDomainId(domainData: unknown): string | null {
 
 export function GuidedArrivalProvider({ children }: { children: React.ReactNode }) {
   const shell = useV0ShellOptional()
+  const [searchParams] = useSearchParams()
+  const arrivalDialogSelected = Boolean(searchParams.get("dialogId")?.trim())
   const isMobile = useIsMobile()
   const { user, isAuthenticated } = useAuth()
   const [settings, setSettings] = React.useState<Record<string, unknown> | null>(null)
@@ -130,6 +133,7 @@ export function GuidedArrivalProvider({ children }: { children: React.ReactNode 
 
   const pending =
     isMobile &&
+    !arrivalDialogSelected &&
     !completedLocally &&
     settingsLoaded &&
     isOwner &&

@@ -66,6 +66,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-27 — Invite assigns Dialogs and a role per Domain
+- `DomainInvitePanel` defaults the role to Member. Extra Domains each get a role. Checked Dialogs are stored on the invitation seed.
+
 ### 2026-09-19 — Domain Cover Terrain import
 - `DomainFocusPresence` imports the terrain component from `DomainCoverTerrain.tsx` so Vite does not pick `domainCoverTerrain.ts` on case-insensitive disks.
 

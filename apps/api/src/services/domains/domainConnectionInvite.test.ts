@@ -305,6 +305,10 @@ describe('acceptDomainInvitation', () => {
       },
       domain: {
         findUnique: vi.fn().mockResolvedValue({ ownerId: 'owner-1', slug: 'livecchi' }),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      dialog: {
+        findMany: vi.fn().mockResolvedValue([]),
       },
       domainPermission: {
         findUnique: vi.fn().mockResolvedValue({ userId: 'user-1' }),
@@ -317,6 +321,7 @@ describe('acceptDomainInvitation', () => {
       domainSlug: 'livecchi',
       additionalAccepted: 0,
       dialogId: 'dlg-1',
+      homeRealmSlug: 'sheyenne-home',
     });
   });
 });
@@ -351,6 +356,10 @@ describe('acceptPendingInvitationsForUser', () => {
       },
       domain: {
         findUnique: vi.fn().mockResolvedValue({ settings: {}, slug: 'livecchi' }),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      dialog: {
+        findMany: vi.fn().mockResolvedValue([]),
       },
     };
     const result = await acceptPendingInvitationsForUser(
@@ -363,6 +372,7 @@ describe('acceptPendingInvitationsForUser', () => {
       domainSlug: 'livecchi',
       additionalAccepted: 0,
       dialogId: 'dlg-1',
+      homeRealmSlug: 'sheyenne-home',
     });
     expect(grantPermission).toHaveBeenCalledTimes(1);
   });

@@ -26,6 +26,13 @@
  */
 
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
+import {
+  parseDialogArrivalContext,
+  type DialogArrivalContext,
+  type DialogHumanMemberRow,
+} from "@keeper/shared"
+import { DialogRoomPreface } from "../components/dialog/DialogRoomPreface"
 import type { KipDraftStatus, KipMessage } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
@@ -308,6 +315,7 @@ export function UniversalConversation({
   const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame, shellMode, domainData } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { refreshSession, user } = useAuth()
+  const navigate = useNavigate()
   const isMobile = useIsMobile()
   const useMobileStagedComposer = usesAdaptiveMobileBoardLayout(def.boardId, isMobile)
   const [composerFocused, setComposerFocused] = React.useState(false)
@@ -586,6 +594,99 @@ export function UniversalConversation({
       cancelled = true
     }
   }, [supportsDialogCastAdd, domainId, selectedDialogId, castMembersRevision])
+
+  const [roomPeople, setRoomPeople] = React.useState<DialogHumanMemberRow[]>([])
+  const [roomArrival, setRoomArrival] = React.useState<DialogArrivalContext | null>(null)
+  const [roomMembers, setRoomMembers] = React.useState<Array<{ userId: string; name: string }>>([])
+  const [roomRevision, setRoomRevision] = React.useState(0)
+
+  React.useEffect(() => {
+    if (!domainId || !selectedDialogId) {
+      setRoomPeople([])
+      setRoomArrival(null)
+      setRoomMembers([])
+      return
+    }
+    let cancelled = false
+    const base = `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}`
+    void Promise.all([
+      apiFetch(base) as Promise<{ dialog?: { context?: unknown } }>,
+      apiFetch(`${base}/human-members`) as Promise<{ members?: DialogHumanMemberRow[] }>,
+      apiFetch(`/api/domains/${encodeURIComponent(domainId)}/members`).catch(() => null) as Promise<{
+        owner?: { userId?: string; name?: string | null } | null
+        members?: Array<{ userId?: string; name?: string | null }>
+      } | null>,
+    ])
+      .then(([dialogRes, peopleRes, membersRes]) => {
+        if (cancelled) return
+        setRoomArrival(parseDialogArrivalContext(dialogRes.dialog?.context))
+        setRoomPeople(Array.isArray(peopleRes.members) ? peopleRes.members : [])
+        const options: Array<{ userId: string; name: string }> = []
+        const owner = membersRes?.owner
+        if (owner?.userId) {
+          options.push({ userId: owner.userId, name: owner.name?.trim() || "Owner" })
+        }
+        for (const member of membersRes?.members ?? []) {
+          if (!member.userId) continue
+          options.push({ userId: member.userId, name: member.name?.trim() || "Member" })
+        }
+        setRoomMembers(options)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setRoomPeople([])
+        setRoomArrival(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [domainId, selectedDialogId, roomRevision])
+
+  const handleAddRoomPerson = React.useCallback(
+    async (userId: string) => {
+      if (!domainId || !selectedDialogId || !userId.trim()) return
+      try {
+        await apiFetch(
+          `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}/human-members`,
+          { method: "POST", body: JSON.stringify({ userId }) },
+        )
+        setRoomRevision((n) => n + 1)
+      } catch {
+        // Domain write is required to add a person.
+      }
+    },
+    [domainId, selectedDialogId],
+  )
+
+  const handleRemoveRoomPerson = React.useCallback(
+    async (userId: string) => {
+      if (!domainId || !selectedDialogId) return
+      await apiFetch(
+        `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}/human-members/${encodeURIComponent(userId)}`,
+        { method: "DELETE" },
+      )
+      setRoomRevision((n) => n + 1)
+    },
+    [domainId, selectedDialogId],
+  )
+
+  const roomPreface = selectedDialogId ? (
+    <DialogRoomPreface
+      arrival={roomArrival}
+      people={roomPeople}
+      domainMembers={roomMembers}
+      onOpenPath={(path) => navigate(path)}
+      onAddPerson={(userId) => { void handleAddRoomPerson(userId) }}
+      onRemovePerson={
+        user?.id
+          ? (userId) => {
+              if (userId === user.id) return
+              void handleRemoveRoomPerson(userId)
+            }
+          : undefined
+      }
+    />
+  ) : null
 
   const handleEnableCastCandidate = React.useCallback(
     async (homeDomainId: string) => {
@@ -2806,6 +2907,7 @@ export function UniversalConversation({
             <KeeperStageCanvas domainId={domainId} />
           ) : undefined
         }
+        preface={workspaceSurface === "stage" ? null : roomPreface}
         dialogLayout={useMobileStagedComposer ? "mobile-staged" : "default"}
         mobileDialogStage={useMobileStagedComposer ? mobileDialogStage : undefined}
         onComposerFocusChange={useMobileStagedComposer ? handleComposerFocusChange : undefined}

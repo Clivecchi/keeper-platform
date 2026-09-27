@@ -10,6 +10,21 @@ export const INTRODUCTION_PURPOSE_LEAD_DIRECTION = 'lead-direction' as const;
 
 export type IntroductionPurpose = typeof INTRODUCTION_PURPOSE_LEAD_DIRECTION;
 
+export type InvitationArrivalDoor = {
+  domainId: string;
+  domainSlug: string;
+  domainName: string;
+  role: string;
+};
+
+export type InvitationArrivalDialogDoor = {
+  dialogId: string;
+  title: string;
+  domainId: string;
+  domainSlug: string;
+  domainName: string;
+};
+
 export type DialogArrivalContext = {
   kind: 'invitation-arrival';
   invitationId: string;
@@ -20,6 +35,16 @@ export type DialogArrivalContext = {
   invitedByUserId: string;
   introductionPurpose: IntroductionPurpose;
   seed: InvitationSeed | null;
+  /** Display name of the person who sent the invitation. */
+  inviterName?: string;
+  originDomainName?: string;
+  originLeadName?: string;
+  /** Dialog on the inviting Domain where inviter and invitee share one conversation. */
+  sharedDialogId?: string;
+  /** True on the invitee's home Dialog, which lists doors into the owning Domains. */
+  homeDirectory?: boolean;
+  doors?: InvitationArrivalDoor[];
+  assignedDialogs?: InvitationArrivalDialogDoor[];
 };
 
 export type DialogContextShape = {
@@ -38,6 +63,39 @@ function asTrimmedString(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed || null;
+}
+
+function parseDoors(value: unknown): InvitationArrivalDoor[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const doors: InvitationArrivalDoor[] = [];
+  for (const entry of value) {
+    const row = asRecord(entry);
+    if (!row) continue;
+    const domainId = asTrimmedString(row.domainId);
+    const domainSlug = asTrimmedString(row.domainSlug);
+    const domainName = asTrimmedString(row.domainName);
+    const role = asTrimmedString(row.role) ?? 'user';
+    if (!domainId || !domainSlug || !domainName) continue;
+    doors.push({ domainId, domainSlug, domainName, role });
+  }
+  return doors.length > 0 ? doors : undefined;
+}
+
+function parseAssignedDialogs(value: unknown): InvitationArrivalDialogDoor[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const doors: InvitationArrivalDialogDoor[] = [];
+  for (const entry of value) {
+    const row = asRecord(entry);
+    if (!row) continue;
+    const dialogId = asTrimmedString(row.dialogId);
+    const title = asTrimmedString(row.title);
+    const domainId = asTrimmedString(row.domainId);
+    const domainSlug = asTrimmedString(row.domainSlug);
+    const domainName = asTrimmedString(row.domainName);
+    if (!dialogId || !title || !domainId || !domainSlug || !domainName) continue;
+    doors.push({ dialogId, title, domainId, domainSlug, domainName });
+  }
+  return doors.length > 0 ? doors : undefined;
 }
 
 /**
@@ -66,6 +124,13 @@ export function parseDialogArrivalContext(context: unknown): DialogArrivalContex
 
   const seed = normalizeInvitationSeed(arrival.seed);
 
+  const doors = parseDoors(arrival.doors);
+  const assignedDialogs = parseAssignedDialogs(arrival.assignedDialogs);
+  const inviterName = asTrimmedString(arrival.inviterName);
+  const originDomainName = asTrimmedString(arrival.originDomainName);
+  const originLeadName = asTrimmedString(arrival.originLeadName);
+  const sharedDialogId = asTrimmedString(arrival.sharedDialogId);
+
   return {
     kind: 'invitation-arrival',
     invitationId,
@@ -76,6 +141,13 @@ export function parseDialogArrivalContext(context: unknown): DialogArrivalContex
     invitedByUserId,
     introductionPurpose: purpose,
     seed: invitationSeedHasContent(seed) ? seed : null,
+    ...(inviterName ? { inviterName } : {}),
+    ...(originDomainName ? { originDomainName } : {}),
+    ...(originLeadName ? { originLeadName } : {}),
+    ...(sharedDialogId ? { sharedDialogId } : {}),
+    ...(arrival.homeDirectory === true ? { homeDirectory: true } : {}),
+    ...(doors ? { doors } : {}),
+    ...(assignedDialogs ? { assignedDialogs } : {}),
   };
 }
 
@@ -111,8 +183,21 @@ export function buildInvitationArrivalSnapshot(input: {
   role: string;
   invitedByUserId: string;
   seed: unknown;
+  inviterName?: string | null;
+  originDomainName?: string | null;
+  originLeadName?: string | null;
+  sharedDialogId?: string | null;
+  homeDirectory?: boolean;
+  doors?: InvitationArrivalDoor[];
+  assignedDialogs?: InvitationArrivalDialogDoor[];
 }): DialogArrivalContext {
   const seed = normalizeInvitationSeed(input.seed);
+  const doors = parseDoors(input.doors);
+  const assignedDialogs = parseAssignedDialogs(input.assignedDialogs);
+  const inviterName = input.inviterName?.trim() || null;
+  const originDomainName = input.originDomainName?.trim() || null;
+  const originLeadName = input.originLeadName?.trim() || null;
+  const sharedDialogId = input.sharedDialogId?.trim() || null;
   return {
     kind: 'invitation-arrival',
     invitationId: input.invitationId.trim(),
@@ -123,6 +208,13 @@ export function buildInvitationArrivalSnapshot(input: {
     invitedByUserId: input.invitedByUserId.trim(),
     introductionPurpose: INTRODUCTION_PURPOSE_LEAD_DIRECTION,
     seed: invitationSeedHasContent(seed) ? seed : null,
+    ...(inviterName ? { inviterName } : {}),
+    ...(originDomainName ? { originDomainName } : {}),
+    ...(originLeadName ? { originLeadName } : {}),
+    ...(sharedDialogId ? { sharedDialogId } : {}),
+    ...(input.homeDirectory ? { homeDirectory: true } : {}),
+    ...(doors ? { doors } : {}),
+    ...(assignedDialogs ? { assignedDialogs } : {}),
   };
 }
 
@@ -136,6 +228,14 @@ export function formatDialogArrivalForAgent(arrival: DialogArrivalContext): stri
   ];
   if (arrival.inviteeHomeDomainId) {
     lines.push(`Invitee home Domain: ${arrival.inviteeHomeDomainId}`);
+  }
+  if (arrival.inviterName) {
+    lines.push(`Inviter: ${arrival.inviterName} is in this Dialog with the invitee.`);
+  }
+  if (arrival.doors?.length) {
+    lines.push(
+      `Doors: ${arrival.doors.map((door) => `${door.domainName} (${door.domainSlug})`).join(', ')}`,
+    );
   }
   if (arrival.seed) {
     lines.push(

@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { useAuth } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 import type { StyleId } from '../styles/styles'
+import { isStyleId } from '../styles/styleRegistry'
 import { DEFAULT_BASE_THEME_SLUG } from '../themes/constants'
 import { DEFAULT_DOMAIN_FRAME } from '../data/domain-frame.default'
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
@@ -337,12 +338,31 @@ export function V0Shell({ mode = "domain", brandSlug }: V0ShellProps) {
   // urlThemeSlug: the ?theme= URL param — developer preview override only.
   // When present it takes full precedence over domain-resolved theme.
   const urlThemeSlug = searchParams.get("theme")
-  const urlStyleId = searchParams.get("style") as StyleId | null
+  const rawStyleParam = searchParams.get("style")
+  // `?style=` is a registry style (neutral / diary-paper / gray-earth).
+  // `domain-resolved` is a theme slug. Treating it as a style missed the
+  // registry and fell through to the white fallback, then atmosphere contrast
+  // painted near-white ink on that white panel.
+  const urlStyleId = isStyleId(rawStyleParam) ? rawStyleParam : null
   const draftId = searchParams.get("draftId")
 
   const defaultStyleId: StyleId =
     authResolved && isGuestPublicStory ? DEFAULT_BASE_THEME_SLUG : "neutral"
-  const styleId = (urlStyleId || defaultStyleId) as StyleId
+  const styleId: StyleId = urlStyleId ?? defaultStyleId
+
+  // Drop a theme slug that was stored as ?style= so navigation does not write it back.
+  React.useEffect(() => {
+    if (!rawStyleParam || isStyleId(rawStyleParam)) return
+    const params = readUrlSearchParams(location.search)
+    params.delete("style")
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString() ? `?${params.toString()}` : "",
+      },
+      { replace: true },
+    )
+  }, [location.pathname, location.search, navigate, rawStyleParam])
 
   // initialStyleId: passed to StyleOverrideProvider.
   // When any theme slug is active (URL or domain), omit the initial style so

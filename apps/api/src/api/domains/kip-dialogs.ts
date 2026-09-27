@@ -54,6 +54,11 @@ import {
   listDialogCastCandidates,
   listDialogCastMembers,
 } from '../../services/domains/dialogCastMembership.js';
+import {
+  addDialogHumanMember,
+  listDialogHumanMembers,
+  removeDialogHumanMember,
+} from '../../services/domains/dialogHumanMembership.js';
 import { listChronicleEventsForDialog } from '../../services/kip/chronicleEvents.js';
 import { loadDialogDocumentForChronicle } from '../../services/kip/loadDialogDocumentForChronicle.js';
 import {
@@ -182,6 +187,26 @@ const enableCastMemberSchema = z.object({
   /** Home domain whose lead agent to enable — server resolves the lead; never trust a client agentId. */
   homeDomainId: z.string().min(1),
 });
+
+const addHumanMemberSchema = z.object({
+  userId: z.string().min(1),
+  homeDomainId: z.string().min(1).optional(),
+});
+
+function humanMembershipErrorStatus(code: string | undefined): number {
+  switch (code) {
+    case 'DIALOG_NOT_FOUND':
+    case 'USER_NOT_FOUND':
+    case 'HUMAN_MEMBER_NOT_FOUND':
+      return 404;
+    case 'DOMAIN_MEMBER_REQUIRED':
+      return 403;
+    case 'USER_REQUIRED':
+      return 400;
+    default:
+      return 500;
+  }
+}
 
 function castMembershipErrorStatus(code: string | undefined): number {
   switch (code) {
@@ -1189,6 +1214,86 @@ router.delete(
       }
       logger.error({ err: error, domainId, dialogId, agentId }, '[kip-dialogs] cast-members delete failed');
       return res.status(500).json({ error: 'FAILED_TO_DISABLE_CAST_MEMBER' });
+    }
+  },
+);
+
+router.get(
+  '/:domainId/kip/dialogs/:dialogId/human-members',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const members = await listDialogHumanMembers({ domainId, dialogId });
+      return res.json({ members });
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code) {
+        return res.status(humanMembershipErrorStatus(code)).json({ error: code });
+      }
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] human-members list failed');
+      return res.status(500).json({ error: 'FAILED_TO_LIST_HUMAN_MEMBERS' });
+    }
+  },
+);
+
+router.post(
+  '/:domainId/kip/dialogs/:dialogId/human-members',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const parsed = addHumanMemberSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'INVALID_HUMAN_MEMBER' });
+      }
+      const member = await addDialogHumanMember({
+        actorUserId: req.user.id,
+        domainId,
+        dialogId,
+        userId: parsed.data.userId,
+        homeDomainId: parsed.data.homeDomainId,
+        source: 'manual',
+      });
+      return res.status(201).json({ member });
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code) {
+        return res.status(humanMembershipErrorStatus(code)).json({ error: code });
+      }
+      logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] human-members add failed');
+      return res.status(500).json({ error: 'FAILED_TO_ADD_HUMAN_MEMBER' });
+    }
+  },
+);
+
+router.delete(
+  '/:domainId/kip/dialogs/:dialogId/human-members/:userId',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, dialogId, userId } = req.params;
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      await removeDialogHumanMember({ domainId, dialogId, userId });
+      return res.status(204).send();
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code) {
+        return res.status(humanMembershipErrorStatus(code)).json({ error: code });
+      }
+      logger.error({ err: error, domainId, dialogId, userId }, '[kip-dialogs] human-members delete failed');
+      return res.status(500).json({ error: 'FAILED_TO_REMOVE_HUMAN_MEMBER' });
     }
   },
 );

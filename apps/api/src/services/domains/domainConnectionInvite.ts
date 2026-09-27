@@ -12,6 +12,8 @@ import {
   resolveDomainRoleCatalog,
   resolveRoleBundle,
   type DomainPersonNote,
+  type InvitationArrivalDialogDoor,
+  type InvitationArrivalDoor,
   type InvitationSeed,
 } from '@keeper/shared';
 import { ensureInviteeHomeRealm } from './ensureInviteeHomeRealm.js';
@@ -71,6 +73,8 @@ export type PendingInvitationArrival = {
   domainSlug: string;
   additionalAccepted: number;
   dialogId?: string;
+  homeRealmSlug?: string;
+  homeDialogId?: string;
 };
 
 export function invitationAcceptPath(token: string): string {
@@ -97,31 +101,107 @@ export type AcceptInvitationResult = {
   domainSlug: string;
   additionalAccepted: number;
   dialogId?: string;
+  homeRealmSlug?: string;
+  homeDialogId?: string;
 };
 
+type UserLookupClient = Pick<PrismaClient, 'users' | 'domain' | 'domainPermission' | 'domainInvitation' | 'dialog'>;
+
+async function loadInvitationDoors(
+  prisma: Pick<PrismaClient, 'domain'>,
+  rows: DomainInvitation[],
+): Promise<InvitationArrivalDoor[]> {
+  const ids = [...new Set(rows.map((row) => row.domainId))];
+  if (ids.length === 0) return [];
+  const domains = await prisma.domain.findMany({
+    where: { id: { in: ids }, deletedAt: null },
+    select: { id: true, slug: true, name: true },
+  });
+  const byId = new Map(domains.map((domain) => [domain.id, domain]));
+  const doors: InvitationArrivalDoor[] = [];
+  for (const row of rows) {
+    const domain = byId.get(row.domainId);
+    if (!domain?.slug) continue;
+    if (doors.some((door) => door.domainId === domain.id)) continue;
+    doors.push({
+      domainId: domain.id,
+      domainSlug: domain.slug,
+      domainName: domain.name,
+      role: row.role,
+    });
+  }
+  return doors;
+}
+
+async function loadAssignedDialogDoors(
+  prisma: Pick<PrismaClient, 'dialog' | 'domain'>,
+  invitation: DomainInvitation,
+  doors: InvitationArrivalDoor[],
+): Promise<InvitationArrivalDialogDoor[]> {
+  const seed = normalizeInvitationSeed(invitation.seed);
+  const ids = seed?.assignedDialogIds ?? [];
+  if (ids.length === 0) return [];
+  const allowed = new Set(doors.map((door) => door.domainId));
+  allowed.add(invitation.domainId);
+  if (invitation.originDomainId) allowed.add(invitation.originDomainId);
+  const dialogs = await prisma.dialog.findMany({
+    where: {
+      id: { in: ids },
+      is_archived: false,
+      domain_id: { in: [...allowed] },
+    },
+    select: { id: true, title: true, domain_id: true },
+  });
+  const domainIds = [...new Set(dialogs.map((dialog) => dialog.domain_id))];
+  const domains = await prisma.domain.findMany({
+    where: { id: { in: domainIds } },
+    select: { id: true, slug: true, name: true },
+  });
+  const byId = new Map(domains.map((domain) => [domain.id, domain]));
+  return dialogs.flatMap((dialog) => {
+    const domain = byId.get(dialog.domain_id);
+    if (!domain?.slug) return [];
+    return [{
+      dialogId: dialog.id,
+      title: dialog.title,
+      domainId: domain.id,
+      domainSlug: domain.slug,
+      domainName: domain.name,
+    }];
+  });
+}
+
 async function completeFirstIntroduction(
+  prisma: UserLookupClient,
   invitation: DomainInvitation,
   userId: string,
-): Promise<string | undefined> {
+  bundleRows: DomainInvitation[],
+): Promise<{ dialogId?: string; homeRealmSlug?: string; homeDialogId?: string }> {
   try {
     const home = await ensureInviteeHomeRealm(userId);
+    const doors = await loadInvitationDoors(prisma, bundleRows);
+    const assignedDialogs = await loadAssignedDialogDoors(prisma, invitation, doors);
     const arrival = await ensureInvitationArrival({
       invitation,
       userId,
       inviteeHomeDomainId: home?.id ?? null,
+      doors,
+      assignedDialogs,
     });
-    return arrival?.dialogId;
+    return {
+      ...(arrival?.dialogId ? { dialogId: arrival.dialogId } : {}),
+      ...(home?.slug ? { homeRealmSlug: home.slug } : {}),
+      ...(arrival?.homeDialogId ? { homeDialogId: arrival.homeDialogId } : {}),
+    };
   } catch (error) {
     console.warn('[first-introduction] arrival orchestration failed', {
       invitationId: invitation.id,
       userId,
       error,
     });
-    return undefined;
+    return {};
   }
 }
-
-type UserLookupClient = Pick<PrismaClient, 'users' | 'domain' | 'domainPermission' | 'domainInvitation'>;
 
 export function generateInvitationBundleId(): string {
   return `bun_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
@@ -530,6 +610,7 @@ export async function inviteDomainConnection(
     role?: string;
     seed?: unknown;
     additionalDomainIds?: string[];
+    additionalDomains?: Array<{ domainId: string; role?: string }>;
   },
 ): Promise<InviteConnectionResult> {
   const identifier = normalizeIdentifier(params.identifier);
@@ -562,8 +643,18 @@ export async function inviteDomainConnection(
     invitee,
   });
 
-  const uniqueAdditionalIds = [...new Set((params.additionalDomainIds ?? []).filter((id) => id && id !== params.domainId))];
-  if (uniqueAdditionalIds.length === 0) {
+  const roleByDomain = new Map<string, string>();
+  for (const row of params.additionalDomains ?? []) {
+    const id = row.domainId?.trim();
+    if (!id || id === params.domainId) continue;
+    roleByDomain.set(id, row.role?.trim() || 'user');
+  }
+  for (const id of params.additionalDomainIds ?? []) {
+    const trimmed = id?.trim();
+    if (!trimmed || trimmed === params.domainId || roleByDomain.has(trimmed)) continue;
+    roleByDomain.set(trimmed, 'user');
+  }
+  if (roleByDomain.size === 0) {
     return primary;
   }
 
@@ -571,7 +662,7 @@ export async function inviteDomainConnection(
   const allowed = new Map(administrable.map((domain) => [domain.id, domain]));
   const additional: AdditionalInviteResult[] = [];
 
-  for (const domainId of uniqueAdditionalIds) {
+  for (const [domainId, requestedRole] of roleByDomain) {
     const target = allowed.get(domainId);
     if (!target) {
       additional.push({
@@ -584,14 +675,19 @@ export async function inviteDomainConnection(
       continue;
     }
     try {
+      const targetDomain = await prisma.domain.findUnique({
+        where: { id: domainId },
+        select: { settings: true },
+      });
+      const resolved = resolveAssignableDomainRole(requestedRole, targetDomain?.settings);
       const result = await inviteOntoOneDomain(prisma, permissionService, {
         domainId,
         originDomainId,
         bundleId,
         invitedBy: params.invitedBy,
         identifier,
-        role,
-        fallbackBundle,
+        role: resolved.role,
+        fallbackBundle: resolveRoleBundle(resolved.role, resolveDomainRoleCatalog(targetDomain?.settings)),
         seed,
         invitee,
       });
@@ -754,12 +850,12 @@ export async function acceptDomainInvitation(
 
   if (invitation.acceptedAt) {
     if (await userMayRedeemInvitation(prisma, { userId: params.userId, domainId: invitation.domainId })) {
-      const dialogId = await completeFirstIntroduction(invitation, params.userId);
+      const arrival = await completeFirstIntroduction(prisma, invitation, params.userId, [invitation]);
       return {
         domainId: invitation.domainId,
         domainSlug: await domainSlugFor(prisma, invitation.domainId),
         additionalAccepted: 0,
-        ...(dialogId ? { dialogId } : {}),
+        ...arrival,
       };
     }
     throw new Error('Invitation already accepted');
@@ -815,12 +911,12 @@ export async function acceptDomainInvitation(
     });
   }
 
-  const dialogId = await completeFirstIntroduction(invitation, params.userId);
+  const arrival = await completeFirstIntroduction(prisma, invitation, params.userId, related);
   return {
     domainId: invitation.domainId,
     domainSlug: await domainSlugFor(prisma, invitation.domainId),
     additionalAccepted,
-    ...(dialogId ? { dialogId } : {}),
+    ...arrival,
   };
 }
 
@@ -874,6 +970,8 @@ export async function acceptPendingInvitationsForUser(
     domainSlug: first.domainSlug,
     additionalAccepted: first.additionalAccepted + extra,
     ...(first.dialogId ? { dialogId: first.dialogId } : {}),
+    ...(first.homeRealmSlug ? { homeRealmSlug: first.homeRealmSlug } : {}),
+    ...(first.homeDialogId ? { homeDialogId: first.homeDialogId } : {}),
   };
 }
 

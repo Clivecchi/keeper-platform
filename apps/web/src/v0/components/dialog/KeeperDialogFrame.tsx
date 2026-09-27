@@ -252,6 +252,8 @@ export interface KeeperDialogFrameProps {
   // ── Optional Dialog zone override ─────────────────────────────────────────
   /** When provided, renders in Zone 2 instead of DialogueMessageList (dialog mode only). */
   dialogContent?: React.ReactNode
+  /** Arrival card and people, above the messages. Visible on mobile and desktop. */
+  preface?: React.ReactNode
 
   // ── Feed / Dialog mode ────────────────────────────────────────────────────
   /**
@@ -366,6 +368,7 @@ export function KeeperDialogFrame({
   disabled,
   inputPlaceholder,
   dialogContent,
+  preface,
   mode = 'dialog',
   feedContent,
   onReturnToFeed,
@@ -655,6 +658,7 @@ export function KeeperDialogFrame({
       className="dialog-column pt-2"
       style={{ paddingBottom: dialogScrollInset }}
     >
+      {preface}
       {glossConfig ? (
         <GlossProvider
           config={{

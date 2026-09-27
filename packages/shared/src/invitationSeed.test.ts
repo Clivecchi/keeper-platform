@@ -7,6 +7,13 @@ import {
 } from './invitationSeed.js';
 
 describe('invitationSeed', () => {
+  it('keeps assigned Dialog ids on the seed', () => {
+    const seed = normalizeInvitationSeed({
+      assignedDialogIds: ['cmrtyoraw0001ot0033p5wiwm', 'short', 'cmrtyoraw0001ot0033p5wiwm'],
+    });
+    expect(seed?.assignedDialogIds).toEqual(['cmrtyoraw0001ot0033p5wiwm']);
+  });
+
   it('drops blank seed and keeps trimmed fields', () => {
     expect(normalizeInvitationSeed({})).toBeNull();
     expect(normalizeInvitationSeed({ givenName: '  ', about: '' })).toBeNull();

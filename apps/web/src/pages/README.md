@@ -17,6 +17,9 @@ Pages parse route params and query string state to decide which surface to rende
 
 ## 📆 Update Log
 
+### 2026-09-27 — Arrive home
+- Accept opens `/home` on her Realm Dialog, with doors into the invited Domains. The button says arrive home.
+
 ### 2026-09-26 — Invitation arrival
 - `/invite/accept` is public. It creates an account or signs in on the locked invited email, then enters the Domain. No second Go step.
 - `/forgot-password` and `/reset-password` recover a password. A reset from an invitation returns to that invitation.

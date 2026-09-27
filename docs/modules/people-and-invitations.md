@@ -63,7 +63,11 @@ The **origin lead** — Ceox, when the invite starts on Chuck’s Domain — is 
 
 Each Domain on the invite has its own role. The default is **Member** (`user`: read, write, share). The inviter can change it per Domain, using that Domain’s role list. Admin on Livecchi.biz and Mother on Generation are two choices on one invite. Named roles stay on the Domain that defined them.
 
-The form today still uses one role for the whole bundle and opens the inviting Domain on First Introduction. This section is the lock for the next build.
+The people of the invitation are in those places. The inviter is included, and so is everyone else brought in. Keeper is social: human and AI. An assigned Dialog stays on the Domain that owns it, and those humans share that one conversation. Each person is present as themselves. Their lead stands with them — Ceox with Chuck, her lead with her. The origin lead remains the prominent guide. Kip stays beside them. Stages follow the same pattern later.
+
+Accept opens her Realm (`/home?domain={her slug}&dialogId=`). That Dialog is a directory: the origin lead named as guide, Kip beside them, and doors into the invited Domains and assigned Dialogs. Opening a door enters the Domain that owns it. The shared conversation stays on that Domain. The inviter and the invitee are both human members of it, and of any Dialog assigned on the invite. Each extra Domain on the invite has its own role, defaulting to Member. People can also be added on a Dialog after arrival.
+
+The form still records one role on the origin Domain. Extra Domains default to Member and can be changed. Assigned Dialogs are chosen on the invite. Stages are still later.
 
 ## ⚠️ Later (not this slice)
 
@@ -74,6 +78,12 @@ The form today still uses one role for the whole bundle and opens the inviting D
 - Platform admin role-matrix bug (`GET /api/admin/roles/users`)
 
 ## 📆 Update Log
+
+### 2026-09-27 — Arrival on her Realm, people in the Dialog
+- Accept lands on her Realm Dialog with doors. Inviter and invitee share the Dialog on the owning Domain. People can be added later. Mobile keeps that Dialog in front and does not run the owner welcome over it.
+
+### 2026-09-27 — Humans in the room
+- The inviter and everyone else brought in belong on the assigned Dialog, sharing one conversation. Leads stand with their people. Built on accept and on the Dialog itself.
 
 ### 2026-09-26 — Arrival lock
 - She lands on her Realm. Origin lead is the prominent guide; Kip is available beside them. Role defaults to Member and is chosen per Domain. Assigned Dialogs stay on the inviting Domain. Stages follow later.

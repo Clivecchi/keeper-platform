@@ -43,6 +43,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-09-27 — Humans on Dialogs, home arrival
+- `DialogHumanMember` attaches the inviter and invitee to the shared Dialog and to assigned Dialogs. `ensureInvitationArrival` also writes a home directory Dialog with doors. Sessions on a Dialog that has people are shared.
+
 ### 2026-09-17 — First Introduction
 - Invitees always get a home Domain/Lead (`ensureInviteeHomeRealm`); invitation adds `DomainPermission`, it does not replace that Realm.
 - `ensureInvitationArrival` creates or reuses a `Dialog.invitationId` room. `DomainInvitation.seed` is typed onto `context.arrival` as Lead direction (`introductionPurpose: lead-direction`), not a first Dialog message.

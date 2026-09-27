@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-27 — Home arrival path
+- `homeArrivalPath` lands an accepted invitation on `/home?domain=&dialogId=`.
+
 ### 2026-09-26 — Invitation arrival
 - `safeRelativeNext` keeps password-reset return paths on this site.
 

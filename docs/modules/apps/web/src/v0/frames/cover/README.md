@@ -14,6 +14,7 @@ Creates a draft moment on "Write a Moment" and navigates to the Moment frame. Fa
 - [ ] Confirm draft bootstrap error handling for unauthenticated visitors.
 
 ## 📆 Update Log
+- 2026-09-27: Cover no longer copies the theme slug (`domain-resolved`) into `?style=` when no style is set. Only registry styles are preserved.
 - 2026-08-30: Cover Forward (guest and keeper) opens the selected story on Present (first public journey today). Browse journeys is not Forward. Designer preview still falls back to journeys.
 - 2026-08-30: Cover header imprint uses the domain name (`coverImprint.ts`). Card wordmark is unchanged.
 - 2026-07-02: Guest Forward uses `publicJourneyCache`; **Browse journeys** secondary link; Cover chat is threshold tease → Companion panel.

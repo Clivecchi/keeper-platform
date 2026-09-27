@@ -771,6 +771,8 @@ model Dialog {
   drafts   kip_drafts[]
   /// Cross-domain cast members — lead agents from domains the enabler administers.
   castMembers DialogCastMember[]
+  /// Humans in this Dialog — inviter, invitee, and anyone added later.
+  humanMembers DialogHumanMember[]
   /// Dialog-scoped Chronicle History events (not Realm arrival feed).
   chronicleEvents ChronicleEvent[]
 
@@ -838,6 +840,32 @@ model DialogCastMember {
   @@index([agentId])
   @@index([homeDomainId])
   @@index([enabledByUserId])
+}
+
+/**
+ * Humans present in a Dialog. Cast remains agents.
+ * Invitation attaches the inviter and the invitee; anyone with Domain write may add a member.
+ */
+model DialogHumanMember {
+  id            String   @id @default(cuid())
+  dialogId      String
+  userId        String
+  homeDomainId  String?
+  addedByUserId String
+  addedAt       DateTime @default(now())
+  /// invitation | manual
+  source        String   @default("manual")
+
+  dialog      Dialog  @relation(fields: [dialogId], references: [id], onDelete: Cascade)
+  user        users   @relation("DialogHumanMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  homeDomain  Domain? @relation("DialogHumanMemberHomeDomain", fields: [homeDomainId], references: [id], onDelete: SetNull)
+  addedByUser users   @relation("DialogHumanMemberAddedBy", fields: [addedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([dialogId, userId])
+  @@index([dialogId])
+  @@index([userId])
+  @@index([homeDomainId])
+  @@index([addedByUserId])
 }
 
 model kip_sessions {
@@ -942,6 +970,8 @@ model users {
   kip_drafts                                           kip_drafts[]
   dialogs                                              Dialog[]
   dialogCastMembersEnabled                             DialogCastMember[]         @relation("DialogCastMemberEnabledBy")
+  dialogHumanMemberships                               DialogHumanMember[]        @relation("DialogHumanMemberUser")
+  dialogHumanMembersAdded                              DialogHumanMember[]        @relation("DialogHumanMemberAddedBy")
   claimed_session_handoff_keys                         SessionHandoffKey[]        @relation("UserClaimedSessionHandoffKey")
   provider_keys                                        Key[]
 }
@@ -1267,6 +1297,7 @@ model Domain {
   dialogs                                                  Dialog[]
   chronicleEvents                                          ChronicleEvent[]
   dialogCastMembersHome                                    DialogCastMember[]         @relation("DialogCastMemberHomeDomain")
+  dialogHumanMembersHome                                   DialogHumanMember[]        @relation("DialogHumanMemberHomeDomain")
   session_handoff_keys                                     SessionHandoffKey[]
   provider_keys                                            Key[]
   capabilities                                             Capability[]

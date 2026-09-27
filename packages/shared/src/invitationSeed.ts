@@ -5,6 +5,7 @@ export const INVITATION_SEED_LIMITS = {
   briefingCount: 4,
   briefingTitle: 80,
   briefingBody: 2000,
+  assignedDialogCount: 12,
 } as const;
 
 export type InvitationBriefingKind = 'note' | 'prompt' | 'document';
@@ -29,6 +30,8 @@ export interface InvitationSeed {
   relation?: string;
   about?: string;
   briefing?: InvitationBriefingNote[];
+  /** Dialogs on the inviting Domains the person should enter. Pointers, not copies. */
+  assignedDialogIds?: string[];
   /** Stub: briefing stays with the inviting Domain until co-ownership exists. */
   coOwnership?: 'inviter-held';
 }
@@ -79,9 +82,29 @@ function normalizeBriefing(input: unknown): InvitationBriefingNote[] | undefined
   return notes.length > 0 ? notes : undefined;
 }
 
+function normalizeAssignedDialogIds(input: unknown): string[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  const ids: string[] = [];
+  for (const entry of input) {
+    if (typeof entry !== 'string') continue;
+    const trimmed = entry.trim();
+    if (trimmed.length < 8 || trimmed.length > 64) continue;
+    if (ids.includes(trimmed)) continue;
+    ids.push(trimmed);
+    if (ids.length >= INVITATION_SEED_LIMITS.assignedDialogCount) break;
+  }
+  return ids.length > 0 ? ids : undefined;
+}
+
 export function invitationSeedHasContent(seed: InvitationSeed | null | undefined): seed is InvitationSeed {
   if (!seed) return false;
-  return Boolean(seed.givenName || seed.relation || seed.about || (seed.briefing && seed.briefing.length > 0));
+  return Boolean(
+    seed.givenName
+    || seed.relation
+    || seed.about
+    || (seed.briefing && seed.briefing.length > 0)
+    || (seed.assignedDialogIds && seed.assignedDialogIds.length > 0),
+  );
 }
 
 export function normalizeInvitationSeed(input: unknown): InvitationSeed | null {
@@ -92,9 +115,11 @@ export function normalizeInvitationSeed(input: unknown): InvitationSeed | null {
   const relation = clip(raw.relation, INVITATION_SEED_LIMITS.relation);
   const about = clip(raw.about, INVITATION_SEED_LIMITS.about);
   const briefing = normalizeBriefing(raw.briefing);
+  const assignedDialogIds = normalizeAssignedDialogIds(raw.assignedDialogIds);
   if (givenName) seed.givenName = givenName;
   if (relation) seed.relation = relation;
   if (about) seed.about = about;
+  if (assignedDialogIds) seed.assignedDialogIds = assignedDialogIds;
   if (briefing) {
     seed.briefing = briefing;
     seed.coOwnership = 'inviter-held';

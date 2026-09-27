@@ -1113,11 +1113,21 @@ const inviteConnectionSchema = z.object({
   identifier: z.string().min(1),
   role: domainRoleKeySchema.optional(),
   additionalDomainIds: z.array(z.string().uuid()).max(20).optional(),
+  additionalDomains: z
+    .array(
+      z.object({
+        domainId: z.string().uuid(),
+        role: domainRoleKeySchema.optional(),
+      }),
+    )
+    .max(20)
+    .optional(),
   seed: z
     .object({
       givenName: z.string().max(INVITATION_SEED_LIMITS.givenName).optional(),
       relation: z.string().max(INVITATION_SEED_LIMITS.relation).optional(),
       about: z.string().max(INVITATION_SEED_LIMITS.about).optional(),
+      assignedDialogIds: z.array(z.string().min(8).max(64)).max(INVITATION_SEED_LIMITS.assignedDialogCount).optional(),
       briefing: z
         .array(
           z.object({
@@ -1585,6 +1595,7 @@ router.post(
         role: req.body.role,
         seed: req.body.seed,
         additionalDomainIds: req.body.additionalDomainIds,
+        additionalDomains: req.body.additionalDomains,
       });
 
       const extraNames = result.additional
@@ -1696,6 +1707,8 @@ router.post('/invitations/accept', authMiddlewareCompat, async (req: Request, re
       domainSlug: accepted.domainSlug,
       additionalAccepted: accepted.additionalAccepted,
       ...(accepted.dialogId ? { dialogId: accepted.dialogId } : {}),
+      ...(accepted.homeRealmSlug ? { homeRealmSlug: accepted.homeRealmSlug } : {}),
+      ...(accepted.homeDialogId ? { homeDialogId: accepted.homeDialogId } : {}),
     });
   } catch (error) {
     console.error('Error accepting domain invitation:', error);

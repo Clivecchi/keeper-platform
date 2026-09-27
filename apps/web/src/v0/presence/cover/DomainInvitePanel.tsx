@@ -61,15 +61,19 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
   )
   const assignable = React.useMemo(() => assignableDomainRoles(catalog), [catalog])
   const [identifier, setIdentifier] = React.useState("")
-  const [role, setRole] = React.useState(assignable[assignable.length - 1]?.key ?? "connection")
+  const memberRole = assignable.find((entry) => entry.key === "user")?.key ?? assignable[0]?.key ?? "user"
+  const [role, setRole] = React.useState(memberRole)
+  const [additionalRoles, setAdditionalRoles] = React.useState<Record<string, string>>({})
+  const [assignedDialogIds, setAssignedDialogIds] = React.useState<string[]>([])
+  const [assignableDialogs, setAssignableDialogs] = React.useState<Array<{ id: string; title: string }>>([])
 
   React.useEffect(() => {
     setRole((current) => (
       assignable.some((entry) => entry.key === current)
         ? current
-        : (assignable[assignable.length - 1]?.key ?? "connection")
+        : memberRole
     ))
-  }, [assignable])
+  }, [assignable, memberRole])
   const [givenName, setGivenName] = React.useState("")
   const [relation, setRelation] = React.useState("")
   const [about, setAbout] = React.useState("")
@@ -95,6 +99,26 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
     }
   }, [domainId])
 
+  React.useEffect(() => {
+    let cancelled = false
+    apiFetch(`/api/domains/${encodeURIComponent(domainId)}/kip/dialogs`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const list = (res as { dialogs?: Array<{ id?: string; title?: string; title_source?: string }> }).dialogs ?? []
+        setAssignableDialogs(
+          list
+            .filter((dialog) => dialog.id && dialog.title_source !== "auto_generated")
+            .map((dialog) => ({ id: dialog.id as string, title: dialog.title?.trim() || "Dialog" })),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setAssignableDialogs([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [domainId])
+
   const addBriefing = (kind: InvitationBriefingKind) => {
     if (briefing.length >= INVITATION_SEED_LIMITS.briefingCount) return
     setBriefing((current) => [...current, { kind, title: "", body: "" }])
@@ -110,6 +134,15 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
 
   const toggleAdditionalDomain = (id: string) => {
     setAdditionalDomainIds((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
+    )
+    setAdditionalRoles((current) => (
+      current[id] ? current : { ...current, [id]: memberRole }
+    ))
+  }
+
+  const toggleAssignedDialog = (id: string) => {
+    setAssignedDialogIds((current) =>
       current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
     )
   }
@@ -128,6 +161,7 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
         givenName,
         relation,
         about,
+        assignedDialogIds,
         briefing: briefing
           .map((note) => ({
             kind: note.kind,
@@ -144,7 +178,15 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
             identifier: trimmed,
             role,
             ...(seed ? { seed } : {}),
-            ...(additionalDomainIds.length > 0 ? { additionalDomainIds } : {}),
+            ...(additionalDomainIds.length > 0
+              ? {
+                  additionalDomainIds,
+                  additionalDomains: additionalDomainIds.map((id) => ({
+                    domainId: id,
+                    role: additionalRoles[id] || memberRole,
+                  })),
+                }
+              : {}),
           }),
         },
       )) as {
@@ -355,13 +397,32 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
         ) : null}
       </div>
 
+      {assignableDialogs.length > 0 ? (
+        <fieldset className="space-y-1.5">
+          <legend className="text-[12px]" style={quietStyle}>
+            Dialogs they should enter. These stay on this Domain. You are in them with them.
+          </legend>
+          {assignableDialogs.map((dialog) => (
+            <label key={dialog.id} className="flex items-center gap-2 text-[12px]">
+              <input
+                type="checkbox"
+                checked={assignedDialogIds.includes(dialog.id)}
+                onChange={() => toggleAssignedDialog(dialog.id)}
+                disabled={outcome.kind === "working"}
+              />
+              <span>{dialog.title}</span>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+
       {targets.length > 0 ? (
         <fieldset className="space-y-1.5">
           <legend className="text-[12px]" style={quietStyle}>
             Also invite onto other Domains you administer
           </legend>
           {targets.map((target) => (
-            <label key={target.id} className="flex items-center gap-2 text-[12px]">
+            <label key={target.id} className="flex flex-wrap items-center gap-2 text-[12px]">
               <input
                 type="checkbox"
                 checked={additionalDomainIds.includes(target.id)}
@@ -372,6 +433,25 @@ export function DomainInvitePanel({ domainId, roles, onClose, onSettled }: Domai
                 {target.name}
                 <span style={{ color: "hsl(var(--theme-ink-tertiary))" }}> · {target.slug}</span>
               </span>
+              {additionalDomainIds.includes(target.id) ? (
+                <select
+                  value={additionalRoles[target.id] || memberRole}
+                  onChange={(event) => {
+                    const next = event.target.value
+                    setAdditionalRoles((current) => ({ ...current, [target.id]: next }))
+                  }}
+                  className="rounded border px-2 py-1 text-[12px]"
+                  style={inputStyle}
+                  disabled={outcome.kind === "working"}
+                  aria-label={`Role on ${target.name}`}
+                >
+                  {assignable.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
             </label>
           ))}
         </fieldset>

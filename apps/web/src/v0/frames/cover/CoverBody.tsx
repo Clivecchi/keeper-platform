@@ -18,6 +18,7 @@ import {
   buildPublicJourneysBrowseUrl,
   buildPublicPresentUrl,
 } from "../../data/publicJourneyNavigation"
+import { isStyleId } from "../../styles/styleRegistry"
 
 function isDesignerBoardPreviewShell(
   shell: ReturnType<typeof useV0ShellOptional>,
@@ -56,7 +57,10 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
 
   const guestCoverSlug = domainData?.slug || v0Shell?.domainSlug || "default"
   const preservedTheme = searchParams.get("theme")
-  const preservedStyle = searchParams.get("style") ?? themeSlug ?? undefined
+  const rawPreservedStyle = searchParams.get("style")
+  // Theme slugs (domain-resolved) are not styles. Copying themeSlug into
+  // ?style= selected the white fallback and washed the member board.
+  const preservedStyle = isStyleId(rawPreservedStyle) ? rawPreservedStyle : undefined
 
   useEffect(() => {
     if (isAuthenticated) return
