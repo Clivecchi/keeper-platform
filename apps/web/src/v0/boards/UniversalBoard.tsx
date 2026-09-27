@@ -42,6 +42,7 @@ import { useV0Shell } from "../shell/V0ShellContext"
 import { StyleScope } from "../styles/StyleScope"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { useBoardThemeRegistration } from "../themes/useBoardThemeRegistration"
+import { GLASS_SEALED } from "../themes/atmosphereContrast"
 import { KeeperTopBar } from "../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../components/DomainBriefSlideOver"
 import { KeeperBoardPanelGroup } from "./KeeperBoardPanelGroup"
@@ -487,6 +488,29 @@ function UniversalBoardShell({
         backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
         backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
         backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
+        // Cover sits behind glass. Seal Nav and Dialog to Warm Dark so type holds.
+        // Chronicle keeps its own treatment wash and is not overridden here.
+        ["--theme-atmosphere-present" as string]: "1",
+        ["--theme-surface-page" as string]: "30 8% 10%",
+        ["--theme-surface-paper" as string]: "28 10% 14%",
+        ["--theme-surface-panel" as string]: "28 10% 12%",
+        ["--theme-surface-elevated" as string]: "35 12% 20%",
+        ["--theme-ink-primary" as string]: "38 20% 94%",
+        ["--theme-ink-secondary" as string]: "38 14% 76%",
+        ["--theme-ink-tertiary" as string]: "36 10% 58%",
+        ["--theme-ink-placeholder" as string]: "36 8% 50%",
+        ["--theme-ink-primary-color" as string]: "hsl(38 20% 94%)",
+        ["--theme-ink-secondary-color" as string]: "hsl(38 14% 76%)",
+        ["--theme-ink-tertiary-color" as string]: "hsl(36 10% 58%)",
+        ["--theme-ink-placeholder-color" as string]: "hsl(36 8% 50%)",
+        ["--theme-glass-panel-alpha" as string]: String(GLASS_SEALED.panel),
+        ["--theme-glass-nav-alpha" as string]: String(GLASS_SEALED.nav),
+        ["--theme-glass-header-alpha" as string]: String(GLASS_SEALED.header),
+        ["--theme-glass-bubble-alpha" as string]: String(GLASS_SEALED.bubble),
+        ["--theme-glass-composer-alpha" as string]: String(GLASS_SEALED.composer),
+        ["--theme-glass-composer-input-alpha" as string]: String(GLASS_SEALED.composerInput),
+        ["--theme-atmosphere-wash-start" as string]: String(GLASS_SEALED.washStart),
+        ["--theme-atmosphere-wash-end" as string]: String(GLASS_SEALED.washEnd),
       }
 
   // ── Admin guard — enforced at shell level when def.access.isAdminOnly ──────

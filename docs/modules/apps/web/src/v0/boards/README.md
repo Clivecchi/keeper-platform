@@ -862,3 +862,6 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-09-17 — TypeSafe on Build Board
 - Build Board integrations list includes TypeSafe in the AI group.
+
+### 2026-09-26 — Atmosphere no longer washes Nav and Dialog
+- When a cover is behind the board, `UniversalBoard` seals Nav and Dialog to Warm Dark glass (`GLASS_SEALED`) and light ink. Chronicle keeps its own treatment wash.
