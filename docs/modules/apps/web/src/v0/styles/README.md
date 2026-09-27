@@ -24,6 +24,7 @@ Styles use a comprehensive token system covering:
 - **Layout**: sheet radius, frame/sheet padding
 
 ## 📆 Update Log
+- 2026-09-26: `themeApply=treatment` always builds the Warm Dark `neutral` shell before atmosphere contrast. Light styles were keeping cream surfaces while contrast emitted near-white ink, so Nav and Dialog type disappeared.
 - 2026-07-16: StyleScope prefers live `getRuntimeThemeTokens` each paint so curtain/V0Shell re-registers are not frozen behind the first DEFAULT snapshot.
 - 2026-06-29: StyleScope reads runtime domain theme synchronously when registered (avoids theme-loading spinner / style flash on public Cover).
 - 2026-06-29: Added `gray-earth` style id (platform default merge base when domain-resolved). `neutral` remains Warm Dark board shell — opt in via `?style=neutral`.

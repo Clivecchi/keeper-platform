@@ -18,9 +18,10 @@ import {
 /**
  * How a themeSlug merges onto the style registry shell:
  * - `full` — theme replaces surfaces, ink, dialogue, etc. (Cover / ?theme= preview)
- * - `treatment` — keep Warm Dark (or active style) surfaces; take focus.ring plus
- *   atmosphere contrast (glass alphas + high-contrast vs muted ink) so cover
- *   images cannot wash out type. Domain cream surfaces still do not replace the shell.
+ * - `treatment` — Warm Dark shell (neutral style surfaces + dialogue). Take focus.ring
+ *   plus atmosphere contrast (glass alphas + light ink on that dark plane).
+ *   Light styles and the white registry fallback must not keep cream surfaces
+ *   while contrast assumes a dark plane. Domain cream does not replace the shell.
  */
 export type StyleThemeApply = 'full' | 'treatment'
 
@@ -134,14 +135,18 @@ export function StyleScope({
 
     if (effectiveThemeTokens) {
       if (themeApply === 'treatment') {
-        // Board chrome: Warm Dark surfaces/dialogue stay. Accent + contrast come from the engine.
+        // Member board chrome is the Warm Dark shell. A light style (gray-earth,
+        // diary-paper, or the white fallback when styleId misses the registry)
+        // must not keep its cream surfaces while contrast assumes a dark plane —
+        // that paints near-white ink on a near-white panel.
+        const warmDark = getStyleDefinition('neutral')?.tokens ?? styleFallback
         const contrast = deriveAtmosphereContrast({
           darkSurface: true,
           hasAtmosphere: atmospherePresentFromTokens(effectiveThemeTokens),
         })
         return {
-          ...styleFallback,
-          'focus.ring': effectiveThemeTokens['focus.ring'] || styleFallback['focus.ring'],
+          ...warmDark,
+          'focus.ring': effectiveThemeTokens['focus.ring'] || warmDark['focus.ring'],
           ...contrast,
         } as StyleTokens
       }

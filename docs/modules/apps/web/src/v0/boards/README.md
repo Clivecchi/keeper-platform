@@ -864,4 +864,4 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Build Board integrations list includes TypeSafe in the AI group.
 
 ### 2026-09-26 — Atmosphere no longer washes Nav and Dialog
-- When a cover is behind the board, `UniversalBoard` seals Nav and Dialog to Warm Dark glass (`GLASS_SEALED`) and light ink. Chronicle keeps its own treatment wash.
+- The board-level light-ink override washed Nav and Dialog out: near-white type on panels that were still near-white. That override is gone. Warm Dark shell tokens now come from `StyleScope` `themeApply="treatment"` (`neutral` surfaces), so ink and panel fill stay paired. Chronicle still keeps its own treatment wash.

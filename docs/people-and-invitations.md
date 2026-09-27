@@ -55,6 +55,16 @@ One invite form in Chronicle People.
 
 Cast Header / profile **Invite** opens Chronicle People. It does not open a modal.
 
+## Locked arrival (2026-09-26)
+
+She lands on **her Realm**. That home lists the Domains she was invited onto, and the Dialogs the inviter assigned from those Domains. Opening a Dialog enters the Domain that owns it. Stages will assign the same way later.
+
+The **origin lead** — Ceox, when the invite starts on Chuck’s Domain — is the prominent guide. That lead represents the Domain that initiated the invitation and is there to direct and guide. Kip is available beside them for support and additional direction. Both guide. The origin lead is the more prominent of the two. Her Realm’s own lead remains the lead of her Realm.
+
+Each Domain on the invite has its own role. The default is **Member** (`user`: read, write, share). The inviter can change it per Domain, using that Domain’s role list. Admin on Livecchi.biz and Mother on Generation are two choices on one invite. Named roles stay on the Domain that defined them.
+
+The form today still uses one role for the whole bundle and opens the inviting Domain on First Introduction. This section is the lock for the next build.
+
 ## ⚠️ Later (not this slice)
 
 - Custom Domain roles that persist
@@ -64,6 +74,9 @@ Cast Header / profile **Invite** opens Chronicle People. It does not open a moda
 - Platform admin role-matrix bug (`GET /api/admin/roles/users`)
 
 ## 📆 Update Log
+
+### 2026-09-26 — Arrival lock
+- She lands on her Realm. Origin lead is the prominent guide; Kip is available beside them. Role defaults to Member and is chosen per Domain. Assigned Dialogs stay on the inviting Domain. Stages follow later.
 
 ### 2026-09-26 — Invitation arrival
 - Membership is granted on the public accept page after sign-in, not as a side effect of creating an account.
