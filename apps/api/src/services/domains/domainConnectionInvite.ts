@@ -52,11 +52,17 @@ export type PendingConnectionInvitation = {
   accountName?: string | null;
 };
 
+export type InvitationPreviewStatus = 'pending' | 'accepted' | 'expired';
+
 export type InvitationPreview = {
+  status: InvitationPreviewStatus;
   domainName: string;
   domainSlug: string;
   role: string;
   inviterName: string;
+  email: string;
+  hasAccount: boolean;
+  suggestedName: string | null;
   expiresAt: Date;
 };
 
@@ -668,9 +674,7 @@ export async function previewDomainInvitation(
   const invitation = await prisma.domainInvitation.findUnique({
     where: { token: trimmed },
   });
-  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) {
-    return null;
-  }
+  if (!invitation) return null;
   const [domain, inviter] = await Promise.all([
     prisma.domain.findUnique({
       where: { id: invitation.domainId },
@@ -682,13 +686,49 @@ export async function previewDomainInvitation(
     }),
   ]);
   if (!domain) return null;
+
+  const email = invitation.email?.trim().toLowerCase() ?? '';
+  const account = email
+    ? await prisma.users.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+        select: { id: true },
+      })
+    : null;
+  const seed = normalizeInvitationSeed(invitation.seed);
+  const accepted = Boolean(invitation.acceptedAt);
+  const expired = invitation.expiresAt <= new Date();
+  const status: InvitationPreviewStatus = accepted ? 'accepted' : expired ? 'expired' : 'pending';
+
   return {
+    status,
     domainName: domain.name,
     domainSlug: domain.slug,
     role: invitation.role,
     inviterName: inviter?.name?.trim() || inviter?.email?.trim() || 'Someone on Keeper',
+    email,
+    hasAccount: Boolean(account),
+    suggestedName: seed?.givenName ?? null,
     expiresAt: invitation.expiresAt,
   };
+}
+
+/**
+ * Invited registration must not also create a personal Domain.
+ * That Domain was landing people away from the invitation.
+ */
+export async function shouldSkipPersonalDomainForInvitation(
+  prisma: Pick<PrismaClient, 'domainInvitation'>,
+  token: string | undefined,
+  email: string,
+): Promise<boolean> {
+  const trimmed = token?.trim();
+  if (!trimmed || !email.trim()) return false;
+  const invitation = await prisma.domainInvitation.findUnique({
+    where: { token: trimmed },
+    select: { email: true, acceptedAt: true, expiresAt: true },
+  });
+  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) return false;
+  return emailsMatch(invitation.email, email);
 }
 
 export async function acceptDomainInvitation(
@@ -835,6 +875,86 @@ export async function acceptPendingInvitationsForUser(
     additionalAccepted: first.additionalAccepted + extra,
     ...(first.dialogId ? { dialogId: first.dialogId } : {}),
   };
+}
+
+/**
+ * Take a member who never finished arrival back to a pending invitation.
+ * Membership is removed. The accept link works again.
+ */
+export async function returnMemberToInvitation(
+  prisma: UserLookupClient,
+  permissionService: DomainPermissionService,
+  params: { domainId: string; userId: string; returnedBy: string },
+): Promise<DomainInvitation> {
+  const domain = await prisma.domain.findUnique({
+    where: { id: params.domainId },
+    select: { ownerId: true },
+  });
+  if (!domain) {
+    throw new Error('Domain not found');
+  }
+  if (domain.ownerId === params.userId) {
+    throw new Error('The owner cannot be returned to an invitation');
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: params.userId },
+    select: { email: true },
+  });
+  const email = user?.email?.trim().toLowerCase();
+  if (!email) {
+    throw new Error('This person has no email address to invite');
+  }
+
+  const permission = await prisma.domainPermission.findUnique({
+    where: {
+      domainId_userId: {
+        domainId: params.domainId,
+        userId: params.userId,
+      },
+    },
+    select: { role: true },
+  });
+  if (!permission) {
+    throw new Error('Member not found');
+  }
+
+  const existing = await prisma.domainInvitation.findUnique({
+    where: {
+      domainId_email: {
+        domainId: params.domainId,
+        email,
+      },
+    },
+  });
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const token = generateInvitationToken();
+  const invitation = existing
+    ? await prisma.domainInvitation.update({
+        where: { id: existing.id },
+        data: {
+          acceptedAt: null,
+          token,
+          expiresAt,
+          role: permission.role || existing.role,
+          invitedBy: params.returnedBy,
+        },
+      })
+    : await prisma.domainInvitation.create({
+        data: {
+          domainId: params.domainId,
+          originDomainId: params.domainId,
+          email,
+          role: permission.role,
+          invitedBy: params.returnedBy,
+          token,
+          expiresAt,
+        },
+      });
+
+  await permissionService.revokePermission(params.domainId, params.userId, params.returnedBy);
+  return invitation;
 }
 
 export async function revokeDomainConnection(

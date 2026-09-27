@@ -18,6 +18,7 @@ Components here focus on reusable UI state, composition, and cross-feature inter
 - [ ] Confirm which shared components should be migrated into v0-specific folders.
 
 ## 📆 Update Log
+- 2026-09-26: **Invitation arrival** — `AuthForm` sends `invitationToken` on invited registration so signup does not create a personal Domain. Membership is granted on the accept page, not by login or register.
 - 2026-09-17: **First Introduction** — `AuthForm` lands invited accounts on the inviting Domain Dialog (`arrival.domainSlug` + `arrival.dialogId`).
 - 2026-09-17: **Invitation handoff** — `AuthForm` lands invited accounts on the inviting Domain (`data.arrival.domainSlug`) instead of `/home` when register/login redeemed pending invitations.
 - 2026-07-24: **AuthForm JWT redaction** — login success logs userId/email only; never logs `data.token`.

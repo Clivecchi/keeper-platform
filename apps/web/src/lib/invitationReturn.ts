@@ -73,6 +73,16 @@ export function inviteAuthCopy(
   }
 }
 
+/** Relative in-app paths only. Blocks protocol-relative and absolute URLs. */
+export function safeRelativeNext(value: string | undefined | null): string | null {
+  const raw = value?.trim()
+  if (!raw) return null
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\') || raw.includes('://')) {
+    return null
+  }
+  return raw
+}
+
 export function withNextQuery(path: string, returnTo?: string | null): string {
   if (!returnTo?.trim()) return path
   return `${path}?next=${encodeURIComponent(returnTo.trim())}`

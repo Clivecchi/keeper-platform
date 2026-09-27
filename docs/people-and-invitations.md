@@ -48,8 +48,10 @@ One invite form in Chronicle People.
 5. Optional: also invite onto other Domains the inviter owns or administers. Same briefing, same bundle.
 6. Existing accounts receive membership immediately and get a “you were added” email. New emails receive an invitation from Keeper (`RESEND_API_KEY` on the API). The accept link is still copyable if send fails. Pending invitations can be resent.
 7. Accept grants the invited role's real permissions (not a hardcoded read/write). Bundle siblings accept together. First origin Domain is written to `users.invitedFromDomainId` once.
-8. The accept link keeps `?token=` through login and register. Login/register also redeem any pending invitations for that email, then land on the inviting Domain — not empty `/home`. Invited signups skip personal-domain creation.
-9. Pending People shows when that email already has a Keeper account and has not arrived yet.
+8. The accept link is a public arrival page. The invited email is locked. A new person creates an account there; someone who already has an account signs in there. Membership is granted on that page, then they enter the inviting Domain. Login and register do not accept invitations by themselves.
+9. An invited signup does not also create a personal Domain. A home Realm is still ensured when they arrive, named after them.
+10. Pending People shows when that email already has a Keeper account and has not arrived yet. A member who never finished arrival can be returned to a pending invitation. That emails a new link and removes membership until they sign in.
+11. Wrong password is recoverable. The arrival page and sign-in offer a reset link. The link can return them to the same invitation.
 
 Cast Header / profile **Invite** opens Chronicle People. It does not open a modal.
 
@@ -62,6 +64,10 @@ Cast Header / profile **Invite** opens Chronicle People. It does not open a moda
 - Platform admin role-matrix bug (`GET /api/admin/roles/users`)
 
 ## 📆 Update Log
+
+### 2026-09-26 — Invitation arrival
+- Membership is granted on the public accept page after sign-in, not as a side effect of creating an account.
+- Accepted links still open sign-in and password reset. People can return a member to a pending invitation.
 
 ### 2026-09-17 — Invitation handoff
 - Accept token is kept through login and register. Register/login redeem pending invitations by email and land on the inviting Domain. Pending People shows registered-not-arrived.

@@ -46,6 +46,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-09-26: **Invitation arrival** — preview includes status, email, hasAccount, and suggestedName, including accepted and expired links. `POST /:id/members/:userId/return-to-invitation` removes membership and emails a new accept link.
 - 2026-09-21: **Document Orientation** — `PATCH …/dialogs/:id/document` accepts `orientation` (empty clears). Chronicle read returns `orientation` with `updatedAt` / `updatedBy`.
 - 2026-09-17: **First Introduction** — `POST /invitations/accept` returns `dialogId` for `/d/{slug}?board=domain&dialogId=`. Dialog list/get includes `available_to: member`. Register always provisions a home Domain/Lead, including invitees. Viewer leak on param-scoped domain routes closed.
 - 2026-09-17: **Invitation handoff** — `GET /invitations/preview` (public, registered before `GET /:id`) returns inviter + Domain + role for login/register copy. `POST /invitations/accept` is idempotent for the invited account and refuses a different email. Members pending rows include `hasAccount`. Login/register redeem pending invitations by email and land on the inviting Domain.

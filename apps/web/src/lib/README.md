@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-26 — Invitation arrival
+- `safeRelativeNext` keeps password-reset return paths on this site.
+
 ### 2026-09-21 — Document Orientation on the Dialog document
 - `getDialogDocument` returns `orientation`. `updateDialogDocument` accepts `orientation` so Chronicle can revise the map.
 

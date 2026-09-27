@@ -33,6 +33,7 @@ Runs Prisma-backed endpoints, CORS hardened for single-domain MVP. Origins are d
 **TODO**: Consolidate auth handlers to use KAM package or clearly document which is canonical.
 
 ## 📆 Update Log
+- **2026-09-26**: Invitation arrival — login/register no longer redeem pending invitations. Register skips a personal Domain when `invitationToken` matches the invited email. `POST /api/kam/auth/forgot-password` and `POST /api/kam/auth/reset-password` recover a password and sign the person in. Successful login and register stamp `lastLoginAt`.
 - **2026-09-17**: Invitation handoff — login/register in `src/index.ts` redeem pending Domain invitations by email (`redeemInvitationsOnAuth`). Invited signups skip personal-domain creation. `data.arrival.domainSlug` is the post-auth landing.
 - **2026-07-19**: DB connection saturation fix — all production routes use shared `prisma` from `@keeper/database` (removed per-file `new PrismaClient()` pools). Pair with `DIRECT_URL` + Railway PgBouncer per `packages/database/CONNECTION_POOLING.md`.
 - **2026-07-04**: CORS — allow credentialed requests from any tenant origin `https://{slug}.keeper.domains` (excludes reserved infra subdomains: www, api, app, studio, docs, support, status, blog, services). Implemented in `src/lib/keeperDomainsCors.ts`; wired into `src/index.ts` and `dynamicCorsMiddleware.ts`. Removed explicit `staging.keeper.domains` allowlist entry (covered by tenant pattern). No wildcard `*` ACAO with credentials.

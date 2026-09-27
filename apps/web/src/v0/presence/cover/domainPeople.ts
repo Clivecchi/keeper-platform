@@ -117,6 +117,7 @@ export function peopleMutationFeedback(
     | "role-saved"
     | "role-added"
     | "role-removed"
+    | "returned-to-invitation"
     | "failed",
   errorMessage?: string,
 ): { ok: boolean; message: string } {
@@ -135,6 +136,7 @@ export function peopleMutationFeedback(
     "role-saved": "Role updated",
     "role-added": "Role added",
     "role-removed": "Role removed",
+    "returned-to-invitation": "Returned to a pending invitation",
   } as const
   return { ok: true, message: messages[kind] }
 }

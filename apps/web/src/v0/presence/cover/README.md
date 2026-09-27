@@ -257,6 +257,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-26 — Invitation arrival
+- People shows the member email and can return them to a pending invitation when they never finished signing in.
+
 ### 2026-09-18 — Model Registry V0 inspection
 - Inspection facts show the executed offering (`offeringId`) and `fallback used` when a sibling offering served the turn. Preference fields stay on provenance; they are not the displayed model identity.
 

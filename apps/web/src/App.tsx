@@ -7,6 +7,9 @@ import { BoardPublicLayout } from './layouts/BoardPublicLayout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import AcceptDomainInvitePage from './pages/AcceptDomainInvitePage';
 
 // Root Pages
 import RootDashboardPage from './pages/root/RootDashboardPage';
@@ -74,7 +77,6 @@ import V0Page from './pages/V0Page';
 import StyleEditorPage from './pages/StyleEditorPage';
 import { RealmsRedirect } from './mobile/screens/RealmsRedirect';
 import HomeShellPage from './pages/home/HomeShellPage';
-import AcceptDomainInvitePage from './pages/AcceptDomainInvitePage';
 import { HostnameSlugGuard } from './components/HostnameSlugGuard';
 import { RealmRoot } from './components/RealmRoot';
 import {
@@ -346,7 +348,6 @@ const App: React.FC = () => {
         <Route path="/home" element={<HomeShellPage />} />
         <Route path="/realms" element={<RealmsRedirect />} />
         <Route path="/kip" element={<KipAgentBoardPage />} />
-        <Route path="/invite/accept" element={<AcceptDomainInvitePage />} />
         {/* Domain admin: any authenticated user can access; API enforces domain ownership for edits */}
         <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
       </Route>
@@ -371,6 +372,9 @@ const App: React.FC = () => {
       <Route element={<BoardPublicLayout />}>
         {/* Login - Minimal layout for board-first experience */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/invite/accept" element={<AcceptDomainInvitePage />} />
         {/* Legacy domain routes - redirect into v0 shell (no auth required) */}
         <Route path="/d/:slug/feed" element={<LegacyDomainRedirect />} />
         <Route path="/d/:slug/keepers" element={<LegacyDomainRedirect />} />

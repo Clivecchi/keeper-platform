@@ -6,7 +6,7 @@ import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
 import { resolveLandingPathAfterAuth } from '@/lib/resolveHostDomain';
 import { buildRealmBoardPath } from '@/lib/realmPaths';
 import { usesCleanRealmPaths } from '@/lib/platformHost';
-import { resolveAuthLandingPath } from '@/lib/invitationReturn';
+import { invitationTokenFromReturnTo, resolveAuthLandingPath } from '@/lib/invitationReturn';
 
 function resolvePostLoginPath(returnTo?: string): string | undefined {
   if (!returnTo?.trim() || typeof window === 'undefined') return returnTo?.trim();
@@ -46,9 +46,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
 
     const endpoint = isRegister ? '/api/kam/auth/register' : '/api/kam/auth/login';
     
-    const payload: { email: string; password: string; name?: string; } = { email, password };
+    const payload: { email: string; password: string; name?: string; invitationToken?: string } = {
+      email,
+      password,
+    };
     if (isRegister && name) {
       payload.name = name;
+    }
+    const invitationToken = isRegister ? invitationTokenFromReturnTo(returnTo) : null;
+    if (invitationToken) {
+      payload.invitationToken = invitationToken;
     }
 
     try {

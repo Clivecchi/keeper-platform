@@ -65,7 +65,7 @@ export async function ensureInviteeHomeRealm(
   const suffix = userId.replace(/-/g, '').slice(0, 8);
   const baseSlug = slugify(display) || 'keeper';
   const slug = `${baseSlug}-${suffix}`.slice(0, 48);
-  const name = `${display} (${suffix})`;
+  const name = display;
   const domainId = randomUUID();
 
   try {

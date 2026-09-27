@@ -244,6 +244,30 @@ export function DomainPeopleSection({
     }
   }
 
+  const handleReturnToInvitation = async (member: DomainMemberRow) => {
+    const label = member.name || member.email || "this person"
+    if (
+      !window.confirm(
+        `Return ${label} to a pending invitation? This removes their membership and emails a new acceptance link. They are not a member until they sign in from that link.`,
+      )
+    ) {
+      return
+    }
+    setBusyUserId(member.userId)
+    setError(null)
+    try {
+      await apiFetch(`/api/domains/${domainId}/members/${member.userId}/return-to-invitation`, {
+        method: "POST",
+      })
+      setSuccess(peopleMutationFeedback("returned-to-invitation").message)
+      await loadPeople()
+    } catch (err) {
+      setError(peopleMutationFeedback("failed", err instanceof Error ? err.message : undefined).message)
+    } finally {
+      setBusyUserId(null)
+    }
+  }
+
   const handleRemoveMember = async (userId: string) => {
     if (!window.confirm("Remove this member from the domain?")) return
     setBusyUserId(userId)
@@ -600,6 +624,11 @@ export function DomainPeopleSection({
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{member.name}</p>
+                        {member.email ? (
+                          <p className="text-[11px] truncate" style={quietStyle}>
+                            {member.email}
+                          </p>
+                        ) : null}
                         <p className="text-[11px]" style={quietStyle}>
                           {roleInfo.label} — {roleInfo.description}
                         </p>
@@ -626,6 +655,15 @@ export function DomainPeopleSection({
                             </option>
                           ))}
                         </select>
+                        <button
+                          type="button"
+                          onClick={() => void handleReturnToInvitation(member)}
+                          disabled={busyUserId === member.userId}
+                          className="rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50"
+                          style={actionOutlineStyle}
+                        >
+                          Return to invitation
+                        </button>
                         <button
                           type="button"
                           onClick={() => void handleRemoveMember(member.userId)}

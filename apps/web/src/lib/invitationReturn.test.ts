@@ -5,6 +5,7 @@ import {
   invitationTokenFromReturnTo,
   inviteAuthCopy,
   resolveAuthLandingPath,
+  safeRelativeNext,
   withNextQuery,
 } from './invitationReturn'
 
@@ -34,6 +35,12 @@ describe('invitationReturn', () => {
     )
     expect(copy.title).toBe("You're invited")
     expect(copy.subtitle).toContain('Chuck invited you to Livecchi as bride')
+  })
+
+  it('refuses a reset return path that leaves the site', () => {
+    expect(safeRelativeNext('/invite/accept?token=abc')).toBe('/invite/accept?token=abc')
+    expect(safeRelativeNext('https://evil.example')).toBeNull()
+    expect(safeRelativeNext('//evil.example')).toBeNull()
   })
 
   it('keeps next on register and login links', () => {

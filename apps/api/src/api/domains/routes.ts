@@ -52,6 +52,7 @@ import {
   listAdministrableDomains,
   listDomainConnections,
   previewDomainInvitation,
+  returnMemberToInvitation,
   revokeDomainConnection,
   revokeDomainInvitation,
   withInvitationAccountPresence,
@@ -1287,11 +1288,15 @@ router.get('/invitations/preview', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Invitation not found' });
     }
     return res.json({
+      status: preview.status,
       domainName: preview.domainName,
       domainSlug: preview.domainSlug,
       role: preview.role,
       roleLabel: roleLabelForInvitation(preview.role),
       inviterName: preview.inviterName,
+      email: preview.email,
+      hasAccount: preview.hasAccount,
+      suggestedName: preview.suggestedName,
       expiresAt: preview.expiresAt,
     });
   } catch (error) {
@@ -2722,6 +2727,56 @@ router.patch('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCom
   }
 });
  
+// POST /api/domains/:id/members/:userId/return-to-invitation
+// Removes membership and reopens a pending acceptance link.
+router.post(
+  '/:id/members/:userId/return-to-invitation',
+  authMiddlewareCompat,
+  requireDomainAdminCompat,
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const invitation = await returnMemberToInvitation(prisma, getPermissionService(), {
+        domainId: req.params.id,
+        userId: req.params.userId,
+        returnedBy: req.user.id,
+      });
+      const context = await peopleEmailContext(req.params.id, req.user.id);
+      const email = await deliverInvitationEmail({
+        kind: 'invite',
+        to: invitation.email,
+        inviterName: context.inviterName,
+        domainName: context.domainName,
+        domainSlug: context.domainSlug,
+        roleLabel: roleLabelForInvitation(invitation.role),
+        acceptUrl: invitationAcceptAbsoluteUrl(invitation.token),
+        expiresAt: invitation.expiresAt,
+      });
+      return res.status(200).json({
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          acceptPath: invitationAcceptPath(invitation.token),
+        },
+        email: jsonEmailDelivery(email),
+      });
+    } catch (error) {
+      console.error('[DomainRoutes] return member to invitation error', error);
+      if (error instanceof Error) {
+        if (error.message.includes('not found') || error.message.includes('no email')) {
+          return res.status(404).json({ error: error.message });
+        }
+        if (error.message.includes('owner')) {
+          return res.status(400).json({ error: error.message });
+        }
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
 // DELETE /api/domains/:id/members/:userId - revoke
 router.delete('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {

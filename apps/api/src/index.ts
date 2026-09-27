@@ -32,7 +32,14 @@ import domainRoutes from './api/domains/routes.js';
 import governanceRouter from './api/governance/routes.js';
 import { ensureDomainAgentPolicy, ensureAllDomainsHaveAgentPolicy } from './governance/index.js';
 import { provisionDomainOnCreate } from './services/domains/provisionDomainOnCreate.js';
-import { jsonInvitationArrival, redeemInvitationsOnAuth } from './services/domains/redeemInvitationsOnAuth.js';
+import { shouldSkipPersonalDomainForInvitation } from './services/domains/domainConnectionInvite.js';
+import {
+  createPasswordResetIssue,
+  deliverPasswordResetEmail,
+  hashPasswordResetToken,
+  passwordResetAbsoluteUrl,
+  safeRelativeNext,
+} from './services/auth/passwordReset.js';
 import { ensureAiModelIntegrations } from './lib/ensureAiModelIntegrations.js';
 import flatDomainsRouter from './api/domains.js';
 import realmFeedRouter from './api/realm/feed.js';
@@ -157,8 +164,28 @@ const AuthLoginSchema = z.object({
 const AuthRegisterSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  password: z.string().min(6)
+  password: z.string().min(6),
+  invitationToken: z.string().min(1).optional(),
 });
+
+const AuthForgotPasswordSchema = z.object({
+  email: z.string().email(),
+  next: z.string().optional(),
+});
+
+const AuthResetPasswordSchema = z.object({
+  token: z.string().min(20),
+  password: z.string().min(6),
+});
+
+async function stampLastLogin(userId: string): Promise<void> {
+  await prisma.users
+    .update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date(), updatedAt: new Date() },
+    })
+    .catch((error) => console.warn('[auth] lastLoginAt update failed', error));
+}
 
 // Railway assigns PORT dynamically, respect that first, then fallback to 8080 for production, 3002 for dev
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NODE_ENV === 'production' ? 8080 : 3002);
@@ -731,7 +758,7 @@ app.post('/api/kam/auth/login', async (req, res) => {
     console.log('[auth] Cookie set for login:', { domain: cookieDomain, user: user.email });
 
     const platformRoles = await getPlatformRolesForUser(user.id);
-    const arrival = jsonInvitationArrival(await redeemInvitationsOnAuth(user.id, user.email));
+    await stampLastLogin(user.id);
 
     return res.json({
       success: true,
@@ -744,7 +771,6 @@ app.post('/api/kam/auth/login', async (req, res) => {
           platformRoles,
         },
         token,
-        ...(arrival ? { arrival } : {}),
       },
     });
   } catch (error) {
@@ -759,7 +785,7 @@ app.post('/api/kam/auth/login', async (req, res) => {
 app.post('/api/kam/auth/register', async (req, res) => {
   try {
     // Validate request body
-    const { name, email, password } = AuthRegisterSchema.parse(req.body);
+    const { name, email, password, invitationToken } = AuthRegisterSchema.parse(req.body);
 
     // Check if user already exists
     const existingUser = await prisma.users.findUnique({ where: { email } });
@@ -785,6 +811,13 @@ app.post('/api/kam/auth/register', async (req, res) => {
       },
     });
 
+    const skipPersonalDomain = await shouldSkipPersonalDomainForInvitation(
+      prisma,
+      invitationToken,
+      email,
+    );
+
+    if (!skipPersonalDomain) {
     try {
       // Very small slugify helper – keeps alphanumerics, replaces others with dashes
       const slug = name
@@ -820,6 +853,7 @@ app.post('/api/kam/auth/register', async (req, res) => {
       console.error('❗ Failed to create personal domain on signup:', domainError);
       // We don’t fail the signup if domain creation fails, but we surface a log for debugging.
     }
+    }
 
     // Sign JWT
     const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET || 'fallback-secret', {
@@ -831,7 +865,7 @@ app.post('/api/kam/auth/register', async (req, res) => {
     console.log('[auth] Cookie set for register:', { domain: cookieDomain, user: newUser.email });
 
     const platformRoles = await getPlatformRolesForUser(newUser.id);
-    const arrival = jsonInvitationArrival(await redeemInvitationsOnAuth(newUser.id, newUser.email));
+    await stampLastLogin(newUser.id);
 
     return res.status(201).json({
       success: true,
@@ -844,7 +878,6 @@ app.post('/api/kam/auth/register', async (req, res) => {
           platformRoles,
         },
         token,
-        ...(arrival ? { arrival } : {}),
       },
     });
   } catch (error) {
@@ -870,6 +903,103 @@ app.post('/api/kam/auth/logout', (req, res) => {
       message: 'Logged out successfully'
     }
   });
+});
+
+const FORGOT_PASSWORD_MESSAGE =
+  'If that email has a Keeper account, a reset link is on its way.';
+
+app.post('/api/kam/auth/forgot-password', async (req, res) => {
+  try {
+    const { email, next } = AuthForgotPasswordSchema.parse(req.body);
+    const user = await prisma.users.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true, email: true, hashedPassword: true },
+    });
+    if (user?.email && user.hashedPassword) {
+      const issue = createPasswordResetIssue();
+      await prisma.users.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: issue.hash,
+          resetPasswordTokenExpiresAt: issue.expiresAt,
+          updatedAt: new Date(),
+        },
+      });
+      const delivery = await deliverPasswordResetEmail(
+        user.email,
+        passwordResetAbsoluteUrl(issue.token, safeRelativeNext(next)),
+      );
+      if (!delivery.sent) {
+        console.warn('[auth] password reset email failed', { userId: user.id, error: delivery.error });
+      }
+    }
+    return res.json({ success: true, data: { message: FORGOT_PASSWORD_MESSAGE } });
+  } catch (error) {
+    console.error('Auth forgot-password error:', error);
+    return res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid request',
+    });
+  }
+});
+
+app.post('/api/kam/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = AuthResetPasswordSchema.parse(req.body);
+    const hash = hashPasswordResetToken(token);
+    const user = await prisma.users.findFirst({
+      where: {
+        resetPasswordToken: hash,
+        resetPasswordTokenExpiresAt: { gt: new Date() },
+      },
+    });
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'This reset link is invalid or has expired. Request a new one.',
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await prisma.users.update({
+      where: { id: user.id },
+      data: {
+        hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordTokenExpiresAt: null,
+        updatedAt: new Date(),
+      },
+    });
+
+    const sessionToken = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: '7d' },
+    );
+    setSessionCookie(req, res, sessionToken);
+    await stampLastLogin(user.id);
+    const platformRoles = await getPlatformRolesForUser(user.id);
+
+    return res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatar_url,
+          platformRoles,
+        },
+        token: sessionToken,
+      },
+    });
+  } catch (error) {
+    console.error('Auth reset-password error:', error);
+    return res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid request',
+    });
+  }
 });
 
 // User profile update route

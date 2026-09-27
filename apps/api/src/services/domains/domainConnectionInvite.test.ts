@@ -11,7 +11,9 @@ import {
   normalizeDomainRole,
   normalizeIdentifier,
   previewDomainInvitation,
+  returnMemberToInvitation,
   resolveAssignableDomainRole,
+  shouldSkipPersonalDomainForInvitation,
   resolveUserByIdentifier,
   withInvitationAccountPresence,
 } from './domainConnectionInvite.js';
@@ -387,12 +389,108 @@ describe('previewDomainInvitation', () => {
     };
     await expect(previewDomainInvitation(prisma as never, 'tok')).resolves.toEqual(
       expect.objectContaining({
+        status: 'pending',
         domainName: 'Livecchi',
         domainSlug: 'livecchi',
         role: 'bride',
         inviterName: 'Chuck',
+        hasAccount: false,
       }),
     );
+  });
+
+  it('still describes an accepted invitation so the link can sign the person in', async () => {
+    const prisma = {
+      domainInvitation: {
+        findUnique: vi.fn().mockResolvedValue({
+          domainId: 'domain-1',
+          invitedBy: 'owner-1',
+          role: 'bride',
+          email: 'sheyenne@example.com',
+          seed: { givenName: 'Sheyenne' },
+          acceptedAt: new Date(),
+          expiresAt: new Date(Date.now() + 86_400_000),
+        }),
+      },
+      domain: {
+        findUnique: vi.fn().mockResolvedValue({ name: 'Livecchi', slug: 'livecchi' }),
+      },
+      users: {
+        findUnique: vi.fn().mockResolvedValue({ name: 'Chuck', email: 'chuck@example.com' }),
+        findFirst: vi.fn().mockResolvedValue({ id: 'user-2' }),
+      },
+    };
+    await expect(previewDomainInvitation(prisma as never, 'tok')).resolves.toEqual(
+      expect.objectContaining({
+        status: 'accepted',
+        email: 'sheyenne@example.com',
+        hasAccount: true,
+        suggestedName: 'Sheyenne',
+      }),
+    );
+  });
+});
+
+describe('shouldSkipPersonalDomainForInvitation', () => {
+  it('skips a personal Domain only for the invited email on a live token', async () => {
+    const invitation = {
+      email: 'sheyenne@example.com',
+      acceptedAt: null,
+      expiresAt: new Date(Date.now() + 86_400_000),
+    };
+    const prisma = {
+      domainInvitation: {
+        findUnique: vi.fn().mockResolvedValue(invitation),
+      },
+    };
+    await expect(
+      shouldSkipPersonalDomainForInvitation(prisma as never, 'tok', 'Sheyenne@Example.com'),
+    ).resolves.toBe(true);
+    await expect(
+      shouldSkipPersonalDomainForInvitation(prisma as never, 'tok', 'other@example.com'),
+    ).resolves.toBe(false);
+    await expect(
+      shouldSkipPersonalDomainForInvitation(prisma as never, undefined, 'sheyenne@example.com'),
+    ).resolves.toBe(false);
+  });
+});
+
+describe('returnMemberToInvitation', () => {
+  it('revokes membership and reopens the invitation', async () => {
+    const update = vi.fn().mockImplementation(async ({ data }: { data: { token: string } }) => ({
+      id: 'inv-1',
+      email: 'sheyenne@example.com',
+      role: 'bride',
+      token: data.token,
+    }));
+    const revokePermission = vi.fn().mockResolvedValue(undefined);
+    const prisma = {
+      domain: { findUnique: vi.fn().mockResolvedValue({ ownerId: 'owner-1' }) },
+      users: { findUnique: vi.fn().mockResolvedValue({ email: 'Sheyenne@Example.com' }) },
+      domainPermission: { findUnique: vi.fn().mockResolvedValue({ role: 'bride' }) },
+      domainInvitation: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'inv-1',
+          role: 'bride',
+          email: 'sheyenne@example.com',
+        }),
+        update,
+      },
+    };
+
+    const invitation = await returnMemberToInvitation(
+      prisma as never,
+      { revokePermission } as never,
+      { domainId: 'domain-1', userId: 'user-2', returnedBy: 'owner-1' },
+    );
+
+    expect(invitation.email).toBe('sheyenne@example.com');
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ acceptedAt: null, role: 'bride' }),
+      }),
+    );
+    expect(revokePermission).toHaveBeenCalledWith('domain-1', 'user-2', 'owner-1');
   });
 });
 

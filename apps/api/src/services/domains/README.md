@@ -49,6 +49,12 @@ Failures in individual steps log warnings and do not fail domain create.
 - Accept/redeem is idempotent: grant → home Realm → arrival Dialog → invitee Lead Cast → structural Chronicle. Returns `dialogId` for landing.
 - Invitation-linked Cast lists for anyone with read on the origin Domain (origin owner cannot admin the invitee's Realm).
 
+### 2026-09-26 — Invitation arrival
+- `previewDomainInvitation` stays available after accept or expiry and reports `status`, `email`, `hasAccount`, and `suggestedName`.
+- `shouldSkipPersonalDomainForInvitation` keeps invited registration from creating a second Domain.
+- `returnMemberToInvitation` revokes membership and reopens the accept link.
+- Home Realm display name is the person's name. The unique suffix stays on the slug only.
+
 ### 2026-09-17 — Invitation handoff
 - `acceptDomainInvitation` matches the signed-in email, and is safe to call again after register already redeemed the row.
 - `acceptPendingInvitationsForUser` + `redeemInvitationsOnAuth` grant pending invites on login/register.

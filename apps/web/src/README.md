@@ -18,6 +18,9 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - [ ] Consolidate legacy and public routes once domain routing is stabilized.
 
 ## 📆 Update Log
+### 2026-09-26 — Invitation arrival
+- `/invite/accept`, `/forgot-password`, and `/reset-password` are public. Accept is no longer behind sign-in.
+
 ### 2026-09-23 — Composer collapses to one line
 - Idle desktop composer input uses `.keeper-composer-input--collapsed` (one line). Selecting the field removes it and restores the open min-height.
 

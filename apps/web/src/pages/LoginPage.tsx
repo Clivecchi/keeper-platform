@@ -65,6 +65,15 @@ const LoginPage: React.FC = () => {
         <div className="bg-white/90 rounded-2xl shadow-lg border border-slate-200/70 px-8 py-7 backdrop-blur">
           <AuthForm returnTo={returnTo} showHeading={false} />
 
+          <div className="mt-4 text-center">
+            <Link
+              to={withNextQuery('/forgot-password', returnTo)}
+              className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           <div className="mt-6 pt-5 border-t border-slate-200/70">
             <p className="text-center text-sm text-slate-600">
               Don't have a keeper yet?{' '}
