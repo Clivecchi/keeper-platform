@@ -13,6 +13,11 @@ export type ModelCapabilities = {
   streaming: boolean;
   maxContextTokens: number;
   maxOutputTokens: number;
+  /**
+   * When false, do not send `temperature`. Claude Sonnet 5 rejects it with HTTP 400.
+   * Omitted means the provider still accepts sampling temperature.
+   */
+  acceptsTemperature?: boolean;
 };
 
 export type ModelCapabilityProviderEntry = {
@@ -81,7 +86,12 @@ const TYPESAFE_DEFAULT: ModelCapabilities = {
 export const MODEL_CAPABILITY_MAP: ModelCapabilityMap = {
   anthropic: {
     'claude-opus-4-6': { ...ANTHROPIC_DEFAULT },
-    'claude-sonnet-5': { ...ANTHROPIC_DEFAULT, maxContextTokens: 1_000_000, maxOutputTokens: 128_000 },
+    'claude-sonnet-5': {
+      ...ANTHROPIC_DEFAULT,
+      maxContextTokens: 1_000_000,
+      maxOutputTokens: 128_000,
+      acceptsTemperature: false,
+    },
     'claude-sonnet-4-6': { ...ANTHROPIC_DEFAULT },
     'claude-haiku-4-5': { ...ANTHROPIC_DEFAULT },
     'claude-3-5-sonnet-20241022': { ...ANTHROPIC_DEFAULT },
@@ -164,6 +174,14 @@ export const MODEL_CAPABILITY_MAP: ModelCapabilityMap = {
     _default: TYPESAFE_DEFAULT,
   },
 };
+
+/**
+ * Claude Sonnet 5 rejects sampling temperature. Older Claude models still accept it.
+ * Omitted capability means the provider still accepts temperature.
+ */
+export function modelAcceptsTemperature(provider: string, modelId: string): boolean {
+  return getModelCapabilities(provider, modelId).acceptsTemperature !== false;
+}
 
 /**
  * Returns capabilities for a provider/model pair.

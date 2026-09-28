@@ -13,9 +13,9 @@ import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 import { resolveDomainProviderApiKeyWithSource } from '../lib/resolveDomainProviderApiKey.js';
 import { envKeyForProvider, envVarNameForProvider } from '../lib/resolveProviderApiKey.js';
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
-import { getModelCapabilities } from '../config/index.js';
+import { getModelCapabilities, modelAcceptsTemperature } from '../config/index.js';
 import { TypeSafeProvider } from './TypeSafeProvider.js';
-import { isGenuineInvalidModelError, unclassifiedProviderFailureMessage } from './modelProviderErrors.js';
+import { isDeprecatedTemperatureError, isGenuineInvalidModelError, unclassifiedProviderFailureMessage } from './modelProviderErrors.js';
 
 const DEFAULT_ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
@@ -357,19 +357,23 @@ class AnthropicProvider {
       const createParams: Record<string, unknown> = {
         model: settings.model,
         max_tokens: settings.max_tokens ?? 4000,
-        temperature: settings.temperature ?? 0.7,
         messages: anthropicMessages,
         ...(systemPrompt ? { system: systemPrompt } : {}),
       };
+      // Claude Sonnet 5 rejects temperature with HTTP 400. Older Claude models still accept it.
+      if (modelAcceptsTemperature('anthropic', settings.model)) {
+        createParams.temperature = settings.temperature ?? 0.7;
+      }
       // Anthropic does not support a json_object output_config shorthand.
       // JSON output is enforced via system prompt instructions in the agent layer.
       // Do NOT add output_config here — it causes a 400 invalid_request_error.
 
-      let response;
-      try {
+      const completeAnthropic = async (
+        params: Record<string, unknown>,
+      ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> => {
         if (onDelta) {
           const stream = await client.messages.create(
-            { ...createParams, stream: true } as any,
+            { ...params, stream: true } as any,
             { signal: controller.signal },
           );
           let textContent = '';
@@ -395,33 +399,44 @@ class AnthropicProvider {
             model: settings.model,
           };
         }
-        response = await client.messages.create(createParams as any, {
+
+        const response = await client.messages.create(params as any, {
           signal: controller.signal,
         });
+        const contentBlocks = (response as any).content ?? [];
+        const textContent = contentBlocks
+          .filter((b: { type?: string }) => b.type === 'text')
+          .map((b: { text?: string }) => b.text ?? '')
+          .join('');
+        const usage = (response as any).usage;
+        return {
+          success: true,
+          content: textContent || '[No response content]',
+          usage: usage
+            ? {
+                prompt_tokens: usage.input_tokens ?? 0,
+                completion_tokens: usage.output_tokens ?? 0,
+                total_tokens: (usage.input_tokens ?? 0) + (usage.output_tokens ?? 0),
+              }
+            : undefined,
+          model: (response as any).model ?? settings.model,
+        };
+      };
+
+      try {
+        try {
+          return await completeAnthropic(createParams);
+        } catch (error) {
+          if (createParams.temperature === undefined || !isDeprecatedTemperatureError(error)) {
+            throw error;
+          }
+          const withoutTemperature = { ...createParams };
+          delete withoutTemperature.temperature;
+          return await completeAnthropic(withoutTemperature);
+        }
       } finally {
         clearTimeout(timeoutId);
       }
-
-      const contentBlocks = (response as any).content ?? [];
-      const textContent = contentBlocks
-        .filter((b: { type?: string }) => b.type === 'text')
-        .map((b: { text?: string }) => b.text ?? '')
-        .join('');
-
-      const usage = (response as any).usage;
-
-      return {
-        success: true,
-        content: textContent || '[No response content]',
-        usage: usage
-          ? {
-              prompt_tokens: usage.input_tokens ?? 0,
-              completion_tokens: usage.output_tokens ?? 0,
-              total_tokens: (usage.input_tokens ?? 0) + (usage.output_tokens ?? 0),
-            }
-          : undefined,
-        model: (response as any).model ?? settings.model,
-      };
     } catch (error) {
       if (isAbortTimeoutError(error)) {
         console.error(`Anthropic API timeout after ${ANTHROPIC_MODEL_TIMEOUT_MS}ms`);

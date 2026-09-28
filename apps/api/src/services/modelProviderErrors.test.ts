@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isDeprecatedTemperatureError,
   isGenuineInvalidModelError,
   publicProviderFailureDetail,
   shouldFallbackToSiblingOffering,
@@ -52,6 +53,25 @@ describe('isGenuineInvalidModelError', () => {
         message: 'The model could not complete the request because tools are not enabled',
       }),
     ).toBe(false);
+  });
+});
+
+describe('isDeprecatedTemperatureError', () => {
+  it('matches Anthropic’s Sonnet 5 rejection, including the JSON body Keeper stores', () => {
+    expect(
+      isDeprecatedTemperatureError(
+        new Error('`temperature` is deprecated for this model.'),
+      ),
+    ).toBe(true);
+    expect(
+      isDeprecatedTemperatureError(
+        '400 {"type":"error","error":{"type":"invalid_request_error","message":"`temperature` is deprecated for this model."}}',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not match an unrelated 400', () => {
+    expect(isDeprecatedTemperatureError(new Error('prompt is too long'))).toBe(false);
   });
 });
 

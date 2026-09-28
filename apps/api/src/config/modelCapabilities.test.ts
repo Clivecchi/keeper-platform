@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getModelCapabilities } from './modelCapabilities.js';
+import { getModelCapabilities, modelAcceptsTemperature } from './modelCapabilities.js';
 
 describe('getModelCapabilities', () => {
   it('returns exact entry for a known OpenAI model', () => {
@@ -42,6 +42,12 @@ describe('getModelCapabilities', () => {
     expect(getModelCapabilities('anthropic', 'claude-sonnet-5').jsonMode).toBe(false);
     expect(getModelCapabilities('anthropic', 'claude-sonnet-4-6').jsonMode).toBe(false);
     expect(getModelCapabilities('anthropic', 'claude-3-5-sonnet-20241022').jsonMode).toBe(false);
+  });
+
+  it('omits sampling temperature for Claude Sonnet 5 and keeps it for Sonnet 4.6', () => {
+    expect(modelAcceptsTemperature('anthropic', 'claude-sonnet-5')).toBe(false);
+    expect(modelAcceptsTemperature('anthropic', 'claude-sonnet-4-6')).toBe(true);
+    expect(modelAcceptsTemperature('openai', 'gpt-4o')).toBe(true);
   });
 
   it('defaults together-ai to conservative capabilities', () => {

@@ -26,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-27 — Sonnet 5 omits temperature
+- `ModelProviderService` Anthropic calls skip `temperature` when the model does not accept it (`claude-sonnet-5`). If Anthropic still says temperature is deprecated, the same request is sent once without it.
+
 ### 2026-09-27 — Provider rejection detail
 - Unclassified provider failures keep HTTP status and a clipped provider sentence in `providerDetail`. A 4xx is not retried and is not described as an overload.
 

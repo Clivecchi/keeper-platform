@@ -1,5 +1,6 @@
 export {
   getModelCapabilities,
+  modelAcceptsTemperature,
   MODEL_CAPABILITY_MAP,
   type ModelCapabilities,
   type ModelCapabilityMap,

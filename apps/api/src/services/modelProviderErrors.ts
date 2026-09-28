@@ -59,6 +59,22 @@ export function publicProviderFailureDetail(message: string | null | undefined):
   return text;
 }
 
+export function isDeprecatedTemperatureError(error: unknown): boolean {
+  const texts: string[] = [];
+  if (typeof error === 'string') texts.push(error);
+  if (error instanceof Error) texts.push(error.message);
+  if (error && typeof error === 'object') {
+    const record = error as { message?: unknown; error?: unknown };
+    if (typeof record.message === 'string') texts.push(record.message);
+    const nested = record.error;
+    if (typeof nested === 'string') texts.push(nested);
+    if (nested && typeof nested === 'object' && typeof (nested as { message?: unknown }).message === 'string') {
+      texts.push((nested as { message: string }).message);
+    }
+  }
+  return texts.some((text) => /temperature[`'"]?\s+is deprecated/i.test(text));
+}
+
 export function isProviderOverload(params: {
   status?: number | null;
   message?: string | null;
