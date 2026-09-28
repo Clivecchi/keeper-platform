@@ -25,8 +25,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
 - `glossIntent.ts` — Gloss is depth on a Point (`gloss.append`). Follow-up when the Lead narrates instead of writing Gloss.
 - `pointIntent.ts` — Explicit Point-intent Agency obligation (detect → Working on target → prompt + follow-up). Offer-in-prose is an incomplete turn.
-- `preserveDiscoveryGate.ts` — preserve-discovery@1 frozen Choice, probability gate, completion parse. No storage vocabulary.
-- `preserveDiscoveryTurn.ts` — post-reply runner: one Choice, Keeper checks, short `{survives, label?}` completion, one proposed Point.
+- `preserveDiscoveryGate.ts` — preserve-discovery@1 Choice against the living Document. One proposed Point, attributed to Jev.
+- `preserveDiscoveryTurn.ts` — post-reply runner: loads the Document, one Choice, at most one `draft.update.propose`.
 - `documentReorganizeStore.ts` — persist / Apply / dismiss a Lead Review & Reorganize proposal on the manuscript
 - `documentReorganizeIntent.ts` — phrase signal for review/reorganize language. Established direction may prompt Lead to propose. Mention does not.
 - `documentTurnPostureShadow.ts` — TypeSafe shadow Choice/Noul bound to a Human Turn. Jev runs once. Every later Lead pass renders the same record. Does not authorize or mutate. Does not go to Cast.
@@ -47,6 +47,12 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-27 — Jev sees the living Document
+- preserve-discovery no longer closes because the manuscript already has Points or another draft exists.
+- Jev receives the Document loaded for the Lead (`loadDialogDocumentForAgent`): held Points, Forward, Orientation.
+- A keep writes one proposed Point through `draft.update.propose`. `proposedBy` is Jev. The receipt says the Point is kept and reviewable.
+- If the exchange is already held, or earns nothing, or the human forbade a write, nothing is written.
+
 ### 2026-09-23 — Performance contract wording
 - Lead Judgment names `resolvedMeaning` as the performance contract, on Dialog and on Stage.
 

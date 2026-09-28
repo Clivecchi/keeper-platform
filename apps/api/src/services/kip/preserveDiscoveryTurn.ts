@@ -1,11 +1,11 @@
 /**
  * preserve-discovery@1 turn runner.
- * After the Lead reply and its receipts: one Choice, Keeper checks, one short completion, one Point.
+ * After the Lead reply: Jev sees the living Document, one Choice, at most one Point.
  * Does not rescore. Does not speak to Cast. Does not grow the standing prompt.
  */
 
-import { prisma, type ModelProvider, type ModelSettings } from '@keeper/database';
-import { isDocumentBearingDialogTitleSource, parseDraftPoints } from '@keeper/shared';
+import type { ModelProvider, ModelSettings } from '@keeper/database';
+import { isDocumentBearingDialogTitleSource } from '@keeper/shared';
 import { getModelCapabilities, resolveExecutionPlan } from '../../config/index.js';
 import { executeRegisteredChat } from '../executeRegisteredChat.js';
 import { ModelProviderService, type ModelMessage } from '../ModelProviderService.js';
@@ -13,6 +13,7 @@ import { TYPESAFE_DEFAULT_MODEL } from '../TypeSafeProvider.js';
 import { runTypeSafeEvaluateAction } from '../TypeSafeEvaluateService.js';
 import { recordModelCall, type AgentRunPhaseTimings } from './agentRunTimings.js';
 import { ensureDialogDocumentManuscript } from './ensureDialogDocumentManuscript.js';
+import { loadDialogDocumentForAgent, type AgentDialogDocument } from './loadDialogDocumentForAgent.js';
 import {
   buildPointObligationUnmetNotice,
   detectPointIntent,
@@ -20,15 +21,20 @@ import {
   humanTurnTextForIntent,
 } from './pointIntent.js';
 import {
+  PRESERVE_DISCOVERY_AGENCY,
   PRESERVE_DISCOVERY_GATE_ID,
+  PRESERVE_DISCOVERY_MAX_ALREADY_REPRESENTED,
   PRESERVE_DISCOVERY_QUESTIONS,
   buildPreserveDiscoveryCompletionMessages,
   buildPreserveDiscoveryState,
+  heldItemsFromDocumentPoints,
+  manuscriptRepresentsExchange,
   parsePreserveDiscoveryCompletion,
-  preserveDiscoveryChoiceOpens,
-  preserveDiscoveryResidueVeto,
+  preserveDiscoveryKeptMessage,
+  preserveDiscoveryShouldKeep,
   readPreserveDiscoveryChoice,
   type PreserveDiscoveryChoiceReading,
+  type PreserveDiscoveryHeldItem,
   type PreserveMoveProbabilities,
 } from './preserveDiscoveryGate.js';
 
@@ -40,8 +46,7 @@ export type PreserveDiscoveryCloseReason =
   | 'constrained'
   | 'other_obligation'
   | 'already_preserved'
-  | 'manuscript_points'
-  | 'durable_draft'
+  | 'already_represented'
   | 'empty_exchange'
   | 'jev_error'
   | 'below_threshold'
@@ -64,6 +69,7 @@ export type PreserveDiscoveryWrite = {
   content: string;
   label?: string;
   manuscriptDraftId: string;
+  proposedBy: typeof PRESERVE_DISCOVERY_AGENCY;
 };
 
 export type PreserveDiscoveryTurnResult<TReceipt extends PointReceipt = PointReceipt> = {
@@ -74,7 +80,39 @@ export type PreserveDiscoveryTurnResult<TReceipt extends PointReceipt = PointRec
   holdReply: boolean;
 };
 
-type PointReceipt = { type: string; status: string };
+type PointReceipt = {
+  type: string;
+  status: string;
+  message?: string;
+  data?: unknown;
+};
+
+function directionFromDocument(doc: AgentDialogDocument): string | null {
+  if (doc.forwardAuthored === false) return null;
+  const title = doc.forward?.title?.trim() ?? '';
+  const description = doc.forward?.description?.trim() ?? '';
+  if (!title && !description) return null;
+  return [title, description].filter(Boolean).join(': ').slice(0, 500);
+}
+
+function heldLines(held: readonly PreserveDiscoveryHeldItem[]): string[] {
+  return held.map((item) => {
+    const title = item.title.trim();
+    const preview = item.preview.trim();
+    if (title && preview && title !== preview) return `${title} — ${preview}`;
+    return title || preview;
+  }).filter(Boolean);
+}
+
+function hostTitleFromReceipt(result: PointReceipt): string {
+  const data = result.data && typeof result.data === 'object'
+    ? (result.data as Record<string, unknown>)
+    : {};
+  const host = typeof data.hostTitle === 'string' ? data.hostTitle.trim() : '';
+  if (host) return host;
+  const draftTitle = typeof data.draftTitle === 'string' ? data.draftTitle.trim() : '';
+  return draftTitle || 'the Document';
+}
 
 function closed<TReceipt extends PointReceipt>(
   reason: PreserveDiscoveryCloseReason,
@@ -131,38 +169,21 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
   if (params.glossRequired || params.reorganizeRequired) return closed('other_obligation');
   if (hasSuccessfulPointPropose(params.actionResults)) return closed('already_preserved');
 
-  const dialog = await prisma.dialog.findFirst({
-    where: { id: params.dialogId, domain_id: params.domainId },
-    select: { title: true, title_source: true, orientation: true },
-  });
-  if (!dialog) return closed('no_dialog');
-  if (!isDocumentBearingDialogTitleSource(dialog.title_source)) return closed('not_document');
-
-  const drafts = await prisma.kip_drafts.findMany({
-    where: {
-      domain_id: params.domainId,
-      dialog_id: params.dialogId,
-      status: { notIn: ['promoted', 'archived'] },
-    },
-    select: { kind: true, spec_json: true },
-  });
-  const residue = preserveDiscoveryResidueVeto(
-    drafts.map((draft) => ({
-      kind: draft.kind,
-      pointCount: parseDraftPoints(draft.spec_json).length,
-    })),
-  );
-  if (residue) return closed(residue);
+  const document = await loadDialogDocumentForAgent(params.dialogId, params.domainId);
+  if (!document) return closed('no_dialog');
+  if (!isDocumentBearingDialogTitleSource(document.titleSource)) return closed('not_document');
 
   const kip = params.kipReply.trim();
   if (!human.trim() || !kip) return closed('empty_exchange');
 
-  params.onStatus?.('Preserving the discovery…');
-
+  const held = heldItemsFromDocumentPoints(document.points);
   const state = buildPreserveDiscoveryState({
     human,
     kip,
-    orientationText: dialog.orientation,
+    orientationText: document.orientation?.body ?? null,
+    direction: directionFromDocument(document),
+    documentTitle: document.title ?? null,
+    held,
   });
 
   let outcome;
@@ -186,14 +207,32 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
   }
 
   const reading = readPreserveDiscoveryChoice(outcome.answers);
-  if (!preserveDiscoveryChoiceOpens(reading.probabilities)) {
-    return closed('below_threshold', reading, outcome.model);
+  const keep = preserveDiscoveryShouldKeep({
+    probabilities: reading.probabilities,
+    alreadyRepresented: reading.alreadyRepresented,
+    existingDurableItemRepresentsWhatWasJustFound:
+      state.existingDurableItemRepresentsWhatWasJustFound,
+  });
+  if (!keep) {
+    const represented =
+      state.existingDurableItemRepresentsWhatWasJustFound
+      || (
+        typeof reading.alreadyRepresented === 'number'
+        && reading.alreadyRepresented >= PRESERVE_DISCOVERY_MAX_ALREADY_REPRESENTED
+      );
+    return closed(
+      represented ? 'already_represented' : 'below_threshold',
+      reading,
+      outcome.model,
+    );
   }
 
+  params.onStatus?.('Preserving the discovery…');
+
   const completionMessages = buildPreserveDiscoveryCompletionMessages({
-    agentName: params.agentName,
     human,
     kip,
+    held: heldLines(state.held),
   });
   const started = Date.now();
   let completionRaw = '';
@@ -215,13 +254,20 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
 
   const completion = parsePreserveDiscoveryCompletion(completionRaw);
   if (!completion) return unsatisfied('completion_failed', reading, outcome.model);
+  if (manuscriptRepresentsExchange({
+    human: completion.survives,
+    kip: completion.label ?? '',
+    held: state.held,
+  })) {
+    return closed('already_represented', reading, outcome.model);
+  }
 
   let manuscriptId: string;
   try {
     const manuscript = await ensureDialogDocumentManuscript({
       domainId: params.domainId,
       dialogId: params.dialogId,
-      dialogTitle: dialog.title,
+      dialogTitle: document.title,
       userId: params.userId,
       agentId: params.agentId ?? null,
     });
@@ -238,6 +284,14 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
       content: completion.survives,
       ...(completion.label ? { label: completion.label } : {}),
       manuscriptDraftId: manuscriptId,
+      proposedBy: PRESERVE_DISCOVERY_AGENCY,
+    });
+    results = results.map((result) => {
+      if (result.type !== 'draft.update.propose' || result.status !== 'success') return result;
+      return {
+        ...result,
+        message: preserveDiscoveryKeptMessage(hostTitleFromReceipt(result)),
+      };
     });
   } catch (error) {
     console.warn('[preserve-discovery@1] write failed', error);

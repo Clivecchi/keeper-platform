@@ -196,6 +196,11 @@ import {
   buildPointRewriteSystemPrompt,
   type PointTurnObligation,
 } from '../../services/kip/pointIntent.js';
+import {
+  PRESERVE_DISCOVERY_AGENCY,
+  preserveDiscoveryKeptMessage,
+  preserveDiscoveryProposePayload,
+} from '../../services/kip/preserveDiscoveryGate.js';
 import { runPreserveDiscoveryTurn } from '../../services/kip/preserveDiscoveryTurn.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
 import { layoutStageStory } from '../../services/kip/layoutStageStory.js';
@@ -2527,10 +2532,13 @@ export async function executeAgentActions(
               draftTitle: draft.title,
               dialogTitle: ctx.dialogTitle,
             });
+            const recommendedByAgency = proposedBy === PRESERVE_DISCOVERY_AGENCY;
             results.push({
               type: action.type,
               status: 'success',
-              message: `Proposed ${typeLabel} on ${hostTitle} — tap Accept to keep it`,
+              message: recommendedByAgency
+                ? preserveDiscoveryKeptMessage(hostTitle)
+                : `Proposed ${typeLabel} on ${hostTitle} — tap Accept to keep it`,
               data: {
                 draftId: draft.id,
                 draftTitle: hostTitle,
@@ -9030,14 +9038,7 @@ export class KipAgentService {
               [
                 {
                   type: 'draft.update.propose',
-                  payload: {
-                    content: write.content,
-                    id: write.manuscriptDraftId,
-                    draftId: write.manuscriptDraftId,
-                    ...(write.label
-                      ? { title: write.label, prelude: write.label }
-                      : {}),
-                  },
+                  payload: preserveDiscoveryProposePayload(write),
                 },
               ],
               buildExecuteAgentActionsCtx(options, {
