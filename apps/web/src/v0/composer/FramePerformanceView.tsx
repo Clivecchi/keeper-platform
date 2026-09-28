@@ -1,7 +1,8 @@
 /**
- * One performed Keeper turn.
- * Dialog and Stage are placements of the same FramePerformance.
+ * A promoted Frame.
+ * Dialog and Stage are placements of the same telling.
  * Beats replace each other inside this viewport. Theatre plays the layers.
+ * The conversation turn stays in the transcript.
  */
 
 import * as React from "react"
@@ -56,11 +57,11 @@ function FrameBeat({
   const beat = performance.beats[index]
   const context = contextLine(performance)
   if (!beat) return null
-  const titleSize = placement === "stage" ? "text-[40px]" : "text-[22px]"
-  const bodySize = placement === "stage" ? "text-[20px]" : "text-[15px]"
+  const titleSize = placement === "stage" ? "text-[40px]" : "text-[34px]"
+  const bodySize = placement === "stage" ? "text-[20px]" : "text-[18px]"
 
   return (
-    <div className={placement === "stage" ? "px-2 py-6" : "px-1 py-1"}>
+    <div className={placement === "stage" ? "px-2 py-6" : "px-2 py-4"}>
       {context ? (
         <p
           className="text-[11px] uppercase tracking-[0.14em]"
@@ -179,15 +180,9 @@ export function FramePerformanceView({
       data-frame-point={performance.title}
       className={
         placement === "dialog"
-          ? "max-w-xl min-w-0 overflow-hidden rounded-2xl border px-4 py-4"
+          ? "flex h-full min-h-0 w-full flex-col justify-center px-[8%] py-16"
           : "flex h-full min-h-[28rem] w-full flex-col justify-center px-8 py-10"
       }
-      style={{
-        borderColor: placement === "dialog" ? "hsl(var(--theme-border-soft))" : undefined,
-        backgroundColor: placement === "dialog"
-          ? "hsl(var(--theme-surface-paper) / 0.55)"
-          : undefined,
-      }}
     >
       <PresentMotionProvider
         key={beatKey}

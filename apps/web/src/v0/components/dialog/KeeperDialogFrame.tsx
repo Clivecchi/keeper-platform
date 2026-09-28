@@ -63,6 +63,8 @@ import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
 import { useStagePresentationOptional } from "../../composer/stagePresentation"
+import { dialogSurfaceFrame } from "../../composer/dialogFramePresentation"
+import { FramePerformanceView } from "../../composer/FramePerformanceView"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
 import "../../../components/gloss/gloss.css"
@@ -451,6 +453,16 @@ export function KeeperDialogFrame({
   }, [isMobile])
 
   const composerOnStage = Boolean(dialogContent) && mode !== "feed"
+  const [conversationOverFrameId, setConversationOverFrameId] = React.useState<string | null>(null)
+  const surfaceFrame = dialogSurfaceFrame({
+    messages,
+    dismissedMessageId: conversationOverFrameId,
+    isSending,
+    stageOwnsSurface: composerOnStage,
+  })
+  const surfaceMessage = surfaceFrame
+    ? messages.find((message) => message.id === surfaceFrame.messageId)
+    : undefined
   const workForward = composerOnStage && stagePresentation?.workForward === true
   const attention = composerOnStage ? (stagePresentation?.attention ?? "present") : undefined
   const dialogWorkVisible = mode !== "feed" && (!dialogContent || workForward)
@@ -750,6 +762,7 @@ export function KeeperDialogFrame({
       }
       data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
+      data-dialog-presentation={surfaceFrame ? "frame" : "conversation"}
       data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
       data-mobile-dialog-stage={isMobileStaged ? mobileDialogStage : undefined}
     >
@@ -1028,6 +1041,29 @@ export function KeeperDialogFrame({
       {/* ── Dialog Space — messages, or the Stage table. Composer stays at the bottom. ── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
+        {surfaceFrame && surfaceMessage ? (
+          <div className="dialog-frame-surface">
+            <button
+              type="button"
+              className="dialog-frame-return"
+              onClick={() => setConversationOverFrameId(surfaceFrame.messageId)}
+            >
+              Conversation
+            </button>
+            <div className="dialog-frame-surface-canvas">
+              <FramePerformanceView
+                performance={surfaceFrame.performance}
+                placement="dialog"
+                messageId={surfaceFrame.messageId}
+                castVoices={(surfaceMessage.castVoices ?? []).map((voice) => ({
+                  slug: voice.slug,
+                  attributedTo: voice.attributedTo,
+                  content: voice.content,
+                }))}
+              />
+            </div>
+          </div>
+        ) : null}
         {workForward && dialogContent ? (
           <div
             className="stage-frame-layer"
@@ -1054,6 +1090,7 @@ export function KeeperDialogFrame({
         <div
           ref={scrollRef}
           className={workForward ? "dialog-message-surface stage-attention-work" : "dialog-message-surface"}
+          aria-hidden={surfaceFrame ? true : undefined}
           onClick={workForward ? (event) => event.stopPropagation() : undefined}
         >
           {mode === "feed"

@@ -1,5 +1,6 @@
 /**
- * Post-Lead Rendr handoff — resolved meaning → one Frame Performance.
+ * Post-Lead Rendr handoff — resolved meaning → a composition on the Lead message.
+ * A beat becomes a Frame only when Rendr promotes it. Otherwise the turn stays text.
  * Honest miss: any failure leaves the turn as ordinary text.
  * A Stage cell, when written, points at the Lead message. It does not store the beats.
  */

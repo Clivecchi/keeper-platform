@@ -74,9 +74,9 @@ export interface AgentDialogueMessage {
   }
   /** Deferred keeping judgments — not actions, not proposals. */
   keepingChoices?: KeepingChoiceRecord[]
-  /** Lead-resolved meaning. The signal that this turn may become a Frame. */
+  /** Lead-resolved meaning. Not a Frame, and not a reason to replace the turn. */
   resolvedMeaning?: ResolvedMeaning
-  /** Rendr's telling of that meaning. Primary human-facing turn when present. */
+  /** Rendr's telling. The turn stays conversation unless a beat is promoted. */
   framePerformance?: FramePerformance
   /** Named orchestration metadata persisted on the Lead message. */
   orchestration?: Record<string, unknown>

@@ -836,6 +836,48 @@ button.dialog-prelude:hover {
   display: none;
 }
 
+/* Promoted Frame — full Dialog surface. Conversation stays the transcript underneath. */
+.dialog-frame-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dialog-frame-surface-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dialog-frame-return {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  left: 18px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.keeper-dialog-frame[data-dialog-presentation="frame"] .dialog-message-surface {
+  visibility: hidden;
+}
+
+.keeper-dialog-frame[data-dialog-presentation="frame"] .dialog-horizon-band,
+.keeper-dialog-frame[data-dialog-presentation="frame"] .dialog-scroll-rail,
+.keeper-dialog-frame[data-dialog-presentation="frame"] .dialog-scroll-hint {
+  display: none;
+}
+
 /* Stage attention — Frame stays; work steps forward. Dialog is the first occupant. */
 .stage-frame-layer {
   position: absolute;

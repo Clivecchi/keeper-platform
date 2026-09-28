@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { FramePerformance, StageStorySlide } from "@keeper/shared"
+import { promotedDialogFrame, type FramePerformance, type StageStorySlide } from "@keeper/shared"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
@@ -148,9 +148,10 @@ export function StagePresentationProvider({
   const liveFrames = React.useMemo(() => {
     const map = new Map<string, LiveFrameHit>()
     for (const message of messages) {
-      if (!message.framePerformance?.beats.length || !message.framePerformance.title) continue
+      const performance = promotedDialogFrame(message.framePerformance)
+      if (!performance) continue
       map.set(message.id, {
-        performance: message.framePerformance,
+        performance,
         castVoices: (message.castVoices ?? []).map((voice) => ({
           slug: voice.slug,
           attributedTo: voice.attributedTo,

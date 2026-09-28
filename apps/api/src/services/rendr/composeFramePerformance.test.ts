@@ -28,6 +28,7 @@ describe('buildFramePerformanceUserPrompt', () => {
     expect(prompt).toContain('Finding the Plot');
     expect(prompt).not.toMatch(/castVoices/);
     expect(prompt).toMatch(/Do not set title to the Document title/);
+    expect(prompt).toMatch(/Promote a beat only when it is Story-significant/);
   });
 });
 
@@ -54,5 +55,8 @@ describe('buildFramePerformanceSystemPrompt', () => {
     expect(prompt).toMatch(/No Theatre/);
     expect(prompt).toMatch(/title is the Point/);
     expect(prompt).toMatch(/beats\[\]\.title/);
+    expect(prompt).toMatch(/Story-significant/);
+    expect(prompt).toMatch(/Omit promote/);
+    expect(prompt).toMatch(/Zero promoted beats is the ordinary result/);
   });
 });

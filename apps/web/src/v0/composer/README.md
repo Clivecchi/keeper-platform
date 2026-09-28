@@ -4,7 +4,8 @@
 Reach and Stage sit above Boards without becoming a fourth column. **Composer** is `AgentComposer` (the Turn instrument) at the bottom. On Stage it is a lectern over the table — same place, more function (Agency, Reach in Chronicle). Placed objects are **assets**. The Stage workspace is a **Frame-driven story** (presentation), not a second Document of Points.
 
 ## 🧱 Key Files
-- `FramePerformanceView.tsx` — one performed turn; `placement="dialog" | "stage"`. Beats replace inside the viewport. Theatre `frame` Present plays the layers.
+- `FramePerformanceView.tsx` — a promoted Frame. `placement="dialog"` fills the Dialog surface; `placement="stage"` fills the Stage screen. Beats replace inside the viewport.
+- `dialogFramePresentation.ts` — latest agent turn presents a Frame only when a beat is promoted. Conversation is the default.
 - `frameCue.tsx` — Keep, review Cast, open Point, and Take to Stage handlers shared by both placements
 - `spatial/loadSpatialFrameHost.tsx` — optional lazy Three.js host. Dialog frames do not call it.
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX). `appendLiveBeat` points one filmstrip cell at a Lead message.
@@ -49,8 +50,11 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 
 ## 📆 Update Log
 
+### 2026-09-27 — Conversation default, Frame on promotion
+- Agent turns stay in the transcript. `promotedDialogFrame` keeps only beats Rendr marked Story-significant. That Frame fills the Dialog surface. Stage live cells use the same promotion.
+
 ### 2026-09-23 — Frame Performance placement
-- `FramePerformanceView` renders the same Lead-message performance in Dialog and, when a filmstrip cell’s live source matches that message, on Stage. `appendLiveBeat` adds one cell. Internal beats stay on the message.
+- `FramePerformanceView` renders a promoted Frame on the Dialog surface, and on Stage when a filmstrip cell’s live source matches that message. `appendLiveBeat` adds one cell. Unpromoted beats stay in the conversation.
 
 ### 2026-09-20 — Stage attention grammar
 - Named states: Present → Engage → Yield → Perform → Resolve → Return. Dialog is the first occupant of the yielded work surface. Theatre writes `STAGE_YIELD_MOTION` on the current `slide` Presence instance for every state except Present. Return is intentional after Resolve and restores the held Frame. No Scene table. No second Dialog.

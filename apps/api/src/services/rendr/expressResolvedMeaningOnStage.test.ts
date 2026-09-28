@@ -86,8 +86,26 @@ describe('expressResolvedMeaningOnStage', () => {
     expect(user).not.toContain('castVoices');
   });
 
-  it('appends one live-sourced cell titled with the Point when already on Stage', async () => {
+  it('does not append a Stage cell when no beat is promoted', async () => {
     callModel.mockResolvedValue({ success: true, content: JSON.stringify(frameJson) });
+    const result = await expressResolvedMeaningOnStage({
+      domainId: 'dom-1',
+      leadMessageId: 'msg-1',
+      resolvedMeaning: meaning,
+      placeOnStage: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(appendStageExpressionBeat).not.toHaveBeenCalled();
+  });
+
+  it('appends one live-sourced cell when a beat is promoted on Stage', async () => {
+    const promoted = {
+      ...frameJson,
+      beats: frameJson.beats.map((beat, index) => (
+        index === 0 ? { ...beat, promote: true } : beat
+      )),
+    };
+    callModel.mockResolvedValue({ success: true, content: JSON.stringify(promoted) });
     appendStageExpressionBeat.mockResolvedValue({
       ok: true,
       alreadyPresent: false,
