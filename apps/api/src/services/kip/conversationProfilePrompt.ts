@@ -41,6 +41,9 @@ export function buildConversationProfileProtocolPrompt(allowList: string[]): str
     'Example: {"type":"agent_output","response":"Your message here.","actions":[]}',
     `Allowed actions: ${actions}.`,
     'Each action is { "type", "payload"? }. Never invent action types.',
+    allowList.includes('image.generate')
+      ? 'When the human asks for an image, emit image.generate with payload.subject set to the picture. A card is not the image.'
+      : null,
     'Do not claim an action ran unless it is listed in the SESSION ACTION LOG.',
-  ].join('\n');
+  ].filter((line): line is string => Boolean(line)).join('\n');
 }

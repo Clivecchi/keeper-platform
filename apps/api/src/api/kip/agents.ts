@@ -315,7 +315,11 @@ import {
   coerceWorkingDraftKind,
   mergeDraftCreateSpec,
 } from './actions/normalizeDraftCreate.js';
-import { imageGenerateMissingSubjectMessage } from './actions/imageGenerateSubjectError.js';
+import {
+  coerceImageGenerateSubject,
+  imageGenerateMissingSubjectMessage,
+  imageRecoverySubject,
+} from './actions/imageGenerateSubjectError.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -4878,7 +4882,11 @@ export async function executeAgentActions(
 
           case 'image.generate': {
             console.log('[image.generate] Action received:', action);
-            const payload = action.payload ?? {};
+            const payload = action.payload && typeof action.payload === 'object'
+              ? { ...(action.payload as Record<string, unknown>) }
+              : {};
+            const coercedSubject = coerceImageGenerateSubject(payload);
+            if (coercedSubject) payload.subject = coercedSubject;
             const subject = typeof payload.subject === 'string' ? payload.subject.trim() : '';
 
             if (!subject) {
@@ -9008,6 +9016,42 @@ export class KipAgentService {
                 humanReorganizeFailureNotice(restateFollowUpExecution.results)
                 ?? restateFollowUpExecution.failedMessage
               }`;
+            }
+          }
+        }
+
+        if (pointTurnActor === 'lead' && !options?.supportEcho) {
+          const card = structured.card as { title?: string; body?: string } | undefined;
+          const recoverySubject = imageRecoverySubject({
+            human: humanTurn,
+            responseText: finalResponseText,
+            cardTitle: card?.title,
+            cardBody: card?.body,
+            results: actionResults,
+          });
+          if (recoverySubject) {
+            options?.onStatus?.('Creating the image…');
+            const allow = new Set(allowActions);
+            allow.add('image.generate');
+            const imageStartedAt = Date.now();
+            const imageExecution = await executeAgentActions(
+              [{ type: 'image.generate', payload: { subject: recoverySubject } }],
+              buildExecuteAgentActionsCtx(options, {
+                userId,
+                agentId: agent.id,
+                allowlist: allow,
+                sessionId: currentSessionId,
+                requestId,
+                actor: 'lead',
+              }),
+            );
+            if (options?.timings) {
+              options.timings.actionsMs =
+                (options.timings.actionsMs ?? 0) + (Date.now() - imageStartedAt);
+            }
+            actionResults = [...actionResults, ...imageExecution.results];
+            if (imageExecution.failedMessage) {
+              finalResponseText = `${finalResponseText.trim()}\n\n${imageExecution.failedMessage}`;
             }
           }
         }

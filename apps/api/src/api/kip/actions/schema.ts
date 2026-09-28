@@ -7,6 +7,7 @@
 
 import { DOCUMENT_ORIENTATION_MAX_CHARS } from '@keeper/shared';
 import { z } from 'zod';
+import { coerceImageGenerateSubject } from './imageGenerateSubjectError.js';
 
 /**
  * Core action types that must be supported by the executor
@@ -229,13 +230,24 @@ const keeperReadPayloadSchema = z.object({
  * Image generate action payload schema
  * domain_context is intentionally absent — it is added server-side from domain JSON
  */
-export const imageGeneratePayloadSchema = z.object({
-  subject:      z.string().min(1, 'subject is required'),
-  mood:         z.string().optional(),
-  style:        z.string().optional(),
-  aspect_ratio: z.enum(['1:1', '16:9', '9:16', '4:3']).optional(),
-  model:        z.string().optional(),
-});
+function imageGeneratePayloadWithSubject(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const row = { ...(value as Record<string, unknown>) };
+  const subject = coerceImageGenerateSubject(row);
+  if (subject) row.subject = subject;
+  return row;
+}
+
+export const imageGeneratePayloadSchema = z.preprocess(
+  imageGeneratePayloadWithSubject,
+  z.object({
+    subject:      z.string().min(1, 'subject is required'),
+    mood:         z.string().optional(),
+    style:        z.string().optional(),
+    aspect_ratio: z.enum(['1:1', '16:9', '9:16', '4:3']).optional(),
+    model:        z.string().optional(),
+  }),
+);
 
 export type ImageGenerateAction = z.infer<typeof imageGeneratePayloadSchema> & { type: 'image.generate' };
 
