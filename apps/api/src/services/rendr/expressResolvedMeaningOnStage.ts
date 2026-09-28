@@ -8,6 +8,7 @@ import { ModelSettings, type ModelProvider } from '@keeper/database';
 import {
   bindFramePerformanceCue,
   parseFramePerformanceFromModelText,
+  promotedDialogFrame,
   parseStageExpressionFromModelText,
   withPerformanceContext,
   withPerformedByFallback,
@@ -197,15 +198,17 @@ export async function expressResolvedMeaningOnStage(
     hasCastVoices: input.hasCastVoices === true,
   });
 
-  if (!input.placeOnStage) {
+  const presented = promotedDialogFrame(performance);
+  if (!input.placeOnStage || !presented) {
     return { ok: true, performance };
   }
 
+  const beat = presented.beats[0];
   const appended = await appendStageExpressionBeat({
     domainId: input.domainId,
     leadMessageId: input.leadMessageId,
-    title: performance.title,
-    body: performance.beats[0]?.body ?? '',
+    title: beat?.title ?? performance.title,
+    body: beat?.body ?? '',
   });
   if (appended.ok === false) {
     return { ok: true, performance };

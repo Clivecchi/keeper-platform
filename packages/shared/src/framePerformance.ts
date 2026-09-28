@@ -1,8 +1,10 @@
 /**
  * Turn-scoped Frame Performance.
  *
- * Lives on the Lead message. Document, Section, Point, and beat titles stay
- * distinct. Theatre state and markup do not belong here.
+ * Lives on the Lead message as composition. It does not replace the turn.
+ * A beat becomes a Frame only when composition sets `promote`. Document,
+ * Section, Point, and beat titles stay distinct. Theatre state and markup
+ * do not belong here.
  */
 
 export const FRAME_PERFORMANCE_VERSION = 1 as const;
@@ -39,6 +41,11 @@ export type FramePerformanceBeat = {
   title: string;
   body: string;
   voice?: FramePerformanceVoice;
+  /**
+   * Editorial promotion. Present only when composition judges this beat
+   * Story-significant. Absent keeps the beat in the conversation.
+   */
+  promote?: true;
 };
 
 export type FrameCueAction = {
@@ -214,6 +221,7 @@ export function parseFramePerformance(
       title: beatTitle,
       body,
       ...(voice ? { voice } : {}),
+      ...(beat.promote === true ? { promote: true as const } : {}),
     });
   }
   if (!beats.length) return null;
@@ -337,8 +345,15 @@ export function bindFramePerformanceCue(
   };
 }
 
-export function turnPresentsFrame(
-  message: { framePerformance?: FramePerformance | null } | null | undefined,
-): boolean {
-  return Boolean(message?.framePerformance && message.framePerformance.beats.length > 0 && message.framePerformance.title);
+/**
+ * The Frame for the Dialog surface: only beats composition promoted.
+ * A performance with no promoted beat is not a Frame.
+ */
+export function promotedDialogFrame(
+  performance: FramePerformance | null | undefined,
+): FramePerformance | null {
+  if (!performance?.title || performance.beats.length === 0) return null;
+  const beats = performance.beats.filter((beat) => beat.promote === true);
+  if (!beats.length) return null;
+  return { ...performance, beats };
 }

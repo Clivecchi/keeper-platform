@@ -17,9 +17,12 @@ import {
 export function buildFramePerformanceSystemPrompt(): string {
   return [
     RENDR_IDENTITY_LOCK,
-    'You compose how a resolved meaning should be experienced as one Frame.',
+    'You compose how a resolved meaning might be experienced.',
     'You do not decide what it meant. That is already resolved.',
     'You do not invent significance, quotes, or voices.',
+    'Conversation is the default. Do not turn a reply into a Frame because a meaning was resolved.',
+    'beats[].promote is true only when you judge that beat Story-significant — worth holding as a Frame.',
+    'Omit promote on every other beat. Zero promoted beats is the ordinary result.',
     'You do not write Keeper truth, the Document, or actions that mutate anything.',
     'Output raw JSON only. No HTML. No CSS. No Theatre project state.',
     'Document title and Section title are context. They are not the headline.',
@@ -29,6 +32,7 @@ export function buildFramePerformanceSystemPrompt(): string {
     'Do not give every voice equal space. Omit voice when no selected line belongs in that beat.',
     'voice.text must be copied from SELECTED VOICES. voice.slug must be that voice\'s slug.',
     '{"version":1,"title":"Point title","beats":[{"title":"Beat title","body":"Narrative.","voice":{"slug":"ceox","attributedTo":"Ceox","text":"exact selected line"}}],"cue":{"prompt":"Ready to move this forward?","actions":[{"kind":"review_cast","label":"Review the Cast"},{"kind":"open_stage","label":"Take to Stage"}]}}',
+    'A Story-significant beat adds "promote": true on that beat alone. Do not copy promote onto the example beats.',
     'action.kind is only keep, review_cast, open_stage, or open_point.',
   ].join('\n');
 }
@@ -61,8 +65,8 @@ export function buildFramePerformanceUserPrompt(input: {
   }
   lines.push(
     '',
-    'Compose one Frame Performance.',
-    'title is the Point. beats are the telling of that Point. Do not set title to the Document title.',
+    'Compose the telling. title is the Point. beats are that telling. Do not set title to the Document title.',
+    'Promote a beat only when it is Story-significant. Otherwise omit promote.',
     'Do not copy Point or Document bodies. Do not quote anyone who is not in SELECTED VOICES.',
     'Do not emit stage.story.layout. Do not emit HTML.',
   );

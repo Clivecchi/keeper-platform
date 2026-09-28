@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bindFramePerformanceCue,
   parseFramePerformance,
-  turnPresentsFrame,
+  promotedDialogFrame,
 } from '@keeper/shared';
 
 describe('frame performance contract', () => {
@@ -25,7 +25,7 @@ describe('frame performance contract', () => {
     expect(parsed?.context?.documentTitle).toBe('Finding the Plot');
     expect(parsed?.title).toBe('One storyline. Not three.');
     expect(parsed?.beats[0]?.title).toBe('The through-line');
-    expect(turnPresentsFrame({ framePerformance: parsed })).toBe(true);
+    expect(promotedDialogFrame(parsed)).toBeNull();
   });
 
   it('rejects markup and a fifth beat', () => {

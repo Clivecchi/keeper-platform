@@ -3,7 +3,7 @@ import {
   bindFramePerformanceCue,
   parseFramePerformance,
   parseSelectedVoices,
-  turnPresentsFrame,
+  promotedDialogFrame,
   withPerformanceContext,
 } from './framePerformance.js';
 
@@ -136,11 +136,24 @@ describe('parseSelectedVoices', () => {
   });
 });
 
-describe('turnPresentsFrame', () => {
-  it('is true only when a performance has a title and beats', () => {
+describe('promotedDialogFrame', () => {
+  it('stays empty until a beat is explicitly promoted', () => {
     const parsed = parseFramePerformance(valid, { selectedVoices: voices });
-    expect(turnPresentsFrame({ framePerformance: parsed })).toBe(true);
-    expect(turnPresentsFrame({ framePerformance: null })).toBe(false);
-    expect(turnPresentsFrame(undefined)).toBe(false);
+    expect(promotedDialogFrame(parsed)).toBeNull();
+    expect(promotedDialogFrame(null)).toBeNull();
+  });
+
+  it('keeps only beats composition marked Story-significant', () => {
+    const parsed = parseFramePerformance({
+      ...valid,
+      beats: [
+        { ...valid.beats[0], promote: true },
+        valid.beats[1],
+        { title: 'Not this one', body: 'Still conversation.', promote: 'yes' },
+      ],
+    }, { selectedVoices: voices });
+    const frame = promotedDialogFrame(parsed);
+    expect(frame?.beats.map((beat) => beat.title)).toEqual(['One storyline. Not three.']);
+    expect(frame?.beats[0]?.promote).toBe(true);
   });
 });
