@@ -47,6 +47,12 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-27 — Jev sees the request when the Lead is silent
+- A blank Anthropic reply is no longer the exchange. `[No response content]` is silence. Jev still receives the human request.
+- Supporting context wins over a short label such as "see attached".
+- "Review the conversation and determine what belongs" also carries the prior human turns, so a founding document is not dropped.
+- A Point already quoted from that document does not block a later discovery inside the same source. Jev's already-held score still can.
+
 ### 2026-09-27 — Jev sees the living Document
 - preserve-discovery no longer closes because the manuscript already has Points or another draft exists.
 - Jev receives the Document loaded for the Lead (`loadDialogDocumentForAgent`): held Points, Forward, Orientation.

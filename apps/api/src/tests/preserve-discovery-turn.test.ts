@@ -239,6 +239,79 @@ describe('preserve-discovery turn', () => {
     expect(complete).not.toHaveBeenCalled();
   });
 
+  it('gives Jev the prior request when the Lead reply is empty', async () => {
+    loadDocument.mockResolvedValue(document() as never);
+    evaluate.mockResolvedValue(jev(0.91) as never);
+    complete.mockResolvedValue({
+      response: {
+        success: true,
+        content: JSON.stringify({
+          survives: 'Keep songs under three minutes.',
+          label: 'The Sound',
+        }),
+      },
+    } as never);
+    ensureManuscript.mockResolvedValue({ id: 'manuscript-1', created: true });
+    const executePoint = vi.fn(async () => [
+      {
+        type: 'draft.update.propose',
+        status: 'success',
+        message: 'Jev recommended a Point on Becoming Together — kept on the Document, reviewable',
+        data: { hostTitle: 'Becoming Together' },
+      },
+    ]);
+
+    const result = await runPreserveDiscoveryTurn({
+      isLead: true,
+      domainId: 'domain-1',
+      userId: 'user-1',
+      dialogId: 'dialog-1',
+      agentId: 'lead-agent',
+      agentName: 'Mutsy Baritone',
+      input: "Let's try this again. Review the conversation and determine what belongs in the document",
+      kipReply: '[No response content]',
+      priorHuman: ['Welcome to Frogmore. Keep songs under three minutes. Characters are not singers.'],
+      actionResults: [],
+      executePoint,
+    });
+
+    expect(result.record.reason).toBe('satisfied');
+    expect(result.holdReply).toBe(false);
+    const state = evaluate.mock.calls[0]?.[0] as {
+      payload: { state: { human: string; kip: string } };
+    };
+    expect(state.payload.state.human).toContain('under three minutes');
+    expect(state.payload.state.human).toContain('what belongs');
+    expect(state.payload.state.kip).toContain('no reply');
+    expect(state.payload.state.kip).not.toContain('[No response content]');
+    expect(executePoint).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives Jev the attached source instead of the see-attached label', async () => {
+    loadDocument.mockResolvedValue(document() as never);
+    evaluate.mockResolvedValue(jev(0.06) as never);
+
+    await runPreserveDiscoveryTurn({
+      isLead: true,
+      domainId: 'domain-1',
+      userId: 'user-1',
+      dialogId: 'dialog-1',
+      agentId: 'lead-agent',
+      agentName: 'Mutsy Baritone',
+      input: 'see attached\n\n---\nSupporting context:\n\nSoul before polish. Characters are not singers.',
+      displayContent: 'see attached',
+      kipReply: 'I will sit with this.',
+      actionResults: [],
+      executePoint: vi.fn(),
+    });
+
+    const state = evaluate.mock.calls[0]?.[0] as {
+      payload: { state: { human: string } };
+    };
+    expect(state.payload.state.human).toContain('Characters are not singers');
+    expect(state.payload.state.human).not.toBe('see attached');
+  });
+
   it('writes nothing for an ordinary exchange', async () => {
     loadDocument.mockResolvedValue(document() as never);
     evaluate.mockResolvedValue(jev(0.06, 0.03) as never);

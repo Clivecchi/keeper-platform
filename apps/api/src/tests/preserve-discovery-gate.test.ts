@@ -7,10 +7,12 @@ import {
   PRESERVE_DISCOVERY_MOVES,
   PRESERVE_DISCOVERY_OBJECTIVE,
   PRESERVE_DISCOVERY_QUESTION,
+  assembleDiscoveryHuman,
   buildPreserveDiscoveryCompletionMessages,
   buildPreserveDiscoveryState,
   confirmPreserveDiscoveryPoint,
   heldItemsFromDocumentPoints,
+  isLeadSilence,
   manuscriptRepresentsExchange,
   parsePreserveDiscoveryCompletion,
   preserveDiscoveryChoiceOpens,
@@ -229,5 +231,41 @@ describe('preserve-discovery@1', () => {
     expect(text).toContain('survives');
     expect(text).toContain('You are Jev.');
     expect(text).toContain('Already held:');
+  });
+
+  it('does not treat a quote inside a long source as the whole exchange', () => {
+    const preview = 'Keep songs under three minutes so the short form can travel.';
+    const source = `${'The geography of Frogmore is real. '.repeat(20)}${preview} Characters are not singers.`;
+    expect(manuscriptRepresentsExchange({
+      human: source,
+      kip: 'The Lead produced no reply on this turn.',
+      held: [held(preview, 'The Sound')],
+    })).toBe(false);
+    expect(manuscriptRepresentsExchange({
+      human: preview,
+      kip: 'That rule should stand.',
+      held: [held(preview, 'The Sound')],
+    })).toBe(true);
+  });
+
+  it('gives Jev the attached source and a prior review request, not a silent label', () => {
+    expect(isLeadSilence('[No response content]')).toBe(true);
+    expect(isLeadSilence('')).toBe(true);
+    expect(isLeadSilence('The Sound should stand on its own.')).toBe(false);
+
+    const attached = assembleDiscoveryHuman({
+      visible: 'see attached',
+      assembled: 'see attached\n\n---\nSupporting context:\n\nSoul before polish. Characters are not singers.',
+    });
+    expect(attached).toContain('Characters are not singers');
+    expect(attached).not.toBe('see attached');
+
+    const review = assembleDiscoveryHuman({
+      visible: "Let's try this again. Review the conversation and determine what belongs in the document",
+      assembled: "Let's try this again. Review the conversation and determine what belongs in the document",
+      priorHuman: ['Welcome to Frogmore. Keep songs under three minutes.'],
+    });
+    expect(review).toContain('under three minutes');
+    expect(review).toContain('what belongs');
   });
 });

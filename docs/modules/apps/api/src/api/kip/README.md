@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-27: **Silent Lead still reaches Jev** — an empty model body is not parsed as a reply and is not shown as `[No response content]`. Preserve-discovery receives prior human turns. If Jev keeps a Point, that notice is the Dialog line. Otherwise the turn says the agent didn't return a reply.
 - 2026-09-27: **Jev living discovery** — preserve-discovery writes through `draft.update.propose` with `proposedBy` Jev. That receipt says the Point is kept and reviewable. Other proposes still say tap Accept.
 - 2026-09-27: **image.generate missing subject** — the receipt names the payload fields that arrived (often `title` / `description`) and states that the image provider was not called.
 - 2026-09-23: **Frame Performance** — Cast synthesis asks for `resolvedMeaning` and `selectedVoices` on Dialog and Stage. When meaning is present, Rendr composes `framePerformance` onto the Lead message. A Stage filmstrip cell is appended only when the turn is already on Stage.

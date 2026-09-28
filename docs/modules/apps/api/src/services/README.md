@@ -26,6 +26,11 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-27 — Empty Anthropic text is retried, not spoken
+- A successful Anthropic call with no text blocks used to become the Dialog line `[No response content]`.
+- That call is retried once without streaming. If the stop reason was `max_tokens`, the retry raises the cap (up to 8000).
+- If the retry is still empty, the turn gets no model text. It does not publish the placeholder as the agent's voice.
+
 ### 2026-09-27 — Sonnet 5 omits temperature
 - `ModelProviderService` Anthropic calls skip `temperature` when the model does not accept it (`claude-sonnet-5`). If Anthropic still says temperature is deprecated, the same request is sent once without it.
 

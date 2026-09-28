@@ -89,6 +89,15 @@ export type PreserveDiscoveryChoiceReading = {
 const MOVE_NAMES = Object.keys(PRESERVE_DISCOVERY_MOVES) as PreserveDiscoveryMove[];
 
 const EXCHANGE_CHAR_CAP = 4000;
+/** A founding document has to reach Jev whole. Prefix-only 4k drops the later sections. */
+const HUMAN_EXCHANGE_CHAR_CAP = 24_000;
+const LEAD_SILENCE_MARKERS = ['[No response content]', '[No text provided]'] as const;
+
+export const PRESERVE_DISCOVERY_LEAD_SILENCE =
+  'The Lead produced no reply on this turn.';
+
+/** A held preview inside a much longer source is a quote, not the whole exchange. */
+const SOURCE_VS_HELD_RATIO = 4;
 const LABEL_CHAR_CAP = 120;
 const HELD_TITLE_CAP = 120;
 const HELD_PREVIEW_CAP = 180;
@@ -143,13 +152,82 @@ export function manuscriptRepresentsExchange(params: {
     const preview = normalizeDiscoveryText(item.preview);
     const title = normalizeDiscoveryText(item.title);
     const heldBody = [title, preview].filter(Boolean).join(' ');
-    if (preview.length >= HELD_MATCH_CHARS && exchange.includes(preview)) return true;
-    if (heldBody.length >= HELD_MATCH_CHARS && exchange.includes(heldBody)) return true;
+    if (preview.length >= HELD_MATCH_CHARS && exchange.includes(preview)) {
+      if (exchange.length <= preview.length * SOURCE_VS_HELD_RATIO) return true;
+    }
+    if (heldBody.length >= HELD_MATCH_CHARS && exchange.includes(heldBody)) {
+      if (exchange.length <= heldBody.length * SOURCE_VS_HELD_RATIO) return true;
+    }
     if (human.length >= HELD_MATCH_CHARS && preview.length >= HELD_MATCH_CHARS && preview.includes(human)) {
       return true;
     }
   }
   return false;
+}
+
+export function isLeadSilence(reply: string | null | undefined): boolean {
+  const trimmed = reply?.trim() ?? '';
+  if (!trimmed) return true;
+  return LEAD_SILENCE_MARKERS.some((marker) => trimmed === marker);
+}
+
+export function leadReplyForDiscovery(reply: string | null | undefined): string {
+  if (isLeadSilence(reply)) return '';
+  return reply?.trim() ?? '';
+}
+
+/** "Review the conversation and determine what belongs" — the source is earlier in the thread. */
+export function humanAsksToReviewWhatBelongs(text: string): boolean {
+  return (
+    /\breview (the |this |teh )?conversation\b/i.test(text)
+    || /\bwhat belongs\b/i.test(text)
+    || /\bdetermine what belongs\b/i.test(text)
+  );
+}
+
+export function priorHumanTurnsForDiscovery(
+  messages: ReadonlyArray<{ sender?: string | null; role?: string | null; content?: string | null }>,
+): string[] {
+  return messages
+    .filter((message) => message.sender === 'user' || message.role === 'user')
+    .map((message) => (typeof message.content === 'string' ? message.content.trim() : ''))
+    .filter((text) => text.length > 0)
+    .slice(-3);
+}
+
+function clipDiscoveryText(text: string, cap: number): string {
+  if (text.length <= cap) return text;
+  const marker = '\n…\n';
+  const budget = cap - marker.length;
+  const head = Math.floor(budget * 0.55);
+  const tail = budget - head;
+  return `${text.slice(0, head)}${marker}${text.slice(text.length - tail)}`;
+}
+
+/**
+ * Jev judges the request, not the short composer label.
+ * Supporting context on this turn wins over "see attached".
+ * A review ask also carries the prior human turns — that is where the huge request sits.
+ */
+export function assembleDiscoveryHuman(params: {
+  visible: string;
+  assembled?: string | null;
+  priorHuman?: readonly string[];
+}): string {
+  const visible = params.visible.trim();
+  const assembled = params.assembled?.trim() ?? '';
+  const source = assembled.length > visible.length ? assembled : visible;
+  const review = humanAsksToReviewWhatBelongs(visible) || humanAsksToReviewWhatBelongs(source);
+  const priors = review
+    ? (params.priorHuman ?? [])
+        .map((turn) => turn.trim())
+        .filter((turn) => turn && turn !== visible && turn !== source)
+    : [];
+  const combined = priors.length ? `${priors.join('\n\n')}\n\n${source}` : source;
+  const cap = review || assembled.length > visible.length
+    ? HUMAN_EXCHANGE_CHAR_CAP
+    : EXCHANGE_CHAR_CAP;
+  return clipDiscoveryText(combined, cap);
 }
 
 export function buildPreserveDiscoveryState(params: {
@@ -160,7 +238,7 @@ export function buildPreserveDiscoveryState(params: {
   documentTitle?: string | null;
   held?: readonly PreserveDiscoveryHeldItem[];
 }): PreserveDiscoveryState {
-  const human = params.human.trim().slice(0, EXCHANGE_CHAR_CAP);
+  const human = params.human.trim().slice(0, HUMAN_EXCHANGE_CHAR_CAP);
   const kip = params.kip.trim().slice(0, EXCHANGE_CHAR_CAP);
   const held = (params.held ?? []).slice(0, HELD_CAP);
   const orientation = params.orientationText?.trim() || null;

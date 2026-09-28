@@ -198,8 +198,10 @@ import {
 } from '../../services/kip/pointIntent.js';
 import {
   PRESERVE_DISCOVERY_AGENCY,
+  isLeadSilence,
   preserveDiscoveryKeptMessage,
   preserveDiscoveryProposePayload,
+  priorHumanTurnsForDiscovery,
 } from '../../services/kip/preserveDiscoveryGate.js';
 import { runPreserveDiscoveryTurn } from '../../services/kip/preserveDiscoveryTurn.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
@@ -8039,11 +8041,18 @@ export class KipAgentService {
 
         const requestId = randomUUID();
         const allowActions = buildAllowedActions(options?.environment ?? null);
-        let structured = await ensureKipAgentOutputEnvelope(response, {
-          requestId,
-          userId,
-          allowedActions: Array.from(allowActions),
-        });
+        let structured = response.trim()
+          ? await ensureKipAgentOutputEnvelope(response, {
+              requestId,
+              userId,
+              allowedActions: Array.from(allowActions),
+            })
+          : {
+              responseText: '',
+              actions: [],
+              raw: response,
+              ignoredReason: 'empty_model_text',
+            };
         if (options?.onDelta && !aiResult.streamedVisible && structured.responseText.trim()) {
           options.onDelta(structured.responseText);
         }
@@ -9020,6 +9029,7 @@ export class KipAgentService {
           modelSettings: agent.model_settings,
           input,
           displayContent: options?.displayContent ?? null,
+          priorHuman: priorHumanTurnsForDiscovery(previousMessages),
           kipReply: finalResponseText,
           constrained: pointObligation?.constrained === true,
           glossRequired: glossIntent === 'required',
@@ -9064,6 +9074,19 @@ export class KipAgentService {
           if (finalResponseText.trim()) options?.onDelta?.(finalResponseText);
         }
         preserveDiscoveryHoldReply = preserveDiscovery.holdReply;
+
+        if (isLeadSilence(finalResponseText)) {
+          const keptNotice = preserveDiscovery.results.find(
+            (result) =>
+              result.status === 'success'
+              && typeof result.message === 'string'
+              && result.message.trim(),
+          )?.message?.trim();
+          finalResponseText = keptNotice || `${agent.name} didn't return a reply on this turn.`;
+          preserveDiscoveryHoldReply = false;
+          options?.onReset?.();
+          options?.onDelta?.(finalResponseText);
+        }
 
         if (hasSuccessfulPointPropose(actionResults)) {
           actionResults = actionResults.filter(

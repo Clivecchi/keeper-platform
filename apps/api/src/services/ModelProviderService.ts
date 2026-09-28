@@ -370,16 +370,22 @@ class AnthropicProvider {
 
       const completeAnthropic = async (
         params: Record<string, unknown>,
-      ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> => {
-        if (onDelta) {
+        streamText: boolean,
+      ): Promise<
+        Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'> & {
+          stopReason?: string | null
+        }
+      > => {
+        if (streamText && onDelta) {
           const stream = await client.messages.create(
             { ...params, stream: true } as any,
             { signal: controller.signal },
           );
           let textContent = '';
+          let stopReason: string | null = null;
           for await (const event of stream as unknown as AsyncIterable<{
             type?: string
-            delta?: { type?: string; text?: string }
+            delta?: { type?: string; text?: string; stop_reason?: string | null }
             usage?: { input_tokens?: number; output_tokens?: number }
             model?: string
           }>) {
@@ -392,11 +398,15 @@ class AnthropicProvider {
               textContent += event.delta.text;
               onDelta(event.delta.text);
             }
+            if (event.type === 'message_delta' && typeof event.delta?.stop_reason === 'string') {
+              stopReason = event.delta.stop_reason;
+            }
           }
           return {
             success: true,
-            content: textContent || '[No response content]',
+            content: textContent.trim(),
             model: settings.model,
+            stopReason,
           };
         }
 
@@ -409,9 +419,12 @@ class AnthropicProvider {
           .map((b: { text?: string }) => b.text ?? '')
           .join('');
         const usage = (response as any).usage;
+        const stopReason = typeof (response as any).stop_reason === 'string'
+          ? (response as any).stop_reason as string
+          : null;
         return {
           success: true,
-          content: textContent || '[No response content]',
+          content: textContent.trim(),
           usage: usage
             ? {
                 prompt_tokens: usage.input_tokens ?? 0,
@@ -420,19 +433,53 @@ class AnthropicProvider {
               }
             : undefined,
           model: (response as any).model ?? settings.model,
+          stopReason,
+        };
+      };
+
+      const completeAnthropicWithEmptyRetry = async (
+        params: Record<string, unknown>,
+      ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> => {
+        let result = await completeAnthropic(params, true);
+        if (!result.content) {
+          const retryParams = { ...params };
+          if (result.stopReason === 'max_tokens') {
+            const current = typeof params.max_tokens === 'number' ? params.max_tokens : 4000;
+            retryParams.max_tokens = Math.min(current * 2, 8000);
+          }
+          console.warn('[anthropic] model returned no text; retrying once', {
+            model: settings.model,
+            stopReason: result.stopReason ?? null,
+            maxTokens: retryParams.max_tokens ?? null,
+          });
+          const retried = await completeAnthropic(retryParams, false);
+          if (retried.content && onDelta) onDelta(retried.content);
+          result = retried;
+        }
+        if (!result.content) {
+          console.warn('[anthropic] model returned no text after retry', {
+            model: settings.model,
+            stopReason: result.stopReason ?? null,
+          });
+        }
+        return {
+          success: result.success,
+          content: result.content,
+          ...(result.usage ? { usage: result.usage } : {}),
+          model: result.model,
         };
       };
 
       try {
         try {
-          return await completeAnthropic(createParams);
+          return await completeAnthropicWithEmptyRetry(createParams);
         } catch (error) {
           if (createParams.temperature === undefined || !isDeprecatedTemperatureError(error)) {
             throw error;
           }
           const withoutTemperature = { ...createParams };
           delete withoutTemperature.temperature;
-          return await completeAnthropic(withoutTemperature);
+          return await completeAnthropicWithEmptyRetry(withoutTemperature);
         }
       } finally {
         clearTimeout(timeoutId);

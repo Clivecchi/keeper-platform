@@ -23,11 +23,14 @@ import {
 import {
   PRESERVE_DISCOVERY_AGENCY,
   PRESERVE_DISCOVERY_GATE_ID,
+  PRESERVE_DISCOVERY_LEAD_SILENCE,
   PRESERVE_DISCOVERY_MAX_ALREADY_REPRESENTED,
   PRESERVE_DISCOVERY_QUESTIONS,
+  assembleDiscoveryHuman,
   buildPreserveDiscoveryCompletionMessages,
   buildPreserveDiscoveryState,
   heldItemsFromDocumentPoints,
+  leadReplyForDiscovery,
   manuscriptRepresentsExchange,
   parsePreserveDiscoveryCompletion,
   preserveDiscoveryKeptMessage,
@@ -149,6 +152,8 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
   modelSettings?: unknown;
   input: string;
   displayContent?: string | null;
+  /** Earlier human turns. A "what belongs" ask carries these to Jev. */
+  priorHuman?: readonly string[];
   kipReply: string;
   constrained?: boolean;
   glossRequired?: boolean;
@@ -162,8 +167,8 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
   if (!params.isLead) return closed('not_lead');
   if (!params.domainId || !params.userId || !params.dialogId) return closed('no_dialog');
 
-  const human = humanTurnTextForIntent(params.input, params.displayContent);
-  if (params.constrained || detectPointIntent(human).kind === 'constrained') {
+  const visible = humanTurnTextForIntent(params.input, params.displayContent);
+  if (params.constrained || detectPointIntent(visible).kind === 'constrained') {
     return closed('constrained');
   }
   if (params.glossRequired || params.reorganizeRequired) return closed('other_obligation');
@@ -173,8 +178,14 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
   if (!document) return closed('no_dialog');
   if (!isDocumentBearingDialogTitleSource(document.titleSource)) return closed('not_document');
 
-  const kip = params.kipReply.trim();
-  if (!human.trim() || !kip) return closed('empty_exchange');
+  const human = assembleDiscoveryHuman({
+    visible,
+    assembled: params.input,
+    priorHuman: params.priorHuman,
+  });
+  const spoken = leadReplyForDiscovery(params.kipReply);
+  if (!human.trim()) return closed('empty_exchange');
+  const kip = spoken || PRESERVE_DISCOVERY_LEAD_SILENCE;
 
   const held = heldItemsFromDocumentPoints(document.points);
   const state = buildPreserveDiscoveryState({
@@ -329,7 +340,7 @@ export async function runPreserveDiscoveryTurn<TReceipt extends PointReceipt>(pa
     },
     results,
     notice: null,
-    holdReply: true,
+    holdReply: spoken.length > 0,
   };
 }
 
