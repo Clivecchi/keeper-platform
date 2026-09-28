@@ -1,11 +1,17 @@
 /**
- * FALLBACK CATALOG — do not use as primary data source.
- * The live model catalog is fetched from provider APIs and cached in Integration.metadata.
- * This file is used only when a provider Integration record does not exist or has no cached catalog.
- * Update this file only when a model needs to be available before the provider is connected.
+ * Settings and image models for the provider catalog.
+ *
+ * Agent chat choices live in `@keeper/shared` `agentModelPicker`. Edit that
+ * list to offer a new chat model. This file adds ModelSettings and Together
+ * image models (FLUX), which are not agent chat choices.
+ *
+ * Together's live model API is cached on the Together integration for
+ * discovery. It is not the agent menu — that catalog is too large and moves
+ * too often to drop into a select.
  */
 
 import type { ModelProvider, ModelSettings } from '@keeper/database';
+import { AGENT_CHAT_DEFAULTS, AGENT_CHAT_MODELS } from '@keeper/shared';
 
 const RETRY_CONFIG = Object.freeze({
   max_retries: 3,
@@ -22,31 +28,53 @@ export type ModelCatalogEntry = {
   capabilities?: ModelCapability[];
 };
 
-const OPENAI_MODELS: ModelCatalogEntry[] = [
-  { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 2000, top_p: 1.0, frequency_penalty: 0, presence_penalty: 0 } },
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'openai', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 2000, top_p: 1.0, frequency_penalty: 0, presence_penalty: 0 } },
-  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', provider: 'openai', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 2000, top_p: 1.0, frequency_penalty: 0, presence_penalty: 0 } },
-  { id: 'gpt-4', label: 'GPT-4', provider: 'openai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000, top_p: 1.0, frequency_penalty: 0, presence_penalty: 0 } },
-  { id: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', provider: 'openai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000, top_p: 1.0, frequency_penalty: 0, presence_penalty: 0 } },
-];
+const OPENAI_CHAT_SETTINGS = {
+  temperature: 0.7,
+  max_tokens: 2000,
+  top_p: 1.0,
+  frequency_penalty: 0,
+  presence_penalty: 0,
+};
 
-const ANTHROPIC_MODELS: ModelCatalogEntry[] = [
-  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 (current)', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
-  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
-  { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
-  { id: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
-  { id: 'claude-3-opus-20240229', label: 'Claude 3 Opus', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
-  { id: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
-  { id: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku', provider: 'anthropic', capabilities: ['text', 'vision'], defaultSettings: { temperature: 0.7, max_tokens: 4000 } },
+const OPENAI_MODELS: ModelCatalogEntry[] = AGENT_CHAT_MODELS
+  .filter((model) => model.provider === 'openai')
+  .map((model) => ({
+    id: model.id,
+    label: model.label,
+    provider: 'openai' as const,
+    capabilities: ['text', 'vision'] as ModelCapability[],
+    defaultSettings: OPENAI_CHAT_SETTINGS,
+  }));
+
+const ANTHROPIC_MODELS: ModelCatalogEntry[] = AGENT_CHAT_MODELS
+  .filter((model) => model.provider === 'anthropic')
+  .map((model) => ({
+    id: model.id,
+    label: model.label,
+    provider: 'anthropic' as const,
+    capabilities: ['text', 'vision'] as ModelCapability[],
+    defaultSettings: { temperature: 0.7, max_tokens: 4000 },
+  }));
+
+const TOGETHER_CHAT_MODELS: ModelCatalogEntry[] = AGENT_CHAT_MODELS
+  .filter((model) => model.provider === 'together-ai')
+  .map((model) => ({
+    id: model.id,
+    label: model.label,
+    provider: 'together-ai' as const,
+    capabilities: ['text'] as ModelCapability[],
+    defaultSettings: { temperature: 0.7, max_tokens: 2000 },
+  }));
+
+/** Image generation only. Not offered as an agent chat model. */
+const TOGETHER_IMAGE_MODELS: ModelCatalogEntry[] = [
+  { id: 'black-forest-labs/FLUX.1-schnell', label: 'FLUX Schnell', provider: 'together-ai', capabilities: ['image'] },
+  { id: 'black-forest-labs/FLUX.1-dev', label: 'FLUX Dev', provider: 'together-ai', capabilities: ['image'] },
 ];
 
 const TOGETHER_MODELS: ModelCatalogEntry[] = [
-  { id: 'meta-llama/Llama-2-70b-chat-hf', label: 'Llama 2 70B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'meta-llama/Llama-2-13b-chat-hf', label: 'Llama 2 13B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'meta-llama/Llama-2-7b-chat-hf', label: 'Llama 2 7B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'mistralai/Mixtral-8x7B-Instruct-v0.1', label: 'Mixtral 8x7B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'black-forest-labs/FLUX.1-schnell', label: 'FLUX Schnell', provider: 'together-ai', capabilities: ['image'] },
-  { id: 'black-forest-labs/FLUX.1-dev', label: 'FLUX Dev', provider: 'together-ai', capabilities: ['image'] },
+  ...TOGETHER_CHAT_MODELS,
+  ...TOGETHER_IMAGE_MODELS,
 ];
 
 const ELEVENLABS_MODELS: ModelCatalogEntry[] = [
@@ -70,9 +98,9 @@ export const MODEL_CATALOG: Record<ModelProvider, ModelCatalogEntry[]> = {
 };
 
 export const DEFAULT_MODEL_BY_PROVIDER: Record<ModelProvider, string> = {
-  openai: 'gpt-4o',
-  anthropic: 'claude-sonnet-5',
-  'together-ai': 'meta-llama/Llama-2-70b-chat-hf',
+  openai: AGENT_CHAT_DEFAULTS.openai,
+  anthropic: AGENT_CHAT_DEFAULTS.anthropic,
+  'together-ai': AGENT_CHAT_DEFAULTS['together-ai'],
   elevenlabs: 'eleven_multilingual_v2',
   typesafe: 'jev-latest',
 };

@@ -11,7 +11,12 @@
  */
 
 import * as React from "react"
-import { isBuildBoardId } from "@keeper/shared"
+import {
+  AGENT_CHAT_PROVIDER_LABELS,
+  agentChatDefaultFor,
+  agentChatModelsFor,
+  isBuildBoardId,
+} from "@keeper/shared"
 import { useLocation, useNavigate } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
@@ -567,7 +572,7 @@ function PresenceFieldEditor({
         >
           {MODEL_PROVIDERS.map((p) => (
             <option key={p} value={p}>
-              {p}
+              {AGENT_CHAT_PROVIDER_LABELS[p as keyof typeof AGENT_CHAT_PROVIDER_LABELS] ?? p}
             </option>
           ))}
         </select>
@@ -584,13 +589,18 @@ function PresenceFieldEditor({
   }
 
   if (fieldKey === "model") {
-    const provider = (modelProvider || "openai") as ModelProvider
-    const models = KipApi.getAvailableModels(provider)
-    const options = models.includes(value) ? models : value ? [value, ...models] : models
+    const provider = modelProvider || "openai"
+    const pinned = agentChatModelsFor(provider)
+    const models = pinned.length > 0
+      ? pinned
+      : KipApi.getAvailableModels(provider as ModelProvider).map((id) => ({ id, label: id }))
+    const options = models.some((model) => model.id === value) || !value
+      ? models
+      : [{ id: value, label: `${value} (current)` }, ...models]
     return (
       <>
         <select
-          value={value || models[0] || ""}
+          value={value || models[0]?.id || ""}
           onChange={(e) => onChange(e.target.value)}
           className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
           style={{
@@ -598,12 +608,20 @@ function PresenceFieldEditor({
             color: "hsl(var(--theme-ink-secondary))",
           }}
         >
-          {options.map((m) => (
-            <option key={m} value={m}>
-              {m}
+          {options.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.label}
             </option>
           ))}
         </select>
+        {provider === "together-ai" ? (
+          <p
+            className="text-[12px] mt-1.5 leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Chat for this agent. Picture generation uses FLUX and is not listed here.
+          </p>
+        ) : null}
         {fieldError ? (
           <p
             className="text-[13px] mt-1.5 leading-relaxed"
@@ -1870,7 +1888,16 @@ function KeeperPresenceSurface({
         value={fieldValues[key] ?? ""}
         fieldError={fieldErrors[key]}
         placeholder={placeholder}
-        onChange={(v) => handleFieldChange(key, v)}
+        onChange={(v) => {
+          handleFieldChange(key, v)
+          if (key !== "model_provider") return
+          const offered = agentChatModelsFor(v)
+          const current = fieldValues.model
+          if (offered.length > 0 && !offered.some((model) => model.id === current)) {
+            const next = agentChatDefaultFor(v) ?? offered[0]?.id
+            if (next) handleFieldChange("model", next)
+          }
+        }}
         modelProvider={fieldValues.model_provider}
       />
     )

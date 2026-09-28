@@ -26,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-27 — Provider rejection detail
+- Unclassified provider failures keep HTTP status and a clipped provider sentence in `providerDetail`. A 4xx is not retried and is not described as an overload.
+
 ### 2026-09-21 — Conversation Profile on Cast Stage context
 - `stageContextForDelegatedCast` copies `conversationProfile` so Mechanism B Cast uses the same prompt family as Lead. Does not copy Dialog Style or other Composer settings.
 

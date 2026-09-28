@@ -24,6 +24,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `documentReorganizeIntent.ts` — Phrase signal for Document-review language. Mention ≠ established direction ≠ authorization ≠ execution.
 - `documentTurnPosture.ts` — TypeSafe shadow primitives + diagnostic corpus for Document Turn Posture. `parseSystemOneOrientationView` reads stored Jev from `humanTurn.systemOne` first, then top-level `turnPostureShadow`.
 - `humanTurn.ts` — Human Turn id + `human-turn-v0` performance record. Dialog → Scene → Turns seam. No Scene model.
+- `agentModelPicker.ts` — Agent chat menu (OpenAI, Anthropic, Together chat pin). Together image models are not in this list.
 - `agentRole.ts` — `isLeadAgentRole` (class role, not Agent identity)
 - `agentPerformanceProvenance.ts` — `perf-v1` named runtime checklist for Agent Board inspection
 
@@ -36,6 +37,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-27: `agentModelPicker` is the one agent chat menu. Together chat is Llama 3.3 70B. FLUX is not offered here.
 - 2026-09-20: Cast honesty / agency / speech — `sessionActionLog` lists web.search titles and URLs; ephemeral consults may read the Dialog session and must not write it (`resolveEphemeralSessionAccess`). `castDelegationVoice` stops the one-paragraph rule and tells every cued agent to fire golden-path tools.
 - 2026-09-19: `humanTurn.ts` mints a Human Turn id and stores the structured System One record on that Turn. Later Lead passes reuse it. Cast does not receive it.
 - 2026-09-19: `parseSystemOneOrientationView` reads stored Jev Choice/Noul answers from Lead orchestration so the Dialog can show them without trusting Lead prose.

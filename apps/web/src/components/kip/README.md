@@ -15,6 +15,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-09-27: Failed `image.generate` receipts explain a missing subject. The saved sentence `subject is required for image.generate` expands in the Dialog card.
 - 2026-09-21: `document.orientation.update` labels as **Updated Orientation**.
 - 2026-09-20: `ActionReceiptCard` expands `web.search` — query, provider, and each title / URL / snippet. No more count-only stub.
 - 2026-08-26: `DraftPointProposeCard` Accept is wired in Dialog. Proposed Points wait for the human. **Already on this document** has no Accept.

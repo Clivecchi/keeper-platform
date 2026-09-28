@@ -54,6 +54,35 @@ describe("formatKipRunErrorMessage", () => {
     expect(message.toLowerCase()).not.toContain("not configured correctly")
   })
 
+  it("does not call an unclassified Anthropic rejection an overload", () => {
+    const message = formatKipRunErrorMessage(
+      "PROVIDER_UNAVAILABLE",
+      "Anthropic rejected the request. HTTP 400. prompt is too long",
+      {
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        providerStatus: 400,
+        providerDetail: "prompt is too long",
+      },
+      "Mutsy Baritone",
+    )
+    expect(message).toContain("Mutsy Baritone did not get a reply from Anthropic")
+    expect(message).toContain("Provider status: 400")
+    expect(message).toContain("prompt is too long")
+    expect(message).toContain("claude-sonnet-4-6")
+    expect(message.toLowerCase()).not.toContain("overloaded")
+  })
+
+  it("still names a real overload", () => {
+    const message = formatKipRunErrorMessage(
+      "PROVIDER_UNAVAILABLE",
+      "overloaded",
+      { provider: "anthropic", providerStatus: 529 },
+      "Mutsy Baritone",
+    )
+    expect(message.toLowerCase()).toContain("overloaded")
+  })
+
   it("makes a failed sibling fallback visible instead of repeating only the preference", () => {
     const message = formatKipRunErrorMessage(
       "INVALID_MODEL",

@@ -6,6 +6,7 @@
 
 import React from "react"
 import clsx from "clsx"
+import { agentChatDefaultFor, agentChatModelsFor } from "@keeper/shared"
 import type { KipAgent, ModelProvider, ModelSettings } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import type { AgentConversationSession } from "../../hooks/useAgentSessions"
@@ -315,12 +316,15 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     }
   }
 
+  const pinnedChat = agentChatModelsFor(modelForm.provider)
   const providerModelsRaw = modelCatalog?.models?.filter((m) => m.provider === modelForm.provider) ?? []
   const fallbackModels = KipApi.getAvailableModels(modelForm.provider).map((id) => ({ id, label: id }))
   const providerModels =
-    providerModelsRaw.length > 0
-      ? providerModelsRaw
-      : fallbackModels
+    pinnedChat.length > 0
+      ? pinnedChat
+      : providerModelsRaw.length > 0
+        ? providerModelsRaw
+        : fallbackModels
   const hasCurrentModel = providerModels.some((m) => m.id === modelForm.model)
   const modelsToShow =
     hasCurrentModel || !modelForm.model
@@ -431,7 +435,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
                 onChange={(e) => {
                   const p = e.target.value as ModelProvider
                   const defaults = modelCatalog?.defaults
-                  const defaultModel = defaults?.[p] ?? KipApi.getDefaultSettings(p).model
+                  const defaultModel = agentChatDefaultFor(p) ?? defaults?.[p] ?? KipApi.getDefaultSettings(p).model
                   setModelForm((prev) => ({ ...prev, provider: p, model: defaultModel }))
                   loadModelsForProvider(p)
                 }}

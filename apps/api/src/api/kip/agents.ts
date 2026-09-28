@@ -307,6 +307,7 @@ import {
   coerceWorkingDraftKind,
   mergeDraftCreateSpec,
 } from './actions/normalizeDraftCreate.js';
+import { imageGenerateMissingSubjectMessage } from './actions/imageGenerateSubjectError.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -4873,7 +4874,9 @@ export async function executeAgentActions(
               results.push({
                 type: action.type,
                 status: 'error',
-                message: 'subject is required for image.generate',
+                message: imageGenerateMissingSubjectMessage(
+                  payload && typeof payload === 'object' ? payload as Record<string, unknown> : {},
+                ),
                 errorCode: 'VALIDATION_ERROR',
               });
               break;
@@ -10317,6 +10320,7 @@ function buildProviderAgentErrorDetails(
     retries_used?: number;
     retryable?: boolean;
     providerStatus?: number;
+    providerDetail?: string;
     errorCode?: ModelProviderErrorCode;
   }
 ): Record<string, unknown> {
@@ -10337,6 +10341,7 @@ function buildProviderAgentErrorDetails(
     retries: response.retries_used ?? 0,
     retryable: response.retryable ?? (code === 'PROVIDER_UNAVAILABLE' || code === 'TIMEOUT'),
     providerStatus: response.providerStatus,
+    ...(response.providerDetail ? { providerDetail: response.providerDetail } : {}),
     suggestedAction: suggestedActionByCode[code],
   };
 }

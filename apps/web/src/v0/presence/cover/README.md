@@ -66,6 +66,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-09-27 — Agent chat model follows provider
+- Config asks for provider, then the pinned chat model. Together shows Llama 3.3 70B and notes that FLUX is not this menu.
+
 ### 2026-09-27 — Invite assigns Dialogs and a role per Domain
 - `DomainInvitePanel` defaults the role to Member. Extra Domains each get a role. Checked Dialogs are stored on the invitation seed.
 

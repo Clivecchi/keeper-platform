@@ -7,6 +7,7 @@
  */
 
 import type { ChatModelProvider, ModelProvider } from '@keeper/database';
+import { AGENT_CHAT_DEFAULTS } from '@keeper/shared';
 
 const CHAT_PROVIDERS: readonly ChatModelProvider[] = ['openai', 'anthropic', 'together-ai'];
 
@@ -101,11 +102,22 @@ const GPT_4O_MINI_OFFERING: ProviderOffering = {
   siblingOfferingId: null,
 };
 
+const TOGETHER_CHAT_MODEL = AGENT_CHAT_DEFAULTS['together-ai'];
+
+const TOGETHER_CHAT_OFFERING: ProviderOffering = {
+  offeringId: offeringIdFor('together-ai', TOGETHER_CHAT_MODEL),
+  provider: 'together-ai',
+  modelId: TOGETHER_CHAT_MODEL,
+  modelIdentityId: TOGETHER_CHAT_MODEL,
+  siblingOfferingId: null,
+};
+
 export const PROVIDER_OFFERINGS: ProviderOffering[] = [
   SONNET_5_OFFERING,
   SONNET_46_OFFERING,
   GPT_4O_OFFERING,
   GPT_4O_MINI_OFFERING,
+  TOGETHER_CHAT_OFFERING,
 ];
 
 const OFFERING_BY_ID = new Map(PROVIDER_OFFERINGS.map((row) => [row.offeringId, row]));
@@ -115,13 +127,7 @@ export const DEFAULT_CHAT_OFFERING = SONNET_5_OFFERING;
 const DEFAULT_OFFERING_BY_PROVIDER: Record<ChatModelProvider, ProviderOffering> = {
   anthropic: SONNET_5_OFFERING,
   openai: GPT_4O_OFFERING,
-  'together-ai': {
-    offeringId: offeringIdFor('together-ai', 'meta-llama/Llama-2-70b-chat-hf'),
-    provider: 'together-ai',
-    modelId: 'meta-llama/Llama-2-70b-chat-hf',
-    modelIdentityId: 'meta-llama/Llama-2-70b-chat-hf',
-    siblingOfferingId: null,
-  },
+  'together-ai': TOGETHER_CHAT_OFFERING,
 };
 
 export function findOfferingById(offeringId: string): ProviderOffering | null {

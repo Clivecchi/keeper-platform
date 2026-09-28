@@ -63,6 +63,16 @@ describe('resolveExecutionPlan', () => {
     expect(plan.resolvedFrom).toBe('passthrough');
   });
 
+  it('defaults Together chat to the pinned Llama 3.3 offering', () => {
+    const plan = resolveExecutionPlan({
+      provider: 'together-ai',
+      source: 'agent_preference',
+    });
+    expect(plan.offering.modelId).toBe('meta-llama/Llama-3.3-70B-Instruct-Turbo');
+    expect(plan.offering.provider).toBe('together-ai');
+    expect(plan.resolvedFrom).toBe('provider_default');
+  });
+
   it('uses the registry default chat offering when preference is empty', () => {
     const plan = resolveExecutionPlan({ source: 'default' });
     expect(plan.offering.offeringId).toBe(DEFAULT_CHAT_OFFERING.offeringId);

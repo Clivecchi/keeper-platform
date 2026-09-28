@@ -66,6 +66,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-09-27 — Agent model menu
+- Chronicle agent Config loads chat models from `agentModelPicker`. Changing provider moves the model to that provider's default when the current id does not belong there.
+
 ### 2026-09-20 — Keeper related Journeys send Domain + Keeper
 - `enrichKeeper` lists related Journeys via `domainId` + `keeperId` on mounted `GET /api/journeys`. Keeper-only unscoped list is no longer used.
 

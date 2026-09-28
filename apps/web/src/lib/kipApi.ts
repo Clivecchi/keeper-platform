@@ -9,6 +9,9 @@
 import { apiFetch, getApiBase } from './api';
 import { getAuthToken } from './authTokenStore';
 import {
+  agentChatModelsFor,
+  AGENT_CHAT_DEFAULTS,
+  isAgentChatProvider,
   normalizeDraftSpecJson,
   type DraftPoint,
   type DraftPointStatus,
@@ -138,6 +141,8 @@ export interface KipRunErrorDetails {
   retries?: number;
   retryable?: boolean;
   providerStatus?: number;
+  /** Clipped provider sentence. Present when the failure was not a known overload. */
+  providerDetail?: string;
   suggestedAction?: string;
   requestId?: string;
   offeringId?: string;
@@ -561,6 +566,7 @@ function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | und
   const raw = details as Record<string, unknown>;
   const provider = raw.provider;
   const providerStatus = raw.providerStatus;
+  const providerDetail = raw.providerDetail;
   const retries = raw.retries;
   const retryable = raw.retryable;
   const model = raw.model;
@@ -579,6 +585,9 @@ function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | und
     retries: typeof retries === 'number' ? retries : undefined,
     retryable: typeof retryable === 'boolean' ? retryable : undefined,
     providerStatus: typeof providerStatus === 'number' ? providerStatus : undefined,
+    providerDetail: typeof providerDetail === 'string' && providerDetail.trim()
+      ? providerDetail.trim()
+      : undefined,
     suggestedAction: typeof suggestedAction === 'string' ? suggestedAction : undefined,
     requestId: typeof requestId === 'string' ? requestId : undefined,
     offeringId: typeof offeringId === 'string' ? offeringId : undefined,
@@ -605,8 +614,22 @@ export function formatKipRunErrorMessage(
   const text = typeof rawMessage === 'string' ? rawMessage.toLowerCase() : '';
 
   switch (code) {
-    case 'PROVIDER_UNAVAILABLE':
-      return `${label} could not respond because ${provider} is temporarily overloaded or unavailable.${statusContext}${retryContext}${modelContext} Try again in a moment.${suggestedAction}`.trim();
+    case 'PROVIDER_UNAVAILABLE': {
+      const overload =
+        details?.providerStatus === 529
+        || details?.providerStatus === 503
+        || details?.providerStatus === 502
+        || details?.providerStatus === 504
+        || text.includes('overloaded')
+        || text.includes('temporarily unavailable')
+        || text.includes('service unavailable');
+      if (overload) {
+        return `${label} could not respond because ${provider} is temporarily overloaded or unavailable.${statusContext}${retryContext}${modelContext} Try again in a moment.${suggestedAction}`.trim();
+      }
+      const detail = details?.providerDetail?.trim();
+      const reason = detail ? ` ${detail}` : '';
+      return `${label} did not get a reply from ${provider}.${statusContext}${modelContext}${reason}${retryContext}${suggestedAction}`.trim();
+    }
     case 'TIMEOUT':
       return `${label} timed out waiting for ${provider}.${retryContext}${modelContext} Try again, or switch to a faster model if it keeps happening.${suggestedAction}`.trim();
     case 'QUOTA_EXCEEDED':
@@ -2119,17 +2142,17 @@ export class KipApi {
   }
 
   /**
-   * Get available models for a provider (fallback when catalog API unavailable)
+   * Chat models come from `agentModelPicker`. ElevenLabs and TypeSafe stay here.
    */
   static getAvailableModels(provider: ModelProvider): string[] {
-    const FALLBACK: Record<ModelProvider, string[]> = {
-      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
-      anthropic: ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
-      'together-ai': ['meta-llama/Llama-2-70b-chat-hf', 'meta-llama/Llama-2-13b-chat-hf', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
+    if (isAgentChatProvider(provider)) {
+      return agentChatModelsFor(provider).map((model) => model.id)
+    }
+    const fallback: Partial<Record<ModelProvider, string[]>> = {
       elevenlabs: ['eleven_monolingual_v1', 'eleven_multilingual_v2', 'eleven_turbo_v2'],
       typesafe: ['jev-latest', 'jev-1.13.0', 'jev-preview'],
-    };
-    return FALLBACK[provider] ?? [];
+    }
+    return fallback[provider] ?? []
   }
 
   /**
@@ -2164,7 +2187,7 @@ export class KipApi {
       case 'together-ai':
         return {
           ...baseSettings,
-          model: 'meta-llama/Llama-2-70b-chat-hf',
+          model: AGENT_CHAT_DEFAULTS['together-ai'],
           temperature: 0.7,
           max_tokens: 2000
         };

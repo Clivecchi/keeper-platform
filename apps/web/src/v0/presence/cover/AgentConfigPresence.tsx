@@ -47,8 +47,8 @@ const CONFIG_FIELD_ORDER = [
   "tagline",
   "purpose",
   "personality",
-  "model",
   "model_provider",
+  "model",
   "memory_enabled",
   "visibility",
   "dialog_participation",
@@ -107,9 +107,8 @@ export function AgentConfigPresence({
     purpose: "What this agent is for",
     personality: "Personality traits",
     lensSystemPrompt: "How this agent thinks and what it knows…",
-    model: "Model identifier",
-    // incomplete — static model list
-    model_provider: "anthropic, openai, together-ai…",
+    model: "Chat model",
+    model_provider: "OpenAI, Anthropic, Together AI",
     avatar: "Avatar URL or emoji",
     theme_color: "Theme color token",
     // incomplete — input type

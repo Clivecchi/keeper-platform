@@ -15,7 +15,7 @@ import { envKeyForProvider, envVarNameForProvider } from '../lib/resolveProvider
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
 import { getModelCapabilities } from '../config/index.js';
 import { TypeSafeProvider } from './TypeSafeProvider.js';
-import { isGenuineInvalidModelError } from './modelProviderErrors.js';
+import { isGenuineInvalidModelError, unclassifiedProviderFailureMessage } from './modelProviderErrors.js';
 
 const DEFAULT_ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
@@ -61,6 +61,8 @@ export interface ModelResponse {
   errorCode?: ModelProviderErrorCode;
   retryable?: boolean;
   providerStatus?: number;
+  /** Clipped provider sentence. Safe to show in Dialog. */
+  providerDetail?: string;
   keySource?: ModelProviderKeySource;
 }
 
@@ -71,13 +73,19 @@ class ModelProviderException extends Error {
   code: ModelProviderErrorCode;
   retryable: boolean;
   status?: number;
+  detail?: string;
 
-  constructor(code: ModelProviderErrorCode, message: string, options?: { retryable?: boolean; status?: number }) {
+  constructor(
+    code: ModelProviderErrorCode,
+    message: string,
+    options?: { retryable?: boolean; status?: number; detail?: string },
+  ) {
     super(message);
     this.name = 'ModelProviderException';
     this.code = code;
     this.retryable = options?.retryable ?? code === 'PROVIDER_UNAVAILABLE';
     this.status = options?.status;
+    this.detail = options?.detail;
   }
 }
 
@@ -917,6 +925,7 @@ export class ModelProviderService {
       errorCode: lastError instanceof ModelProviderException ? lastError.code : undefined,
       retryable: lastError instanceof ModelProviderException ? lastError.retryable : true,
       providerStatus: lastError instanceof ModelProviderException ? lastError.status : undefined,
+      providerDetail: lastError instanceof ModelProviderException ? lastError.detail : undefined,
       keySource
     };
   }
@@ -1109,10 +1118,15 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
     );
   }
 
+  const unclassified = unclassifiedProviderFailureMessage(
+    providerLabel,
+    message,
+    typeof status === 'number' ? status : undefined,
+  );
   return new ModelProviderException(
     'PROVIDER_UNAVAILABLE',
-    `${providerLabel} could not complete Kip's request. Try again shortly; if it continues, switch Kip to another model or check provider status.`,
-    { retryable: true, status }
+    unclassified.message,
+    { retryable: unclassified.retryable, status, detail: unclassified.detail ?? undefined },
   );
 }
 

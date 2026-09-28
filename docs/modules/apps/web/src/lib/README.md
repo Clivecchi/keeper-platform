@@ -36,6 +36,12 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-09-27 — Agent chat models
+- `getAvailableModels` for OpenAI, Anthropic, and Together reads `agentModelPicker`.
+
+### 2026-09-27 — Provider failure copy
+- `formatKipRunErrorMessage` names overload only when the provider said so. Other failures include model, HTTP status, and `providerDetail`.
+
 ### 2026-09-27 — Home arrival path
 - `homeArrivalPath` lands an accepted invitation on `/home?domain=&dialogId=`.
 

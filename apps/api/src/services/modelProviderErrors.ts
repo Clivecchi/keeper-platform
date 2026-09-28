@@ -41,6 +41,61 @@ export function isGenuineInvalidModelError(params: {
   return false;
 }
 
+const SECRET_PATTERNS = [
+  /sk-ant-[a-z0-9_-]+/gi,
+  /sk-[a-z0-9_-]{8,}/gi,
+  /bearer\s+\S+/gi,
+];
+
+/** Short, key-free provider text safe to show in Dialog. */
+export function publicProviderFailureDetail(message: string | null | undefined): string | null {
+  if (!message) return null;
+  let text = message.replace(/\s+/g, ' ').trim();
+  for (const pattern of SECRET_PATTERNS) {
+    text = text.replace(pattern, '[redacted]');
+  }
+  if (text.length < 12) return null;
+  if (text.length > 220) text = `${text.slice(0, 217)}…`;
+  return text;
+}
+
+export function isProviderOverload(params: {
+  status?: number | null;
+  message?: string | null;
+}): boolean {
+  const status = params.status ?? undefined;
+  const lower = (params.message ?? '').toLowerCase();
+  return (
+    status === 529
+    || status === 503
+    || status === 502
+    || status === 504
+    || lower.includes('overloaded')
+    || lower.includes('temporarily unavailable')
+    || lower.includes('service unavailable')
+  );
+}
+
+/**
+ * Catch-all when the provider error is not timeout, quota, key, invalid model, or overload.
+ * Keeps HTTP status and a clipped provider sentence. 4xx is not retried.
+ */
+export function unclassifiedProviderFailureMessage(
+  providerLabel: string,
+  rawMessage: string,
+  status?: number,
+): { message: string; detail: string | null; retryable: boolean } {
+  const detail = publicProviderFailureDetail(rawMessage);
+  const statusBit = typeof status === 'number' ? ` HTTP ${status}.` : '';
+  const detailBit = detail ? ` ${detail}` : '';
+  const retryable = typeof status !== 'number' || status >= 500;
+  return {
+    message: `${providerLabel} rejected the request.${statusBit}${detailBit}`.replace(/\s+/g, ' ').trim(),
+    detail,
+    retryable,
+  };
+}
+
 export function shouldFallbackToSiblingOffering(params: {
   errorCode?: string | null;
   providerStatus?: number | null;

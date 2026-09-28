@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isGenuineInvalidModelError, shouldFallbackToSiblingOffering } from './modelProviderErrors.js';
+import {
+  isGenuineInvalidModelError,
+  publicProviderFailureDetail,
+  shouldFallbackToSiblingOffering,
+  unclassifiedProviderFailureMessage,
+} from './modelProviderErrors.js';
 
 describe('isGenuineInvalidModelError', () => {
   it('accepts Anthropic not_found_error that names a missing model', () => {
@@ -47,6 +52,26 @@ describe('isGenuineInvalidModelError', () => {
         message: 'The model could not complete the request because tools are not enabled',
       }),
     ).toBe(false);
+  });
+});
+
+describe('unclassifiedProviderFailureMessage', () => {
+  it('keeps the provider sentence and does not retry a 400', () => {
+    const result = unclassifiedProviderFailureMessage(
+      'Anthropic',
+      '400 {"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long"}}',
+      400,
+    );
+    expect(result.retryable).toBe(false);
+    expect(result.message).toContain('HTTP 400');
+    expect(result.message).toContain('prompt is too long');
+    expect(result.detail).toContain('prompt is too long');
+  });
+
+  it('strips key-like tokens from the dialog detail', () => {
+    const detail = publicProviderFailureDetail('rejected sk-ant-api03-secretvalue please retry');
+    expect(detail).not.toContain('sk-ant-api03');
+    expect(detail).toContain('[redacted]');
   });
 });
 

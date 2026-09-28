@@ -15,6 +15,7 @@ import {
   type GlossThread,
 } from "@keeper/shared"
 import { GlossSurface } from "../gloss/GlossSurface"
+import { imageGenerateFailureCopy } from "./imageGenerateFailureCopy"
 
 export interface ActionReceipt {
   type: string
@@ -836,6 +837,15 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
         glossReceiptIndex={glossReceiptIndex}
         glossThreads={glossThreads}
       />
+    )
+  }
+
+  if (status === "error" && isImageGenerate) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+        <p className="text-xs font-semibold text-red-800">Image was not created</p>
+        <p className="mt-1 text-sm text-red-700">{imageGenerateFailureCopy(message)}</p>
+      </div>
     )
   }
 

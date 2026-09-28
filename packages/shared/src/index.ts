@@ -40,6 +40,7 @@ export * from './recordNaming.js';
 export * from './realm/feed.js';
 export * from './chronicleEvent.js';
 export * from './chronicleSubject.js';
+export * from './agentModelPicker.js';
 export * from './agentRole.js';
 export * from './agentPerformanceProvenance.js';
 export * from './document.js';

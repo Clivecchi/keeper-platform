@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-27: **image.generate missing subject** — the receipt names the payload fields that arrived (often `title` / `description`) and states that the image provider was not called.
 - 2026-09-23: **Frame Performance** — Cast synthesis asks for `resolvedMeaning` and `selectedVoices` on Dialog and Stage. When meaning is present, Rendr composes `framePerformance` onto the Lead message. A Stage filmstrip cell is appended only when the turn is already on Stage.
 - 2026-09-21: **Conversation Profile** — `agentContext.conversationProfile` (`current` | `conversation`) selects the standing-instruction stack in `callAIModel`. Current is unchanged. Conversation skips Lead Judgment / action sermons / keeper-card essay / SOLE loop+arch. `[AgentTurn]` and persisted `orchestration` stamp `conversationProfile`. Isolation: model, Dialog, Document, Domain, history, Dialog Style, and Cueing are untouched.
 - 2026-09-21: **Document Orientation** — Lead `document.orientation.update` writes `Dialog.orientation`. Standing `DIALOG DOCUMENT` block includes it for Lead and both Cast paths. Not a turn summary. Cast and Echo cannot write it.
