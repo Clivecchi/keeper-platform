@@ -36,7 +36,7 @@ function buildRemarks(events: RealmFeedEvent[], agentName: string): string {
     return `Welcome back. ${agentName} is here when you're ready — type below or choose a door.`
   }
 
-  const parts: string[] = []
+  const parts: string[] = ["Stories are in progress."]
   const drafts = events.filter((e) => e.type === "draft_waiting")
   const sessions = events.filter((e) => e.type === "session_updated")
   const moments = events.filter((e) => e.type === "moment_kept")
@@ -44,8 +44,8 @@ function buildRemarks(events: RealmFeedEvent[], agentName: string): string {
   if (sessions.length > 0) {
     parts.push(
       sessions.length === 1
-        ? `You left a thread open in ${sessions[0]!.domainName}.`
-        : `${sessions.length} conversations have moved since your last visit.`,
+        ? `A thread is open in ${sessions[0]!.domainName}.`
+        : "Several threads are moving across your domains.",
     )
   }
 
@@ -53,7 +53,7 @@ function buildRemarks(events: RealmFeedEvent[], agentName: string): string {
     parts.push(
       drafts.length === 1
         ? `A draft is waiting in ${drafts[0]!.domainName}.`
-        : `${drafts.length} drafts are waiting across your domains.`,
+        : "Drafts are waiting across your domains.",
     )
   }
 
@@ -61,11 +61,11 @@ function buildRemarks(events: RealmFeedEvent[], agentName: string): string {
     parts.push(
       moments.length === 1
         ? `Something was kept in ${moments[0]!.domainName}.`
-        : `${moments.length} moments landed while you were away.`,
+        : "Moments landed while you were away.",
     )
   }
 
-  if (parts.length === 0) {
+  if (parts.length === 1) {
     parts.push(`Activity stirred in ${events[0]!.domainName}.`)
   }
 

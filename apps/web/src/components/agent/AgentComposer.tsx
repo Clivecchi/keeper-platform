@@ -597,6 +597,28 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const showTalkUnsupported = talkMode && !talkSupported
   const isTalkListening = talkState === "listening"
   const isTalkBusy = talkState === "listening" || talkState === "transcribing"
+  const [mobileDockActive, setMobileDockActive] = React.useState(false)
+  const mobileDockToolbarVisible =
+    mobileDockActive
+    || inputValue.trim().length > 0
+    || attachments.length > 0
+    || isTalkBusy
+
+  const handleMobileDockFocus = React.useCallback(() => {
+    setMobileDockActive(true)
+    onInputFocusChange?.(true)
+  }, [onInputFocusChange])
+
+  const handleMobileDockBlur = React.useCallback(
+    (event: React.FocusEvent<HTMLTextAreaElement>) => {
+      onInputFocusChange?.(false)
+      const next = event.relatedTarget
+      if (next instanceof Node && formRef.current?.contains(next)) return
+      if (inputValue.trim().length > 0 || attachments.length > 0 || isTalkBusy) return
+      setMobileDockActive(false)
+    },
+    [attachments.length, inputValue, isTalkBusy, onInputFocusChange],
+  )
 
   const handleTalkClick = () => {
     if (!talkSupported || disabled || isSending) return
@@ -634,75 +656,107 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
               ))}
             </div>
           ) : null}
-          <div className="keeper-composer-docked-row">
-            <ConversationProfileControl disabled={disabled || isSending} compact />
-            {stageFileUpload ? (
-              <>
-                <input
-                  type="file"
-                  id={fileInputId}
-                  className="hidden"
-                  accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
-                  onChange={(event) => void handleFileChange(event)}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById(fileInputId)?.click()}
-                  disabled={isSending || disabled || isUploading}
-                  className="keeper-composer-docked-icon"
-                  title="Attach file"
-                  aria-label="Attach file"
-                >
-                  {isUploading ? (
-                    <span className="text-[10px]">…</span>
-                  ) : (
-                    <PaperClipIcon className="h-5 w-5" />
-                  )}
-                </button>
-              </>
-            ) : null}
-            {showTalkMic ? (
-              <button
-                type="button"
-                onClick={handleTalkClick}
-                disabled={disabled || isSending || talkState === "transcribing"}
-                className={[
-                  "keeper-composer-docked-icon",
-                  isTalkListening ? "keeper-composer-talk--active" : "",
-                ].join(" ")}
-                title={talkMicTitle}
-                aria-label={talkMicTitle}
-                aria-pressed={isTalkListening}
-              >
-                <MicrophoneIcon className="h-5 w-5" />
-              </button>
-            ) : null}
-            <textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={(e) => onInputChange(e.target.value)}
-              onPaste={handlePaste}
-              onFocus={() => onInputFocusChange?.(true)}
-              onBlur={() => onInputFocusChange?.(false)}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholder}
-              disabled={isSending || disabled}
-              rows={1}
-              enterKeyHint="send"
-              className="keeper-composer-input keeper-composer-docked-input"
-            />
-            <button
-              type="submit"
-              disabled={!canSend}
-              className="keeper-composer-send keeper-composer-docked-send"
-              aria-label="Send"
+          {mobileDockToolbarVisible ? (
+            <div
+              className="keeper-composer-docked-toolbar mb-2 flex items-center justify-between gap-2 rounded-xl border px-2 py-1.5"
+              style={{
+                borderColor: "hsl(var(--theme-border-soft) / 0.45)",
+                background: "hsl(var(--theme-surface-panel) / 0.65)",
+              }}
             >
-              {isSending ? (
-                <span className="text-[11px] font-medium">…</span>
-              ) : (
-                <PaperAirplaneIcon className="h-5 w-5" strokeWidth={2} />
-              )}
-            </button>
+              <ConversationProfileControl disabled={disabled || isSending} compact />
+              <div className="flex items-center gap-1">
+                {showTalkMic ? (
+                  <button
+                    type="button"
+                    onClick={handleTalkClick}
+                    disabled={disabled || isSending || talkState === "transcribing"}
+                    className={[
+                      "keeper-composer-docked-icon",
+                      isTalkListening ? "keeper-composer-talk--active" : "",
+                    ].join(" ")}
+                    title={talkMicTitle}
+                    aria-label={talkMicTitle}
+                    aria-pressed={isTalkListening}
+                  >
+                    <MicrophoneIcon className="h-5 w-5" />
+                  </button>
+                ) : null}
+                {showTalkUnsupported ? (
+                  <span
+                    className="keeper-composer-docked-icon opacity-40"
+                    title="Speech recognition is not supported in this browser"
+                  >
+                    <MicrophoneIcon className="h-5 w-5" aria-hidden />
+                  </span>
+                ) : null}
+                {stageFileUpload ? (
+                  <>
+                    <input
+                      type="file"
+                      id={fileInputId}
+                      className="hidden"
+                      accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
+                      onChange={(event) => void handleFileChange(event)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleScreenCapture()}
+                      disabled={isSending || disabled || isUploading}
+                      className="keeper-composer-docked-icon"
+                      title="Capture screen"
+                      aria-label="Capture screen"
+                    >
+                      <ComputerDesktopIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById(fileInputId)?.click()}
+                      disabled={isSending || disabled || isUploading}
+                      className="keeper-composer-docked-icon"
+                      title="Attach file"
+                      aria-label="Attach file"
+                    >
+                      {isUploading ? (
+                        <span className="text-[10px]">…</span>
+                      ) : (
+                        <PaperClipIcon className="h-5 w-5" />
+                      )}
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          <div className="keeper-composer-docked-row">
+            <div className="keeper-composer-docked-field relative min-w-0 flex-1">
+              <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={(e) => onInputChange(e.target.value)}
+                onPaste={handlePaste}
+                onFocus={handleMobileDockFocus}
+                onBlur={handleMobileDockBlur}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                disabled={isSending || disabled}
+                rows={1}
+                enterKeyHint="send"
+                className="keeper-composer-input keeper-composer-docked-input w-full pr-14"
+              />
+              <button
+                type="submit"
+                disabled={!canSend}
+                className="keeper-composer-send keeper-composer-docked-send absolute bottom-1 right-1"
+                aria-label="Send"
+              >
+                {isSending ? (
+                  <span className="text-[11px] font-medium">…</span>
+                ) : (
+                  <PaperAirplaneIcon className="h-5 w-5" strokeWidth={2} />
+                )}
+              </button>
+            </div>
           </div>
         </form>
         {talkMode && (isTalkBusy || talkError) ? (

@@ -36,6 +36,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-09-28: **Mobile full-width entry + contextual tools** — `AgentComposer` mobile-docked mode now gives the textarea the full row width (send button overlays inside the field), and moves profile/attach/talk/capture controls into a toolbar that appears once the message field is engaged.
 - 2026-09-27: **Conversation stays conversation** — `DialogueMessageList` no longer renders a Lead turn as a Frame. `framePerformance` stays on the message. A promoted beat is presented by the Dialog shell, not as the bubble.
 - 2026-09-27: Cockpit "Change model" uses the shared agent chat pins. Together's live catalog is not the dropdown.
 - 2026-09-23: **Frame Performance** — When a Lead message carries `framePerformance`, `DialogueMessageList` renders `FramePerformanceView` as the turn. Cast bubbles and the Lead essay stay off that turn. Text turns without a performance are unchanged.
