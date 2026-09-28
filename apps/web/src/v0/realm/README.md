@@ -33,6 +33,10 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-09-28 — Story-forward arrival cards
+- Realm arrival remarks now avoid numeric update counts and open with a "Stories are in progress" narrative.
+- `RealmInvitationButtons` now presents up to two lightweight story cards, with overflow actions kept as compact pills to avoid overload.
+
 ### 2026-09-27 — Jev-recommended Points render as proposed
 - `manuscriptPointsToRealmNavEntries` shows a Point with `proposedBy` Jev as voice Jev and status proposed. Accept still confirms it.
 

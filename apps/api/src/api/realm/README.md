@@ -16,6 +16,10 @@ Person-scoped Realm endpoints — cross-domain feed powering arrival remarks and
 - [ ] Retention and edge-scope rules from design regroup
 
 ## 📆 Update Log
+### 2026-09-28 — Story-first realm remarks
+- `buildRemarks` in `feed.ts` now avoids numeric activity counts ("12 conversations..."), and instead uses story-forward language for sessions, drafts, and moments.
+- Arrival copy still stays bounded and domain-scoped, but now reads as progress cues instead of a dashboard tally.
+
 ### 2026-08-30 — Sessions stay on their Dialog domain
 - Realm feed no longer paints orphan / undialoged sessions onto the Realm anchor. A new domain was inheriting hours of someone else's "Session with…" history.
 - Session query requires `dialog.domain_id` in the viewer's reach and skips archived rows. Counts match emitted events.
