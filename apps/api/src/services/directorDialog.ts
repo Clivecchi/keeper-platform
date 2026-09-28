@@ -351,15 +351,19 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   if (params.resolvePerformanceMeaning) {
     lines.push(
       '',
-      'RESOLVED MEANING (performed Frame — envelope sibling, not your spoken reply):',
+      'RESOLVED MEANING (what emerged — envelope sibling, not your spoken reply, not a Frame):',
       '- Also emit "resolvedMeaning": { "meaning": "...", "because?": "...", "about": [{ "kind", "id", "title?" }], "performedBy": ["slug"] }.',
       '- Also emit "selectedVoices": [{ "slug": "cloud", "line": "exact words from that Cast reply" }] for lines that deserve to be heard inside the telling.',
       '- Copy selectedVoices from the Cast results above. Never invent, paraphrase, or improve a line. Omit selectedVoices when no line should be quoted.',
-      '- Spoken "response" stays available as text if no Frame is composed. resolvedMeaning records what emerged — it is not a summary of Cast.',
+      '- Spoken "response" stays the conversation. resolvedMeaning records what emerged — it is not a summary of Cast, and it does not present a Frame.',
       '- "meaning" is what emerged — insight, question, tension, possibility, decision, or direction. It must not be a restatement of "response".',
       '- "about" references Keeper objects already in Talking in / Working on (ids + optional titles). Do not copy Point or Document bodies. A Point does not need a Section.',
       '- "performedBy" is slugs that actually delivered this turn. Never invent a voice.',
-      '- resolvedMeaning is the signal that this turn deserves a performed Frame. If nothing resolved, omit resolvedMeaning. Do not invent meaning so a Frame can appear.',
+      '- If nothing resolved, omit resolvedMeaning. Do not invent meaning so a Frame can appear.',
+      '- You conduct this Dialog. Set "presentFrame": true on resolvedMeaning only when a Story-significant beat warrants a Dialog Frame.',
+      '- If the human explicitly asked for a Frame, set presentFrame true.',
+      '- Otherwise omit presentFrame. Do not set it because a meaning resolved.',
+      '- Rendr composes the Frame. Rendr does not decide that the Dialog becomes presentation.',
       '- Do not emit stage.story.layout for this. Expression is not your job this turn.',
     );
   }

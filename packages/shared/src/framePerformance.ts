@@ -2,7 +2,8 @@
  * Turn-scoped Frame Performance.
  *
  * Lives on the Lead message as composition. It does not replace the turn.
- * A beat becomes a Frame only when composition sets `promote`. Document,
+ * A beat becomes a Frame only when Keeper stamps `promote` — from the Lead's
+ * `presentFrame` decision, or an explicit human request. Rendr does not set it. Document,
  * Section, Point, and beat titles stay distinct. Theatre state and markup
  * do not belong here.
  */
@@ -42,8 +43,9 @@ export type FramePerformanceBeat = {
   body: string;
   voice?: FramePerformanceVoice;
   /**
-   * Editorial promotion. Present only when composition judges this beat
-   * Story-significant. Absent keeps the beat in the conversation.
+   * Presentation stamp. Keeper sets this from the Lead's decision or an
+   * explicit human request. Absent keeps the beat in the conversation.
+   * Rendr's composition must not be trusted as this flag.
    */
   promote?: true;
 };
@@ -68,6 +70,10 @@ export type FramePerformance = {
   title: string;
   beats: FramePerformanceBeat[];
   cue?: FramePerformanceCue;
+  /**
+   * Rendr may recommend presentation. It does not open the Dialog surface.
+   */
+  recommendPresentation?: true;
 };
 
 export type ParseFramePerformanceOptions = {
@@ -233,6 +239,7 @@ export function parseFramePerformance(
     title,
     beats,
     ...(cue ? { cue } : {}),
+    ...(rec.recommendPresentation === true ? { recommendPresentation: true as const } : {}),
   };
 }
 
@@ -346,7 +353,40 @@ export function bindFramePerformanceCue(
 }
 
 /**
- * The Frame for the Dialog surface: only beats composition promoted.
+ * Explicit human ask for a Dialog Frame.
+ * Ordinary talk, and the word "framework", do not count.
+ */
+export function humanRequestsDialogFrame(text: string): boolean {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) return false;
+  if (/\bdialog frame\b/i.test(normalized)) return true;
+  if (/\b(?:as a frame|into a frame|in a frame)\b/i.test(normalized)) return true;
+  return /\b(?:make|show|present|put|turn|hold|render|give)\b[^.]{0,48}\bframe\b/i.test(normalized);
+}
+
+/**
+ * Lead or the human authorizes presentation. Rendr's promote bits are dropped,
+ * then stamped only when that authority said the Dialog should become a Frame.
+ */
+export function applyDialogFrameAuthority(
+  performance: FramePerformance,
+  authorized: boolean,
+): FramePerformance {
+  return {
+    ...performance,
+    beats: performance.beats.map((beat) => {
+      const rest: FramePerformanceBeat = {
+        title: beat.title,
+        body: beat.body,
+        ...(beat.voice ? { voice: beat.voice } : {}),
+      };
+      return authorized ? { ...rest, promote: true as const } : rest;
+    }),
+  };
+}
+
+/**
+ * The Frame for the Dialog surface: only beats Keeper promoted.
  * A performance with no promoted beat is not a Frame.
  */
 export function promotedDialogFrame(

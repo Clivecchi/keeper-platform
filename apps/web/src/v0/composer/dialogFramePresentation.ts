@@ -8,7 +8,7 @@ export type DialogSurfaceTurn = {
 
 /**
  * Conversation fills the Dialog. A Frame takes that surface only when the
- * latest turn is an agent turn with a beat composition promoted.
+ * latest turn was authorized — Lead or an explicit human request — and stamped.
  * Stage already owns the surface. Sending returns to the transcript.
  */
 export function dialogSurfaceFrame(input: {

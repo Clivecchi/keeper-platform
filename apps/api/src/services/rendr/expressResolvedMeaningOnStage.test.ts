@@ -86,26 +86,32 @@ describe('expressResolvedMeaningOnStage', () => {
     expect(user).not.toContain('castVoices');
   });
 
-  it('does not append a Stage cell when no beat is promoted', async () => {
-    callModel.mockResolvedValue({ success: true, content: JSON.stringify(frameJson) });
-    const result = await expressResolvedMeaningOnStage({
-      domainId: 'dom-1',
-      leadMessageId: 'msg-1',
-      resolvedMeaning: meaning,
-      placeOnStage: true,
-    });
-    expect(result.ok).toBe(true);
-    expect(appendStageExpressionBeat).not.toHaveBeenCalled();
-  });
-
-  it('appends one live-sourced cell when a beat is promoted on Stage', async () => {
-    const promoted = {
+  it('ignores Rendr promote when the Lead did not authorize a Frame', async () => {
+    const rendrDecides = {
       ...frameJson,
       beats: frameJson.beats.map((beat, index) => (
         index === 0 ? { ...beat, promote: true } : beat
       )),
+      recommendPresentation: true,
     };
-    callModel.mockResolvedValue({ success: true, content: JSON.stringify(promoted) });
+    callModel.mockResolvedValue({ success: true, content: JSON.stringify(rendrDecides) });
+    const result = await expressResolvedMeaningOnStage({
+      domainId: 'dom-1',
+      leadMessageId: 'msg-1',
+      resolvedMeaning: meaning,
+      selectedVoices: [{ slug: 'ceox', line: 'You are asking for better editing.' }],
+      placeOnStage: true,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok === false) return;
+    expect(result.performance.beats).toHaveLength(2);
+    expect(result.performance.beats.every((beat) => beat.promote == null)).toBe(true);
+    expect(result.performance.recommendPresentation).toBe(true);
+    expect(appendStageExpressionBeat).not.toHaveBeenCalled();
+  });
+
+  it('stamps the Frame when the Lead authorizes presentation', async () => {
+    callModel.mockResolvedValue({ success: true, content: JSON.stringify(frameJson) });
     appendStageExpressionBeat.mockResolvedValue({
       ok: true,
       alreadyPresent: false,
@@ -124,13 +130,14 @@ describe('expressResolvedMeaningOnStage', () => {
     const result = await expressResolvedMeaningOnStage({
       domainId: 'dom-1',
       leadMessageId: 'msg-1',
-      resolvedMeaning: meaning,
+      resolvedMeaning: { ...meaning, presentFrame: true },
       selectedVoices: [{ slug: 'ceox', line: 'You are asking for better editing.' }],
       placeOnStage: true,
     });
 
     expect(result.ok).toBe(true);
     if (result.ok === false) return;
+    expect(result.performance.beats.every((beat) => beat.promote === true)).toBe(true);
     expect(result.stamp?.slideId).toBe('live-msg-1');
     expect(appendStageExpressionBeat).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -138,6 +145,20 @@ describe('expressResolvedMeaningOnStage', () => {
         title: 'One storyline. Not three.',
       }),
     );
+  });
+
+  it('stamps the Frame when the human asked and the Lead did not', async () => {
+    callModel.mockResolvedValue({ success: true, content: JSON.stringify(frameJson) });
+    const result = await expressResolvedMeaningOnStage({
+      domainId: 'dom-1',
+      leadMessageId: 'msg-1',
+      resolvedMeaning: meaning,
+      humanRequestedFrame: true,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok === false) return;
+    expect(result.performance.beats.every((beat) => beat.promote === true)).toBe(true);
+    expect(appendStageExpressionBeat).not.toHaveBeenCalled();
   });
 
   it('skips the Frame when Rendr returns no composition', async () => {

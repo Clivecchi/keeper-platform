@@ -50,8 +50,11 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 
 ## 📆 Update Log
 
+### 2026-09-27 — Lead authorizes the Frame
+- Presentation still waits on a stamped beat. The stamp comes from the Lead's `presentFrame`, or from an explicit human request. Rendr's recommendation does not open the Dialog surface.
+
 ### 2026-09-27 — Conversation default, Frame on promotion
-- Agent turns stay in the transcript. `promotedDialogFrame` keeps only beats Rendr marked Story-significant. That Frame fills the Dialog surface. Stage live cells use the same promotion.
+- Agent turns stay in the transcript. `promotedDialogFrame` keeps only beats the Lead or the human authorized. Rendr composes that Frame and may recommend presentation. That Frame fills the Dialog surface. Stage live cells use the same promotion.
 
 ### 2026-09-23 — Frame Performance placement
 - `FramePerformanceView` renders a promoted Frame on the Dialog surface, and on Stage when a filmstrip cell’s live source matches that message. `appendLiveBeat` adds one cell. Unpromoted beats stay in the conversation.

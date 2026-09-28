@@ -34,6 +34,17 @@ describe('parseResolvedMeaning', () => {
     expect(parseResolvedMeaning({ meaning: '   ' })).toBeNull();
   });
 
+  it('keeps presentFrame only when the Lead set it true', () => {
+    expect(parseResolvedMeaning({
+      meaning: 'A tension remains.',
+      presentFrame: true,
+    })?.presentFrame).toBe(true);
+    expect(parseResolvedMeaning({
+      meaning: 'A tension remains.',
+      presentFrame: 'yes',
+    })?.presentFrame).toBeUndefined();
+  });
+
   it('allows empty about and performedBy', () => {
     const parsed = parseResolvedMeaning({ meaning: 'A tension remains.' });
     expect(parsed).toEqual({ meaning: 'A tension remains.', about: [], performedBy: [] });

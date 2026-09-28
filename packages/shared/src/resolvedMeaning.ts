@@ -37,6 +37,13 @@ export type ResolvedMeaning = {
   because?: string;
   about: ResolvedMeaningRef[];
   performedBy: string[];
+  /**
+   * Lead conducts the Dialog. True only when the Lead judges that a
+   * Story-significant beat warrants a Dialog Frame. Absent leaves the turn
+   * as conversation. An explicit human request can authorize the Frame
+   * even when this is omitted. Rendr does not set it.
+   */
+  presentFrame?: true;
 };
 
 /** Persisted on the Lead message after Keeper appends one Stage beat. */
@@ -122,6 +129,7 @@ export function parseResolvedMeaning(raw: unknown): ResolvedMeaning | null {
     ...(because ? { because } : {}),
     about,
     performedBy: parsePerformedBy(rec.performedBy),
+    ...(rec.presentFrame === true ? { presentFrame: true as const } : {}),
   };
 }
 

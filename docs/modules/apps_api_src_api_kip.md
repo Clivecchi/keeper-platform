@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-27: **Frame authority** — the Lead sets `presentFrame`, or the human explicitly asks for a Frame. Rendr composes and may recommend. That recommendation does not present the Dialog.
 - 2026-09-27: **Frame promotion** — resolved meaning still asks Rendr to compose. The turn stays conversation unless a beat is promoted. A Stage cell is appended only for that promoted beat, and only when the turn is already on Stage.
 - 2026-09-15: **`web.search` without Brave** — `WebSearchService` prefers `BRAVE_SEARCH_API_KEY` / platform key `brave`, then DuckDuckGo + public page fetch. Cloud can visit a named site without the Railway key.
 - 2026-08-24: **PDF body + envelope save** — `library.read { id }` hydrates `extracted_text` from the upload (PDF text extract, not UTF-8 binary). Chat PDF attachments are inlined the same way. Agent replies persist as visible text; existing envelope JSON in history is unwrapped on read. Private Google Docs are not fetched — upload or paste.

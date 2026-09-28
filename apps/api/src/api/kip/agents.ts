@@ -61,6 +61,7 @@ import {
   buildKeeperStagePrompt,
   resolveTalkingInWorkingOn,
   parseKeeperStage,
+  humanRequestsDialogFrame,
   parseSelectedVoices,
   withPerformedByFallback,
   type FramePerformance,
@@ -9491,6 +9492,9 @@ export class KipAgentService {
                   actionResults: actionResults as Array<Record<string, unknown>>,
                   hasCastVoices: Boolean(castVoicesForPersist?.length),
                   placeOnStage,
+                  humanRequestedFrame: humanRequestsDialogFrame(
+                    humanTurnTextForIntent(input, options?.displayContent),
+                  ),
                 });
                 if (expressed.ok === false) {
                   console.info('[AgentTurn] frame performance skipped', {

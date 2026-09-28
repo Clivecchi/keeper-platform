@@ -7,7 +7,7 @@ Rendr agent identity and Design-board Treatment prompt. Presence partner — not
 - `rendrAgentConfig.ts` — purpose, voice prompt, identity lock (seed + runtime)
 - `composeFramePerformance.ts` — Rendr prompt for a turn-scoped Frame Performance (meaning + selected lines, not the transcript)
 - `composeStageExpression.ts` — compact Set used by that prompt
-- `expressResolvedMeaningOnStage.ts` — post-Lead handoff. Persists `framePerformance` on the Lead message. Appends one live-sourced Stage cell only when a beat is promoted and the turn is already on Stage.
+- `expressResolvedMeaningOnStage.ts` — post-Lead handoff. Persists `framePerformance` on the Lead message. Stamps presentation only when the Lead set `presentFrame` or the human asked for a Frame. Appends one live-sourced Stage cell only for that stamp, and only when the turn is already on Stage.
 
 ## 🔄 Data & Behavior
 Treatment changes use `treatment.propose` on Design Board. Dialog Points use `draft.update.propose` on Working on (Chronicle Document or focused Draft). `draft.create` is only for a new working Draft, never as a substitute for Points on the focused Document.
@@ -16,6 +16,9 @@ Treatment changes use `treatment.propose` on Design Board. Dialog Points use `dr
 - [ ] Spatial/motion primitives (Float, Weight, Motion contract) remain queued behind Chronicle becoming
 
 ## 📆 Update Log
+
+### 2026-09-27 — Lead authorizes the Frame
+- `presentFrame` is the Lead's decision. An explicit human request also authorizes. Rendr composes the Frame and may set `recommendPresentation`. Rendr's `promote` is discarded.
 
 ### 2026-09-27 — Promotion is editorial
 - Rendr may compose a telling after resolved meaning. `promote: true` is set only on a Story-significant beat. Omit it otherwise. A Stage cell is written only for a promoted beat.

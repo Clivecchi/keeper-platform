@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyDialogFrameAuthority,
   bindFramePerformanceCue,
+  humanRequestsDialogFrame,
   parseFramePerformance,
   parseSelectedVoices,
   promotedDialogFrame,
@@ -136,6 +138,34 @@ describe('parseSelectedVoices', () => {
   });
 });
 
+describe('applyDialogFrameAuthority', () => {
+  it('drops Rendr promote unless the Lead or the human authorized a Frame', () => {
+    const parsed = parseFramePerformance({
+      ...valid,
+      recommendPresentation: true,
+      beats: [{ ...valid.beats[0], promote: true }],
+    }, { selectedVoices: voices });
+    expect(parsed).not.toBeNull();
+    if (!parsed) return;
+    const held = applyDialogFrameAuthority(parsed, false);
+    expect(held.beats[0]?.promote).toBeUndefined();
+    expect(held.recommendPresentation).toBe(true);
+    expect(promotedDialogFrame(held)).toBeNull();
+    const presented = applyDialogFrameAuthority(parsed, true);
+    expect(presented.beats.every((beat) => beat.promote === true)).toBe(true);
+    expect(promotedDialogFrame(presented)?.beats).toHaveLength(1);
+  });
+});
+
+describe('humanRequestsDialogFrame', () => {
+  it('hears an explicit Frame ask and ignores framework talk', () => {
+    expect(humanRequestsDialogFrame('Show this as a frame.')).toBe(true);
+    expect(humanRequestsDialogFrame('Can we have a dialog frame for that beat?')).toBe(true);
+    expect(humanRequestsDialogFrame('We need a framework for the cast.')).toBe(false);
+    expect(humanRequestsDialogFrame('Tell me what you heard.')).toBe(false);
+  });
+});
+
 describe('promotedDialogFrame', () => {
   it('stays empty until a beat is explicitly promoted', () => {
     const parsed = parseFramePerformance(valid, { selectedVoices: voices });
@@ -143,7 +173,7 @@ describe('promotedDialogFrame', () => {
     expect(promotedDialogFrame(null)).toBeNull();
   });
 
-  it('keeps only beats composition marked Story-significant', () => {
+  it('keeps only beats Keeper stamped for presentation', () => {
     const parsed = parseFramePerformance({
       ...valid,
       beats: [

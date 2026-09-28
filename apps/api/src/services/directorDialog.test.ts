@@ -105,7 +105,10 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     });
     expect(prompt).toContain('resolvedMeaning');
     expect(prompt).toContain('selectedVoices');
+    expect(prompt).toContain('presentFrame');
     expect(prompt).toMatch(/must not be a restatement of "response"/i);
+    expect(prompt).toMatch(/does not present a Frame/);
+    expect(prompt).toMatch(/Rendr does not decide/);
     expect(prompt).toMatch(/Do not emit stage\.story\.layout for this/);
     expect(prompt).not.toMatch(/Emit stage\.story\.layout this turn/);
   });

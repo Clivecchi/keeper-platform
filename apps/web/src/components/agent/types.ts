@@ -76,7 +76,7 @@ export interface AgentDialogueMessage {
   keepingChoices?: KeepingChoiceRecord[]
   /** Lead-resolved meaning. Not a Frame, and not a reason to replace the turn. */
   resolvedMeaning?: ResolvedMeaning
-  /** Rendr's telling. The turn stays conversation unless a beat is promoted. */
+  /** Rendr's telling. The turn stays conversation unless the Lead or the human authorized a Frame. */
   framePerformance?: FramePerformance
   /** Named orchestration metadata persisted on the Lead message. */
   orchestration?: Record<string, unknown>

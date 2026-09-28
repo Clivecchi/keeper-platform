@@ -1,12 +1,14 @@
 /**
  * Post-Lead Rendr handoff — resolved meaning → a composition on the Lead message.
- * A beat becomes a Frame only when Rendr promotes it. Otherwise the turn stays text.
+ * A beat becomes a Frame only when the Lead set presentFrame, or the human asked for one.
+ * Rendr composes the Frame and may recommend presentation. Rendr does not decide.
  * Honest miss: any failure leaves the turn as ordinary text.
  * A Stage cell, when written, points at the Lead message. It does not store the beats.
  */
 
 import { ModelSettings, type ModelProvider } from '@keeper/database';
 import {
+  applyDialogFrameAuthority,
   bindFramePerformanceCue,
   parseFramePerformanceFromModelText,
   promotedDialogFrame,
@@ -45,6 +47,8 @@ export type ExpressResolvedMeaningInput = {
   hasCastVoices?: boolean;
   /** When true, append one live-sourced filmstrip cell. Dialog turns leave the story alone. */
   placeOnStage?: boolean;
+  /** Human explicitly asked for a Dialog Frame. Authorizes presentation without the Lead's flag. */
+  humanRequestedFrame?: boolean;
 };
 
 export type ExpressResolvedMeaningSuccess = {
@@ -194,10 +198,12 @@ export async function expressResolvedMeaningOnStage(
     environment: input.environment,
     actionResults: input.actionResults,
   });
-  const performance = bindFramePerformanceCue(stamped, {
+  const bound = bindFramePerformanceCue(stamped, {
     ...binding,
     hasCastVoices: input.hasCastVoices === true,
   });
+  const authorized = resolved.presentFrame === true || input.humanRequestedFrame === true;
+  const performance = applyDialogFrameAuthority(bound, authorized);
 
   const presented = promotedDialogFrame(performance);
   if (!input.placeOnStage || !presented) {
