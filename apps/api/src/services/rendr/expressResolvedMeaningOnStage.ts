@@ -6,7 +6,7 @@
  * A Stage cell, when written, points at the Lead message. It does not store the beats.
  */
 
-import { ModelSettings, type ModelProvider } from '@keeper/database';
+import { ModelSettings } from '@keeper/database';
 import {
   applyDialogFrameAuthority,
   bindFramePerformanceCue,
@@ -22,7 +22,7 @@ import {
   type StageStorySlide,
 } from '@keeper/shared';
 import { prisma } from '@keeper/database';
-import { ModelProviderService } from '../ModelProviderService.js';
+import { executeRegisteredChat } from '../executeRegisteredChat.js';
 import { appendStageExpressionBeat } from '../kip/layoutStageStory.js';
 import { compactPerformanceSetFromEnvironment } from './composeStageExpression.js';
 import {
@@ -125,6 +125,7 @@ export async function expressResolvedMeaningOnStage(
   const rendr = await prisma.kip_agents.findUnique({
     where: { slug: 'rendr' },
     select: {
+      id: true,
       model: true,
       model_provider: true,
       model_settings: true,
@@ -149,7 +150,14 @@ export async function expressResolvedMeaningOnStage(
     max_tokens: 1400,
   };
 
-  const modelPromise = ModelProviderService.callModel({
+  const provider = (rendr.model_provider || 'anthropic').trim() || 'anthropic';
+  const model = (rendr.model || 'claude-sonnet-4-6').trim() || 'claude-sonnet-4-6';
+  const modelPromise = executeRegisteredChat({
+    preference: {
+      provider,
+      model,
+      source: 'agent_preference',
+    },
     messages: [
       { role: 'system', content: buildFramePerformanceSystemPrompt() },
       {
@@ -162,11 +170,14 @@ export async function expressResolvedMeaningOnStage(
       },
     ],
     settings,
-    provider: (rendr.model_provider || 'anthropic') as ModelProvider,
     userId: input.userId,
     domainId: input.domainId,
     jsonMode: true,
-  });
+    purpose: 'rendr_expression',
+    caller: { kind: 'agent', id: rendr.id, slug: 'rendr' },
+    fallbackPolicy: 'none',
+    offeringSelection: 'stated',
+  }).then((executed) => executed.response);
 
   const raced = await withDeadline(modelPromise, RENDR_EXPRESSION_TIMEOUT_MS);
   if (raced === 'timeout') {

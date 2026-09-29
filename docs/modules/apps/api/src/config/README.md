@@ -17,6 +17,7 @@ Shared configuration used by the API. Model catalog is the single source of trut
 - [ ] Consider DB-backed catalog when non-developers need to add models without deploys
 
 ## Update Log
+- 2026-09-27: **Execution record context** — `ExecutionRecord` carries `executionMode` (`production` | `shadow` | `evaluation`, default production), purpose, caller, fallback policy, stated-vs-plan selection, usage, latency, and key source. `resolveExecutionPlan()` is unchanged.
 - 2026-09-27: **Sonnet 5 temperature** — `claude-sonnet-5` sets `acceptsTemperature: false`. Anthropic calls omit `temperature` for that model.
 - 2026-09-27: **Agent chat picker** — OpenAI, Anthropic, and Together chat pins live in `agentModelPicker`. Together images stay FLUX and are not chat choices. Together's live catalog remains on the integration.
 - 2026-09-18: **Model Registry V0** — `modelRegistry.ts` + `resolveExecutionPlan()`. Sonnet 5 is an Anthropic offering (sibling of 4.6). Catalog default for Anthropic is now `claude-sonnet-5`. TypeSafe stays in the catalog for keys, not chat execution.

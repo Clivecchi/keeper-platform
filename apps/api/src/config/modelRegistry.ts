@@ -246,6 +246,47 @@ export function resolveExecutionPlan(preference: ExecutionPreference): Execution
   };
 }
 
+/**
+ * Distinguishes a live Keeper performance from a future shadow or eval run.
+ * Recorded only. Selection, fallback, and state writes do not read this yet.
+ */
+export const EXECUTION_MODES = ['production', 'shadow', 'evaluation'] as const;
+
+export type ExecutionMode = (typeof EXECUTION_MODES)[number];
+
+export type ExecutionFallbackPolicy = 'sibling_on_invalid_model' | 'none';
+
+/** `plan` uses resolveExecutionPlan. `stated` calls the preference's provider and model. */
+export type ExecutionOfferingSelection = 'plan' | 'stated';
+
+export type ExecutionPurpose =
+  | 'agent_turn'
+  | 'companion'
+  | 'preserve_completion'
+  | 'rendr_expression'
+  | 'library_perspective'
+  | 'designer_conversation';
+
+export type ExecutionCaller = {
+  kind: 'agent' | 'feature';
+  id?: string | null;
+  slug?: string | null;
+};
+
+export type ExecutionKeySource = 'env' | 'user' | 'platform' | 'none';
+
+export type ExecutionUsageSnapshot = {
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+};
+
+export type RecordedOffering = {
+  offeringId: string;
+  provider: string;
+  modelId: string;
+};
+
 export type ExecutionRecord = {
   offeringId: string;
   provider: ModelProvider | ChatModelProvider | string;
@@ -255,13 +296,33 @@ export type ExecutionRecord = {
   preferenceModel: string | null;
   substitutedFrom: string | null;
   attempts: ExecutionAttempt[];
+  executionMode: ExecutionMode;
+  purpose: ExecutionPurpose | null;
+  caller: ExecutionCaller | null;
+  fallbackPolicy: ExecutionFallbackPolicy;
+  offeringSelection: ExecutionOfferingSelection;
+  requestedCapabilities: string[];
+  usage: ExecutionUsageSnapshot | null;
+  latencyMs: number | null;
+  keySource: ExecutionKeySource | null;
 };
 
 export function executionRecordFromPlan(params: {
   plan: ExecutionPlan;
-  usedOffering: ProviderOffering;
+  usedOffering: RecordedOffering;
   fallbackUsed: boolean;
   attempts: ExecutionAttempt[];
+  executionMode?: ExecutionMode;
+  purpose?: ExecutionPurpose | null;
+  caller?: ExecutionCaller | null;
+  fallbackPolicy?: ExecutionFallbackPolicy;
+  offeringSelection?: ExecutionOfferingSelection;
+  requestedCapabilities?: string[];
+  usage?: ExecutionUsageSnapshot | null;
+  latencyMs?: number | null;
+  keySource?: ExecutionKeySource | null;
+  /** Stated calls do not apply registry substitution. Omit to keep the plan value. */
+  substitutedFrom?: string | null;
 }): ExecutionRecord {
   return {
     offeringId: params.usedOffering.offeringId,
@@ -270,7 +331,18 @@ export function executionRecordFromPlan(params: {
     fallbackUsed: params.fallbackUsed,
     preferenceProvider: params.plan.preference.provider?.trim() || null,
     preferenceModel: params.plan.preference.model?.trim() || null,
-    substitutedFrom: params.plan.substitutedFrom,
+    substitutedFrom: params.substitutedFrom !== undefined
+      ? params.substitutedFrom
+      : params.plan.substitutedFrom,
     attempts: params.attempts,
+    executionMode: params.executionMode ?? 'production',
+    purpose: params.purpose ?? null,
+    caller: params.caller ?? null,
+    fallbackPolicy: params.fallbackPolicy ?? 'sibling_on_invalid_model',
+    offeringSelection: params.offeringSelection ?? 'plan',
+    requestedCapabilities: params.requestedCapabilities ?? [],
+    usage: params.usage ?? null,
+    latencyMs: params.latencyMs ?? null,
+    keySource: params.keySource ?? null,
   };
 }

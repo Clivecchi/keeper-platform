@@ -3,7 +3,7 @@
  * POST /api/domains/:domainId/kip/designer
  *
  * Two-model pattern:
- *   Anthropic (claude-sonnet-4-6) — conversation, brief confirmation of what changed
+ *   Chat seam, stated claude-sonnet-4-6, no sibling fallback — conversation confirmation
  *   Structure service (Together JSON + schema, Anthropic fallback) — domain.frame.* contracts
  *
  * Request:  { message, frameKey, conversationHistory }
@@ -27,6 +27,8 @@ import {
   hasDomainFrameStructureContract,
 } from '../../services/structure/contracts.js';
 import { generateDomainFrameSlice } from '../../services/structure/generateDomainFrameSlice.js';
+import { executeRegisteredChat } from '../../services/executeRegisteredChat.js';
+import type { ModelMessage } from '../../services/ModelProviderService.js';
 
 const router = Router();
 
@@ -59,30 +61,7 @@ function wantsJsonProposal(message: string): boolean {
   return !PURE_QUESTION_PATTERN.test(message);
 }
 
-// ─── Anthropic call (conversational) ─────────────────────────────────────────
-
-async function callAnthropic(
-  systemPrompt: string,
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-  apiKey: string,
-): Promise<string> {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey });
-
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 600,
-    temperature: 0.7,
-    system: systemPrompt,
-    messages,
-  } as any);
-
-  const blocks = (response as any).content ?? [];
-  return blocks
-    .filter((b: any) => b.type === 'text')
-    .map((b: any) => b.text ?? '')
-    .join('');
-}
+const DESIGNER_CHAT_MODEL = 'claude-sonnet-4-6';
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
@@ -235,9 +214,35 @@ router.post(
         `- If the owner is asking a pure informational question (not requesting a change), answer it concisely in 2-3 sentences.`,
       ].join('\n');
 
-      // ── Anthropic call (conversational confirmation) ──
+      // ── Conversational confirmation. Stated Sonnet 4.6, no sibling fallback. ──
+      // Env key is required first so a platform/user key cannot widen this path.
       logger.info({ requestId, domainId, frameKey, userId: req.user.id }, '[designer] Anthropic conversation call');
-      const kipResponse = await callAnthropic(kipSystemPrompt, anthropicMessages, anthropicKey);
+      const designerMessages: ModelMessage[] = [
+        { role: 'system', content: kipSystemPrompt },
+        ...anthropicMessages,
+      ];
+      const executed = await executeRegisteredChat({
+        preference: {
+          provider: 'anthropic',
+          model: DESIGNER_CHAT_MODEL,
+          source: 'agent_preference',
+        },
+        messages: designerMessages,
+        settings: {
+          model: DESIGNER_CHAT_MODEL,
+          temperature: 0.7,
+          max_tokens: 600,
+          retry: { max_retries: 0, retry_delay_ms: 0 },
+        },
+        purpose: 'designer_conversation',
+        caller: { kind: 'feature', slug: 'designer' },
+        fallbackPolicy: 'none',
+        offeringSelection: 'stated',
+      });
+      if (!executed.response.success) {
+        throw new Error(executed.response.error || 'Designer conversation failed');
+      }
+      const kipResponse = executed.response.content;
 
       const frameContractId = getDomainFrameStructureContractId(frameKey);
       const needsJson = wantsJsonProposal(message) && hasDomainFrameStructureContract(frameKey);

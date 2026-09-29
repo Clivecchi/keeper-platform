@@ -2,9 +2,9 @@
  * LibraryItem ingestion — agent perspective generation on create (upload + url only, Pass 1).
  */
 
-import { prisma, type ModelProvider } from '@keeper/database';
-import { ModelProviderService } from './ModelProviderService.js';
+import { prisma } from '@keeper/database';
 import type { ModelContentPart } from './ModelProviderService.js';
+import { executeRegisteredChat } from './executeRegisteredChat.js';
 import { embedLibraryItemPerspective } from './LibraryItemEmbeddingService.js';
 import {
   extractPdfText,
@@ -265,6 +265,7 @@ async function resolveAgentForPerspective(agentId: string | null | undefined) {
 
 async function generatePerspectiveText(params: {
   agentName: string;
+  agentId?: string | null;
   provider: string;
   model: string;
   userId?: string | null;
@@ -291,8 +292,12 @@ async function generatePerspectiveText(params: {
     });
   }
 
-  const response = await ModelProviderService.callModel({
-    provider: params.provider as ModelProvider,
+  const executed = await executeRegisteredChat({
+    preference: {
+      provider: params.provider,
+      model: params.model,
+      source: 'agent_preference',
+    },
     userId: params.userId ?? undefined,
     messages: [
       {
@@ -307,7 +312,14 @@ async function generatePerspectiveText(params: {
       temperature: 0.3,
       max_tokens: 400,
     },
+    purpose: 'library_perspective',
+    caller: params.agentId
+      ? { kind: 'agent', id: params.agentId }
+      : { kind: 'feature', slug: 'library-perspective' },
+    fallbackPolicy: 'none',
+    offeringSelection: 'stated',
   });
+  const response = executed.response;
 
   if (!response.success || !response.content?.trim()) {
     throw new Error(response.error || 'Agent perspective generation failed');
@@ -340,6 +352,7 @@ export async function contextualizeLibraryItem(params: {
 
       perspective = await generatePerspectiveText({
         agentName,
+        agentId: agent?.id ?? null,
         provider,
         model,
         userId: params.userId,
@@ -355,6 +368,7 @@ export async function contextualizeLibraryItem(params: {
 
       perspective = await generatePerspectiveText({
         agentName,
+        agentId: agent?.id ?? null,
         provider,
         model,
         userId: params.userId,

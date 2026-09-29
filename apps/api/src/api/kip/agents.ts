@@ -7250,10 +7250,12 @@ export class KipAgentService {
         messages,
         settings: modelSettings,
         userId,
-        domainId: promptOptions?.domainId,
+        domainId: promptOptions?.domainId ?? undefined,
         environment: promptOptions?.environment ?? undefined,
         jsonMode: requiresStructuredOutput && capabilities.jsonMode,
         onDelta: onModelDelta,
+        purpose: 'agent_turn',
+        caller: { kind: 'agent', id: agent.id, slug: agent.slug },
       });
       const response = executed.response;
       const durationMs = Date.now() - modelStartedAt;

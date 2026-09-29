@@ -1,17 +1,28 @@
 /**
  * Shared chat execution: Registry plan → existing ModelProviderService adapter.
- * Member Agent turns and guest companion both enter here.
+ * Member Agent turns, guest companion, and preserve-discovery prose enter here.
+ * Rendr, library perspective, and Designer state their model and skip sibling fallback.
+ *
+ * executionMode is recorded only. It does not select a model or write Keeper state.
  */
 
-import type { ModelSettings } from '@keeper/database';
+import type { ModelProvider, ModelSettings } from '@keeper/database';
 import {
   executionRecordFromPlan,
   resolveExecutionPlan,
   type ExecutionAttempt,
+  type ExecutionCaller,
+  type ExecutionFallbackPolicy,
+  type ExecutionKeySource,
+  type ExecutionMode,
+  type ExecutionOfferingSelection,
   type ExecutionPlan,
   type ExecutionPreference,
+  type ExecutionPurpose,
   type ExecutionRecord,
+  type ExecutionUsageSnapshot,
   type ProviderOffering,
+  type RecordedOffering,
 } from '../config/modelRegistry.js';
 import {
   ModelProviderService,
@@ -23,12 +34,36 @@ import { shouldFallbackToSiblingOffering } from './modelProviderErrors.js';
 export type RegisteredChatResult = {
   response: ModelResponse;
   plan: ExecutionPlan;
-  usedOffering: ProviderOffering;
+  usedOffering: RecordedOffering;
   fallbackUsed: boolean;
   record: ExecutionRecord;
 };
 
-function attemptFromResponse(offering: ProviderOffering, response: ModelResponse): ExecutionAttempt {
+type ChatExecutionContext = {
+  executionMode: ExecutionMode;
+  purpose: ExecutionPurpose | null;
+  caller: ExecutionCaller | null;
+  fallbackPolicy: ExecutionFallbackPolicy;
+  offeringSelection: ExecutionOfferingSelection;
+  requestedCapabilities: string[];
+};
+
+function isExecutionMode(value: string): value is ExecutionMode {
+  return value === 'production' || value === 'shadow' || value === 'evaluation';
+}
+
+function statedOffering(preference: ExecutionPreference): RecordedOffering | null {
+  const provider = typeof preference.provider === 'string' ? preference.provider.trim() : '';
+  const modelId = typeof preference.model === 'string' ? preference.model.trim() : '';
+  if (!provider || !modelId) return null;
+  return {
+    offeringId: `${provider}:${modelId}`,
+    provider,
+    modelId,
+  };
+}
+
+function attemptFromResponse(offering: RecordedOffering, response: ModelResponse): ExecutionAttempt {
   if (response.success) {
     return {
       offeringId: offering.offeringId,
@@ -47,8 +82,27 @@ function attemptFromResponse(offering: ProviderOffering, response: ModelResponse
   };
 }
 
+function usageFromResponse(response: ModelResponse): ExecutionUsageSnapshot | null {
+  if (!response.usage) return null;
+  return {
+    promptTokens: response.usage.prompt_tokens ?? null,
+    completionTokens: response.usage.completion_tokens ?? null,
+    totalTokens: response.usage.total_tokens ?? null,
+  };
+}
+
+function keySourceFromResponse(response: ModelResponse): ExecutionKeySource | null {
+  const source = response.keySource;
+  if (source === 'env' || source === 'user' || source === 'platform' || source === 'none') {
+    return source;
+  }
+  return null;
+}
+
 function logExecutionPlan(params: {
   plan: ExecutionPlan;
+  executed: RecordedOffering;
+  context: ChatExecutionContext;
   fallbackUsed: boolean;
   attempts: ExecutionAttempt[];
   bothFailed?: boolean;
@@ -61,9 +115,43 @@ function logExecutionPlan(params: {
     resolvedFrom: params.plan.resolvedFrom,
     preferredOfferingId: params.plan.offering.offeringId,
     fallbackOfferingId: params.plan.fallbackOffering?.offeringId ?? null,
+    executedOfferingId: params.executed.offeringId,
+    offeringSelection: params.context.offeringSelection,
+    fallbackPolicy: params.context.fallbackPolicy,
+    executionMode: params.context.executionMode,
+    purpose: params.context.purpose,
+    caller: params.context.caller?.slug ?? params.context.caller?.id ?? null,
     fallbackUsed: params.fallbackUsed,
     bothFailed: params.bothFailed === true,
     attempts: params.attempts,
+  });
+}
+
+function recordFor(params: {
+  plan: ExecutionPlan;
+  usedOffering: RecordedOffering;
+  fallbackUsed: boolean;
+  attempts: ExecutionAttempt[];
+  response: ModelResponse;
+  context: ChatExecutionContext;
+}): ExecutionRecord {
+  return executionRecordFromPlan({
+    plan: params.plan,
+    usedOffering: params.usedOffering,
+    fallbackUsed: params.fallbackUsed,
+    attempts: params.attempts,
+    executionMode: params.context.executionMode,
+    purpose: params.context.purpose,
+    caller: params.context.caller,
+    fallbackPolicy: params.context.fallbackPolicy,
+    offeringSelection: params.context.offeringSelection,
+    requestedCapabilities: params.context.requestedCapabilities,
+    usage: usageFromResponse(params.response),
+    latencyMs: params.response.execution_time_ms ?? null,
+    keySource: keySourceFromResponse(params.response),
+    substitutedFrom: params.context.offeringSelection === 'stated'
+      ? null
+      : undefined,
   });
 }
 
@@ -76,39 +164,60 @@ export async function executeRegisteredChat(params: {
   environment?: Record<string, unknown> | null;
   jsonMode?: boolean;
   onDelta?: (chunk: string) => void;
+  executionMode?: ExecutionMode;
+  purpose?: ExecutionPurpose | null;
+  caller?: ExecutionCaller | null;
+  fallbackPolicy?: ExecutionFallbackPolicy;
+  offeringSelection?: ExecutionOfferingSelection;
+  requestedCapabilities?: string[];
 }): Promise<RegisteredChatResult> {
+  const context: ChatExecutionContext = {
+    executionMode: params.executionMode && isExecutionMode(params.executionMode)
+      ? params.executionMode
+      : 'production',
+    purpose: params.purpose ?? null,
+    caller: params.caller ?? null,
+    fallbackPolicy: params.fallbackPolicy ?? 'sibling_on_invalid_model',
+    offeringSelection: params.offeringSelection ?? 'plan',
+    requestedCapabilities: params.requestedCapabilities ?? [],
+  };
+
   const plan = resolveExecutionPlan(params.preference);
+  const stated = context.offeringSelection === 'stated' ? statedOffering(params.preference) : null;
+  const primary: RecordedOffering | ProviderOffering = stated ?? plan.offering;
+  const sibling = stated || context.fallbackPolicy === 'none' ? null : plan.fallbackOffering;
   const attempts: ExecutionAttempt[] = [];
 
   const first = await ModelProviderService.callModel({
     messages: params.messages,
-    settings: { ...params.settings, model: plan.offering.modelId },
-    provider: plan.offering.provider,
+    settings: { ...params.settings, model: primary.modelId },
+    provider: primary.provider as ModelProvider,
     userId: params.userId,
     domainId: params.domainId,
     environment: params.environment,
     jsonMode: params.jsonMode,
     onDelta: params.onDelta,
   });
-  attempts.push(attemptFromResponse(plan.offering, first));
+  attempts.push(attemptFromResponse(primary, first));
 
   if (first.success) {
-    logExecutionPlan({ plan, fallbackUsed: false, attempts });
+    logExecutionPlan({ plan, executed: primary, context, fallbackUsed: false, attempts });
     return {
       response: first,
       plan,
-      usedOffering: plan.offering,
+      usedOffering: primary,
       fallbackUsed: false,
-      record: executionRecordFromPlan({
+      record: recordFor({
         plan,
-        usedOffering: plan.offering,
+        usedOffering: primary,
         fallbackUsed: false,
         attempts,
+        response: first,
+        context,
       }),
     };
   }
 
-  const sibling = plan.fallbackOffering;
   const canFallback =
     sibling != null
     && shouldFallbackToSiblingOffering({
@@ -117,23 +226,25 @@ export async function executeRegisteredChat(params: {
     });
 
   if (!sibling || !canFallback) {
-    logExecutionPlan({ plan, fallbackUsed: false, attempts });
+    logExecutionPlan({ plan, executed: primary, context, fallbackUsed: false, attempts });
     return {
       response: first,
       plan,
-      usedOffering: plan.offering,
+      usedOffering: primary,
       fallbackUsed: false,
-      record: executionRecordFromPlan({
+      record: recordFor({
         plan,
-        usedOffering: plan.offering,
+        usedOffering: primary,
         fallbackUsed: false,
         attempts,
+        response: first,
+        context,
       }),
     };
   }
 
   console.warn('[ExecutionPlan] preferred offering failed; trying sibling', {
-    preferred: plan.offering.offeringId,
+    preferred: primary.offeringId,
     fallback: sibling.offeringId,
     errorCode: first.errorCode ?? null,
     providerStatus: first.providerStatus ?? null,
@@ -152,32 +263,36 @@ export async function executeRegisteredChat(params: {
   attempts.push(attemptFromResponse(sibling, second));
 
   if (second.success) {
-    logExecutionPlan({ plan, fallbackUsed: true, attempts });
+    logExecutionPlan({ plan, executed: sibling, context, fallbackUsed: true, attempts });
     return {
       response: second,
       plan,
       usedOffering: sibling,
       fallbackUsed: true,
-      record: executionRecordFromPlan({
+      record: recordFor({
         plan,
         usedOffering: sibling,
         fallbackUsed: true,
         attempts,
+        response: second,
+        context,
       }),
     };
   }
 
-  logExecutionPlan({ plan, fallbackUsed: true, attempts, bothFailed: true });
+  logExecutionPlan({ plan, executed: primary, context, fallbackUsed: true, attempts, bothFailed: true });
   return {
     response: first,
     plan,
-    usedOffering: plan.offering,
+    usedOffering: primary,
     fallbackUsed: true,
-    record: executionRecordFromPlan({
+    record: recordFor({
       plan,
-      usedOffering: plan.offering,
+      usedOffering: primary,
       fallbackUsed: true,
       attempts,
+      response: first,
+      context,
     }),
   };
 }

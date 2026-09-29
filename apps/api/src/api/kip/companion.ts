@@ -192,6 +192,8 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
       },
       userId: domainOwnerId ?? undefined,
       domainId: domainId ?? undefined,
+      purpose: 'companion',
+      caller: { kind: 'feature', slug: 'companion' },
     });
 
     if (!executed.response.success) {

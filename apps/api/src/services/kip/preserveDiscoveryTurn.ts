@@ -409,6 +409,8 @@ async function completePreserveDiscovery(params: {
     userId: params.userId,
     domainId: params.domainId,
     jsonMode: capabilities.jsonMode,
+    purpose: 'preserve_completion',
+    caller: { kind: 'feature', slug: 'preserve-discovery' },
   });
   if (!executed.response.success) {
     throw new Error(executed.response.error || 'preserve completion failed');

@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-27: **Chat execution context** — Agent turns and companion tag `executeRegisteredChat` with purpose and caller. Registry resolution and sibling fallback are unchanged. `executionMode` defaults to production and is not acted on.
 - 2026-09-27: **Frame authority** — the Lead sets `presentFrame`, or the human explicitly asks for a Frame. Rendr composes and may recommend. That recommendation does not present the Dialog.
 - 2026-09-27: **Frame promotion** — resolved meaning still asks Rendr to compose. The turn stays conversation unless a beat is promoted. A Stage cell is appended only for that promoted beat, and only when the turn is already on Stage.
 - 2026-09-27: **Silent Lead still reaches Jev** — an empty model body is not parsed as a reply and is not shown as `[No response content]`. Preserve-discovery receives prior human turns. If Jev keeps a Point, that notice is the Dialog line. Otherwise the turn says the agent didn't return a reply.

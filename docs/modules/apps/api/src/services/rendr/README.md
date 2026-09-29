@@ -17,6 +17,9 @@ Treatment changes use `treatment.propose` on Design Board. Dialog Points use `dr
 
 ## 📆 Update Log
 
+### 2026-09-27 — Frame expression uses the chat seam
+- `expressResolvedMeaningOnStage` calls `executeRegisteredChat` with Rendr's stored provider and model (empty model stays `claude-sonnet-4-6`). Sibling fallback is off. Domain tier and `jsonMode` are unchanged.
+
 ### 2026-09-27 — Lead authorizes the Frame
 - `presentFrame` is the Lead's decision. An explicit human request also authorizes. Rendr composes the Frame and may set `recommendPresentation`. Rendr's `promote` is discarded.
 

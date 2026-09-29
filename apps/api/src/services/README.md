@@ -26,6 +26,11 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-27 — Chat seam records mode and stated calls
+- `executeRegisteredChat` still resolves with `resolveExecutionPlan(preference)`. Default sibling fallback is unchanged.
+- The record now includes `executionMode` (default `production`), purpose, caller, token usage, latency, and key source. Mode is not used to choose a model or write state.
+- Rendr Frame expression, library perspective, and Designer conversation enter this function with their existing model stated and sibling fallback off. Structure JSON, Jev, image, voice, and embeddings stay outside.
+
 ### 2026-09-27 — Empty Anthropic text is retried, not spoken
 - A successful Anthropic call with no text blocks used to become the Dialog line `[No response content]`.
 - That call is retried once without streaming. If the stop reason was `max_tokens`, the retry raises the cap (up to 8000).
