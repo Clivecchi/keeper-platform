@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-09-29: **Agent error provider type** — failed Agent turns pass `response.provider` into the error details. That value is a known provider. The execution record’s provider string is unchanged.
 - 2026-09-27: **Chat execution context** — Agent turns and companion tag `executeRegisteredChat` with purpose and caller. Registry resolution and sibling fallback are unchanged. `executionMode` defaults to production and is not acted on.
 - 2026-09-27: **Frame authority** — the Lead sets `presentFrame`, or the human explicitly asks for a Frame. Rendr composes and may recommend. That recommendation does not present the Dialog.
 - 2026-09-27: **Frame promotion** — resolved meaning still asks Rendr to compose. The turn stays conversation unless a beat is promoted. A Stage cell is appended only for that promoted beat, and only when the turn is already on Stage.

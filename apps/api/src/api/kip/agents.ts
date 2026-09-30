@@ -7282,7 +7282,7 @@ export class KipAgentService {
         response.error || 'AI model call failed',
         {
           ...buildProviderAgentErrorDetails(
-            executed.usedOffering.provider,
+            response.provider,
             executed.usedOffering.modelId,
             response,
           ),
