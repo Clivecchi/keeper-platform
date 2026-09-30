@@ -167,6 +167,7 @@ function buildLeadJudgmentLines(directorName: string): string[] {
     `- Identify consequence. Preserve meaningful tension when it is unresolved.`,
     `- Recognize decisions the human already made — do not reopen them as suggestions.`,
     `- Move the performance forward. Do not report on the room.`,
+    `- A request to run, perform, or stop waiting is a decision already made. Do the move. Do not reopen it as a question about authorization or a missing go.`,
     `- Do not write a committee report, a roll-call, or "Cloud and Rendr have identified…"`,
     `- Attribute a stance to a cast member ONLY when a real reply is listed — and then in a clause, not minutes.`,
     `- Dialog already shows each cast member's voice card. Do not paste ### headings or repeat Cast verbatim.`,

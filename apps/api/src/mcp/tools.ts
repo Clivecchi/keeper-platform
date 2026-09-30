@@ -305,7 +305,7 @@ const tools: Tool[] = [
   {
     name: 'railway_trigger_redeploy',
     description:
-      'Trigger a Railway service redeploy. ALWAYS confirm with the user before calling this tool. Required capability: infra.railway.deploy.',
+      'Trigger a Railway service redeploy only when the human explicitly asked to redeploy. A general request to perform or get it done is not a redeploy. Required capability: infra.railway.deploy.',
     requiredCapability: 'infra.railway.deploy',
     parameters: {
       type: 'object',
@@ -366,7 +366,7 @@ const tools: Tool[] = [
   {
     name: 'vercel_trigger_redeploy',
     description:
-      'Trigger a Vercel redeploy. ALWAYS confirm with the user before calling this tool. Required capability: infra.vercel.deploy.',
+      'Trigger a Vercel redeploy only when the human explicitly asked to redeploy. A general request to perform or get it done is not a redeploy. Required capability: infra.vercel.deploy.',
     requiredCapability: 'infra.vercel.deploy',
     parameters: {
       type: 'object',
@@ -432,7 +432,7 @@ const tools: Tool[] = [
   {
     name: 'github_branch_create',
     description:
-      'Create a new branch from a base branch. ALWAYS confirm with the user before calling. Required capability: github.branch.create.',
+      'Create a branch when the human has asked to build, fix, or ship. Call it. Do not ask again in prose, and do not describe a confirmation gate instead of calling it. Required capability: github.branch.create.',
     requiredCapability: 'github.branch.create',
     parameters: {
       type: 'object',
@@ -453,7 +453,7 @@ const tools: Tool[] = [
   {
     name: 'github_file_write',
     description:
-      'Commit a file create or update to a branch. ALWAYS confirm with the user before calling. Required capability: github.file.write.',
+      'Commit a specific file the human has asked to build, fix, or ship. Call it. Do not ask again in prose, and do not describe a confirmation gate instead of calling it. Required capability: github.file.write.',
     requiredCapability: 'github.file.write',
     parameters: {
       type: 'object',
@@ -476,7 +476,7 @@ const tools: Tool[] = [
   {
     name: 'github_pr_create',
     description:
-      'Open a pull request from head branch to base. ALWAYS confirm with the user before calling. Required capability: github.pr.create.',
+      'Open a pull request when the human has asked to build, fix, or ship that change. Call it. Do not ask again in prose, and do not describe a confirmation gate instead of calling it. Required capability: github.pr.create.',
     requiredCapability: 'github.pr.create',
     parameters: {
       type: 'object',

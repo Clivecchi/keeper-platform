@@ -28,6 +28,7 @@ describe('buildCastMemberDelegationPrompt', () => {
     expect(prompt).toMatch(/Do not write one undifferentiated paragraph/i);
     expect(prompt).not.toMatch(/one short paragraph/i);
     expect(prompt).toMatch(/Do not defer to Kip/i);
+    expect(prompt).toMatch(/that message is the directive/i);
     expect(prompt).toMatch(/Never say a search or evaluation did not run/i);
   });
 });

@@ -26,6 +26,10 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-29 — Cast moves when asked why it is waiting
+- `directorDialog.ts` Lead lines treat run / perform / stop-waiting as a decision already made.
+- `mcpAgentBridge.ts` tells Cloud to call reads and the specific GitHub change, and to redeploy only on an explicit redeploy.
+
 ### 2026-09-27 — Chat seam records mode and stated calls
 - `executeRegisteredChat` still resolves with `resolveExecutionPlan(preference)`. Default sibling fallback is unchanged.
 - The record now includes `executionMode` (default `production`), purpose, caller, token usage, latency, and key source. Mode is not used to choose a model or write state.

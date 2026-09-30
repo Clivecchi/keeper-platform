@@ -1010,6 +1010,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 ## 📆 Update Log
 
+**2026-09-29**: GitHub branch / file / PR tool text no longer says “ALWAYS confirm before calling.” Those calls happen when the human asked to build, fix, or ship. Railway and Vercel redeploy still require an explicit redeploy request.
+
 **2026-08-29**: `dialog_ingest` description — major headings become Document Sections; child headings become Points in that Section (same planner as Chronicle ingest).
 
 **2026-08-20**: `github_repo_read` lists directories and encodes nested Contents paths; Contents 404s fall back to the git tree with nearby-path hints so Cloud can recover from `apps/web/src/components/board` vs `boards`.

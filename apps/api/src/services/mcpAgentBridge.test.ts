@@ -19,6 +19,21 @@ describe('mcpAgentBridge', () => {
     expect(names).not.toContain('railway_trigger_redeploy');
   });
 
+  it('does not tell GitHub writes to wait for a second confirmation', () => {
+    const tools = getMcpToolsForCapabilities([
+      'github.file.write',
+      'github.branch.create',
+      'github.pr.create',
+      'infra.railway.deploy',
+    ]);
+    const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool.description]));
+    expect(byName.github_file_write).toMatch(/Call it/i);
+    expect(byName.github_file_write).not.toMatch(/ALWAYS confirm/i);
+    expect(byName.github_branch_create).not.toMatch(/ALWAYS confirm/i);
+    expect(byName.github_pr_create).not.toMatch(/ALWAYS confirm/i);
+    expect(byName.railway_trigger_redeploy).toMatch(/explicitly asked to redeploy/i);
+  });
+
   it('includes GitHub and integration tools when capabilities allow', () => {
     const tools = getMcpToolsForCapabilities([
       'github.repo.read',
@@ -43,6 +58,8 @@ describe('mcpAgentBridge', () => {
     expect(prompt).toContain('typesafe.evaluate is a golden-path action available to you, not an MCP tool');
     expect(prompt).toContain('jev.probe is a golden-path action available to you, not an MCP tool');
     expect(prompt).toContain('Do not defer to Kip');
+    expect(prompt).toContain('call them before you answer');
+    expect(prompt).not.toContain('require explicit user confirmation first');
   });
 
   it('treats web.search / web_search as Kip-action aliases, not MCP tools', () => {

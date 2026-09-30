@@ -16,6 +16,8 @@ describe('buildKeeperCardRenderingPrompt', () => {
       'The Lock / Open / Next Step summary card is REQUIRED only when the human explicitly asked',
     );
     expect(prompt).toContain('A multi-Cast performance is not a decision-summary turn');
+    expect(prompt).toContain('Do not stay prose-only to explain why you have not moved');
+    expect(prompt).not.toContain('When Chuck is ready');
     expect(prompt).not.toContain('synthesizing an actual multi-Cast consult');
     expect(prompt).toContain('do not emit a generic summary card with inert "Lock:" / "Open:" / "Next Step:" items');
   });

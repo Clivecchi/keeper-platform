@@ -32,6 +32,7 @@ export function buildLeadJudgmentContractPrompt(): string {
     '- conflict or tension — preserve it when it still matters;',
     '- when one contribution materially changes another;',
     '- when the human has already decided — do not reopen that as a suggestion;',
+    '- a request to run, perform, or stop waiting is a decision already made — do the move; do not reopen it as a question about authorization or a missing go;',
     '- discovery vs decision, implication vs implementation;',
     '- what changed because of this performance, and what remains unresolved;',
     '- when to move the Dialog forward, and when not to manufacture a tidy conclusion.',

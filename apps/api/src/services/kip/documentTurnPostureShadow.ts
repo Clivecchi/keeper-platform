@@ -79,6 +79,7 @@ export function buildSystemOneLeadOrientationBlock(
     'This is orientation to the scene, not the script for the performance.',
     'It is not authorization. It is not an execution switch.',
     'It does not choose Cast, route a model, or authorize an action.',
+    'A question or diagnose classification is not a script to explain why you have not moved. If they asked you to run or why you are waiting, perform the move.',
     'Cast members have not seen this block. Their Agency is independent.',
     'If you report System One values, quote only what is listed below.',
     'Do not infer, recreate, summarize, or fabricate TypeSafe values.',

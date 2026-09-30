@@ -20,7 +20,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
 - `sessionActionLog.ts` — Dialog session action receipts + web.search evidence for every agent prompt
-- `castDelegationVoice.ts` — Shared Cast speech, golden-path agency, and receipt honesty lines
+- `castDelegationVoice.ts` — Shared Cast speech, golden-path agency, receipt honesty, and the performance posture (a request to run is the directive)
 - `documentReorganizeIntent.ts` — Phrase signal for Document-review language. Mention ≠ established direction ≠ authorization ≠ execution.
 - `documentTurnPosture.ts` — TypeSafe shadow primitives + diagnostic corpus for Document Turn Posture. `parseSystemOneOrientationView` reads stored Jev from `humanTurn.systemOne` first, then top-level `turnPostureShadow`.
 - `humanTurn.ts` — Human Turn id + `human-turn-v0` performance record. Dialog → Scene → Turns seam. No Scene model.
@@ -37,6 +37,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-29: Performance posture — `buildPerformancePosturePrompt` tells every cued agent that “why are we waiting / perform / get it done” is the directive. Speak briefly, emit the move, do not ask for go. Production redeploy still needs an explicit redeploy.
 - 2026-09-27: `agentModelPicker` is the one agent chat menu. Together chat is Llama 3.3 70B. FLUX is not offered here.
 - 2026-09-20: Cast honesty / agency / speech — `sessionActionLog` lists web.search titles and URLs; ephemeral consults may read the Dialog session and must not write it (`resolveEphemeralSessionAccess`). `castDelegationVoice` stops the one-paragraph rule and tells every cued agent to fire golden-path tools.
 - 2026-09-19: `humanTurn.ts` mints a Human Turn id and stores the structured System One record on that Turn. Later Lead passes reuse it. Cast does not receive it.

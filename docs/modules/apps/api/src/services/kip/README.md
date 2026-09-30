@@ -47,6 +47,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-09-29 — Perform instead of explaining the wait
+- Lead Judgment treats a request to run, perform, or stop waiting as a decision already made.
+- Keeper-card rendering no longer stays prose-only on that turn, and no longer models “when Chuck is ready.”
+- System One orientation does not script an essay when the classification is question or diagnose.
+
 ### 2026-09-27 — Preserve completion names its chat purpose
 - The prose half of preserve-discovery still uses `executeRegisteredChat` and the Agent preference. The call is tagged `preserve_completion`. Jev Choice stays on TypeSafe.
 

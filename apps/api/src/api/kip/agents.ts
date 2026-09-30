@@ -54,6 +54,8 @@ import {
   findDuplicateHostPoint,
   pointProposeIdentityFrom,
   buildSessionActionLogPrompt,
+  buildPerformancePosturePrompt,
+  NEAREST_MOVE_WHEN_BLOCKED_LINE,
   resolveEphemeralSessionAccess,
   shapeRecordTitle,
   isGlossAnchor,
@@ -6234,7 +6236,7 @@ export class KipAgentService {
           'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), optional "keepingChoices" (array of {label, direction, meaning?, about?}), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"keepingChoices":[],"actions":[...]}',
           `Allowed actions: ${allowList.join(', ')}.`,
           'Each action must include a "type" and optional "payload".',
-          'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
+          NEAREST_MOVE_WHEN_BLOCKED_LINE,
           'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
           skipDelegateConsultFromEnv(environment)
             ? COMPOSER_STAGE_NO_CONSULT_PROMPT
@@ -6491,6 +6493,8 @@ export class KipAgentService {
         /* ignore */
       }
     }
+
+    systemParts.push(buildPerformancePosturePrompt());
 
     return systemParts.join('\n\n');
   }
@@ -6910,7 +6914,7 @@ export class KipAgentService {
             'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), optional "card" (object), optional "keepingChoices" (array of {label, direction, meaning?, about?}), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","card":{"type":"status","title":"Done","body":"Optional"},"keepingChoices":[],"actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
-            'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
+            NEAREST_MOVE_WHEN_BLOCKED_LINE,
             'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
             ...(suppressKipPromptForActions
               ? [
@@ -7199,6 +7203,11 @@ export class KipAgentService {
           content: orchestrationContext,
         });
       }
+
+      messages.push({
+        role: 'system',
+        content: buildPerformancePosturePrompt(),
+      });
 
       if (reusingPrompt) {
         if (typeof input === 'string' && input.trim()) {
