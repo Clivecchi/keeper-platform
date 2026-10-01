@@ -86,6 +86,7 @@ const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
   soleMemory: "soleMemory",
   boardDef: "boardDef",
   glossary: "glossary",
+  story: "story",
 }
 
 const CONFIG_LAYOUT_KINDS = new Set<TrailKind>(["boardDef"])
@@ -611,6 +612,9 @@ export function UniversalViewPanel({
           break
         case "glossary":
           actions.onGlossarySelect()
+          break
+        case "story":
+          if (entry.id) actions.onStorySelect(entry.id)
           break
         case "boardDef":
           if (entry.id) {

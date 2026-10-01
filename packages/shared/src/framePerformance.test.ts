@@ -90,7 +90,11 @@ describe('bindFramePerformanceCue', () => {
     expect(parsed).not.toBeNull();
     if (!parsed) return;
     const bound = bindFramePerformanceCue(parsed, { hasCastVoices: true });
-    expect(bound.cue?.actions.map((action) => action.kind)).toEqual(['review_cast', 'open_stage']);
+    expect(bound.cue?.actions.map((action) => action.kind)).toEqual([
+      'add_to_story',
+      'review_cast',
+      'open_stage',
+    ]);
   });
 
   it('stamps Point ids onto Keep and Open when the turn has a Point', () => {

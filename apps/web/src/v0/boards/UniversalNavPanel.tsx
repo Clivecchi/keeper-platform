@@ -40,6 +40,7 @@ import { KipApi, type KipDraftSummary } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { SidebarCard } from "../components/SidebarCard"
+import { useDomainStoriesOptional } from "../composer/useDomainStories"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { KeyNavRowPatch, DraftNavRowPatch, AgentNavRowPatch } from "./UniversalBoardContext"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
@@ -316,6 +317,31 @@ function ChevronLeftIcon() {
         strokeLinejoin="round"
       />
     </svg>
+  )
+}
+
+function StoryNavCard() {
+  const stories = useDomainStoriesOptional()
+  const board = useUniversalBoardOptional()
+  if (!stories || !board) return null
+  const selectedId = board.selection.selectedStoryId
+  return (
+    <SidebarCard
+      className="keeper-sidebar-card"
+      title="Stories"
+      description={stories.loading ? "Loading…" : "Shape the telling"}
+      onAdd={() => {
+        void stories.createStory().then((story) => {
+          if (story) board.actions.onStorySelect(story.id)
+        })
+      }}
+      items={stories.set.stories.map((story) => ({
+        id: story.id,
+        label: story.title,
+        isSelected: story.id === selectedId,
+        onClick: () => board.actions.onStorySelect(story.id),
+      }))}
+    />
   )
 }
 
@@ -1724,6 +1750,9 @@ export function UniversalNavPanel({
             ]}
           />
         )
+      case "stories": {
+        return <StoryNavCard />
+      }
       case "stage":
         if (mobileSimplified) return null
         return (

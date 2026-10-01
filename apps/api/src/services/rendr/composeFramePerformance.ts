@@ -31,9 +31,9 @@ export function buildFramePerformanceSystemPrompt(): string {
     'At most 4 beats. The first beat carries the resolved Point. Later beats may give one selected line more room.',
     'Do not give every voice equal space. Omit voice when no selected line belongs in that beat.',
     'voice.text must be copied from SELECTED VOICES. voice.slug must be that voice\'s slug.',
-    '{"version":1,"title":"Point title","beats":[{"title":"Beat title","body":"Narrative.","voice":{"slug":"ceox","attributedTo":"Ceox","text":"exact selected line"}}],"cue":{"prompt":"Ready to move this forward?","actions":[{"kind":"review_cast","label":"Review the Cast"},{"kind":"open_stage","label":"Take to Stage"}]}}',
+    '{"version":1,"title":"Point title","beats":[{"title":"Beat title","body":"Narrative.","voice":{"slug":"ceox","attributedTo":"Ceox","text":"exact selected line"}}],"cue":{"prompt":"Ready to move this forward?","actions":[{"kind":"add_to_story","label":"Add to Story"},{"kind":"review_cast","label":"Review the Cast"},{"kind":"open_stage","label":"Take to Stage"}]}}',
     'Composition is yours: beats, voice, cue, and how the telling should look. Presentation authority is not.',
-    'action.kind is only keep, review_cast, open_stage, or open_point.',
+    'action.kind is only add_to_story, keep, review_cast, open_stage, or open_point.',
   ].join('\n');
 }
 

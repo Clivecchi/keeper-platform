@@ -55,6 +55,7 @@ export * from './dialogTitleSource.js';
 export * from './talkingInWorkingOn.js';
 export * from './conversationProfile.js';
 export * from './keeperStage.js';
+export * from './keeperStory.js';
 export * from './keeperAdviceCard.js';
 export * from './keepingChoice.js';
 export * from './resolvedMeaning.js';

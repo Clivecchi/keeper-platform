@@ -54,6 +54,6 @@ describe('frame performance contract', () => {
     expect(parsed).not.toBeNull();
     if (!parsed) return;
     const bound = bindFramePerformanceCue(parsed, { hasCastVoices: false });
-    expect(bound.cue?.actions.map((action) => action.kind)).toEqual(['open_stage']);
+    expect(bound.cue?.actions.map((action) => action.kind)).toEqual(['add_to_story', 'open_stage']);
   });
 });

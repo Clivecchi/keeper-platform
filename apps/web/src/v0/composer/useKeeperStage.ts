@@ -49,6 +49,15 @@ type KeeperStageContextValue = {
   remove: (presenceId: string) => void
   setTheme: (theme: KeeperStageTheme | null) => void
   appendLiveBeat: (input: { leadMessageId: string; title: string; body: string }) => void
+  /** Replace the filmstrip beats with an ordered Story. Presences and theme stay. */
+  replaceStorySlides: (
+    slides: Array<{
+      id: string
+      title: string
+      body: string
+      source?: { kind: "live" | "point" | "moment" | "path" | "keeper" | "journey"; id?: string | null }
+    }>,
+  ) => void
   selected: StagePresence | null
 }
 
@@ -193,6 +202,19 @@ export function KeeperStageProvider({
     apply({ ...stageRef.current, theme })
   }, [apply])
 
+  const replaceStorySlides = React.useCallback((
+    slides: Array<{
+      id: string
+      title: string
+      body: string
+      source?: { kind: "live" | "point" | "moment" | "path" | "keeper" | "journey"; id?: string | null }
+    }>,
+  ) => {
+    const story = parseStageStory({ slides })
+    if (!story) return
+    apply({ ...stageRef.current, story })
+  }, [apply])
+
   const appendLiveBeat = React.useCallback((input: {
     leadMessageId: string
     title: string
@@ -228,8 +250,9 @@ export function KeeperStageProvider({
     remove,
     setTheme,
     appendLiveBeat,
+    replaceStorySlides,
     selected,
-  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, setTheme, appendLiveBeat, selected])
+  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, setTheme, appendLiveBeat, replaceStorySlides, selected])
 
   return React.createElement(KeeperStageCtx.Provider, { value }, children)
 }

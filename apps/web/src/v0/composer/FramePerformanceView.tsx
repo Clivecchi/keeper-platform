@@ -159,6 +159,16 @@ export function FramePerformanceView({
       cues.onOpenStagePerformance?.(messageId, performance)
       return
     }
+    if (action.kind === "add_to_story") {
+      const beatIndex = Math.min(index, Math.max(beatCount - 1, 0))
+      const current = performance.beats[beatIndex]
+      cues.onAddToStory?.(messageId, performance, {
+        title: current?.title ?? performance.title,
+        body: current?.body ?? "",
+        index: beatIndex,
+      })
+      return
+    }
     if (action.kind === "keep" && action.pointId && action.draftId) {
       cues.onAcceptDraftPoint?.(action.draftId, action.pointId)
       return

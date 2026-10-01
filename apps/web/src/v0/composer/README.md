@@ -6,7 +6,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 ## 🧱 Key Files
 - `FramePerformanceView.tsx` — a promoted Frame. `placement="dialog"` fills the Dialog surface; `placement="stage"` fills the Stage screen. Beats replace inside the viewport.
 - `dialogFramePresentation.ts` — latest agent turn presents a Frame only when a beat is promoted. Conversation is the default.
-- `frameCue.tsx` — Keep, review Cast, open Point, and Take to Stage handlers shared by both placements
+- `frameCue.tsx` — Add to Story, Keep, review Cast, open Point, and Take to Stage handlers shared by both placements
+- `useDomainStories.ts` — domain Story set for Chronicle and the Dialog Frame cue
 - `spatial/loadSpatialFrameHost.tsx` — optional lazy Three.js host. Dialog frames do not call it.
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX). `appendLiveBeat` points one filmstrip cell at a Lead message.
 - `ReachPalette.tsx` — Here / Cast / Recent / search
@@ -49,6 +50,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-09-30: **Story** — `useDomainStories` holds ordered references. Add to Story on a Frame writes a capture. Take Story to Stage replaces the filmstrip beats through `replaceStorySlides` and leaves Stage presentation alone.
+
 
 ### 2026-09-27 — Lead authorizes the Frame
 - Presentation still waits on a stamped beat. The stamp comes from the Lead's `presentFrame`, or from an explicit human request. Rendr's recommendation does not open the Dialog surface.

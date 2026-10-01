@@ -854,6 +854,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
 
+### 2026-09-30 — Story in Chronicle
+- Nav **Stories** opens a Story in Chronicle and leaves the Dialog in the center. Add to Story and Take Story to Stage share that selection. The Stage filmstrip is no longer the place the narrative is arranged.
+
 ### 2026-09-23 — Frame cue on the conversation
 - `UniversalConversation` shares Keep, open Point, and Take to Stage with `FramePerformanceView`, and focuses the live-sourced Stage cell for that Lead message.
 

@@ -78,6 +78,7 @@ import { PwaInstallPrompt } from "../../mobile/pwa"
 import { useVisualViewportHeight } from "../../mobile/hooks/useVisualViewportHeight"
 import { hasUnreadChronicle, markChronicleViewed } from "../presence/chronicleDocument/chronicleMobile"
 import { KeeperStageProvider } from "../composer/useKeeperStage"
+import { DomainStoriesProvider } from "../composer/useDomainStories"
 import "./board-mobile.css"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
@@ -708,6 +709,7 @@ function UniversalBoardShell({
 
   return (
     <KeeperStageProvider domainId={domainId}>
+    <DomainStoriesProvider domainId={domainId}>
     <StyleScope
       key={`board-theme-${slug || "none"}-${themeSlug ?? "none"}-${themeApply}`}
       styleId={styleId}
@@ -787,6 +789,7 @@ function UniversalBoardShell({
         </div>
       </div>
     </StyleScope>
+    </DomainStoriesProvider>
     </KeeperStageProvider>
   )
 }

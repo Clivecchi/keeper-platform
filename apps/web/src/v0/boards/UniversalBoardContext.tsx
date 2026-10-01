@@ -91,6 +91,8 @@ export interface UniversalBoardSelection {
   selectedLibraryItemId: string | null
   /** Object Glossary — governing vocabulary subject (not a Dialog Document). */
   selectedGlossaryId: string | null
+  /** Story workspace. Chronicle shows the Story. Dialog stays the conversation. */
+  selectedStoryId: string | null
   /**
    * title_source by Dialog id from Nav. Chronicle Document shell only for user_set.
    * Chatter / system_promoted stay conversations.
@@ -201,6 +203,10 @@ export interface UniversalBoardActions {
   closeLibraryScreen: () => void
   /** Opens the Object Glossary in Chronicle (Domain read / Design definition). */
   onGlossarySelect: () => void
+  /** Chronicle shows this Story. The open Dialog stays the conversation. */
+  onStorySelect: (id: string) => void
+  /** Ask Stage to land on the filmstrip cell sourced from this Lead message. */
+  requestStageFocus: (sourceId: string | null) => void
   /** Open Chronicle Act to bring writing from outside Keeper into a Dialog. */
   requestDialogIngest: (options?: { dialogId?: string | null; dialogTitle?: string | null }) => void
   closeDialogIngest: () => void
@@ -300,6 +306,8 @@ export interface UniversalBoardContextValue {
   composerReachOpen: boolean
   /** Theme editor — Composer feature; Chronicle Config family; not Composer itself. */
   composerThemeOpen: boolean
+  /** Lead message id Stage should show after Take Story to Stage. */
+  requestedStageFocusId: string | null
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -349,6 +357,8 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   const [selectedCapabilityId, setSelectedCapabilityId] = React.useState<string | null>(null)
   const [selectedLibraryItemId, setSelectedLibraryItemId] = React.useState<string | null>(null)
   const [selectedGlossaryId, setSelectedGlossaryId] = React.useState<string | null>(null)
+  const [selectedStoryId, setSelectedStoryId] = React.useState<string | null>(null)
+  const [requestedStageFocusId, setRequestedStageFocusId] = React.useState<string | null>(null)
   const [selectedSoleMemoryId, setSelectedSoleMemoryId] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
   const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
@@ -636,6 +646,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setAgencyRoom(null)
     clearUrlSubjectIds({ dialogId: id })
     setSelectedDialogId(id)
+    setSelectedStoryId(null)
     setSelectedJourneyId(null)
     setSelectedPathId(null)
     setSelectedMomentId(null)
@@ -993,6 +1004,27 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     shell?.clearBoardDefinition()
   }, [leaveStageOnPlatformNav, shell])
 
+  const onStorySelect = React.useCallback((id: string) => {
+    setSelectedStoryId(id)
+    setSelectedGlossaryId(null)
+    setSelectedLibraryItemId(null)
+    setSelectedSoleMemoryId(null)
+    setSelectedJourneyId(null)
+    setSelectedPathId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
+    setSelectedBoardDefId(null)
+  }, [])
+
+  const requestStageFocus = React.useCallback((sourceId: string | null) => {
+    setRequestedStageFocusId(sourceId)
+  }, [])
+
   const onSoleMemorySelect = React.useCallback((id: string | null) => {
     setSelectedSoleMemoryId(id)
   }, [])
@@ -1048,6 +1080,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
+    setSelectedStoryId(null)
     setSelectedSoleMemoryId(null)
     setSelectedBoardDefId(null)
     setAgencyRoom(null)
@@ -1059,6 +1092,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedBoardDefId(id)
     if (id) {
       setSelectedSoleMemoryId(null)
+      setSelectedStoryId(null)
       setSelectedDialogId(null)
       setSelectedJourneyId(null)
       setSelectedPathId(null)
@@ -1096,6 +1130,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
         selectedCapabilityId,
         selectedLibraryItemId,
         selectedGlossaryId,
+        selectedStoryId,
         selectedSoleMemoryId,
         selectedBoardDefId,
       })
@@ -1336,6 +1371,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       selectedSoleMemoryId,
       selectedBoardDefId,
       selectedGlossaryId,
+      selectedStoryId,
     }),
     [
       selectedDialogId,
@@ -1352,6 +1388,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       selectedSoleMemoryId,
       selectedBoardDefId,
       selectedGlossaryId,
+      selectedStoryId,
     ],
   )
 
@@ -1399,6 +1436,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
         selectedCapabilityId,
         selectedLibraryItemId,
         selectedGlossaryId,
+        selectedStoryId,
         selectedSoleMemoryId,
         selectedBoardDefId,
         draftPresenceRevision,
@@ -1455,6 +1493,8 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
         openLibraryScreen,
         closeLibraryScreen,
         onGlossarySelect,
+        onStorySelect,
+        requestStageFocus,
         requestDialogIngest,
         closeDialogIngest,
         onSoleMemorySelect,
@@ -1512,6 +1552,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       chronicleEngagement,
       dialogIngest,
       chronicleView,
+      requestedStageFocusId,
     }),
     [
       activeSessionId,
@@ -1530,6 +1571,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       selectedCapabilityId,
       selectedLibraryItemId,
       selectedGlossaryId,
+      selectedStoryId,
       selectedSoleMemoryId,
       selectedBoardDefId,
       draftPresenceRevision,
@@ -1588,6 +1630,8 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       openLibraryScreen,
       closeLibraryScreen,
       onGlossarySelect,
+      onStorySelect,
+      requestStageFocus,
       onSoleMemorySelect,
       clearSelection,
       onBoardDefSelect,
@@ -1636,6 +1680,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       workspaceSurface,
       composerReachOpen,
       composerThemeOpen,
+      requestedStageFocusId,
       chronicleEngagement,
       dialogIngest,
       chronicleView,

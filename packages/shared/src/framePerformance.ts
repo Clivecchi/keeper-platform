@@ -12,7 +12,7 @@ export const FRAME_PERFORMANCE_VERSION = 1 as const;
 export const FRAME_PERFORMANCE_MAX_BEATS = 4 as const;
 export const FRAME_PERFORMANCE_MAX_VOICES = 4 as const;
 
-export const FRAME_CUE_KINDS = ['keep', 'review_cast', 'open_stage', 'open_point'] as const;
+export const FRAME_CUE_KINDS = ['add_to_story', 'keep', 'review_cast', 'open_stage', 'open_point'] as const;
 export type FrameCueKind = (typeof FRAME_CUE_KINDS)[number];
 
 /** Lines the Lead chose from real Cast replies. Not the full rehearsal. */
@@ -307,6 +307,10 @@ export function bindFramePerformanceCue(
   };
 
   for (const action of source) {
+    if (action.kind === 'add_to_story') {
+      push({ kind: 'add_to_story', label: action.label });
+      continue;
+    }
     if (action.kind === 'review_cast') {
       if (!binding.hasCastVoices) continue;
       push({ kind: 'review_cast', label: action.label });
@@ -327,6 +331,9 @@ export function bindFramePerformanceCue(
     }
   }
 
+  if (!actions.some((action) => action.kind === 'add_to_story')) {
+    actions.unshift({ kind: 'add_to_story', label: 'Add to Story' });
+  }
   if (binding.hasCastVoices && !actions.some((action) => action.kind === 'review_cast')) {
     push({ kind: 'review_cast', label: 'Review the Cast' });
   }

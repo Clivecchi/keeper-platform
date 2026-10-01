@@ -37,6 +37,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-09-30: **Story references** — `keeperStory.ts` is the domain Story set (`settings.stories`): ordered refs to captures, moments, messages, points, and media. A capture points at a Lead message. It does not copy `framePerformance`. `storyMaterialToStageSlides` maps that order onto existing Stage filmstrip beats.
+
 - 2026-09-29: Performance posture — `buildPerformancePosturePrompt` tells every cued agent that “why are we waiting / perform / get it done” is the directive. Speak briefly, emit the move, do not ask for go. Production redeploy still needs an explicit redeploy.
 - 2026-09-27: `agentModelPicker` is the one agent chat menu. Together chat is Llama 3.3 70B. FLUX is not offered here.
 - 2026-09-20: Cast honesty / agency / speech — `sessionActionLog` lists web.search titles and URLs; ephemeral consults may read the Dialog session and must not write it (`resolveEphemeralSessionAccess`). `castDelegationVoice` stops the one-paragraph rule and tells every cued agent to fire golden-path tools.

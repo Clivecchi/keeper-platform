@@ -21,6 +21,11 @@ export interface LegacyChronicleSelectionIds {
   selectedBoardDefId: string | null;
   /** Object Glossary — governing vocabulary, not a Dialog Document. */
   selectedGlossaryId: string | null;
+  /**
+   * Story workspace in Chronicle. Optional so older callers stay valid.
+   * Wins over the Dialog Document. Does not replace the Dialog conversation.
+   */
+  selectedStoryId?: string | null;
 }
 
 export interface ResolveChronicleViewInput extends LegacyChronicleSelectionIds {
@@ -49,7 +54,8 @@ export type ChronicleSubject =
   | { kind: 'capability'; id: string }
   | { kind: 'library'; id: string }
   | { kind: 'boardDef'; id: string }
-  | { kind: 'glossary'; id: string };
+  | { kind: 'glossary'; id: string }
+  | { kind: 'story'; id: string };
 
 /** Sentinel id for the single Object Glossary Chronicle subject. */
 export const OBJECT_GLOSSARY_SUBJECT_ID = 'object-glossary';
@@ -86,7 +92,8 @@ export type ChronicleLegacyKind =
   | 'library'
   | 'soleMemory'
   | 'boardDef'
-  | 'glossary';
+  | 'glossary'
+  | 'story';
 
 export interface ChronicleLegacyKindId {
   kind: ChronicleLegacyKind;
@@ -112,7 +119,8 @@ export function hasChronicleEntitySubject(input: LegacyChronicleSelectionIds): b
       input.selectedMomentId ||
       input.selectedPathId ||
       input.selectedJourneyId ||
-      input.selectedKeeperId,
+      input.selectedKeeperId ||
+      input.selectedStoryId,
   );
 }
 
@@ -141,6 +149,7 @@ export function resolveChroniclePrimary(input: ResolveChronicleViewInput): Chron
   }
   if (input.selectedJourneyId) return { kind: 'journey', id: input.selectedJourneyId };
   if (input.selectedKeeperId) return { kind: 'keeper', id: input.selectedKeeperId };
+  if (input.selectedStoryId) return { kind: 'story', id: input.selectedStoryId };
   if (input.selectedDialogId) return { kind: 'dialog', id: input.selectedDialogId };
   if (input.selectedBoardDefId) return { kind: 'boardDef', id: input.selectedBoardDefId };
   return DOMAIN_SUBJECT;
@@ -198,6 +207,7 @@ export function chronicleSubjectToLegacyKindId(
     case 'library':
     case 'boardDef':
     case 'glossary':
+    case 'story':
       return { kind: subject.kind, id: subject.id };
     default: {
       const _exhaustive: never = subject;
@@ -267,6 +277,8 @@ export function legacySelectionFromChronicleSubject(
       return { selectedBoardDefId: subject.id };
     case 'glossary':
       return { selectedGlossaryId: subject.id };
+    case 'story':
+      return { selectedStoryId: subject.id };
     default: {
       const _exhaustive: never = subject;
       return _exhaustive;

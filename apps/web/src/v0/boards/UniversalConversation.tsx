@@ -108,6 +108,7 @@ import { StagePresentationProvider } from "../composer/stagePresentation"
 import { FrameCueProvider } from "../composer/frameCue"
 import { useKeeperStageOptional } from "../composer/useKeeperStage"
 import type { FramePerformance } from "@keeper/shared"
+import { useDomainStoriesOptional } from "../composer/useDomainStories"
 import {
   CAST_MEMBER_LABELS,
   extractAgentReplyFromRunResult,
@@ -370,7 +371,8 @@ export function UniversalConversation({
   const defaultAgentName = def.conversation.agentName ?? "Kip"
 
   // ── designer mode: frame key + draft context ───────────────────────────────
-  const { selection, actions, workspaceSurface } = useUniversalBoard()
+  const { selection, actions, workspaceSurface, requestedStageFocusId } = useUniversalBoard()
+  const domainStories = useDomainStoriesOptional()
   const keeperStage = useKeeperStageOptional()
   const boardSelectedAgentId = selection.selectedAgentId ?? selectedAgentId ?? null
   const selectedBoardDefId =
@@ -2551,6 +2553,10 @@ export function UniversalConversation({
 
   const [stageFocusSourceId, setStageFocusSourceId] = React.useState<string | null>(null)
 
+  React.useEffect(() => {
+    if (requestedStageFocusId) setStageFocusSourceId(requestedStageFocusId)
+  }, [requestedStageFocusId])
+
   const openStagePerformance = React.useCallback((messageId: string, performance: FramePerformance) => {
     keeperStage?.appendLiveBeat({
       leadMessageId: messageId,
@@ -2560,6 +2566,24 @@ export function UniversalConversation({
     setStageFocusSourceId(messageId)
     actions.openStageRoom()
   }, [actions, keeperStage])
+
+  const addPerformanceToStory = React.useCallback((
+    messageId: string,
+    _performance: FramePerformance,
+    beat: { title: string; body: string; index: number },
+  ) => {
+    if (!domainStories) return
+    void domainStories.addMaterial({
+      kind: "capture",
+      sourceId: messageId,
+      title: beat.title,
+      excerpt: beat.body,
+      dialogId: selection.selectedDialogId,
+      beatIndex: beat.index,
+    }).then((story) => {
+      if (story) actions.onStorySelect(story.id)
+    })
+  }, [actions, domainStories, selection.selectedDialogId])
 
   const openPerformedPoint = React.useCallback((input: {
     draftId: string
@@ -2886,6 +2910,7 @@ export function UniversalConversation({
           onOpenPoint: openPerformedPoint,
           onAcceptDraftPoint: domainId ? handleAcceptDraftPoint : undefined,
           onOpenStagePerformance: openStagePerformance,
+          onAddToStory: addPerformanceToStory,
         }}
       >
       <StagePresentationProvider

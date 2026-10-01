@@ -836,7 +836,9 @@ button.dialog-prelude:hover {
   display: none;
 }
 
-/* Promoted Frame — full Dialog surface. Conversation stays the transcript underneath. */
+/* Promoted Frame — full Dialog surface. Conversation stays the transcript underneath.
+   Paper sits over the Domain cover so the telling stays readable on any atmosphere.
+   Identity stays in the banner, the treatment edge, and the cover around the Frame. */
 .dialog-frame-surface {
   position: absolute;
   inset: 0;
@@ -844,6 +846,14 @@ button.dialog-prelude:hover {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  background: hsl(var(--theme-surface-paper) / 0.97);
+  box-shadow: inset 0 0 0 1px hsl(var(--theme-border-soft) / 0.45);
+}
+
+.keeper-treatment-accent .dialog-frame-surface {
+  box-shadow:
+    inset 3px 0 0 hsl(var(--treatment-color) / 0.9),
+    inset 0 0 0 1px hsl(var(--theme-border-soft) / 0.45);
 }
 
 .dialog-frame-surface-canvas {

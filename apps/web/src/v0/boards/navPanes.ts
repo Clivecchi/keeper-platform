@@ -27,6 +27,7 @@ export const UNIVERSAL_NAV_BLOCKS: NavRenderBlock[] = [
   "drafts",
   "chatter",
   "library",
+  "stories",
   "stage",
 ]
 

@@ -20,6 +20,7 @@ import type { ResolvedDomainTreatment } from "../treatment/resolveDomainTreatmen
 import { ChronicleTreatmentShell } from "../treatment/ChronicleTreatmentShell"
 import { isExternalAccessChronicleKey } from "../boards/domain/externalAccessKeyIds"
 import { ExternalAccessKeyPresence } from "./integrationChronicle/ExternalAccessKeyPresence"
+import { StoryPresence } from "./StoryPresence"
 
 const GlossaryPresence = React.lazy(async () => {
   const mod = await import("./GlossaryPresence")
@@ -74,6 +75,12 @@ export function ChroniclePresenceView({
           Waiting for domain context…
         </p>
       </div>
+    )
+  }
+
+  if (objectType === "story") {
+    return (
+      <StoryPresence storyId={objectId} />
     )
   }
 

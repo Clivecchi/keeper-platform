@@ -53,6 +53,8 @@ export type NavRenderBlock =
   | "boards"
   /** Realm Universal pane — opens Stage room, not a board. */
   | "stage"
+  /** Stories — Chronicle workspace. Not the Stage filmstrip. */
+  | "stories"
   /** Agency pane — Domain People, same membership truth as Domain Configure. */
   | "people"
 

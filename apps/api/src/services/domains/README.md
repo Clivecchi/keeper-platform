@@ -14,6 +14,7 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `resolveDomainLeadAgent.ts` — DB-first read (`primaryAgentId` → mirror row lookup); `syncDomainLeadAuthority` one write path.
 - `dialogCastMembership.ts` — Phase 1 cross-domain cast enablement (candidates / members / enable / disable); Admin checked at request time via direct Prisma.
 - `keeperStageStore.ts` — load/save `Domain.settings.keeperStage` without wiping sibling settings or the filmstrip.
+- `storyStore.ts` — load/save `Domain.settings.stories` the same way. Story material references existing objects.
 - `../scripts/repair-domain-frame.ts` — CLI repair for unseeded personal domains.
 
 ## 🔄 Data & Behavior

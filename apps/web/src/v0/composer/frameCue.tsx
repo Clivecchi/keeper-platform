@@ -15,6 +15,11 @@ export type FrameCueHandlers = {
   }) => void
   onAcceptDraftPoint?: (draftId: string, pointId: string) => void
   onOpenStagePerformance?: (messageId: string, performance: FramePerformance) => void
+  onAddToStory?: (
+    messageId: string,
+    performance: FramePerformance,
+    beat: { title: string; body: string; index: number },
+  ) => void
 }
 
 const FrameCueContext = React.createContext<FrameCueHandlers>({})

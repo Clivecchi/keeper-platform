@@ -26,6 +26,15 @@ const emptySelection = {
 };
 
 describe('resolveChroniclePrimary', () => {
+  it('shows a Story over the Dialog without dropping the Dialog id', () => {
+    const primary = resolveChroniclePrimary({
+      ...emptySelection,
+      selectedDialogId: 'dlg-1',
+      selectedStoryId: 'story-1',
+    });
+    expect(primary).toEqual({ kind: 'story', id: 'story-1' });
+  });
+
   it('returns domain when no selection is active', () => {
     expect(resolveChroniclePrimary(emptySelection)).toEqual({ kind: 'domain' });
   });
