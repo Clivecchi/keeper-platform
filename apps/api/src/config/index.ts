@@ -19,6 +19,7 @@ export {
 
 export {
   resolveExecutionPlan,
+  resolvePurposeOffering,
   DEFAULT_CHAT_OFFERING,
   PROVIDER_OFFERINGS,
   EXECUTION_MODES,

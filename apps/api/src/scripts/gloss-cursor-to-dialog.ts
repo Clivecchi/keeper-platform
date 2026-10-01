@@ -17,6 +17,8 @@ import 'dotenv/config';
 import { readFileSync } from 'node:fs';
 import { prisma } from '@keeper/database';
 import { callTool } from '../mcp/tools.js';
+import { ensureDialogGlossCarrier } from '../services/kip/ensureDialogGlossCarrier.js';
+import { canonicalGlossAnchor, isGlossAnchor } from '@keeper/shared';
 
 type CliOptions = {
   domainSlug: string;
@@ -81,7 +83,7 @@ async function main(): Promise<void> {
         { name: { equals: opts.domainSlug, mode: 'insensitive' } },
       ],
     },
-    select: { id: true, slug: true, name: true },
+    select: { id: true, slug: true, name: true, ownerId: true },
   });
   if (!domain) throw new Error(`Domain not found: ${opts.domainSlug}`);
 
@@ -108,18 +110,28 @@ async function main(): Promise<void> {
   }
 
   const read = (await callTool('dialog_read', { entityId: hit.id, messageLimit: 4 }, ctx)) as {
-    messageId?: string;
     suggestedAnchor?: Record<string, unknown>;
   };
-  if (!read.messageId || !read.suggestedAnchor) {
-    throw new Error(`dialog_read missing gloss carrier: ${JSON.stringify(read)}`);
+  if (!isGlossAnchor(read.suggestedAnchor)) {
+    throw new Error(`dialog_read missing gloss anchor: ${JSON.stringify(read)}`);
   }
+
+  const dialogRow = await prisma.dialog.findFirst({
+    where: { id: hit.id, domain_id: domain.id, is_archived: false },
+    select: { user_id: true },
+  });
+  const carrier = await ensureDialogGlossCarrier({
+    domainId: domain.id,
+    dialogId: hit.id,
+    userId: dialogRow?.user_id || domain.ownerId,
+  });
+  const anchor = canonicalGlossAnchor(read.suggestedAnchor);
 
   const gloss = await callTool(
     'gloss_write_turn',
     {
-      messageId: read.messageId,
-      anchor: read.suggestedAnchor,
+      messageId: carrier.messageId,
+      anchor,
       content: opts.content,
       role: 'agent',
     },
@@ -132,8 +144,8 @@ async function main(): Promise<void> {
         ok: true,
         domain: { id: domain.id, slug: domain.slug },
         dialog: hit,
-        messageId: read.messageId,
-        suggestedAnchor: read.suggestedAnchor,
+        messageId: carrier.messageId,
+        suggestedAnchor: anchor,
         gloss,
       },
       null,

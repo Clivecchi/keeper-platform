@@ -947,6 +947,27 @@ export class KipApi {
   /**
    * Run an agent with input text and optional session for memory
    */
+  static async castOffer(params: {
+    slug: string
+    label: string
+    userMessage: string
+    trail: string
+    domainId?: string
+    userId?: string
+  }): Promise<unknown> {
+    const response = await apiFetch("/api/kip/agents", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "castOffer",
+        ...params,
+      }),
+    })
+    if (!response.success) {
+      throw new Error(response.error || "Cast offer failed")
+    }
+    return response.data
+  }
+
   static async runAgent(
     agentId: string,
     input: string,

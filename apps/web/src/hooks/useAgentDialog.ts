@@ -14,6 +14,7 @@ import {
   canExerciseKeepingChoice,
   extractKeepingChoicesFromRunResult,
   parseAgentPerformanceProvenance,
+  parseCastRoomEvents,
   parseGlossThreads,
   parseKeeperAdviceCard,
   parseKeepingChoiceExercise,
@@ -26,6 +27,7 @@ import {
   withoutAdviseOnlySkips,
 } from "@keeper/shared"
 import { apiFetch } from "../lib/api"
+import { runProgressiveCastRoom } from "../v0/boards/castRoomTurn"
 import {
   annotateCastActionResults,
   buildCastDelegationPrompt,
@@ -179,6 +181,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
           : typeof meta?.userName === "string"
             ? meta.userName
             : undefined
+  const roomTrace = parseCastRoomEvents(meta?.trace)
   const castVoices = Array.isArray(meta?.castVoices)
     ? meta.castVoices
         .map(normalizeCastVoiceBeat)
@@ -225,6 +228,7 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
     ...(actionResults?.length ? { actionResults } : {}),
     ...(glossThreads.length ? { glossThreads } : {}),
     ...(castVoices?.length ? { castVoices } : {}),
+    ...(roomTrace.length ? { roomTrace } : {}),
     ...(delegation && !castVoices?.length ? { delegation } : {}),
     ...(echo ? { echo } : {}),
     ...(attachments?.length ? { attachments } : {}),
@@ -1073,17 +1077,70 @@ export function useAgentDialog({
               instrumentReply?: string | null
               status: "ok" | "empty" | "failed" | "error"
               actionResults?: unknown[]
+              instrumentCard?: Record<string, unknown>
             }>
           }
         | undefined
       let skipLeadRunForParticipation = false
       /** Cast-run action receipts — previously discarded by text-only extract. */
       const castActionResults: unknown[] = []
+      let roomPresent:
+        | {
+            trail: string
+            decision: string
+            trace: import("@keeper/shared").CastRoomEvent[]
+            consumption: import("@keeper/shared").CastRoomConsumption[]
+          }
+        | undefined
 
       if (leadDirectsDocument && consultSlugs.length > 0) {
         appendThinkingStep("Established Document direction — Cast stays off this turn.")
       }
       if (liveDirectorConfig && consultSlugs.length > 0 && content.trim() && !leadDirectsDocument) {
+        const roomVoices = consultSlugs
+          .filter((slug) => resolveCastParticipation(liveDirectorConfig, slug) === "voice")
+          .map((slug) => ({
+            slug,
+            label: liveDirectorConfig.castLabels[slug] ?? slug,
+          }))
+        if (roomVoices.length >= 2) {
+          onDirectorPhaseChange?.("cast")
+          const previousTrace = [...messagesRef.current]
+            .reverse()
+            .find((message) => message.role === "agent" && message.roomTrace?.length)
+            ?.roomTrace ?? []
+          const room = await runProgressiveCastRoom({
+            voices: roomVoices,
+            userMessage: content,
+            directorName: liveDirectorConfig.directorDisplayName,
+            directorSlug: liveDirectorConfig.directorAgentSlug ?? "",
+            humanTurnId,
+            dialogId: activeDialogId,
+            sessionId: sessionId ?? undefined,
+            domainId: resolvedDomainId || domainId || undefined,
+            userId: userId ?? undefined,
+            previousTrace,
+            leadAgentId: agentId,
+            runAgentContext: (runOpts.agentContext ?? {}) as Record<string, unknown>,
+            onStatus: appendThinkingStep,
+          })
+          roomPresent = {
+            trail: room.trail,
+            decision: room.decision,
+            trace: room.trace,
+            consumption: room.consumption,
+          }
+          const roomVoicesHeard = room.consultations.filter(
+            (row) => row.status === "ok" && Boolean(row.instrumentReply?.trim()),
+          )
+          if (roomVoicesHeard.length) {
+            castConsultations = {
+              userMessage: content,
+              directorDisplayName: liveDirectorConfig.directorDisplayName,
+              consultations: roomVoicesHeard,
+            }
+          }
+        } else {
         onDirectorPhaseChange?.("cast")
         console.info("[AgentTurn]", {
           mechanism: "cast_consultation_a",
@@ -1196,6 +1253,7 @@ export function useAgentDialog({
           userMessage: content,
           directorDisplayName: liveDirectorConfig.directorDisplayName,
           consultations: consultationRows,
+        }
         }
       } else if (liveDirectorConfig && castMember && content.trim()) {
         const participation = resolveCastParticipation(liveDirectorConfig, castMember)
@@ -1323,6 +1381,47 @@ export function useAgentDialog({
 
       const kipRunOpts = {
         ...runOpts,
+        agentContext: {
+          ...((runOpts.agentContext ?? {}) as Record<string, unknown>),
+          ...(roomPresent
+            ? {
+                castRoom: {
+                  phase: "present" as const,
+                  trail: roomPresent.trail,
+                  decision: roomPresent.decision,
+                  trace: roomPresent.trace,
+                  consumption: roomPresent.consumption,
+                  allowEngage: false,
+                },
+              }
+            : !castConsultations && !castMember
+              ? {
+                  castRoom: {
+                    phase: "record" as const,
+                    trace: [
+                      {
+                        v: 1 as const,
+                        id: crypto.randomUUID(),
+                        at: new Date().toISOString(),
+                        actor: { kind: "human" as const },
+                        what: "spoke" as const,
+                        where: { humanTurnId },
+                        label: content.trim().slice(0, 180),
+                      },
+                      {
+                        v: 1 as const,
+                        id: crypto.randomUUID(),
+                        at: new Date().toISOString(),
+                        actor: { kind: "runtime" as const },
+                        what: "resolved" as const,
+                        where: { humanTurnId },
+                      },
+                    ],
+                    consumption: [],
+                  },
+                }
+              : {}),
+        },
         ...(castConsultations
           ? { castConsultations }
           : liveDirectorConfig && castMember && content.trim()

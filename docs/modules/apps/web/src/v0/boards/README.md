@@ -41,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-09-30 — Named Dialogs stay listed
+- Domain Nav Dialogs uses the existing collapsible SidebarCard, expanded, for the full named list. A Dialog past the old three-item preview no longer disappears until the title is clicked.
+
 ### 2026-09-21 — Conversation Profile
 - `UniversalConversation` puts Composer `conversationProfile` on `agentContext`. Dialog Style and Dialog Cueing stay their own fields. Profile does not rewrite Style or Cueing.
 

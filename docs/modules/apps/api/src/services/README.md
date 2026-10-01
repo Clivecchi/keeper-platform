@@ -26,6 +26,12 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-09-30 — Cast offers use the cast_offer offering
+- `castRoomOffer.ts` asks the registry for the `cast_offer` role. `KEEPER_OFFERING_CAST_OFFER` overrides the offering id. The turn does not name a model.
+
+### 2026-09-30 — dialog_read returns the Document Gloss carrier
+- `DialogMcpService.readDialog` prefers the dedicated gloss-carrier message. Suggested anchors name the Point, not the storage message.
+
 ### 2026-09-29 — Cast moves when asked why it is waiting
 - `directorDialog.ts` Lead lines treat run / perform / stop-waiting as a decision already made.
 - `mcpAgentBridge.ts` tells Cloud to call reads and the specific GitHub change, and to redeploy only on an explicit redeploy.

@@ -1,5 +1,6 @@
 import {
   logger,
+  parseCastRoomEngage,
   parseKeepingChoiceOffers,
   parseResolvedMeaning,
   parseSelectedVoices,
@@ -29,6 +30,8 @@ export type ParsedAgentOutput = {
   resolvedMeaning?: ResolvedMeaning;
   /** Lines the Lead chose from real Cast replies. */
   selectedVoices?: SelectedVoice[];
+  /** One Cast voice the Lead wants in full. Omitted means Present. */
+  engage?: { slug: string; aim: string };
   ignoredReason?: string;
   validationError?: ActionValidationError;
   repaired?: boolean;
@@ -71,7 +74,7 @@ export function extractJsonFromResponse(raw: string): string | null {
   } catch {
     /* not valid JSON, try extraction */
   }
-  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions|keepingChoices|resolvedMeaning|selectedVoices)"[\s\S]*\}/);
+  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions|keepingChoices|resolvedMeaning|selectedVoices|engage)"[\s\S]*\}/);
   if (jsonMatch) {
     const candidate = jsonMatch[0];
     try {
@@ -85,6 +88,7 @@ export function extractJsonFromResponse(raw: string): string | null {
           || Array.isArray(obj.keepingChoices)
           || (obj.resolvedMeaning && typeof obj.resolvedMeaning === 'object')
           || Array.isArray(obj.selectedVoices)
+          || (obj.engage && typeof obj.engage === 'object')
         )
       ) {
         return candidate;
@@ -141,6 +145,7 @@ function parseEnvelopeObject(
   const keepingChoices = parseKeepingChoiceOffers(parsed.keepingChoices);
   const resolvedMeaning = parseResolvedMeaning(parsed.resolvedMeaning);
   const selectedVoices = parseSelectedVoices(parsed.selectedVoices);
+  const engage = parseCastRoomEngage(parsed.engage) ?? undefined;
   if (isActionParseSuccess(actionsResult)) {
     return {
       responseText,
@@ -150,6 +155,7 @@ function parseEnvelopeObject(
       ...(keepingChoices.length ? { keepingChoices } : {}),
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
       ...(selectedVoices.length ? { selectedVoices } : {}),
+      ...(engage ? { engage } : {}),
     };
   }
 
@@ -173,6 +179,7 @@ function parseEnvelopeObject(
       ...(keepingChoices.length ? { keepingChoices } : {}),
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
       ...(selectedVoices.length ? { selectedVoices } : {}),
+      ...(engage ? { engage } : {}),
       ignoredReason: 'missing_agent_output_envelope',
       validationError,
     };
@@ -186,6 +193,7 @@ function parseEnvelopeObject(
     ...(keepingChoices.length ? { keepingChoices } : {}),
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
     ...(selectedVoices.length ? { selectedVoices } : {}),
+    ...(engage ? { engage } : {}),
     validationError,
   };
 }

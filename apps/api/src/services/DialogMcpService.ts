@@ -163,13 +163,28 @@ export class DialogMcpService {
       );
     }
 
-    const carrier = messages[0]!;
+    const dedicated = await prisma.kip_messages.findFirst({
+      where: {
+        kip_sessions: {
+          dialog_id: resolved.dialogId,
+          is_archived: false,
+        },
+        metadata: {
+          path: ['glossCarrier'],
+          equals: true,
+        },
+      },
+      orderBy: { created_at: 'asc' },
+      select: { id: true },
+    });
+    // Document Gloss lives on the dedicated carrier Chronicle reads.
+    // A newer chat turn is context, not a second thread host.
+    const carrierId = dedicated?.id ?? messages[0]!.id;
     const suggestedAnchor = this.buildSuggestedAnchor({
       entityKind: resolved.entityKind,
       entityId: resolved.entityId,
       dialogId: resolved.dialogId,
       document,
-      messageId: carrier.id,
     });
 
     return {
@@ -179,7 +194,7 @@ export class DialogMcpService {
       dialogId: resolved.dialogId,
       ...(resolved.title ? { title: resolved.title } : {}),
       document,
-      messageId: carrier.id,
+      messageId: carrierId,
       suggestedAnchor,
       messages,
     };
@@ -262,14 +277,13 @@ export class DialogMcpService {
     entityId: string;
     dialogId: string;
     document: NonNullable<Awaited<ReturnType<typeof loadDialogDocumentForAgent>>>;
-    messageId: string;
   }): GlossAnchor {
+    // Point identity only. Storage messageId is dialog_read.messageId, not part of the key.
     if (params.entityKind === 'draft') {
       return {
         entityKind: 'draft',
         entityId: params.entityId,
         ...(params.document.points[0]?.id ? { nodeId: params.document.points[0].id } : {}),
-        messageId: params.messageId,
       };
     }
 
@@ -278,14 +292,12 @@ export class DialogMcpService {
         entityKind: 'draft',
         entityId: params.document.manuscriptDraftId,
         ...(params.document.points[0]?.id ? { nodeId: params.document.points[0].id } : {}),
-        messageId: params.messageId,
       };
     }
 
     return {
       entityKind: 'dialog',
       entityId: params.dialogId,
-      messageId: params.messageId,
     };
   }
 }

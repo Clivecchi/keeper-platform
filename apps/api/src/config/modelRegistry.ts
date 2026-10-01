@@ -265,7 +265,45 @@ export type ExecutionPurpose =
   | 'preserve_completion'
   | 'rendr_expression'
   | 'library_perspective'
-  | 'designer_conversation';
+  | 'designer_conversation'
+  | 'cast_offer';
+
+/**
+ * Role defaults. Override with the named env var set to an offering id
+ * (`provider:model`). The call site asks for the role, not a model name.
+ */
+const PURPOSE_DEFAULT_OFFERING_ID: Partial<Record<ExecutionPurpose, string>> = {
+  cast_offer: GPT_4O_MINI_OFFERING.offeringId,
+};
+
+const PURPOSE_OFFERING_ENV: Partial<Record<ExecutionPurpose, string>> = {
+  cast_offer: 'KEEPER_OFFERING_CAST_OFFER',
+};
+
+export function resolvePurposeOffering(purpose: ExecutionPurpose): ProviderOffering | null {
+  const envName = PURPOSE_OFFERING_ENV[purpose];
+  const override = envName ? process.env[envName]?.trim() : '';
+  if (override) {
+    const known = findOfferingById(override);
+    if (known) return known;
+    const split = override.indexOf(':');
+    if (split > 0) {
+      const provider = override.slice(0, split);
+      const modelId = override.slice(split + 1);
+      if (provider && modelId) {
+        return {
+          offeringId: override,
+          provider: provider as ProviderOffering['provider'],
+          modelId,
+          modelIdentityId: modelId,
+          siblingOfferingId: null,
+        };
+      }
+    }
+  }
+  const fallbackId = PURPOSE_DEFAULT_OFFERING_ID[purpose];
+  return fallbackId ? findOfferingById(fallbackId) ?? null : null;
+}
 
 export type ExecutionCaller = {
   kind: 'agent' | 'feature';

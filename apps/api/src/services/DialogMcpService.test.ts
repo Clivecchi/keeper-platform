@@ -99,15 +99,39 @@ describe('DialogMcpService (read-only)', () => {
     });
 
     expect(result.messageId).toBe('msg-latest');
-    expect(result.suggestedAnchor).toMatchObject({
+    expect(result.suggestedAnchor).toEqual({
       entityKind: 'draft',
       entityId: 'draft-1',
       nodeId: 'point-1',
-      messageId: 'msg-latest',
     });
     expect(result.messages).toHaveLength(2);
     expect(prismaMock.kip_messages.create).not.toHaveBeenCalled();
     expect(prismaMock.kip_sessions.create).not.toHaveBeenCalled();
+  });
+
+  it('readDialog uses the Document Gloss carrier, not the latest chat turn', async () => {
+    prismaMock.dialog.findFirst.mockResolvedValue({
+      id: 'dialog-1',
+      title: 'Becoming Together',
+    });
+    prismaMock.kip_messages.findFirst.mockResolvedValue({ id: 'msg-carrier' });
+    prismaMock.kip_messages.findMany.mockResolvedValue([
+      {
+        id: 'msg-latest',
+        role: 'assistant',
+        content: 'Thank you for the feedback',
+        created_at: new Date('2026-09-12T12:00:00.000Z'),
+      },
+    ]);
+
+    const result = await DialogMcpService.readDialog({
+      domainId: 'domain-1',
+      entityId: 'dialog-1',
+    });
+
+    expect(result.messageId).toBe('msg-carrier');
+    expect(result.suggestedAnchor.messageId).toBeUndefined();
+    expect(prismaMock.kip_messages.create).not.toHaveBeenCalled();
   });
 
   it('readDialog fails clearly when Dialog has no messages', async () => {

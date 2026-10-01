@@ -68,6 +68,73 @@ export function parseGlossThreads(value: unknown): GlossThread[] {
   return value.filter(isGlossThread)
 }
 
+/**
+ * A Document Point is `draft` + node. `messageId` on that anchor is only which
+ * chat row stored the thread, and it splits one Point into two keys.
+ * In-stream Gloss (message, library card, receipt) keeps its own anchor.
+ */
+export function canonicalGlossAnchor(anchor: GlossAnchor): GlossAnchor {
+  if (anchor.entityKind !== 'draft' || !anchor.messageId) return anchor
+  const next: GlossAnchor = {
+    entityKind: anchor.entityKind,
+    entityId: anchor.entityId,
+  }
+  if (anchor.nodeId !== undefined) next.nodeId = anchor.nodeId
+  if (anchor.receiptIndex !== undefined) next.receiptIndex = anchor.receiptIndex
+  if (anchor.selectionText !== undefined) next.selectionText = anchor.selectionText
+  return next
+}
+
+export function isDocumentPointGlossThread(thread: GlossThread): boolean {
+  return thread.anchor.entityKind === 'draft'
+}
+
+function glossMessageTime(message: GlossThreadMessage): number {
+  const time = Date.parse(message.createdAt)
+  return Number.isNaN(time) ? 0 : time
+}
+
+/**
+ * Fold Document Gloss threads that differ only by storage `messageId` into one
+ * thread per Point/context. Message-stream threads are left out — they stay
+ * on their chat message.
+ */
+export function mergeDocumentGlossThreads(threads: readonly GlossThread[]): GlossThread[] {
+  const groups = new Map<string, GlossThread>()
+
+  for (const thread of threads) {
+    if (!isDocumentPointGlossThread(thread)) continue
+    const anchor = canonicalGlossAnchor(thread.anchor)
+    const key = buildGlossThreadKey(anchor)
+    const existing = groups.get(key)
+    if (!existing) {
+      groups.set(key, {
+        ...thread,
+        anchor,
+        messages: [...thread.messages].sort((a, b) => glossMessageTime(a) - glossMessageTime(b)),
+      })
+      continue
+    }
+
+    const byId = new Map(existing.messages.map((message) => [message.id, message]))
+    for (const message of thread.messages) {
+      if (!byId.has(message.id)) byId.set(message.id, message)
+    }
+    const messages = [...byId.values()].sort((a, b) => glossMessageTime(a) - glossMessageTime(b))
+    const createdAt = [existing.createdAt, thread.createdAt].sort()[0] ?? existing.createdAt
+    const updatedAt = [existing.updatedAt, thread.updatedAt].sort().at(-1) ?? existing.updatedAt
+    groups.set(key, {
+      ...existing,
+      anchor,
+      messages,
+      createdAt,
+      updatedAt,
+    })
+  }
+
+  return [...groups.values()]
+}
+
 export function findGlossThread(
   threads: readonly GlossThread[],
   anchor: GlossAnchor,

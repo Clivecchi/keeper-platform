@@ -1412,8 +1412,9 @@ export function UniversalNavPanel({
     if (!shouldRenderContentGatedBlock(block, def.nav, navContentCounts)) return null
 
     switch (block) {
-      case "dialogs":
+      case "dialogs": {
         if (!showDialogs) return null
+        const namedDialogOverflow = allDialogItems.length > PREVIEW_LIMIT.dialogs
         return (
           <>
             <SidebarCard
@@ -1422,8 +1423,12 @@ export function UniversalNavPanel({
               description={
                 !domainId ? "Loading…" : countLabel(namedDialogs.length, "dialog")
               }
-              items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
-              onTitleClick={() => toggleExpanded("dialogs")}
+              items={allDialogItems.length ? allDialogItems : undefined}
+              collapsible={namedDialogOverflow}
+              defaultCollapsed={false}
+              onTitleClick={
+                namedDialogOverflow ? undefined : () => toggleExpanded("dialogs")
+              }
               onAdd={user && domainId ? handleDialogCreate : undefined}
               onImport={!mobileSimplified && user && domainId ? handleDialogIngest : undefined}
               onImportLabel="Bring in writing"
@@ -1435,6 +1440,7 @@ export function UniversalNavPanel({
             )}
           </>
         )
+      }
       case "sessions":
         if (!showSessions || !selectedDialogId) return null
         return (

@@ -240,6 +240,8 @@ import { ensureDialogDocumentSection } from '../../services/kip/authorDialogDocu
 import {
   attachStageContextToCastEnvironment,
   buildCastConsultationsSynthesisPrompt,
+  buildCastRoomDirectionPrompt,
+  buildCastRoomPresentAddendum,
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
   annotateCastActionResults,
@@ -253,6 +255,8 @@ import {
   type DirectorDelegationRequest,
 } from '../../services/directorDialog.js';
 import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
+import { runCastOffer } from '../../services/castRoomOffer.js';
+import { parseCastRoomEngage, parseCastRoomWire } from '@keeper/shared';
 import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
 import {
   buildMcpFollowUpInput,
@@ -8023,6 +8027,30 @@ export class KipAgentService {
           });
         }
 
+        const castRoomWire = parseCastRoomWire(options?.agentContext?.castRoom);
+        if (castRoomWire?.phase === 'direct') {
+          leadOrchestrationContext = buildCastRoomDirectionPrompt({
+            directorName: agent.name,
+            userMessage: leadModelInput,
+            trail: castRoomWire.trail ?? '',
+            offers: (castRoomWire.offers ?? []).map((row) => ({
+              label: row.label,
+              offer: row.offer,
+            })),
+            allowEngage: castRoomWire.allowEngage !== false,
+          });
+        } else if (castRoomWire?.phase === 'present' && leadOrchestrationContext) {
+          leadOrchestrationContext = `${leadOrchestrationContext}\n\n${buildCastRoomPresentAddendum({
+            trail: castRoomWire.trail ?? '',
+            decision: castRoomWire.decision,
+          })}`;
+        } else if (castRoomWire?.phase === 'present') {
+          leadOrchestrationContext = buildCastRoomPresentAddendum({
+            trail: castRoomWire.trail ?? '',
+            decision: castRoomWire.decision,
+          });
+        }
+
         // Generate response using real AI model with memory context
         const aiResult = await this.callAIModel(agent, leadModelInput, previousMessages, userId, {
           mode: activeMode,
@@ -9526,6 +9554,10 @@ export class KipAgentService {
                 : {}),
               ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
               ...(persistedSelectedVoices.length ? { selectedVoices: persistedSelectedVoices } : {}),
+              ...(castRoomWire?.trace?.length ? { trace: castRoomWire.trace } : {}),
+              ...(castRoomWire?.consumption?.length
+                ? { turnConsumption: castRoomWire.consumption }
+                : {}),
             });
             savedLeadMessageId = savedAgent.id;
             const placeOnStage = workspaceSurfaceFromEnvironment(options?.environment) === 'stage';
@@ -9669,6 +9701,7 @@ export class KipAgentService {
               : {}),
             ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
             ...(persistedSelectedVoices.length ? { selectedVoices: persistedSelectedVoices } : {}),
+            ...(structured.engage ? { engage: structured.engage } : {}),
             ...(framePerformanceResult ? { framePerformance: framePerformanceResult } : {}),
             ...(savedLeadMessageId ? { messageId: savedLeadMessageId } : {}),
             ...(stageExpressionStamp ? { stageExpression: stageExpressionStamp } : {}),
@@ -10849,6 +10882,36 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             const message = error instanceof Error ? error.message : 'Failed to update message metadata';
             const isNotFound = /not found/i.test(message);
             return respond(isNotFound ? 404 : 500, { success: false, error: message });
+          }
+        }
+
+        if (action === 'castOffer') {
+          const body = req.body as {
+            slug?: unknown;
+            label?: unknown;
+            userMessage?: unknown;
+            trail?: unknown;
+          };
+          const slug = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : '';
+          const label = typeof body.label === 'string' && body.label.trim() ? body.label.trim() : slug;
+          const userMessage = typeof body.userMessage === 'string' ? body.userMessage : '';
+          const trail = typeof body.trail === 'string' ? body.trail : '';
+          if (!slug || !userMessage.trim()) {
+            return respond(400, { success: false, error: 'slug and userMessage are required' });
+          }
+          try {
+            const offer = await runCastOffer({
+              slug,
+              label,
+              userMessage,
+              trail,
+              userId: requestUserId,
+              domainId: resolvedDomain.domainId ?? undefined,
+            });
+            return respond(200, { success: true, data: offer });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Cast offer failed';
+            return respond(500, { success: false, error: message });
           }
         }
 

@@ -58,6 +58,8 @@ export interface AgentDialogueMessage {
    * Prefer this over a single `delegation` when present so every agent stands alone.
    */
   castVoices?: ReadonlyArray<DirectorDelegationBeat & { slug?: string }>
+  /** Factual Cast Room events persisted on the Lead message. */
+  roomTrace?: import("@keeper/shared").CastRoomEvent[]
   /**
    * Domain/Realm multi-select — collaborators engaged for this turn (UI stamp).
    * Prefer `castVoices` for real per-agent replies; this stamp remains for legacy turns.

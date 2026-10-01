@@ -3,7 +3,12 @@
  * Used by Document Chronicle Gloss (Point-anchored polish in Keeper).
  */
 import { prisma, type Prisma } from '@keeper/database';
-import { parseGlossThreads, type GlossThread } from '@keeper/shared';
+import {
+  isDocumentPointGlossThread,
+  mergeDocumentGlossThreads,
+  parseGlossThreads,
+  type GlossThread,
+} from '@keeper/shared';
 import { dialogVisibleToUserWhere } from './dialogVisibility.js';
 
 const CARRIER_CONTENT = 'Document Gloss · polish carrier';
@@ -63,14 +68,11 @@ export async function ensureDialogGlossCarrier(params: {
   });
 
   if (dedicated) {
-    const meta =
-      dedicated.metadata && typeof dedicated.metadata === 'object' && !Array.isArray(dedicated.metadata)
-        ? (dedicated.metadata as Record<string, unknown>)
-        : {};
+    const glossThreads = await reconcileDialogGlossOntoCarrier(dialogId, dedicated.id);
     return {
       messageId: dedicated.id,
       sessionId: dedicated.session_id,
-      glossThreads: parseGlossThreads(meta.glossThreads),
+      glossThreads,
       created: false,
     };
   }
@@ -124,10 +126,92 @@ export async function ensureDialogGlossCarrier(params: {
     select: { id: true },
   });
 
+  const glossThreads = await reconcileDialogGlossOntoCarrier(dialogId, message.id);
   return {
     messageId: message.id,
     sessionId: session.id,
-    glossThreads: [],
+    glossThreads,
     created: true,
   };
+}
+
+function metadataRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+/**
+ * One Document Gloss thread per Point, stored on the dedicated carrier.
+ * Document Point threads hitchhiked onto later chat messages are folded in by
+ * Point identity and removed from those messages. In-stream Gloss stays put.
+ */
+export async function reconcileDialogGlossOntoCarrier(
+  dialogId: string,
+  carrierMessageId: string,
+): Promise<GlossThread[]> {
+  const rows = await prisma.kip_messages.findMany({
+    where: {
+      kip_sessions: {
+        dialog_id: dialogId,
+        is_archived: false,
+      },
+    },
+    select: { id: true, metadata: true, created_at: true },
+    orderBy: { created_at: 'asc' },
+  });
+
+  const carrierRow = rows.find((row) => row.id === carrierMessageId);
+  const carrierMeta = metadataRecord(carrierRow?.metadata);
+  const carrierThreads = parseGlossThreads(carrierMeta.glossThreads);
+  const carrierDocument = carrierThreads.filter((thread) => isDocumentPointGlossThread(thread));
+  const carrierOther = carrierThreads.filter((thread) => !isDocumentPointGlossThread(thread));
+
+  const strandedDocument: GlossThread[] = [];
+  const strayWrites: Array<{ id: string; metadata: Record<string, unknown> }> = [];
+
+  for (const row of rows) {
+    if (row.id === carrierMessageId) continue;
+    const meta = metadataRecord(row.metadata);
+    const threads = parseGlossThreads(meta.glossThreads);
+    const documentThreads = threads.filter((thread) => isDocumentPointGlossThread(thread));
+    if (documentThreads.length === 0) continue;
+    strandedDocument.push(...documentThreads);
+    const messageThreads = threads.filter((thread) => !isDocumentPointGlossThread(thread));
+    strayWrites.push({
+      id: row.id,
+      metadata: { ...meta, glossThreads: messageThreads },
+    });
+  }
+
+  const merged = mergeDocumentGlossThreads([...carrierDocument, ...strandedDocument]);
+  const nextCarrierThreads = [...merged, ...carrierOther];
+  const carrierChanged =
+    JSON.stringify(nextCarrierThreads) !== JSON.stringify(carrierThreads);
+
+  if (!carrierChanged && strayWrites.length === 0) return carrierThreads;
+
+  await prisma.$transaction([
+    ...(carrierChanged
+      ? [
+          prisma.kip_messages.update({
+            where: { id: carrierMessageId },
+            data: {
+              metadata: {
+                ...carrierMeta,
+                glossCarrier: true,
+                glossThreads: nextCarrierThreads,
+              } as unknown as Prisma.InputJsonValue,
+            },
+          }),
+        ]
+      : []),
+    ...strayWrites.map((write) =>
+      prisma.kip_messages.update({
+        where: { id: write.id },
+        data: { metadata: write.metadata as Prisma.InputJsonValue },
+      }),
+    ),
+  ]);
+
+  return nextCarrierThreads;
 }

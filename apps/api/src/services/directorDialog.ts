@@ -372,6 +372,55 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   return lines.join('\n');
 }
 
+/** Lead decides whether one cued voice should contribute. No engage means Present. */
+export function buildCastRoomDirectionPrompt(params: {
+  directorName: string;
+  userMessage: string;
+  trail: string;
+  offers: Array<{ label: string; offer: string }>;
+  allowEngage: boolean;
+}): string {
+  const offerLines = params.offers.length
+    ? params.offers.map((row) =>
+        row.offer
+          ? `- ${row.label}: "${row.offer}"`
+          : `- ${row.label}: (silent)`,
+      )
+    : ['- (no offers — silence)'];
+  return [
+    `[Cast Room — ${params.directorName} directs]`,
+    'The human spoke. Cheap offers are facts, not performances. Full replies have not happened yet.',
+    `Human: "${params.userMessage.trim()}"`,
+    '',
+    'Trail:',
+    params.trail || '(no trail yet)',
+    '',
+    'Offers:',
+    ...offerLines,
+    '',
+    params.allowEngage
+      ? 'You may engage one voice. Emit "engage": { "slug": "<one cued slug>", "aim": "<what you need from them>" } only when a full contribution would change the reply. Otherwise omit engage and Present now.'
+      : 'Do not emit engage. Two contributions already happened. Present.',
+    'Spoken "response" is what the human hears if you Present now.',
+    'Do not invent a voice that did not offer.',
+  ].join('\n');
+}
+
+export function buildCastRoomPresentAddendum(params: {
+  trail: string;
+  decision?: string;
+}): string {
+  return [
+    '[Cast Room — Present]',
+    'Trail:',
+    params.trail || '(no trail yet)',
+    params.decision?.trim()
+      ? `Direction already taken: ${params.decision.trim()}`
+      : 'Present from the trail and any real contribution above.',
+    'Do not emit engage. Do not invent a voice that did not contribute.',
+  ].join('\n');
+}
+
 export function extractReplyFromAgentRunResult(result: unknown): string | null {
   const visit = (node: unknown, depth = 0): string | null => {
     if (!node || typeof node !== 'object' || depth > 5) return null;
