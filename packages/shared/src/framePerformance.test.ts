@@ -97,10 +97,14 @@ describe('bindFramePerformanceCue', () => {
     ]);
   });
 
-  it('stamps Point ids onto Keep and Open when the turn has a Point', () => {
+  it('stamps Point ids onto a supplied Keep and defaults Open when the turn has a Point', () => {
     const parsed = parseFramePerformance({
       title: 'One storyline. Not three.',
       beats: [{ title: 'The telling', body: 'One plot.' }],
+      cue: {
+        prompt: 'Ready?',
+        actions: [{ kind: 'keep', label: 'Keep' }],
+      },
     });
     expect(parsed).not.toBeNull();
     if (!parsed) return;
@@ -111,8 +115,30 @@ describe('bindFramePerformanceCue', () => {
       dialogId: 'dlg-1',
     });
     const keep = bound.cue?.actions.find((action) => action.kind === 'keep');
+    const open = bound.cue?.actions.find((action) => action.kind === 'open_point');
     expect(keep?.pointId).toBe('pt-1');
     expect(keep?.draftId).toBe('dr-1');
+    expect(keep?.dialogId).toBe('dlg-1');
+    expect(open?.pointId).toBe('pt-1');
+  });
+
+  it('does not invent Keep when Rendr omitted it', () => {
+    const parsed = parseFramePerformance({
+      title: 'One storyline. Not three.',
+      beats: [{ title: 'The telling', body: 'One plot.' }],
+    });
+    expect(parsed).not.toBeNull();
+    if (!parsed) return;
+    const bound = bindFramePerformanceCue(parsed, {
+      hasCastVoices: false,
+      pointId: 'pt-1',
+      draftId: 'dr-1',
+    });
+    expect(bound.cue?.actions.map((action) => action.kind)).toEqual([
+      'add_to_story',
+      'open_stage',
+      'open_point',
+    ]);
   });
 });
 
