@@ -27,8 +27,9 @@ describe("isDomainStageArrival", () => {
     expect(isDomainStageArrival({ shellMode: "brand" })).toBe(true)
   })
 
-  it("stays in Dialog for Home and for a Dialog deep link", () => {
-    expect(isDomainStageArrival({ shellMode: "home", dialogId: null })).toBe(false)
+  it("opens Stage for Realm home, and stays in Dialog for a Dialog deep link", () => {
+    expect(isDomainStageArrival({ shellMode: "home", dialogId: null })).toBe(true)
+    expect(isDomainStageArrival({ shellMode: "home", dialogId: "dlg-1" })).toBe(false)
     expect(isDomainStageArrival({ shellMode: "domain", dialogId: "dlg-1" })).toBe(false)
   })
 })

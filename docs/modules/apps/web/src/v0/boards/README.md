@@ -29,7 +29,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `?board=` takes precedence over `?frame=` when both are present in the URL
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 - **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
-- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. Domain arrival opens Stage. An arriving admin sees “Where are we?”; other arrivals see the story already on Stage. Choosing a Dialog returns to the conversation.
+- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. Realm arrival at `/home` and Domain arrival both open Stage. An arriving admin sees “Where are we?” at that scope; other arrivals see the story already on Stage. Choosing a Dialog returns to the conversation. Choosing a Domain from the Realm reading opens that Domain’s Stage.
 - **Library image upload:** `LibraryScreen` + shelves the file. Domain cover remains the atmosphere. Selecting a Library image overlays that item's extracted look while it is surfaced.
 
 ## ?? Notes & ToDo
@@ -40,6 +40,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-10-03 — Realm Where are we? on /home
+- `/home` arrival opens the existing Stage. An arriving admin sees a Realm reading composed from each Domain’s existing resolver.
+- Choosing a Domain opens that Domain’s Stage arrival. Explicit Dialog navigation still leaves Stage.
+- The Stage coordinate on that reading uses the Home name. It does not label the anchor Domain as the current place.
 
 ### 2026-10-03 — Where are we? on Stage
 - Authenticated domain arrival opens the existing Stage and keeps it open across domain change, board change, and the mobile layout.

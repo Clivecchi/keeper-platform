@@ -22,3 +22,17 @@ export function whereWeAreUncertainty(reading: WhereWeAreReading): string | null
   if (reading.places.length === 1) return null
   return "The trail does not currently resolve to one place."
 }
+
+/**
+ * A Domain's existing sentences, grouped as one Realm continuation.
+ * Realm does not add a sentence of its own about resolving to one Domain.
+ */
+export function realmWhereWeAreLines(reading: WhereWeAreReading): string[] {
+  const uncertainty = whereWeAreUncertainty(reading)
+  const claims = reading.places.flatMap((place) =>
+    reading.claims
+      .filter((claim) => claim.dialogId === place.dialogId)
+      .map(whereWeAreClaimLine),
+  )
+  return uncertainty ? [uncertainty, ...claims] : claims
+}

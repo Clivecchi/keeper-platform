@@ -103,6 +103,7 @@ import { createDraftMoment, keepMoment } from "../api/v0Moments"
 import type { KeepAsMomentPayload } from "../../components/kip/ActionReceiptCard"
 import type { GlossThread } from "@keeper/shared"
 import { KeeperStageCanvas } from "../composer/KeeperStageCanvas"
+import { useStageArrivalPresentation } from "../composer/useStageArrivalPresentation"
 import { displayStageTitle } from "../composer/stageNowBeat"
 import { StagePresentationProvider } from "../composer/stagePresentation"
 import { FrameCueProvider } from "../composer/frameCue"
@@ -313,7 +314,7 @@ export function UniversalConversation({
   onJourneyListRefresh,
   suppressMobileDomainBanner,
 }: UniversalConversationProps) {
-  const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame, shellMode, domainData } = useV0Shell()
+  const { domainFrame, resolvedAudience: shellAudience, reloadDomainFrame, shellMode, domainData, homeDisplayName } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { refreshSession, user } = useAuth()
   const navigate = useNavigate()
@@ -324,6 +325,8 @@ export function UniversalConversation({
   const kipMode = def.conversation.kipMode
   const guidedArrival = useGuidedArrivalOptional()
   const isRealmHomeArrival = def.boardId === "realm" && shellMode === "home"
+  const stageArrivalPresentation = useStageArrivalPresentation()
+  const realmWhereWeAre = isRealmHomeArrival && stageArrivalPresentation === "where-we-are"
   const realmArrival = useRealmArrivalOptional()
   const { feed: realmFeed, isLoading: realmFeedLoading } = useRealmFeed(isRealmHomeArrival)
   const guidedArrivalActive = kipMode === "domain" && !!guidedArrival?.isActive
@@ -2347,6 +2350,11 @@ export function UniversalConversation({
         : {}
 
     if (workspaceSurface === "stage") {
+      if (realmWhereWeAre) {
+        return {
+          stage: { title: homeDisplayName.trim() || "Home" },
+        }
+      }
       return {
         stage: { title: displayStageTitle(keeperStage?.stage.title ?? "Keeper", domainName) },
         ...talkingWorking,
@@ -2486,6 +2494,8 @@ export function UniversalConversation({
     actions,
     workspaceSurface,
     keeperStage?.stage.title,
+    realmWhereWeAre,
+    homeDisplayName,
   ])
 
   // ── modelProvider — build mode reads from domain frame ──────────────────────

@@ -6,15 +6,22 @@
  */
 
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useBindStageDialog } from "./useBindStageDialog"
 import { StagePresentationScreen } from "./StageFilmstrip"
 import { useKeeperStageOptional } from "./useKeeperStage"
+import { RealmWhereWeAreStage } from "./RealmWhereWeAreStage"
 import { useStageArrivalPresentation } from "./useStageArrivalPresentation"
 import { WhereWeAreStage } from "./WhereWeAreStage"
 
 export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
   const board = useUniversalBoardOptional()
+  const shell = useV0ShellOptional()
   const presentation = useStageArrivalPresentation()
+
+  if (presentation === "where-we-are" && shell?.shellMode === "home") {
+    return <RealmWhereWeAreStage />
+  }
 
   if (presentation === "where-we-are") {
     return (

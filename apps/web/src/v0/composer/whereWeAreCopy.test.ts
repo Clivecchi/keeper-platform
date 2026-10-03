@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { WhereWeAreReading } from "@keeper/shared"
-import { whereWeAreClaimLine, whereWeAreUncertainty } from "./whereWeAreCopy"
+import { realmWhereWeAreLines, whereWeAreClaimLine, whereWeAreUncertainty } from "./whereWeAreCopy"
 
 const unresolved: WhereWeAreReading = {
   places: [
@@ -45,5 +45,22 @@ describe("where we are copy", () => {
       claims: [unresolved.claims[0]!],
     }
     expect(whereWeAreUncertainty(reading)).toBeNull()
+  })
+
+  it("reuses a Domain reading as one Realm continuation", () => {
+    expect(realmWhereWeAreLines(unresolved)).toEqual([
+      "The trail does not currently resolve to one place.",
+      "Finding the Plot has the kept Orientation.",
+      "Becoming Together had its Orientation cleared and retains an authored Forward.",
+      "Be.Speak.Become is the most recently kept named Dialog.",
+    ])
+    const onePlace: WhereWeAreReading = {
+      ...unresolved,
+      places: [{ dialogId: "speak", title: "Be.Speak.Become" }],
+      claims: [unresolved.claims[2]!],
+    }
+    expect(realmWhereWeAreLines(onePlace)).toEqual([
+      "Be.Speak.Become is the most recently kept named Dialog.",
+    ])
   })
 })
