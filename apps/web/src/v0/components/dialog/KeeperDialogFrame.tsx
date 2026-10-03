@@ -62,6 +62,7 @@ import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
+import { useStageArrivalPresentation } from "../../composer/useStageArrivalPresentation"
 import { useStagePresentationOptional } from "../../composer/stagePresentation"
 import { dialogSurfaceFrame } from "../../composer/dialogFramePresentation"
 import { FramePerformanceView } from "../../composer/FramePerformanceView"
@@ -386,6 +387,7 @@ export function KeeperDialogFrame({
   const broadcastStripRef = React.useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
   const board = useUniversalBoardOptional()
+  const stageArrivalPresentation = useStageArrivalPresentation()
   const stagePresentation = useStagePresentationOptional()
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
@@ -756,6 +758,7 @@ export function KeeperDialogFrame({
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
       data-composer-placement={composerOnStage ? "pit" : "floor"}
+      data-stage-presentation={composerOnStage ? stageArrivalPresentation : undefined}
       data-stage-attention={attention}
       data-stage-attention-subject={
         workForward ? (stagePresentation?.attentionSubject ?? "dialog") : undefined

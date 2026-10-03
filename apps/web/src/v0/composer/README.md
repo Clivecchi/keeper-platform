@@ -12,7 +12,9 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX). `appendLiveBeat` points one filmstrip cell at a Lead message.
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
-- `KeeperStageCanvas.tsx` — Stage **screen** (current Slide only)
+- `KeeperStageCanvas.tsx` — Stage screen. Arriving admin sees “Where are we?”; otherwise the story filmstrip.
+- `WhereWeAreStage.tsx` — Calm arrival reading. Claims are selectable. Trail stays in a disclosure.
+- `whereWeAreCopy.ts` — Sentences for the arrival reading. The resolver does not own this wording.
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
 - `stageMomentSource.ts` — render-time resolve of `source.kind === 'moment'` to the live Moment row
 - `OnStageObjectList.tsx` — On Stage list in Reach and Chronicle (not Composer)
@@ -50,6 +52,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-03: `useStageArrivalPresentation` hides the story filmstrip while Where are we? is showing, so the continuation lines stay the reading.
+- 2026-10-03: Domain arrival opens the existing Stage. An arriving admin sees “Where are we?” composed from stored Dialog facts. Choosing a place continues in that Dialog. The story filmstrip remains the other presentation.
 - 2026-09-30: **Story** — `useDomainStories` holds ordered references. Add to Story on a Frame writes a capture. Take Story to Stage replaces the filmstrip beats through `replaceStorySlides` and leaves Stage presentation alone.
 
 

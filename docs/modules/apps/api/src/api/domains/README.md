@@ -10,7 +10,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `contact.ts` – Domain contact form submission handler.
 - `kip-drafts.ts` – Domain-scoped Kip draft directory and session active-draft pointer routes.
 - `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
-- `kip-dialogs.ts` – Dialog CRUD routes: create, ingest, list, get-with-sessions, Chronicle Document read + author writes (`PATCH …/document`, Point add/update/reorder/delete), update/archive/document_status, delete, resolve-active; cast membership.
+- `kip-dialogs.ts` – Dialog CRUD routes: create, ingest, list, get-with-sessions, Chronicle Document read + author writes (`PATCH …/document`, Point add/update/reorder/delete), update/archive/document_status, delete, resolve-active; cast membership. List includes Orientation text and stamps plus a History count so arrival can read them. Orientation write rules are unchanged.
 - `keeper-stage-routes.ts` – `GET/PATCH /:domainId/keeper-stage` (domain Stage composition).
 - `domain-access-key-routes.ts` – Domain external access keys (MCP): list, create (secret once), revoke, PATCH label.
 - `domain-oauth-grant-routes.ts` – MCP OAuth grants: list + revoke + PATCH scopes (External Access).
@@ -46,6 +46,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-10-03: Dialog list now returns Orientation text, who set or cleared it, and a History count, so Stage arrival can read stored facts. Orientation writes are unchanged.
 - 2026-09-27: **Designer conversation on the chat seam** — confirmation still uses stated `claude-sonnet-4-6` with no sibling fallback and still requires `ANTHROPIC_API_KEY`. Frame JSON stays on the structure service.
 - 2026-09-27: **Dialog people and home arrival** — `GET/POST/DELETE …/human-members`. Accept returns `homeRealmSlug` and `homeDialogId`. Invite accepts `additionalDomains` (role per Domain) and `seed.assignedDialogIds`.
 - 2026-09-26: **Invitation arrival** — preview includes status, email, hasAccount, and suggestedName, including accepted and expired links. `POST /:id/members/:userId/return-to-invitation` removes membership and emails a new accept link.

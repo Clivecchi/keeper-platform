@@ -1,16 +1,34 @@
 "use client"
 
 /**
- * Keeper Stage — the presentation screen.
- * Slides sit above Composer. Objects live in Reach / Chronicle, not on the screen.
+ * Keeper Stage — the place Keeper presents.
+ * Arrival may show "Where are we?" instead of the story filmstrip.
  */
 
-import * as React from "react"
+import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { useBindStageDialog } from "./useBindStageDialog"
 import { StagePresentationScreen } from "./StageFilmstrip"
 import { useKeeperStageOptional } from "./useKeeperStage"
+import { useStageArrivalPresentation } from "./useStageArrivalPresentation"
+import { WhereWeAreStage } from "./WhereWeAreStage"
 
-export function KeeperStageCanvas({ domainId: _domainId }: { domainId: string | null }) {
+export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
+  const board = useUniversalBoardOptional()
+  const presentation = useStageArrivalPresentation()
+
+  if (presentation === "where-we-are") {
+    return (
+      <WhereWeAreStage
+        domainId={domainId}
+        onContinue={(dialogId) => board?.actions.onDialogSelect(dialogId)}
+      />
+    )
+  }
+
+  return <StoryStageCanvas />
+}
+
+function StoryStageCanvas() {
   useBindStageDialog()
   const stageApi = useKeeperStageOptional()
 

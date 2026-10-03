@@ -1,18 +1,35 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest"
-import { nextWorkspaceSurface, shouldRenderRealmDocumentChronicle } from "./workspaceSurface"
+import { isDomainStageArrival, nextWorkspaceSurface, shouldRenderRealmDocumentChronicle } from "./workspaceSurface"
 
 describe("nextWorkspaceSurface", () => {
-  it("enters Stage only when opening the room or inspecting a presence", () => {
+  it("enters Stage when opening the room or inspecting a presence", () => {
     expect(nextWorkspaceSurface("open-stage")).toBe("stage")
     expect(nextWorkspaceSurface("stage-presence")).toBe("stage")
   })
 
-  it("leaves Stage on platform navigation, board change, and domain change", () => {
-    expect(nextWorkspaceSurface("platform-nav")).toBe("dialog")
-    expect(nextWorkspaceSurface("board-change")).toBe("dialog")
+  it("keeps Stage open across domain and board changes during arrival", () => {
+    expect(nextWorkspaceSurface("domain-change", { arriving: true })).toBe("stage")
+    expect(nextWorkspaceSurface("board-change", { arriving: true })).toBe("stage")
+  })
+
+  it("returns to Dialog when arrival is over, or when someone chooses a subject", () => {
     expect(nextWorkspaceSurface("domain-change")).toBe("dialog")
-    expect(nextWorkspaceSurface("leave-stage")).toBe("dialog")
+    expect(nextWorkspaceSurface("board-change", { arriving: false })).toBe("dialog")
+    expect(nextWorkspaceSurface("platform-nav", { arriving: true })).toBe("dialog")
+    expect(nextWorkspaceSurface("leave-stage", { arriving: true })).toBe("dialog")
+  })
+})
+
+describe("isDomainStageArrival", () => {
+  it("opens Stage for a domain or brand entry with no Dialog link", () => {
+    expect(isDomainStageArrival({ shellMode: "domain", dialogId: null })).toBe(true)
+    expect(isDomainStageArrival({ shellMode: "brand" })).toBe(true)
+  })
+
+  it("stays in Dialog for Home and for a Dialog deep link", () => {
+    expect(isDomainStageArrival({ shellMode: "home", dialogId: null })).toBe(false)
+    expect(isDomainStageArrival({ shellMode: "domain", dialogId: "dlg-1" })).toBe(false)
   })
 })
 

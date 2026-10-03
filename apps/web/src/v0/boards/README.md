@@ -29,7 +29,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `?board=` takes precedence over `?frame=` when both are present in the URL
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 - **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
-- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. On Stage the center is a Frame-driven story workshop (assets on the table → presentation). Chronicle stays the Document. The default Stage is named after the current domain (`{domain} Stage`).
+- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. Domain arrival opens Stage. An arriving admin sees “Where are we?”; other arrivals see the story already on Stage. Choosing a Dialog returns to the conversation.
 - **Library image upload:** `LibraryScreen` + shelves the file. Domain cover remains the atmosphere. Selecting a Library image overlays that item's extracted look while it is surfaced.
 
 ## ?? Notes & ToDo
@@ -40,6 +40,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-10-03 — Where are we? on Stage
+- Authenticated domain arrival opens the existing Stage and keeps it open across domain change, board change, and the mobile layout.
+- `resolveStagePresentation`: admin and still arriving → “Where are we?”. Every other case → the story filmstrip.
+- Choosing one of the places selects that Dialog and returns to the conversation.
 
 ### 2026-09-30 — Progressive Cast Room, first turn
 - When two or more Cast voices are cued, `castRoomTurn.ts` collects cheap offers, lets the Lead engage one voice, then Presents. Trace and consumption ride the Lead message.

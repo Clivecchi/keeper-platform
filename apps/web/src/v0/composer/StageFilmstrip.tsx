@@ -17,6 +17,7 @@ import { StageEngagementSurface, useStageCoverMedia } from "./StageEngagementSur
 import type { StageSlide } from "./stageStorySlides"
 import { resolveStageAttentionPose, stageAttentionHoldsFrame } from "./stageAttention"
 import { useStagePresentationOptional } from "./stagePresentation"
+import { useStageArrivalPresentation } from "./useStageArrivalPresentation"
 import { FramePerformanceView } from "./FramePerformanceView"
 
 function beatCaption(slide: StageSlide): string {
@@ -171,9 +172,11 @@ export function StagePresentationScreen() {
   )
 }
 
-/** Filmstrip cells — sit just above Composer. */
+/** Filmstrip cells — sit just above Composer. Hidden while arrival is showing Where are we? */
 export function StageSlideStrip() {
+  const presentation = useStageArrivalPresentation()
   const story = useStagePresentationOptional()
+  if (presentation === "where-we-are") return null
   if (!story || story.slides.length === 0) return null
 
   return (

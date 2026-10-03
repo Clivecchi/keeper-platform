@@ -631,6 +631,12 @@ button.dialog-prelude:hover {
   overflow-y: hidden;
 }
 
+/* Arrival reading ends above the lectern so every continuation stays visible. */
+.keeper-dialog-frame[data-stage-presentation="where-we-are"] .dialog-message-surface {
+  overflow-y: auto;
+  height: calc(100% - 2.5rem);
+}
+
 /* Zone 2 wrapper — takes flex:1 so the scroll surface can be height:100% */
 .dialog-message-zone {
   position: relative;

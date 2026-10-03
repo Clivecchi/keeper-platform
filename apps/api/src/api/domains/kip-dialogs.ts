@@ -381,7 +381,7 @@ router.get(
             : dialogVisibleToUserWhere(req.user.id)),
         },
         include: {
-          _count: { select: { sessions: true } },
+          _count: { select: { sessions: true, chronicleEvents: true } },
         },
         orderBy: { updated_at: 'desc' },
       });
@@ -401,8 +401,12 @@ router.get(
           forward_description: d.forward_description,
           step_title: d.step_title,
           step_body: d.step_body,
+          orientation: d.orientation,
+          orientation_updated_at: d.orientation_updated_at,
+          orientation_updated_by: d.orientation_updated_by,
           document_paths: parseDocumentPathDeclarations(d.document_paths),
           session_count: d._count.sessions,
+          chronicle_count: d._count.chronicleEvents,
           created_at: d.created_at,
           updated_at: d.updated_at,
         })),

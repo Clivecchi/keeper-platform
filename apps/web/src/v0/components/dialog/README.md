@@ -78,6 +78,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-10-03: **Where are we? holds the reading** — `data-stage-presentation="where-we-are"` lets the arrival scroll above the lectern. The story filmstrip stays with the story presentation.
 - 2026-09-27: **Promoted Frame uses Dialog Space** — conversation is the default (`data-dialog-presentation="conversation"`). A Story-significant beat fills `.dialog-frame-surface`. Conversation returns from that surface.
 - 2026-09-27: **Dialog room** — `DialogRoomPreface` sits above messages on mobile and desktop: arrival doors, the people in the Dialog, and add/remove.
 - 2026-09-21: Thinking trace labels `document.orientation.update` as Updated Orientation.

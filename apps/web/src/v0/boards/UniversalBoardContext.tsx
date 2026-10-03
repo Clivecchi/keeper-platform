@@ -38,7 +38,7 @@ import { parseEngagementTemplateResponse } from "./engagement/parseEngagementTem
 import { apiFetch } from "../../lib/api"
 import { GuidedArrivalProvider } from "../guidedArrival/GuidedArrivalContext"
 import { clearPrefetchedDialogSession } from "./domain/dialogSessionPrefetch"
-import { nextWorkspaceSurface } from "./workspaceSurface"
+import { nextWorkspaceSurface, isDomainStageArrival } from "./workspaceSurface"
 import {
   isAgentBoardId,
   shouldKeepAgentWhenSelectingDialog,
@@ -300,8 +300,10 @@ export interface UniversalBoardContextValue {
   onToggleNavCollapsed: () => void
   /** Library list overlay sitting on the Dialog (center) panel. */
   libraryScreenOpen: boolean
-  /** Dialog (temporal) or Stage (spatial) in the center workspace. */
+  /** Dialog (temporal) or Stage (the place Keeper presents) in the center workspace. */
   workspaceSurface: WorkspaceSurface
+  /** Domain arrival is still showing. Stage stays up across domain, board, and mobile layout. */
+  stageArriving: boolean
   /** Reach sheet — Composer feature; not a fourth column; not Composer itself. */
   composerReachOpen: boolean
   /** Theme editor — Composer feature; Chronicle Config family; not Composer itself. */
@@ -415,6 +417,10 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
 
   const urlDraftId = shell?.draftId ?? searchParams.get("draftId")
   const urlDialogId = searchParams.get("dialogId")?.trim() || null
+  const domainStageArrival = isDomainStageArrival({
+    shellMode: shell?.shellMode,
+    dialogId: urlDialogId,
+  })
 
   /** Remove ?draftId= / ?dialogId= so nav selections are not overwritten by URL sync. */
   const clearUrlSubjectIds = React.useCallback((keep?: { dialogId?: string | null }) => {
@@ -462,23 +468,34 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
   const [libraryScreenOpen, setLibraryScreenOpen] = React.useState(false)
-  const [workspaceSurface, setWorkspaceSurfaceState] = React.useState<WorkspaceSurface>("dialog")
+  const [stageArriving, setStageArriving] = React.useState(domainStageArrival)
+  const stageArrivingRef = React.useRef(stageArriving)
+  stageArrivingRef.current = stageArriving
+  const [workspaceSurface, setWorkspaceSurfaceState] = React.useState<WorkspaceSurface>(
+    domainStageArrival ? "stage" : "dialog",
+  )
   const [composerReachOpen, setComposerReachOpen] = React.useState(false)
   const [composerThemeOpen, setComposerThemeOpen] = React.useState(false)
   const stayOnStageRef = React.useRef(false)
 
+  const endStageArrival = React.useCallback(() => {
+    setStageArriving(false)
+  }, [])
+
   const leaveStageRoom = React.useCallback(() => {
+    endStageArrival()
     setWorkspaceSurfaceState(nextWorkspaceSurface("leave-stage"))
     setComposerReachOpen(false)
     setComposerThemeOpen(false)
-  }, [])
+  }, [endStageArrival])
 
   const leaveStageOnPlatformNav = React.useCallback(() => {
     if (stayOnStageRef.current) return
+    endStageArrival()
     setWorkspaceSurfaceState(nextWorkspaceSurface("platform-nav"))
     setComposerReachOpen(false)
     setComposerThemeOpen(false)
-  }, [])
+  }, [endStageArrival])
 
   const openLibraryScreen = React.useCallback(() => {
     leaveStageOnPlatformNav()
@@ -1304,7 +1321,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setTrainingMode(false)
     setActiveCastMember(null)
     setComposerReachOpen(false)
-    setWorkspaceSurfaceState(nextWorkspaceSurface("domain-change"))
+    setWorkspaceSurfaceState(
+      nextWorkspaceSurface("domain-change", { arriving: stageArrivingRef.current }),
+    )
     shell?.clearBoardDefinition()
   }, [shell?.domainSlug, shell, clearSelection, closeChronicleEngagement, closeDialogIngest])
 
@@ -1314,7 +1333,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     const prevBoardId = prevWorkspaceBoardIdRef.current
     prevWorkspaceBoardIdRef.current = nextBoardId
     if (!prevBoardId || !nextBoardId || prevBoardId === nextBoardId) return
-    setWorkspaceSurfaceState(nextWorkspaceSurface("board-change"))
+    setWorkspaceSurfaceState(
+      nextWorkspaceSurface("board-change", { arriving: stageArrivingRef.current }),
+    )
     setComposerReachOpen(false)
   }, [shell?.workspaceBoardId])
 
@@ -1547,6 +1568,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       onToggleNavCollapsed,
       libraryScreenOpen,
       workspaceSurface,
+      stageArriving,
       composerReachOpen,
       composerThemeOpen,
       chronicleEngagement,
@@ -1678,6 +1700,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       onToggleNavCollapsed,
       libraryScreenOpen,
       workspaceSurface,
+      stageArriving,
       composerReachOpen,
       composerThemeOpen,
       requestedStageFocusId,
