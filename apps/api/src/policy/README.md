@@ -20,6 +20,7 @@ Domain policy pack definitions and helpers that feed Kip environment bundles and
 - [ ] Surface policy version negotiation if a future pack is introduced
 
 ## 📆 Update Log
+- 2026-10-04: **story.truth.read / story.save** — golden path + handlers. Lead reads the packet and saves a Keeper Story. Cast cannot save.
 - 2026-09-21: **document.orientation.update** — golden path + handlers. Lead writes the persistent Document Orientation. Cast is skipped.
 - 2026-09-19: **jev.probe** — golden path + handlers. Evidence-facing Jev Probe (`runJevProbe`). Not ACME / Evaluation persistence.
 - 2026-09-18: **typesafe.evaluate** — golden path + handlers. TypeSafe / Jev is a shared tool, not an agent or chat model.

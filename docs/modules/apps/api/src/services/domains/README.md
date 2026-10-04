@@ -14,6 +14,8 @@ Seeds a newly created personal domain with frame JSON, domain lead agent, defaul
 - `resolveDomainLeadAgent.ts` — DB-first read (`primaryAgentId` → mirror row lookup); `syncDomainLeadAuthority` one write path.
 - `dialogCastMembership.ts` — Phase 1 cross-domain cast enablement (candidates / members / enable / disable); Admin checked at request time via direct Prisma.
 - `keeperStageStore.ts` — load/save `Domain.settings.keeperStage` without wiping sibling settings or the filmstrip.
+- `storyStore.ts` — load/save `Domain.settings.stories` the same way. Story material references existing objects.
+- `directKeeperStory.ts` — Lead `story.truth.read` / `story.save`. Writes the Story set. Does not write `keeperStage`.
 - `../scripts/repair-domain-frame.ts` — CLI repair for unseeded personal domains.
 
 ## 🔄 Data & Behavior
@@ -42,6 +44,9 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+
+### 2026-10-04 — Directed Keeper Story
+- `directKeeperStory.ts` loads a short truth packet for one Dialog and saves the Lead’s chosen claims as a Keeper Story. A later capture points at the Lead message. The Stage filmstrip is untouched.
 
 ### 2026-09-27 — Humans on Dialogs, home arrival
 - `DialogHumanMember` attaches the inviter and invitee to the shared Dialog and to assigned Dialogs. `ensureInvitationArrival` also writes a home directory Dialog with doors. Sessions on a Dialog that has people are shared.

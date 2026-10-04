@@ -64,6 +64,9 @@ import {
   resolveTalkingInWorkingOn,
   parseKeeperStage,
   humanRequestsDialogFrame,
+  humanRequestsKeeperStory,
+  buildKeeperStoryDirectionPrompt,
+  meaningFromStoryClaims,
   parseSelectedVoices,
   withPerformedByFallback,
   type FramePerformance,
@@ -258,6 +261,12 @@ import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
 import { runCastOffer } from '../../services/castRoomOffer.js';
 import { parseCastRoomEngage, parseCastRoomWire } from '@keeper/shared';
 import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
+import {
+  attachFrameToDirectedStory,
+  loadStoryTruthPacket,
+  readDirectedStorySave,
+  saveDirectedStory,
+} from '../../services/domains/directKeeperStory.js';
 import {
   buildMcpFollowUpInput,
   buildMcpToolSystemPrompt,
@@ -1482,6 +1491,7 @@ function mergePointSkipActionTypes(
     next.add('document.reorganize.propose');
     next.add('document.orientation.update');
     next.add('stage.story.layout');
+    next.add('story.save');
     next.add('gloss.append');
   }
   if (obligation?.required && obligation.manuscriptDraftId) {
@@ -2831,6 +2841,112 @@ export async function executeAgentActions(
                 restatement,
                 placedCount,
                 identityOnly,
+              },
+            });
+            break;
+          }
+          case 'story.truth.read': {
+            const payload = action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+              ? action.payload as Record<string, unknown>
+              : {};
+            const dialogId = (typeof payload.dialogId === 'string' && payload.dialogId.trim())
+              || ctx.dialogId
+              || '';
+            if (!ctx.domainId || !dialogId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'story.truth.read needs a domain and a Dialog.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            const packet = await loadStoryTruthPacket(ctx.domainId, dialogId);
+            if (!packet) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'That Dialog is not in this Domain.',
+                errorCode: 'NOT_FOUND',
+              });
+              break;
+            }
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: `Story truth for ${packet.dialogTitle}: ${packet.claims.length} supported sentences. Chronicle event bodies were not read.`,
+              data: {
+                dialogId: packet.dialogId,
+                dialogTitle: packet.dialogTitle,
+                domainId: packet.domainId,
+                claims: packet.claims,
+              },
+            });
+            break;
+          }
+          case 'story.save': {
+            const payload = action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+              ? action.payload as Record<string, unknown>
+              : {};
+            if (!ctx.domainId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'A Story needs a domain.',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            const agentRow = ctx.agentId
+              ? await tx.kip_agents.findUnique({
+                  where: { id: ctx.agentId },
+                  select: { role: true },
+                })
+              : null;
+            if (agentRow && agentRow.role !== 'Lead') {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'The Lead saves the Story. Rendr composes. Cast may stay silent.',
+                errorCode: 'LEAD_ONLY',
+              });
+              break;
+            }
+            const dialogId = (typeof payload.dialogId === 'string' && payload.dialogId.trim())
+              || ctx.dialogId
+              || '';
+            const title = typeof payload.title === 'string' ? payload.title : '';
+            const claimIds = Array.isArray(payload.claimIds)
+              ? payload.claimIds.filter((id): id is string => typeof id === 'string')
+              : [];
+            const saved = await saveDirectedStory({
+              domainId: ctx.domainId,
+              dialogId,
+              title,
+              claimIds,
+              actorId: ctx.userId ?? null,
+            });
+            if (saved.ok === false) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: saved.message,
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: saved.save.trimmed
+                ? `Saved “${saved.save.title}”. A Frame holds four beats, so later claims were left out. The Stage filmstrip was not changed.`
+                : `Saved “${saved.save.title}”. The Stage filmstrip was not changed.`,
+              data: {
+                storyId: saved.save.storyId,
+                title: saved.save.title,
+                dialogId: saved.save.dialogId,
+                claims: saved.save.claims,
+                trimmed: saved.save.trimmed,
               },
             });
             break;
@@ -6803,6 +6919,17 @@ export class KipAgentService {
           });
         }
 
+        if (agent.role === 'Lead' && humanRequestsKeeperStory(glossHumanTurn)) {
+          const storyDialogId =
+            (environmentContext as { dialogDocument?: { dialogId?: string } } | undefined)
+              ?.dialogDocument?.dialogId
+            ?? null;
+          messages.push({
+            role: 'system',
+            content: buildKeeperStoryDirectionPrompt(storyDialogId),
+          });
+        }
+
         // --- Domain contract injection (wires contract rules to Kip) ---
         const suppressKipPrompt =
           (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
@@ -6970,6 +7097,8 @@ export class KipAgentService {
             DOCUMENT_ORIENTATION_ACTION_LINE,
             'document.reorganize.propose — Lead only. Propose the better Document without changing accepted work. Current is evidence. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Nest Points under the Section they should belong to. Omit sectionId only when you are not moving that Point. Never dump named work into Open. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
             'stage.story.layout — Lead only. Available when composing the Stage filmstrip. Payload: { rationale?, slides: [{ title, body?, source? }] }. Do not emit the Cover. Not document.reorganize.propose. Stage presence does not require this action.',
+            'story.truth.read — Payload { dialogId }. The only sentences a Story for that Dialog may use. Does not read Chronicle event bodies.',
+            'story.save — Lead only. Saves a Keeper Story in the domain Story set. Does not write the Stage filmstrip. Payload { title, dialogId, claimIds }. claimIds come from story.truth.read, at most 4, in telling order. You direct. Rendr composes the Frame afterward.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
@@ -9428,9 +9557,17 @@ export class KipAgentService {
           options?.castConsultations?.consultations
             ?.filter((row) => row.status === 'ok')
             .map((row) => row.instrumentSlug) ?? [];
-        const persistedResolvedMeaning: ResolvedMeaning | undefined = structured.resolvedMeaning
-          ? withPerformedByFallback(structured.resolvedMeaning, deliveredCastSlugs)
+        const directedStory = readDirectedStorySave(actionResults);
+        const directedMeaning = directedStory
+          ? meaningFromStoryClaims(directedStory.claims, {
+              dialogId: directedStory.dialogId,
+              dialogTitle: dialogDocument?.title ?? directedStory.title,
+            })
           : undefined;
+        const persistedResolvedMeaning: ResolvedMeaning | undefined = directedMeaning
+          ?? (structured.resolvedMeaning
+            ? withPerformedByFallback(structured.resolvedMeaning, deliveredCastSlugs)
+            : undefined);
         const persistedSelectedVoices: SelectedVoice[] = parseSelectedVoices(structured.selectedVoices);
         const humanTurnRecord = buildHumanTurnRecord({
           id: humanTurnId,
@@ -9560,7 +9697,8 @@ export class KipAgentService {
                 : {}),
             });
             savedLeadMessageId = savedAgent.id;
-            const placeOnStage = workspaceSurfaceFromEnvironment(options?.environment) === 'stage';
+            const placeOnStage = !directedStory
+              && workspaceSurfaceFromEnvironment(options?.environment) === 'stage';
             if (persistedResolvedMeaning && savedAgent && options?.domainId) {
               try {
                 const voiceLabels: Record<string, string> = {};
@@ -9581,7 +9719,8 @@ export class KipAgentService {
                   placeOnStage,
                   humanRequestedFrame: humanRequestsDialogFrame(
                     humanTurnTextForIntent(input, options?.displayContent),
-                  ),
+                  ) || Boolean(directedStory),
+                  sourceLines: directedStory?.claims.map((claim) => claim.text),
                 });
                 if (expressed.ok === false) {
                   console.info('[AgentTurn] frame performance skipped', {
@@ -9596,6 +9735,17 @@ export class KipAgentService {
                     await this.updateMessageMetadata(savedAgent.id, userId, {
                       framePerformance: expressed.performance,
                       ...(expressed.stamp ? { stageExpression: expressed.stamp } : {}),
+                    });
+                  }
+                  if (directedStory && options?.domainId) {
+                    await attachFrameToDirectedStory({
+                      domainId: options.domainId,
+                      storyId: directedStory.storyId,
+                      messageId: savedAgent.id,
+                      dialogId: directedStory.dialogId,
+                      title: expressed.performance.title,
+                      excerpt: directedStory.claims.map((claim) => claim.text).join('\n'),
+                      actorId: userId ?? null,
                     });
                   }
                 }

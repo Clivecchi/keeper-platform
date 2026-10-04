@@ -29,6 +29,9 @@ describe('kipActionAllowlist', () => {
     expect(allowed.has('stage.story.layout')).toBe(true);
     expect(GOLDEN_PATH_ACTIONS).toContain('stage.story.layout');
     expect(KIP_ACTION_HANDLERS).toContain('stage.story.layout');
+    expect(allowed.has('story.save')).toBe(true);
+    expect(GOLDEN_PATH_ACTIONS).toContain('story.truth.read');
+    expect(KIP_ACTION_HANDLERS).toContain('story.save');
   });
 
   it('keeps typesafe.evaluate on the Lead golden path as a tool', () => {

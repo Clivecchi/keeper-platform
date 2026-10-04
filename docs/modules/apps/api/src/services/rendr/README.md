@@ -17,6 +17,9 @@ Treatment changes use `treatment.propose` on Design Board. Dialog Points use `dr
 
 ## 📆 Update Log
 
+### 2026-10-04 — Directed sentences stay the beat bodies
+- When the Lead saved a Story, `expressResolvedMeaningOnStage` asks Rendr to title the beats and then keeps each body as the directed sentence.
+
 ### 2026-09-27 — Frame expression uses the chat seam
 - `expressResolvedMeaningOnStage` calls `executeRegisteredChat` with Rendr's stored provider and model (empty model stays `claude-sonnet-4-6`). Sibling fallback is off. Domain tier and `jsonMode` are unchanged.
 

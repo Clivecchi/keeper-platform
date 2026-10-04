@@ -11,6 +11,7 @@ import {
   applyDialogFrameAuthority,
   bindFramePerformanceCue,
   parseFramePerformanceFromModelText,
+  groundFrameBodies,
   promotedDialogFrame,
   parseStageExpressionFromModelText,
   withPerformanceContext,
@@ -49,6 +50,11 @@ export type ExpressResolvedMeaningInput = {
   placeOnStage?: boolean;
   /** Human explicitly asked for a Dialog Frame. Authorizes presentation without the Lead's flag. */
   humanRequestedFrame?: boolean;
+  /**
+   * Sentences the Lead directed. When present, beat bodies stay these lines.
+   * Rendr still titles the beats it returned.
+   */
+  sourceLines?: readonly string[];
 };
 
 export type ExpressResolvedMeaningSuccess = {
@@ -191,14 +197,18 @@ export async function expressResolvedMeaningOnStage(
     };
   }
 
-  const composed = performanceFromModelText(raced.content, selectedVoices);
-  if (!composed) {
+  const composedRaw = performanceFromModelText(raced.content, selectedVoices);
+  if (!composedRaw) {
     return { ok: false, reason: 'no_expression', message: 'Rendr returned no Frame Performance.' };
   }
+  const performanceContext = performanceContextFromEnvironment(input.environment, resolved);
+  const composed = input.sourceLines?.length
+    ? groundFrameBodies(composedRaw, input.sourceLines, performanceContext?.documentTitle) ?? composedRaw
+    : composedRaw;
 
   const stamped = withPerformanceContext(
     stampVoiceLabels(composed, input.voiceLabels),
-    performanceContextFromEnvironment(input.environment, resolved),
+    performanceContext,
   );
   if (!stamped) {
     return { ok: false, reason: 'no_expression', message: 'The composition collapsed Document and Point.' };

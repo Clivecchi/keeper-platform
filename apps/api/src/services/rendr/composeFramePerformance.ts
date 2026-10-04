@@ -24,6 +24,7 @@ export function buildFramePerformanceSystemPrompt(): string {
     'Do not emit promote. That stamp is not yours.',
     'You may set recommendPresentation true when you would present this. That is a recommendation only.',
     'You do not write Keeper truth, the Document, or actions that mutate anything.',
+    'Beat bodies must be sentences already in the resolved meaning. You may title each beat. Do not add events, history, names, or state that are not in that meaning.',
     'Output raw JSON only. No HTML. No CSS. No Theatre project state.',
     'Document title and Section title are context. They are not the headline.',
     'title is the Point — the subject of this telling.',
@@ -69,6 +70,7 @@ export function buildFramePerformanceUserPrompt(input: {
     'Do not emit promote. recommendPresentation is optional and does not present the Frame.',
     'Do not copy Point or Document bodies. Do not quote anyone who is not in SELECTED VOICES.',
     'Do not emit stage.story.layout. Do not emit HTML.',
+    'If the resolved meaning is several sentences, give each sentence you keep its own beat, in that order, and copy the sentence into the body.',
   );
   return lines.join('\n');
 }

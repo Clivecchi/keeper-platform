@@ -40,9 +40,13 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-04: `storyTruthPacket.ts` — a Dialog’s Story packet is the cover line, the Dialog’s status, Orientation, Forward, and Step as they stand, a session-trail fact with no event bodies, and the existing Where are we sentences. Kip’s claim ids stay in order, capped at a Frame. Rendr’s beat bodies are replaced with those sentences.
 - 2026-10-03: `stageComposition.ts` — Context selects realm where-we-are, domain where-we-are, or story. Projectors cite existing resolver output. `composeStagePass` only arranges those ids. `dropUnsourcedNodes` removes a cite the Reading does not contain. Realm continuation carries `nextContext`. Domain dialog continuation does not.
 - 2026-10-03: Realm arrival. `resolveRealmWhereWeAre` runs the existing Domain resolver once per reachable Domain. A Domain with a named place is a continuation. Stage beats, draft Forwards, and the seven-day feed stay on the trail. `face` records `primaryDomainId` and does not choose the continuation.
 - 2026-10-03: Arrival presentation. `resolveStagePresentation` sends an arriving admin to `where-we-are` and everyone else to the existing story. `resolveWhereWeAre` reads kept Orientation, a cleared Orientation that still has an authored Forward, and the most recently kept named Dialog. It does not write the sentences.
+- 2026-09-30: Frame cue tests now match the binder. A supplied Keep is stamped with Point ids. Keep is not invented when Rendr omitted it. Add to Story, Take to Stage, and Open the Point still default.
+- 2026-09-30: **Story references** — `keeperStory.ts` is the domain Story set (`settings.stories`): ordered refs to captures, moments, messages, points, and media. A capture points at a Lead message. It does not copy `framePerformance`. `storyMaterialToStageSlides` maps that order onto existing Stage filmstrip beats.
+
 - 2026-09-29: Performance posture — `buildPerformancePosturePrompt` tells every cued agent that “why are we waiting / perform / get it done” is the directive. Speak briefly, emit the move, do not ask for go. Production redeploy still needs an explicit redeploy.
 - 2026-09-27: `agentModelPicker` is the one agent chat menu. Together chat is Llama 3.3 70B. FLUX is not offered here.
 - 2026-09-20: Cast honesty / agency / speech — `sessionActionLog` lists web.search titles and URLs; ephemeral consults may read the Dialog session and must not write it (`resolveEphemeralSessionAccess`). `castDelegationVoice` stops the one-paragraph rule and tells every cued agent to fire golden-path tools.

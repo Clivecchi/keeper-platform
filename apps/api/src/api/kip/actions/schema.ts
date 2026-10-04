@@ -350,6 +350,24 @@ export type StageStoryLayoutAction = z.infer<typeof stageStoryLayoutPayloadSchem
   type: 'stage.story.layout';
 };
 
+const storyTruthReadPayloadSchema = z.object({
+  dialogId: z.string().min(1).max(80).optional(),
+});
+
+const storySavePayloadSchema = z.object({
+  title: z.string().min(1).max(200),
+  dialogId: z.string().min(1).max(80),
+  claimIds: z.array(z.string().min(1).max(120)).min(1).max(8),
+});
+
+export type StoryTruthReadAction = z.infer<typeof storyTruthReadPayloadSchema> & {
+  type: 'story.truth.read';
+};
+
+export type StorySaveAction = z.infer<typeof storySavePayloadSchema> & {
+  type: 'story.save';
+};
+
 /**
  * Web search action payload schema
  */
@@ -514,6 +532,8 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'document.reorganize.propose': documentReorganizeProposePayloadSchema,
   'document.orientation.update': documentOrientationUpdatePayloadSchema,
   'stage.story.layout': stageStoryLayoutPayloadSchema,
+  'story.truth.read': storyTruthReadPayloadSchema,
+  'story.save': storySavePayloadSchema,
   'web.search': webSearchPayloadSchema,
   'typesafe.evaluate': typeSafeEvaluatePayloadSchema,
   'jev.probe': jevProbePayloadSchema,
