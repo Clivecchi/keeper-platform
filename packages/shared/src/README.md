@@ -15,6 +15,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `keeperStage.ts` – Stage composition (assets + `story` filmstrip); `parseStageStory`, `mergeKeeperStagePatch`, `buildKeeperStagePrompt`, `displayKeeperStageTitle`
 - `stageArrival.ts` – Which presentation Stage shows on arrival, and which stored Dialog facts “Where are we?” can stand on
 - `realmArrival.ts` – Realm “Where are we?” composed from each Domain’s existing reading. Face is not the current Domain.
+- `stageComposition.ts` – Ephemeral Stage pass: Reading, deterministic Composition, drop-unsourced nodes. Does not write `KeeperStageComposition`.
 - `keeperAdviceCard.ts` – Existing envelope `card` as the Cast/Lead advisory channel (`extractKeeperAdviceCardFromRunResult`, `withoutAdviseOnlySkips`)
 - `keepingChoice.ts` – Keeping Choice offer/record/exercise contract. Not an action. Not a proposal.
 - `resolvedMeaning.ts` – Lead-resolved performance meaning + one `stage_expression` beat. Not spoken prose. Not Cast transcript.
@@ -39,6 +40,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-03: `stageComposition.ts` — Context selects realm where-we-are, domain where-we-are, or story. Projectors cite existing resolver output. `composeStagePass` only arranges those ids. `dropUnsourcedNodes` removes a cite the Reading does not contain. Realm continuation carries `nextContext`. Domain dialog continuation does not.
 - 2026-10-03: Realm arrival. `resolveRealmWhereWeAre` runs the existing Domain resolver once per reachable Domain. A Domain with a named place is a continuation. Stage beats, draft Forwards, and the seven-day feed stay on the trail. `face` records `primaryDomainId` and does not choose the continuation.
 - 2026-10-03: Arrival presentation. `resolveStagePresentation` sends an arriving admin to `where-we-are` and everyone else to the existing story. `resolveWhereWeAre` reads kept Orientation, a cleared Orientation that still has an authored Forward, and the most recently kept named Dialog. It does not write the sentences.
 - 2026-09-30: Frame cue tests now match the binder. A supplied Keep is stamped with Point ids. Keep is not invented when Rendr omitted it. Add to Story, Take to Stage, and Open the Point still default.

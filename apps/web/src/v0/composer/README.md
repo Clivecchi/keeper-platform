@@ -12,9 +12,10 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX). `appendLiveBeat` points one filmstrip cell at a Lead message.
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
-- `KeeperStageCanvas.tsx` — Stage screen. Arriving admin sees “Where are we?”; otherwise the story filmstrip. On `/home` that reading is the Realm.
-- `RealmWhereWeAreStage.tsx` — Realm arrival. Each continuation is a Domain the existing resolver can name. Choosing it opens that Domain’s Stage.
-- `WhereWeAreStage.tsx` — Domain arrival reading. Claims are selectable Dialogs. Trail stays in a disclosure.
+- `KeeperStageCanvas.tsx` — Stage screen. One walker over an ephemeral `StageComposition`. Realm arrival does not present the anchor domain’s stored Stage.
+- `StageCompositionView.tsx` — Walks the Composition. A stack is Where are we?. A sequence plays the existing story screen.
+- `stagePass.tsx` — Presentation context. Realm → Domain continues in this room.
+- `useStageTruth.ts` — Loads the existing Realm and Domain resolver inputs for the pass.
 - `whereWeAreCopy.ts` — Sentences for the arrival reading. The resolver does not own this wording.
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
 - `stageMomentSource.ts` — render-time resolve of `source.kind === 'moment'` to the live Moment row
@@ -53,6 +54,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-03: One Stage walker. Realm and Domain Where are we?, and the story filmstrip, are projections into `StageReading` / `StageComposition`. Realm → Domain replaces the pass in the mounted room. The anchor domain’s stored Stage is not what Realm presents. `KeeperStageComposition` is unchanged.
 - 2026-10-03: Realm arrival on `/home` opens the existing Stage. “Where are we?” lists Domains the Domain resolver can already name. Choosing a Domain opens that Domain’s Stage arrival. The seven-day feed, Stage beats, and draft Forwards stay in Trail. The Realm face is not treated as the current Domain.
 - 2026-10-03: `useStageArrivalPresentation` hides the story filmstrip while Where are we? is showing, so the continuation lines stay the reading.
 - 2026-10-03: Domain arrival opens the existing Stage. An arriving admin sees “Where are we?” composed from stored Dialog facts. Choosing a place continues in that Dialog. The story filmstrip remains the other presentation.

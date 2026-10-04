@@ -29,7 +29,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `?board=` takes precedence over `?frame=` when both are present in the URL
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 - **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
-- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. Realm arrival at `/home` and Domain arrival both open Stage. An arriving admin sees “Where are we?” at that scope; other arrivals see the story already on Stage. Choosing a Dialog returns to the conversation. Choosing a Domain from the Realm reading opens that Domain’s Stage.
+- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. Realm arrival at `/home` and Domain arrival both open Stage. An arriving admin sees “Where are we?” at that scope; other arrivals see the story already on Stage. Choosing a Dialog returns to the conversation. Choosing a Domain from the Realm reading recomposes that Domain’s Where are we? in the same Stage room.
 - **Library image upload:** `LibraryScreen` + shelves the file. Domain cover remains the atmosphere. Selecting a Library image overlays that item's extracted look while it is surfaced.
 
 ## ?? Notes & ToDo
@@ -40,6 +40,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-10-03 — One Stage composition pass
+- Realm → Domain continues inside the mounted Stage. The room does not navigate away to reopen.
+- Realm does not present the anchor domain’s stored `KeeperStageComposition`. Story playback still uses that record when the pass is the shell domain.
 
 ### 2026-10-03 — Realm Where are we? on /home
 - `/home` arrival opens the existing Stage. An arriving admin sees a Realm reading composed from each Domain’s existing resolver.

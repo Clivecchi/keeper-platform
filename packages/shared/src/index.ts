@@ -58,6 +58,7 @@ export * from './conversationProfile.js';
 export * from './keeperStage.js';
 export * from './stageArrival.js';
 export * from './realmArrival.js';
+export * from './stageComposition.js';
 export * from './keeperStory.js';
 export * from './keeperAdviceCard.js';
 export * from './keepingChoice.js';
