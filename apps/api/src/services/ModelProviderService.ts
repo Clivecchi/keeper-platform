@@ -547,12 +547,51 @@ function convertModelContentToAnthropic(content: string | ModelContentPart[]): A
   return blocks;
 }
 
-function convertToAnthropicFormat(messages: ModelMessage[]): {
-  anthropicMessages: Array<{ role: 'user' | 'assistant'; content: AnthropicMessageContent }>;
+/**
+ * Sonnet 4.6 rejects a messages array whose last role is assistant
+ * ("assistant message prefill"). Keeper's reused prompt keeps that prior
+ * completion as an assistant turn and puts the next instruction in system
+ * text — the read follow-up passes an empty user string and
+ * `orchestrationContext`. System text is lifted out of `messages`, so the
+ * wire array would end on the assistant turn. This close is request-shape
+ * only. It does not rewrite the ModelMessage list callers reuse.
+ */
+const ANTHROPIC_COMPLETED_TURN_CLOSE =
+  'The previous assistant message is a completed turn. Write the next reply from the instructions already in this request.';
+
+type AnthropicChatMessage = { role: 'user' | 'assistant'; content: AnthropicMessageContent };
+
+function anthropicContentIsEmpty(content: AnthropicMessageContent): boolean {
+  if (typeof content === 'string') return content.trim().length === 0;
+  return content.length === 0;
+}
+
+function anthropicContentBlocks(
+  content: AnthropicMessageContent,
+): Exclude<AnthropicMessageContent, string> {
+  if (typeof content === 'string') {
+    return content.trim() ? [{ type: 'text', text: content }] : [];
+  }
+  return content;
+}
+
+function mergeAnthropicContent(
+  left: AnthropicMessageContent,
+  right: AnthropicMessageContent,
+): AnthropicMessageContent {
+  const blocks = [...anthropicContentBlocks(left), ...anthropicContentBlocks(right)];
+  if (blocks.every((block) => block.type === 'text')) {
+    return blocks.map((block) => (block.type === 'text' ? block.text : '')).join('\n\n');
+  }
+  return blocks;
+}
+
+export function convertToAnthropicFormat(messages: ModelMessage[]): {
+  anthropicMessages: AnthropicChatMessage[];
   systemPrompt: string | null;
 } {
   const systemParts: string[] = [];
-  const anthropicMessages: Array<{ role: 'user' | 'assistant'; content: AnthropicMessageContent }> = [];
+  const anthropicMessages: AnthropicChatMessage[] = [];
 
   for (const msg of messages) {
     if (msg.role === 'system') {
@@ -562,9 +601,29 @@ function convertToAnthropicFormat(messages: ModelMessage[]): {
     }
     if (msg.role !== 'user' && msg.role !== 'assistant') continue;
 
+    const content = convertModelContentToAnthropic(msg.content);
+    if (anthropicContentIsEmpty(content)) continue;
+
+    const previous = anthropicMessages[anthropicMessages.length - 1];
+    if (previous && previous.role === msg.role) {
+      previous.content = mergeAnthropicContent(previous.content, content);
+      continue;
+    }
+
     anthropicMessages.push({
       role: msg.role,
-      content: convertModelContentToAnthropic(msg.content),
+      content,
+    });
+  }
+
+  // Claude 4.6 requires the last message to be a user turn. A trailing
+  // assistant completion stays in the transcript; it is not sent as a prefill.
+  if (anthropicMessages.length === 0 || anthropicMessages[anthropicMessages.length - 1].role === 'assistant') {
+    anthropicMessages.push({
+      role: 'user',
+      content: anthropicMessages.length === 0
+        ? '[No text provided]'
+        : ANTHROPIC_COMPLETED_TURN_CLOSE,
     });
   }
 

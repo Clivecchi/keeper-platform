@@ -26,6 +26,10 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-03 — Anthropic requests no longer end on an assistant turn
+- `convertToAnthropicFormat` still lifts system text into `system` and keeps each completed assistant turn in `messages`.
+- When that list would end on assistant — the read follow-up reuses the prior completion and puts the next instruction in system text — a closing user turn is added on the wire only. Sonnet 4.6 rejects that ending as assistant prefill. The ModelMessage list callers reuse is unchanged.
+
 ### 2026-09-30 — Cast offers use the cast_offer offering
 - `castRoomOffer.ts` asks the registry for the `cast_offer` role. `KEEPER_OFFERING_CAST_OFFER` overrides the offering id. The turn does not name a model.
 
