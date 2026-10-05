@@ -357,7 +357,8 @@ const storyTruthReadPayloadSchema = z.object({
 const storySavePayloadSchema = z.object({
   title: z.string().min(1).max(200),
   dialogId: z.string().min(1).max(80),
-  claimIds: z.array(z.string().min(1).max(120)).min(1).max(8),
+  claimIds: z.array(z.string().min(1).max(120)).min(1).max(12),
+  description: z.string().max(2000).optional(),
 });
 
 export type StoryTruthReadAction = z.infer<typeof storyTruthReadPayloadSchema> & {

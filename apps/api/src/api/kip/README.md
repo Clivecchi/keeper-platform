@@ -32,7 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
-- 2026-10-04: **Keeper Story** — Lead `story.truth.read` returns the Dialog packet. Lead `story.save` writes `settings.stories` and does not call `stage.story.layout`. After the turn, Rendr’s existing Frame handoff composes from those sentences, and the Story captures that Lead message.
+- 2026-10-04: **Keeper Story** — Lead `story.truth.read` returns the Dialog packet. Lead `story.save` writes `settings.stories` with the chosen claim ids as provenance and the Lead’s telling as the description. It does not call `stage.story.layout`. Rendr’s existing Frame handoff phrases that telling. The Story captures that Lead message. Source claims stay on the message, beside the Frame.
 - 2026-09-29: **Performance posture** — `callAIModel` and the composed prompt end with `buildPerformancePosturePrompt`. A request to run or stop waiting is the directive. The old “explain the limitation and return no actions” line is gone.
 - 2026-09-29: **Agent error provider type** — failed Agent turns pass `response.provider` into the error details. That value is a known provider. The execution record’s provider string is unchanged.
 - 2026-09-27: **Chat execution context** — Agent turns and companion tag `executeRegisteredChat` with purpose and caller. Registry resolution and sibling fallback are unchanged. `executionMode` defaults to production and is not acted on.

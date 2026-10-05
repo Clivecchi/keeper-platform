@@ -21,6 +21,9 @@ Shared UI pieces for Universal Board orchestration — composer instrument bars 
 
 ## 📆 Update Log
 
+### 2026-10-04 — Mobile account sign-out leaves the session
+- The Nav account sign-out uses the same server logout as the top bar, then loads `/login`.
+
 ### 2026-09-15 — Invite opens Chronicle People
 - Removed `InviteCollaboratorDialog`. Cast Header, Top Bar, and mobile account Invite call `openPeopleInvite`.
 

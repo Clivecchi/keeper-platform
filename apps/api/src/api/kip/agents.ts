@@ -66,7 +66,7 @@ import {
   humanRequestsDialogFrame,
   humanRequestsKeeperStory,
   buildKeeperStoryDirectionPrompt,
-  meaningFromStoryClaims,
+  meaningWithStorySources,
   parseSelectedVoices,
   withPerformedByFallback,
   type FramePerformance,
@@ -266,6 +266,7 @@ import {
   loadStoryTruthPacket,
   readDirectedStorySave,
   saveDirectedStory,
+  setDirectedStoryTelling,
 } from '../../services/domains/directKeeperStory.js';
 import {
   buildMcpFollowUpInput,
@@ -2919,11 +2920,13 @@ export async function executeAgentActions(
             const claimIds = Array.isArray(payload.claimIds)
               ? payload.claimIds.filter((id): id is string => typeof id === 'string')
               : [];
+            const telling = typeof payload.description === 'string' ? payload.description : '';
             const saved = await saveDirectedStory({
               domainId: ctx.domainId,
               dialogId,
               title,
               claimIds,
+              telling,
               actorId: ctx.userId ?? null,
             });
             if (saved.ok === false) {
@@ -2938,9 +2941,7 @@ export async function executeAgentActions(
             results.push({
               type: action.type,
               status: 'success',
-              message: saved.save.trimmed
-                ? `Saved “${saved.save.title}”. A Frame holds four beats, so later claims were left out. The Stage filmstrip was not changed.`
-                : `Saved “${saved.save.title}”. The Stage filmstrip was not changed.`,
+              message: `Saved “${saved.save.title}”. Source claims are recorded. The Stage filmstrip was not changed.`,
               data: {
                 storyId: saved.save.storyId,
                 title: saved.save.title,
@@ -7098,7 +7099,7 @@ export class KipAgentService {
             'document.reorganize.propose — Lead only. Propose the better Document without changing accepted work. Current is evidence. Payload: { rationale?, title?, forward?: { title, description }, sections: [{ id, title, points? }], points: [{ id, prelude?, content, sectionId?, change, fromSectionId?, originalContent?, replacesPointIds? }] }. change: unchanged | new | refine | move | merge | retire. Nest Points under the Section they should belong to. Omit sectionId only when you are not moving that Point. Never dump named work into Open. Refer to existing Points by number or title — Keeper resolves identities. Omit unchanged Points. Title and Forward are Document identity, not Points.',
             'stage.story.layout — Lead only. Available when composing the Stage filmstrip. Payload: { rationale?, slides: [{ title, body?, source? }] }. Do not emit the Cover. Not document.reorganize.propose. Stage presence does not require this action.',
             'story.truth.read — Payload { dialogId }. The only sentences a Story for that Dialog may use. Does not read Chronicle event bodies.',
-            'story.save — Lead only. Saves a Keeper Story in the domain Story set. Does not write the Stage filmstrip. Payload { title, dialogId, claimIds }. claimIds come from story.truth.read, at most 4, in telling order. You direct. Rendr composes the Frame afterward.',
+            'story.save — Lead only. Saves a Keeper Story in the domain Story set. Does not write the Stage filmstrip. Payload { title, dialogId, claimIds, description? }. claimIds are the source claims from story.truth.read. description is your telling, not a paste of those sentences. You direct. Rendr composes the Frame afterward.',
             'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points or payload.content (markdown/text → first Point(s)). Never kind document_manuscript — that is Dialog Document storage, not a working draft. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"draft","key":"my-draft-abc","title":"My Draft","content":"First point body","summary":"Brief summary"}}]}',
@@ -9558,16 +9559,15 @@ export class KipAgentService {
             ?.filter((row) => row.status === 'ok')
             .map((row) => row.instrumentSlug) ?? [];
         const directedStory = readDirectedStorySave(actionResults);
-        const directedMeaning = directedStory
-          ? meaningFromStoryClaims(directedStory.claims, {
+        const leadMeaning = structured.resolvedMeaning
+          ? withPerformedByFallback(structured.resolvedMeaning, deliveredCastSlugs)
+          : undefined;
+        const persistedResolvedMeaning: ResolvedMeaning | undefined = directedStory
+          ? meaningWithStorySources(leadMeaning, directedStory.claims, {
               dialogId: directedStory.dialogId,
               dialogTitle: dialogDocument?.title ?? directedStory.title,
             })
-          : undefined;
-        const persistedResolvedMeaning: ResolvedMeaning | undefined = directedMeaning
-          ?? (structured.resolvedMeaning
-            ? withPerformedByFallback(structured.resolvedMeaning, deliveredCastSlugs)
-            : undefined);
+          : leadMeaning;
         const persistedSelectedVoices: SelectedVoice[] = parseSelectedVoices(structured.selectedVoices);
         const humanTurnRecord = buildHumanTurnRecord({
           id: humanTurnId,
@@ -9735,16 +9735,30 @@ export class KipAgentService {
                     await this.updateMessageMetadata(savedAgent.id, userId, {
                       framePerformance: expressed.performance,
                       ...(expressed.stamp ? { stageExpression: expressed.stamp } : {}),
+                      ...(directedStory ? { storySources: directedStory.claims } : {}),
                     });
                   }
                   if (directedStory && options?.domainId) {
+                    const telling = persistedResolvedMeaning?.meaning?.trim() ?? '';
+                    if (telling && !telling.startsWith('Tell what the chosen claims')) {
+                      await setDirectedStoryTelling({
+                        domainId: options.domainId,
+                        storyId: directedStory.storyId,
+                        telling,
+                        actorId: userId ?? null,
+                      });
+                    }
+                    const expression = [
+                      expressed.performance.title,
+                      ...expressed.performance.beats.map((beat) => `${beat.title}\n${beat.body}`),
+                    ].join('\n\n');
                     await attachFrameToDirectedStory({
                       domainId: options.domainId,
                       storyId: directedStory.storyId,
                       messageId: savedAgent.id,
                       dialogId: directedStory.dialogId,
                       title: expressed.performance.title,
-                      excerpt: directedStory.claims.map((claim) => claim.text).join('\n'),
+                      excerpt: expression,
                       actorId: userId ?? null,
                     });
                   }

@@ -36,6 +36,9 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 
 ## 📆 Update Log
 
+### 2026-10-04 — Top bar sign-out leaves the session
+- Profile sign-out waits for `AuthContext.logout` (server cookie clear plus local token clear), then loads `/login`.
+
 ### 2026-09-12 — Mobile Playbill is identity only
 - Phone Playbill shows domain + current Dialog title. Title is not a second Chronicle button; Chronicle stays the book icon.
 - 2026-08-30: Playbill billing is the domain address; the star is the agent name (Liv, not livecchi.biz). Empty lead falls back to the domain label instead of "Agent".

@@ -15,13 +15,15 @@ export async function logout() {
   } catch (_) {
     // Ignore network errors; we'll still nuke client state
   } finally {
-    // Clear any stray dev tokens (PROD shouldn't rely on these, but safe to clear)
+    try {
+      const { clearAuthToken } = await import('../lib/authTokenStore');
+      clearAuthToken();
+    } catch {}
     try { localStorage.removeItem('keeper_token'); } catch {}
     try { localStorage.removeItem('keeper_user'); } catch {}
     try { sessionStorage.removeItem('keeper_token'); } catch {}
     try { sessionStorage.removeItem('keeper_user'); } catch {}
-    
-    // Hard redirect to login
+
     window.location.assign('/login');
   }
 }

@@ -24,7 +24,7 @@ interface AuthContextType {
   isAdmin: boolean;
   authResolved: boolean;
   login: (data: AuthSuccessData) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (userData: Partial<AuthUser>) => void;
   /** Refresh session from server (e.g. after 401). Returns true if session is valid. */
   refreshSession: () => Promise<boolean>;
@@ -179,15 +179,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      const apiBase = getApiBase();
+      const logoutUrl = apiBase ? `${apiBase}/api/kam/auth/logout` : '/api/kam/auth/logout';
+      await fetch(logoutUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch {
+      // The cookie clear is best-effort. Local session state still ends.
+    }
     clearAuthToken();
     setUser(null);
     setToken(null);
     setIsAdmin(false);
     setAuthResolved(true);
     setIsLoading(false);
-    localStorage.removeItem('keeper_user');
-    localStorage.removeItem('keeper_token');
+    try {
+      localStorage.removeItem('keeper_user');
+      localStorage.removeItem('keeper_token');
+      sessionStorage.removeItem('keeper_token');
+      sessionStorage.removeItem('keeper_user');
+    } catch {
+      // Storage can be unavailable. The in-memory session is already cleared.
+    }
   };
 
   const updateUser = (userData: Partial<AuthUser>) => {

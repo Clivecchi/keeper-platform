@@ -4,8 +4,6 @@
  * It may not add history that is not here.
  */
 
-import type { FramePerformance } from './framePerformance.js';
-import { FRAME_PERFORMANCE_MAX_BEATS } from './framePerformance.js';
 import type { ResolvedMeaning, ResolvedMeaningRef } from './resolvedMeaning.js';
 import {
   whereWeAreClaimLine,
@@ -14,7 +12,8 @@ import {
 import type { WhereWeAreReading } from './stageArrival.js';
 import { isAuthoredDocumentForward } from './document.js';
 
-export const STORY_DIRECTION_MAX_CLAIMS = FRAME_PERFORMANCE_MAX_BEATS;
+/** How many source claims a direction may cite. A Frame may still hold fewer beats. */
+export const STORY_DIRECTION_MAX_CLAIMS = 12 as const;
 export const ALREADY_IN_PROGRESS_TITLE = 'Already in Progress...';
 export const ALREADY_IN_PROGRESS_STORY_ID = 'already-in-progress';
 
@@ -146,7 +145,7 @@ export function buildStoryTruthPacket(input: {
   };
 }
 
-/** Kip's order. Unknown ids are dropped. At most one Frame's worth of claims. */
+/** Kip's order. Unknown ids are dropped. This is the factual boundary, not the wording of the Story. */
 export function selectStoryClaims(
   packet: StoryTruthPacket,
   claimIds: readonly string[],
@@ -166,67 +165,43 @@ export function selectStoryClaims(
   return { claims, trimmed };
 }
 
-export function meaningFromStoryClaims(
+/**
+ * Keep the Lead's telling. Cite the Dialogs behind the chosen claims.
+ * Does not replace that telling with the source sentences.
+ */
+export function meaningWithStorySources(
+  prior: ResolvedMeaning | undefined,
   claims: readonly StoryTruthClaim[],
   focus?: { dialogId: string; dialogTitle: string },
 ): ResolvedMeaning {
   const about: ResolvedMeaningRef[] = [];
+  const push = (ref: ResolvedMeaningRef) => {
+    if (about.some((row) => row.kind === ref.kind && row.id === ref.id)) return;
+    about.push(ref);
+  };
+  for (const ref of prior?.about ?? []) push(ref);
   for (const claim of claims) {
     const dialogId = claim.source.kind === 'dialog'
       ? claim.source.id
       : claim.source.kind === 'claim'
         ? claim.source.dialogId
         : null;
-    if (!dialogId || about.some((ref) => ref.kind === 'dialog' && ref.id === dialogId)) continue;
+    if (!dialogId) continue;
     const title = focus && dialogId === focus.dialogId ? focus.dialogTitle : undefined;
-    about.push({
+    push({
       kind: 'dialog',
       id: dialogId,
       ...(title ? { title } : {}),
     });
   }
+  const directed = prior?.meaning?.trim();
   return {
-    meaning: claims.map((claim) => claim.text).join('\n'),
+    meaning: directed || 'Tell what the chosen claims already support. Do not add history.',
+    ...(prior?.because ? { because: prior.because } : {}),
     about,
-    performedBy: ['kip'],
+    performedBy: prior?.performedBy?.length ? prior.performedBy : ['kip'],
     presentFrame: true,
   };
-}
-
-function sameTitle(left: string, right: string): boolean {
-  return left.replace(/\s+/g, ' ').trim().toLowerCase() === right.replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
-function safeBeatTitle(title: string, line: string, documentTitle?: string): string {
-  const fromLine = line.replace(/\.$/, '').trim().slice(0, 80);
-  const candidate = title.trim().slice(0, 80) || fromLine || 'Beat';
-  if (!documentTitle || !sameTitle(candidate, documentTitle)) return candidate;
-  if (fromLine && !sameTitle(fromLine, documentTitle)) return fromLine;
-  return 'Already in Progress';
-}
-
-/**
- * Rendr may title and order the beats it returned.
- * Each body stays the directed sentence. Extra beats are dropped.
- * Claims Rendr did not give a beat are left untold.
- */
-export function groundFrameBodies(
-  performance: FramePerformance,
-  lines: readonly string[],
-  documentTitle?: string,
-): FramePerformance | null {
-  const capped = lines.map((line) => line.trim()).filter(Boolean).slice(0, STORY_DIRECTION_MAX_CLAIMS);
-  if (!capped.length || performance.beats.length === 0) return null;
-  const beats = performance.beats.slice(0, capped.length).map((beat, index) => {
-    const line = capped[index] ?? '';
-    return {
-      title: safeBeatTitle(beat.title, line, documentTitle),
-      body: line,
-      ...(beat.voice ? { voice: beat.voice } : {}),
-    };
-  });
-  const title = safeBeatTitle(performance.title, capped[0] ?? performance.title, documentTitle);
-  return { ...performance, title, beats };
 }
 
 export function humanRequestsKeeperStory(text: string): boolean {
@@ -241,10 +216,11 @@ export function buildKeeperStoryDirectionPrompt(dialogId: string | null): string
     'KEEPER STORY — you direct. Rendr composes the Frame after this turn, from the meaning you resolve. Rendr does not choose the Story.',
     'Do not emit stage.story.layout. That writes the Stage filmstrip. This Story is saved apart from it.',
     read,
-    'When the packet is in front of you, choose at most 4 claim ids, in the order the Story should tell them. Leave out a claim that is not worth telling.',
-    'Emit story.save { "title": "Already in Progress...", "dialogId": "<this Dialog>", "claimIds": ["..."] }.',
-    'Emit resolvedMeaning with presentFrame true. Copy the chosen sentences into meaning. Cite their Dialogs in about. performedBy is you.',
-    'Do not add events, motives, or history that the packet does not contain.',
+    'When the packet is in front of you, choose the claim ids the Story should stand on. Leave out a claim that is not worth telling. Those ids are the factual boundary. They are not the sentences the audience must hear.',
+    'Direct the telling in your own words. You may summarize, phrase, sequence, and emphasize. Do not state an event, motive, name, date, or outcome the packet does not support.',
+    'Emit story.save { "title": "Already in Progress...", "dialogId": "<this Dialog>", "claimIds": ["..."], "description": "<your telling>" }.',
+    'Emit resolvedMeaning with presentFrame true. meaning is that telling, not a paste of the claim sentences. Cite their Dialogs in about. performedBy is you.',
+    'Rendr will compose how the telling is experienced. Rendr does not choose the Story.',
   ].join('\n');
 }
 

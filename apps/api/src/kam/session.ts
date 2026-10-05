@@ -81,15 +81,22 @@ export function clearSessionCookie(res: Response, req?: Request) {
     ? [resolveCookieDomain(req)]
     : [KE3P_COOKIE_DOMAIN, KEEPER_DOMAINS_COOKIE_DOMAIN];
 
+  const clearOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none' as const,
+    path: '/',
+  };
+
   for (const domain of domains) {
     res.clearCookie(COOKIE_NAME, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      ...clearOptions,
       domain,
-      path: '/',
     });
   }
+  // Host-only cookie. Localhost and preview hosts reject Domain=.ke3p.com,
+  // so a domain-scoped clear leaves that session in the browser.
+  res.clearCookie(COOKIE_NAME, clearOptions);
 }
 
 function readCookieToken(req: Request): string | undefined {

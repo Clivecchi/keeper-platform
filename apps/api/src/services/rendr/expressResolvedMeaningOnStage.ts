@@ -11,7 +11,6 @@ import {
   applyDialogFrameAuthority,
   bindFramePerformanceCue,
   parseFramePerformanceFromModelText,
-  groundFrameBodies,
   promotedDialogFrame,
   parseStageExpressionFromModelText,
   withPerformanceContext,
@@ -51,8 +50,8 @@ export type ExpressResolvedMeaningInput = {
   /** Human explicitly asked for a Dialog Frame. Authorizes presentation without the Lead's flag. */
   humanRequestedFrame?: boolean;
   /**
-   * Sentences the Lead directed. When present, beat bodies stay these lines.
-   * Rendr still titles the beats it returned.
+   * Source claims for a directed Story. Rendr may phrase them.
+   * They are not copied over the Frame.
    */
   sourceLines?: readonly string[];
 };
@@ -172,6 +171,7 @@ export async function expressResolvedMeaningOnStage(
           resolvedMeaning: resolved,
           selectedVoices,
           set,
+          sourceLines: input.sourceLines,
         }),
       },
     ],
@@ -197,18 +197,14 @@ export async function expressResolvedMeaningOnStage(
     };
   }
 
-  const composedRaw = performanceFromModelText(raced.content, selectedVoices);
-  if (!composedRaw) {
+  const composed = performanceFromModelText(raced.content, selectedVoices);
+  if (!composed) {
     return { ok: false, reason: 'no_expression', message: 'Rendr returned no Frame Performance.' };
   }
-  const performanceContext = performanceContextFromEnvironment(input.environment, resolved);
-  const composed = input.sourceLines?.length
-    ? groundFrameBodies(composedRaw, input.sourceLines, performanceContext?.documentTitle) ?? composedRaw
-    : composedRaw;
 
   const stamped = withPerformanceContext(
     stampVoiceLabels(composed, input.voiceLabels),
-    performanceContext,
+    performanceContextFromEnvironment(input.environment, resolved),
   );
   if (!stamped) {
     return { ok: false, reason: 'no_expression', message: 'The composition collapsed Document and Point.' };

@@ -70,7 +70,7 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
 
   return (
     <div
-      className="h-full min-h-0"
+      className="absolute inset-0 flex min-h-0 flex-col"
       data-stage-room={roomId.current}
       data-stage-renderer="composition"
       data-stage-scope={pass.context.scope}

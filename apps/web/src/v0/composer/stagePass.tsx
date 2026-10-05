@@ -69,12 +69,13 @@ export function StagePassProvider({
     [scope, domainId, audience, arriving],
   )
   const truth = selectStageTruth(context)
+  // Open Stage plays the shell domain's stored story, including from /home.
+  // Realm arrival never reaches this flag. A continuation into another domain
+  // does not borrow this shell's filmstrip.
   const presentsStoredStory = Boolean(
     truth === "story" &&
-      scope === "domain" &&
-      domainId &&
       shellDomainId &&
-      domainId === shellDomainId,
+      (domainId == null || domainId === shellDomainId),
   )
 
   const continueStage = React.useCallback((next: StageContext) => {

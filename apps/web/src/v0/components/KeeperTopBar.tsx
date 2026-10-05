@@ -297,7 +297,9 @@ export function KeeperTopBar({
 
   const handleSignOut = () => {
     setProfileOpen(false)
-    logout()
+    void logout().finally(() => {
+      window.location.assign("/login")
+    })
   }
 
   const leadAgentSlug = domainData?.leadAgentSlug?.trim() || null

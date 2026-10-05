@@ -48,7 +48,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 
 ## 📆 Update Log
 ### 2026-10-04 — Story truth follow-up
-- When `story.truth.read` succeeds, the Lead follow-up is the packet. Kip chooses claim ids. The follow-up tells Kip not to write the Stage filmstrip.
+- When `story.truth.read` succeeds, the Lead follow-up is the packet. Kip chooses claim ids and writes a telling. The follow-up tells Kip not to paste the claims as the Story and not to write the Stage filmstrip.
 
 ### 2026-09-30 — Document Gloss is one thread per Point
 - `ensureDialogGlossCarrier` folds Document Gloss that was stored on later chat messages onto the dedicated carrier, keyed by entity and node. In-stream message Gloss stays on its chat message.

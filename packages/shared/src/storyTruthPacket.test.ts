@@ -2,12 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { WhereWeAreReading } from './stageArrival.js';
 import {
   buildStoryTruthPacket,
-  groundFrameBodies,
   humanRequestsKeeperStory,
   keeperStoryIdForTitle,
+  meaningWithStorySources,
   selectStoryClaims,
 } from './storyTruthPacket.js';
-import { FRAME_PERFORMANCE_VERSION } from './framePerformance.js';
 
 const reading: WhereWeAreReading = {
   places: [
@@ -80,26 +79,38 @@ describe('selectStoryClaims', () => {
       'domain-cover',
       'dialog-status',
       'dialog-orientation-absent',
+      'dialog-forward-absent',
     ]);
-    expect(selected.trimmed).toBe(true);
+    expect(selected.trimmed).toBe(false);
   });
 });
 
-describe('groundFrameBodies', () => {
-  it('keeps Rendr’s titles and replaces a body that is not a packet sentence', () => {
-    const grounded = groundFrameBodies({
-      version: FRAME_PERFORMANCE_VERSION,
-      title: 'Be.Speak.Become',
-      beats: [
-        { title: 'The place', body: 'Keeper has been waiting for years to go public.' },
-        { title: 'Kept', body: 'Be.Speak.Become is kept.' },
-      ],
-    }, ['KE3P.', 'Be.Speak.Become is kept.'], 'Be.Speak.Become');
-    expect(grounded?.title).toBe('KE3P');
-    expect(grounded?.beats[0]?.body).toBe('KE3P.');
-    expect(grounded?.beats[0]?.title).toBe('The place');
-    expect(grounded?.beats[1]?.body).toBe('Be.Speak.Become is kept.');
-    expect(grounded?.beats).toHaveLength(2);
+describe('meaningWithStorySources', () => {
+  it('keeps the Lead telling and cites the Dialogs behind the claims', () => {
+    const packet = buildStoryTruthPacket({
+      domainId: 'ke3p',
+      domainName: 'KE3P',
+      focus: {
+        id: 'speak',
+        title: 'Be.Speak.Become',
+        documentStatus: 'kept',
+        hasSessionTrail: false,
+      },
+      reading: { places: [], claims: [], trail: { stageBeatTitles: [], chatterTitles: [], history: [] } },
+    });
+    const meaning = meaningWithStorySources(
+      {
+        meaning: 'This Dialog is kept, and it has not yet named where it is going.',
+        about: [],
+        performedBy: ['kip'],
+      },
+      packet.claims.filter((claim) => claim.id === 'dialog-status' || claim.id === 'dialog-forward-absent'),
+      { dialogId: 'speak', dialogTitle: 'Be.Speak.Become' },
+    );
+    expect(meaning.meaning).toBe('This Dialog is kept, and it has not yet named where it is going.');
+    expect(meaning.meaning).not.toContain('Be.Speak.Become is kept.');
+    expect(meaning.presentFrame).toBe(true);
+    expect(meaning.about).toEqual([{ kind: 'dialog', id: 'speak', title: 'Be.Speak.Become' }]);
   });
 });
 

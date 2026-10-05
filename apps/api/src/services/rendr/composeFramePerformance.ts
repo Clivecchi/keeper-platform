@@ -24,7 +24,6 @@ export function buildFramePerformanceSystemPrompt(): string {
     'Do not emit promote. That stamp is not yours.',
     'You may set recommendPresentation true when you would present this. That is a recommendation only.',
     'You do not write Keeper truth, the Document, or actions that mutate anything.',
-    'Beat bodies must be sentences already in the resolved meaning. You may title each beat. Do not add events, history, names, or state that are not in that meaning.',
     'Output raw JSON only. No HTML. No CSS. No Theatre project state.',
     'Document title and Section title are context. They are not the headline.',
     'title is the Point — the subject of this telling.',
@@ -42,10 +41,14 @@ export function buildFramePerformanceUserPrompt(input: {
   resolvedMeaning: ResolvedMeaning;
   selectedVoices: readonly SelectedVoice[];
   set: CompactPerformanceSet;
+  /** Factual boundary for a directed Story. Expression may phrase these. It may not add claims. */
+  sourceLines?: readonly string[];
 }): string {
   const set = input.set;
   const lines = [
-    'RESOLVED MEANING (already decided — compose this, do not change it):',
+    input.sourceLines?.length
+      ? 'LEAD DIRECTION (what to tell — phrase the experience, do not add facts):'
+      : 'RESOLVED MEANING (already decided — compose this, do not change it):',
     JSON.stringify(input.resolvedMeaning, null, 2),
     '',
     'SELECTED VOICES (the only lines you may quote — copy them, do not invent):',
@@ -64,13 +67,21 @@ export function buildFramePerformanceUserPrompt(input: {
       lines.push(`Filmstrip already has: ${set.keeperStage.storyTitles.join(' · ')}`);
     }
   }
+  if (input.sourceLines?.length) {
+    lines.push('', 'SOURCE TRUTH (factual boundary — not the wording you must repeat):');
+    for (const line of input.sourceLines) {
+      const text = line.trim();
+      if (text) lines.push(`- ${text}`);
+    }
+  }
   lines.push(
     '',
     'Compose the telling. title is the Point. beats are that telling. Do not set title to the Document title.',
+    'You may summarize, phrase, title, sequence, and emphasize the resolved meaning.',
+    'Do not introduce events, names, dates, motives, or outcomes that the resolved meaning and source truth do not support.',
     'Do not emit promote. recommendPresentation is optional and does not present the Frame.',
     'Do not copy Point or Document bodies. Do not quote anyone who is not in SELECTED VOICES.',
     'Do not emit stage.story.layout. Do not emit HTML.',
-    'If the resolved meaning is several sentences, give each sentence you keep its own beat, in that order, and copy the sentence into the body.',
   );
   return lines.join('\n');
 }

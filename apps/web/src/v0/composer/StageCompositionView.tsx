@@ -44,7 +44,7 @@ export function StageCompositionView({
   if (status === "story" || sequenceNode) {
     return (
       <div
-        className="h-full min-h-0"
+        className="flex h-full min-h-0 flex-1 flex-col"
         data-stage-sequence={sequenceNode ? citeIds(sequenceNode.kind === "sequence" ? sequenceNode.children : []).join(" ") : ""}
       >
         {sequence}

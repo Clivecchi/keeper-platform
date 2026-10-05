@@ -6,7 +6,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 ## 🧱 Key Files
 - `FramePerformanceView.tsx` — a promoted Frame. `placement="dialog"` fills the Dialog surface; `placement="stage"` fills the Stage screen. Beats replace inside the viewport.
 - `dialogFramePresentation.ts` — latest agent turn presents a Frame only when a beat is promoted. Conversation is the default.
-- `frameCue.tsx` — Keep, review Cast, open Point, and Take to Stage handlers shared by both placements
+- `frameCue.tsx` — Add to Story, Keep, review Cast, open Point, and Take to Stage handlers shared by both placements
+- `useDomainStories.ts` — domain Story set for Chronicle and the Dialog Frame cue
 - `spatial/loadSpatialFrameHost.tsx` — optional lazy Three.js host. Dialog frames do not call it.
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX). `appendLiveBeat` points one filmstrip cell at a Lead message.
 - `ReachPalette.tsx` — Here / Cast / Recent / search
@@ -53,10 +54,13 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-04: Open Stage on `/home` plays the shell domain’s stored slides. The filmstrip was hidden whenever the room scope was Realm, so the center stayed empty after the Stage header. Realm arrival still reads Where are we? and does not borrow that filmstrip.
 - 2026-10-03: One Stage walker. Realm and Domain Where are we?, and the story filmstrip, are projections into `StageReading` / `StageComposition`. Realm → Domain replaces the pass in the mounted room. The anchor domain’s stored Stage is not what Realm presents. `KeeperStageComposition` is unchanged.
 - 2026-10-03: Realm arrival on `/home` opens the existing Stage. “Where are we?” lists Domains the Domain resolver can already name. Choosing a Domain opens that Domain’s Stage arrival. The seven-day feed, Stage beats, and draft Forwards stay in Trail. The Realm face is not treated as the current Domain.
 - 2026-10-03: `useStageArrivalPresentation` hides the story filmstrip while Where are we? is showing, so the continuation lines stay the reading.
 - 2026-10-03: Domain arrival opens the existing Stage. An arriving admin sees “Where are we?” composed from stored Dialog facts. Choosing a place continues in that Dialog. The story filmstrip remains the other presentation.
+- 2026-09-30: **Story** — `useDomainStories` holds ordered references. Add to Story on a Frame writes a capture. Take Story to Stage replaces the filmstrip beats through `replaceStorySlides` and leaves Stage presentation alone.
+
 
 ### 2026-09-27 — Lead authorizes the Frame
 - Presentation still waits on a stamped beat. The stamp comes from the Lead's `presentFrame`, or from an explicit human request. Rendr's recommendation does not open the Dialog surface.

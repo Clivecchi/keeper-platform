@@ -893,7 +893,7 @@ app.post('/api/kam/auth/logout', (req, res) => {
   console.log('📍 /api/kam/auth/logout endpoint hit');
 
   // 🍪 Clear session cookie using the canonical helper from session.ts
-  clearSessionCookie(res);
+  clearSessionCookie(res, req);
   console.log('[auth] Cookie cleared for logout');
 
   // Return simple success response for logout

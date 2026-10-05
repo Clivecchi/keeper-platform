@@ -107,6 +107,7 @@ export async function saveDirectedStory(input: {
   dialogId: string;
   title: string;
   claimIds: string[];
+  telling?: string | null;
   actorId: string | null;
 }): Promise<{ ok: true; save: DirectedStorySave } | { ok: false; message: string }> {
   const title = input.title.trim();
@@ -119,7 +120,7 @@ export async function saveDirectedStory(input: {
   }
   const now = new Date().toISOString();
   const storyId = keeperStoryIdForTitle(title);
-  const description = selected.claims.map((claim) => claim.text).join('\n');
+  const description = input.telling?.trim().slice(0, 2000) ?? '';
   const current = await loadDomainStories(input.domainId);
   const prior = current.stories.find((row) => row.id === storyId);
   const story = prior
@@ -147,6 +148,24 @@ export async function saveDirectedStory(input: {
       trimmed: selected.trimmed,
     },
   };
+}
+
+export async function setDirectedStoryTelling(input: {
+  domainId: string;
+  storyId: string;
+  telling: string;
+  actorId: string | null;
+}): Promise<void> {
+  const telling = input.telling.trim().slice(0, 2000);
+  if (!telling) return;
+  const current = await loadDomainStories(input.domainId);
+  const story = current.stories.find((row) => row.id === input.storyId);
+  if (!story || story.description === telling) return;
+  await saveDomainStories(
+    input.domainId,
+    upsertStory(current, { ...story, description: telling, updatedAt: new Date().toISOString() }),
+    input.actorId,
+  );
 }
 
 export async function attachFrameToDirectedStory(input: {

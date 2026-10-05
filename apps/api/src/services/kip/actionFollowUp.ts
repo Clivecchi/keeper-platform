@@ -408,10 +408,10 @@ export function buildReadActionFollowUpInput(params: {
       ...lines,
       '',
       `The human's direction remains: "${params.originalInput}"`,
-      'You direct the Story. Rendr composes the Frame after this turn from your resolved meaning. Rendr does not choose which claims belong.',
-      'Choose at most 4 claim ids, in telling order. Omit a claim that is not worth telling.',
-      'Emit story.save { "title": "Already in Progress...", "dialogId": "<dialog id>", "claimIds": ["..."] }.',
-      'Emit resolvedMeaning with presentFrame true. Copy the chosen sentences into meaning. performedBy is you.',
+      'You direct the Story. The claim ids are the factual boundary. Rendr composes the Frame from your telling. Rendr does not choose which claims belong.',
+      'Choose the claims worth telling. Omit the rest. You may summarize and phrase. Do not add an event, motive, name, date, or outcome the packet does not support.',
+      'Emit story.save { "title": "Already in Progress...", "dialogId": "<dialog id>", "claimIds": ["..."], "description": "<your telling>" }.',
+      'Emit resolvedMeaning with presentFrame true. meaning is your telling, not a paste of the claim lines. performedBy is you.',
       'Do not emit stage.story.layout. Do not call story.truth.read again.',
     ].filter((line) => line !== '').join('\n');
   }
