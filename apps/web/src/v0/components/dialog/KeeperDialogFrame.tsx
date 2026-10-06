@@ -32,7 +32,8 @@ import { isPastedSupportingDoc } from "../../../components/agent/composerSupport
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import type { KeepAsMomentPayload } from "../../../components/kip/ActionReceiptCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
-import type { KeepingChoiceRecord } from "@keeper/shared"
+import { stagePostureClaimsRoom, type KeepingChoiceRecord } from "@keeper/shared"
+import { useStagePassOptional } from "../../composer/stagePass"
 import { IntegratedServicesBar } from "../../boards/components/IntegratedServicesBar"
 import {
   CastCueBar,
@@ -455,6 +456,11 @@ export function KeeperDialogFrame({
   }, [isMobile])
 
   const composerOnStage = Boolean(dialogContent) && mode !== "feed"
+  const stagePass = useStagePassOptional()
+  const experienceRoom = composerOnStage && stagePostureClaimsRoom(
+    stagePass?.posture ?? "workshop",
+    stagePass?.compositionSpan,
+  )
   const [conversationOverFrameId, setConversationOverFrameId] = React.useState<string | null>(null)
   const surfaceFrame = dialogSurfaceFrame({
     messages,
@@ -579,7 +585,7 @@ export function KeeperDialogFrame({
   const mobileComposerSize = isMobileStaged ? "mobile-docked" : "default"
   const hideMobileComposerFooter = isMobileStaged
 
-  const composerZone = mode === "feed" ? null : (
+  const composerZone = mode === "feed" || experienceRoom ? null : (
       <div className="dialog-bottom-zone">
         <div className="dialog-column dialog-bottom-stack">
           {composerOnStage && !isMobileStaged ? <StageSlideStrip /> : null}
@@ -757,7 +763,8 @@ export function KeeperDialogFrame({
     <div
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
-      data-composer-placement={composerOnStage ? "pit" : "floor"}
+      data-composer-placement={experienceRoom ? "recessed" : composerOnStage ? "pit" : "floor"}
+      data-stage-posture={composerOnStage ? (stagePass?.posture ?? "workshop") : undefined}
       data-stage-presentation={composerOnStage ? stageArrivalPresentation : undefined}
       data-stage-attention={attention}
       data-stage-attention-subject={

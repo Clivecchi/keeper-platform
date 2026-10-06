@@ -7,10 +7,14 @@
 
 import * as React from "react"
 import {
+  presentStoredArrangement,
   projectDomainWhereWeAre,
   projectRealmWhereWeAre,
   projectStoryPass,
+  STAGE_TRUTH_TITLE,
+  stagePostureClaimsRoom,
   type StageContinueAction,
+  type StageDressSpan,
   type StoryPassSlide,
 } from "@keeper/shared"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
@@ -76,6 +80,7 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
     [board, pass],
   )
 
+  const stageApi = useKeeperStageOptional()
   const projected = React.useMemo(() => {
     if (pass.truth === "realm-where-we-are" && realmTruth.truth) {
       return projectRealmWhereWeAre({ context: pass.context, truth: realmTruth.truth })
@@ -85,6 +90,18 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
     }
     return null
   }, [pass.truth, pass.context, realmTruth.truth, domainTruth.truth])
+  const presented = React.useMemo(() => {
+    if (!projected) return null
+    const stored = stageApi?.stage.arrangements?.[pass.truth]?.composition
+    const composed = stored ? presentStoredArrangement(stored, projected.reading) : null
+    return composed ? { reading: projected.reading, composition: composed } : projected
+  }, [projected, stageApi?.stage.arrangements, pass.truth])
+  const span: StageDressSpan = presented?.composition.dress?.span ?? "center"
+  React.useEffect(() => {
+    if (pass.truth === "story") return
+    pass.setCompositionSpan(span)
+  }, [pass, span])
+  const room = stagePostureClaimsRoom(pass.posture, span)
 
   const status =
     pass.truth === "story"
@@ -103,16 +120,28 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
       data-stage-truth={pass.truth}
       data-stage-stored-story={pass.presentsStoredStory ? "true" : "false"}
     >
-      <StageOrientationBar names={names} shellDomainId={domainId} />
+      {room ? (
+        <button
+          type="button"
+          className="absolute right-4 top-4 z-10 rounded-md px-3 py-1.5 text-[13px]"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
+          onClick={() => pass.setPosture("workshop")}
+        >
+          Workshop
+        </button>
+      ) : (
+        <StageOrientationBar names={names} shellDomainId={domainId} />
+      )}
       <div className="min-h-0 flex-1">
         {pass.truth === "story" ? (
           <StoryPass sequence={pass.presentsStoredStory ? <StoryStageCanvas /> : null} shellDomainId={domainId} />
         ) : (
           <StageCompositionView
-            composition={projected?.composition ?? null}
-            reading={projected?.reading ?? null}
+            composition={presented?.composition ?? null}
+            reading={presented?.reading ?? null}
             status={status}
             onContinue={onContinue}
+            title={STAGE_TRUTH_TITLE[pass.truth]}
           />
         )}
       </div>
@@ -129,6 +158,7 @@ function StoryPass({
 }) {
   const pass = useStagePass()
   const presentation = useStagePresentationOptional()
+  const stageApi = useKeeperStageOptional()
   const projected = React.useMemo(() => {
     if (!pass.presentsStoredStory) {
       return projectStoryPass({ context: pass.context, slides: [] })
@@ -152,14 +182,22 @@ function StoryPass({
       openingIndex: presentation?.index ?? 0,
     })
   }, [pass.presentsStoredStory, pass.context, presentation, shellDomainId])
+  const stored = stageApi?.stage.arrangements?.story?.composition
+  const composed = stored ? presentStoredArrangement(stored, projected.reading) : null
+  const composition = composed ?? projected.composition
+  const sequenceNode = composition.nodes.some((node) => node.kind === "sequence")
+  React.useEffect(() => {
+    pass.setCompositionSpan(composition.dress?.span ?? "center")
+  }, [pass, composition.dress?.span])
 
   return (
     <StageCompositionView
-      composition={projected.composition}
+      composition={composition}
       reading={projected.reading}
       status="story"
       onContinue={() => undefined}
-      sequence={sequence}
+      sequence={sequenceNode ? sequence : undefined}
+      title={STAGE_TRUTH_TITLE.story}
     />
   )
 }

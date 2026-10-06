@@ -5,7 +5,9 @@
  * It names the context, what is on Stage, and the presentations already entered.
  */
 
+import type { StagePosture } from "@keeper/shared"
 import { buildStageOrientation } from "./stageOrientation"
+import { useKeeperStageOptional } from "./useKeeperStage"
 import { useStagePass } from "./stagePass"
 import { useStagePresentationOptional } from "./stagePresentation"
 
@@ -17,7 +19,9 @@ export function StageOrientationBar({
   shellDomainId: string | null
 }) {
   const pass = useStagePass()
+  const stage = useKeeperStageOptional()
   const story = useStagePresentationOptional()
+  const arrangement = stage?.stage.arrangements?.[pass.truth]
   const slideTitle = pass.truth === "story" ? story?.current?.title ?? null : null
   const orientation = buildStageOrientation({
     visits: pass.visits,
@@ -45,6 +49,20 @@ export function StageOrientationBar({
         <span aria-hidden> · </span>
         <span>{orientation.onStageLabel}</span>
       </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <PostureButton current={pass.posture} posture="presentation" onSelect={pass.setPosture} />
+        <PostureButton current={pass.posture} posture="workshop" onSelect={pass.setPosture} />
+        {pass.posture === "workshop" && arrangement ? (
+          <button
+            type="button"
+            className="text-[13px] leading-snug"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            onClick={() => stage?.restoreArrangement(pass.truth)}
+          >
+            Restore
+          </button>
+        ) : null}
+      </div>
       {showPath ? (
         <ol className="flex flex-wrap items-center gap-2">
           {orientation.steps.map((step, index) => {
@@ -77,5 +95,29 @@ export function StageOrientationBar({
         </ol>
       ) : null}
     </nav>
+  )
+}
+
+function PostureButton({
+  current,
+  posture,
+  onSelect,
+}: {
+  current: StagePosture
+  posture: StagePosture
+  onSelect: (posture: StagePosture) => void
+}) {
+  const selected = current === posture
+  const label = posture === "presentation" ? "Presentation" : "Workshop"
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      className="text-[13px] leading-snug"
+      style={{ color: selected ? "hsl(var(--theme-ink-primary))" : "hsl(var(--theme-ink-secondary))" }}
+      onClick={() => onSelect(posture)}
+    >
+      {label}
+    </button>
   )
 }

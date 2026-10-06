@@ -4,9 +4,11 @@ import {
   parseKeepingChoiceOffers,
   parseResolvedMeaning,
   parseSelectedVoices,
+  parseStageCompositionAuthority,
   type KeepingChoiceOffer,
   type ResolvedMeaning,
   type SelectedVoice,
+  type StageCompositionAuthority,
 } from '@keeper/shared';
 import {
   ActionValidationError,
@@ -32,6 +34,8 @@ export type ParsedAgentOutput = {
   selectedVoices?: SelectedVoice[];
   /** One Cast voice the Lead wants in full. Omitted means Present. */
   engage?: { slug: string; aim: string };
+  /** Kip authorizes Rendr to recompose the current Stage Reading. */
+  stageComposition?: StageCompositionAuthority;
   ignoredReason?: string;
   validationError?: ActionValidationError;
   repaired?: boolean;
@@ -146,6 +150,7 @@ function parseEnvelopeObject(
   const resolvedMeaning = parseResolvedMeaning(parsed.resolvedMeaning);
   const selectedVoices = parseSelectedVoices(parsed.selectedVoices);
   const engage = parseCastRoomEngage(parsed.engage) ?? undefined;
+  const stageComposition = parseStageCompositionAuthority(parsed.stageComposition) ?? undefined;
   if (isActionParseSuccess(actionsResult)) {
     return {
       responseText,
@@ -156,6 +161,7 @@ function parseEnvelopeObject(
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
       ...(selectedVoices.length ? { selectedVoices } : {}),
       ...(engage ? { engage } : {}),
+      ...(stageComposition ? { stageComposition } : {}),
     };
   }
 
@@ -180,6 +186,7 @@ function parseEnvelopeObject(
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
       ...(selectedVoices.length ? { selectedVoices } : {}),
       ...(engage ? { engage } : {}),
+      ...(stageComposition ? { stageComposition } : {}),
       ignoredReason: 'missing_agent_output_envelope',
       validationError,
     };
@@ -194,6 +201,7 @@ function parseEnvelopeObject(
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
     ...(selectedVoices.length ? { selectedVoices } : {}),
     ...(engage ? { engage } : {}),
+    ...(stageComposition ? { stageComposition } : {}),
     validationError,
   };
 }

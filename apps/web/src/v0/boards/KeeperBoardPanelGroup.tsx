@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import type { WorkspaceSurface } from "@keeper/shared"
+import { stagePostureClaimsRoom, type WorkspaceSurface } from "@keeper/shared"
+import { useStagePassOptional } from "../composer/stagePass"
 
 export type KeeperBoardKind = "build" | "agent"
 
@@ -34,7 +35,9 @@ export const STAGE_CURTAIN_SPLIT: PanelSplit = { leftPct: 15, rightPct: 15 }
 export function panelSplitForSurface(
   surface: WorkspaceSurface | undefined,
   stored: PanelSplit,
+  openRoom = false,
 ): PanelSplit {
+  if (surface === "stage" && openRoom) return { leftPct: 0, rightPct: 0 }
   return surface === "stage" ? STAGE_CURTAIN_SPLIT : stored
 }
 
@@ -126,7 +129,12 @@ export function KeeperBoardPanelGroup({
   const [storedSplit, setPercents] = React.useState(() =>
     loadStored(groupId, fallback, legacyGroupId),
   )
-  const { leftPct, rightPct } = panelSplitForSurface(workspaceSurface, storedSplit)
+  const pass = useStagePassOptional()
+  const openRoom = stagePostureClaimsRoom(
+    pass?.posture ?? "workshop",
+    workspaceSurface === "stage" ? pass?.compositionSpan : "center",
+  )
+  const { leftPct, rightPct } = panelSplitForSurface(workspaceSurface, storedSplit, openRoom)
   const curtainsLocked = workspaceSurface === "stage"
 
   const rootRef = React.useRef<HTMLDivElement>(null)
@@ -182,8 +190,16 @@ export function KeeperBoardPanelGroup({
     [curtainsLocked, groupId, storedSplit.leftPct, storedSplit.rightPct],
   )
 
+  if (openRoom) {
+    return (
+      <div ref={rootRef} className="flex h-full min-h-0 w-full min-w-0" data-stage-posture="presentation">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{centerChild}</div>
+      </div>
+    )
+  }
+
   return (
-    <div ref={rootRef} className="flex h-full min-h-0 w-full min-w-0 flex-row gap-[10px]">
+    <div ref={rootRef} className="flex h-full min-h-0 w-full min-w-0 flex-row gap-[10px]" data-stage-posture={pass?.posture ?? "workshop"}>
       <div
         className="flex min-h-0 min-w-0 flex-col overflow-hidden"
         style={{ flex: `0 0 ${leftPct}%` }}

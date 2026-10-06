@@ -3,11 +3,17 @@ import type { RealmWhereWeAreReading } from './realmArrival.js';
 import type { WhereWeAreReading } from './stageArrival.js';
 import {
   composeStagePass,
+  decideStageComposition,
+  deterministicPassId,
   dropUnsourcedNodes,
+  mergeStageArrangementPatch,
+  parseStageCompositionAuthority,
+  presentStoredArrangement,
   projectDomainWhereWeAre,
   projectRealmWhereWeAre,
   projectStoryPass,
   selectStageTruth,
+  stagePostureClaimsRoom,
   type StageComposition,
   type StageContext,
   type StageReading,
@@ -205,5 +211,176 @@ describe('dropUnsourcedNodes', () => {
     expect(citeIds(kept)).toEqual(['place:dlg-1'])
     const arranged = composeStagePass(reading, 'domain-where-we-are')
     expect(citeIds(arranged)).not.toContain('invented')
+  })
+})
+
+describe('decideStageComposition', () => {
+  const reading: StageReading = {
+    context: adminDomain,
+    items: [
+      {
+        id: 'uncertainty:scene',
+        lifecycle: 'derived',
+        text: 'The trail does not currently resolve to one place.',
+        source: { kind: 'uncertainty', id: 'scene' },
+        actions: [],
+      },
+      {
+        id: 'place:dlg-1',
+        lifecycle: 'derived',
+        text: 'Becoming Together',
+        source: { kind: 'dialog', id: 'dlg-1' },
+        actions: [{ kind: 'continue', subject: { kind: 'dialog', id: 'dlg-1' } }],
+      },
+      {
+        id: 'claim:domain:dlg-1:kept-orientation',
+        lifecycle: 'derived',
+        text: 'Becoming Together has the kept Orientation.',
+        source: { kind: 'claim', claimKind: 'kept-orientation', dialogId: 'dlg-1' },
+        actions: [],
+      },
+    ],
+  }
+
+  const proposal = {
+    treatment: 'domain',
+    dress: { title: 'quiet', field: 'paper', density: 'open', motion: 'arrive', span: 'room' },
+    nodes: [
+      {
+        kind: 'group',
+        emphasis: 'primary',
+        layout: 'hero',
+        children: [
+          { kind: 'cite', readingId: 'uncertainty:scene', emphasis: 'primary', gesture: 'text' },
+          {
+            kind: 'group',
+            emphasis: 'support',
+            layout: 'split',
+            children: [
+              { kind: 'cite', readingId: 'place:dlg-1', emphasis: 'primary', gesture: 'place' },
+              { kind: 'cite', readingId: 'claim:domain:dlg-1:kept-orientation', emphasis: 'support', gesture: 'text' },
+            ],
+          },
+        ],
+      },
+    ],
+  }
+
+  it('applies a composition that only cites the Reading', () => {
+    const decision = decideStageComposition({
+      raw: proposal,
+      reading,
+      truth: 'domain-where-we-are',
+      previousId: deterministicPassId('domain-where-we-are'),
+      id: 'comp-1',
+    })
+    expect(decision.status).toBe('applied')
+    if (decision.status !== 'applied') return
+    expect(decision.composition.id).toBe('comp-1')
+    expect(decision.replacedId).toBe('pass-domain')
+    expect(decision.composition.dress?.span).toBe('room')
+    expect(citeIds(decision.composition)).toEqual([
+      'uncertainty:scene',
+      'place:dlg-1',
+      'claim:domain:dlg-1:kept-orientation',
+    ])
+    expect(decision.composition.nodes[0]).toMatchObject({ kind: 'group', layout: 'hero' })
+  })
+
+  it('strips invented sentences and drops cites the Reading does not contain', () => {
+    const decision = decideStageComposition({
+      raw: {
+        nodes: [
+          {
+            kind: 'cite',
+            readingId: 'place:dlg-1',
+            emphasis: 'primary',
+            gesture: 'place',
+            text: 'A sentence Rendr invented.',
+          },
+          {
+            kind: 'cite',
+            readingId: 'not-in-the-reading',
+            emphasis: 'primary',
+            text: 'Also invented.',
+          },
+        ],
+      },
+      reading,
+      truth: 'domain-where-we-are',
+      previousId: 'pass-domain',
+    })
+    expect(decision.status).toBe('applied')
+    if (decision.status !== 'applied') return
+    expect(citeIds(decision.composition)).toEqual(['place:dlg-1'])
+    expect(decision.droppedIds).toEqual(['not-in-the-reading'])
+    expect(decision.strippedKeys).toContain('cite.text')
+    expect(JSON.stringify(decision.composition)).not.toContain('Rendr invented')
+  })
+
+  it('refuses an unknown token and leaves the previous arrangement', () => {
+    const decision = decideStageComposition({
+      raw: {
+        nodes: [
+          { kind: 'group', emphasis: 'primary', layout: 'banner', children: [] },
+        ],
+      },
+      reading,
+      truth: 'domain-where-we-are',
+      previousId: 'pass-domain',
+    })
+    expect(decision).toEqual({ status: 'needs-grammar', token: 'layout:banner' })
+  })
+
+  it('does not apply a proposal whose cites are all outside the Reading', () => {
+    const decision = decideStageComposition({
+      raw: {
+        nodes: [{ kind: 'cite', readingId: 'made-up', emphasis: 'primary' }],
+      },
+      reading,
+      truth: 'domain-where-we-are',
+      previousId: 'comp-old',
+    })
+    expect(decision.status).toBe('unsourced')
+  })
+
+  it('restores by clearing the stored truth', () => {
+    const applied = decideStageComposition({
+      raw: proposal,
+      reading,
+      truth: 'domain-where-we-are',
+      previousId: 'pass-domain',
+      id: 'comp-1',
+    })
+    if (applied.status !== 'applied') throw new Error('expected apply')
+    const stored = mergeStageArrangementPatch(undefined, {
+      'domain-where-we-are': {
+        id: 'arr-1',
+        truth: 'domain-where-we-are',
+        composition: applied.composition,
+        replacedId: 'pass-domain',
+        at: '2026-10-05T00:00:00.000Z',
+      },
+    })
+    expect(presentStoredArrangement(stored?.['domain-where-we-are']?.composition!, reading)?.id).toBe('comp-1')
+    const restored = mergeStageArrangementPatch(stored, { 'domain-where-we-are': null })
+    expect(restored?.['domain-where-we-are']).toBeUndefined()
+  })
+
+  it('keeps Workshop from claiming the room', () => {
+    expect(stagePostureClaimsRoom('presentation', 'room')).toBe(true)
+    expect(stagePostureClaimsRoom('presentation', 'center')).toBe(false)
+    expect(stagePostureClaimsRoom('workshop', 'room')).toBe(false)
+  })
+
+  it('reads Kip authorization without accepting a composition from Kip', () => {
+    expect(parseStageCompositionAuthority({
+      authorize: true,
+      brief: 'Places should navigate. The trail should stop competing.',
+      nodes: [{ kind: 'cite', readingId: 'forged' }],
+    })).toEqual({
+      brief: 'Places should navigate. The trail should stop competing.',
+    })
+    expect(parseStageCompositionAuthority({ authorize: false })).toBeNull()
   })
 })

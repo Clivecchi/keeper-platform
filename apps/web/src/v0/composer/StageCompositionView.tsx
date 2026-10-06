@@ -1,14 +1,17 @@
 "use client"
 
 /**
- * One Stage walker. Node kind chooses the gesture.
- * A sequence plays the existing story screen. A stack plays Where are we?
+ * One Stage walker. Layout, emphasis, gesture, and dress come from the Composition.
+ * Sentences come from the Reading. The heading is the truth's name.
  */
 
 import * as React from "react"
 import type {
+  StageCiteGesture,
   StageComposition,
+  StageCompositionDress,
   StageContinueAction,
+  StageEmphasis,
   StageNode,
   StageReading,
   StageReadingItem,
@@ -27,192 +30,233 @@ function citeIds(nodes: readonly StageNode[]): string[] {
   return ids
 }
 
+const EMPHASIS_CLASS: Record<StageEmphasis, string> = {
+  primary: "text-[17px] leading-relaxed",
+  support: "text-[15px] leading-relaxed",
+  trail: "text-[13px] leading-relaxed",
+}
+
+const EMPHASIS_COLOR: Record<StageEmphasis, string> = {
+  primary: "hsl(var(--theme-ink-primary))",
+  support: "hsl(var(--theme-ink-secondary))",
+  trail: "hsl(var(--theme-ink-tertiary))",
+}
+
 export function StageCompositionView({
   composition,
   reading,
   status,
   onContinue,
   sequence,
+  title,
 }: {
   composition: StageComposition | null
   reading: StageReading | null
   status: "loading" | "ready" | "error" | "story"
   onContinue: (action: StageContinueAction) => void
   sequence?: React.ReactNode
+  title?: string
 }) {
   const sequenceNode = composition?.nodes.find((node) => node.kind === "sequence")
-  if (status === "story" || sequenceNode) {
+  if (sequenceNode && sequence) {
     return (
       <div
         className="flex h-full min-h-0 flex-1 flex-col"
-        data-stage-sequence={sequenceNode ? citeIds(sequenceNode.kind === "sequence" ? sequenceNode.children : []).join(" ") : ""}
+        data-stage-sequence={citeIds(sequenceNode.kind === "sequence" ? sequenceNode.children : []).join(" ")}
+        data-stage-span={composition?.dress?.span ?? "center"}
       >
         {sequence}
       </div>
     )
   }
 
-  const primary = composition?.nodes.find(
-    (node) => node.kind === "group" && node.emphasis === "primary",
-  )
-  const trail = composition?.nodes.find(
-    (node) => node.kind === "group" && node.emphasis === "trail",
-  )
+  const dress = composition?.dress
+  const titleMode = dress?.title ?? "display"
+  const density = dress?.density ?? "close"
+  const field = dress?.field ?? "clear"
 
   return (
-    <div className="flex h-full min-h-0 justify-center overflow-y-auto px-6 py-6">
-      <div className="w-full max-w-xl">
-        <h1
-          className="text-[1.75rem] font-medium tracking-tight"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          Where are we?
-        </h1>
-        {status === "loading" ? (
-          <p className="mt-6 text-[15px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            Reading the trail…
-          </p>
-        ) : null}
-        {status === "error" ? (
-          <p className="mt-6 text-[15px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            The trail could not be read.
-          </p>
-        ) : null}
-        {status === "ready" && primary?.kind === "group" ? (
-          <PrimaryStack node={primary} reading={reading} onContinue={onContinue} />
-        ) : null}
-        {status === "ready" && trail?.kind === "group" ? (
-          <TrailGroup node={trail} reading={reading} />
-        ) : null}
+    <div
+      className={[
+        "flex h-full min-h-0 justify-center overflow-y-auto",
+        density === "open" ? "px-10 py-10" : "px-6 py-6",
+        dress?.motion === "arrive" ? "stage-composition-arrive" : "",
+      ].join(" ")}
+      data-stage-field={field}
+      data-stage-density={density}
+      data-stage-span={dress?.span ?? "center"}
+    >
+      <div className={density === "open" ? "w-full max-w-3xl" : "w-full max-w-xl"}>
+        <div className={field === "paper" ? "theme-reading-plane rounded-md px-6 py-6" : undefined}>
+          {titleMode !== "none" && title ? (
+            <h1
+              className={
+                titleMode === "quiet"
+                  ? "text-[15px] leading-relaxed"
+                  : "text-[1.75rem] font-medium tracking-tight"
+              }
+              style={{
+                color: titleMode === "quiet"
+                  ? "hsl(var(--theme-ink-secondary))"
+                  : "hsl(var(--theme-ink-primary))",
+              }}
+            >
+              {title}
+            </h1>
+          ) : null}
+          {status === "loading" ? (
+            <p className="mt-6 text-[15px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+              Reading the trail…
+            </p>
+          ) : null}
+          {status === "error" ? (
+            <p className="mt-6 text-[15px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+              The trail could not be read.
+            </p>
+          ) : null}
+          {status !== "loading" && status !== "error"
+            ? composition?.nodes.map((node, index) => (
+                <CompositionNode
+                  key={nodeKey(node, index)}
+                  node={node}
+                  reading={reading}
+                  onContinue={onContinue}
+                  dress={dress}
+                />
+              ))
+            : null}
+        </div>
       </div>
     </div>
   )
 }
 
-function PrimaryStack({
-  node,
-  reading,
-  onContinue,
-}: {
-  node: Extract<StageNode, { kind: "group" }>
-  reading: StageReading | null
-  onContinue: (action: StageContinueAction) => void
-}) {
-  const notes = node.children.flatMap((child) => {
-    if (child.kind !== "cite") return []
-    const item = itemFor(reading, child.readingId)
-    return item ? [item] : []
-  })
-  const places = node.children.filter((child) => child.kind === "group")
-  return (
-    <>
-      {notes.map((item) => {
-        const quiet = item.source.kind === "uncertainty" && item.source.id === "empty"
-        return (
-          <p
-            key={item.id}
-            className={quiet ? "mt-6 text-[16px] leading-relaxed" : "mt-6 text-[17px] leading-relaxed"}
-            style={{ color: quiet ? "hsl(var(--theme-ink-secondary))" : "hsl(var(--theme-ink-primary))" }}
-          >
-            {item.text}
-          </p>
-        )
-      })}
-      {places.length > 0 ? (
-        <ul className="mt-6 space-y-3">
-          {places.map((place, index) => (
-            <PlaceButton
-              key={place.kind === "group" ? `place-${index}` : index}
-              node={place}
-              reading={reading}
-              onContinue={onContinue}
-            />
-          ))}
-        </ul>
-      ) : null}
-    </>
-  )
+function nodeKey(node: StageNode, index: number): string {
+  if (node.kind === "cite" || node.kind === "media") return `${node.kind}-${node.readingId}`
+  return `${node.kind}-${index}`
 }
 
-function PlaceButton({
+function CompositionNode({
   node,
   reading,
   onContinue,
+  dress,
+  hero = false,
 }: {
   node: StageNode
   reading: StageReading | null
   onContinue: (action: StageContinueAction) => void
+  dress?: StageCompositionDress
+  hero?: boolean
 }) {
-  if (node.kind !== "group") return null
-  const cites = node.children.filter((child) => child.kind === "cite")
-  const placeCite = cites.find((child) => {
-    if (child.kind !== "cite") return false
-    const item = itemFor(reading, child.readingId)
-    return Boolean(item && item.actions.length > 0)
-  })
-  const place = placeCite && placeCite.kind === "cite" ? itemFor(reading, placeCite.readingId) : null
-  if (!place) return null
-  const action = place.actions[0]
-  const supports = cites.flatMap((child) => {
-    if (child.kind !== "cite" || child.readingId === place.id) return []
-    const item = itemFor(reading, child.readingId)
-    return item ? [item] : []
-  })
-  const showName = place.source.kind === "domain"
-  return (
-    <li>
-      <button
-        type="button"
-        className="w-full rounded-md px-3 py-3 text-left transition-colors hover:bg-black/5"
-        style={{ color: "hsl(var(--theme-ink-primary))" }}
-        onClick={() => {
-          if (action) onContinue(action)
-        }}
-      >
-        {showName ? <span className="block text-[17px] leading-relaxed">{place.text}</span> : null}
-        {supports.map((item) => (
-          <span
-            key={item.id}
-            className={showName ? "mt-1 block text-[15px] leading-relaxed" : "block text-[16px] leading-relaxed"}
-            style={showName ? { color: "hsl(var(--theme-ink-secondary))" } : undefined}
-          >
-            {item.text}
-          </span>
+  if (node.kind === "cite" || node.kind === "media") {
+    return (
+      <CiteNode
+        node={node}
+        reading={reading}
+        onContinue={onContinue}
+        hero={hero}
+      />
+    )
+  }
+  if (node.kind === "sequence") {
+    const index = Math.min(Math.max(0, node.index), Math.max(0, node.children.length - 1))
+    return (
+      <div className="mt-6 space-y-4" data-stage-layout="sequence">
+        {node.children.map((child, childIndex) => (
+          <div key={nodeKey(child, childIndex)} style={{ opacity: childIndex === index ? 1 : 0.72 }}>
+            <CompositionNode node={child} reading={reading} onContinue={onContinue} dress={dress} />
+          </div>
         ))}
-        {!showName && supports.length === 0 ? (
-          <span className="block text-[16px] leading-relaxed">{place.text}</span>
+      </div>
+    )
+  }
+
+  const gap = dress?.density === "open" ? "gap-8" : "gap-3"
+  if (node.layout === "row") {
+    return (
+      <div className={`mt-6 flex flex-wrap ${gap}`} data-stage-layout="row" data-stage-emphasis={node.emphasis}>
+        {node.children.map((child, index) => (
+          <div key={nodeKey(child, index)} className="min-w-[12rem] flex-1">
+            <CompositionNode node={child} reading={reading} onContinue={onContinue} dress={dress} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  if (node.layout === "split") {
+    const [first, ...rest] = node.children
+    return (
+      <div className={`mt-6 grid ${gap} md:grid-cols-2`} data-stage-layout="split" data-stage-emphasis={node.emphasis}>
+        <div>{first ? <CompositionNode node={first} reading={reading} onContinue={onContinue} dress={dress} /> : null}</div>
+        <div className={`flex flex-col ${gap}`}>
+          {rest.map((child, index) => (
+            <CompositionNode key={nodeKey(child, index)} node={child} reading={reading} onContinue={onContinue} dress={dress} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (node.layout === "hero") {
+    const [first, ...rest] = node.children
+    return (
+      <div className="mt-6" data-stage-layout="hero" data-stage-emphasis={node.emphasis}>
+        {first ? (
+          <CompositionNode node={first} reading={reading} onContinue={onContinue} dress={dress} hero />
         ) : null}
-      </button>
-    </li>
+        <div className={`mt-6 flex flex-col ${gap}`}>
+          {rest.map((child, index) => (
+            <CompositionNode key={nodeKey(child, index)} node={child} reading={reading} onContinue={onContinue} dress={dress} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className={`mt-6 flex flex-col ${gap}`} data-stage-layout="stack" data-stage-emphasis={node.emphasis}>
+      {node.children.map((child, index) => (
+        <CompositionNode key={nodeKey(child, index)} node={child} reading={reading} onContinue={onContinue} dress={dress} />
+      ))}
+    </div>
   )
 }
 
-function TrailGroup({
+function CiteNode({
   node,
   reading,
+  onContinue,
+  hero,
 }: {
-  node: Extract<StageNode, { kind: "group" }>
+  node: Extract<StageNode, { kind: "cite" | "media" }>
   reading: StageReading | null
+  onContinue: (action: StageContinueAction) => void
+  hero: boolean
 }) {
-  const lines = node.children.flatMap((child) => {
-    if (child.kind !== "cite") return []
-    const item = itemFor(reading, child.readingId)
-    return item ? [item] : []
-  })
-  if (lines.length === 0) return null
-  return (
-    <details className="mt-10">
-      <summary className="cursor-pointer text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        Trail
-      </summary>
-      <div
-        className="mt-3 space-y-3 text-[13px] leading-relaxed"
-        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+  const item = itemFor(reading, node.readingId)
+  if (!item) return null
+  const emphasis: StageEmphasis = node.kind === "cite" ? node.emphasis : "primary"
+  const gesture: StageCiteGesture = node.kind === "cite"
+    ? node.gesture ?? (item.actions.length > 0 ? "place" : "text")
+    : "text"
+  const action = gesture === "place" ? item.actions[0] : undefined
+  const className = hero ? "text-[1.75rem] font-medium leading-snug tracking-tight" : EMPHASIS_CLASS[emphasis]
+  const color = EMPHASIS_COLOR[emphasis]
+  if (action) {
+    return (
+      <button
+        type="button"
+        className={`mt-3 w-full rounded-md px-3 py-3 text-left transition-colors hover:bg-black/5 ${className}`}
+        style={{ color }}
+        data-stage-gesture="place"
+        onClick={() => onContinue(action)}
       >
-        {lines.map((item) => (
-          <p key={item.id}>{item.text}</p>
-        ))}
-      </div>
-    </details>
+        {item.text}
+      </button>
+    )
+  }
+  return (
+    <p className={`mt-3 ${className}`} style={{ color }} data-stage-gesture={gesture}>
+      {item.text}
+    </p>
   )
 }

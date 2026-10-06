@@ -111,6 +111,8 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).toMatch(/does not present a Frame/);
     expect(prompt).toMatch(/Rendr does not decide/);
     expect(prompt).toMatch(/Do not emit stage\.story\.layout for this/);
+    expect(prompt).toContain('stageComposition');
+    expect(prompt).toMatch(/You authorize\. Rendr composes the existing Reading/);
     expect(prompt).not.toMatch(/Emit stage\.story\.layout this turn/);
   });
 

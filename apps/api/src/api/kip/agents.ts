@@ -259,8 +259,9 @@ import {
 } from '../../services/directorDialog.js';
 import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
 import { runCastOffer } from '../../services/castRoomOffer.js';
-import { parseCastRoomEngage, parseCastRoomWire, withActionReceiptsOnTrace } from '@keeper/shared';
+import { parseCastRoomEngage, parseCastRoomWire, parseStageCompositionAuthority, stagePassFromAgentContext, withActionReceiptsOnTrace } from '@keeper/shared';
 import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
+import { expressStageComposition } from '../../services/rendr/expressStageComposition.js';
 import {
   attachFrameToDirectedStory,
   loadStoryTruthPacket,
@@ -9609,6 +9610,8 @@ export class KipAgentService {
         let stageExpressionStamp: StageExpressionStamp | undefined;
         let framePerformanceResult: FramePerformance | undefined;
         let savedLeadMessageId: string | undefined;
+        let stageCompositionReceipt: Awaited<ReturnType<typeof expressStageComposition>> | undefined;
+        let stageCompositionTrace: ReturnType<typeof withActionReceiptsOnTrace> | undefined;
 
         // Save agent response to memory if we have a session (skip gloss sub-turns)
         if (
@@ -9795,6 +9798,38 @@ export class KipAgentService {
                 });
               }
             }
+            const compositionAuthority =
+              'stageComposition' in structured ? structured.stageComposition : undefined;
+            const stagePass = stagePassFromAgentContext(options?.agentContext);
+            if (compositionAuthority && savedAgent && options?.domainId && userId) {
+              try {
+                const composed = await expressStageComposition({
+                  domainId: stagePass?.domainId || options.domainId,
+                  userId,
+                  truth: stagePass?.truth,
+                  brief: compositionAuthority.brief,
+                  onStage: placeOnStage,
+                });
+                stageCompositionReceipt = composed;
+                const traced = withActionReceiptsOnTrace(
+                  castRoomWire?.trace ?? [],
+                  [...actionResults, { type: composed.type, status: composed.status, message: composed.message }],
+                  humanTurnId,
+                  'rendr',
+                );
+                actionResults.push(composed.actionResult);
+                stageCompositionTrace = traced;
+                await this.updateMessageMetadata(savedAgent.id, userId, {
+                  trace: traced,
+                  stageComposition: composed.actionResult.data,
+                });
+              } catch (error) {
+                console.warn('[AgentTurn] stage composition failed — arrangement stays', {
+                  leadMessageId: savedAgent.id,
+                  error: error instanceof Error ? error.message : error,
+                });
+              }
+            }
             if (structured.keepingChoices?.length && savedAgent && currentSessionId) {
               persistedKeepingChoices = stampOfferedKeepingChoices({
                 offers: structured.keepingChoices,
@@ -9894,6 +9929,8 @@ export class KipAgentService {
             ...(framePerformanceResult ? { framePerformance: framePerformanceResult } : {}),
             ...(savedLeadMessageId ? { messageId: savedLeadMessageId } : {}),
             ...(stageExpressionStamp ? { stageExpression: stageExpressionStamp } : {}),
+            ...(stageCompositionReceipt ? { stageComposition: stageCompositionReceipt.actionResult.data } : {}),
+            ...(stageCompositionTrace?.length ? { trace: stageCompositionTrace } : {}),
           }
         };
         }

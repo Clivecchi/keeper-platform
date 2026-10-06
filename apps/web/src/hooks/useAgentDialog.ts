@@ -483,6 +483,7 @@ export function extractRunAgentPayload(result: unknown): {
   leadMessageId?: string
   stageExpression?: NonNullable<ReturnType<typeof parseStageExpressionStamp>>
   orchestration?: Record<string, unknown>
+  trace?: ReturnType<typeof parseCastRoomEvents>
 } {
   const outer = (result as { data?: Record<string, unknown> })?.data
   const inner =
@@ -533,6 +534,7 @@ export function extractRunAgentPayload(result: unknown): {
     orchestrationRaw && typeof orchestrationRaw === "object" && !Array.isArray(orchestrationRaw)
       ? (orchestrationRaw as Record<string, unknown>)
       : undefined
+  const trace = parseCastRoomEvents(inner?.trace ?? outer?.trace)
   return {
     actions: Array.isArray(actions) ? actions : undefined,
     sessionId: typeof sessionRaw === "string" && sessionRaw.trim() ? sessionRaw.trim() : undefined,
@@ -544,6 +546,7 @@ export function extractRunAgentPayload(result: unknown): {
     ...(leadMessageId ? { leadMessageId } : {}),
     ...(stageExpression ? { stageExpression } : {}),
     ...(orchestration ? { orchestration } : {}),
+    ...(trace.length ? { trace } : {}),
   }
 }
 
@@ -1599,6 +1602,7 @@ export function useAgentDialog({
           leadMessageId: resultLeadMessageId,
           stageExpression: resultStageExpression,
           orchestration: resultOrchestration,
+          trace: resultTrace,
         } = extractRunAgentPayload(result)
 
         if (keepingChoiceAlreadySelected) {
@@ -1716,7 +1720,11 @@ export function useAgentDialog({
               ...message,
               content: replyText?.trim() || message.content,
               ...(resultOrchestration ? { orchestration: resultOrchestration } : {}),
-              ...(roomPresent?.trace?.length ? { roomTrace: roomPresent.trace } : {}),
+              ...(resultTrace?.length
+                ? { roomTrace: resultTrace }
+                : roomPresent?.trace?.length
+                  ? { roomTrace: roomPresent.trace }
+                  : {}),
             }
           })
           return mergeOntoLastAgent(painted)

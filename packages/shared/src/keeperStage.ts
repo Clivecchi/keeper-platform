@@ -10,6 +10,12 @@
  * semantics; visual choreography may consume it later.
  */
 
+import {
+  mergeStageArrangementPatch,
+  parseStageArrangementMap,
+  type StageArrangementMap,
+} from './stageComposition.js';
+
 export const KEEPER_STAGE_SLUG = 'keeper' as const;
 export const KEEPER_STAGE_TITLE = 'Keeper';
 export const KEEPER_STAGE_SETTINGS_KEY = 'keeperStage';
@@ -110,6 +116,8 @@ export type KeeperStageComposition = {
   story: StageStory | null;
   /** Null or inherit:true uses the domain. */
   theme: KeeperStageTheme | null;
+  /** Rendr's arrangement for a Stage truth. Absent uses the deterministic pass. */
+  arrangements?: StageArrangementMap;
 };
 
 export type WorkspaceSurface = 'dialog' | 'stage';
@@ -325,12 +333,16 @@ export function mergeKeeperStagePatch(
     : {};
   const storyPatch = !('story' in rec) || rec.story == null ? current.story : rec.story;
   const themePatch = !('theme' in rec) || rec.theme == null ? current.theme : rec.theme;
+  const arrangements = 'arrangements' in rec
+    ? mergeStageArrangementPatch(current.arrangements, rec.arrangements)
+    : current.arrangements;
   return parseKeeperStage({
     title: 'title' in rec ? rec.title : current.title,
     selectedPresenceId: 'selectedPresenceId' in rec ? rec.selectedPresenceId : current.selectedPresenceId,
     presences: 'presences' in rec ? rec.presences : current.presences,
     story: storyPatch,
     theme: themePatch,
+    arrangements,
   });
 }
 
@@ -365,6 +377,7 @@ export function parseKeeperStage(raw: unknown): KeeperStageComposition {
   }
 
   const selected = trimmed(rec.selectedPresenceId);
+  const arrangements = parseStageArrangementMap(rec.arrangements);
   return {
     version: KEEPER_STAGE_VERSION,
     slug: KEEPER_STAGE_SLUG,
@@ -373,6 +386,7 @@ export function parseKeeperStage(raw: unknown): KeeperStageComposition {
     presences,
     story: parseStageStory(rec.story),
     theme: parseKeeperStageTheme(rec.theme),
+    ...(arrangements ? { arrangements } : {}),
   };
 }
 

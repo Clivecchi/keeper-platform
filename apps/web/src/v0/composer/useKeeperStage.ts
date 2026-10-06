@@ -17,6 +17,7 @@ import {
   selectStagePresence,
   updateStagePresence,
   type KeeperStageComposition,
+  type StageTruthKey,
   type KeeperStageTheme,
   type StagePresence,
   type StagePresenceKind,
@@ -49,6 +50,7 @@ type KeeperStageContextValue = {
   remove: (presenceId: string) => void
   setTheme: (theme: KeeperStageTheme | null) => void
   appendLiveBeat: (input: { leadMessageId: string; title: string; body: string }) => void
+  restoreArrangement: (truth: StageTruthKey) => void
   /** Replace the filmstrip beats with an ordered Story. Presences and theme stay. */
   replaceStorySlides: (
     slides: Array<{
@@ -215,6 +217,25 @@ export function KeeperStageProvider({
     apply({ ...stageRef.current, story })
   }, [apply])
 
+  const restoreArrangement = React.useCallback((truth: StageTruthKey) => {
+    if (!domainId) return
+    if (persistTimer.current != null) window.clearTimeout(persistTimer.current)
+    setSaving(true)
+    void apiFetch(`/api/domains/${encodeURIComponent(domainId)}/keeper-stage`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ arrangements: { [truth]: null } }),
+    })
+      .then((res: { stage?: unknown }) => {
+        setStage(parseKeeperStage(res?.stage))
+        setError(null)
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Could not restore Stage")
+      })
+      .finally(() => setSaving(false))
+  }, [domainId])
+
   const appendLiveBeat = React.useCallback((input: {
     leadMessageId: string
     title: string
@@ -251,8 +272,9 @@ export function KeeperStageProvider({
     setTheme,
     appendLiveBeat,
     replaceStorySlides,
+    restoreArrangement,
     selected,
-  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, setTheme, appendLiveBeat, replaceStorySlides, selected])
+  }), [stage, loading, saving, error, reload, bring, select, move, updateAgency, remove, setTheme, appendLiveBeat, replaceStorySlides, restoreArrangement, selected])
 
   return React.createElement(KeeperStageCtx.Provider, { value }, children)
 }

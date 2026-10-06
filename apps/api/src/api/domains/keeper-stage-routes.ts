@@ -66,6 +66,13 @@ const patchSchema = z.object({
     })
     .nullable()
     .optional(),
+  /** Null clears one Stage truth. A record stores Rendr's arrangement. */
+  arrangements: z
+    .record(
+      z.enum(['realm-where-we-are', 'domain-where-we-are', 'story']),
+      z.unknown().nullable(),
+    )
+    .optional(),
 });
 
 router.get(

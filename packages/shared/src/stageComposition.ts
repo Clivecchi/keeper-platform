@@ -72,11 +72,48 @@ export type StageEmphasis = 'primary' | 'support' | 'trail';
 /** Existing Theatre sheets only. Omitted when this cite has no sheet yet. */
 export type StagePresent = 'cover' | 'slide' | 'frame';
 
+export const STAGE_GROUP_LAYOUTS = ['stack', 'row', 'split', 'hero'] as const;
+export type StageGroupLayout = (typeof STAGE_GROUP_LAYOUTS)[number];
+
+/** A cite that can continue. `place` navigates. `text` stays a line. */
+export const STAGE_CITE_GESTURES = ['place', 'text'] as const;
+export type StageCiteGesture = (typeof STAGE_CITE_GESTURES)[number];
+
+export const STAGE_DRESS_TITLES = ['display', 'quiet', 'none'] as const;
+export const STAGE_DRESS_FIELDS = ['paper', 'stage', 'clear'] as const;
+export const STAGE_DRESS_DENSITIES = ['open', 'close'] as const;
+export const STAGE_DRESS_MOTIONS = ['still', 'arrive'] as const;
+export const STAGE_DRESS_SPANS = ['center', 'room'] as const;
+
+export type StageDressTitle = (typeof STAGE_DRESS_TITLES)[number];
+export type StageDressField = (typeof STAGE_DRESS_FIELDS)[number];
+export type StageDressDensity = (typeof STAGE_DRESS_DENSITIES)[number];
+export type StageDressMotion = (typeof STAGE_DRESS_MOTIONS)[number];
+export type StageDressSpan = (typeof STAGE_DRESS_SPANS)[number];
+
+/** Tokens only. Rendr does not emit CSS. */
+export type StageCompositionDress = {
+  title?: StageDressTitle;
+  field?: StageDressField;
+  density?: StageDressDensity;
+  motion?: StageDressMotion;
+  span?: StageDressSpan;
+};
+
+export const STAGE_POSTURES = ['presentation', 'workshop'] as const;
+export type StagePosture = (typeof STAGE_POSTURES)[number];
+
+export const STAGE_TRUTH_TITLE: Record<StageTruthKey, string> = {
+  'realm-where-we-are': 'Where are we?',
+  'domain-where-we-are': 'Where are we?',
+  story: 'Story',
+};
+
 export type StageNode =
   | {
       kind: 'group';
       emphasis: StageEmphasis;
-      layout: 'stack';
+      layout: StageGroupLayout;
       children: StageNode[];
     }
   | {
@@ -89,6 +126,7 @@ export type StageNode =
       readingId: string;
       emphasis: StageEmphasis;
       present?: StagePresent;
+      gesture?: StageCiteGesture;
     }
   | {
       kind: 'media';
@@ -96,11 +134,12 @@ export type StageNode =
     };
 
 export type StageComposition = {
-  /** Identity of this pass. Not persisted. */
+  /** Identity of this pass. A stored arrangement keeps its id. A deterministic pass does not. */
   id: string;
   context: StageContext;
   treatment: 'domain' | 'stage-inherit';
   nodes: StageNode[];
+  dress?: StageCompositionDress;
 };
 
 export type StoryPassSlide = {
@@ -181,6 +220,27 @@ function stack(emphasis: StageEmphasis, children: StageNode[]): StageNode {
   return { kind: 'group', emphasis, layout: 'stack', children };
 }
 
+export function defaultStageDress(truth: StageTruthKey): StageCompositionDress {
+  if (truth === 'story') {
+    return { title: 'none', field: 'stage', density: 'open', motion: 'still', span: 'center' };
+  }
+  return { title: 'display', field: 'clear', density: 'close', motion: 'still', span: 'center' };
+}
+
+export function deterministicPassId(truth: StageTruthKey): string {
+  if (truth === 'realm-where-we-are') return 'pass-realm';
+  if (truth === 'domain-where-we-are') return 'pass-domain';
+  return 'pass-story';
+}
+
+/** Presentation honors span. Workshop keeps the wings. */
+export function stagePostureClaimsRoom(
+  posture: StagePosture,
+  span: StageDressSpan | undefined,
+): boolean {
+  return posture === 'presentation' && span === 'room';
+}
+
 export function dropUnsourcedNodes(
   composition: StageComposition,
   reading: StageReading,
@@ -248,6 +308,7 @@ function composeWhereWeAre(reading: StageReading, id: string): StageComposition 
       id,
       context: reading.context,
       treatment: 'domain',
+      dress: defaultStageDress(id === 'pass-realm' ? 'realm-where-we-are' : 'domain-where-we-are'),
       nodes,
     },
     reading,
@@ -278,6 +339,7 @@ function composeStory(reading: StageReading, openingIndex: number): StageComposi
       id: 'pass-story',
       context: reading.context,
       treatment: 'stage-inherit',
+      dress: defaultStageDress('story'),
       nodes,
     },
     reading,
@@ -609,4 +671,361 @@ export function readingItem(
   id: string,
 ): StageReadingItem | null {
   return reading.items.find((item) => item.id === id) ?? null;
+}
+
+const STAGE_TRUTH_KEYS: readonly StageTruthKey[] = [
+  'realm-where-we-are',
+  'domain-where-we-are',
+  'story',
+];
+
+const LAYOUT_SET = new Set<string>(STAGE_GROUP_LAYOUTS);
+const GESTURE_SET = new Set<string>(STAGE_CITE_GESTURES);
+const EMPHASIS_SET = new Set<string>(['primary', 'support', 'trail']);
+const PRESENT_SET = new Set<string>(['cover', 'slide', 'frame']);
+const DRESS_TITLE_SET = new Set<string>(STAGE_DRESS_TITLES);
+const DRESS_FIELD_SET = new Set<string>(STAGE_DRESS_FIELDS);
+const DRESS_DENSITY_SET = new Set<string>(STAGE_DRESS_DENSITIES);
+const DRESS_MOTION_SET = new Set<string>(STAGE_DRESS_MOTIONS);
+const DRESS_SPAN_SET = new Set<string>(STAGE_DRESS_SPANS);
+const TREATMENT_SET = new Set<string>(['domain', 'stage-inherit']);
+
+/** Sentences Rendr may try to write. They are stripped. They never become the Reading. */
+const STRIPPED_NODE_KEYS = new Set(['text', 'body', 'title', 'label', 'sentence', 'copy', 'rationale']);
+
+const NODE_KEYS: Record<string, readonly string[]> = {
+  group: ['kind', 'emphasis', 'layout', 'children'],
+  sequence: ['kind', 'index', 'children'],
+  cite: ['kind', 'readingId', 'emphasis', 'present', 'gesture'],
+  media: ['kind', 'readingId'],
+};
+
+export type StageCompositionAuthority = {
+  brief?: string;
+};
+
+export type StageArrangement = {
+  id: string;
+  truth: StageTruthKey;
+  composition: StageComposition;
+  replacedId: string;
+  at: string;
+  brief?: string;
+};
+
+export type StageArrangementMap = Partial<Record<StageTruthKey, StageArrangement>>;
+
+export type StageCompositionDecision =
+  | {
+      status: 'applied';
+      composition: StageComposition;
+      replacedId: string;
+      summary: string;
+      droppedIds: string[];
+      strippedKeys: string[];
+    }
+  | { status: 'needs-grammar'; token: string }
+  | { status: 'unsourced'; droppedIds: string[] }
+  | { status: 'empty' };
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function isStageTruthKey(value: string): value is StageTruthKey {
+  return (STAGE_TRUTH_KEYS as readonly string[]).includes(value);
+}
+
+/** Kip authorizes. The composition itself is not accepted from this object. */
+export function parseStageCompositionAuthority(raw: unknown): StageCompositionAuthority | null {
+  const rec = asRecord(raw);
+  if (!rec || rec.authorize !== true) return null;
+  const brief = typeof rec.brief === 'string' ? rec.brief.trim().slice(0, 400) : '';
+  return brief ? { brief } : {};
+}
+
+export function stagePassFromAgentContext(agentContext: unknown): {
+  truth: StageTruthKey;
+  domainId?: string;
+} | null {
+  const ctx = asRecord(agentContext);
+  const pass = asRecord(ctx?.stagePass);
+  if (!pass) return null;
+  const truth = typeof pass.truth === 'string' ? pass.truth : '';
+  if (!isStageTruthKey(truth)) return null;
+  const domainId = typeof pass.domainId === 'string' ? pass.domainId.trim() : '';
+  return domainId ? { truth, domainId } : { truth };
+}
+
+function citeIdsOf(nodes: readonly StageNode[]): string[] {
+  const ids: string[] = [];
+  const walk = (node: StageNode) => {
+    if (node.kind === 'cite' || node.kind === 'media') ids.push(node.readingId);
+    else node.children.forEach(walk);
+  };
+  nodes.forEach(walk);
+  return ids;
+}
+
+export function summarizeStageComposition(composition: StageComposition): string {
+  const layouts = new Set<string>();
+  let cites = 0;
+  let places = 0;
+  const walk = (node: StageNode) => {
+    if (node.kind === 'group') {
+      layouts.add(node.layout);
+      node.children.forEach(walk);
+      return;
+    }
+    if (node.kind === 'sequence') {
+      layouts.add('sequence');
+      node.children.forEach(walk);
+      return;
+    }
+    if (node.kind === 'cite') {
+      cites += 1;
+      if (node.gesture === 'place') places += 1;
+    }
+  };
+  composition.nodes.forEach(walk);
+  const layout = [...layouts].slice(0, 3).join('+') || 'arrangement';
+  const span = composition.dress?.span ?? 'center';
+  return `${layout} · ${cites} cites · ${places} places · ${span}`.slice(0, 120);
+}
+
+function unexpectedKey(kind: string, key: string): string | null {
+  if (STRIPPED_NODE_KEYS.has(key)) return null;
+  const allowed = NODE_KEYS[kind];
+  if (!allowed || allowed.includes(key)) return null;
+  return `${kind}.${key}`;
+}
+
+function parseDress(
+  raw: unknown,
+): { dress?: StageCompositionDress; token?: string } {
+  if (raw == null) return {};
+  const rec = asRecord(raw);
+  if (!rec) return { token: 'dress' };
+  const dress: StageCompositionDress = {};
+  for (const [key, value] of Object.entries(rec)) {
+    if (typeof value !== 'string') return { token: `dress.${key}` };
+    if (key === 'title' && DRESS_TITLE_SET.has(value)) dress.title = value as StageDressTitle;
+    else if (key === 'field' && DRESS_FIELD_SET.has(value)) dress.field = value as StageDressField;
+    else if (key === 'density' && DRESS_DENSITY_SET.has(value)) dress.density = value as StageDressDensity;
+    else if (key === 'motion' && DRESS_MOTION_SET.has(value)) dress.motion = value as StageDressMotion;
+    else if (key === 'span' && DRESS_SPAN_SET.has(value)) dress.span = value as StageDressSpan;
+    else return { token: `dress.${key}` };
+  }
+  return { dress };
+}
+
+function parseNode(
+  raw: unknown,
+  stripped: string[],
+): { node?: StageNode; token?: string } {
+  const rec = asRecord(raw);
+  if (!rec) return { token: 'node' };
+  const kind = typeof rec.kind === 'string' ? rec.kind : '';
+  if (!NODE_KEYS[kind]) return { token: kind ? `kind:${kind}` : 'kind' };
+  for (const key of Object.keys(rec)) {
+    if (STRIPPED_NODE_KEYS.has(key)) {
+      stripped.push(`${kind}.${key}`);
+      continue;
+    }
+    const token = unexpectedKey(kind, key);
+    if (token) return { token };
+  }
+  if (kind === 'group' || kind === 'sequence') {
+    if (!Array.isArray(rec.children)) return { token: `${kind}.children` };
+    const children: StageNode[] = [];
+    for (const child of rec.children) {
+      const parsed = parseNode(child, stripped);
+      if (parsed.token) return parsed;
+      if (parsed.node) children.push(parsed.node);
+    }
+    if (kind === 'sequence') {
+      if (typeof rec.index !== 'number' || !Number.isFinite(rec.index)) return { token: 'sequence.index' };
+      return { node: { kind: 'sequence', index: rec.index, children } };
+    }
+    const emphasis = typeof rec.emphasis === 'string' ? rec.emphasis : '';
+    const layout = typeof rec.layout === 'string' ? rec.layout : '';
+    if (!EMPHASIS_SET.has(emphasis)) return { token: `emphasis:${emphasis || 'missing'}` };
+    if (!LAYOUT_SET.has(layout)) return { token: `layout:${layout || 'missing'}` };
+    return {
+      node: {
+        kind: 'group',
+        emphasis: emphasis as StageEmphasis,
+        layout: layout as StageGroupLayout,
+        children,
+      },
+    };
+  }
+  const readingId = typeof rec.readingId === 'string' ? rec.readingId.trim() : '';
+  if (!readingId || readingId.length > 160) return { token: 'readingId' };
+  if (kind === 'media') return { node: { kind: 'media', readingId } };
+  const emphasis = typeof rec.emphasis === 'string' ? rec.emphasis : '';
+  if (!EMPHASIS_SET.has(emphasis)) return { token: `emphasis:${emphasis || 'missing'}` };
+  const cite: Extract<StageNode, { kind: 'cite' }> = {
+    kind: 'cite',
+    readingId,
+    emphasis: emphasis as StageEmphasis,
+  };
+  if ('present' in rec && rec.present != null) {
+    const present = typeof rec.present === 'string' ? rec.present : '';
+    if (!PRESENT_SET.has(present)) return { token: `present:${present || 'missing'}` };
+    cite.present = present as StagePresent;
+  }
+  if ('gesture' in rec && rec.gesture != null) {
+    const gesture = typeof rec.gesture === 'string' ? rec.gesture : '';
+    if (!GESTURE_SET.has(gesture)) return { token: `gesture:${gesture || 'missing'}` };
+    cite.gesture = gesture as StageCiteGesture;
+  }
+  return { node: cite };
+}
+
+/**
+ * Rendr proposes a Composition against a Reading.
+ * Unknown tokens refuse the proposal. Cites the Reading does not contain are dropped.
+ * Node text is stripped, so a proposal cannot invent a sentence.
+ */
+export function decideStageComposition(input: {
+  raw: unknown;
+  reading: StageReading;
+  truth: StageTruthKey;
+  previousId: string;
+  id?: string;
+}): StageCompositionDecision {
+  const rec = asRecord(input.raw);
+  if (!rec || !Array.isArray(rec.nodes)) return { status: 'needs-grammar', token: 'nodes' };
+  for (const key of Object.keys(rec)) {
+    if (['id', 'context', 'treatment', 'nodes', 'dress', 'rationale'].includes(key)) continue;
+    if (STRIPPED_NODE_KEYS.has(key)) continue;
+    return { status: 'needs-grammar', token: key };
+  }
+  if ('treatment' in rec && rec.treatment != null) {
+    const treatment = typeof rec.treatment === 'string' ? rec.treatment : '';
+    if (!TREATMENT_SET.has(treatment)) return { status: 'needs-grammar', token: `treatment:${treatment || 'missing'}` };
+  }
+  const dressed = parseDress(rec.dress);
+  if (dressed.token) return { status: 'needs-grammar', token: dressed.token };
+  const stripped: string[] = [];
+  const nodes: StageNode[] = [];
+  for (const item of rec.nodes) {
+    const parsed = parseNode(item, stripped);
+    if (parsed.token) return { status: 'needs-grammar', token: parsed.token };
+    if (parsed.node) nodes.push(parsed.node);
+  }
+  if (nodes.length === 0) return { status: 'empty' };
+  const proposedIds = citeIdsOf(nodes);
+  if (proposedIds.length === 0) return { status: 'empty' };
+  const treatment = input.truth === 'story' ? 'stage-inherit' : 'domain';
+  const bound = dropUnsourcedNodes(
+    {
+      id: input.id?.trim() || input.previousId,
+      context: input.reading.context,
+      treatment,
+      ...(dressed.dress ? { dress: dressed.dress } : { dress: defaultStageDress(input.truth) }),
+      nodes,
+    },
+    input.reading,
+  );
+  const kept = new Set(citeIdsOf(bound.nodes));
+  const droppedIds = proposedIds.filter((id) => !kept.has(id));
+  if (kept.size === 0) return { status: 'unsourced', droppedIds };
+  const composition: StageComposition = {
+    ...bound,
+    id: input.id?.trim() || `comp-${kept.size}-${droppedIds.length}`,
+  };
+  return {
+    status: 'applied',
+    composition,
+    replacedId: input.previousId,
+    summary: summarizeStageComposition(composition),
+    droppedIds,
+    strippedKeys: stripped,
+  };
+}
+
+/** A stored arrangement shown against the Reading now. Null falls back to the deterministic pass. */
+export function presentStoredArrangement(
+  stored: StageComposition,
+  reading: StageReading,
+): StageComposition | null {
+  const presented = dropUnsourcedNodes({ ...stored, context: reading.context }, reading);
+  if (citeIdsOf(presented.nodes).length === 0) return null;
+  return presented;
+}
+
+function parseStoredComposition(raw: unknown, context: StageContext): StageComposition | null {
+  const rec = asRecord(raw);
+  if (!rec || !Array.isArray(rec.nodes)) return null;
+  const stripped: string[] = [];
+  const nodes: StageNode[] = [];
+  for (const item of rec.nodes) {
+    const parsed = parseNode(item, stripped);
+    if (parsed.token || !parsed.node) return null;
+    nodes.push(parsed.node);
+  }
+  const dressed = parseDress(rec.dress);
+  if (dressed.token) return null;
+  const id = typeof rec.id === 'string' && rec.id.trim() ? rec.id.trim().slice(0, 80) : '';
+  if (!id) return null;
+  const treatment = rec.treatment === 'stage-inherit' ? 'stage-inherit' : 'domain';
+  return {
+    id,
+    context,
+    treatment,
+    nodes,
+    ...(dressed.dress ? { dress: dressed.dress } : {}),
+  };
+}
+
+export function parseStageArrangementMap(raw: unknown): StageArrangementMap | undefined {
+  const rec = asRecord(raw);
+  if (!rec) return undefined;
+  const map: StageArrangementMap = {};
+  for (const truth of STAGE_TRUTH_KEYS) {
+    const row = asRecord(rec[truth]);
+    if (!row) continue;
+    const id = typeof row.id === 'string' ? row.id.trim().slice(0, 80) : '';
+    const replacedId = typeof row.replacedId === 'string' ? row.replacedId.trim().slice(0, 80) : '';
+    const at = typeof row.at === 'string' ? row.at.trim().slice(0, 40) : '';
+    const composition = parseStoredComposition(row.composition, {
+      scope: truth === 'realm-where-we-are' ? 'realm' : 'domain',
+      audience: 'admin',
+      arriving: truth !== 'story',
+    });
+    if (!id || !replacedId || !at || !composition) continue;
+    const brief = typeof row.brief === 'string' ? row.brief.trim().slice(0, 400) : '';
+    map[truth] = {
+      id,
+      truth,
+      composition,
+      replacedId,
+      at,
+      ...(brief ? { brief } : {}),
+    };
+  }
+  return Object.keys(map).length ? map : undefined;
+}
+
+export function mergeStageArrangementPatch(
+  current: StageArrangementMap | undefined,
+  patch: unknown,
+): StageArrangementMap | undefined {
+  const rec = asRecord(patch);
+  if (!rec) return current;
+  const next: StageArrangementMap = { ...(current ?? {}) };
+  for (const key of Object.keys(rec)) {
+    if (!isStageTruthKey(key)) continue;
+    if (rec[key] == null) {
+      delete next[key];
+      continue;
+    }
+    const parsed = parseStageArrangementMap({ [key]: rec[key] });
+    const row = parsed?.[key];
+    if (row) next[key] = row;
+  }
+  return Object.keys(next).length ? next : undefined;
 }

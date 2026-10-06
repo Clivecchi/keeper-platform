@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { DomainAudienceRole, StageContext, StageTruthKey } from "@keeper/shared"
+import type { DomainAudienceRole, StageContext, StageDressSpan, StagePosture, StageTruthKey } from "@keeper/shared"
 import { useAuth } from "../../context/AuthContext"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
@@ -42,6 +42,10 @@ export type StagePass = {
   visits: readonly StageVisit[]
   cursor: number
   presentation: StagePresentationName | null
+  posture: StagePosture
+  compositionSpan: StageDressSpan
+  setPosture: (posture: StagePosture) => void
+  setCompositionSpan: (span: StageDressSpan) => void
   continueStage: (next: StageContext) => void
   presentStep: (step: StageOrientationStep) => void
 }
@@ -59,6 +63,14 @@ export function StagePassProvider({
   const board = useUniversalBoardOptional()
   const { isAdmin } = useAuth()
   const [trail, setTrail] = React.useState<HeldTrail | null>(null)
+  const [posture, setPostureState] = React.useState<StagePosture>("workshop")
+  const [compositionSpan, setCompositionSpanState] = React.useState<StageDressSpan>("center")
+  const setPosture = React.useCallback((next: StagePosture) => {
+    setPostureState(next)
+  }, [])
+  const setCompositionSpan = React.useCallback((next: StageDressSpan) => {
+    setCompositionSpanState((current) => (current === next ? current : next))
+  }, [])
   const shellMode = shell?.shellMode
   const shellSlug = shell?.domainSlug ?? ""
 
@@ -161,6 +173,10 @@ export function StagePassProvider({
       visits: held.visits,
       cursor,
       presentation: held.presentation,
+      posture,
+      compositionSpan,
+      setPosture,
+      setCompositionSpan,
       continueStage,
       presentStep,
     }),
@@ -171,6 +187,10 @@ export function StagePassProvider({
       held.visits,
       cursor,
       held.presentation,
+      posture,
+      compositionSpan,
+      setPosture,
+      setCompositionSpan,
       continueStage,
       presentStep,
     ],

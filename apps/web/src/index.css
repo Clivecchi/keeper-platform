@@ -50,6 +50,15 @@ body {
 }
 
 /* Paper card on atmosphere — sealed page + reading ink. Tokens from placement contrast. */
+@keyframes stage-composition-arrive {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.stage-composition-arrive {
+  animation: stage-composition-arrive 480ms ease;
+}
+
 .theme-reading-plane {
   background-color: hsl(
     var(--theme-surface-reading, var(--theme-surface-paper)) /

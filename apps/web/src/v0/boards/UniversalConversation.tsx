@@ -108,6 +108,7 @@ import { displayStageTitle } from "../composer/stageNowBeat"
 import { StagePresentationProvider } from "../composer/stagePresentation"
 import { FrameCueProvider } from "../composer/frameCue"
 import { useKeeperStageOptional } from "../composer/useKeeperStage"
+import { useStagePassOptional } from "../composer/stagePass"
 import type { FramePerformance } from "@keeper/shared"
 import { useDomainStoriesOptional } from "../composer/useDomainStories"
 import {
@@ -375,6 +376,7 @@ export function UniversalConversation({
 
   // ── designer mode: frame key + draft context ───────────────────────────────
   const { selection, actions, workspaceSurface, requestedStageFocusId } = useUniversalBoard()
+  const stagePass = useStagePassOptional()
   const domainStories = useDomainStoriesOptional()
   const keeperStage = useKeeperStageOptional()
   const boardSelectedAgentId = selection.selectedAgentId ?? selectedAgentId ?? null
@@ -1142,6 +1144,12 @@ export function UniversalConversation({
       merged = {
         ...(merged ?? {}),
         workspaceSurface: "stage",
+        stagePass: {
+          truth: stagePass?.truth ?? "story",
+          ...(stagePass?.context.domainId || domainId
+            ? { domainId: stagePass?.context.domainId || domainId }
+            : {}),
+        },
       }
     }
 
@@ -1174,6 +1182,9 @@ export function UniversalConversation({
     boardSelectedAgentId,
     dialogStyle,
     workspaceSurface,
+    stagePass?.truth,
+    stagePass?.context.domainId,
+    domainId,
     def.boardId,
     def.conversation.dialogCueing,
     conversationProfile,

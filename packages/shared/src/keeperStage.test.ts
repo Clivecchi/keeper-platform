@@ -226,6 +226,33 @@ describe('mergeKeeperStagePatch', () => {
     expect(next.theme?.sourceImage).toBe('https://cdn.example/a.jpg');
   });
 
+  it('keeps a Rendr arrangement when a presence PATCH omits it, and clears one truth on restore', () => {
+    const current = parseKeeperStage({
+      arrangements: {
+        'domain-where-we-are': {
+          id: 'arr-1',
+          truth: 'domain-where-we-are',
+          replacedId: 'pass-domain',
+          at: '2026-10-05T00:00:00.000Z',
+          composition: {
+            id: 'comp-1',
+            treatment: 'domain',
+            dress: { span: 'room', title: 'quiet' },
+            nodes: [
+              { kind: 'cite', readingId: 'place:dlg-1', emphasis: 'primary', gesture: 'place' },
+            ],
+          },
+        },
+      },
+    });
+    const kept = mergeKeeperStagePatch(current, { presences: [] });
+    expect(kept.arrangements?.['domain-where-we-are']?.id).toBe('arr-1');
+    const restored = mergeKeeperStagePatch(kept, {
+      arrangements: { 'domain-where-we-are': null },
+    });
+    expect(restored.arrangements?.['domain-where-we-are']).toBeUndefined();
+  });
+
   it('does not wipe the filmstrip when story is null', () => {
     const current = parseKeeperStage({
       story: { slides: [{ title: 'Finding the Plot' }] },
