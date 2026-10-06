@@ -14,7 +14,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
 - `KeeperStageCanvas.tsx` — Stage screen. One walker over an ephemeral `StageComposition`. Realm arrival does not present the anchor domain’s stored Stage.
 - `StageCompositionView.tsx` — Walks the Composition. A stack is Where are we?. A sequence plays the existing story screen.
-- `stagePass.tsx` — Presentation context. Realm → Domain continues in this room.
+- `stagePass.tsx` — Presentation context. Realm → Domain continues in this room and stays on the path.
+- `stageOrientation.ts` / `StageOrientationBar.tsx` — Context, what is on Stage, and the presentations already entered. The bar stays up while the presentation changes.
 - `useStageTruth.ts` — Loads the existing Realm and Domain resolver inputs for the pass.
 - `whereWeAreCopy.ts` — Sentences for the arrival reading. The resolver does not own this wording.
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
@@ -33,7 +34,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Filmstrip slides may carry `source: { kind: 'moment', id }`. Stage **stores** copied title/body plus that pointer; **render** loads `GET /api/moments/:id` and presents the Moment’s current title/narrative. Missing/unresolvable Moments show “Moment unavailable” — they do not fall back to the stored copy. Stage JSON is not rewritten.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
-- **Screen / strip / Reach:** Stage is the presentation screen. Each Slide is a standalone engagement — its own media field and paper card (Root uses the public Cover image). Filmstrip cells sit just above Composer. Objects are **On Stage** in Reach and Chronicle only — not in Composer.
+- **Orientation:** Above every Stage presentation: the context (Realm or the Domain), what is on Stage (Where are we?, or the current slide), and the path of presentations already entered. Choosing Story or an earlier place does not drop the others. The shell domain’s Story is the only filmstrip offered. Choosing a Dialog still opens that conversation; Open Stage returns to the path.
 - Objects on Stage are assets (wide context = everything placed; narrow = selected + what was just said). Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed is fair game.
 - The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
@@ -54,6 +55,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-05: Stage orientation stays above the presentation. The bar names the context and what is on Stage, and keeps the path (Realm, a Domain, the shell Story) so a later presentation can be left and returned to.
 - 2026-10-05: `useDomainStories` reloads the Story collection after `story.save` so a newly saved Story appears under Stories.
 - 2026-10-04: Open Stage on `/home` plays the shell domain’s stored slides. The filmstrip was hidden whenever the room scope was Realm, so the center stayed empty after the Stage header. Realm arrival still reads Where are we? and does not borrow that filmstrip.
 - 2026-10-03: One Stage walker. Realm and Domain Where are we?, and the story filmstrip, are projections into `StageReading` / `StageComposition`. Realm → Domain replaces the pass in the mounted room. The anchor domain’s stored Stage is not what Realm presents. `KeeperStageComposition` is unchanged.

@@ -1,6 +1,6 @@
 "use client"
 
-import { resolveStagePresentation, selectStageTruth, type DomainAudienceRole, type StagePresentationKey } from "@keeper/shared"
+import { resolveStagePresentation, type DomainAudienceRole, type StagePresentationKey } from "@keeper/shared"
 import { useAuth } from "../../context/AuthContext"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
@@ -24,7 +24,7 @@ export function useStageArrivalPresentation(): StagePresentationKey {
   const board = useUniversalBoardOptional()
   const { isAdmin } = useAuth()
   if (pass) {
-    return selectStageTruth(pass.context) === "story" ? "story" : "where-we-are"
+    return pass.truth === "story" ? "story" : "where-we-are"
   }
   return resolveStagePresentation({
     audience: arrivalAudience(shell?.resolvedAudience, Boolean(isAdmin)),
