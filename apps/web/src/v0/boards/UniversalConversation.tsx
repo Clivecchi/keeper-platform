@@ -508,37 +508,6 @@ export function UniversalConversation({
     && !(kipMode === "domain" && hasDomainLeadAgent)
 
   const dialogStyle = def.conversation.dialogStyle
-  const isVibeStyle = dialogStyle === "vibe"
-
-  /** Style + Cueing labels — Style is room feel; Cueing is who is on stage. */
-  const cueingLabel = React.useMemo(() => {
-    const stylePart =
-      dialogStyle === "vibe"
-        ? "Style: Vibe"
-        : dialogStyle === "monologue"
-          ? "Style: Monologue"
-          : dialogStyle === "directed"
-            ? "Style: Directed"
-            : null
-    const cuePart = (() => {
-      switch (def.conversation.dialogCueing) {
-        case "directed":
-          return "Cueing: Directed"
-        case "monologue":
-          return "Cueing: Monologue"
-        case "ensemble":
-          return "Cueing: Ensemble"
-        case "featured":
-          return "Cueing: Featured"
-        case "aside":
-          return "Cueing: Aside"
-        default:
-          return undefined
-      }
-    })()
-    if (stylePart && cuePart) return `${stylePart} · ${cuePart}`
-    return stylePart ?? cuePart
-  }, [def.conversation.dialogCueing, dialogStyle])
 
   /** Kip included in support collaboration (footer toggle). Default: invoked. */
   const kipSupportInvoked =
@@ -1040,9 +1009,8 @@ export function UniversalConversation({
   }, [domainDirectorCast])
 
   /**
-   * Multi-select cast cue targets (Mechanism A).
-   * Empty cue selection means the client does not consult Cast — Lead may still
-   * Mechanism B (`delegate.consult`). Explicit chip cues run those members first.
+   * Explicit chip cues. Empty means the human did not narrow the room.
+   * Cast and Agency fill eligible voices at send time. Conversation does not.
    */
   const resolvedCuedCastSlugs = React.useMemo(() => {
     if (!castMultiSelect || !isDirectedCueing) return [] as string[]
@@ -1485,6 +1453,16 @@ export function UniversalConversation({
         actions.clearDraftDiscussAnchor()
       }
 
+      if (Array.isArray(actionResults) && domainStories) {
+        const savedStory = actionResults.some((ar) => {
+          const receipt = normalizeActionReceipt(
+            ar as Parameters<typeof normalizeActionReceipt>[0],
+          )
+          return receipt.status === "success" && receipt.type === "story.save"
+        })
+        if (savedStory) void domainStories.reload()
+      }
+
       if (Array.isArray(actionResults)) {
         const savedGeneratedImage = actionResults.some((ar) => {
           const receipt = normalizeActionReceipt(
@@ -1649,7 +1627,7 @@ export function UniversalConversation({
         return
       }
     },
-    [kipMode, designerFocusKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh, actions, selection.draftDiscussAnchor],
+    [kipMode, designerFocusKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh, actions, selection.draftDiscussAnchor, domainStories],
   )
 
   const onAfterAgentRunWithEcho = React.useCallback(
@@ -2856,45 +2834,6 @@ export function UniversalConversation({
     domainCollaborationCast,
   ])
 
-  /** Vibe Style: seed the full Cast once. After that, composer toggles own the stage. */
-  const vibeCueSeedKeyRef = React.useRef<string | null>(null)
-  React.useEffect(() => {
-    if (!isVibeStyle || !castMultiSelect) {
-      vibeCueSeedKeyRef.current = null
-      return
-    }
-    const directorSlug = directorAgentSlug?.trim().toLowerCase() || null
-    // Never auto-cue the director — they synthesize as Lead. Cueing them as cast
-    // caused Kip-sole Domain turns to consult Kip then run Kip again (duplicate bubbles).
-    const roster = (resolvedBoardCast ?? [])
-      .map((m) => m.slug?.trim())
-      .filter((slug): slug is string => Boolean(slug))
-      .filter((slug) => !directorSlug || slug.toLowerCase() !== directorSlug)
-    if (roster.length === 0) {
-      if (cuedCastMembers.length > 0 && vibeCueSeedKeyRef.current === null) {
-        actions.onSetCuedCastMembers([])
-      }
-      return
-    }
-    const seedKey = `${kipMode}:${selectedDialogId ?? ""}`
-    if (vibeCueSeedKeyRef.current === seedKey) return
-    vibeCueSeedKeyRef.current = seedKey
-    const same =
-      roster.length === cuedCastMembers.length
-      && roster.every((slug) => cuedCastMembers.includes(slug))
-    if (same) return
-    actions.onSetCuedCastMembers(roster)
-  }, [
-    isVibeStyle,
-    castMultiSelect,
-    kipMode,
-    selectedDialogId,
-    resolvedBoardCast,
-    directorAgentSlug,
-    cuedCastMembers,
-    actions,
-  ])
-
   const dialogTreatment = React.useMemo(
     () => resolveDomainTreatment(domainFrame),
     [domainFrame],
@@ -2974,7 +2913,6 @@ export function UniversalConversation({
         castCueSelectionMode={castMultiSelect ? "multi" : "single"}
         castLeadLocked
         castHeaderEyebrow={def.conversation.castBar ? "Cast" : "Agents"}
-        cueingLabel={cueingLabel}
         castCollaborationMode={
           isLeadLedDomain && kipMode === "domain" ? true : undefined
         }

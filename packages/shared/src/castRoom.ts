@@ -186,6 +186,45 @@ export function projectCastRoomTrail(
     .join('\n');
 }
 
+/** One factual line for the Trace under a Lead message. */
+export function formatCastRoomTraceLine(event: CastRoomEvent): string {
+  const who = event.actor.slug
+    || (event.actor.kind === 'human' ? 'You' : event.actor.kind === 'runtime' ? 'Keeper' : 'Lead');
+  return event.label ? `${who} ${event.what} — ${event.label}` : `${who} ${event.what}`;
+}
+
+/**
+ * Place action receipts on the Trace before the turn resolves.
+ * Uses the existing `acted` event. Does not grant new authority.
+ */
+export function withActionReceiptsOnTrace(
+  trace: readonly CastRoomEvent[],
+  receipts: ReadonlyArray<{ type?: unknown; status?: unknown; message?: unknown }>,
+  humanTurnId: string,
+  actorSlug?: string,
+): CastRoomEvent[] {
+  if (!humanTurnId.trim()) return [...trace];
+  const acted = receipts.flatMap((row) => {
+    const type = typeof row.type === 'string' ? row.type.trim() : '';
+    if (!type) return [];
+    const status = typeof row.status === 'string' ? row.status.trim() : '';
+    const message = typeof row.message === 'string' ? row.message.trim() : '';
+    const label = [type, status, message].filter(Boolean).join(' — ').slice(0, 180);
+    return [castRoomEvent({
+      actor: { kind: 'agent', ...(actorSlug ? { slug: actorSlug } : {}) },
+      what: 'acted',
+      humanTurnId,
+      label,
+    })];
+  });
+  if (acted.length === 0) return [...trace];
+  const next = [...trace];
+  const insertAt = next.findIndex((event) => event.what === 'resolved' || event.what === 'presented');
+  if (insertAt === -1) return [...next, ...acted];
+  next.splice(insertAt, 0, ...acted);
+  return next;
+}
+
 export function castRoomEvent(params: {
   actor: CastRoomEvent['actor'];
   what: CastRoomEventWhat;

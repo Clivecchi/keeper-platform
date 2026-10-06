@@ -55,6 +55,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `resolveStagePresentation`: admin and still arriving → “Where are we?”. Every other case → the story filmstrip.
 - Choosing one of the places selects that Dialog and returns to the conversation.
 
+### 2026-10-05 — Conversation Profiles own the room
+- Cast and Agency hear eligible voices without a manual cue. An explicit chip still narrows that set. Conversation stays with the Lead. Vibe no longer seeds the roster. Style and Cueing leave the header. A saved Story reloads the Stories list.
+
 ### 2026-09-30 — Progressive Cast Room, first turn
 - When two or more Cast voices are cued, `castRoomTurn.ts` collects cheap offers, lets the Lead engage one voice, then Presents. Trace and consumption ride the Lead message.
 

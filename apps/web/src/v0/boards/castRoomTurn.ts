@@ -10,6 +10,7 @@ import {
   type CastRoomConsumption,
   type CastRoomEvent,
   type CastRoomOfferLine,
+  type ConversationProfile,
 } from "@keeper/shared"
 import { KipApi } from "../../lib/kipApi"
 import { buildCastDelegationPrompt, extractAgentReplyFromRunResult } from "./directorDialog"
@@ -52,6 +53,7 @@ function unwrapData(result: unknown): Record<string, unknown> {
 }
 
 export async function runProgressiveCastRoom(params: {
+  profile?: ConversationProfile
   voices: Array<{ slug: string; label: string }>
   userMessage: string
   directorName: string
@@ -218,10 +220,15 @@ export async function runProgressiveCastRoom(params: {
     }
   }
 
+  const heard = params.voices.map((voice) => voice.slug).join(", ")
+  const profileName = params.profile === "agency" ? "Agency" : "Cast"
   trace.push(castRoomEvent({
     actor: { kind: "agent", slug: params.directorSlug || "lead" },
     what: "resolved",
     ...where,
+    label: heard
+      ? `${profileName} — heard ${heard}`
+      : `${profileName} — no eligible voices heard`,
   }))
   trace.push(castRoomEvent({
     actor: { kind: "runtime" },

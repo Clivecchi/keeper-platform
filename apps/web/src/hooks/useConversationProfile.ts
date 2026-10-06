@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import {
   CONVERSATION_PROFILE_LABELS,
+  CONVERSATION_PROFILES,
   DEFAULT_CONVERSATION_PROFILE,
   parseConversationProfile,
   type ConversationProfile,
@@ -28,8 +29,9 @@ function writeStoredProfile(profile: ConversationProfile): void {
 }
 
 /**
- * Composer Conversation Profile — which standing-instruction stack this turn uses.
- * Browser-local. Does not write Dialog, Document, Domain, or Dialog Style / Cueing.
+ * Composer Conversation Profile — which room this turn uses.
+ * Browser-local. Conversation, Cast, or Agency.
+ * Legacy `current` reads back as Conversation.
  */
 export function useConversationProfile(): {
   conversationProfile: ConversationProfile
@@ -59,7 +61,10 @@ export function useConversationProfile(): {
   }, [])
 
   const cycleConversationProfile = useCallback(() => {
-    setConversationProfile(conversationProfile === "current" ? "conversation" : "current")
+    const index = CONVERSATION_PROFILES.indexOf(conversationProfile)
+    const next = CONVERSATION_PROFILES[(index + 1) % CONVERSATION_PROFILES.length]
+      ?? DEFAULT_CONVERSATION_PROFILE
+    setConversationProfile(next)
   }, [conversationProfile, setConversationProfile])
 
   return {

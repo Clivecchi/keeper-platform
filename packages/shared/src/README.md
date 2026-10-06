@@ -40,6 +40,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-05: `conversationProfile.ts` — Conversation, Cast, and Agency. Legacy `current` becomes Conversation. An explicit cue narrows hearing; Cast and Agency otherwise hear the eligible voices. `castRoom.ts` writes action receipts onto the Trace as `acted`.
 - 2026-10-04: `storyTruthPacket.ts` — a Dialog’s Story packet is the cover line, the Dialog’s status, Orientation, Forward, and Step as they stand, a session-trail fact with no event bodies, and the existing Where are we sentences. Chosen claim ids stay the factual boundary. The Lead’s telling is kept as wording of its own.
 - 2026-10-03: `stageComposition.ts` — Context selects realm where-we-are, domain where-we-are, or story. Projectors cite existing resolver output. `composeStagePass` only arranges those ids. `dropUnsourcedNodes` removes a cite the Reading does not contain. Realm continuation carries `nextContext`. Domain dialog continuation does not.
 - 2026-10-03: Realm arrival. `resolveRealmWhereWeAre` runs the existing Domain resolver once per reachable Domain. A Domain with a named place is a continuation. Stage beats, draft Forwards, and the seven-day feed stay on the trail. `face` records `primaryDomainId` and does not choose the continuation.

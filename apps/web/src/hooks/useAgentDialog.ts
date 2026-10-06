@@ -15,6 +15,8 @@ import {
   extractKeepingChoicesFromRunResult,
   parseAgentPerformanceProvenance,
   parseCastRoomEvents,
+  parseConversationProfile,
+  resolveProfileHearingSlugs,
   parseGlossThreads,
   parseKeeperAdviceCard,
   parseKeepingChoiceExercise,
@@ -545,6 +547,22 @@ export function extractRunAgentPayload(result: unknown): {
   }
 }
 
+/** Voice roster minus the Lead. Missing participation counts as voice. */
+function eligibleDialogVoiceSlugs(
+  config: DirectorDialogConfig | undefined,
+  directorSlug: string,
+): string[] {
+  if (!config) return []
+  const slugs = new Set<string>([
+    ...Object.keys(config.castLabels ?? {}),
+    ...Object.keys(config.castParticipation ?? {}),
+  ])
+  return [...slugs]
+    .map((slug) => slug.trim().toLowerCase())
+    .filter((slug) => Boolean(slug) && slug !== directorSlug)
+    .filter((slug) => resolveCastParticipation(config, slug) === "voice")
+}
+
 export function useAgentDialog({
   agentSlug,
   resolvedAgentId,
@@ -1013,8 +1031,13 @@ export function useAgentDialog({
         : baseAgentContext
 
       const directorSlugNorm = liveDirectorConfig?.directorAgentSlug?.trim().toLowerCase() || ""
-      // Exclude director from cast consults — Lead run is the director's turn.
-      const consultSlugs = Array.from(
+      const conversationProfile = parseConversationProfile(
+        (withKeepingChoice as { conversationProfile?: unknown } | null | undefined)?.conversationProfile,
+      )
+      // Explicit chip cues narrow the room. Empty cues let Cast and Agency hear
+      // eligible voices. Conversation stays with the Lead unless a chip or a
+      // named address uses the existing consultation path.
+      const explicitCues = Array.from(
         new Set(
           (liveDirectorConfig?.cuedCastSlugs ?? [])
             .map((slug) => slug.trim().toLowerCase())
@@ -1030,9 +1053,20 @@ export function useAgentDialog({
             knownSlugs: Object.keys(liveDirectorConfig.castLabels),
           })
         : null
+      const eligibleVoices = eligibleDialogVoiceSlugs(liveDirectorConfig, directorSlugNorm)
+      const profileHearing = resolveProfileHearingSlugs({
+        profile: conversationProfile,
+        explicitCues,
+        eligibleVoiceSlugs: eligibleVoices,
+      }).filter((slug) => !directorSlugNorm || slug !== directorSlugNorm)
+      // A pinned or addressed member keeps the existing single consultation.
+      // Do not also open the full offer room on top of that address.
+      const consultSlugs = explicitCues.length === 0 && castMember ? [] : profileHearing
+      const suppressUncuedCast = conversationProfile === "conversation"
+        && explicitCues.length === 0
+        && !castMember
       // Mechanism A only — skip Lead delegate.consult when the client already
-      // ran Cast this Turn (chips or a pinned/addressed member). Empty chips
-      // and no pin leave Mechanism B open.
+      // ran Cast this Turn, or when Conversation must not pull the Cast in.
       const clientCastConsultThisTurn = Boolean(
         liveDirectorConfig
         && content.trim()
@@ -1049,7 +1083,7 @@ export function useAgentDialog({
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
         activeDraftId: activeDraftId ?? null,
-        agentContext: clientCastConsultThisTurn
+        agentContext: clientCastConsultThisTurn || suppressUncuedCast
           ? { ...(withKeepingChoice ?? {}), skipDelegateConsult: true }
           : withKeepingChoice,
         attachments: attachments?.length ? attachments : undefined,
@@ -1110,6 +1144,7 @@ export function useAgentDialog({
             .find((message) => message.role === "agent" && message.roomTrace?.length)
             ?.roomTrace ?? []
           const room = await runProgressiveCastRoom({
+            profile: conversationProfile,
             voices: roomVoices,
             userMessage: content,
             directorName: liveDirectorConfig.directorDisplayName,
@@ -1415,6 +1450,11 @@ export function useAgentDialog({
                         actor: { kind: "runtime" as const },
                         what: "resolved" as const,
                         where: { humanTurnId },
+                        label: conversationProfile === "conversation"
+                          ? "Conversation — Cast did not hear"
+                          : conversationProfile === "cast"
+                            ? "Cast — no eligible voices heard"
+                            : "Agency — no eligible voices heard",
                       },
                     ],
                     consumption: [],
@@ -1676,6 +1716,7 @@ export function useAgentDialog({
               ...message,
               content: replyText?.trim() || message.content,
               ...(resultOrchestration ? { orchestration: resultOrchestration } : {}),
+              ...(roomPresent?.trace?.length ? { roomTrace: roomPresent.trace } : {}),
             }
           })
           return mergeOntoLastAgent(painted)

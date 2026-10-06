@@ -259,7 +259,7 @@ import {
 } from '../../services/directorDialog.js';
 import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
 import { runCastOffer } from '../../services/castRoomOffer.js';
-import { parseCastRoomEngage, parseCastRoomWire } from '@keeper/shared';
+import { parseCastRoomEngage, parseCastRoomWire, withActionReceiptsOnTrace } from '@keeper/shared';
 import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
 import {
   attachFrameToDirectedStory,
@@ -306,7 +306,9 @@ import { RENDR_IDENTITY_LOCK } from '../../services/rendr/rendrAgentConfig.js';
 import {
   buildConversationProfileLeadPrompt,
   buildConversationProfileProtocolPrompt,
+  buildDialoguePosturePrompt,
   conversationProfileFromEnvironment,
+  profileUsesThinInstruction,
 } from '../../services/kip/conversationProfilePrompt.js';
 import {
   parseActionsOrThrow,
@@ -6751,13 +6753,13 @@ export class KipAgentService {
       const conversationProfile = conversationProfileFromEnvironment(
         promptOptions?.environment ?? null,
       );
-      const conversationProfileExperimental = conversationProfile === 'conversation';
+      const thinInstruction = profileUsesThinInstruction(conversationProfile);
 
       if (isLeadRole(agent.role)) {
         messages.push({
           role: 'system',
-          content: conversationProfileExperimental
-            ? buildConversationProfileLeadPrompt()
+          content: thinInstruction
+            ? buildConversationProfileLeadPrompt(conversationProfile)
             : buildLeadJudgmentContractPrompt(),
         });
       }
@@ -7020,7 +7022,7 @@ export class KipAgentService {
 
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
         const draftKinds = (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
-        if (conversationProfileExperimental) {
+        if (thinInstruction) {
           messages.push({
             role: 'system',
             content: [
@@ -7029,7 +7031,7 @@ export class KipAgentService {
                 : [
                     'CRITICAL: This model does not support API-level JSON mode. You MUST still reply with valid raw JSON only — no prose before or after, no markdown fences. Any non-JSON text will break the system.',
                   ]),
-              buildConversationProfileProtocolPrompt(allowList),
+              buildConversationProfileProtocolPrompt(allowList, conversationProfile),
             ]
               .filter(Boolean)
               .join('\n'),
@@ -7117,7 +7119,7 @@ export class KipAgentService {
         // ── Response rendering governance — keeper-card versus prose ──────────────
         // Shared helper — same text as Cockpit compose (buildComposedSystemPrompt).
         // Conversation Profile `conversation` keeps the JSON envelope without this essay.
-        if (!conversationProfileExperimental) {
+        if (!thinInstruction) {
         messages.push({
           role: 'system',
           content: buildKeeperCardRenderingPrompt(),
@@ -7173,7 +7175,7 @@ export class KipAgentService {
       if (environmentContext) {
         try {
           // Conversation Profile `conversation` keeps SOLE cards (state) and skips the loop/architecture essays.
-          if (!conversationProfileExperimental) {
+          if (!thinInstruction) {
           messages.push({
             role: 'system',
             content: SoleMemoryService.getSoleMemoryLoopInstruction(),
@@ -7338,9 +7340,12 @@ export class KipAgentService {
         });
       }
 
+      const closingProfile = conversationProfileFromEnvironment(promptOptions?.environment ?? null);
       messages.push({
         role: 'system',
-        content: buildPerformancePosturePrompt(),
+        content: closingProfile === 'agency'
+          ? buildPerformancePosturePrompt()
+          : buildDialoguePosturePrompt(closingProfile === 'cast' ? 'cast' : 'conversation'),
       });
 
       if (reusingPrompt) {
@@ -9691,7 +9696,16 @@ export class KipAgentService {
                 : {}),
               ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
               ...(persistedSelectedVoices.length ? { selectedVoices: persistedSelectedVoices } : {}),
-              ...(castRoomWire?.trace?.length ? { trace: castRoomWire.trace } : {}),
+              ...(castRoomWire?.trace?.length || actionResults.length
+                ? {
+                    trace: withActionReceiptsOnTrace(
+                      castRoomWire?.trace ?? [],
+                      actionResults,
+                      humanTurnId,
+                      agent.slug,
+                    ),
+                  }
+                : {}),
               ...(castRoomWire?.consumption?.length
                 ? { turnConsumption: castRoomWire.consumption }
                 : {}),

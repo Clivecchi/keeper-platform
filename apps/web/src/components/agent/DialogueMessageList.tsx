@@ -21,7 +21,7 @@ import { getAgentErrorPresentation } from "./errorPresentation"
 import { isDirectorDelegationFailureContent, sanitizeAgentMessageContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
-import { buildMessageGlossAnchor, displayDraftHostTitle, type DraftPoint } from "@keeper/shared"
+import { buildMessageGlossAnchor, displayDraftHostTitle, formatCastRoomTraceLine, type DraftPoint } from "@keeper/shared"
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
@@ -667,6 +667,25 @@ function MessageAttachments({
 }) {
   return (
     <>
+      {message.roomTrace && message.roomTrace.length > 0 && (
+        <div className="mt-2 space-y-0.5">
+          <div
+            className="text-[11px] font-medium"
+            style={{ color: "var(--theme-ink-tertiary-color)" }}
+          >
+            Trace
+          </div>
+          {message.roomTrace.map((event) => (
+            <div
+              key={event.id}
+              className="text-[11px] leading-snug"
+              style={{ color: "var(--theme-ink-secondary-color)" }}
+            >
+              {formatCastRoomTraceLine(event)}
+            </div>
+          ))}
+        </div>
+      )}
       {message.linkedCard && (
         <div className="mt-1">
           <LinkedCard

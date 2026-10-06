@@ -25,6 +25,7 @@ type DomainStoriesValue = {
   loading: boolean
   saving: boolean
   error: string | null
+  reload: () => Promise<void>
   createStory: (title?: string) => Promise<KeeperStory | null>
   addMaterial: (input: {
     storyId?: string | null
@@ -86,6 +87,23 @@ export function DomainStoriesProvider({
       })
     return () => {
       cancelled = true
+    }
+  }, [domainId])
+
+  const reload = React.useCallback(async () => {
+    if (!domainId) {
+      setSet(emptyDomainStories())
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}/stories`) as { stories?: unknown }
+      setSet(parseDomainStories(res?.stories))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not load Stories")
+    } finally {
+      setLoading(false)
     }
   }, [domainId])
 
@@ -162,12 +180,13 @@ export function DomainStoriesProvider({
     loading,
     saving,
     error,
+    reload,
     createStory,
     addMaterial,
     saveStory,
     removeMaterial,
     moveMaterial,
-  }), [set, loading, saving, error, createStory, addMaterial, saveStory, removeMaterial, moveMaterial])
+  }), [set, loading, saving, error, reload, createStory, addMaterial, saveStory, removeMaterial, moveMaterial])
 
   return React.createElement(DomainStoriesCtx.Provider, { value }, children)
 }

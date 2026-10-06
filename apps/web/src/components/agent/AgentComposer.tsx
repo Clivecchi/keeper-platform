@@ -37,6 +37,7 @@ import { formatDialogueAsMarkdown } from "./helpers"
 import type { AgentDialogueMessage } from "./types"
 import { SupportingDocumentTile } from "./SupportingDocumentTile"
 import { useConversationProfile } from "../../hooks/useConversationProfile"
+import { CONVERSATION_PROFILE_SUMMARIES } from "@keeper/shared"
 
 const SURFACE = {
   inkPrimary: "var(--theme-ink-primary-color)",
@@ -209,10 +210,7 @@ function ConversationProfileControl({
     conversationProfileLabel,
     cycleConversationProfile,
   } = useConversationProfile()
-  const isExperimental = conversationProfile === "conversation"
-  const title = isExperimental
-    ? "Conversation Profile: Conversation — experimental reduced standing instruction. Click for Current."
-    : "Conversation Profile: Current — existing Keeper prompt. Click for Conversation."
+  const title = `Conversation Profile: ${conversationProfileLabel} — ${CONVERSATION_PROFILE_SUMMARIES[conversationProfile]}. Click for the next profile.`
 
   return (
     <button
@@ -224,12 +222,11 @@ function ConversationProfileControl({
         compact ? "h-8 px-1.5" : "h-7 px-2",
       ].join(" ")}
       title={title}
-      aria-label={`Conversation Profile: ${conversationProfileLabel}`}
-      aria-pressed={isExperimental}
+      aria-label={`Conversation Profile: ${conversationProfileLabel}. ${CONVERSATION_PROFILE_SUMMARIES[conversationProfile]}`}
       style={{
-        color: isExperimental
-          ? "hsl(var(--theme-focus-ring))"
-          : SURFACE.inkSecondary,
+        color: conversationProfile === "conversation"
+          ? SURFACE.inkSecondary
+          : "hsl(var(--theme-focus-ring))",
         backgroundColor: compact
           ? "transparent"
           : "hsl(var(--theme-surface-page) / 0.45)",

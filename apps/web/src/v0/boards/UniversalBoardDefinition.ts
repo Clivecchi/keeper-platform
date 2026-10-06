@@ -25,8 +25,9 @@ export type DialogCueingMode =
   | "aside"
 
 /**
- * Dialog Style — how the room feels (separate from Cueing = who is on stage).
- * See Becoming Together vocabulary lock (Cast / Cueing / Dialog Style).
+ * Dialog Style — retained on the board definition.
+ * Who hears the turn is the Conversation Profile. Vibe is no longer that switch.
+ * Dialog Cueing stays internal: the Lead directs the turn.
  */
 export type DialogStyle = "directed" | "monologue" | "vibe"
 

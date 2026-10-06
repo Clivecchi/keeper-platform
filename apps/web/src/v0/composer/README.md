@@ -54,6 +54,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-05: `useDomainStories` reloads the Story collection after `story.save` so a newly saved Story appears under Stories.
 - 2026-10-04: Open Stage on `/home` plays the shell domain’s stored slides. The filmstrip was hidden whenever the room scope was Realm, so the center stayed empty after the Stage header. Realm arrival still reads Where are we? and does not borrow that filmstrip.
 - 2026-10-03: One Stage walker. Realm and Domain Where are we?, and the story filmstrip, are projections into `StageReading` / `StageComposition`. Realm → Domain replaces the pass in the mounted room. The anchor domain’s stored Stage is not what Realm presents. `KeeperStageComposition` is unchanged.
 - 2026-10-03: Realm arrival on `/home` opens the existing Stage. “Where are we?” lists Domains the Domain resolver can already name. Choosing a Domain opens that Domain’s Stage arrival. The seven-day feed, Stage beats, and draft Forwards stay in Trail. The Realm face is not treated as the current Domain.
