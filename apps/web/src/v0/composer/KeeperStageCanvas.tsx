@@ -96,7 +96,9 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
     const composed = stored ? presentStoredArrangement(stored, projected.reading) : null
     return composed ? { reading: projected.reading, composition: composed } : projected
   }, [projected, stageApi?.stage.arrangements, pass.truth])
-  const span: StageDressSpan = presented?.composition.dress?.span ?? "center"
+  const span: StageDressSpan = pass.truth === "story"
+    ? pass.compositionSpan
+    : presented?.composition.dress?.span ?? "center"
   React.useEffect(() => {
     if (pass.truth === "story") return
     pass.setCompositionSpan(span)

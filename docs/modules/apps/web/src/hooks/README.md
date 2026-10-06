@@ -32,6 +32,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-10-05 — Stage composition receipt on the turn
+- `useAgentDialog.ts` prefers the Trace returned with the run, so a `stage.composition.propose` receipt is visible when the turn lands.
+
 ### 2026-10-05 — Conversation Profiles decide the room
 - `useConversationProfile.ts` cycles Conversation, Cast, and Agency. The selected profile is sent on the turn and chooses hearing in `useAgentDialog.ts`. Legacy `current` migrates to Conversation.
 

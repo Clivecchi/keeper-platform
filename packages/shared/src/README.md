@@ -15,7 +15,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `keeperStage.ts` – Stage composition (assets + `story` filmstrip); `parseStageStory`, `mergeKeeperStagePatch`, `buildKeeperStagePrompt`, `displayKeeperStageTitle`
 - `stageArrival.ts` – Which presentation Stage shows on arrival, and which stored Dialog facts “Where are we?” can stand on
 - `realmArrival.ts` – Realm “Where are we?” composed from each Domain’s existing reading. Face is not the current Domain.
-- `stageComposition.ts` – Ephemeral Stage pass: Reading, deterministic Composition, drop-unsourced nodes. Does not write `KeeperStageComposition`.
+- `stageComposition.ts` – Stage pass: Reading, deterministic Composition, and Rendr’s closed arrangement grammar. A stored arrangement lives on `KeeperStageComposition.arrangements`. Unsourced cites are dropped.
 - `keeperAdviceCard.ts` – Existing envelope `card` as the Cast/Lead advisory channel (`extractKeeperAdviceCardFromRunResult`, `withoutAdviseOnlySkips`)
 - `keepingChoice.ts` – Keeping Choice offer/record/exercise contract. Not an action. Not a proposal.
 - `resolvedMeaning.ts` – Lead-resolved performance meaning + one `stage_expression` beat. Not spoken prose. Not Cast transcript.
@@ -40,6 +40,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-05: Stage composition grammar. Group layout is `stack | row | split | hero`. Dress is title, field, density, motion, and span. A cite gestures `place` or `text`. `decideStageComposition` refuses unknown tokens and drops cites the Reading does not contain. Applied arrangements persist on `keeperStage.arrangements`. Presentation claims the room only when span is `room`.
 - 2026-10-05: `conversationProfile.ts` — Conversation, Cast, and Agency. Legacy `current` becomes Conversation. An explicit cue narrows hearing; Cast and Agency otherwise hear the eligible voices. `castRoom.ts` writes action receipts onto the Trace as `acted`.
 - 2026-10-04: `storyTruthPacket.ts` — a Dialog’s Story packet is the cover line, the Dialog’s status, Orientation, Forward, and Step as they stand, a session-trail fact with no event bodies, and the existing Where are we sentences. Chosen claim ids stay the factual boundary. The Lead’s telling is kept as wording of its own.
 - 2026-10-03: `stageComposition.ts` — Context selects realm where-we-are, domain where-we-are, or story. Projectors cite existing resolver output. `composeStagePass` only arranges those ids. `dropUnsourcedNodes` removes a cite the Reading does not contain. Realm continuation carries `nextContext`. Domain dialog continuation does not.

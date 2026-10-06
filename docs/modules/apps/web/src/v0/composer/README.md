@@ -13,7 +13,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
 - `KeeperStageCanvas.tsx` — Stage screen. One walker over an ephemeral `StageComposition`. Realm arrival does not present the anchor domain’s stored Stage.
-- `StageCompositionView.tsx` — Walks the Composition. A stack is Where are we?. A sequence plays the existing story screen.
+- `StageCompositionView.tsx` — Walks the Composition. Layout, dress, and gesture come from the arrangement. A sequence still plays the story screen.
 - `stagePass.tsx` — Presentation context. Realm → Domain continues in this room and stays on the path.
 - `stageOrientation.ts` / `StageOrientationBar.tsx` — Context, what is on Stage, and the presentations already entered. The bar stays up while the presentation changes.
 - `useStageTruth.ts` — Loads the existing Realm and Domain resolver inputs for the pass.
@@ -55,6 +55,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-05: A stored Stage arrangement replaces the deterministic pass for that truth. Presentation gives a `room` span the Stage; Workshop keeps Nav, Chronicle, and Composer, and can restore the deterministic pass.
 - 2026-10-05: Stage orientation stays above the presentation. The bar names the context and what is on Stage, and keeps the path (Realm, a Domain, the shell Story) so a later presentation can be left and returned to.
 - 2026-10-05: `useDomainStories` reloads the Story collection after `story.save` so a newly saved Story appears under Stories.
 - 2026-10-04: Open Stage on `/home` plays the shell domain’s stored slides. The filmstrip was hidden whenever the room scope was Realm, so the center stayed empty after the Stage header. Realm arrival still reads Where are we? and does not borrow that filmstrip.

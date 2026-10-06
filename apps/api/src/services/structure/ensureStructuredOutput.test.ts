@@ -177,6 +177,21 @@ describe('parseKipAgentOutput', () => {
     expect(parseKipAgentOutput(raw).resolvedMeaning).toBeUndefined();
   });
 
+  it('reads stage composition authority without treating nodes as the composition', () => {
+    const raw = JSON.stringify({
+      type: 'agent_output',
+      response: 'The places should read as one room.',
+      stageComposition: {
+        authorize: true,
+        brief: 'Hero the uncertainty. Places navigate.',
+        nodes: [{ kind: 'cite', readingId: 'forged' }],
+      },
+    });
+    expect(parseKipAgentOutput(raw).stageComposition).toEqual({
+      brief: 'Hero the uncertainty. Places navigate.',
+    });
+  });
+
   it('unwraps agent_output JSON for session history', () => {
     const raw = JSON.stringify({
       type: 'agent_output',

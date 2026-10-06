@@ -17,4 +17,9 @@ describe("panelSplitForSurface", () => {
       STAGE_CURTAIN_SPLIT,
     )
   })
+
+  it("gives Presentation the room when the composition span is room", () => {
+    expect(panelSplitForSurface("stage", stored, true)).toEqual({ leftPct: 0, rightPct: 0 })
+    expect(panelSplitForSurface("dialog", stored, true)).toEqual(stored)
+  })
 })

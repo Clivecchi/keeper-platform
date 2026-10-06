@@ -13,6 +13,7 @@ import {
   appendStageStoryBeats,
   findLiveSourcedSlide,
   parseKeeperStage,
+  parseStageStory,
   removeStagePresence,
   selectStagePresence,
   updateStagePresence,

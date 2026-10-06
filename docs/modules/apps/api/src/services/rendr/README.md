@@ -8,6 +8,7 @@ Rendr agent identity and Design-board Treatment prompt. Presence partner — not
 - `composeFramePerformance.ts` — Rendr prompt for a turn-scoped Frame Performance (meaning + selected lines, not the transcript)
 - `composeStageExpression.ts` — compact Set used by that prompt
 - `expressResolvedMeaningOnStage.ts` — post-Lead handoff. Persists `framePerformance` on the Lead message. Stamps presentation only when the Lead set `presentFrame` or the human asked for a Frame. Appends one live-sourced Stage cell only for that stamp, and only when the turn is already on Stage.
+- `composeStageComposition.ts` / `expressStageComposition.ts` / `loadStageReading.ts` — Kip authorizes; Rendr arranges the current Reading. Unknown tokens return `needs-grammar` and leave the previous arrangement.
 
 ## 🔄 Data & Behavior
 Treatment changes use `treatment.propose` on Design Board. Dialog Points use `draft.update.propose` on Working on (Chronicle Document or focused Draft). `draft.create` is only for a new working Draft, never as a substitute for Points on the focused Document.
@@ -16,6 +17,9 @@ Treatment changes use `treatment.propose` on Design Board. Dialog Points use `dr
 - [ ] Spatial/motion primitives (Float, Weight, Motion contract) remain queued behind Chronicle becoming
 
 ## 📆 Update Log
+
+### 2026-10-05 — Rendr composes the Reading
+- When Kip emits `stageComposition.authorize` on Stage, Rendr receives the current Reading and proposes a Composition. Keeper applies it onto `keeperStage.arrangements` for that truth, with a Trace receipt. A needs-grammar or unsourced proposal does not replace the arrangement. The voice no longer asks Rendr to advise CSS.
 
 ### 2026-10-04 — Directed sentences stay the beat bodies
 - When the Lead saved a Story, Rendr receives those claims as the factual boundary and phrases the Frame. The claims are not written over the beat bodies.

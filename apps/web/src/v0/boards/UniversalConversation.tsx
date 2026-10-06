@@ -1144,12 +1144,16 @@ export function UniversalConversation({
       merged = {
         ...(merged ?? {}),
         workspaceSurface: "stage",
-        stagePass: {
-          truth: stagePass?.truth ?? "story",
-          ...(stagePass?.context.domainId || domainId
-            ? { domainId: stagePass?.context.domainId || domainId }
-            : {}),
-        },
+        ...(stagePass
+          ? {
+              stagePass: {
+                truth: stagePass.truth,
+                ...(stagePass.context.domainId || domainId
+                  ? { domainId: stagePass.context.domainId || domainId }
+                  : {}),
+              },
+            }
+          : {}),
       }
     }
 
