@@ -402,6 +402,7 @@ export function buildCastRoomDirectionPrompt(params: {
       ? 'You may engage one voice. Emit "engage": { "slug": "<one cued slug>", "aim": "<what you need from them>" } only when a full contribution would change the reply. Otherwise omit engage and Present now.'
       : 'Do not emit engage. Two contributions already happened. Present.',
     'Spoken "response" is what the human hears if you Present now.',
+    'Do not emit actions on this pass. The Present pass carries the reply and any requested action.',
     'Do not invent a voice that did not offer.',
   ].join('\n');
 }

@@ -553,11 +553,11 @@ function eligibleDialogVoiceSlugs(
   directorSlug: string,
 ): string[] {
   if (!config) return []
-  const slugs = new Set<string>([
-    ...Object.keys(config.castLabels ?? {}),
-    ...Object.keys(config.castParticipation ?? {}),
-  ])
-  return [...slugs]
+  const participationKeys = Object.keys(config.castParticipation ?? {})
+  const slugs = participationKeys.length > 0
+    ? participationKeys
+    : Object.keys(config.castLabels ?? {})
+  return slugs
     .map((slug) => slug.trim().toLowerCase())
     .filter((slug) => Boolean(slug) && slug !== directorSlug)
     .filter((slug) => resolveCastParticipation(config, slug) === "voice")

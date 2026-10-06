@@ -55,6 +55,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `resolveStagePresentation`: admin and still arriving → “Where are we?”. Every other case → the story filmstrip.
 - Choosing one of the places selects that Dialog and returns to the conversation.
 
+### 2026-10-05 — Conversation Profiles own the room
+- Cast and Agency hear eligible voices without a manual cue. An explicit chip still narrows that set. Conversation stays with the Lead. Vibe no longer seeds the roster. Style and Cueing leave the header. A saved Story reloads the Stories list.
+
+### 2026-09-30 — Progressive Cast Room, first turn
+- When two or more Cast voices are cued, `castRoomTurn.ts` collects cheap offers, lets the Lead engage one voice, then Presents. Trace and consumption ride the Lead message.
+
 ### 2026-09-30 — Named Dialogs stay listed
 - Domain Nav Dialogs uses the existing collapsible SidebarCard, expanded, for the full named list. A Dialog past the old three-item preview no longer disappears until the title is clicked.
 
@@ -870,6 +876,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
+
+### 2026-09-30 — Story in Chronicle
+- Nav **Stories** opens a Story in Chronicle and leaves the Dialog in the center. Add to Story and Take Story to Stage share that selection. The Stage filmstrip is no longer the place the narrative is arranged.
 
 ### 2026-09-23 — Frame cue on the conversation
 - `UniversalConversation` shares Keep, open Point, and Take to Stage with `FramePerformanceView`, and focuses the live-sourced Stage cell for that Lead message.

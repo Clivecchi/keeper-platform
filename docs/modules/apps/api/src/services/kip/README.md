@@ -10,7 +10,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when the human asked — not after Cast; optional future keeps are `keepingChoices`
 - `leadJudgmentContract.ts` — Lead role Agency contract (find the plot). Injected when `role === 'Lead'`. Not Kip-specific.
-- `conversationProfilePrompt.ts` — thin Lead + protocol for Conversation Profile `conversation`. Current profile keeps the existing stack.
+- `conversationProfilePrompt.ts` — Conversation and Cast use the short posture. Agency keeps the long action stack.
 - `buildAgentBoardContextPrompt.ts` — Agent Board Training + Performance Inspection Composer grounding
 - `agentPerformanceProvenance` lives in `@keeper/shared` — named runtime checklist on persisted Lead messages
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
@@ -83,6 +83,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 ### 2026-09-22 — preserve-discovery@1
 - After the Lead reply, one frozen Jev Choice. Opens only when preserve probability is at least 0.85 and reconsider is under 0.10, the human did not constrain a write, Lead owns the turn, and the Dialog still has no durable item.
 - Kip’s short completion returns `{ survives, label? }` only. Keeper opens the manuscript if needed and writes one proposed Point. The original reply stays. No second score. No Cast. No Orientation gate.
+
+### 2026-10-05 — Conversation Profiles
+- `conversationProfilePrompt.ts` — Conversation and Cast stay on the short stack and do not treat presence as a reason to act. Agency keeps the existing long instruction stack. Legacy `current` reads as Conversation.
 
 ### 2026-09-21 — Conversation Profile
 - `conversationProfilePrompt.ts` — `conversation` uses a short Lead line + JSON envelope + allowlist names + receipt rule. Compact env keeps `conversationProfile`. Does not change model, Dialog, Document, Domain, history, Dialog Style, or Cueing.

@@ -41,6 +41,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - 2026-09-27: Cockpit "Change model" uses the shared agent chat pins. Together's live catalog is not the dropdown.
 - 2026-09-23: **Frame Performance** — When a Lead message carries `framePerformance`, `DialogueMessageList` renders `FramePerformanceView` as the turn. Cast bubbles and the Lead essay stay off that turn. Text turns without a performance are unchanged.
 - 2026-09-23: **Composer collapses after send** — desktop `AgentComposer` closes to one line when the message is sent (and when an empty field is left). Selecting the field opens the full composer again. Unsent drafts stay open. Mobile docked/expanded sizes are unchanged.
+- 2026-10-05: **Conversation Profiles** — Composer cycles Conversation, Cast, and Agency. The header no longer shows Style or Cueing. Lead messages show the room Trace.
 - 2026-09-21: **Conversation Profile** — Composer toolbar (and mobile docked bar) cycles `Current` ↔ `Conversation`. Visible which standing-instruction stack this send uses. Distinct from Dialog Style / Cueing in the header.
 - 2026-09-19: Wrapped the multi-agent Lead bubble + System One card in a fragment so Vite can parse the JSX (Vercel `keeper-web` build).
 - 2026-09-19: Dialog shows System One orientation from persisted Jev answers on the Lead message. Kip's fabricated "unavailable" card/line is suppressed when those answers exist.

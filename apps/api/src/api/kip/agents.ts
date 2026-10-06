@@ -2060,6 +2060,10 @@ export async function executeAgentActions(
   /** Filled by successful draft.update.propose so same-turn accept can reuse ids. */
   let lastProposedPoint: { draftId: string; pointId: string } | null = null;
 
+  // This batch includes model calls (delegate.consult), image generation, and MCP.
+  // Prisma's 5s default expires while that work is in flight. The commit then
+  // throws "expired transaction", and the Dialog reports it as an AI-provider
+  // timeout because the message contains the word "timeout".
   await prisma.$transaction(async (tx) => {
     for (const action of validatedActions) {
       const baseResult: ActionExecutionResult = { 
@@ -5210,7 +5214,7 @@ export async function executeAgentActions(
         );
       }
     }
-  });
+  }, { timeout: 180_000, maxWait: 10_000 });
 
   const failed = results.find((result) => result.status === 'error');
   const summary = {
@@ -7341,11 +7345,17 @@ export class KipAgentService {
       }
 
       const closingProfile = conversationProfileFromEnvironment(promptOptions?.environment ?? null);
+      const closingRoomPhase = parseCastRoomWire(
+        (promptOptions?.environment as { agentContext?: { castRoom?: unknown } } | null | undefined)
+          ?.agentContext?.castRoom,
+      )?.phase;
       messages.push({
         role: 'system',
-        content: closingProfile === 'agency'
-          ? buildPerformancePosturePrompt()
-          : buildDialoguePosturePrompt(closingProfile === 'cast' ? 'cast' : 'conversation'),
+        content: closingRoomPhase === 'direct'
+          ? 'DIRECTION PASS — last instruction. Choose at most one voice with engage, or omit engage to present with none. Do not emit actions. The Present pass carries the reply and any requested action.'
+          : closingProfile === 'agency'
+            ? buildPerformancePosturePrompt()
+            : buildDialoguePosturePrompt(closingProfile === 'cast' ? 'cast' : 'conversation'),
       });
 
       if (reusingPrompt) {
@@ -8382,7 +8392,8 @@ export class KipAgentService {
           for (const actionType of GLOSS_SKIP_SUBSTITUTES) skipped.add(actionType);
           options.skipActionTypes = skipped;
         }
-        if (structured.actions.length) {
+        // Direction only chooses a voice. The Present pass performs requested actions.
+        if (structured.actions.length && castRoomWire?.phase !== 'direct') {
           if (options?.forceSkipActions) {
             actionResults = structured.actions.map((action) => ({
               type: action.type,

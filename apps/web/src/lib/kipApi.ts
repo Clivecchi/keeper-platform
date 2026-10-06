@@ -545,6 +545,15 @@ export function normalizeKipRunErrorCode(code: unknown, message: unknown): KipRu
   if (lower.includes('overloaded') || lower.includes('529') || lower.includes('temporarily unavailable')) {
     return 'PROVIDER_UNAVAILABLE';
   }
+  // A Prisma interactive-transaction expiry contains the word "timeout".
+  // That is a save-step failure, not the model provider.
+  if (
+    lower.includes('expired transaction')
+    || lower.includes('transaction already closed')
+    || lower.includes('transaction api error')
+  ) {
+    return 'UNKNOWN';
+  }
   if (lower.includes('timeout') || lower.includes('timed out')) {
     return 'TIMEOUT';
   }
@@ -650,6 +659,13 @@ export function formatKipRunErrorMessage(
       return `${label} is not configured correctly for this board.${suggestedAction || ` Check the ${label} agent configuration and try again.`}`.trim();
     case 'UNKNOWN':
     default: {
+      if (
+        text.includes('expired transaction')
+        || text.includes('transaction already closed')
+        || text.includes('transaction api error')
+      ) {
+        return `${label} finished thinking, then saving the turn expired. Try again.`;
+      }
       if (text.includes('session') && text.includes('not found')) {
         return 'This conversation session could not be found. Send again to continue.';
       }

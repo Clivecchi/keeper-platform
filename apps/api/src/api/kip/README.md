@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-10-05: **Action-batch transaction budget** — `executeAgentActions` keeps one interactive transaction, with a 180s timeout. The 5s Prisma default was expiring while `delegate.consult` and other slow actions ran. The commit error contains the word "timeout", so the Dialog reported it as an AI-provider timeout.
 - 2026-10-04: **Keeper Story** — Lead `story.truth.read` returns the Dialog packet. Lead `story.save` writes `settings.stories` with the chosen claim ids as provenance and the Lead’s telling as the description. It does not call `stage.story.layout`. Rendr’s existing Frame handoff phrases that telling. The Story captures that Lead message. Source claims stay on the message, beside the Frame.
 - 2026-09-29: **Performance posture** — `callAIModel` and the composed prompt end with `buildPerformancePosturePrompt`. A request to run or stop waiting is the directive. The old “explain the limitation and return no actions” line is gone.
 - 2026-09-29: **Agent error provider type** — failed Agent turns pass `response.provider` into the error details. That value is a known provider. The execution record’s provider string is unchanged.

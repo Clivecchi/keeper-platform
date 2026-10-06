@@ -26,6 +26,15 @@ describe("normalizeKipRunErrorCode", () => {
     ).toBe("UNKNOWN")
   })
 
+  it("does not treat a database transaction expiry as an AI provider timeout", () => {
+    const raw =
+      "Transaction API error: Transaction already closed: A commit cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 11351 ms passed since the start of the transaction."
+    expect(normalizeKipRunErrorCode("UNKNOWN", raw)).toBe("UNKNOWN")
+    const message = formatKipRunErrorMessage("UNKNOWN", raw, undefined, "Ceox")
+    expect(message).toContain("Ceox finished thinking")
+    expect(message.toLowerCase()).not.toContain("ai provider")
+  })
+
   it("trusts a server INVALID_MODEL code", () => {
     expect(
       normalizeKipRunErrorCode("INVALID_MODEL", "model: claude-sonnet-4-6"),

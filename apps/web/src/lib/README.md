@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-10-05 — Database expiry is not a provider timeout
+- `normalizeKipRunErrorCode` keeps Prisma "expired transaction" as UNKNOWN. The word "timeout" in that message was being shown as "timed out waiting for the AI provider."
+
 ### 2026-09-27 — Agent chat models
 - `getAvailableModels` for OpenAI, Anthropic, and Together reads `agentModelPicker`.
 
