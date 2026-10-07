@@ -11,8 +11,8 @@
  *   Composer        — user input at the bottom (`.dialog-bottom-zone`).
  *     composing    — input only; optional post-run summary atop composer
  *     working      — Broadcast Strip (live + ticker) + input
- *     Stage        — center performance. Orientation sits above it as a sibling.
- *                    Composer stays at the bottom (`data-composer-placement="pit"`).
+ *     Stage        — center performance. The orientation surface is a sibling and
+ *                    may be empty. Composer stays at the bottom (`data-composer-placement="pit"`).
  *                    Agency in Composer. Reach opens in Chronicle.
  *     Attention    — the performance stays while you write and while a reply arrives.
  *                    The Dialog does not take the center.
@@ -62,8 +62,6 @@ import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { boardSurfaceProps } from "../../boards/boardSurface"
 import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
-import { StageOrientationBar } from "../../composer/StageOrientationBar"
-import { useStagePlaceNames } from "../../composer/useStagePlaceNames"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
 import { useStageArrivalPresentation } from "../../composer/useStageArrivalPresentation"
 import { useStagePresentationOptional } from "../../composer/stagePresentation"
@@ -458,7 +456,6 @@ export function KeeperDialogFrame({
   }, [isMobile])
 
   const composerOnStage = Boolean(dialogContent) && mode !== "feed"
-  const placeNames = useStagePlaceNames(domainId, composerOnStage)
   const stagePass = useStagePassOptional()
   const experienceRoom = composerOnStage && stagePostureClaimsRoom(
     stagePass?.posture ?? "workshop",
@@ -1047,9 +1044,14 @@ export function KeeperDialogFrame({
         />
       ) : null}
 
-      {/* Orientation, Stage, and Composer are siblings. The banner and cast header stay above them. */}
-      {composerOnStage && !experienceRoom ? (
-        <StageOrientationBar names={placeNames} shellDomainId={domainId} />
+      {/* Orientation is a Board surface. It may render nothing. The old bar is gone. */}
+      {composerOnStage ? (
+        <div
+          {...boardSurfaceProps("orientation")}
+          data-stage-orientation=""
+          className="h-0 shrink-0 overflow-hidden"
+          aria-hidden
+        />
       ) : null}
 
       {/* ── Dialog Space — messages, or the Stage performance. Composer stays at the bottom. ── */}

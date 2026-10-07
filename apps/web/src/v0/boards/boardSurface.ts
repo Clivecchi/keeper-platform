@@ -7,6 +7,9 @@
  *
  * Naming debt: that posture still uses the word Stage. This slice does not
  * rename it.
+ *
+ * `orientation` may render nothing. `StageOrientationBar` was the old control strip.
+ * A Scene Header is a possible later expression of this surface, not a replacement name.
  */
 
 export const BOARD_SURFACES = [

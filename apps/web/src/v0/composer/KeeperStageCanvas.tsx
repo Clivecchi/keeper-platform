@@ -80,6 +80,8 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
     pass.setCompositionSpan(dressSpan)
   }, [dressSpan, pass.setCompositionSpan])
   const room = stagePostureClaimsRoom(pass.posture, pass.compositionSpan)
+  const storedArrangement = stageApi?.stage.arrangements?.[pass.truth]
+  const showRestore = pass.posture === "workshop" && storedArrangement != null
 
   const status =
     pass.truth === "story"
@@ -98,15 +100,30 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
       data-stage-truth={pass.truth}
       data-stage-stored-story={pass.presentsStoredStory ? "true" : "false"}
     >
-      {room ? (
-        <button
-          type="button"
-          className="absolute right-4 top-4 z-10 rounded-md px-3 py-1.5 text-[13px]"
-          style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          onClick={() => pass.setPosture("workshop")}
-        >
-          Workshop
-        </button>
+      {/* Room exit, and arrangement Restore. Restore is not orientation. */}
+      {room || showRestore ? (
+        <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-1">
+          {room ? (
+            <button
+              type="button"
+              className="rounded-md px-3 py-1.5 text-[13px]"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              onClick={() => pass.setPosture("workshop")}
+            >
+              Workshop
+            </button>
+          ) : null}
+          {showRestore ? (
+            <button
+              type="button"
+              className="text-[13px] leading-snug"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              onClick={() => stageApi?.restoreArrangement(pass.truth)}
+            >
+              Restore
+            </button>
+          ) : null}
+        </div>
       ) : null}
       <div className="min-h-0 flex-1">
         {pass.truth === "story" ? (

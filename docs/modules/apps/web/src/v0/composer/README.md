@@ -15,8 +15,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `KeeperStageCanvas.tsx` — Stage performance only. Orientation is not inside this canvas.
 - `StageCompositionView.tsx` — Walks the Composition. Layout, dress, and gesture come from the arrangement. A sequence still plays the story screen.
 - `stagePass.tsx` — Presentation context. Realm → Domain continues in this room and stays on the path.
-- `stageOrientation.ts` / `StageOrientationBar.tsx` — Context, what is on Stage, and the presentations already entered. `KeeperDialogFrame` mounts the bar as a sibling of the performance.
-- `useStagePlaceNames.ts` — Place labels for that bar. State stays on the frame while a full-room presentation hides the bar.
+- `stageOrientation.ts` — Which reading the pass shows: Realm, a Domain, or the shell Story. The old `StageOrientationBar` is gone.
 - `useStageTruth.ts` — Loads the existing Realm and Domain resolver inputs for the pass.
 - `whereWeAreCopy.ts` — Sentences for the arrival reading. The resolver does not own this wording.
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
@@ -35,7 +34,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Filmstrip slides may carry `source: { kind: 'moment', id }`. Stage **stores** copied title/body plus that pointer; **render** loads `GET /api/moments/:id` and presents the Moment’s current title/narrative. Missing/unresolvable Moments show “Moment unavailable” — they do not fall back to the stored copy. Stage JSON is not rewritten.
 - Stage references `agent | dialog | draft | journey | keeper | moment | library` by id. Selecting a presence sets Working on and keeps Talking in (Dialog select is the exception — it *is* the conversation).
 - If a Dialog is already on Stage, Talking in binds to it. No card click required to speak.
-- **Orientation:** Above every Stage presentation: the context (Realm or the Domain), what is on Stage (Where are we?, or the current slide), and the path of presentations already entered. Choosing Story or an earlier place does not drop the others. The shell domain’s Story is the only filmstrip offered. Choosing a Dialog still opens that conversation; Open Stage returns to the path.
+- **Orientation:** The Board surface stays addressable and may render nothing. The pass still chooses Realm, a Domain, or Story. Presentation / Workshop tabs are gone. Full-room presentation remains a posture plus a `room` span, and needs a meaningful way to enter it. Restore sits on the performance when a stored arrangement exists. It is not orientation.
 - Objects on Stage are assets (wide context = everything placed; narrow = selected + what was just said). Documents, Drafts, attachments, Journeys, Moments, Library, Cast — whatever is placed is fair game.
 - The emerging Stage story is **Frames for presentation**. Chronicle Points stay **discussion**. Config (same Chronicle Config family) is how this Stage tells — not built yet.
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
@@ -56,6 +55,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-07: `StageOrientationBar` is off the performance. The orientation surface may render nothing. Restore stays on the Stage when a stored arrangement exists. Presentation / Workshop tabs are gone. Full-room presentation still needs a meaningful invocation.
 - 2026-10-07: Focusing the message box and sending a reply leave the performance in the center. The Dialog no longer steps forward over it.
 - 2026-10-07: A missing reading no longer publishes span `center`. Presentation can keep a `room` span without the next paint releasing it.
 - 2026-10-06: Orientation left `KeeperStageCanvas`. The center column is orientation, Stage, and Composer as siblings. Realm place-name loads are shared while both read the same pass.

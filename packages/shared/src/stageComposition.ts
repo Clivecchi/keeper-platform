@@ -233,7 +233,12 @@ export function deterministicPassId(truth: StageTruthKey): string {
   return 'pass-story';
 }
 
-/** Presentation honors span. Workshop keeps the wings. */
+/**
+ * Presentation honors span. Workshop keeps the wings.
+ * Full-room presentation stays available. Presentation / Workshop tabs were a poor
+ * way to enter it, and a center-span reading ignored them. A later slice needs a
+ * meaningful invocation. Do not bring those labels back.
+ */
 export function stagePostureClaimsRoom(
   posture: StagePosture,
   span: StageDressSpan | undefined,

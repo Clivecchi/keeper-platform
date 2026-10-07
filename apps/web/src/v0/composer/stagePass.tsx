@@ -63,6 +63,8 @@ export function StagePassProvider({
   const board = useUniversalBoardOptional()
   const { isAdmin } = useAuth()
   const [trail, setTrail] = React.useState<HeldTrail | null>(null)
+  // Full-room presentation stays on this flag. The old Presentation / Workshop
+  // tabs are gone. Entering the room needs a meaningful invocation later.
   const [posture, setPostureState] = React.useState<StagePosture>("workshop")
   const [compositionSpan, setCompositionSpanState] = React.useState<StageDressSpan>("center")
   const setPosture = React.useCallback((next: StagePosture) => {

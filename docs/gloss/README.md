@@ -44,6 +44,8 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-10-07-dialog-sheet-covers-stage.md`
 - `2026-10-07-focus-covers-the-show.md`
 - `2026-10-07-the-show-stays.md`
+- `2026-10-07-orientation-bar-is-not-the-scene-header.md`
+- `2026-10-07-orientation-bar-is-off.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -52,6 +54,12 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-10-07 — The orientation bar is off the Stage
+- Added `2026-10-07-orientation-bar-is-off.md` — the old bar is gone in the working copy. The orientation surface renders nothing. Restore stays on the Stage.
+
+### 2026-10-07 — Orientation bar is not the Scene Header
+- Added `2026-10-07-orientation-bar-is-not-the-scene-header.md` — Presentation and Workshop are a dormant posture flag. Recommendation: hide the bar, keep the pass. Not built.
+
 ### 2026-10-07 — The show stays while you talk
 - Added `2026-10-07-the-show-stays.md` — composer focus and send no longer put the Dialog over the Stage. Working copy only.
 

@@ -42,6 +42,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-07: Full-room presentation stays `presentation` plus span `room`. The Presentation / Workshop labels are not the way in. A later invocation has to mean something.
 - 2026-10-06: `WorkspaceSurface` `stage` is a Board posture, not the Stage surface and not a Board type. Naming debt recorded on the type. No rename.
 - 2026-10-06: Agency core v1 and the Domain catalog prompt. Counts and shelf reads. The core is not voice.
 - 2026-10-06: Chuck locked ACT / ADVANCE / STOP. Nearest-move does not return.

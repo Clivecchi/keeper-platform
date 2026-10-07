@@ -42,6 +42,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-10-07 — Orientation surface may be empty
+- `data-board-surface="orientation"` stays. The old bar is not what that surface renders.
+
 ### 2026-10-07 — Presentation no longer remounts the room
 - Claiming the room hides Nav and Chronicle in place. The performance stays mounted, so a `room` span cannot drop the reading and claim the room again.
 
