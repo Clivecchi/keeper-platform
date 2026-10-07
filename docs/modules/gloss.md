@@ -41,6 +41,7 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-10-06-catalog-then-probe.md`
 - `2026-10-06-agency-slice-landed.md`
 - `2026-10-06-stage-is-the-center.md`
+- `2026-10-07-dialog-sheet-covers-stage.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -49,6 +50,9 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-10-07 — The sheet in front is the Dialog
+- Added `2026-10-07-dialog-sheet-covers-stage.md` — a Where-are-we composition applied; the Dialog sheet covered it; the bleed is the filmstrip trail cite. Not a build.
+
 ### 2026-10-06 — Stage is the center
 - Added `2026-10-06-stage-is-the-center.md` — the Board already holds curtains, orientation, performance, and Composer. Stage should name only the center. Not a build.
 

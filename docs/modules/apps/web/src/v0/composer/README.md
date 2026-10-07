@@ -56,6 +56,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-07: A missing reading no longer publishes span `center`. Presentation can keep a `room` span without the next paint releasing it.
 - 2026-10-06: Orientation left `KeeperStageCanvas`. The center column is orientation, Stage, and Composer as siblings. Realm place-name loads are shared while both read the same pass.
 - 2026-10-05: A stored Stage arrangement replaces the deterministic pass for that truth. Presentation gives a `room` span the Stage; Workshop keeps Nav, Chronicle, and Composer, and can restore the deterministic pass.
 - 2026-10-05: Stage orientation stays above the presentation. The bar names the context and what is on Stage, and keeps the path (Realm, a Domain, the shell Story) so a later presentation can be left and returned to.

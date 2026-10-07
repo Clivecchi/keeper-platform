@@ -72,14 +72,14 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
     const composed = stored ? presentStoredArrangement(stored, projected.reading) : null
     return composed ? { reading: projected.reading, composition: composed } : projected
   }, [projected, stageApi?.stage.arrangements, pass.truth])
-  const span: StageDressSpan = pass.truth === "story"
-    ? pass.compositionSpan
-    : presented?.composition.dress?.span ?? "center"
+  const dressSpan: StageDressSpan | undefined = pass.truth === "story"
+    ? undefined
+    : presented?.composition.dress?.span
   React.useEffect(() => {
-    if (pass.truth === "story") return
-    pass.setCompositionSpan(span)
-  }, [pass, span])
-  const room = stagePostureClaimsRoom(pass.posture, span)
+    if (!dressSpan) return
+    pass.setCompositionSpan(dressSpan)
+  }, [dressSpan, pass.setCompositionSpan])
+  const room = stagePostureClaimsRoom(pass.posture, pass.compositionSpan)
 
   const status =
     pass.truth === "story"
@@ -162,9 +162,11 @@ function StoryPass({
   const composed = stored ? presentStoredArrangement(stored, projected.reading) : null
   const composition = composed ?? projected.composition
   const sequenceNode = composition.nodes.some((node) => node.kind === "sequence")
+  const storySpan = composition.dress?.span
   React.useEffect(() => {
-    pass.setCompositionSpan(composition.dress?.span ?? "center")
-  }, [pass, composition.dress?.span])
+    if (!storySpan) return
+    pass.setCompositionSpan(storySpan)
+  }, [storySpan, pass.setCompositionSpan])
 
   return (
     <StageCompositionView

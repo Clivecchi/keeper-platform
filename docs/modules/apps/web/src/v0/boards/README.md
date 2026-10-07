@@ -42,6 +42,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-10-07 — Presentation no longer remounts the room
+- Claiming the room hides Nav and Chronicle in place. The performance stays mounted, so a `room` span cannot drop the reading and claim the room again.
+
 ### 2026-10-06 — Addressable Board surfaces
 - `boardSurface.ts` names nav, orientation, stage, composer, and chronicle. Orientation is a sibling of the Stage performance and Composer. `workspaceSurface: "stage"` stays the performance posture. Not renamed.
 

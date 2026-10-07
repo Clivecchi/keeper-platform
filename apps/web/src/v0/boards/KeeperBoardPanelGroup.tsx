@@ -190,19 +190,18 @@ export function KeeperBoardPanelGroup({
     [curtainsLocked, groupId, storedSplit.leftPct, storedSplit.rightPct],
   )
 
-  if (openRoom) {
-    return (
-      <div ref={rootRef} className="flex h-full min-h-0 w-full min-w-0" data-stage-posture="presentation">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{centerChild}</div>
-      </div>
-    )
-  }
-
+  // One tree. Claiming the room hides the wings. Swapping trees remounted the
+  // performance, dropped the reading, and released the room — then claimed it again.
   return (
-    <div ref={rootRef} className="flex h-full min-h-0 w-full min-w-0 flex-row gap-[10px]" data-stage-posture={pass?.posture ?? "workshop"}>
+    <div
+      ref={rootRef}
+      className={openRoom ? "flex h-full min-h-0 w-full min-w-0" : "flex h-full min-h-0 w-full min-w-0 flex-row gap-[10px]"}
+      data-stage-posture={openRoom ? "presentation" : pass?.posture ?? "workshop"}
+    >
       <div
         className="flex min-h-0 min-w-0 flex-col overflow-hidden"
-        style={{ flex: `0 0 ${leftPct}%` }}
+        hidden={openRoom}
+        style={{ flex: openRoom ? "0 0 0%" : `0 0 ${leftPct}%` }}
       >
         {leftChild}
       </div>
@@ -210,7 +209,8 @@ export function KeeperBoardPanelGroup({
         role="separator"
         aria-orientation="vertical"
         aria-label={curtainsLocked ? "Stage left curtain" : "Resize left panel"}
-        aria-disabled={curtainsLocked}
+        aria-disabled={curtainsLocked || openRoom}
+        hidden={openRoom}
         className={curtainsLocked ? HANDLE_LOCKED_CLASS : HANDLE_CLASS}
         style={{ touchAction: curtainsLocked ? "auto" : "none" }}
         onPointerDown={(e) => onResizePointerDown("left", e)}
@@ -226,7 +226,8 @@ export function KeeperBoardPanelGroup({
         role="separator"
         aria-orientation="vertical"
         aria-label={curtainsLocked ? "Stage right curtain" : "Resize right panel"}
-        aria-disabled={curtainsLocked}
+        aria-disabled={curtainsLocked || openRoom}
+        hidden={openRoom}
         className={curtainsLocked ? HANDLE_LOCKED_CLASS : HANDLE_CLASS}
         style={{ touchAction: curtainsLocked ? "auto" : "none" }}
         onPointerDown={(e) => onResizePointerDown("right", e)}
@@ -237,7 +238,8 @@ export function KeeperBoardPanelGroup({
       </div>
       <div
         className="flex min-h-0 min-w-0 flex-col overflow-hidden"
-        style={{ flex: `0 0 ${rightPct}%` }}
+        hidden={openRoom}
+        style={{ flex: openRoom ? "0 0 0%" : `0 0 ${rightPct}%` }}
       >
         {rightChild}
       </div>
