@@ -22,6 +22,9 @@ Screen components for Universal Mobile shell tabs — Domains picker, Moment cap
 
 ## 📆 Update Log
 
+### 2026-10-06 — Enter is a line break
+- `RealmScreen` composer: Return inserts a new line. Only the send button submits.
+
 ### 2026-09-21 — Conversation Profile
 - `KipScreen` includes Composer `conversationProfile` on `agentContext` so mobile Dialog uses the same profile as desktop Composer.
 

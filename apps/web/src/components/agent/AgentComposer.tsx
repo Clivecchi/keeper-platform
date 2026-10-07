@@ -517,8 +517,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
   }
 
+  const enterInsertsLine = composerSize !== "default"
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!submitOnEnter) return
+    // Mobile chat bar: Return is a line break. Only the send button submits.
+    if (enterInsertsLine || !submitOnEnter) return
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       // Enter always sends prompt + staged files together; attachment-only sends use the button.
@@ -582,7 +585,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     ? "Preparing conversation…"
     : inputPlaceholder?.trim()
       ? inputPlaceholder.trim()
-      : submitOnEnter
+      : submitOnEnter && !enterInsertsLine
         ? "Share your thoughts… (Shift+Enter for new line)"
         : "Share your thoughts…"
 
@@ -738,7 +741,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                 placeholder={placeholder}
                 disabled={isSending || disabled}
                 rows={1}
-                enterKeyHint="send"
+                enterKeyHint="enter"
                 className="keeper-composer-input keeper-composer-docked-input w-full pr-14"
               />
               <button

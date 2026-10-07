@@ -104,16 +104,6 @@ export function RealmScreen() {
     setActiveTab("kip");
   }, [composerText, setActiveTab, submitMobileComposerText]);
 
-  const handleComposerKeyDown = React.useCallback(
-    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend],
-  );
-
   return (
     <div className="mobile-realm-screen flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="mobile-screen-scroll flex-1 px-4 py-4">
@@ -289,8 +279,8 @@ export function RealmScreen() {
             <textarea
               value={composerText}
               onChange={(event) => setComposerText(event.target.value)}
-              onKeyDown={handleComposerKeyDown}
               rows={1}
+              enterKeyHint="enter"
               placeholder="Say or type what matters…"
               className="max-h-24 min-h-[1.5rem] w-full resize-none bg-transparent text-sm outline-none"
               style={{ color: "hsl(var(--theme-ink-primary))" }}
