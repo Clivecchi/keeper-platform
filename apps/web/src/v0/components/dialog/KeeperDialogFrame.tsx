@@ -14,9 +14,8 @@
  *     Stage        — center performance. Orientation sits above it as a sibling.
  *                    Composer stays at the bottom (`data-composer-placement="pit"`).
  *                    Agency in Composer. Reach opens in Chronicle.
- *     Attention    — Present → Engage → Yield → Perform → Resolve → Return
- *                    (`data-stage-attention`). Dialog is the first occupant.
- *                    Stage Frame recedes; stay on Stage.
+ *     Attention    — the performance stays while you write and while a reply arrives.
+ *                    The Dialog does not take the center.
  *
  * While sending: Broadcast Strip expands with live beat + prior story beats.
  * After the reply lands: strip collapses; a one-line dialogic summary sits atop
@@ -482,9 +481,8 @@ export function KeeperDialogFrame({
   const handleComposerFocus = React.useCallback(
     (focused: boolean) => {
       onComposerFocusChange?.(focused)
-      if (composerOnStage && focused) stagePresentation?.engageAttention()
     },
-    [composerOnStage, onComposerFocusChange, stagePresentation],
+    [onComposerFocusChange],
   )
 
   React.useLayoutEffect(() => {
@@ -608,10 +606,7 @@ export function KeeperDialogFrame({
             domainId={domainId}
             dialogueMode={dialogueMode}
             inputValue={inputValue}
-            onInputChange={(value) => {
-              if (composerOnStage) stagePresentation?.engageAttention()
-              onInputChange(value)
-            }}
+            onInputChange={onInputChange}
             onSubmit={handleComposerSubmit}
             onComposerFileUpload={onComposerFileUpload ?? onLibraryFileUpload}
             attachments={pendingAttachments}

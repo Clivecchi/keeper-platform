@@ -73,11 +73,12 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] User-facing **Readable** density toggle on boards (`keeper-density` + avatar **Larger type**).
 - [ ] Additional Broadcast Strip streams beyond Debug (live server-side phase events).
 - [x] Stage `dialogContent` reads the current beat via **Now** (last Turn + reply). Full transcript stays on Dialog view.
-- [x] Stage attention (`data-stage-attention`) brings `DialogueMessageList` forward as the first occupant without leaving Stage.
+- [x] The performance stays in the center. Composer focus does not bring the Dialog forward.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-10-07: Composer focus and a sent reply leave the Stage performance in the center. The Dialog sheet does not cover it.
 - 2026-10-06: On the performance posture, `KeeperDialogFrame` renders orientation, the Stage slot, and Composer as siblings. The banner and cast header stay above that group. `data-board-surface` marks stage and composer.
 - 2026-10-03: **Where are we? holds the reading** — `data-stage-presentation="where-we-are"` lets the arrival scroll above the lectern. The story filmstrip stays with the story presentation.
 - 2026-09-27: **Promoted Frame uses Dialog Space** — conversation is the default (`data-dialog-presentation="conversation"`). A Story-significant beat fills `.dialog-frame-surface`. Conversation returns from that surface.

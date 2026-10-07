@@ -42,6 +42,8 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-10-06-agency-slice-landed.md`
 - `2026-10-06-stage-is-the-center.md`
 - `2026-10-07-dialog-sheet-covers-stage.md`
+- `2026-10-07-focus-covers-the-show.md`
+- `2026-10-07-the-show-stays.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -50,6 +52,12 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-10-07 — The show stays while you talk
+- Added `2026-10-07-the-show-stays.md` — composer focus and send no longer put the Dialog over the Stage. Working copy only.
+
+### 2026-10-07 — Focusing the box covers the show
+- Added `2026-10-07-focus-covers-the-show.md` — composer focus yields the center to the Dialog before a word is sent. Not a build.
+
 ### 2026-10-07 — The sheet in front is the Dialog
 - Added `2026-10-07-dialog-sheet-covers-stage.md` — a Where-are-we composition applied; the Dialog sheet covered it; the bleed is the filmstrip trail cite. Not a build.
 

@@ -17,7 +17,6 @@ import {
   nextStageFrameIndex,
   restoreHeldStageIndex,
   stageAttentionHoldsFrame,
-  stageAttentionShowsWork,
   type HeldStageFrame,
   type StageAttentionEvent,
   type StageAttentionState,
@@ -222,14 +221,8 @@ export function StagePresentationProvider({
     if (!onStage) applyAttention("leave-stage")
   }, [applyAttention, onStage])
 
-  React.useEffect(() => {
-    if (attention === "engage") applyAttention("yielded")
-  }, [applyAttention, attention])
-
-  React.useEffect(() => {
-    if (!onStage) return
-    applyAttention(isSending ? "working" : "idle")
-  }, [applyAttention, isSending, onStage])
+  // Focusing the box and sending a message leave the performance in the center.
+  // The Dialog does not step forward over it.
 
   React.useEffect(() => {
     setIndexState((currentIndex) =>
@@ -253,7 +246,8 @@ export function StagePresentationProvider({
   }, [focusSourceId, setIndex, slides])
 
   const current = slides[Math.min(index, last)] ?? null
-  const workForward = stageAttentionShowsWork(attention)
+  // The performance stays in the center. Talking does not put the Dialog over it.
+  const workForward = false
   const value = React.useMemo(
     () => ({
       slides,

@@ -41,7 +41,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - Contextual Agency is Stage-owned and edited in Composer. Base Agency stays on `kip_agents`.
 - Reach opens from Composer (and the top-bar shortcut) and renders in Chronicle. Composer does not live in Chronicle.
 - Agent turns receive the Stage roster and the current filmstrip via `buildKeeperStagePrompt`. `stage.story.layout` is available to Lead when composing the filmstrip — Stage presence does not require a mutation. Reload after a layout write.
-- **Stage attention:** Present → Engage → Yield → Perform → Resolve → Return. Composer focus or a working Turn leaves Present. Theatre writes `STAGE_YIELD_MOTION` onto the current Frame. Dialog occupies the yielded work surface first — not a second conversation system. Blur does not Return. Click the receded Frame or a filmstrip cell after Resolve. Scene stays experiential.
+- **Stage attention:** The performance stays in the center. Focusing the message box and sending a reply do not put the Dialog over it. The old yield path (Dialog as the occupant) is not wired.
 
 ## ⚠️ Notes & ToDo
 - [x] Persist filmstrip cells on `Domain.settings.keeperStage.story` (`stage.story.layout`)
@@ -56,6 +56,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-07: Focusing the message box and sending a reply leave the performance in the center. The Dialog no longer steps forward over it.
 - 2026-10-07: A missing reading no longer publishes span `center`. Presentation can keep a `room` span without the next paint releasing it.
 - 2026-10-06: Orientation left `KeeperStageCanvas`. The center column is orientation, Stage, and Composer as siblings. Realm place-name loads are shared while both read the same pass.
 - 2026-10-05: A stored Stage arrangement replaces the deterministic pass for that truth. Presentation gives a `room` span the Stage; Workshop keeps Nav, Chronicle, and Composer, and can restore the deterministic pass.
