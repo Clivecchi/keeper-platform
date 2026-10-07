@@ -120,6 +120,11 @@ export type KeeperStageComposition = {
   arrangements?: StageArrangementMap;
 };
 
+/**
+ * Board posture. `dialog` is the conversation. `stage` emphasizes performance.
+ * Naming debt: `stage` is not the Stage surface and not a Board type.
+ * The Stage surface is the center performance.
+ */
 export type WorkspaceSurface = 'dialog' | 'stage';
 
 const KIND_SET = new Set<string>(STAGE_PRESENCE_KINDS);

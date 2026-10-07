@@ -9,7 +9,8 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `board-readability.css` — Aging-eyes type, spacing, and quieter Chronicle chrome
 - `UniversalNavPanel.tsx` — Left nav with Universal / Keepers / Config panes; default for every board
 - `navPanes.ts` — Pane membership (Universal · Keepers · Config) and Config block order
-- `workspaceSurface.ts` — Dialog vs Stage room; platform navigation leaves Stage
+- `workspaceSurface.ts` — Board posture (`dialog` | `stage`). The `stage` value emphasizes performance. It is not a Board type. Naming debt: the word still says Stage.
+- `boardSurface.ts` — Addressable Board regions: nav, orientation, stage, composer, chronicle.
 - `LibraryScreen.tsx` — Library media browser over Dialog (poster cards, shelves, search); selected item renders in Chronicle
 - `libraryBrowse.ts` — Library kind / category / rail grouping for the media browser
 - `LibraryMediaCard.tsx` / `LibraryBrowseRail.tsx` — poster card and horizontal shelf
@@ -40,6 +41,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-10-06 — Addressable Board surfaces
+- `boardSurface.ts` names nav, orientation, stage, composer, and chronicle. Orientation is a sibling of the Stage performance and Composer. `workspaceSurface: "stage"` stays the performance posture. Not renamed.
 
 ### 2026-10-03 — One Stage composition pass
 - Realm → Domain continues inside the mounted Stage. The room does not navigate away to reopen.

@@ -1,7 +1,8 @@
 "use client"
 
 /**
- * Keeper Stage — one room, one Composition pass.
+ * Keeper Stage — the center performance.
+ * Orientation is a sibling in KeeperDialogFrame. This canvas does not own it.
  * Realm arrival does not present the anchor domain's stored Stage.
  */
 
@@ -19,11 +20,9 @@ import {
 } from "@keeper/shared"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { StageCompositionView } from "./StageCompositionView"
-import { StageOrientationBar } from "./StageOrientationBar"
 import { useStagePresentationOptional } from "./stagePresentation"
 import { useStagePass } from "./stagePass"
 import { StagePresentationScreen } from "./StageFilmstrip"
-import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useBindStageDialog } from "./useBindStageDialog"
 import { useKeeperStageOptional } from "./useKeeperStage"
 import { useDomainWhereWeAreTruth, useRealmWhereWeAreTruth } from "./useStageTruth"
@@ -38,34 +37,11 @@ function roomToken(): string {
 export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
   const pass = useStagePass()
   const board = useUniversalBoardOptional()
-  const shell = useV0ShellOptional()
   const roomId = React.useRef(roomToken())
-  const [names, setNames] = React.useState<Record<string, string>>({})
   const realmTruth = useRealmWhereWeAreTruth(pass.truth === "realm-where-we-are")
   const domainTruth = useDomainWhereWeAreTruth(
     pass.truth === "domain-where-we-are" ? pass.context.domainId ?? null : null,
   )
-
-  React.useEffect(() => {
-    const wordmark = shell?.domainFrame?.theme.wordmark?.trim() ?? ""
-    const continuations = realmTruth.truth?.continuations ?? []
-    setNames((current) => {
-      const next = { ...current }
-      let changed = false
-      if (domainId && wordmark && next[domainId] !== wordmark) {
-        next[domainId] = wordmark
-        changed = true
-      }
-      for (const row of continuations) {
-        const label = row.domainName?.trim() ?? ""
-        if (label && next[row.domainId] !== label) {
-          next[row.domainId] = label
-          changed = true
-        }
-      }
-      return changed ? next : current
-    })
-  }, [domainId, realmTruth.truth, shell?.domainFrame?.theme.wordmark])
 
   const onContinue = React.useCallback(
     (action: StageContinueAction) => {
@@ -131,9 +107,7 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
         >
           Workshop
         </button>
-      ) : (
-        <StageOrientationBar names={names} shellDomainId={domainId} />
-      )}
+      ) : null}
       <div className="min-h-0 flex-1">
         {pass.truth === "story" ? (
           <StoryPass sequence={pass.presentsStoredStory ? <StoryStageCanvas /> : null} shellDomainId={domainId} />

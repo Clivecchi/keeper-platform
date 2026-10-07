@@ -28,6 +28,7 @@
  */
 
 import * as React from "react"
+import { boardSurfaceProps } from "./boardSurface"
 import { apiFetch } from "../../lib/api"
 import {
   deleteDialog,
@@ -1902,6 +1903,7 @@ export function UniversalNavPanel({
     <TreatmentAccentShell treatment={realmTreatment} className="keeper-nav-panel overflow-hidden">
       <div
         className="flex flex-col h-full min-h-0 overflow-hidden"
+        {...boardSurfaceProps("nav")}
         style={{
           color: "hsl(var(--theme-ink-primary))",
         }}

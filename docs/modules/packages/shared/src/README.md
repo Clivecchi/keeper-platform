@@ -42,6 +42,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-06: `WorkspaceSurface` `stage` is a Board posture, not the Stage surface and not a Board type. Naming debt recorded on the type. No rename.
 - 2026-10-06: Agency core v1 and the Domain catalog prompt. Counts and shelf reads. The core is not voice.
 - 2026-10-06: Chuck locked ACT / ADVANCE / STOP. Nearest-move does not return.
 - 2026-10-06: Agency outcomes. `castDelegationVoice.ts` no longer tells a blocked turn to fire the nearest allowed action. The last instruction is ACT, ADVANCE (preserve the real work as a Draft), or STOP. `treatment.propose`, `stage.story.layout`, and `sole.save` are not stand-ins.

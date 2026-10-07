@@ -11,9 +11,9 @@
  *   Composer        — user input at the bottom (`.dialog-bottom-zone`).
  *     composing    — input only; optional post-run summary atop composer
  *     working      — Broadcast Strip (live + ticker) + input
- *     Stage        — same bottom place; lectern/pit over the Stage
- *                    (`data-composer-placement="pit"`). Agency in Composer.
- *                    Reach opens in Chronicle. Elevation is function, not a move to the top.
+ *     Stage        — center performance. Orientation sits above it as a sibling.
+ *                    Composer stays at the bottom (`data-composer-placement="pit"`).
+ *                    Agency in Composer. Reach opens in Chronicle.
  *     Attention    — Present → Engage → Yield → Perform → Resolve → Return
  *                    (`data-stage-attention`). Dialog is the first occupant.
  *                    Stage Frame recedes; stay on Stage.
@@ -61,7 +61,10 @@ import {
 import { useTalkMode } from "../../../hooks/useTalkMode"
 import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
+import { boardSurfaceProps } from "../../boards/boardSurface"
 import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
+import { StageOrientationBar } from "../../composer/StageOrientationBar"
+import { useStagePlaceNames } from "../../composer/useStagePlaceNames"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
 import { useStageArrivalPresentation } from "../../composer/useStageArrivalPresentation"
 import { useStagePresentationOptional } from "../../composer/stagePresentation"
@@ -456,6 +459,7 @@ export function KeeperDialogFrame({
   }, [isMobile])
 
   const composerOnStage = Boolean(dialogContent) && mode !== "feed"
+  const placeNames = useStagePlaceNames(domainId, composerOnStage)
   const stagePass = useStagePassOptional()
   const experienceRoom = composerOnStage && stagePostureClaimsRoom(
     stagePass?.posture ?? "workshop",
@@ -586,7 +590,7 @@ export function KeeperDialogFrame({
   const hideMobileComposerFooter = isMobileStaged
 
   const composerZone = mode === "feed" || experienceRoom ? null : (
-      <div className="dialog-bottom-zone">
+      <div className="dialog-bottom-zone" {...boardSurfaceProps("composer")}>
         <div className="dialog-column dialog-bottom-stack">
           {composerOnStage && !isMobileStaged ? <StageSlideStrip /> : null}
           {composerOnStage && !isMobileStaged && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
@@ -1048,9 +1052,17 @@ export function KeeperDialogFrame({
         />
       ) : null}
 
-      {/* ── Dialog Space — messages, or the Stage table. Composer stays at the bottom. ── */}
+      {/* Orientation, Stage, and Composer are siblings. The banner and cast header stay above them. */}
+      {composerOnStage && !experienceRoom ? (
+        <StageOrientationBar names={placeNames} shellDomainId={domainId} />
+      ) : null}
+
+      {/* ── Dialog Space — messages, or the Stage performance. Composer stays at the bottom. ── */}
       {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
-      <div className="dialog-message-zone">
+      <div
+        className="dialog-message-zone"
+        {...(composerOnStage ? boardSurfaceProps("stage") : {})}
+      >
         {surfaceFrame && surfaceMessage ? (
           <div className="dialog-frame-surface">
             <button

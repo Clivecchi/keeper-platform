@@ -54,6 +54,62 @@ function dialogInput(row: DialogListRow): WhereWeAreDialogInput | null {
   }
 }
 
+/**
+ * Orientation and the Stage performance both read this while a Realm pass is showing.
+ * One in-flight load serves both. A later pass fetches again.
+ */
+let realmWhereWeAreInflight: Promise<RealmWhereWeAreReading> | null = null
+
+function loadRealmWhereWeAreTruth(): Promise<RealmWhereWeAreReading> {
+  if (realmWhereWeAreInflight) return realmWhereWeAreInflight
+  const run = (async () => {
+    const feedPromise = fetchRealmFeed()
+      .then((loaded) =>
+        (loaded.events ?? []).map((event) => ({
+          id: event.id,
+          occurredAt: event.occurredAt,
+          domainName: event.domainName,
+          summary: event.summary,
+        })),
+      )
+      .catch(() => [] as RealmWhereWeAreReading["trail"]["feed"])
+    const domainRows = (await apiFetch("/api/domains/my")) as DomainListRow[]
+    if (!Array.isArray(domainRows)) throw new Error("domains")
+    const domains = await Promise.all(
+      domainRows.map(async (domain) => {
+        const id = domain.id?.trim() ?? ""
+        if (!id) return null
+        const res = (await apiFetch(
+          `/api/domains/${encodeURIComponent(id)}/kip/dialogs`,
+        )) as { dialogs?: DialogListRow[] }
+        const dialogs = (res?.dialogs ?? []).flatMap((row) => {
+          const next = dialogInput(row)
+          return next ? [next] : []
+        })
+        const stage = readKeeperStageFromDomainSettings(domain.settings)
+        return {
+          id,
+          slug: domain.slug?.trim() ?? "",
+          name: domain.name?.trim() ?? "",
+          face: domain.isPrimary === true,
+          dialogs,
+          stageBeatTitles: stage.story?.slides.map((slide) => slide.title) ?? [],
+        }
+      }),
+    )
+    const feed = await feedPromise
+    return resolveRealmWhereWeAre({
+      domains: domains.flatMap((domain) => (domain ? [domain] : [])),
+      feed,
+    })
+  })()
+  realmWhereWeAreInflight = run
+  void run.finally(() => {
+    if (realmWhereWeAreInflight === run) realmWhereWeAreInflight = null
+  })
+  return run
+}
+
 export function useRealmWhereWeAreTruth(enabled: boolean): {
   status: "loading" | "ready" | "error"
   truth: RealmWhereWeAreReading | null
@@ -65,55 +121,15 @@ export function useRealmWhereWeAreTruth(enabled: boolean): {
     if (!enabled) return
     let cancelled = false
     setStatus("loading")
-    void (async () => {
-      try {
-        const feedPromise = fetchRealmFeed()
-          .then((loaded) =>
-            (loaded.events ?? []).map((event) => ({
-              id: event.id,
-              occurredAt: event.occurredAt,
-              domainName: event.domainName,
-              summary: event.summary,
-            })),
-          )
-          .catch(() => [] as RealmWhereWeAreReading["trail"]["feed"])
-        const domainRows = (await apiFetch("/api/domains/my")) as DomainListRow[]
-        if (!Array.isArray(domainRows)) throw new Error("domains")
-        const domains = await Promise.all(
-          domainRows.map(async (domain) => {
-            const id = domain.id?.trim() ?? ""
-            if (!id) return null
-            const res = (await apiFetch(
-              `/api/domains/${encodeURIComponent(id)}/kip/dialogs`,
-            )) as { dialogs?: DialogListRow[] }
-            const dialogs = (res?.dialogs ?? []).flatMap((row) => {
-              const next = dialogInput(row)
-              return next ? [next] : []
-            })
-            const stage = readKeeperStageFromDomainSettings(domain.settings)
-            return {
-              id,
-              slug: domain.slug?.trim() ?? "",
-              name: domain.name?.trim() ?? "",
-              face: domain.isPrimary === true,
-              dialogs,
-              stageBeatTitles: stage.story?.slides.map((slide) => slide.title) ?? [],
-            }
-          }),
-        )
-        const feed = await feedPromise
+    void loadRealmWhereWeAreTruth()
+      .then((next) => {
         if (cancelled) return
-        setTruth(
-          resolveRealmWhereWeAre({
-            domains: domains.flatMap((domain) => (domain ? [domain] : [])),
-            feed,
-          }),
-        )
+        setTruth(next)
         setStatus("ready")
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled) setStatus("error")
-      }
-    })()
+      })
     return () => {
       cancelled = true
     }

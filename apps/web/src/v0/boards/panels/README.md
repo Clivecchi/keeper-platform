@@ -71,6 +71,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-10-06 — Chronicle is an addressable Board surface
+- `UniversalViewPanel` carries `data-board-surface="chronicle"`.
+
 ### 2026-09-13 — Theme editor in Chronicle
 - Composer Theme wraps `ThemeChroniclePresence` in the Treatment shell and passes domain id/slug so paper, accent, and cover can be saved from Chronicle.
 

@@ -3,9 +3,12 @@
 /**
  * Orientation stays above the presentation.
  * It names the context, what is on Stage, and the presentations already entered.
+ * The bar is a sibling of the Stage performance. KeeperDialogFrame mounts it.
+ * Board surface: orientation.
  */
 
 import type { StagePosture } from "@keeper/shared"
+import { boardSurfaceProps } from "../boards/boardSurface"
 import { buildStageOrientation } from "./stageOrientation"
 import { useKeeperStageOptional } from "./useKeeperStage"
 import { useStagePass } from "./stagePass"
@@ -38,6 +41,7 @@ export function StageOrientationBar({
   return (
     <nav
       aria-label="Stage orientation"
+      {...boardSurfaceProps("orientation")}
       data-stage-orientation=""
       data-stage-context={orientation.contextLabel}
       data-stage-on={orientation.onStageLabel}

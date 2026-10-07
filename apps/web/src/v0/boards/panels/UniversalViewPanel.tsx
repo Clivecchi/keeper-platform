@@ -27,6 +27,7 @@
  */
 
 import * as React from "react"
+import { boardSurfaceProps } from "../boardSurface"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
@@ -684,6 +685,7 @@ export function UniversalViewPanel({
 
   return (
     <div
+      {...boardSurfaceProps("chronicle")}
       className={`keeper-chronicle-panel flex flex-col h-full min-h-0 overflow-hidden${
         isFocused ? " keeper-chronicle-panel--focused" : ""
       }`}

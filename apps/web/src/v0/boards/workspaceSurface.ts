@@ -2,8 +2,11 @@ import type { WorkspaceSurface } from "@keeper/shared"
 
 /**
  * Why the workspace surface is changing.
- * Stage is the place Keeper presents — a room on the current Board, not `?board=stage`.
- * Realm and Domain arrival open Stage. Choosing a Dialog returns to the conversation.
+ * `WorkspaceSurface` is a Board posture, not a Board type and not the Stage surface.
+ * `stage` emphasizes performance on the current Board. It is not `?board=stage`.
+ * Naming debt: this posture still says "stage". The Stage surface is the center
+ * performance (`KeeperStageCanvas`). A later slice may rename the posture.
+ * Realm and Domain arrival open that posture. Choosing a Dialog returns to the conversation.
  * Chronicle follows the selected object.
  */
 
