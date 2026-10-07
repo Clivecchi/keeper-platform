@@ -22,6 +22,7 @@ describe('leadJudgmentContract', () => {
     expect(prompt).toMatch(/unresolved tension/);
     expect(prompt).toMatch(/human has already decided/);
     expect(prompt).toMatch(/stop waiting is a decision already made/);
+    expect(prompt).toMatch(/nearby allowed action is not that move/);
     expect(prompt).not.toMatch(/Kip/i);
     expect(prompt).not.toMatch(/Composer/i);
     expect(prompt).not.toMatch(/1–3 short sentences/);

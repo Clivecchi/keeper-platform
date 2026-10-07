@@ -10,6 +10,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when the human asked — not after Cast; optional future keeps are `keepingChoices`
 - `leadJudgmentContract.ts` — Lead role Agency contract (find the plot). Injected when `role === 'Lead'`. Not Kip-specific.
+- `domainCatalog.ts` — Query for shelf counts and title/id pages. No stored map.
+- `persistAgencyCore.ts` — Writes the platform core onto `kip_agents.config.agency` once.
 - `conversationProfilePrompt.ts` — Conversation and Cast use the short posture. Agency keeps the long action stack.
 - `buildAgentBoardContextPrompt.ts` — Agent Board Training + Performance Inspection Composer grounding
 - `agentPerformanceProvenance` lives in `@keeper/shared` — named runtime checklist on persisted Lead messages
@@ -47,6 +49,14 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-06 — Catalog shelves and Agency core
+- `domainCatalog.ts` counts Dialogs, Drafts, Keepers, Journeys, Moments, and Library, and pages titles and ids.
+- `persistAgencyCore.ts` stores the v1 core on Cloud, Rendr, and Kip. The prompt resolves it even before the write lands.
+- `actionFollowUp.ts` puts catalog titles and ids on the second pass. The page is not a body.
+
+### 2026-10-06 — The move is the objective
+- `leadJudgmentContract.ts` — a request to run is still a decision already made. The move is their objective. A nearby allowed action is not that move.
+
 ### 2026-10-04 — Story truth follow-up
 - When `story.truth.read` succeeds, the Lead follow-up is the packet. Kip chooses claim ids and writes a telling. The follow-up tells Kip not to paste the claims as the Story and not to write the Stage filmstrip.
 

@@ -14,6 +14,7 @@ describe('kipActionAllowlist', () => {
     });
     expect(allowed.has('draft.create')).toBe(true);
     expect(allowed.has('dialog.read')).toBe(true);
+    expect(allowed.has('catalog.read')).toBe(true);
     expect(allowed.has('journey.read')).toBe(true);
   });
 

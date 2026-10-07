@@ -2,7 +2,10 @@
  * Cheap Cast offer. One purpose line, the human line, and the trail.
  * The model comes from the cast_offer offering role, not from a call-site model name.
  */
+import { prisma } from '@keeper/database';
+import { platformAgencyCore, resolveAgencyCore, type AgencyCoreV1 } from '@keeper/shared';
 import { resolvePurposeOffering } from '../config/modelRegistry.js';
+import { persistPlatformAgencyCore } from './kip/persistAgencyCore.js';
 import { executeRegisteredChat } from './executeRegisteredChat.js';
 
 export type CastOfferResult = {
@@ -13,6 +16,32 @@ export type CastOfferResult = {
   completionTokens: number | null;
   latencyMs: number | null;
 };
+
+export function buildCastOfferSystemPrompt(label: string, core: AgencyCoreV1 | null): string {
+  const responsibility = core
+    ? `Who: ${core.who}. Purpose: ${core.purpose}. Responsibilities: ${core.responsibilities.join('; ')}.`
+    : 'Responsibility is unset. If the objective is not clearly yours, stay silent.';
+  return [
+    `You are ${label}. ${responsibility}`,
+    'One job: if the human objective belongs to that responsibility, reply with JSON only: {"offer":"<one sentence naming the real next step in that responsibility>"}.',
+    'If it does not, reply {"offer":""}.',
+    'Do not perform the work. Do not recommend a Keeper object outside your responsibility. Silence is valid.',
+  ].join(' ');
+}
+
+async function loadCastCore(slug: string): Promise<AgencyCoreV1 | null> {
+  try {
+    const row = await prisma.kip_agents.findUnique({
+      where: { slug },
+      select: { id: true, slug: true, config: true },
+    });
+    if (!row) return platformAgencyCore(slug);
+    void persistPlatformAgencyCore(row);
+    return resolveAgencyCore(row) ?? platformAgencyCore(slug);
+  } catch {
+    return platformAgencyCore(slug);
+  }
+}
 
 function parseOfferText(raw: string): string {
   const trimmed = raw.trim();
@@ -40,6 +69,7 @@ export async function runCastOffer(params: {
     throw new Error('No offering is configured for cast_offer');
   }
   const human = params.userMessage.trim().slice(0, 500);
+  const core = await loadCastCore(params.slug);
   const started = Date.now();
   const executed = await executeRegisteredChat({
     preference: {
@@ -52,11 +82,7 @@ export async function runCastOffer(params: {
     messages: [
       {
         role: 'system',
-        content: [
-          `You are ${params.label}. One job: say whether you have something to add.`,
-          'Reply with JSON only: {"offer":"<one sentence>"} or {"offer":""} to stay silent.',
-          'Do not perform the full answer. Silence is valid.',
-        ].join(' '),
+        content: buildCastOfferSystemPrompt(params.label, core),
       },
       {
         role: 'user',

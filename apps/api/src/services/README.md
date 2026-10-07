@@ -26,6 +26,13 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-06 — Cast offer uses the Agency core
+- A cheap offer names who the member is and their responsibilities. Silence stays correct outside that responsibility.
+
+### 2026-10-06 — Cast offer carries responsibility
+- `castRoomOffer.ts` loads the member's `purpose` and offers only when the human objective belongs to that responsibility. Silence is the other result.
+- `directorDialog.ts` engages the voice whose offer is the real next step. Present is ACT, ADVANCE, or STOP. A nearby action is not the move.
+
 ### 2026-10-03 — Anthropic requests no longer end on an assistant turn
 - `convertToAnthropicFormat` still lifts system text into `system` and keeps each completed assistant turn in `messages`.
 - When that list would end on assistant — the read follow-up reuses the prior completion and puts the next instruction in system text — a closing user turn is added on the wire only. Sonnet 4.6 rejects that ending as assistant prefill. The ModelMessage list callers reuse is unchanged.

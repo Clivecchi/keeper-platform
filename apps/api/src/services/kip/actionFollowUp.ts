@@ -24,6 +24,7 @@ const READ_ONLY_ACTION_TYPES = new Set([
   'library.read',
   'dialog.read',
   'glossary.read',
+  'catalog.read',
   'story.truth.read',
   'web.search',
   'typesafe.evaluate',
@@ -148,6 +149,25 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
         if (Array.isArray(data.drafts)) {
           lines.push(`Drafts listed: ${data.drafts.length}`);
         }
+        if (result.type === 'catalog.read') {
+          if (data.counts && typeof data.counts === 'object') {
+            lines.push(`Catalog counts: ${JSON.stringify(data.counts)}`);
+          }
+          if (Array.isArray(data.items)) {
+            const shown = data.items.length;
+            const total = typeof data.total === 'number' ? data.total : shown;
+            lines.push(`Catalog ${String(data.shelf ?? 'shelf')} — titles and ids only (${shown} of ${total}):`);
+            for (const row of data.items.slice(0, 20)) {
+              if (!row || typeof row !== 'object') continue;
+              const item = row as { id?: string; title?: string; kind?: string; status?: string };
+              const extra = [item.kind ? `kind=${item.kind}` : '', item.status ? `status=${item.status}` : '']
+                .filter(Boolean)
+                .join(' ');
+              lines.push(`- ${item.title ?? '?'} id=${item.id ?? '?'}${extra ? ` ${extra}` : ''}`);
+            }
+          }
+          lines.push('This page is not a body. Open one with dialog.read, draft.read, keeper.read, journey.read, moment.read, or library.read.');
+        }
         if (result.type === 'glossary.read') {
           lines.push('Object Glossary (Chronicle presence — not a draft):');
           if (typeof data.honesty === 'string') {
@@ -229,6 +249,23 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
               lines.push(`Model: ${data.model}`);
             }
           }
+        } else if (result.type === 'catalog.read') {
+          const items = Array.isArray(data.items) ? data.items : [];
+          lines.push(
+            data.shelf
+              ? `Catalog shelf ${String(data.shelf)}: ${items.length} of ${String(data.total ?? items.length)}`
+              : 'Catalog counts (no bodies):',
+          );
+          if (!data.shelf && data.counts && typeof data.counts === 'object') {
+            lines.push(JSON.stringify(data.counts));
+          }
+          for (const row of items.slice(0, 20)) {
+            if (row && typeof row === 'object') {
+              const item = row as { id?: string; title?: string; status?: string };
+              lines.push(`- ${item.title ?? item.id ?? '?'} (${item.id ?? '?'}${item.status ? `, ${item.status}` : ''})`);
+            }
+          }
+          lines.push('These are titles and ids. Open a body with the read for that shelf.');
         } else if (Array.isArray(data.results)) {
           if (result.type === 'web.search') {
             lines.push(`Web results: ${data.results.length}`);
@@ -271,6 +308,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
           && !Array.isArray(data.drafts)
           && !(result.type === 'dialog.read' && (data.document || Array.isArray(data.results)))
           && result.type !== 'glossary.read'
+          && result.type !== 'catalog.read'
           && result.type !== 'library.read'
           && result.type !== 'web.search'
           && result.type !== 'typesafe.evaluate'
@@ -314,6 +352,21 @@ export function formatReadActionResultsForUserFallback(results: ActionResultLike
         lines.push(
           `- ${item.title ?? 'Result'}${item.url ? ` — ${item.url}` : ''}${item.snippet ? `: ${String(item.snippet).slice(0, 2500)}` : ''}`,
         );
+      }
+      continue;
+    }
+
+    if (result.type === 'catalog.read') {
+      if (data.counts && typeof data.counts === 'object') {
+        lines.push(`Catalog counts: ${JSON.stringify(data.counts)}`);
+      }
+      if (Array.isArray(data.items)) {
+        lines.push(`Catalog ${String(data.shelf ?? 'shelf')}:`);
+        for (const row of data.items.slice(0, 8)) {
+          if (!row || typeof row !== 'object') continue;
+          const item = row as { title?: string; id?: string };
+          lines.push(`- ${item.title ?? 'Untitled'} (${item.id ?? '?'})`);
+        }
       }
       continue;
     }
@@ -481,6 +534,9 @@ export function buildReadActionFollowUpInput(params: {
     'If dialog.read returned a Document:',
     '- Use Forward, Step, Paths, and Points from the result — same source Chronicle renders.',
     '- If the result says the Document is unbuilt (no Points), say that. Do not claim you read a body.',
+    'If catalog.read returned counts or a page of titles and ids:',
+    '- That page is not a body. Open the one that matches the objective with dialog.read, draft.read, keeper.read, journey.read, moment.read, or library.read.',
+    '- Do not call jev.probe when the objective already names the work.',
     'If glossary.read returned terms or entries:',
     '- This is Chronicle presence from docs/keeper-object-glossary.md — not a draft.',
     '- Do not treat a husk draft titled Glossary as the glossary.',

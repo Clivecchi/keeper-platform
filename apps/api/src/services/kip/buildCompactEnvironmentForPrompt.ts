@@ -117,7 +117,7 @@ export type CompactEnvironmentForPrompt = {
 };
 
 const COMPACT_NOTE =
-  'Compact KAM context. Domain agent roster and full Dialog Document are in dedicated system blocks — do not expect them here. Use draftsDirectory / activeDraft / domainIndex below for draft and domain lookup.';
+  'Compact KAM context. Agency core, the Dialog Document, and the Domain catalog are dedicated blocks. This JSON does not list the Domain. activeDraft is the work in focus. Find other objects with catalog.read.';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -228,24 +228,6 @@ export function buildCompactEnvironmentForPrompt(
     if (Object.keys(slimPack).length > 0) compact.actionPack = slimPack;
   }
 
-  if (Array.isArray(env.draftsDirectory)) {
-    compact.draftsDirectory = env.draftsDirectory
-      .map((entry) => {
-        const d = asRecord(entry);
-        if (!d || typeof d.id !== 'string') return null;
-        return {
-          id: d.id,
-          title: typeof d.title === 'string' ? d.title : '',
-          kind: typeof d.kind === 'string' ? d.kind : '',
-          status: typeof d.status === 'string' ? d.status : '',
-          updatedAt: (d.updatedAt as string | Date) ?? '',
-          key: typeof d.key === 'string' ? d.key : null,
-        };
-      })
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-      .slice(0, 20);
-  }
-
   const activeDraft = asRecord(env.activeDraft);
   if (activeDraft && typeof activeDraft.id === 'string') {
     compact.activeDraft = {
@@ -302,35 +284,6 @@ export function buildCompactEnvironmentForPrompt(
           ...(typeof seed.about === 'string' ? { about: seed.about } : {}),
         };
       })(),
-    };
-  }
-
-  const domainIndex = asRecord(env.domainIndex);
-  if (domainIndex) {
-    compact.domainIndex = {
-      keepers: Array.isArray(domainIndex.keepers)
-        ? (domainIndex.keepers as Array<{ id: string; title: string; purpose?: string | null }>)
-        : [],
-      journeys: Array.isArray(domainIndex.journeys)
-        ? (domainIndex.journeys as Array<{
-            id: string;
-            name: string;
-            forward: string;
-            keeperId: string;
-          }>)
-        : [],
-      library: Array.isArray(domainIndex.library)
-        ? (domainIndex.library as Array<{ id: string; label: string; sourceType: string }>)
-        : [],
-      dialogs: Array.isArray(domainIndex.dialogs)
-        ? (domainIndex.dialogs as Array<{
-            id: string;
-            title: string;
-            titleSource: string;
-            documentStatus: string;
-            updatedAt: string;
-          }>)
-        : [],
     };
   }
 

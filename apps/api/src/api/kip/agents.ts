@@ -55,6 +55,8 @@ import {
   pointProposeIdentityFrom,
   buildSessionActionLogPrompt,
   buildPerformancePosturePrompt,
+  buildAgencyCorePrompt,
+  resolveAgencyCore,
   NEAREST_MOVE_WHEN_BLOCKED_LINE,
   resolveEphemeralSessionAccess,
   shapeRecordTitle,
@@ -95,6 +97,8 @@ import {
   buildCompactEnvironmentForPrompt,
   measureEnvironmentPromptSize,
 } from '../../services/kip/buildCompactEnvironmentForPrompt.js';
+import { buildDomainAwarenessPrompt, loadCatalogShelf, loadDomainCatalogCounts, parseCatalogShelf } from '../../services/kip/domainCatalog.js';
+import { persistPlatformAgencyCore } from '../../services/kip/persistAgencyCore.js';
 import { collectAgentBoardContextPrompts } from '../../services/kip/buildAgentBoardContextPrompt.js';
 import {
   createAgentRunTimings,
@@ -4744,6 +4748,60 @@ export async function executeAgentActions(
             break;
           }
 
+          case 'catalog.read': {
+            const payload = action.payload ?? {};
+            if (!ctx.domainId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'No domain context for catalog.read',
+                errorCode: 'MISSING_CONTEXT',
+              });
+              break;
+            }
+            const shelf = parseCatalogShelf(payload.shelf);
+            const query = typeof payload.query === 'string' ? payload.query : undefined;
+            const offset = typeof payload.offset === 'number' ? payload.offset : undefined;
+            const limit = typeof payload.limit === 'number' ? payload.limit : undefined;
+            try {
+              if (!shelf) {
+                const counts = await loadDomainCatalogCounts({
+                  domainId: ctx.domainId,
+                  userId: ctx.userId,
+                });
+                results.push({
+                  type: action.type,
+                  status: 'success',
+                  message: 'Domain catalog counts. No bodies.',
+                  data: { counts },
+                });
+                break;
+              }
+              const page = await loadCatalogShelf({
+                domainId: ctx.domainId,
+                userId: ctx.userId,
+                shelf,
+                query,
+                offset,
+                limit,
+              });
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Catalog ${shelf}: ${page.items.length} of ${page.total}. Titles and ids only.`,
+                data: page,
+              });
+            } catch (error) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: error instanceof Error ? error.message : 'Failed to read the catalog',
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
           case 'glossary.read': {
             const payload = action.payload ?? {};
             const query =
@@ -6538,18 +6596,11 @@ export class KipAgentService {
         }>;
         dialogArrival?: Parameters<typeof formatDialogArrivalForAgent>[0];
       } | undefined;
-      if (envWithIndex?.domainIndex) {
-        const { keepers, journeys, library, dialogs } = envWithIndex.domainIndex;
-        const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
-        const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
-        const libraryList =
-          library?.map((item) => `${item.label} (${item.id})`).join('; ') ?? 'none indexed — use library.read to list';
-        const dialogList =
-          dialogs?.map((d) => `${d.title} (${d.id}, ${d.titleSource})`).join('; ')
-          ?? 'none indexed — use dialog.read to list';
-        systemParts.push(
-          `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Dialogs: ${dialogList}. Use library.read / dialog.read to list or search when you need more.`,
-        );
+      if (options.domainId) {
+        systemParts.push(await buildDomainAwarenessPrompt({
+          domainId: options.domainId,
+          userId: options.userId,
+        }));
       }
       if (envWithIndex?.peopleNotes?.length) {
         const peopleList = envWithIndex.peopleNotes
@@ -6754,6 +6805,15 @@ export class KipAgentService {
         role: 'system',
         content: systemPrompt
       });
+
+      const agencyCore = resolveAgencyCore(agent);
+      if (agencyCore) {
+        messages.push({
+          role: 'system',
+          content: buildAgencyCorePrompt(agencyCore),
+        });
+        await persistPlatformAgencyCore(agent);
+      }
 
       const conversationProfile = conversationProfileFromEnvironment(
         promptOptions?.environment ?? null,
@@ -7205,18 +7265,15 @@ export class KipAgentService {
               seed: { givenName?: string; relation?: string; about?: string };
             }>;
           } | undefined;
-          if (envWithIndex?.domainIndex) {
-            const { keepers, journeys, library, dialogs } = envWithIndex.domainIndex;
-            const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
-            const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
-            const libraryList =
-              library?.map((item) => `${item.label} (${item.id})`).join('; ') ?? 'none indexed — use library.read to list';
-            const dialogList =
-              dialogs?.map((d) => `${d.title} (${d.id}, ${d.titleSource})`).join('; ')
-              ?? 'none indexed — use dialog.read to list';
+          if (promptOptions?.domainId) {
+            const awareness = await buildDomainAwarenessPrompt({
+              domainId: promptOptions.domainId,
+              userId,
+              humanTurn: humanTurnTextForIntent(input, promptOptions?.displayContent),
+            });
             messages.push({
               role: 'system',
-              content: `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Library: ${libraryList}. Dialogs: ${dialogList}. Use library.read / dialog.read to list or search when you need more.`,
+              content: awareness,
             });
           }
           if (envWithIndex?.peopleNotes?.length) {

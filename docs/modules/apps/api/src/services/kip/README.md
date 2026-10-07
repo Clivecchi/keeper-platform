@@ -47,6 +47,14 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-06 — Catalog shelves and Agency core
+- `domainCatalog.ts` counts Dialogs, Drafts, Keepers, Journeys, Moments, and Library, and pages titles and ids.
+- `persistAgencyCore.ts` stores the v1 core on Cloud, Rendr, and Kip. The prompt resolves it even before the write lands.
+- `actionFollowUp.ts` puts catalog titles and ids on the second pass. The page is not a body.
+
+### 2026-10-06 — The move is the objective
+- `leadJudgmentContract.ts` — a request to run is still a decision already made. The move is their objective. A nearby allowed action is not that move.
+
 ### 2026-10-04 — Story truth follow-up
 - When `story.truth.read` succeeds, the Lead follow-up is the packet. Kip chooses claim ids and writes a telling. The follow-up tells Kip not to paste the claims as the Story and not to write the Stage filmstrip.
 

@@ -23,7 +23,9 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - `draftHostTitle.ts` — Human-facing host name for Document vs Draft Point cards
 - `pointProposeIdentity.ts` — Same-Point identity for `draft.update.propose` (Keeper-owned dedupe)
 - `sessionActionLog.ts` — Dialog session action receipts + web.search evidence for every agent prompt
-- `castDelegationVoice.ts` — Shared Cast speech, golden-path agency, receipt honesty, and the performance posture (a request to run is the directive)
+- `castDelegationVoice.ts` — Shared Cast speech, golden-path agency, receipt honesty, and the performance posture (ACT / ADVANCE / STOP; a nearby receipt is not the move)
+- `agencyCore.ts` — Agency core v1 for Kip, Cloud, and Rendr. Separate from voice and from Domain policy.
+- `domainCatalog.ts` — Shelf counts and the catalog prompt. Bodies stay out.
 - `documentReorganizeIntent.ts` — Phrase signal for Document-review language. Mention ≠ established direction ≠ authorization ≠ execution.
 - `documentTurnPosture.ts` — TypeSafe shadow primitives + diagnostic corpus for Document Turn Posture. `parseSystemOneOrientationView` reads stored Jev from `humanTurn.systemOne` first, then top-level `turnPostureShadow`.
 - `humanTurn.ts` — Human Turn id + `human-turn-v0` performance record. Dialog → Scene → Turns seam. No Scene model.
@@ -40,6 +42,9 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-06: Agency core v1 and the Domain catalog prompt. Counts and shelf reads. The core is not voice.
+- 2026-10-06: Chuck locked ACT / ADVANCE / STOP. Nearest-move does not return.
+- 2026-10-06: Agency outcomes. `castDelegationVoice.ts` no longer tells a blocked turn to fire the nearest allowed action. The last instruction is ACT, ADVANCE (preserve the real work as a Draft), or STOP. `treatment.propose`, `stage.story.layout`, and `sole.save` are not stand-ins.
 - 2026-10-05: Stage composition grammar. Group layout is `stack | row | split | hero`. Dress is title, field, density, motion, and span. A cite gestures `place` or `text`. `decideStageComposition` refuses unknown tokens and drops cites the Reading does not contain. Applied arrangements persist on `keeperStage.arrangements`. Presentation claims the room only when span is `room`.
 - 2026-10-05: `conversationProfile.ts` — Conversation, Cast, and Agency. Legacy `current` becomes Conversation. An explicit cue narrows hearing; Cast and Agency otherwise hear the eligible voices. `castRoom.ts` writes action receipts onto the Trace as `acted`.
 - 2026-10-04: `storyTruthPacket.ts` — a Dialog’s Story packet is the cover line, the Dialog’s status, Orientation, Forward, and Step as they stand, a session-trail fact with no event bodies, and the existing Where are we sentences. Chosen claim ids stay the factual boundary. The Lead’s telling is kept as wording of its own.

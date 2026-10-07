@@ -34,6 +34,13 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-09-13-domain-cover-living-path.md`
 - `2026-09-13-agency-board-v0.md`
 - `2026-09-13-agency-board-v0-built.md`
+- `2026-10-06-nearest-move-is-not-judgment.md`
+- `2026-10-06-agency-act-advance-stop.md`
+- `2026-10-06-agency-core-and-composition.md`
+- `2026-10-06-domain-map-is-not-awareness.md`
+- `2026-10-06-catalog-then-probe.md`
+- `2026-10-06-agency-slice-landed.md`
+- `2026-10-06-stage-is-the-center.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -42,6 +49,27 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-10-06 — Stage is the center
+- Added `2026-10-06-stage-is-the-center.md` — the Board already holds curtains, orientation, performance, and Composer. Stage should name only the center. Not a build.
+
+### 2026-10-06 — Agency slice landed
+- Added `2026-10-06-agency-slice-landed.md` — core, shelf counts, and catalog.read are in the turn. Offers still cannot search. The live Dialogs were not replayed.
+
+### 2026-10-06 — Catalog, then probe
+- Added `2026-10-06-catalog-then-probe.md` — a structural catalog is a query over existing rows; Jev ranks a shelf it is handed. Not a build.
+
+### 2026-10-06 — Loading the Domain is not awareness
+- Added `2026-10-06-domain-map-is-not-awareness.md` — the turn preloads a recent slice; retrieval is uneven and unused. Not a build.
+
+### 2026-10-06 — Agency core and composition
+- Chuck locked ACT / ADVANCE / STOP. Added `2026-10-06-agency-core-and-composition.md` — the core is the global agent row, not a Draft; a turn concatenates one Domain's pile. Not a build.
+
+### 2026-10-06 — ACT, ADVANCE, or STOP
+- Added `2026-10-06-agency-act-advance-stop.md` — cheap offers are not Cast intelligence; nearest-move is removed; preserve goes to a Draft. No new object. Gloss-only.
+
+### 2026-10-06 — Nearest move is not judgment
+- Added `2026-10-06-nearest-move-is-not-judgment.md` — two Dialogs today (legal checklist → Treatment; mobile Enter → Slides, then a memory card). Nearest allowed action is a false success when it is a different object. Gloss-only.
+
 ### 2026-09-13 — Agency Board V0 built
 - Added `2026-09-13-agency-board-v0-built.md` — locked V0 is in code; runtime id still `agent`; Trail crumb is still Domain name; Now is judged not hardcoded.
 

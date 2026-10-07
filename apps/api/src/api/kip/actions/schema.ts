@@ -198,6 +198,14 @@ const dialogReadPayloadSchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(20),
 });
 
+/** Domain catalog shelf. Titles and ids. Bodies stay on the existing read actions. */
+const catalogReadPayloadSchema = z.object({
+  shelf: z.enum(['dialog', 'draft', 'keeper', 'journey', 'moment', 'library']).optional(),
+  query: z.string().optional(),
+  offset: z.number().int().min(0).max(500).optional().default(0),
+  limit: z.number().int().min(1).max(20).optional().default(12),
+});
+
 /** Chronicle Object Glossary — same file GlossaryPresence renders. Not a draft. */
 const glossaryReadPayloadSchema = z.object({
   query: z.string().optional(),
@@ -525,6 +533,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'library.read': libraryReadPayloadSchema,
   'dialog.read': dialogReadPayloadSchema,
   'glossary.read': glossaryReadPayloadSchema,
+  'catalog.read': catalogReadPayloadSchema,
   'journey.read': journeyReadPayloadSchema,
   'moment.read': momentReadPayloadSchema,
   'keeper.read': keeperReadPayloadSchema,

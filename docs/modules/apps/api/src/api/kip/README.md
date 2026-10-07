@@ -32,6 +32,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-10-06: **Agency working context** — every performance starts with the Agency core. The Domain title dump is gone. `catalog.read` pages shelves. Primary context stays the Dialog and the work in focus. `jev.probe` is not called when the objective already names the work.
+- 2026-10-06: **Agency outcomes** — the standing action line is ACT / ADVANCE / STOP. A blocked turn preserves the real work as a Draft, or stops. It does not fire the nearest allowed action.
 - 2026-10-05: **Stage composition** — after a Cast turn, Kip may authorize `stageComposition`. Rendr then arranges the Stage Reading already on the pass. The receipt is `stage.composition.propose` on the Trace. It does not write story slides.
 - 2026-10-05: **Action-batch transaction budget** — `executeAgentActions` keeps one interactive transaction, with a 180s timeout. The 5s Prisma default was expiring while `delegate.consult` and other slow actions ran. The commit error contains the word "timeout", so the Dialog reported it as an AI-provider timeout.
 - 2026-10-04: **Keeper Story** — Lead `story.truth.read` returns the Dialog packet. Lead `story.save` writes `settings.stories` with the chosen claim ids as provenance and the Lead’s telling as the description. It does not call `stage.story.layout`. Rendr’s existing Frame handoff phrases that telling. The Story captures that Lead message. Source claims stay on the message, beside the Frame.

@@ -167,7 +167,7 @@ function buildLeadJudgmentLines(directorName: string): string[] {
     `- Identify consequence. Preserve meaningful tension when it is unresolved.`,
     `- Recognize decisions the human already made — do not reopen them as suggestions.`,
     `- Move the performance forward. Do not report on the room.`,
-    `- A request to run, perform, or stop waiting is a decision already made. Do the move. Do not reopen it as a question about authorization or a missing go.`,
+    `- A request to run, perform, or stop waiting is a decision already made. Do the move that is their objective. A nearby allowed action is not that move. Do not reopen it as a question about authorization or a missing go.`,
     `- Do not write a committee report, a roll-call, or "Cloud and Rendr have identified…"`,
     `- Attribute a stance to a cast member ONLY when a real reply is listed — and then in a clause, not minutes.`,
     `- Dialog already shows each cast member's voice card. Do not paste ### headings or repeat Cast verbatim.`,
@@ -402,8 +402,12 @@ export function buildCastRoomDirectionPrompt(params: {
     'Offers:',
     ...offerLines,
     '',
+    'An offer is a claim of responsibility, not a performance.',
+    'Implementation and product protection belong to Cloud. Chronicle look and Stage arrangement belong to Rendr. Engage that voice when the objective is theirs.',
+    'Engage the one voice whose offer is the real next step for the human\'s objective. Aim is the work you need from that responsibility.',
+    'If every offer is silence, or the only offers are about a different object, omit engage.',
     params.allowEngage
-      ? 'You may engage one voice. Emit "engage": { "slug": "<one cued slug>", "aim": "<what you need from them>" } only when a full contribution would change the reply. Otherwise omit engage and Present now.'
+      ? 'You may engage one voice. Emit "engage": { "slug": "<one cued slug>", "aim": "<what you need from them>" } only when their full contribution would advance the objective. Otherwise omit engage and Present now.'
       : 'Do not emit engage. Two contributions already happened. Present.',
     'Spoken "response" is what the human hears if you Present now.',
     'Do not emit actions on this pass. The Present pass carries the reply and any requested action.',
@@ -420,8 +424,9 @@ export function buildCastRoomPresentAddendum(params: {
     'Trail:',
     params.trail || '(no trail yet)',
     params.decision?.trim()
-      ? `Direction already taken: ${params.decision.trim()}`
+      ? `Earlier direction (not binding if it does not advance the objective): ${params.decision.trim()}`
       : 'Present from the trail and any real contribution above.',
+    'On this pass: ACT, ADVANCE, or STOP. A receipt for a different object is not success.',
     'Do not emit engage. Do not invent a voice that did not contribute.',
   ].join('\n');
 }

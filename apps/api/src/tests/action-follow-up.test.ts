@@ -188,6 +188,34 @@ describe('actionFollowUp', () => {
     expect(unbuilt).toContain('Do not claim you read a body');
   });
 
+  it('formats catalog.read as titles and ids, not bodies', () => {
+    const input = buildReadActionFollowUpInput({
+      originalInput: 'Find the mobile enter work',
+      agentName: 'Cloud',
+      priorResponseText: 'Looking.',
+      actionResults: [
+        {
+          type: 'catalog.read',
+          status: 'success',
+          message: 'Catalog draft: 1 of 4. Titles and ids only.',
+          data: {
+            shelf: 'draft',
+            total: 4,
+            items: [{ id: 'draft-1', title: 'Mobile Enter newline', kind: 'draft', status: 'draft' }],
+          },
+        },
+      ],
+    });
+    expect(input).toContain('titles and ids only');
+    expect(input).toContain('Mobile Enter newline');
+    expect(input).toContain('id=draft-1');
+    expect(input).toContain('This page is not a body');
+    expect(shouldRunReadActionFollowUp(
+      [{ type: 'catalog.read' }],
+      [{ type: 'catalog.read', status: 'success', message: 'ok' }],
+    )).toBe(true);
+  });
+
   it('formats glossary.read as Chronicle presence, not a draft', () => {
     const input = buildReadActionFollowUpInput({
       originalInput: 'Can you read the glossary?',
