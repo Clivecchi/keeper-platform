@@ -153,7 +153,7 @@ async function main(): Promise<void> {
     await prisma.kip_drafts.update({
       where: { id: manuscript.id },
       data: {
-        spec_json: { ...spec, points: [...existing, ...added] } as Prisma.InputJsonValue,
+        spec_json: { ...spec, points: [...existing, ...added] } as unknown as Prisma.InputJsonValue,
         updated_at: new Date(),
       },
     });

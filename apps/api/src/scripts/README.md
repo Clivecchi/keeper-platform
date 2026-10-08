@@ -35,6 +35,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 
 ## 📆 Update Log
 
+### 2026-10-08 — Seed script JSON matches the API build
+- `seed-operational-truth-dialog.ts` writes `spec_json` through `unknown` before `Prisma.InputJsonValue`, so `DraftPoint[]` typechecks in the API image.
+
 ### 2026-10-08 — Operational Truth Dialog stays empty until the filter is deployed
 - `seed-operational-truth-dialog.ts` creates the keeper-scoped KE3P Dialog and checks that another user cannot see it. Point bodies are written only when `OT_IMPORT_POINTS=1`.
 
