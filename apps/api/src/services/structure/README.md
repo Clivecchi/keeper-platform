@@ -25,6 +25,7 @@ Contract IDs and `FRAME_TO_JSON_KEY` live in `@keeper/shared/structure`. Frame J
 - [ ] Replace permissive `domainFrameSliceSchema` with per-frame Zod from `domain-frame.types.ts`
 
 ## 📆 Update Log
+- 2026-10-07: **assessment** — optional envelope sibling. The Lead’s judgment of a contribution. Not spoken `response` and not `actions`.
 - 2026-10-05: **stageComposition** — optional envelope sibling. `authorize: true` plus an optional brief. Nodes on that object are not the Composition.
 - 2026-09-23: **selectedVoices** — optional envelope sibling of `resolvedMeaning`. Exact Cast lines the Lead chose. Not spoken `response`.
 - 2026-09-11: **resolvedMeaning** — parse optional envelope sibling; never treated as `response` or `actions`. `claim` is not accepted.

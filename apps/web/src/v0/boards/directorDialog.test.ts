@@ -8,6 +8,7 @@ import {
   extractKeeperAdviceCardFromRunResult,
   isEchoInternalPrompt,
   mergeCastAndLeadActionResults,
+  selectProgressiveRoomConsultations,
   sanitizeUserMessageContent,
   sanitizeAgentMessageContent,
   shouldAttachEcho,
@@ -238,6 +239,33 @@ describe("cast-consult action-result extract", () => {
     )
     expect(mergeCastAndLeadActionResults(undefined, cast)).toEqual(cast)
     expect(mergeCastAndLeadActionResults([], cast)).toEqual(cast)
+  })
+})
+
+describe("selectProgressiveRoomConsultations", () => {
+  it("keeps a receipt when the specialist prose is empty and drops a bare empty offer", () => {
+    const selected = selectProgressiveRoomConsultations([
+      {
+        instrumentSlug: "cloud",
+        instrumentReply: "",
+        status: "ok",
+        actionResults: [{ type: "catalog.read", status: "success", message: "12 keepers" }],
+        satisfied: false,
+      },
+      {
+        instrumentSlug: "rendr",
+        instrumentReply: null,
+        status: "empty",
+      },
+      {
+        instrumentSlug: "ceox",
+        instrumentReply: null,
+        status: "failed",
+      },
+    ])
+    expect(selected.map((row) => row.instrumentSlug)).toEqual(["cloud", "ceox"])
+    expect(selected[0]?.actionResults).toHaveLength(1)
+    expect(selected[0]?.satisfied).toBe(false)
   })
 })
 

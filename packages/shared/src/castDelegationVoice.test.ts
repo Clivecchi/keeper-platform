@@ -42,6 +42,9 @@ describe('buildPerformancePosturePrompt', () => {
     expect(prompt).toMatch(/Redeploying production still needs an explicit redeploy/);
     expect(prompt).toMatch(/do not recap the room/i);
     expect(prompt).toMatch(/ACT, ADVANCE, or STOP/);
+    expect(prompt).toMatch(/unless the human asked for that artifact/i);
+    expect(prompt).not.toMatch(/draft\.update\.propose if Working on/);
+    expect(prompt).toMatch(/Presentation is not completion/);
     expect(prompt).toMatch(/receipt for a different object is a failed turn/i);
     expect(prompt).not.toMatch(/nearest allowed move/i);
     expect(prompt).not.toMatch(/Keeper moves fire now/i);

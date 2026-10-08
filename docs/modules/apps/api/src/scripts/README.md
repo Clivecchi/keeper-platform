@@ -35,6 +35,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 
 ## 📆 Update Log
 
+### 2026-10-07 — Replay does not claim the aim was met
+- `replay-agency-loop.ts` presents an unfinished or undirected room. It does not write `resolved`. The web room is the loop that evaluates and may continue.
+
 ### 2026-10-06 — Agency loop replay
 - `replay-agency-loop.ts` runs the progressive room (offers, direction, one contribution, present) against the current code. It does not change the turn.
 

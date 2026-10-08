@@ -276,15 +276,12 @@ async function runTurn(params: {
 
   const heard = params.voices.map((voice) => voice.slug).join(', ');
   trace.push(castRoomEvent({
-    actor: { kind: 'agent', slug: 'kip' },
-    what: 'resolved',
-    ...where,
-    label: `Agency — heard ${heard}`,
-  }));
-  trace.push(castRoomEvent({
     actor: { kind: 'runtime' },
     what: 'presented',
     ...where,
+    label: contribution?.reply
+      ? `Agency — unfinished — heard ${heard}`
+      : `Agency — undirected — heard ${heard}`,
   }));
 
   console.error('[replay] Kip present');
@@ -341,11 +338,11 @@ async function runTurn(params: {
       present: { reply: presentReply, actions: presentActions },
       trace: trace.map(traceLine),
       promptFlags: {
-        directionHasCore: /AGENCY CORE v1/.test(directionPrompt),
+        directionHasCore: /AGENCY CORE v2/.test(directionPrompt),
         directionSkipsProbe: /Do not call jev\.probe/.test(directionPrompt),
-        contributionHasCore: /AGENCY CORE v1/.test(contributionPrompt),
+        contributionHasCore: /AGENCY CORE v2/.test(contributionPrompt),
         contributionHasCatalog: /Bodies are not loaded/.test(contributionPrompt),
-        presentHasCore: /AGENCY CORE v1/.test(presentPrompt),
+        presentHasCore: /AGENCY CORE v2/.test(presentPrompt),
         presentHasHistoryHint: /Enter|newline|new line/i.test(presentPrompt),
       },
     },

@@ -1027,6 +1027,8 @@ export class KipApi {
           instrumentSlug: string
           instrumentReply?: string | null
           status: 'ok' | 'empty' | 'failed' | 'error'
+          /** False when the reply did not satisfy the Lead's aim. */
+          satisfied?: boolean
           /** Cast-run action receipts for Dialog transparency (merged onto Lead message). */
           actionResults?: unknown[]
           /** Existing keeper-card from the Cast run — advisory channel. */

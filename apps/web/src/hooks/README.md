@@ -32,6 +32,12 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-10-08 — Specialist receipts reach the Lead
+- `useAgentDialog.ts` forwards a progressive-room consultation when it has prose, a receipt, a card, or a failure. Empty prose no longer drops the receipt. Those receipts are annotated and held for the Lead present pass.
+
+### 2026-10-07 — Presentation is not completion
+- `useAgentDialog.ts` writes Trace `resolved` only when the Agency room says the aim was met. A turn with no direction is `presented` as undirected.
+
 ### 2026-10-05 — Stage composition receipt on the turn
 - `useAgentDialog.ts` prefers the Trace returned with the run, so a `stage.composition.propose` receipt is visible when the turn lands.
 

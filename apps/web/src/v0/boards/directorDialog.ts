@@ -378,6 +378,31 @@ export function extractActionResultsFromRunResult(result: unknown): unknown[] {
   return visit(result) ?? []
 }
 
+export type ProgressiveRoomConsultation = {
+  instrumentSlug: string
+  instrumentReply?: string | null
+  status: "ok" | "empty" | "failed" | "error"
+  actionResults?: unknown[]
+  instrumentCard?: Record<string, unknown>
+  satisfied?: boolean
+}
+
+/**
+ * What the Lead's present pass is allowed to hear from the progressive room.
+ * A receipt is a contribution even when the specialist's prose is empty.
+ * A failed run stays visible. An empty offer with no receipt does not.
+ */
+export function selectProgressiveRoomConsultations<T extends ProgressiveRoomConsultation>(
+  consultations: readonly T[],
+): T[] {
+  return consultations.filter((row) => {
+    if (row.instrumentReply?.trim()) return true
+    if (row.actionResults?.length) return true
+    if (row.instrumentCard && Object.keys(row.instrumentCard).length > 0) return true
+    return row.status === "failed" || row.status === "error"
+  })
+}
+
 /** Tag cast-run receipts so UI can attribute them without changing type/status. */
 export function annotateCastActionResults(
   actions: unknown[],

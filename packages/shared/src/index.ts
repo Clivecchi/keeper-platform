@@ -20,6 +20,7 @@ export * from './draftPointPromotion.js';
 export * from './glossAnchor.js';
 export * from './glossThread.js';
 export * from './castRoom.js';
+export * from './artifactAuthority.js';
 export * from './integrationChronicleDeclarations.js';
 export * from './serviceBindings.js';
 export * from './directorContinuity.js';

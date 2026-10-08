@@ -20,7 +20,7 @@ describe('agency core', () => {
     expect(cloud?.capabilities).toContain('mcp.call');
     expect(cloud?.capabilities.join(' ')).not.toMatch(/github read|stage composition/);
     expect(rendr?.capabilities).toContain('stage.story.layout');
-    expect(buildAgencyCorePrompt(cloud!)).toMatch(/AGENCY CORE v1 — cloud/);
+    expect(buildAgencyCorePrompt(cloud!)).toMatch(/AGENCY CORE v2 — cloud/);
     expect(buildAgencyCorePrompt(cloud!)).not.toMatch(/voice_prompt/);
   });
 

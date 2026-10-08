@@ -4,16 +4,32 @@
  */
 import {
   CAST_ROOM_CONTRIBUTION_CAP,
+  CAST_ROOM_DIRECTION_REF,
+  CAST_ROOM_CONTRIBUTION_REF,
+  aimIsSatisfied,
+  buildSpecialistAssignmentBlock,
   castRoomEvent,
+  classifyActionReceipt,
+  continueOrPresent,
+  contributionMatchesDirection,
+  humanRequestedArtifact,
   parseCastRoomEngage,
+  parseLeadAssessment,
   projectCastRoomTrail,
+  type AgencyLoopOutcome,
   type CastRoomConsumption,
   type CastRoomEvent,
   type CastRoomOfferLine,
+  type ClassifiedReceipt,
   type ConversationProfile,
+  type LeadAssessment,
 } from "@keeper/shared"
 import { KipApi } from "../../lib/kipApi"
-import { buildCastDelegationPrompt, extractAgentReplyFromRunResult } from "./directorDialog"
+import {
+  buildCastDelegationPrompt,
+  extractActionResultsFromRunResult,
+  extractAgentReplyFromRunResult,
+} from "./directorDialog"
 
 type OfferResponse = {
   slug?: string
@@ -29,6 +45,9 @@ export type CastRoomConsultation = {
   instrumentReply: string | null
   status: "ok" | "empty" | "failed" | "error"
   actionResults?: unknown[]
+  directionId?: string
+  /** False when the contribution did not satisfy its direction. */
+  satisfied?: boolean
 }
 
 export type CastRoomTurnResult = {
@@ -37,6 +56,9 @@ export type CastRoomTurnResult = {
   consumption: CastRoomConsumption[]
   trail: string
   decision: string
+  outcome: AgencyLoopOutcome
+  /** True only when the directed aim was met. Presentation is separate. */
+  resolved: boolean
 }
 
 function unwrapData(result: unknown): Record<string, unknown> {
@@ -126,114 +148,212 @@ export async function runProgressiveCastRoom(params: {
     }),
   )
 
-  const directionTrail = projectCastRoomTrail(trace, params.previousTrace)
-  params.onStatus?.(`${params.directorName} is choosing who speaks…`)
-  const direction = await KipApi.runAgent(
-    params.leadAgentId,
-    params.userMessage,
-    params.userId,
-    params.sessionId,
-    {
-      domainId: params.domainId,
-      dialogId: params.dialogId,
-      humanTurnId: params.humanTurnId,
-      ephemeral: true,
-      agentContext: {
-        ...params.runAgentContext,
-        skipDelegateConsult: true,
-        castRoom: {
-          phase: "direct",
-          trail: directionTrail,
-          offers,
-          allowEngage: contributions < CAST_ROOM_CONTRIBUTION_CAP,
-          trace,
-          consumption,
+  let decision = ""
+  let outcome: AgencyLoopOutcome = "undirected"
+  let resolveObjective = false
+  const consultations: CastRoomConsultation[] = []
+  const artifactRequested = humanRequestedArtifact(params.userMessage)
+  const profileName = params.profile === "agency" ? "Agency" : "Cast"
+
+  while (contributions < CAST_ROOM_CONTRIBUTION_CAP) {
+    const directionTrail = projectCastRoomTrail(trace, params.previousTrace)
+    params.onStatus?.(`${params.directorName} is choosing who speaks…`)
+    const direction = await KipApi.runAgent(
+      params.leadAgentId,
+      params.userMessage,
+      params.userId,
+      params.sessionId,
+      {
+        domainId: params.domainId,
+        dialogId: params.dialogId,
+        humanTurnId: params.humanTurnId,
+        displayContent: params.userMessage,
+        ephemeral: true,
+        agentContext: {
+          ...params.runAgentContext,
+          skipDelegateConsult: true,
+          castRoom: {
+            phase: "direct",
+            trail: directionTrail,
+            offers,
+            allowEngage: contributions < CAST_ROOM_CONTRIBUTION_CAP,
+            trace,
+            consumption,
+          },
         },
       },
-    },
-  )
-  const directionData = unwrapData(direction)
-  const decision = extractAgentReplyFromRunResult(direction)?.trim()
-    || (typeof directionData.response === "string" ? directionData.response.trim() : "")
-  const engage = parseCastRoomEngage(directionData.engage)
-  const allowed = engage && params.voices.some((voice) => voice.slug === engage.slug)
-    ? engage
-    : null
+    )
+    const directionData = unwrapData(direction)
+    const directionText = extractAgentReplyFromRunResult(direction)?.trim()
+      || (typeof directionData.response === "string" ? directionData.response.trim() : "")
+    if (directionText) decision = directionText
+    const engage = parseCastRoomEngage(directionData.engage)
+    const allowed = engage && params.voices.some((voice) => voice.slug === engage.slug)
+      ? engage
+      : null
+    if (!allowed) break
 
-  const consultations: CastRoomConsultation[] = []
-  if (allowed && contributions < CAST_ROOM_CONTRIBUTION_CAP) {
     const voice = params.voices.find((row) => row.slug === allowed.slug)!
-    trace.push(castRoomEvent({
+    const directionEvent = castRoomEvent({
       actor: { kind: "agent", slug: params.directorSlug || "lead" },
       what: "directed",
       ...where,
       label: `${allowed.slug}: ${allowed.aim}`,
-    }))
+    })
+    trace.push(directionEvent)
     params.onStatus?.(`${voice.label} is contributing…`)
+
+    let reply = ""
+    let failed = false
+    let rawActions: unknown[] = []
     try {
       const castAgent = await KipApi.getAgentBySlug(voice.slug)
-      const trailNow = projectCastRoomTrail(trace, params.previousTrace)
       const castResult = await KipApi.runAgent(
         castAgent.id,
         `${buildCastDelegationPrompt({
           userMessage: params.userMessage,
           instrumentLabel: voice.label,
           directorName: params.directorName,
-        })}\n\nRoom trail:\n${trailNow}\n\nLead aim: ${allowed.aim}`,
+        })}\n\n${buildSpecialistAssignmentBlock({
+          aim: allowed.aim,
+          directionId: directionEvent.id,
+          priorTrail: projectCastRoomTrail(trace, params.previousTrace),
+        })}`,
         params.userId,
         params.sessionId,
         {
           domainId: params.domainId,
           dialogId: params.dialogId,
           humanTurnId: params.humanTurnId,
+          displayContent: params.userMessage,
           ephemeral: true,
           agentContext: { ...params.runAgentContext, skipDelegateConsult: true },
         },
       )
-      const reply = extractAgentReplyFromRunResult(castResult)?.trim() || ""
-      if (reply) {
-        contributions += 1
+      reply = extractAgentReplyFromRunResult(castResult)?.trim() || ""
+      rawActions = extractActionResultsFromRunResult(castResult)
+    } catch {
+      failed = true
+    }
+
+    const receipts: ClassifiedReceipt[] = rawActions.flatMap((row) => {
+      if (!row || typeof row !== "object" || Array.isArray(row)) return []
+      const classified = classifyActionReceipt(row as { type?: unknown; status?: unknown; message?: unknown })
+      return classified ? [classified] : []
+    })
+    const substanceLabel = (
+      reply || receipts.map((receipt) => `${receipt.type} ${receipt.standing}`).join("; ")
+    ).slice(0, 180)
+    let contributionEvent: CastRoomEvent | null = null
+    if (substanceLabel) {
+      contributionEvent = castRoomEvent({
+        actor: { kind: "agent", slug: voice.slug },
+        what: "contributed",
+        ...where,
+        label: substanceLabel,
+        refs: [{ kind: CAST_ROOM_DIRECTION_REF, id: directionEvent.id }],
+      })
+      trace.push(contributionEvent)
+      for (const receipt of receipts) {
+        const receiptLabel = [receipt.type, receipt.standing, receipt.message].filter(Boolean).join(" — ")
         trace.push(castRoomEvent({
           actor: { kind: "agent", slug: voice.slug },
-          what: "contributed",
+          what: "acted",
           ...where,
-          label: reply.slice(0, 180),
+          label: receiptLabel.slice(0, 180),
+          refs: [
+            { kind: CAST_ROOM_CONTRIBUTION_REF, id: contributionEvent.id },
+            { kind: CAST_ROOM_DIRECTION_REF, id: directionEvent.id },
+          ],
         }))
-        consultations.push({
-          instrumentSlug: voice.slug,
-          instrumentReply: reply,
-          status: "ok",
-        })
-      } else {
-        consultations.push({
-          instrumentSlug: voice.slug,
-          instrumentReply: null,
-          status: "empty",
-        })
       }
-    } catch {
-      consultations.push({
-        instrumentSlug: voice.slug,
-        instrumentReply: null,
-        status: "failed",
-      })
     }
+
+    contributions += 1
+    const correlated = contributionEvent
+      ? contributionMatchesDirection(contributionEvent, directionEvent)
+      : false
+    const hasSubstance = Boolean(substanceLabel)
+    let assessment: LeadAssessment | null = null
+    if (hasSubstance && correlated && !failed) {
+      params.onStatus?.(`${params.directorName} is checking the contribution…`)
+      try {
+        const evaluation = await KipApi.runAgent(
+          params.leadAgentId,
+          params.userMessage,
+          params.userId,
+          params.sessionId,
+          {
+            domainId: params.domainId,
+            dialogId: params.dialogId,
+            humanTurnId: params.humanTurnId,
+            displayContent: params.userMessage,
+            ephemeral: true,
+            agentContext: {
+              ...params.runAgentContext,
+              skipDelegateConsult: true,
+              castRoom: {
+                phase: "evaluate",
+                trail: projectCastRoomTrail(trace, params.previousTrace),
+                allowEngage: false,
+                trace,
+                consumption,
+                assignment: {
+                  directionId: directionEvent.id,
+                  aim: allowed.aim,
+                  slug: allowed.slug,
+                  reply: reply.slice(0, 2000),
+                  receipts,
+                },
+              },
+            },
+          },
+        )
+        assessment = parseLeadAssessment(unwrapData(evaluation).assessment)
+      } catch {
+        assessment = null
+      }
+    }
+
+    const satisfied = aimIsSatisfied({
+      assessment,
+      receipts,
+      artifactRequested,
+    })
+    const step = continueOrPresent({
+      contributionsUsed: contributions,
+      hasSubstance,
+      correlated,
+      failed,
+      satisfied,
+      leadBlocked: assessment?.outcome === "blocked" && !satisfied,
+    })
+    outcome = step.outcome
+    resolveObjective = step.resolve
+    consultations.push({
+      instrumentSlug: voice.slug,
+      instrumentReply: reply || null,
+      status: failed ? "failed" : reply || receipts.length ? "ok" : "empty",
+      ...(rawActions.length ? { actionResults: rawActions } : {}),
+      directionId: directionEvent.id,
+      satisfied,
+    })
+    if (step.step === "present") break
   }
 
-  const heard = params.voices.map((voice) => voice.slug).join(", ")
-  const profileName = params.profile === "agency" ? "Agency" : "Cast"
-  trace.push(castRoomEvent({
-    actor: { kind: "agent", slug: params.directorSlug || "lead" },
-    what: "resolved",
-    ...where,
-    label: heard
-      ? `${profileName} — heard ${heard}`
-      : `${profileName} — no eligible voices heard`,
-  }))
+  if (resolveObjective) {
+    trace.push(castRoomEvent({
+      actor: { kind: "agent", slug: params.directorSlug || "lead" },
+      what: "resolved",
+      ...where,
+      label: `${profileName} — aim met`,
+    }))
+  }
   trace.push(castRoomEvent({
     actor: { kind: "runtime" },
     what: "presented",
     ...where,
+    label: `${profileName} — ${outcome}`,
   }))
 
   return {
@@ -242,5 +362,7 @@ export async function runProgressiveCastRoom(params: {
     consumption,
     trail: projectCastRoomTrail(trace, params.previousTrace),
     decision,
+    outcome,
+    resolved: resolveObjective,
   }
 }

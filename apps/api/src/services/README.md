@@ -26,6 +26,12 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-08 — Empty prose is not an empty contribution
+- `directorDialog.ts` tells the Lead when a specialist returned action receipts and no prose. That line is the contribution. It is not “nothing returned.”
+
+### 2026-10-07 — Agency evaluation and honest present
+- `directorDialog.ts` asks the Lead to judge a contribution against its aim. A proposal is not acceptance. Present states the room outcome and does not treat the reply as completion.
+
 ### 2026-10-06 — Cast offer uses the Agency core
 - A cheap offer names who the member is and their responsibilities. Silence stays correct outside that responsibility.
 

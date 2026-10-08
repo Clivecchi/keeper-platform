@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-10-07 — Consultation rows can say whether the aim was met
+- `kipApi.ts` carries an optional `satisfied` flag on a Cast consultation. The room sets it. The client does not infer success from a non-empty reply.
+
 ### 2026-10-05 — Database expiry is not a provider timeout
 - `normalizeKipRunErrorCode` keeps Prisma "expired transaction" as UNKNOWN. The word "timeout" in that message was being shown as "timed out waiting for the AI provider."
 

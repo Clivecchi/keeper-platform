@@ -239,7 +239,7 @@ export function buildDirectorSynthesisPrompt(params: {
     ...formatActionReceiptsForLead(params.actionReceipts),
     '',
     ...buildLeadJudgmentLines(params.directorName),
-    `- If ${params.castMemberLabel} said they would capture or add a Point, they cannot write the Document. You emit draft.update.propose this turn. Use payload.section when they named a Section.`,
+    '- Do not emit draft.update.propose, draft.create, or treatment.propose unless the human asked for that artifact. A cast member promising a Point is not a request. A successful propose is a proposal, not acceptance.',
     `- Do NOT claim ${params.castMemberLabel} provided a report, card, or artifact unless it is listed as delivered above.`,
     `- Do NOT treat "I will give you the report" as delivery.`,
     `- Do NOT correct the user about who they addressed.`,
@@ -287,7 +287,10 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     label: string;
     reply: string | null;
     status: 'ok' | 'empty' | 'failed' | 'error';
+    satisfied?: boolean;
     deliveredAdvice?: string | null;
+    /** True when this voice returned action receipts and no prose. */
+    hasReceipts?: boolean;
   }>;
   castPromisedPointWrite?: boolean;
   /** Human asked the Lead to review / reorganize / direct the Document. */
@@ -306,13 +309,18 @@ export function buildCastConsultationsSynthesisPrompt(params: {
   ];
 
   for (const row of params.consultations) {
+    const unmet = row.satisfied === false ? ' (did not satisfy the aim)' : '';
     if (row.status === 'ok' && (row.reply?.trim() || row.deliveredAdvice?.trim())) {
-      lines.push(`- ${row.label}: "${(row.reply ?? '').trim() || '(prose empty — advisory card delivered)'}"`);
+      lines.push(`- ${row.label}${unmet}: "${(row.reply ?? '').trim() || '(prose empty — advisory card delivered)'}"`);
       if (row.deliveredAdvice?.trim()) {
         lines.push(`  Delivered advisory card:\n${row.deliveredAdvice.trim()}`);
       } else {
         lines.push(`  No advisory card crossed to the human.`);
       }
+    } else if (row.hasReceipts) {
+      lines.push(`- ${row.label}${unmet}: (prose empty — the action receipts below are this contribution)`);
+    } else if (row.status === 'failed' || row.status === 'error') {
+      lines.push(`- ${row.label}: (failed — say you got nothing back)`);
     } else {
       lines.push(`- ${row.label}: (nothing returned — say you got nothing back)`);
     }
@@ -331,7 +339,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     '- When the human asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',
     params.documentDirection
       ? '- YOU are the Director of this Document. Cast replies are evidence, not your answer. Do not report what Cloud or Rendr think. Propose the rearrangement: emit document.reorganize.propose this turn. Move, section, refine, or name what belongs where. Chronicle Apply is the human.'
-      : '- A named Section is draft.update.propose with payload.section. Never document.reorganize.propose to add a Section. Never draft.point.accept — Accept is a human Chronicle action.',
+      : '- A named Section is draft.update.propose with payload.section only when the human asked for a Point or a Section. Never document.reorganize.propose to add a Section. Never draft.point.accept — Accept is a human Chronicle action. Do not propose a Point for an investigation, a report, or a prohibition.',
   );
 
   if (params.documentDirection) {
@@ -343,9 +351,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
 
   if (params.castPromisedPointWrite) {
     lines.push(
-      '- A cast member said they would capture/add a Point. They cannot write the Document. You must emit draft.update.propose this turn.',
-      '- Use payload.section when they named a Section (e.g. Keeper Stage). payload.prelude is the short title. payload.content is the Point body (Rendr\'s line, the design principle — whatever they offered).',
-      '- Short prose + the action. Do not sit silent after they promised a write. If the write fails, say so.',
+      '- A cast member offered Point wording. They cannot write the Document. Emit draft.update.propose only if the human asked for a Point or a Section.',
+      '- If the human did not ask, leave the offer in the reply. Do not create the Point to finish the turn.',
     );
   }
 
@@ -403,6 +410,8 @@ export function buildCastRoomDirectionPrompt(params: {
     ...offerLines,
     '',
     'An offer is a claim of responsibility, not a performance.',
+    'PRIOR TURN lines are history. They are not this assignment. Do not engage a voice to repeat an older finding.',
+    'A contribution already on THIS TURN that does not address its aim is not success. Direct a sharper aim, or omit engage.',
     'Implementation and product protection belong to Cloud. Chronicle look and Stage arrangement belong to Rendr. Engage that voice when the objective is theirs.',
     'Engage the one voice whose offer is the real next step for the human\'s objective. Aim is the work you need from that responsibility.',
     'If every offer is silence, or the only offers are about a different object, omit engage.',
@@ -418,7 +427,11 @@ export function buildCastRoomDirectionPrompt(params: {
 export function buildCastRoomPresentAddendum(params: {
   trail: string;
   decision?: string;
+  outcome?: string;
+  resolved?: boolean;
 }): string {
+  const outcome = params.outcome?.trim() || 'undirected';
+  const completed = params.resolved === true || outcome === 'completed';
   return [
     '[Cast Room — Present]',
     'Trail:',
@@ -426,8 +439,46 @@ export function buildCastRoomPresentAddendum(params: {
     params.decision?.trim()
       ? `Earlier direction (not binding if it does not advance the objective): ${params.decision.trim()}`
       : 'Present from the trail and any real contribution above.',
+    `Room status: ${outcome}.`,
+    completed
+      ? 'The aim was met. Say what was verified. A proposal is still waiting on Accept unless the receipt says the human accepted it.'
+      : 'The aim was not met. Speak that plainly. Do not say the objective is complete. Do not emit draft.update.propose, draft.create, or treatment.propose unless the human asked for that artifact.',
+    'Presentation is this reply. Completion is the room status. They are not the same.',
     'On this pass: ACT, ADVANCE, or STOP. A receipt for a different object is not success.',
     'Do not emit engage. Do not invent a voice that did not contribute.',
+    'PRIOR TURN lines are history. Do not report them as this turn\'s result.',
+  ].join('\n');
+}
+
+export function buildCastRoomEvaluatePrompt(params: {
+  directorName: string;
+  aim: string;
+  slug: string;
+  reply: string;
+  receipts: Array<{ type: string; standing: string; status?: string; message?: string }>;
+}): string {
+  const receiptLines = params.receipts.length
+    ? params.receipts.map((row) => {
+        const message = row.message ? ` — ${row.message}` : '';
+        return `- ${row.type}: ${row.standing}${row.status ? ` (${row.status})` : ''}${message}`;
+      })
+    : ['- (no execution receipts)'];
+  return [
+    `[Cast Room — ${params.directorName} evaluates]`,
+    'Judge this contribution against its aim. Do not perform the work.',
+    `Aim: ${params.aim}`,
+    `Voice: ${params.slug}`,
+    `Contribution: ${params.reply.trim() || '(no prose)'}`,
+    'Execution receipts (ground truth — a standing is not verification):',
+    ...receiptLines,
+    'proposed means a proposal exists. It does not mean the human accepted it or the objective is done.',
+    'executed means a tool ran. persisted means a write landed. failed and blocked are not success.',
+    'An observation can satisfy an investigation when it addresses the aim. An older finding does not.',
+    'Emit "assessment": { "addressesAim": true|false, "evidence": "receipt"|"observation"|"none", "outcome": "completed"|"blocked"|"unfinished" }.',
+    'completed only when the contribution addresses the aim and the evidence is receipt or observation.',
+    'blocked when the work cannot proceed. unfinished when another direction could still help.',
+    'addressesAim false when the reply does not answer the aim.',
+    'Do not emit actions. Do not emit engage.',
   ].join('\n');
 }
 

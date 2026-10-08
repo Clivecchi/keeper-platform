@@ -133,6 +133,35 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).toMatch(/Do NOT treat "I will give you the report" as delivery/);
   });
 
+  it('tells Lead that empty prose with receipts is the contribution', () => {
+    const prompt = buildCastConsultationsSynthesisPrompt({
+      userMessage: 'Cloud, inspect the mobile Enter handler',
+      directorName: 'Kip',
+      consultations: [
+        {
+          label: 'Cloud',
+          reply: null,
+          status: 'ok',
+          hasReceipts: true,
+          satisfied: false,
+        },
+      ],
+      actionReceipts: [
+        {
+          type: 'treatment.propose',
+          status: 'success',
+          message: 'Proposed a look',
+          data: { attributedTo: 'Cloud' },
+        },
+      ],
+    });
+    expect(prompt).toContain('prose empty — the action receipts below are this contribution');
+    expect(prompt).toContain('did not satisfy the aim');
+    expect(prompt).toContain('Cloud · treatment.propose: success');
+    expect(prompt).not.toContain('nothing returned');
+    expect(prompt).toMatch(/Do not propose a Point for an investigation/i);
+  });
+
   it('grounds Lead in action receipts so failed tools are not reported as findings', () => {
     const prompt = buildCastConsultationsSynthesisPrompt({
       userMessage: 'Cloud, probe GET /api/journeys',

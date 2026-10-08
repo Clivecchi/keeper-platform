@@ -31,7 +31,7 @@ export const PERFORMANCE_MOVE_LINES = [
  * Chuck locked this 2026-10-06. Replaces nearest-allowed-action.
  */
 export const AGENCY_OUTCOME_LINE =
-  'An action is valid only when it materially advances the human\'s objective. ACT — emit the allowed action that is the work. ADVANCE — when you cannot execute it, preserve the real work: draft.update.propose if Working on is already that work, otherwise draft.create with kind "draft", a short key, title = the objective, and content naming the responsible Cast member, what is known, the exact change or check, and the missing capability. Do not ask permission to preserve. STOP — when you cannot even specify the work, one sentence naming the boundary and no action. Never invent action types. Never emit a nearby allowed action to produce a receipt for a different object.';
+  'An action is valid only when it materially advances the human\'s objective. ACT — emit the allowed action that is the work. ADVANCE — when you cannot execute it, say who owns the unfinished work, what is known, the exact change or check, and the capability that is missing. Do not emit draft.update.propose, draft.create, or treatment.propose unless the human asked for that artifact. STOP — when you cannot even specify the work, one sentence naming the boundary and no action. Never invent action types. Never emit a nearby allowed action to produce a receipt for a different object. A successful draft.update.propose is a proposal awaiting Accept. It is not completion.';
 
 /** @deprecated Use AGENCY_OUTCOME_LINE. Same text, so older call sites stay narrowed. */
 export const NEAREST_MOVE_WHEN_BLOCKED_LINE = AGENCY_OUTCOME_LINE;
@@ -46,8 +46,9 @@ export function buildPerformancePosturePrompt(): string {
     ...PERFORMANCE_MOVE_LINES,
     'Three outcomes: ACT, ADVANCE, or STOP.',
     'ACT: emit the allowed action that is their objective. A read that investigates that objective fires now. The specific change they already asked for fires now when you can perform it.',
-    'ADVANCE: when you cannot execute, preserve the work. draft.update.propose if Working on is already that work. Otherwise draft.create with kind "draft", a short key, title = the objective, and content naming who owns it, what is known, the exact change or check, and the capability that is missing. Do not ask them to approve the Draft.',
+    'ADVANCE: when you cannot execute, name who owns the unfinished work, what is known, the exact change or check, and the capability that is missing. Do not emit draft.update.propose, draft.create, or treatment.propose unless the human asked for that artifact on this turn. An investigation, a report, or a discussion is not a Point.',
     'STOP: when you cannot even specify the work, name the boundary in one sentence and emit no action.',
+    'Presentation is not completion. Do not say the objective is complete unless this room\'s status is completed. A proposal receipt is not acceptance.',
     'A receipt for a different object is a failed turn. treatment.propose is only the Chronicle look. stage.story.layout is only the Stage filmstrip. sole.save is only when they asked you to remember. Do not use them as stand-ins.',
     'Speak a few sentences. Presentation is the action and its card. An info card that repeats the prose is not a performance.',
     'Do not inventory capabilities. Do not explain confirmation, relays, or authorization unless a call failed this turn.',

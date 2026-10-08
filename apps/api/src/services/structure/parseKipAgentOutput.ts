@@ -1,6 +1,8 @@
 import {
   logger,
   parseCastRoomEngage,
+  parseLeadAssessment,
+  type LeadAssessment,
   parseKeepingChoiceOffers,
   parseResolvedMeaning,
   parseSelectedVoices,
@@ -34,6 +36,8 @@ export type ParsedAgentOutput = {
   selectedVoices?: SelectedVoice[];
   /** One Cast voice the Lead wants in full. Omitted means Present. */
   engage?: { slug: string; aim: string };
+  /** Lead judgment of one contribution. Evaluation pass only. */
+  assessment?: LeadAssessment;
   /** Kip authorizes Rendr to recompose the current Stage Reading. */
   stageComposition?: StageCompositionAuthority;
   ignoredReason?: string;
@@ -78,7 +82,7 @@ export function extractJsonFromResponse(raw: string): string | null {
   } catch {
     /* not valid JSON, try extraction */
   }
-  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions|keepingChoices|resolvedMeaning|selectedVoices|engage)"[\s\S]*\}/);
+  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions|keepingChoices|resolvedMeaning|selectedVoices|engage|assessment)"[\s\S]*\}/);
   if (jsonMatch) {
     const candidate = jsonMatch[0];
     try {
@@ -93,6 +97,7 @@ export function extractJsonFromResponse(raw: string): string | null {
           || (obj.resolvedMeaning && typeof obj.resolvedMeaning === 'object')
           || Array.isArray(obj.selectedVoices)
           || (obj.engage && typeof obj.engage === 'object')
+          || (obj.assessment && typeof obj.assessment === 'object')
         )
       ) {
         return candidate;
@@ -150,6 +155,7 @@ function parseEnvelopeObject(
   const resolvedMeaning = parseResolvedMeaning(parsed.resolvedMeaning);
   const selectedVoices = parseSelectedVoices(parsed.selectedVoices);
   const engage = parseCastRoomEngage(parsed.engage) ?? undefined;
+  const assessment = parseLeadAssessment(parsed.assessment) ?? undefined;
   const stageComposition = parseStageCompositionAuthority(parsed.stageComposition) ?? undefined;
   if (isActionParseSuccess(actionsResult)) {
     return {
@@ -161,6 +167,7 @@ function parseEnvelopeObject(
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
       ...(selectedVoices.length ? { selectedVoices } : {}),
       ...(engage ? { engage } : {}),
+      ...(assessment ? { assessment } : {}),
       ...(stageComposition ? { stageComposition } : {}),
     };
   }
@@ -186,6 +193,7 @@ function parseEnvelopeObject(
       ...(resolvedMeaning ? { resolvedMeaning } : {}),
       ...(selectedVoices.length ? { selectedVoices } : {}),
       ...(engage ? { engage } : {}),
+      ...(assessment ? { assessment } : {}),
       ...(stageComposition ? { stageComposition } : {}),
       ignoredReason: 'missing_agent_output_envelope',
       validationError,
@@ -201,6 +209,7 @@ function parseEnvelopeObject(
     ...(resolvedMeaning ? { resolvedMeaning } : {}),
     ...(selectedVoices.length ? { selectedVoices } : {}),
     ...(engage ? { engage } : {}),
+    ...(assessment ? { assessment } : {}),
     ...(stageComposition ? { stageComposition } : {}),
     validationError,
   };

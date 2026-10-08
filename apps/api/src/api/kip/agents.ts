@@ -56,6 +56,12 @@ import {
   buildSessionActionLogPrompt,
   buildPerformancePosturePrompt,
   buildAgencyCorePrompt,
+  artifactSkipMessage,
+  humanTextForArtifactAuthority,
+  resolveArtifactAuthority,
+  parseLeadAssessment,
+  type ArtifactAuthority,
+  type LeadAssessment,
   resolveAgencyCore,
   NEAREST_MOVE_WHEN_BLOCKED_LINE,
   resolveEphemeralSessionAccess,
@@ -248,6 +254,7 @@ import {
   attachStageContextToCastEnvironment,
   buildCastConsultationsSynthesisPrompt,
   buildCastRoomDirectionPrompt,
+  buildCastRoomEvaluatePrompt,
   buildCastRoomPresentAddendum,
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
@@ -417,6 +424,7 @@ type RunAgentOptions = {
       instrumentSlug: string;
       instrumentReply?: string | null;
       status: 'ok' | 'empty' | 'failed' | 'error';
+      satisfied?: boolean;
       actionResults?: Array<Record<string, unknown>>;
       instrumentCard?: Record<string, unknown>;
     }>;
@@ -432,6 +440,8 @@ type RunAgentOptions = {
   supportEcho?: boolean;
   /** Human asked to Gloss a Point — skip rewrite / new Draft substitutes. */
   glossRequired?: boolean;
+  /** This turn's Point / Draft / Treatment authority. Follow-ups reuse it. */
+  artifactAuthority?: ArtifactAuthority;
   /** Mutable per-turn timing bag (filled by handler + runAgent + callAIModel). */
   timings?: AgentRunPhaseTimings;
   /** Visible Dialog tokens (extracted `response` field). */
@@ -1576,6 +1586,7 @@ function buildExecuteAgentActionsCtx(
       obligation?.manuscriptDraftId ?? env?.dialogDocument?.manuscriptDraftId,
     pointConstraint: obligation?.constrained === true,
     pointObligationRequired: obligation?.required === true && !obligation.constrained,
+    artifactAuthority: options?.artifactAuthority,
     supportEcho: extras.supportEcho === true || options?.supportEcho === true,
     glossRequired: extras.glossRequired === true || options?.glossRequired === true,
     castAdviseOnly: actor === 'cast',
@@ -1858,6 +1869,7 @@ export async function executeAgentActions(
     manuscriptDraftId?: string | null;
     pointConstraint?: boolean;
     pointObligationRequired?: boolean;
+    artifactAuthority?: ArtifactAuthority;
     supportEcho?: boolean;
     glossRequired?: boolean;
     castAdviseOnly?: boolean;
@@ -2099,7 +2111,8 @@ export async function executeAgentActions(
 
         if (ctx.skipActionTypes?.has(action.type)) {
           const skipMessage =
-            action.type === 'delegate.consult'
+            (!ctx.castAdviseOnly ? artifactSkipMessage(action.type, ctx.artifactAuthority) : null)
+            ?? (action.type === 'delegate.consult'
               ? delegateConsultSkipMessage(ctx.composerConsultedThisTurn === true)
               : ctx.supportEcho
                 && action.type === 'document.orientation.update'
@@ -2142,7 +2155,7 @@ export async function executeAgentActions(
                   ? 'Skipped — nested/support turns advise; the addressed agent writes Points'
                 : action.type === 'draft.create' && ctx.manuscriptDraftId
                   ? 'Skipped draft.create — Point writes go to the active Document manuscript'
-                  : 'Action skipped (handled by draft intent pipeline)';
+                  : 'Action skipped (handled by draft intent pipeline)');
           results.push({
             type: action.type,
             status: 'skipped',
@@ -5641,6 +5654,8 @@ const AgentRunSchema = z.object({
           instrumentSlug: z.string().min(1),
           instrumentReply: z.string().nullable().optional(),
           status: z.enum(['ok', 'empty', 'failed', 'error']),
+          /** False when the reply did not satisfy the Lead's aim. */
+          satisfied: z.boolean().optional(),
           /** Client-run cast action receipts — merged into Lead actionResults for UI. */
           actionResults: z.array(z.record(z.unknown())).optional(),
           /** Existing keeper-card from the Cast run — advisory channel. */
@@ -7410,7 +7425,9 @@ export class KipAgentService {
       messages.push({
         role: 'system',
         content: closingRoomPhase === 'direct'
-          ? 'DIRECTION PASS — last instruction. Choose at most one voice with engage, or omit engage to present with none. Do not emit actions. The Present pass carries the reply and any requested action.'
+          ? 'DIRECTION PASS — last instruction. Choose at most one voice with engage, or omit engage to present with none. Do not emit actions. The Present pass carries the reply and any requested action. PRIOR TURN lines are not this assignment.'
+          : closingRoomPhase === 'evaluate'
+            ? 'EVALUATION PASS — last instruction. Emit assessment and nothing else. Do not emit actions. Do not emit engage. completed requires the contribution to address the aim and to carry evidence. A proposal is not completion. An older finding is not this aim.'
           : closingProfile === 'agency'
             ? buildPerformancePosturePrompt()
             : buildDialoguePosturePrompt(closingProfile === 'cast' ? 'cast' : 'conversation'),
@@ -7559,6 +7576,13 @@ export class KipAgentService {
         if (options.agentContext?.skipDelegateConsult === true) {
           skipped.add('delegate.consult');
         }
+        const artifactAuthority = resolveArtifactAuthority(
+          humanTextForArtifactAuthority(input, options.displayContent),
+        );
+        options.artifactAuthority = artifactAuthority;
+        if (!artifactAuthority.allowPointPropose) skipped.add('draft.update.propose');
+        if (!artifactAuthority.allowDraftCreate) skipped.add('draft.create');
+        if (!artifactAuthority.allowTreatmentPropose) skipped.add('treatment.propose');
         if (skipped.size) options.skipActionTypes = skipped;
       }
 
@@ -7833,6 +7857,7 @@ export class KipAgentService {
                       : row.status,
                 castReceipts: withoutAdviseOnlySkips(castReceipts),
                 card,
+                satisfied: row.satisfied,
               };
             }),
           );
@@ -7843,10 +7868,7 @@ export class KipAgentService {
           }
           const castPromisedPointWrite = detectCastPromisedPointWrite(
             labeled.map((row) => row.reply),
-          );
-          if (castPromisedPointWrite) {
-            attachPointTurnObligation('add a point', options?.environment ?? null);
-          }
+          ) && options?.artifactAuthority?.allowPointPropose === true;
           leadOrchestrationContext = buildCastConsultationsSynthesisPrompt({
             userMessage: cc.userMessage,
             directorName: cc.directorDisplayName,
@@ -7854,7 +7876,9 @@ export class KipAgentService {
               label: row.label,
               reply: row.reply,
               status: row.status,
+              satisfied: row.satisfied,
               deliveredAdvice: row.card ? formatKeeperAdviceCardForPrompt(row.card) : null,
+              hasReceipts: row.castReceipts.length > 0,
             })),
             castPromisedPointWrite,
             documentDirection: detectReorganizeIntent(cc.userMessage) === 'required',
@@ -7865,8 +7889,9 @@ export class KipAgentService {
             leadModelInput = cc.userMessage.trim();
           }
           castVoicesForPersist = labeled.map((row) => {
+            const hasReceipts = row.castReceipts.length > 0;
             const status: 'ok' | 'empty' | 'failed' =
-              row.status === 'ok' && (row.reply || row.card)
+              (row.reply || row.card || hasReceipts)
                 ? 'ok'
                 : row.status === 'failed'
                   ? 'failed'
@@ -7875,13 +7900,15 @@ export class KipAgentService {
               slug: row.slug,
               attributedTo: row.label,
               content:
-                status === 'ok' && row.reply
+                row.reply
                   ? row.reply
-                  : status === 'ok' && row.card
+                  : row.card
                     ? row.card.title
-                    : status === 'failed'
-                    ? `${row.label} couldn't respond this turn.`
-                    : `${row.label} returned nothing this turn.`,
+                    : hasReceipts
+                      ? `${row.label} returned action receipts.`
+                      : status === 'failed'
+                        ? `${row.label} couldn't respond this turn.`
+                        : `${row.label} returned nothing this turn.`,
               status,
               ...(row.card ? { card: row.card } : {}),
             };
@@ -8076,7 +8103,10 @@ export class KipAgentService {
           }
 
           if (castMemberReply || castMemberCard) {
-            if (detectCastPromisedPointWrite([castMemberReply])) {
+            if (
+              detectCastPromisedPointWrite([castMemberReply])
+              && options?.artifactAuthority?.allowPointPropose === true
+            ) {
               attachPointTurnObligation('add a point', options?.environment ?? null);
             }
             directorDelegationResult = {
@@ -8242,15 +8272,27 @@ export class KipAgentService {
             })),
             allowEngage: castRoomWire.allowEngage !== false,
           });
+        } else if (castRoomWire?.phase === 'evaluate' && castRoomWire.assignment) {
+          leadOrchestrationContext = buildCastRoomEvaluatePrompt({
+            directorName: agent.name,
+            aim: castRoomWire.assignment.aim,
+            slug: castRoomWire.assignment.slug,
+            reply: castRoomWire.assignment.reply,
+            receipts: castRoomWire.assignment.receipts,
+          });
         } else if (castRoomWire?.phase === 'present' && leadOrchestrationContext) {
           leadOrchestrationContext = `${leadOrchestrationContext}\n\n${buildCastRoomPresentAddendum({
             trail: castRoomWire.trail ?? '',
             decision: castRoomWire.decision,
+            outcome: castRoomWire.outcome,
+            resolved: castRoomWire.resolved,
           })}`;
         } else if (castRoomWire?.phase === 'present') {
           leadOrchestrationContext = buildCastRoomPresentAddendum({
             trail: castRoomWire.trail ?? '',
             decision: castRoomWire.decision,
+            outcome: castRoomWire.outcome,
+            resolved: castRoomWire.resolved,
           });
         }
 
@@ -8451,7 +8493,11 @@ export class KipAgentService {
           options.skipActionTypes = skipped;
         }
         // Direction only chooses a voice. The Present pass performs requested actions.
-        if (structured.actions.length && castRoomWire?.phase !== 'direct') {
+        if (
+          structured.actions.length
+          && castRoomWire?.phase !== 'direct'
+          && castRoomWire?.phase !== 'evaluate'
+        ) {
           if (options?.forceSkipActions) {
             actionResults = structured.actions.map((action) => ({
               type: action.type,
@@ -8711,7 +8757,8 @@ export class KipAgentService {
         }
 
         const writeTarget = dialogDocumentWriteTarget(options?.environment);
-        const pointAskFollowUp = shouldRunPointAskFollowUp({
+        const pointAskFollowUp = options?.artifactAuthority?.allowPointPropose === true
+          && shouldRunPointAskFollowUp({
           isTurnOwner: pointTurnActor === 'lead',
           glossRequired: glossIntent === 'required',
           actionResults,
@@ -9983,6 +10030,7 @@ export class KipAgentService {
             ...(persistedResolvedMeaning ? { resolvedMeaning: persistedResolvedMeaning } : {}),
             ...(persistedSelectedVoices.length ? { selectedVoices: persistedSelectedVoices } : {}),
             ...(structured.engage ? { engage: structured.engage } : {}),
+            ...(structured.assessment ? { assessment: structured.assessment } : {}),
             ...(framePerformanceResult ? { framePerformance: framePerformanceResult } : {}),
             ...(savedLeadMessageId ? { messageId: savedLeadMessageId } : {}),
             ...(stageExpressionStamp ? { stageExpression: stageExpressionStamp } : {}),
@@ -10362,7 +10410,8 @@ export class KipAgentService {
         }
 
         const systemWriteTarget = dialogDocumentWriteTarget(options?.environment);
-        const systemPointAskFollowUp = shouldRunPointAskFollowUp({
+        const systemPointAskFollowUp = options?.artifactAuthority?.allowPointPropose === true
+          && shouldRunPointAskFollowUp({
           isTurnOwner: pointTurnActor === 'lead',
           glossRequired: false,
           actionResults,

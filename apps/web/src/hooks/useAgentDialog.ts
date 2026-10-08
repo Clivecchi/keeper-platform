@@ -33,6 +33,7 @@ import { runProgressiveCastRoom } from "../v0/boards/castRoomTurn"
 import {
   annotateCastActionResults,
   buildCastDelegationPrompt,
+  selectProgressiveRoomConsultations,
   buildInstrumentUnavailableDelegationBeat,
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
@@ -1115,6 +1116,7 @@ export function useAgentDialog({
               status: "ok" | "empty" | "failed" | "error"
               actionResults?: unknown[]
               instrumentCard?: Record<string, unknown>
+              satisfied?: boolean
             }>
           }
         | undefined
@@ -1127,6 +1129,8 @@ export function useAgentDialog({
             decision: string
             trace: import("@keeper/shared").CastRoomEvent[]
             consumption: import("@keeper/shared").CastRoomConsumption[]
+            outcome: import("@keeper/shared").AgencyLoopOutcome
+            resolved: boolean
           }
         | undefined
 
@@ -1167,15 +1171,28 @@ export function useAgentDialog({
             decision: room.decision,
             trace: room.trace,
             consumption: room.consumption,
+            outcome: room.outcome,
+            resolved: room.resolved,
           }
-          const roomVoicesHeard = room.consultations.filter(
-            (row) => row.status === "ok" && Boolean(row.instrumentReply?.trim()),
-          )
-          if (roomVoicesHeard.length) {
+          const roomForLead = selectProgressiveRoomConsultations(room.consultations)
+          for (const row of roomForLead) {
+            if (!row.actionResults?.length) continue
+            const label = liveDirectorConfig.castLabels[row.instrumentSlug] ?? row.instrumentSlug
+            castActionResults.push(
+              ...annotateCastActionResults(row.actionResults, {
+                castSlug: row.instrumentSlug,
+                attributedTo: label,
+              }),
+            )
+            appendThinkingStep(
+              `${label} returned ${row.actionResults.length} action receipt${row.actionResults.length === 1 ? "" : "s"}.`,
+            )
+          }
+          if (roomForLead.length) {
             castConsultations = {
               userMessage: content,
               directorDisplayName: liveDirectorConfig.directorDisplayName,
-              consultations: roomVoicesHeard,
+              consultations: roomForLead,
             }
           }
         } else {
@@ -1430,6 +1447,8 @@ export function useAgentDialog({
                   trace: roomPresent.trace,
                   consumption: roomPresent.consumption,
                   allowEngage: false,
+                  outcome: roomPresent.outcome,
+                  resolved: roomPresent.resolved,
                 },
               }
             : !castConsultations && !castMember
@@ -1451,13 +1470,13 @@ export function useAgentDialog({
                         id: crypto.randomUUID(),
                         at: new Date().toISOString(),
                         actor: { kind: "runtime" as const },
-                        what: "resolved" as const,
+                        what: "presented" as const,
                         where: { humanTurnId },
                         label: conversationProfile === "conversation"
-                          ? "Conversation — Cast did not hear"
+                          ? "Conversation — undirected"
                           : conversationProfile === "cast"
-                            ? "Cast — no eligible voices heard"
-                            : "Agency — no eligible voices heard",
+                            ? "Cast — undirected"
+                            : "Agency — undirected",
                       },
                     ],
                     consumption: [],
@@ -1646,11 +1665,12 @@ export function useAgentDialog({
                   ?? row.instrumentSlug
                 const reply = row.instrumentReply?.trim() ?? ""
                 const card = parseKeeperAdviceCard(row.instrumentCard)
-                if (row.status === "ok" && (reply || card)) {
+                const receiptCount = row.actionResults?.length ?? 0
+                if (row.status === "ok" && (reply || card || receiptCount > 0)) {
                   return {
                     slug: row.instrumentSlug,
                     attributedTo: label,
-                    content: reply || card?.title || "",
+                    content: reply || card?.title || `${label} returned action receipts.`,
                     status: "ok" as const,
                     ...(card ? { card } : {}),
                   }

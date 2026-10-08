@@ -16,7 +16,12 @@ export async function persistPlatformAgencyCore(agent: {
     ? (agent.config as Record<string, unknown>)
     : {};
   const existing = config.agency;
-  if (existing && typeof existing === 'object' && !Array.isArray(existing) && (existing as { v?: unknown }).v === 1) {
+  if (
+    existing
+    && typeof existing === 'object'
+    && !Array.isArray(existing)
+    && (existing as { v?: unknown }).v === platform.v
+  ) {
     return null;
   }
   try {

@@ -42,6 +42,8 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-08: A successful `treatment.propose` is a proposal. It does not satisfy an investigation aim unless the human asked for that artifact. Same rule as `draft.update.propose`.
+- 2026-10-07: Agency loop. `castRoom.ts` correlates a contribution to its direction, classifies receipts (proposed, executed, persisted, failed, blocked), and continues or presents inside the contribution cap. `resolved` is the aim met. `presented` is the reply. `artifactAuthority.ts` allows Points, Drafts, and Treatments only when this turn asked, and a prohibition covers the whole turn. Agency core is v2. ADVANCE no longer defaults to `draft.update.propose`.
 - 2026-10-07: Full-room presentation stays `presentation` plus span `room`. The Presentation / Workshop labels are not the way in. A later invocation has to mean something.
 - 2026-10-06: `WorkspaceSurface` `stage` is a Board posture, not the Stage surface and not a Board type. Naming debt recorded on the type. No rename.
 - 2026-10-06: Agency core v1 and the Domain catalog prompt. Counts and shelf reads. The core is not voice.

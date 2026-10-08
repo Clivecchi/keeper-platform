@@ -47,6 +47,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-07 — Agency core v2 overwrites a stored v1
+- `persistAgencyCore.ts` replaces a stored core when its version is not the platform version. v2 does not tell Kip or Cloud to preserve unfinished work as a Draft.
+- Point intent reads the shared artifact prohibition, so “not to create” constrains the turn.
+
 ### 2026-10-06 — Catalog shelves and Agency core
 - `domainCatalog.ts` counts Dialogs, Drafts, Keepers, Journeys, Moments, and Library, and pages titles and ids.
 - `persistAgencyCore.ts` stores the v1 core on Cloud, Rendr, and Kip. The prompt resolves it even before the write lands.

@@ -7,6 +7,8 @@
  */
 
 import {
+  humanProhibitsArtifacts,
+  humanRequestsPoint,
   isDocumentBearingDialogTitleSource,
   resolvePointWriteTarget,
   resolveTalkingInWorkingOn,
@@ -125,16 +127,16 @@ export function detectPointIntent(userInput: string): PointIntent {
   const text = userInput?.trim() ?? '';
   if (!text) return { kind: 'none' };
 
-  if (POINT_CONSTRAINT_PATTERNS.some((pattern) => pattern.test(text))) {
+  if (humanProhibitsArtifacts(text) || POINT_CONSTRAINT_PATTERNS.some((pattern) => pattern.test(text))) {
     return { kind: 'constrained' };
   }
 
   if (POINT_FALSE_POSITIVES.some((pattern) => pattern.test(text))) {
-    const requiredAnyway = POINT_REQUIRED_PATTERNS.some((pattern) => pattern.test(text));
+    const requiredAnyway = humanRequestsPoint(text) || POINT_REQUIRED_PATTERNS.some((pattern) => pattern.test(text));
     if (!requiredAnyway) return { kind: 'none' };
   }
 
-  if (POINT_REQUIRED_PATTERNS.some((pattern) => pattern.test(text))) {
+  if (humanRequestsPoint(text) || POINT_REQUIRED_PATTERNS.some((pattern) => pattern.test(text))) {
     return { kind: 'required' };
   }
 

@@ -42,6 +42,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-10-08 — Receipts survive an empty specialist reply
+- `directorDialog.ts` `selectProgressiveRoomConsultations` keeps receipt-bearing and failed room rows. A bare empty offer stays off the Lead present pass.
+
 ### 2026-10-07 — Dialog and Stage are one Board mode
 - Subject selection no longer leaves Stage. The top bar mode control is Dialog | Stage. Performance nav and Perform are gone.
 - With a Dialog selected, the Stage canvas composes that work. Where are we? shows only when nothing is selected.
@@ -915,3 +918,6 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-09-27 — People in the Dialog
 - `UniversalConversation` loads human members and the arrival snapshot, and shows them above the messages. Guided arrival does not clear a Dialog that was opened on purpose.
+
+### 2026-10-07 — Agency room continues until the aim is met or the budget is spent
+- `castRoomTurn.ts` directs, takes one specialist contribution with its receipts, and asks the Lead whether that contribution met the aim. A miss may be directed again, up to two contributions. Trace `resolved` is written only when the aim was met. `presented` is always the reply.
