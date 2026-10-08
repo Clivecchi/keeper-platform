@@ -6,6 +6,10 @@ import type { StyleId } from "../styles/styles"
 import { DesignFrame } from "../frames/DesignFrame"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { API_BASE, apiFetch } from "../../lib/api"
+import {
+  anonymousKeyLostWriteAccess,
+  assessAnonymousClaimResponse,
+} from "@keeper/shared"
 import { useAuth } from "../../context/AuthContext"
 import { getLastBoardDataError } from "../../lib/debug"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
@@ -1068,6 +1072,42 @@ export function DiagnosticsFrame({
 
         let claimToken: string | null = null
         let claimExpiresAt: string | null = null
+        let claimedMomentId: string | null = null
+        const anonBody = `diagnostics anonymous keep ${timestampLabel}`
+        if (anonCreateStatus === "SUCCESS" && anonDraftId) {
+          const anonUpdate = await runDiagnosticsRequest({
+            label: "B1b Update Draft (Anonymous)",
+            url: `${baseUrl}/api/v0/moments/drafts/${anonDraftId}`,
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "x-domain-slug": domainSlugValue,
+              "x-anon-key": anonKey,
+            },
+            body: JSON.stringify({ body: anonBody }),
+            credentials: "omit",
+          })
+          const anonUpdateData = extractData(anonUpdate.details.responseJson)
+          const anonUpdatedBody = extractStringField(anonUpdateData, "body")
+          const anonUpdateStatus = anonUpdate.ok && anonUpdatedBody === anonBody ? "SUCCESS" : "FAILED"
+          momentPipelineSteps.push({
+            label: "B1b Update Draft (Anonymous)",
+            status: anonUpdateStatus,
+            request: anonUpdate.details,
+            error:
+              anonUpdateStatus === "FAILED"
+                ? anonUpdate.ok
+                  ? "Updated body did not match the autosave text."
+                  : describeFailure(anonUpdate.details, "Failed to update anonymous draft.")
+                : undefined,
+          })
+          if (anonUpdateStatus === "FAILED") {
+            addLog("❌ Anonymous draft update failed", "error")
+          } else {
+            addLog("✅ Anonymous draft updated", "success")
+          }
+        }
+
         if (anonCreateStatus === "SUCCESS" && anonDraftId) {
           const anonKeep = await runDiagnosticsRequest({
             label: "B2 Keep Draft (Anonymous)",
@@ -1126,24 +1166,53 @@ export function DiagnosticsFrame({
             },
             body: JSON.stringify({ token: claimToken }),
           })
-          const claimData = extractData(claimResult.details.responseJson)
-          const ownerId = extractStringField(claimData, "ownerId")
-          const claimStatus = claimResult.ok && ownerId ? "SUCCESS" : "FAILED"
+          const claimAssessment = assessAnonymousClaimResponse({
+            httpOk: claimResult.ok,
+            body: claimResult.details.responseJson,
+            draftId: anonDraftId ?? "",
+            domainSlug: domainSlugValue,
+          })
+          const claimStatus = claimAssessment.ok ? "SUCCESS" : "FAILED"
+          if (claimAssessment.ok) claimedMomentId = anonDraftId
           momentPipelineSteps.push({
             label: "C1 Claim Anonymous Draft",
             status: claimStatus,
             request: claimResult.details,
-            error:
-              claimStatus === "FAILED"
-                ? claimResult.ok
-                  ? "ownerId missing from response."
-                  : describeFailure(claimResult.details, "Failed to claim anonymous draft.")
-                : undefined,
+            error: claimAssessment.ok ? undefined : claimAssessment.reason,
           })
           if (claimStatus === "FAILED") {
             addLog("❌ Claim draft failed", "error")
           } else {
-            addLog("✅ Anonymous draft claimed", "success")
+            addLog("✅ Anonymous draft claimed (kept on this Domain)", "success")
+          }
+
+          if (claimAssessment.ok && anonDraftId) {
+            const anonWrite = await runDiagnosticsRequest({
+              label: "C2 Anonymous key lost write access",
+              url: `${baseUrl}/api/v0/moments/drafts/${anonDraftId}`,
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "x-domain-slug": domainSlugValue,
+                "x-anon-key": anonKey,
+              },
+              body: JSON.stringify({ body: "anon should not write after claim" }),
+              credentials: "omit",
+            })
+            const lost = anonymousKeyLostWriteAccess(anonWrite.details.status ?? 0)
+            momentPipelineSteps.push({
+              label: "C2 Anonymous key lost write access",
+              status: lost ? "SUCCESS" : "FAILED",
+              request: anonWrite.details,
+              error: lost
+                ? undefined
+                : "The anonymous key could still write the Moment after claim.",
+            })
+            if (!lost) {
+              addLog("❌ Anonymous key still writes after claim", "error")
+            } else {
+              addLog("✅ Anonymous key can no longer write the claimed Moment", "success")
+            }
           }
         } else {
           momentPipelineSteps.push({
@@ -1192,7 +1261,9 @@ export function DiagnosticsFrame({
           keptAt: typeof item?.keptAt === "string" ? item.keptAt : null,
           createdAt: typeof item?.createdAt === "string" ? item.createdAt : undefined,
         }))
-        const feedStatus = feedResult.ok && Array.isArray(feedData) ? "SUCCESS" : "FAILED"
+        const feedHasClaim =
+          !claimedMomentId || feedList.some((item) => item && typeof item === "object" && (item as { id?: unknown }).id === claimedMomentId)
+        const feedStatus = feedResult.ok && Array.isArray(feedData) && feedHasClaim ? "SUCCESS" : "FAILED"
         diagnostics.tests.keptMomentsFeed = {
           status: feedStatus,
           data: {
@@ -1203,7 +1274,9 @@ export function DiagnosticsFrame({
           error:
             feedStatus === "FAILED"
               ? feedResult.ok
-                ? "Feed response was not an array."
+                ? feedHasClaim
+                  ? "Feed response was not an array."
+                  : "The claimed Moment was not in this Domain feed."
                 : describeFailure(feedResult.details, "Failed to fetch kept moments feed.")
               : undefined,
         }

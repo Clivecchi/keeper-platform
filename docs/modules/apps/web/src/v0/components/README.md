@@ -36,6 +36,9 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 
 ## 📆 Update Log
 
+### 2026-10-08 — Anonymous claim matches the API
+- Diagnostics treats a claim as success when the Moment is kept, the id matches the draft, and the Domain slug matches. It then checks that the anonymous key can no longer write. It does not look for `ownerId`.
+
 ### 2026-10-07 — Dialog | Stage replaces Perform
 - The top bar mode control sets `workspaceSurface`. Perform is gone. The Playbill keeps the place and the current Dialog title in both modes.
 

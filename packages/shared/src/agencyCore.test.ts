@@ -20,6 +20,16 @@ describe('agency core', () => {
     expect(cloud?.capabilities).toContain('mcp.call');
     expect(cloud?.capabilities.join(' ')).not.toMatch(/github read|stage composition/);
     expect(rendr?.capabilities).toContain('stage.story.layout');
+    const ceox = resolveAgencyCore({ slug: 'ceox', config: {} });
+    expect(ceox?.who).toMatch(/challenger/i);
+    expect(ceox?.capabilities).toEqual([
+      'catalog.read',
+      'dialog.read',
+      'draft.read',
+      'library.read',
+      'glossary.read',
+    ]);
+    expect(ceox?.capabilities.join(' ')).not.toMatch(/draft\.update\.propose|treatment\.propose|mcp\.call|stage\.story\.layout/);
     expect(buildAgencyCorePrompt(cloud!)).toMatch(/AGENCY CORE v2 — cloud/);
     expect(buildAgencyCorePrompt(cloud!)).not.toMatch(/voice_prompt/);
   });
