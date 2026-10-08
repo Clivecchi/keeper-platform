@@ -61,6 +61,8 @@ import { useTalkMode } from "../../../hooks/useTalkMode"
 import { useIsMobile } from "../../../mobile/hooks/useIsMobile"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import { boardSurfaceProps } from "../../boards/boardSurface"
+import { StagePlaceControl } from "../../boards/stage/StagePlaceControl"
+import { StageSceneHeader } from "../../boards/stage/StageSceneHeader"
 import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
 import { useStageArrivalPresentation } from "../../composer/useStageArrivalPresentation"
@@ -252,6 +254,10 @@ export interface KeeperDialogFrameProps {
   activeSessionId: string | null
   disabled?: boolean
   inputPlaceholder?: string
+  /** Selected work title while the performance posture is up. */
+  stageWorkTitle?: string | null
+  /** Place name for the scene header when the shell domain name should not be repeated. */
+  stageDomainName?: string | null
 
   // ── Optional Dialog zone override ─────────────────────────────────────────
   /** When provided, renders in Zone 2 instead of DialogueMessageList (dialog mode only). */
@@ -371,6 +377,8 @@ export function KeeperDialogFrame({
   activeSessionId,
   disabled,
   inputPlaceholder,
+  stageWorkTitle,
+  stageDomainName,
   dialogContent,
   preface,
   mode = 'dialog',
@@ -578,7 +586,7 @@ export function KeeperDialogFrame({
   const hasSessionMeta = Boolean(sessionId || onOpenCockpit || modelProvider)
   // Banner renders in dialog mode when there is context to show
   const showBanner = mode !== 'feed' && (!!hasCoordinates || !!hasBreadcrumb || !!bannerContext?.prelude || !!onReturnToFeed || hasSessionMeta)
-  const showBannerEffective = showBanner && !hideDomainIdentityBanner
+  const showBannerEffective = showBanner && !hideDomainIdentityBanner && !composerOnStage
 
   const isMobileStaged = dialogLayout === "mobile-staged" && mode !== "feed"
   const mobileComposerSize = isMobileStaged ? "mobile-docked" : "default"
@@ -588,6 +596,7 @@ export function KeeperDialogFrame({
       <div className="dialog-bottom-zone" {...boardSurfaceProps("composer")}>
         <div className="dialog-column dialog-bottom-stack">
           {composerOnStage && !isMobileStaged ? <StageSlideStrip /> : null}
+          {composerOnStage ? <StagePlaceControl domainName={stageDomainName} /> : null}
           {composerOnStage && !isMobileStaged && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
           {postRunSummary && (
             <div className="dialog-composer-horizon" aria-live="polite">
@@ -630,7 +639,7 @@ export function KeeperDialogFrame({
             onOpenTheme={!isMobileStaged && board ? board.actions.openComposerTheme : undefined}
             themeOpen={!isMobileStaged && board?.composerThemeOpen === true}
           />
-          {showComposerFooter && !hideMobileComposerFooter && (
+          {showComposerFooter && !hideMobileComposerFooter && !composerOnStage && (
             <div className="dialog-composer-footer">
               {showServiceBar ? (
                 <IntegratedServicesBar
@@ -1023,7 +1032,7 @@ export function KeeperDialogFrame({
       )}
 
       {/* ── Header cast — identity roster (invoke lives at composer) ─────────── */}
-      {mode !== "feed" && boardCast?.length && !hideCastHeaderOnMobileResponse ? (
+      {mode !== "feed" && boardCast?.length && !hideCastHeaderOnMobileResponse && !composerOnStage ? (
         <DirectorCastHeader
           eyebrow={castHeaderEyebrow}
           cueingLabel={cueingLabel}
@@ -1044,14 +1053,8 @@ export function KeeperDialogFrame({
         />
       ) : null}
 
-      {/* Orientation is a Board surface. It may render nothing. The old bar is gone. */}
       {composerOnStage ? (
-        <div
-          {...boardSurfaceProps("orientation")}
-          data-stage-orientation=""
-          className="h-0 shrink-0 overflow-hidden"
-          aria-hidden
-        />
+        <StageSceneHeader workTitle={stageWorkTitle} domainName={stageDomainName} />
       ) : null}
 
       {/* ── Dialog Space — messages, or the Stage performance. Composer stays at the bottom. ── */}

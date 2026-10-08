@@ -78,6 +78,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-10-07: On the performance posture the banner and center Cast hide. The scene header names the place and the work. The Composer carries place travel. Cast is on the right curtain.
 - 2026-10-07: The orientation surface stays in the frame and renders nothing. `StageOrientationBar` is gone. The banner and cast header are unchanged.
 - 2026-10-07: Composer focus and a sent reply leave the Stage performance in the center. The Dialog sheet does not cover it.
 - 2026-10-06: On the performance posture, `KeeperDialogFrame` renders orientation, the Stage slot, and Composer as siblings. The banner and cast header stay above that group. `data-board-surface` marks stage and composer.

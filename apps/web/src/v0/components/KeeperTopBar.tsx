@@ -242,6 +242,8 @@ export function KeeperTopBar({
     resolvedAudience,
     workspaceBoardId,
     switchWorkspace,
+    shellMode,
+    homeDisplayName,
   } = useV0Shell()
   const { user, logout } = useAuth()
   const isMobile = useIsMobile()
@@ -355,6 +357,13 @@ export function KeeperTopBar({
               typeof domainData?.leadAgentName === "string" ? domainData.leadAgentName : null
             }
             onOpenPlaybill={onDomainClick}
+            quietPlace={
+              board?.workspaceSurface === "stage"
+                ? shellMode === "home"
+                  ? homeDisplayName.trim() || "Home"
+                  : domainName
+                : null
+            }
             onGoHome={onGoHome}
             isOpen={isPlaybillOpen}
             livePulse={
@@ -441,7 +450,11 @@ export function KeeperTopBar({
       {/* Adaptive mobile: Nav drawer + Playbill own chrome — hide board-link row. */}
       {!(isMobile && onOpenNav) ? (
       <div className="keeper-topbar-nav-row">
-        <nav className="flex items-center gap-0.5" aria-label="Board navigation">
+        <nav
+          className="flex items-center gap-0.5"
+          aria-label="Board navigation"
+          hidden={board?.workspaceSurface === "stage"}
+        >
           {boardLinks.map(({ id, label }, idx) => {
             const isActive = workspaceBoardId === id
             return (
@@ -473,19 +486,21 @@ export function KeeperTopBar({
         <div className="flex items-center gap-3">
           {showComposerChrome ? (
             <>
+              {board?.workspaceSurface === "stage" ? null : (
               <button
                 type="button"
                 onClick={() => board?.actions.toggleStageRoom()}
                 className={clsx(
                   "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
-                  board?.workspaceSurface === "stage" ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+                  "keeper-topbar-secondary",
                 )}
-                aria-label={board?.workspaceSurface === "stage" ? "Return to Dialog" : "Open Stage"}
-                aria-pressed={board?.workspaceSurface === "stage"}
+                aria-label="Open the performance"
+                aria-pressed={false}
               >
                 <Layers className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={1.75} aria-hidden />
-                <span className="text-[13px]">Stage</span>
+                <span className="text-[13px]">Perform</span>
               </button>
+              )}
               <button
                 type="button"
                 onClick={() => board?.actions.toggleComposerReach()}

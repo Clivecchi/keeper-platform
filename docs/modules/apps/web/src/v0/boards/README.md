@@ -42,6 +42,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-10-07 — Stage posture reads as one experience
+- Scene header, Composer place control, and the right-curtain Cast replace the stacked identity chrome. Board links and the Stage word hide while the performance is up.
+
 ### 2026-10-07 — Orientation surface may be empty
 - `data-board-surface="orientation"` stays. The old bar is not what that surface renders.
 

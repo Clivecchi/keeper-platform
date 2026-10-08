@@ -73,6 +73,7 @@ import type { AgentBoardMessaging } from "../data/domain-frame.types"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
+import { useStageCurtainOptional } from "./stage/stageCurtain"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
@@ -2854,6 +2855,41 @@ export function UniversalConversation({
     [domainFrame],
   )
 
+  const setStageCast = useStageCurtainOptional()?.setCast
+  React.useEffect(() => {
+    if (!setStageCast) return
+    if (workspaceSurface !== "stage" || !resolvedBoardCast?.length) {
+      setStageCast(null)
+      return
+    }
+    setStageCast({
+      instruments: resolvedBoardCast,
+      activeSlug: isLeadLedDomain && kipMode === "domain"
+        ? (kipSupportInvoked ? KIP_FALLBACK_SLUG : KIP_SUPPORT_DISENGAGED)
+        : isDirectedCueing && !castMultiSelect
+          ? activeCastMember
+          : null,
+      activeSlugs: castMultiSelect && isDirectedCueing ? cuedCastMembers : [],
+      selectionMode: castMultiSelect ? "multi" : "single",
+      leadLocked: true,
+      collaborationMode: isLeadLedDomain && kipMode === "domain" ? true : undefined,
+      onInvoke: handleCastCueToggle,
+    })
+    return () => setStageCast(null)
+  }, [
+    setStageCast,
+    workspaceSurface,
+    resolvedBoardCast,
+    isLeadLedDomain,
+    kipMode,
+    kipSupportInvoked,
+    isDirectedCueing,
+    castMultiSelect,
+    activeCastMember,
+    cuedCastMembers,
+    handleCastCueToggle,
+  ])
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -2888,6 +2924,8 @@ export function UniversalConversation({
       >
       <KeeperDialogFrame
         bannerContext={bannerContext}
+        stageWorkTitle={workspaceSurface === "stage" ? dialogTitle : null}
+        stageDomainName={domainName}
         sessionId={dialogSessionId}
         modelProvider={modelProvider}
         onSaveTitle={kipMode === "build" ? handleSaveTitle : undefined}

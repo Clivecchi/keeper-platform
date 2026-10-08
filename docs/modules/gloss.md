@@ -46,6 +46,8 @@ Cursor session findings written to ke3p · Becoming Together as message-anchored
 - `2026-10-07-the-show-stays.md`
 - `2026-10-07-orientation-bar-is-not-the-scene-header.md`
 - `2026-10-07-orientation-bar-is-off.md`
+- `2026-10-07-several-currents-one-screen.md`
+- `2026-10-07-stage-posture-one-experience.md`
 
 ## 🔄 Data & Behavior
 From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <path>`. Default Dialog is Becoming Together.
@@ -54,6 +56,12 @@ From `apps/api`: `pnpm exec tsx src/scripts/gloss-cursor-to-dialog.ts --file <pa
 - [ ] Gloss is voice, not a build lock, unless Chuck locks it on the Document
 
 ## 📆 Update Log
+### 2026-10-07 — Stage posture, one experience
+- Added `2026-10-07-stage-posture-one-experience.md` — place, work, and the stage. Cast on the right. Domain travel from the Composer.
+
+### 2026-10-07 — Several currents, one screen
+- Added `2026-10-07-several-currents-one-screen.md` — Home, KE3P, the arrival reading, the selected Dialog, and stored Stage objects are independent currents. Hierarchy recommended, not built.
+
 ### 2026-10-07 — The orientation bar is off the Stage
 - Added `2026-10-07-orientation-bar-is-off.md` — the old bar is gone in the working copy. The orientation surface renders nothing. Restore stays on the Stage.
 

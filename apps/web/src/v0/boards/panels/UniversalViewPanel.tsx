@@ -54,7 +54,7 @@ import { RealmHomeChronicle } from "../../realm/RealmHomeChronicle"
 import { useRealmArrivalOptional } from "../../realm/RealmArrivalContext"
 import { ReachChroniclePresence } from "../../presence/ReachChroniclePresence"
 import { ThemeChroniclePresence } from "../../presence/ThemeChroniclePresence"
-import { OnStageObjectList } from "../../composer/OnStageObjectList"
+import { StageSupportCurtain } from "../stage/StageSupportCurtain"
 import { shouldRenderRealmDocumentChronicle } from "../workspaceSurface"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
@@ -748,8 +748,8 @@ export function UniversalViewPanel({
         ) : (
           <div className="keeper-chronicle-stack">
             {boardCtx?.workspaceSurface === "stage" ? (
-              <OnStageObjectList layout="chronicle" />
-            ) : null}
+              <StageSupportCurtain domainId={domainId} />
+            ) : (
             <div className="keeper-chronicle-stack">
               <PanelBody
                 subject={liveSubject}
@@ -766,6 +766,7 @@ export function UniversalViewPanel({
                 treatment={chronicleTreatment}
               />
             </div>
+            )}
           </div>
         )}
       </div>

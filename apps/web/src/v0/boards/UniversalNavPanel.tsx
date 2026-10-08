@@ -1761,17 +1761,17 @@ export function UniversalNavPanel({
         return <StoryNavCard />
       }
       case "stage":
-        if (mobileSimplified) return null
+        if (mobileSimplified || boardCtx?.workspaceSurface === "stage") return null
         return (
           <SidebarCard
             className="keeper-sidebar-card"
-            title="Stage"
-            description="Opens the Stage room — click again to leave"
+            title="Performance"
+            description="Open the performance"
             items={[
               {
                 id: "stage-open",
-                label: boardCtx?.workspaceSurface === "stage" ? "On Stage" : "Open Stage",
-                isSelected: boardCtx?.workspaceSurface === "stage",
+                label: "Open",
+                isSelected: false,
                 onClick: () => boardCtx?.actions.toggleStageRoom(),
               },
             ]}
@@ -1915,9 +1915,9 @@ export function UniversalNavPanel({
           <p
             className="keeper-treatment-title text-[13px] font-medium truncate flex-1 min-w-0"
             style={{ color: "hsl(var(--theme-ink-secondary))", letterSpacing: "0.01em" }}
-            title={domainName}
+            title={boardCtx?.workspaceSurface === "stage" ? "In this place" : domainName}
           >
-            {domainName}
+            {boardCtx?.workspaceSurface === "stage" ? "In this place" : domainName}
           </p>
           <div className="shrink-0 flex items-center gap-0.5 ml-1">
             {domainId ? (
@@ -1975,12 +1975,14 @@ export function UniversalNavPanel({
                 className="keeper-nav-pane-tab"
                 onClick={() => setNavPane(pane)}
               >
-                {mobileSimplified
+                {mobileSimplified || (boardCtx?.workspaceSurface === "stage" && pane === "universal")
                   ? pane === "universal"
                     ? "Dialogs"
                     : pane === "keepers"
                       ? "Keepers"
-                      : "More"
+                      : pane === "config"
+                        ? "More"
+                        : paneLabelFor(def, pane)
                   : paneLabelFor(def, pane)}
               </button>
             )

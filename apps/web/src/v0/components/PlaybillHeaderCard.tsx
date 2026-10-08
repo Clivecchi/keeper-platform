@@ -28,6 +28,8 @@ export interface PlaybillHeaderCardProps {
   leadAgentSlug?: string | null
   leadAgentName?: string | null
   onOpenPlaybill: () => void
+  /** When set, the card names this place and does not bill the lead agent. */
+  quietPlace?: string | null
   /** Clears board selection — returns Chronicle to Realm idle. Primary header action. */
   onGoHome?: () => void
   isOpen?: boolean
@@ -55,6 +57,7 @@ export function PlaybillHeaderCard({
   leadAgentSlug: leadAgentSlugProp,
   leadAgentName: leadAgentNameProp,
   onOpenPlaybill,
+  quietPlace,
   onGoHome,
   isOpen = false,
   className = "",
@@ -121,7 +124,7 @@ export function PlaybillHeaderCard({
             className,
           ].join(" ")}
           style={{ border: borderStyle, minHeight: 36, padding: "6px 10px 6px 12px", background: "hsl(var(--theme-surface-panel) / 0.45)" }}
-          aria-label={`${billingName} — open domain travel`}
+          aria-label={`${quietPlace?.trim() || billingName} — open place travel`}
           aria-haspopup="menu"
           aria-expanded={isOpen}
         >
@@ -142,7 +145,7 @@ export function PlaybillHeaderCard({
             className="min-w-0 truncate font-serif text-[14px] font-bold leading-none tracking-tight"
             style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
           >
-            {billingName}
+            {quietPlace?.trim() || billingName}
           </span>
           <ChevronDown
             className={`shrink-0 opacity-55 ${isOpen ? "rotate-180" : ""}`}
@@ -151,7 +154,7 @@ export function PlaybillHeaderCard({
           />
           </span>
         </button>
-        {dialogTitle ? (
+        {dialogTitle && !quietPlace?.trim() ? (
           <span
             className="flex min-w-0 items-center gap-1.5"
             title={dialogTitle}
@@ -172,6 +175,30 @@ export function PlaybillHeaderCard({
           </span>
         ) : null}
       </div>
+    )
+  }
+
+  if (quietPlace?.trim()) {
+    return (
+      <button
+        type="button"
+        onClick={onOpenPlaybill}
+        className={[
+          "playbill-header-card group relative min-w-0 w-full overflow-hidden rounded-xl px-3.5 py-3 text-left",
+          className,
+        ].join(" ")}
+        style={{ border: borderStyle, minHeight: 68 }}
+        aria-label={`${quietPlace} — open place travel`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
+        <p
+          className="truncate font-serif text-[20px] font-bold leading-tight"
+          style={{ color: "hsl(var(--theme-header-text-primary, var(--theme-ink-primary)))" }}
+        >
+          {quietPlace}
+        </p>
+      </button>
     )
   }
 

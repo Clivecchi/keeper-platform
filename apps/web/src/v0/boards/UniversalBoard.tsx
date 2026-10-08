@@ -79,6 +79,7 @@ import { useVisualViewportHeight } from "../../mobile/hooks/useVisualViewportHei
 import { hasUnreadChronicle, markChronicleViewed } from "../presence/chronicleDocument/chronicleMobile"
 import { StagePassProvider } from "../composer/stagePass"
 import { KeeperStageProvider } from "../composer/useKeeperStage"
+import { StageCurtainProvider } from "./stage/stageCurtain"
 import { DomainStoriesProvider } from "../composer/useDomainStories"
 import "./board-mobile.css"
 
@@ -711,6 +712,7 @@ function UniversalBoardShell({
 
   return (
     <StagePassProvider shellDomainId={domainId}>
+    <StageCurtainProvider>
     <KeeperStageProvider domainId={domainId}>
     <DomainStoriesProvider domainId={domainId}>
     <StyleScope
@@ -794,6 +796,7 @@ function UniversalBoardShell({
     </StyleScope>
     </DomainStoriesProvider>
     </KeeperStageProvider>
+    </StageCurtainProvider>
     </StagePassProvider>
   )
 }
