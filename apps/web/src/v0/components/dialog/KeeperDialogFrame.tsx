@@ -595,7 +595,7 @@ export function KeeperDialogFrame({
   const composerZone = mode === "feed" || experienceRoom ? null : (
       <div className="dialog-bottom-zone" {...boardSurfaceProps("composer")}>
         <div className="dialog-column dialog-bottom-stack">
-          {composerOnStage && !isMobileStaged ? <StageSlideStrip /> : null}
+          {composerOnStage && !isMobileStaged && !stageWorkTitle?.trim() ? <StageSlideStrip /> : null}
           {composerOnStage ? <StagePlaceControl domainName={stageDomainName} /> : null}
           {composerOnStage && !isMobileStaged && domainId ? <ComposerStageAgency domainId={domainId} /> : null}
           {postRunSummary && (

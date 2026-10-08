@@ -14,8 +14,8 @@ The performance posture of the Board: one place, the work in hand, and the cente
 Place comes from the shell (Home, or the Domain that was opened). Work is the selected Dialog title. The stage pass still chooses the reading. Saved stage objects stay on the Domain. Travel uses `DomainSwitcher` and `SceneChange.travelToSlug`.
 
 ## ⚠️ Notes & ToDo
-- [ ] Cover and Story appear together only when the pass already has both steps.
 - [ ] Present and Share from the mockup are not wired. Those actions do not exist yet.
 
 ## 📆 Update Log
+- 2026-10-07: Cover, Story, and Conversation are no longer peer controls on the Stage header. Place and work stay. Dialog | Stage on the Board changes the mode.
 - 2026-10-07: Stage posture composes place, work, and the performance. Cast moves to the right curtain. The Composer carries place travel.

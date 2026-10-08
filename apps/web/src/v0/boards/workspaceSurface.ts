@@ -6,7 +6,8 @@ import type { WorkspaceSurface } from "@keeper/shared"
  * `stage` emphasizes performance on the current Board. It is not `?board=stage`.
  * Naming debt: this posture still says "stage". The Stage surface is the center
  * performance (`KeeperStageCanvas`). A later slice may rename the posture.
- * Realm and Domain arrival open that posture. Choosing a Dialog returns to the conversation.
+ * Realm and Domain arrival open that posture when nothing is selected.
+ * Choosing a subject changes the work. It does not change this posture.
  * Chronicle follows the selected object.
  */
 
@@ -37,7 +38,7 @@ export type StageSurfaceReason =
 /**
  * Realm (/home) and Domain arrival open Stage.
  * While that arrival is still open, domain and board changes keep Stage open.
- * Choosing something in Nav (`platform-nav`) or leaving on purpose returns to Dialog.
+ * Leaving on purpose returns to Dialog. Selecting a subject does not.
  */
 export function nextWorkspaceSurface(
   reason: StageSurfaceReason,

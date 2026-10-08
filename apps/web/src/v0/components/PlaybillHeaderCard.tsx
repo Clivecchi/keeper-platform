@@ -154,7 +154,7 @@ export function PlaybillHeaderCard({
           />
           </span>
         </button>
-        {dialogTitle && !quietPlace?.trim() ? (
+        {dialogTitle ? (
           <span
             className="flex min-w-0 items-center gap-1.5"
             title={dialogTitle}
@@ -198,6 +198,14 @@ export function PlaybillHeaderCard({
         >
           {quietPlace}
         </p>
+        {dialogTitle ? (
+          <p
+            className="mt-1 truncate font-serif text-[15px] font-medium leading-tight"
+            style={{ color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))" }}
+          >
+            {dialogTitle}
+          </p>
+        ) : null}
       </button>
     )
   }
@@ -242,6 +250,14 @@ export function PlaybillHeaderCard({
           >
             {roleSubtitle}
           </p>
+          {dialogTitle ? (
+            <p
+              className="mt-1 truncate font-serif text-[15px] font-medium leading-tight"
+              style={{ color: "hsl(var(--theme-header-text-secondary, var(--theme-ink-secondary)))" }}
+            >
+              {dialogTitle}
+            </p>
+          ) : null}
         </button>
 
         <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 self-center">

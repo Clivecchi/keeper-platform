@@ -476,8 +476,6 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   )
   const [composerReachOpen, setComposerReachOpen] = React.useState(false)
   const [composerThemeOpen, setComposerThemeOpen] = React.useState(false)
-  const stayOnStageRef = React.useRef(false)
-
   const endStageArrival = React.useCallback(() => {
     setStageArriving(false)
   }, [])
@@ -489,18 +487,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setComposerThemeOpen(false)
   }, [endStageArrival])
 
-  const leaveStageOnPlatformNav = React.useCallback(() => {
-    if (stayOnStageRef.current) return
-    endStageArrival()
-    setWorkspaceSurfaceState(nextWorkspaceSurface("platform-nav"))
-    setComposerReachOpen(false)
-    setComposerThemeOpen(false)
-  }, [endStageArrival])
-
   const openLibraryScreen = React.useCallback(() => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(true)
-  }, [leaveStageOnPlatformNav])
+  }, [])
 
   const closeLibraryScreen = React.useCallback(() => {
     setLibraryScreenOpen(false)
@@ -658,7 +647,6 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   }, [boardId])
 
   const onDialogSelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setAgencyRoom(null)
     clearUrlSubjectIds({ dialogId: id })
@@ -686,7 +674,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setChroniclePointTarget({ pointId: null, breadcrumb: null })
     setLibraryWorkspaceOverlayId(null)
     setDialogNow((prev) => (prev && prev.dialogId !== id ? null : prev))
-  }, [boardId, selectedAgentId, clearUrlSubjectIds, leaveStageOnPlatformNav, shell])
+  }, [boardId, selectedAgentId, clearUrlSubjectIds, shell])
 
   React.useEffect(() => {
     if (!urlDialogId || urlDialogId === selectedDialogId) return
@@ -709,7 +697,6 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   }, [onDialogSelect])
 
   const onJourneySelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedJourneyId(id)
@@ -725,10 +712,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
+  }, [clearDraftIdFromUrl])
 
   const onPathSelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedPathId(id)
@@ -743,10 +729,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
+  }, [clearDraftIdFromUrl])
 
   const onMomentSelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedMomentId(id)
@@ -762,14 +747,13 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
+  }, [clearDraftIdFromUrl])
 
   const onMomentClear = React.useCallback(() => {
     setSelectedMomentId(null)
   }, [])
 
   const onKeeperSelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     clearDraftIdFromUrl()
     setSelectedKeeperId(id)
@@ -785,10 +769,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [clearDraftIdFromUrl, leaveStageOnPlatformNav])
+  }, [clearDraftIdFromUrl])
 
   const onDraftSelect = React.useCallback((id: string, options?: { dialogId?: string | null }) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedSoleMemoryId(null)
     setSelectedDraftId(id)
@@ -813,10 +796,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       },
       { replace: true },
     )
-  }, [leaveStageOnPlatformNav, setSearchParams])
+  }, [setSearchParams])
 
   const onAgentSelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setAgencyRoom(null)
     clearDraftIdFromUrl()
@@ -836,10 +818,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [boardId, clearDraftIdFromUrl, leaveStageOnPlatformNav])
+  }, [boardId, clearDraftIdFromUrl])
 
   const onServiceOpen = React.useCallback((slug: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedServiceSlug(slug)
     setSelectedDialogId(null)
@@ -854,10 +835,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedLibraryItemId(null)
     setSelectedGlossaryId(null)
     setSelectedBoardDefId(null)
-  }, [leaveStageOnPlatformNav])
+  }, [])
 
   const onKeySelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedKeyId(id)
     setSelectedCapabilityId(null)
@@ -873,10 +853,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
-  }, [leaveStageOnPlatformNav])
+  }, [])
 
   const onCapabilitySelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedCapabilityId(id)
     setSelectedKeyId(null)
@@ -892,10 +871,9 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
-  }, [leaveStageOnPlatformNav])
+  }, [])
 
   const onLibraryItemSelect = React.useCallback((id: string) => {
-    leaveStageOnPlatformNav()
     // Library sits over Dialog — keep the conversation, show the item in Chronicle.
     setSelectedLibraryItemId(id)
     setSelectedGlossaryId(null)
@@ -913,7 +891,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedServiceSlug(null)
     setSelectedBoardDefId(null)
     setLibraryWorkspaceOverlayId(null)
-  }, [boardId, leaveStageOnPlatformNav])
+  }, [boardId])
 
   const presentDialogNow = React.useCallback((item: DialogNowLibraryItem) => {
     setDialogNow(item)
@@ -941,8 +919,6 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   }, [])
 
   const onWorkTargetFromStage = React.useCallback((target: { kind: StagePresenceKind; objectId: string }) => {
-    stayOnStageRef.current = true
-    try {
       const talkingIn = selectedDialogId
       setComposerReachOpen(false)
       if (target.kind === "dialog") {
@@ -990,10 +966,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       if (target.kind === "moment") {
         setSelectedMomentId(target.objectId)
       }
-    } finally {
-      stayOnStageRef.current = false
-    }
-  }, [
+    }, [
     selectedDialogId,
     onDialogSelect,
     onDraftSelect,
@@ -1002,7 +975,6 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   ])
 
   const onGlossarySelect = React.useCallback(() => {
-    leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedGlossaryId(OBJECT_GLOSSARY_SUBJECT_ID)
     setSelectedLibraryItemId(null)
@@ -1019,7 +991,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
     setSelectedCapabilityId(null)
     setSelectedBoardDefId(null)
     shell?.clearBoardDefinition()
-  }, [leaveStageOnPlatformNav, shell])
+  }, [shell])
 
   const onStorySelect = React.useCallback((id: string) => {
     setSelectedStoryId(id)
@@ -1104,7 +1076,6 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
   }, [])
 
   const onBoardDefSelect = React.useCallback((id: string | null) => {
-    if (id) leaveStageOnPlatformNav()
     setLibraryScreenOpen(false)
     setSelectedBoardDefId(id)
     if (id) {
@@ -1123,7 +1094,7 @@ export function UniversalBoardProvider({ children, boardId }: UniversalBoardProv
       setSelectedLibraryItemId(null)
       setSelectedGlossaryId(null)
     }
-  }, [leaveStageOnPlatformNav])
+  }, [])
 
   // Design deep-link: read `?definition=` once into Nav context. Context is the
   // subject after that — URL must not override Dialog/Draft/Glossary.

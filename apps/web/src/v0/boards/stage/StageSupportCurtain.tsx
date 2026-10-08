@@ -77,18 +77,9 @@ export function StageSupportCurtain({ domainId }: { domainId: string | null }) {
           >
             Work in hand
           </h3>
-          <button
-            type="button"
-            onClick={() => board?.actions.onDialogSelect(dialogId)}
-            className="w-full rounded-lg px-2.5 py-2 text-left"
-          >
-            <span className="block text-[14px] font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-              {workTitle}
-            </span>
-            <span className="block text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-              Open the conversation
-            </span>
-          </button>
+          <p className="px-2.5 py-2 text-[14px] font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+            {workTitle}
+          </p>
         </section>
       ) : null}
     </div>

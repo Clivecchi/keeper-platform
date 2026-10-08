@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import clsx from "clsx"
-import { BookOpen, FileText, Layers, Sparkles } from "lucide-react"
+import { BookOpen, FileText, Sparkles } from "lucide-react"
 import { useV0Shell } from "../shell/V0ShellContext"
 import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { resolveWorkspaceBoardLinks } from "../boards/domainWorkspaceBoards"
@@ -309,7 +309,12 @@ export function KeeperTopBar({
   const showMobileChronicle = Boolean(isMobile && onOpenNav && onOpenChronicle)
 
   return (
-    <div className="keeper-platform-top-bar relative z-50 shrink-0">
+    <div
+      className="keeper-platform-top-bar relative z-50 shrink-0"
+      data-board-mode={board?.workspaceSurface ?? "dialog"}
+      data-board-place={domainName}
+      data-board-work={dialogTitle ?? ""}
+    >
       <div
         className={[
           "keeper-topbar-identity-row",
@@ -486,21 +491,37 @@ export function KeeperTopBar({
         <div className="flex items-center gap-3">
           {showComposerChrome ? (
             <>
-              {board?.workspaceSurface === "stage" ? null : (
-              <button
-                type="button"
-                onClick={() => board?.actions.toggleStageRoom()}
-                className={clsx(
-                  "flex items-center gap-1.5 transition-colors text-[13px] py-0.5",
-                  "keeper-topbar-secondary",
-                )}
-                aria-label="Open the performance"
-                aria-pressed={false}
-              >
-                <Layers className="shrink-0" style={{ width: 14, height: 14 }} strokeWidth={1.75} aria-hidden />
-                <span className="text-[13px]">Perform</span>
-              </button>
-              )}
+              <nav className="flex items-center gap-0.5" aria-label="Board mode">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (board?.workspaceSurface === "stage") board.actions.leaveStageRoom()
+                  }}
+                  className={clsx(
+                    "text-[13px] transition-colors py-0.5",
+                    board?.workspaceSurface === "stage" ? "keeper-topbar-secondary" : "keeper-topbar-primary font-medium",
+                  )}
+                  aria-pressed={board?.workspaceSurface !== "stage"}
+                >
+                  Dialog
+                </button>
+                <span className="keeper-topbar-secondary select-none px-1.5 text-[13px]" aria-hidden>
+                  ·
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (board?.workspaceSurface !== "stage") board?.actions.openStageRoom()
+                  }}
+                  className={clsx(
+                    "text-[13px] transition-colors py-0.5",
+                    board?.workspaceSurface === "stage" ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+                  )}
+                  aria-pressed={board?.workspaceSurface === "stage"}
+                >
+                  Stage
+                </button>
+              </nav>
               <button
                 type="button"
                 onClick={() => board?.actions.toggleComposerReach()}

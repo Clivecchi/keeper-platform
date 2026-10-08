@@ -226,7 +226,6 @@ function UniversalBoardShell({
     dialogIngest,
     libraryScreenOpen,
     workspaceSurface,
-    stageArriving,
   } = useUniversalBoard()
   const { isAdmin } = useAuth()
   const isMobile = useIsMobile()
@@ -312,13 +311,6 @@ function UniversalBoardShell({
   React.useEffect(() => {
     if (libraryScreenOpen && useMobilePanelLayout) closeNavDrawer()
   }, [libraryScreenOpen, useMobilePanelLayout, closeNavDrawer])
-
-  React.useEffect(() => {
-    if (!useMobilePanelLayout) return
-    if (workspaceSurface === "stage" && !stageArriving) {
-      actions.leaveStageRoom()
-    }
-  }, [useMobilePanelLayout, workspaceSurface, stageArriving, actions])
 
   React.useEffect(() => {
     if (!useMobilePanelLayout) return

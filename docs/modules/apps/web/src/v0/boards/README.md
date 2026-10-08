@@ -30,7 +30,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `?board=` takes precedence over `?frame=` when both are present in the URL
 - **Nav content gating (Realm prerequisite):** `NavPanelDef.navMode` — `"static"` (default) shows all enabled sections; `"contentGated"` hides empty Config entity sections when loaded count is 0. Universal (Dialogs, Drafts, Chatter, Library) and Keepers blocks always show. Override with `navAlwaysShow`. Logic in `navContentGating.ts` + `navPanes.ts`.
 - **Readable type:** `keeper-density` defaults to `comfortable`. Avatar menu **Larger type** toggles comfortable/default. `board-readability.css` is the type-and-spacing layer for Nav, Dialog, and Chronicle.
-- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. Realm arrival at `/home` and Domain arrival both open Stage. An arriving admin sees “Where are we?” at that scope; other arrivals see the story already on Stage. Choosing a Dialog returns to the conversation. Choosing a Domain from the Realm reading recomposes that Domain’s Where are we? in the same Stage room.
+- **Stage room:** `workspaceSurface: dialog | stage` on the current Board — not `?board=stage`. Dialog | Stage is the mode control. Selecting a subject does not change the mode. With a Dialog selected, Stage composes that work. Where are we? remains the no-work arrival reading.
 - **Library image upload:** `LibraryScreen` + shelves the file. Domain cover remains the atmosphere. Selecting a Library image overlays that item's extracted look while it is surfaced.
 
 ## ?? Notes & ToDo
@@ -41,6 +41,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## ?? Update Log
+
+### 2026-10-07 — Dialog and Stage are one Board mode
+- Subject selection no longer leaves Stage. The top bar mode control is Dialog | Stage. Performance nav and Perform are gone.
+- With a Dialog selected, the Stage canvas composes that work. Where are we? shows only when nothing is selected.
+- Adaptive mobile no longer closes Stage just because it was not an arrival.
 
 ### 2026-10-07 — Stage posture reads as one experience
 - Scene header, Composer place control, and the right-curtain Cast replace the stacked identity chrome. Board links and the Stage word hide while the performance is up.

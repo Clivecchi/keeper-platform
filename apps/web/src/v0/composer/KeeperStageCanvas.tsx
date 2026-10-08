@@ -14,6 +14,7 @@ import {
   projectStoryPass,
   STAGE_TRUTH_TITLE,
   stagePostureClaimsRoom,
+  type StageContext,
   type StageContinueAction,
   type StageDressSpan,
   type StoryPassSlide,
@@ -26,6 +27,7 @@ import { StagePresentationScreen } from "./StageFilmstrip"
 import { useBindStageDialog } from "./useBindStageDialog"
 import { useKeeperStageOptional } from "./useKeeperStage"
 import { useDomainWhereWeAreTruth, useRealmWhereWeAreTruth } from "./useStageTruth"
+import { workCompositionSlides } from "./workStageComposition"
 
 function roomToken(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -34,13 +36,20 @@ function roomToken(): string {
   return "stage-room"
 }
 
-export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
+export function KeeperStageCanvas({
+  domainId,
+  workTitle,
+}: {
+  domainId: string | null
+  workTitle?: string | null
+}) {
   const pass = useStagePass()
   const board = useUniversalBoardOptional()
   const roomId = React.useRef(roomToken())
-  const realmTruth = useRealmWhereWeAreTruth(pass.truth === "realm-where-we-are")
+  const workId = board?.selection.selectedDialogId?.trim() || ""
+  const realmTruth = useRealmWhereWeAreTruth(!workId && pass.truth === "realm-where-we-are")
   const domainTruth = useDomainWhereWeAreTruth(
-    pass.truth === "domain-where-we-are" ? pass.context.domainId ?? null : null,
+    !workId && pass.truth === "domain-where-we-are" ? pass.context.domainId ?? null : null,
   )
 
   const onContinue = React.useCallback(
@@ -90,6 +99,16 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
         ? realmTruth.status
         : domainTruth.status
 
+  if (workId) {
+    return (
+      <WorkStageComposition
+        workId={workId}
+        workTitle={workTitle ?? ""}
+        context={pass.context}
+      />
+    )
+  }
+
   return (
     <div
       className="absolute inset-0 flex min-h-0 flex-col"
@@ -137,6 +156,45 @@ export function KeeperStageCanvas({ domainId }: { domainId: string | null }) {
             title={STAGE_TRUTH_TITLE[pass.truth]}
           />
         )}
+      </div>
+    </div>
+  )
+}
+
+function WorkStageComposition({
+  workId,
+  workTitle,
+  context,
+}: {
+  workId: string
+  workTitle: string
+  context: StageContext
+}) {
+  const slides = React.useMemo(
+    () => workCompositionSlides({ workId, workTitle }),
+    [workId, workTitle],
+  )
+  const projected = React.useMemo(
+    () => projectStoryPass({ context, slides }),
+    [context, slides],
+  )
+  const title = workTitle.trim() || "Work in hand"
+
+  return (
+    <div
+      className="absolute inset-0 flex min-h-0 flex-col"
+      data-stage-renderer="composition"
+      data-stage-truth="work"
+      data-stage-work={workId}
+    >
+      <div className="min-h-0 flex-1">
+        <StageCompositionView
+          composition={projected.composition}
+          reading={projected.reading}
+          status="story"
+          onContinue={() => undefined}
+          title={title}
+        />
       </div>
     </div>
   )

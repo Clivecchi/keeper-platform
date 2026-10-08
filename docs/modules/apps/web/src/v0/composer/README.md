@@ -12,7 +12,8 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `useKeeperStage.ts` — domain Stage load/save + Cast fetch (provider, no JSX). `appendLiveBeat` points one filmstrip cell at a Lead message.
 - `ReachPalette.tsx` — Here / Cast / Recent / search
 - `ReachChroniclePresence.tsx` (in `presence/`) — Chronicle surface for Reach
-- `KeeperStageCanvas.tsx` — Stage performance only. Orientation is not inside this canvas.
+- `KeeperStageCanvas.tsx` — Stage performance only. Orientation is not inside this canvas. A selected Dialog is composed here; Where are we? is the no-work arrival.
+- `workStageComposition.ts` — slides for the selected Dialog. Not the domain filmstrip.
 - `StageCompositionView.tsx` — Walks the Composition. Layout, dress, and gesture come from the arrangement. A sequence still plays the story screen.
 - `stagePass.tsx` — Presentation context. Realm → Domain continues in this room and stays on the path.
 - `stageOrientation.ts` — Which reading the pass shows: Realm, a Domain, or the shell Story. The old `StageOrientationBar` is gone.
@@ -55,6 +56,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-07: A selected Dialog is what Stage composes. `workStageComposition` feeds that title into the existing composition view. The domain filmstrip does not replace it. Where are we? remains the no-work arrival.
 - 2026-10-07: `StageOrientationBar` is off the performance. The orientation surface may render nothing. Restore stays on the Stage when a stored arrangement exists. Presentation / Workshop tabs are gone. Full-room presentation still needs a meaningful invocation.
 - 2026-10-07: Focusing the message box and sending a reply leave the performance in the center. The Dialog no longer steps forward over it.
 - 2026-10-07: A missing reading no longer publishes span `center`. Presentation can keep a `room` span without the next paint releasing it.

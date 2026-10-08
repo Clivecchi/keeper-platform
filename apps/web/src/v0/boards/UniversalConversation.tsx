@@ -2931,7 +2931,7 @@ export function UniversalConversation({
         onSaveTitle={kipMode === "build" ? handleSaveTitle : undefined}
         dialogContent={
           workspaceSurface === "stage" ? (
-            <KeeperStageCanvas domainId={domainId} />
+            <KeeperStageCanvas domainId={domainId} workTitle={dialogTitle} />
           ) : undefined
         }
         preface={workspaceSurface === "stage" ? null : roomPreface}

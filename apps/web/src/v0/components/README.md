@@ -36,6 +36,9 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 
 ## 📆 Update Log
 
+### 2026-10-07 — Dialog | Stage replaces Perform
+- The top bar mode control sets `workspaceSurface`. Perform is gone. The Playbill keeps the place and the current Dialog title in both modes.
+
 ### 2026-10-04 — Top bar sign-out leaves the session
 - Profile sign-out waits for `AuthContext.logout` (server cookie clear plus local token clear), then loads `/login`.
 

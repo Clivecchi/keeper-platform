@@ -1761,22 +1761,7 @@ export function UniversalNavPanel({
         return <StoryNavCard />
       }
       case "stage":
-        if (mobileSimplified || boardCtx?.workspaceSurface === "stage") return null
-        return (
-          <SidebarCard
-            className="keeper-sidebar-card"
-            title="Performance"
-            description="Open the performance"
-            items={[
-              {
-                id: "stage-open",
-                label: "Open",
-                isSelected: false,
-                onClick: () => boardCtx?.actions.toggleStageRoom(),
-              },
-            ]}
-          />
-        )
+        return null
       case "glossary":
         if (!showGlossaryNav) return null
         return (
