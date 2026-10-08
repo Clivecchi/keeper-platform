@@ -3,6 +3,7 @@
  * Pages return titles and ids. Bodies stay on the existing read actions.
  */
 import { prisma } from '@keeper/database';
+import { dialogAudienceWhere } from './dialogVisibility.js';
 import {
   catalogProbeGuidance,
   formatDomainCatalogPrompt,
@@ -37,7 +38,13 @@ export async function loadDomainCatalogCounts(params: {
   const { domainId } = params;
   const userId = params.userId ?? null;
   const [dialog, draft, keeper, journey, moment, library] = await Promise.all([
-    prisma.dialog.count({ where: { domain_id: domainId, is_archived: false } }),
+    prisma.dialog.count({
+      where: {
+        domain_id: domainId,
+        is_archived: false,
+        AND: [dialogAudienceWhere(userId)],
+      },
+    }),
     userId
       ? prisma.kip_drafts.count({
           where: { domain_id: domainId, owner_id: userId, status: { notIn: ['archived'] } },
@@ -75,6 +82,7 @@ export async function loadCatalogShelf(params: {
     const where = {
       domain_id: params.domainId,
       is_archived: false,
+      AND: [dialogAudienceWhere(params.userId)],
       ...(contains ? { title: contains } : {}),
     };
     const [total, rows] = await Promise.all([

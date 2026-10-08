@@ -49,6 +49,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-08 — Private Dialogs stay out of the catalog
+- `dialogAudienceWhere` is the catalog and `dialog.read` filter. A keeper Dialog is visible to its user. With no user, only admin and member Dialogs are counted or listed.
+
 ### 2026-10-07 — Agency core v2 overwrites a stored v1
 - `persistAgencyCore.ts` replaces a stored core when its version is not the platform version. v2 does not tell Kip or Cloud to preserve unfinished work as a Draft.
 - Point intent reads the shared artifact prohibition, so “not to create” constrains the turn.

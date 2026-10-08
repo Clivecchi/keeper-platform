@@ -35,6 +35,9 @@ Cursor Gloss uses in-process `dialog_search` → `dialog_read` → `gloss_write_
 
 ## 📆 Update Log
 
+### 2026-10-08 — Operational Truth Dialog stays empty until the filter is deployed
+- `seed-operational-truth-dialog.ts` creates the keeper-scoped KE3P Dialog and checks that another user cannot see it. Point bodies are written only when `OT_IMPORT_POINTS=1`.
+
 ### 2026-10-07 — Replay does not claim the aim was met
 - `replay-agency-loop.ts` presents an unfinished or undirected room. It does not write `resolved`. The web room is the loop that evaluates and may continue.
 

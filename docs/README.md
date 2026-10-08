@@ -15,6 +15,7 @@ Primary documentation hub for Keeper architecture, deployment notes, and operati
 - `DOMAIN_DEVELOPMENT_PLAN.md`
 - `AUTHENTICATION_HARDENING.md`
 - `2026-09-12-domain-board-kip-inventory.md` — Track A Domain Board + Track B Kip identity inventory (canvas conversion; not a design)
+- `keeper-operational-truth.md` — Operational Truth 0.3. Version 0.2 remains the code audit. Product intent is recorded separately. Not a verified baseline.
 
 ## 🔄 Data & Behavior
 Docs are maintained as canonical references for architecture, flows, and playbooks. Updates should align with code sources of truth and track changes over time.
@@ -23,6 +24,8 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
+- **2026-10-08**: `keeper-operational-truth.md` is version 0.3. Version 0.2 stays the audit. Chuck’s five decisions are product intent. Point bodies were withheld from the KE3P Dialog because deployed `dialog.read` does not yet use the audience filter.
+- **2026-10-08**: Added `keeper-operational-truth.md` — version 0.2 reconciliation of OT01–OT28 against commit `be18e65d`. Code audit only. Not approved and not imported into Keeper.
 - **2026-09-12**: Added `2026-09-12-domain-board-kip-inventory.md` — markdown conversion of the Domain Board + Kip inventory canvas. Inventory only.
 - **2026-08-17**: Object Glossary — board-emphasis invariant (governing); IDE display rename to Build; in-product Glossary nav (Domain read / Design definition).
 - **2026-08-02**: Landed governing `keeper-object-glossary.md` (working v1) — same tier as EntityKind Recipe; agent read access via Library Item + Training Governance inject.

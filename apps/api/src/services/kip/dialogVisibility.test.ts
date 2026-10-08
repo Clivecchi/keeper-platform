@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { dialogVisibleToUserOr } from './dialogVisibility.js';
+import { dialogAudienceWhere, dialogVisibleToUserWhere } from './dialogVisibility.js';
 
-describe('dialogVisibleToUserOr', () => {
-  it('includes member without granting guest Dialog persistence', () => {
-    const clauses = dialogVisibleToUserOr('user-1');
-    expect(clauses).toEqual([
-      { available_to: { has: 'admin' } },
-      { available_to: { has: 'member' } },
-      { user_id: 'user-1', available_to: { has: 'keeper' } },
-    ]);
-    expect(JSON.stringify(clauses)).not.toContain('guest');
+describe('dialog audience', () => {
+  it('keeps a keeper Dialog with its user and hides it when no user is present', () => {
+    expect(dialogAudienceWhere('chuck')).toEqual(dialogVisibleToUserWhere('chuck'));
+    const anonymous = dialogAudienceWhere(null);
+    expect(JSON.stringify(anonymous)).not.toContain('keeper');
+    expect(JSON.stringify(anonymous)).toContain('admin');
+    expect(JSON.stringify(anonymous)).toContain('member');
   });
 });

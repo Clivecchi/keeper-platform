@@ -104,6 +104,7 @@ import {
   measureEnvironmentPromptSize,
 } from '../../services/kip/buildCompactEnvironmentForPrompt.js';
 import { buildDomainAwarenessPrompt, loadCatalogShelf, loadDomainCatalogCounts, parseCatalogShelf } from '../../services/kip/domainCatalog.js';
+import { dialogAudienceWhere } from '../../services/kip/dialogVisibility.js';
 import { persistPlatformAgencyCore } from '../../services/kip/persistAgencyCore.js';
 import { collectAgentBoardContextPrompts } from '../../services/kip/buildAgentBoardContextPrompt.js';
 import {
@@ -4637,7 +4638,12 @@ export async function executeAgentActions(
             try {
               if (dialogId) {
                 const dialog = await tx.dialog.findFirst({
-                  where: { id: dialogId, domain_id: ctx.domainId, is_archived: false },
+                  where: {
+                    id: dialogId,
+                    domain_id: ctx.domainId,
+                    is_archived: false,
+                    AND: [dialogAudienceWhere(ctx.userId)],
+                  },
                   select: {
                     id: true,
                     title: true,
@@ -4701,15 +4707,18 @@ export async function executeAgentActions(
               const where = {
                 domain_id: ctx.domainId,
                 is_archived: false,
-                ...(query
-                  ? {
-                      OR: [
-                        { title: { contains: query, mode: 'insensitive' as const } },
-                        { forward_title: { contains: query, mode: 'insensitive' as const } },
-                        { step_title: { contains: query, mode: 'insensitive' as const } },
-                      ],
-                    }
-                  : {}),
+                AND: [
+                  dialogAudienceWhere(ctx.userId),
+                  ...(query
+                    ? [{
+                        OR: [
+                          { title: { contains: query, mode: 'insensitive' as const } },
+                          { forward_title: { contains: query, mode: 'insensitive' as const } },
+                          { step_title: { contains: query, mode: 'insensitive' as const } },
+                        ],
+                      }]
+                    : []),
+                ],
               };
 
               const rows = await tx.dialog.findMany({

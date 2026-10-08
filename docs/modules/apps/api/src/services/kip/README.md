@@ -10,6 +10,8 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `buildDomainLeadCollaborationPrompt.ts` — Role-aware domain lead vs Kip support prompt (Lead only; never Cast)
 - `buildKeeperCardRenderingPrompt.ts` — Story-builder turn contract + keeper-card vs prose; Lock/Open/Next Step only when the human asked — not after Cast; optional future keeps are `keepingChoices`
 - `leadJudgmentContract.ts` — Lead role Agency contract (find the plot). Injected when `role === 'Lead'`. Not Kip-specific.
+- `domainCatalog.ts` — Query for shelf counts and title/id pages. No stored map.
+- `persistAgencyCore.ts` — Writes the platform core onto `kip_agents.config.agency` once.
 - `conversationProfilePrompt.ts` — Conversation and Cast use the short posture. Agency keeps the long action stack.
 - `buildAgentBoardContextPrompt.ts` — Agent Board Training + Performance Inspection Composer grounding
 - `agentPerformanceProvenance` lives in `@keeper/shared` — named runtime checklist on persisted Lead messages
@@ -47,6 +49,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-08 — Private Dialogs stay out of the catalog
+- `dialogAudienceWhere` is the catalog and `dialog.read` filter. A keeper Dialog is visible to its user. With no user, only admin and member Dialogs are counted or listed.
+
 ### 2026-10-07 — Agency core v2 overwrites a stored v1
 - `persistAgencyCore.ts` replaces a stored core when its version is not the platform version. v2 does not tell Kip or Cloud to preserve unfinished work as a Draft.
 - Point intent reads the shared artifact prohibition, so “not to create” constrains the turn.
