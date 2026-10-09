@@ -1,3 +1,4 @@
+import { uploadContentTypeForFile } from "@keeper/shared"
 import { apiFetch } from "../../../lib/apiFetch"
 import { prepareImageForUpload } from "../../../lib/prepareImageUpload"
 
@@ -46,7 +47,7 @@ export async function uploadLibraryFile(params: {
     body: JSON.stringify({
       key,
       file: base64,
-      contentType: prepared.type || "application/octet-stream",
+      contentType: uploadContentTypeForFile(prepared.name, prepared.type),
     }),
   })) as { success?: boolean; data?: { url?: string }; error?: string }
 

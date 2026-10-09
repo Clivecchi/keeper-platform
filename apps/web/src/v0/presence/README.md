@@ -65,6 +65,7 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+- 2026-10-08: **Bring in writing** — the file picker accepts the same text formats the agents can read, including Markdown, JSON, CSV, YAML, and HTML.
 - 2026-09-30: **Story workspace** — `StoryPresence` lists, reorders, and removes Story material in Chronicle. Remove does not delete the source. Take Story to Stage uses the existing filmstrip.
 
 

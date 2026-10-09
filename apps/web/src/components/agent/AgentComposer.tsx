@@ -37,7 +37,12 @@ import { formatDialogueAsMarkdown } from "./helpers"
 import type { AgentDialogueMessage } from "./types"
 import { SupportingDocumentTile } from "./SupportingDocumentTile"
 import { useConversationProfile } from "../../hooks/useConversationProfile"
-import { CONVERSATION_PROFILE_SUMMARIES } from "@keeper/shared"
+import {
+  AGENT_ATTACHMENT_ACCEPT,
+  CONVERSATION_PROFILE_SUMMARIES,
+  isReadableTextDocument,
+  isTextContentType,
+} from "@keeper/shared"
 
 const SURFACE = {
   inkPrimary: "var(--theme-ink-primary-color)",
@@ -246,14 +251,6 @@ const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "imag
 
 export function inferAttachmentType(file: File): PendingAttachment["type"] {
   if (IMAGE_TYPES.includes(file.type)) return "image"
-  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) return "file"
-  if (
-    file.type.startsWith("text/")
-    || file.type === "application/json"
-    || /\.(txt|md|json|csv)$/i.test(file.name)
-  ) {
-    return "text"
-  }
   return "file"
 }
 
@@ -350,14 +347,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     return () => window.removeEventListener("keydown", onKey)
   }, [markdownOpen])
 
-  const TEXT_TYPES = ["text/plain", "text/markdown", "text/csv", "application/json"]
-  const TEXT_EXT = /\.(txt|md|json|csv|pdf)$/i
   const isLibraryFile = (file: File) =>
     IMAGE_TYPES.includes(file.type) ||
-    TEXT_TYPES.includes(file.type) ||
-    TEXT_EXT.test(file.name) ||
-    file.type.startsWith("text/") ||
-    file.type === "application/pdf"
+    isReadableTextDocument(file.name) ||
+    isTextContentType(file.type) ||
+    file.type === "application/pdf" ||
+    /\.pdf$/i.test(file.name)
 
   const stageFileUpload = onComposerFileUpload ?? onLibraryFileUpload
 
@@ -378,7 +373,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         return
       }
       if (!isLibraryFile(file)) {
-        alert("Unsupported file type. Use images, PDF, Markdown, text, JSON, or CSV.")
+        alert("Unsupported file type. Use an image, a PDF, or a text file such as Markdown, plain text, JSON, CSV, HTML, or YAML.")
         return
       }
 
@@ -696,7 +691,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                       type="file"
                       id={fileInputId}
                       className="hidden"
-                      accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
+                      accept={AGENT_ATTACHMENT_ACCEPT}
                       onChange={(event) => void handleFileChange(event)}
                     />
                     <button
@@ -968,7 +963,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                     type="file"
                     id={fileInputId}
                     className="hidden"
-                    accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
+                    accept={AGENT_ATTACHMENT_ACCEPT}
                     onChange={(event) => void handleFileChange(event)}
                   />
                   <button

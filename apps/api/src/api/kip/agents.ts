@@ -21,6 +21,7 @@ import {
   parseKeeperAdviceCard,
   redactForLog,
   resolveHumanTurnId,
+  isReadableTextDocument,
   withoutAdviseOnlySkips,
 } from '@keeper/shared';
 import {
@@ -1662,11 +1663,10 @@ async function buildCastMemberRunEnvironment(params: {
   return env;
 }
 
-const TEXT_ATTACHMENT_EXT = /\.(txt|md|markdown|json|csv)$/i;
 const PDF_ATTACHMENT_EXT = /\.pdf$/i;
 const MAX_ATTACHMENT_TEXT_CHARS = 80_000;
 
-/** Inline text/markdown/json/csv file bodies; otherwise name + URL for the model. */
+/** Inline readable text bodies; otherwise name + URL for the model. */
 async function resolveFileAttachmentContext(
   attachments: { url: string; name: string; type: 'image' | 'file' }[],
 ): Promise<string> {
@@ -1676,7 +1676,7 @@ async function resolveFileAttachmentContext(
   const blocks: string[] = [];
   for (const file of fileAttachments) {
     const url = file.url.trim();
-    if (TEXT_ATTACHMENT_EXT.test(file.name)) {
+    if (isReadableTextDocument(file.name) || isReadableTextDocument(url)) {
       try {
         const res = await fetchBlobWithAuth(url);
         if (res.ok) {

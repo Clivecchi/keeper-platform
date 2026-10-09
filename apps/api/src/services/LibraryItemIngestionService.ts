@@ -6,6 +6,7 @@ import { prisma } from '@keeper/database';
 import type { ModelContentPart } from './ModelProviderService.js';
 import { executeRegisteredChat } from './executeRegisteredChat.js';
 import { embedLibraryItemPerspective } from './LibraryItemEmbeddingService.js';
+import { shouldReadUploadAsText } from '@keeper/shared';
 import {
   extractPdfText,
   isGoogleDocUrl,
@@ -15,7 +16,6 @@ import {
 } from './pdfTextExtract.js';
 
 const IMAGE_MIME_PREFIXES = ['image/'];
-const TEXT_MIME_PREFIXES = ['text/', 'application/json', 'application/xml', 'application/javascript'];
 const MAX_FETCH_BYTES = 512_000;
 const MAX_TEXT_CHARS = 12_000;
 const LIBRARY_READ_MAX_CHARS = PDF_MAX_EXTRACT_CHARS;
@@ -37,10 +37,15 @@ function isImageMime(mime: string | null | undefined): boolean {
 function guessMimeFromRef(sourceRef: string): string | null {
   const lower = sourceRef.toLowerCase();
   if (/\.(png|jpe?g|webp|gif|bmp|svg)(\?|$)/.test(lower)) return 'image/jpeg';
-  if (/\.(md|markdown|txt)(\?|$)/.test(lower)) return 'text/plain';
-  if (/\.json(\?|$)/.test(lower)) return 'application/json';
   if (/\.pdf(\?|$)/.test(lower)) return 'application/pdf';
   return null;
+}
+
+function resolveUploadMime(headerMime: string | null, sourceRef: string): string | null {
+  if (headerMime && headerMime !== 'application/octet-stream' && headerMime !== 'binary/octet-stream') {
+    return headerMime;
+  }
+  return guessMimeFromRef(sourceRef) ?? headerMime;
 }
 
 export async function fetchBlobWithAuth(url: string): Promise<Response> {
@@ -72,7 +77,8 @@ async function loadUploadContent(
   if (!res.ok) {
     throw new Error(`Failed to fetch upload (${res.status})`);
   }
-  const mime = res.headers.get('content-type')?.split(';')[0]?.trim() ?? guessMimeFromRef(sourceRef);
+  const headerMime = res.headers.get('content-type')?.split(';')[0]?.trim() ?? null;
+  const mime = resolveUploadMime(headerMime, sourceRef);
 
   if (isImageMime(mime)) {
     const buffer = Buffer.from(await res.arrayBuffer());
@@ -110,24 +116,21 @@ async function loadUploadContent(
     };
   }
 
-  if (buffer.length > maxFetchBytes) {
+  if (shouldReadUploadAsText({ contentType: mime, sourceRef, sample: buffer })) {
     return {
-      mime,
-      text: `[Binary upload — ${Math.round(buffer.length / 1024)}KB, type ${mime ?? 'unknown'}]`,
-      kind: 'binary',
+      mime: mime && mime !== 'application/octet-stream' ? mime : 'text/plain',
+      text: buffer.toString('utf8').slice(0, maxTextChars),
+      kind: 'text',
       imageBase64: null,
       imageMediaType: null,
     };
   }
 
-  if (
-    mime &&
-    (TEXT_MIME_PREFIXES.some((p) => mime.startsWith(p)) || mime.includes('markdown'))
-  ) {
+  if (buffer.length > maxFetchBytes) {
     return {
       mime,
-      text: buffer.toString('utf8').slice(0, maxTextChars),
-      kind: 'text',
+      text: `[Binary upload — ${Math.round(buffer.length / 1024)}KB, type ${mime ?? 'unknown'}]`,
+      kind: 'binary',
       imageBase64: null,
       imageMediaType: null,
     };

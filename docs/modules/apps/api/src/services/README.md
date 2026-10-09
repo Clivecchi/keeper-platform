@@ -26,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-08 — Library reads Markdown stored as a generic file
+- `LibraryItemIngestionService.ts` reads Markdown, text, JSON, CSV, YAML, HTML, and XML even when the blob type is `application/octet-stream`.
+
 ### 2026-10-08 — Empty prose is not an empty contribution
 - `directorDialog.ts` tells the Lead when a specialist returned action receipts and no prose. That line is the contribution. It is not “nothing returned.”
 

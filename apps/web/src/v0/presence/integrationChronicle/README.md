@@ -45,6 +45,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-10-08 — Library upload keeps a text content type
+- `libraryNavCreate.ts` sends `text/markdown` for a `.md` file instead of `application/octet-stream` when the browser leaves the type blank.
+
 ### 2026-09-17 — TypeSafe Chronicle feed
 - `serviceConfig.tsx` and `shared.tsx` treat TypeSafe as an AI_Model gateway. Key feed capabilities: typed decisions + JSON mode.
 

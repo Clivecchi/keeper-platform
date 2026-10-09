@@ -22,6 +22,7 @@ export * from './glossThread.js';
 export * from './castRoom.js';
 export * from './artifactAuthority.js';
 export * from './anonymousClaimContract.js';
+export * from './readableDocuments.js';
 export * from './integrationChronicleDeclarations.js';
 export * from './serviceBindings.js';
 export * from './directorContinuity.js';

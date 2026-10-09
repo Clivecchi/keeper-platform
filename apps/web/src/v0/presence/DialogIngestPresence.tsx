@@ -12,7 +12,7 @@ import * as React from "react"
 import { ChronicleConfigShell } from "./chronicleConfig/ChronicleConfigShell"
 import type { ChronicleSaveStatus } from "./chronicleConfig/types"
 import { KipApi } from "../../lib/kipApi"
-import { INGEST_MAX_MARKDOWN_CHARS, INGEST_MAX_POINTS } from "@keeper/shared"
+import { INGEST_MAX_MARKDOWN_CHARS, INGEST_MAX_POINTS, READABLE_TEXT_FILE_ACCEPT } from "@keeper/shared"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { invalidateDialogDocument } from "../realm/dialogDocumentCache"
 
@@ -191,7 +191,7 @@ export function DialogIngestPresence({
       >
         <input
           type="file"
-          accept=".md,.markdown,.txt,text/markdown,text/plain"
+          accept={READABLE_TEXT_FILE_ACCEPT}
           className="sr-only"
           onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
         />
