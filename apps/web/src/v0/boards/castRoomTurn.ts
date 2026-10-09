@@ -7,6 +7,7 @@ import {
   CAST_ROOM_DIRECTION_REF,
   CAST_ROOM_CONTRIBUTION_REF,
   aimIsSatisfied,
+  contributionDeniesDocumentAccess,
   buildSpecialistAssignmentBlock,
   castRoomEvent,
   classifyActionReceipt,
@@ -319,7 +320,8 @@ export async function runProgressiveCastRoom(params: {
       assessment,
       receipts,
       artifactRequested,
-    })
+      contributionReply: reply,
+    }) && !contributionDeniesDocumentAccess(reply)
     const step = continueOrPresent({
       contributionsUsed: contributions,
       hasSubstance,

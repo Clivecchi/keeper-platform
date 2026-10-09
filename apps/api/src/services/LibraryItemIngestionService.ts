@@ -7,6 +7,7 @@ import type { ModelContentPart } from './ModelProviderService.js';
 import { executeRegisteredChat } from './executeRegisteredChat.js';
 import { embedLibraryItemPerspective } from './LibraryItemEmbeddingService.js';
 import { shouldReadUploadAsText } from '@keeper/shared';
+import { extractDocxText } from './docxTextExtract.js';
 import {
   extractPdfText,
   isGoogleDocUrl,
@@ -111,6 +112,18 @@ async function loadUploadContent(
       text: null,
       kind: 'pdf',
       note: `PDF has no extractable text (${Math.round(buffer.length / 1024)}KB). It may be scanned images.`,
+      imageBase64: null,
+      imageMediaType: null,
+    };
+  }
+
+  if (/\.docx(\?|$)/i.test(sourceRef)) {
+    const text = extractDocxText(buffer, maxTextChars);
+    return {
+      mime: mime || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      text: text || null,
+      kind: text ? 'text' : 'binary',
+      note: text ? undefined : 'This Word file had no readable paragraph text.',
       imageBase64: null,
       imageMediaType: null,
     };

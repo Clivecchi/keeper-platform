@@ -40,6 +40,7 @@ import { useConversationProfile } from "../../hooks/useConversationProfile"
 import {
   AGENT_ATTACHMENT_ACCEPT,
   CONVERSATION_PROFILE_SUMMARIES,
+  isDocxDocument,
   isReadableTextDocument,
   isTextContentType,
 } from "@keeper/shared"
@@ -350,6 +351,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const isLibraryFile = (file: File) =>
     IMAGE_TYPES.includes(file.type) ||
     isReadableTextDocument(file.name) ||
+    isDocxDocument(file.name) ||
     isTextContentType(file.type) ||
     file.type === "application/pdf" ||
     /\.pdf$/i.test(file.name)
@@ -373,7 +375,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         return
       }
       if (!isLibraryFile(file)) {
-        alert("Unsupported file type. Use an image, a PDF, or a text file such as Markdown, plain text, JSON, CSV, HTML, or YAML.")
+        alert("Unsupported file type. Use an image, a PDF, a Word document, or a text file such as Markdown, plain text, JSON, CSV, HTML, or YAML.")
         return
       }
 

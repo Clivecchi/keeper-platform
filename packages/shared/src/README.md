@@ -42,6 +42,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-08: A reply that says it cannot read the attachment does not satisfy the aim. `.docx` is an upload type. It is not treated as plain text.
 - 2026-10-08: `readableDocuments.ts` — Markdown and other text files stay readable when the browser sends `application/octet-stream`. Word and Excel are not included.
 - 2026-10-08: Ceox has a platform Agency core. Capabilities are the reads Cast can already call. No write actions were added. `anonymousClaimContract.ts` accepts a kept Moment on the named Domain without `ownerId`.
 - 2026-10-08: A successful `treatment.propose` is a proposal. It does not satisfy an investigation aim unless the human asked for that artifact. Same rule as `draft.update.propose`.

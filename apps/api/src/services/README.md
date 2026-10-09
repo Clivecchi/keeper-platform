@@ -26,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-08 — Word documents yield paragraph text
+- `docxTextExtract.ts` reads `.docx` paragraph text. Excel workbooks are still not read.
+
 ### 2026-10-08 — Library reads Markdown stored as a generic file
 - `LibraryItemIngestionService.ts` reads Markdown, text, JSON, CSV, YAML, HTML, and XML even when the blob type is `application/octet-stream`.
 

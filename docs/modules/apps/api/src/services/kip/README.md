@@ -49,6 +49,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-08 — A Dialog document stays readable on the next turn
+- `dialogAttachmentContext.ts` stores the text of a shared file on that message and puts it back into later Lead and specialist prompts.
+
 ### 2026-10-08 — Private Dialogs stay out of the catalog
 - `dialogAudienceWhere` is the catalog and `dialog.read` filter. A keeper Dialog is visible to its user. With no user, only admin and member Dialogs are counted or listed.
 

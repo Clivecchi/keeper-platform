@@ -36,6 +36,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-10-08: **Word files can be attached** — the composer accepts `.docx` along with the text formats. Excel is still refused.
 - 2026-10-08: **Markdown attachments reach the agent** — an uploaded Markdown or other text file is sent as a file, so the message includes its body. The picker also accepts YAML, HTML, XML, TSV, and logs.
 - 2026-10-06: **Mobile Enter is a line break** — mobile composer sizes (`mobile-docked` and the other staged sizes) no longer send on Return. The keyboard hint is `enter`. Only the send button submits. Desktop still sends on Enter (Shift+Enter for a new line).
 - 2026-09-28: **Mobile full-width entry + contextual tools** — `AgentComposer` mobile-docked mode now gives the textarea the full row width (send button overlays inside the field), and moves profile/attach/talk/capture controls into a toolbar that appears once the message field is engaged.

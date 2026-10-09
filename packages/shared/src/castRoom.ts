@@ -445,11 +445,20 @@ export function parseLeadAssessment(value: unknown): LeadAssessment | null {
  * Completed means the contribution addresses the aim and carries evidence.
  * A proposal receipt completes the aim only when the human asked for that artifact.
  */
+/** A reply that says the document could not be read did not meet a reading aim. */
+export function contributionDeniesDocumentAccess(reply: string): boolean {
+  return /can(?:not|'t)\s+(?:directly\s+)?(?:read|access|open)|unable to\s+(?:directly\s+)?(?:read|access|open)|(?:do not|don't)\s+have access/i.test(reply);
+}
+
 export function aimIsSatisfied(params: {
   assessment: LeadAssessment | null;
   receipts: readonly ClassifiedReceipt[];
   artifactRequested: boolean;
+  contributionReply?: string;
 }): boolean {
+  if (params.contributionReply && contributionDeniesDocumentAccess(params.contributionReply)) {
+    return false;
+  }
   const assessment = params.assessment;
   if (!assessment?.addressesAim) return false;
   if (assessment.outcome !== 'completed') return false;

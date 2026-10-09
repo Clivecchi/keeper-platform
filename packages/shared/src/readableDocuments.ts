@@ -45,6 +45,7 @@ const EXTENSION_CONTENT_TYPES: Record<string, string> = {
   toml: 'application/toml',
   cfg: 'text/plain',
   conf: 'text/plain',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
 const GENERIC_CONTENT_TYPES = new Set([
@@ -67,7 +68,7 @@ export const READABLE_TEXT_FILE_ACCEPT = [
 ].join(',');
 
 /** Composer and Library file pickers: images, PDF, and readable text. */
-export const AGENT_ATTACHMENT_ACCEPT = `image/*,.pdf,application/pdf,${READABLE_TEXT_FILE_ACCEPT}`;
+export const AGENT_ATTACHMENT_ACCEPT = `image/*,.pdf,.docx,application/pdf,${READABLE_TEXT_FILE_ACCEPT}`;
 
 export function fileExtension(nameOrUrl: string | null | undefined): string | null {
   if (!nameOrUrl?.trim()) return null;
@@ -75,6 +76,10 @@ export function fileExtension(nameOrUrl: string | null | undefined): string | nu
   const base = path.split('/').pop() ?? path;
   const match = base.match(/\.([a-z0-9]+)$/i);
   return match?.[1]?.toLowerCase() ?? null;
+}
+
+export function isDocxDocument(nameOrUrl: string | null | undefined): boolean {
+  return fileExtension(nameOrUrl) === 'docx';
 }
 
 export function isReadableTextDocument(nameOrUrl: string | null | undefined): boolean {

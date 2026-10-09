@@ -21,7 +21,6 @@ import {
   parseKeeperAdviceCard,
   redactForLog,
   resolveHumanTurnId,
-  isReadableTextDocument,
   withoutAdviseOnlySkips,
 } from '@keeper/shared';
 import {
@@ -120,9 +119,12 @@ import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironme
 import { searchLibraryItems } from '../../services/LibraryItemSearchService.js';
 import {
   attachLibraryItemExtractedText,
-  fetchBlobWithAuth,
 } from '../../services/LibraryItemIngestionService.js';
-import { extractPdfText, isPdfBuffer } from '../../services/pdfTextExtract.js';
+import {
+  buildDialogDocumentPrompt,
+  enrichDialogAttachments,
+  readDialogAttachment,
+} from '../../services/kip/dialogAttachmentContext.js';
 import { visibleAgentMessageText } from '../../services/structure/parseKipAgentOutput.js';
 import {
   buildDialogReadHonesty,
@@ -1663,10 +1665,7 @@ async function buildCastMemberRunEnvironment(params: {
   return env;
 }
 
-const PDF_ATTACHMENT_EXT = /\.pdf$/i;
-const MAX_ATTACHMENT_TEXT_CHARS = 80_000;
-
-/** Inline readable text bodies; otherwise name + URL for the model. */
+/** Inline readable text, PDF, and Word bodies; otherwise say the file was not read. */
 async function resolveFileAttachmentContext(
   attachments: { url: string; name: string; type: 'image' | 'file' }[],
 ): Promise<string> {
@@ -1675,51 +1674,15 @@ async function resolveFileAttachmentContext(
 
   const blocks: string[] = [];
   for (const file of fileAttachments) {
-    const url = file.url.trim();
-    if (isReadableTextDocument(file.name) || isReadableTextDocument(url)) {
-      try {
-        const res = await fetchBlobWithAuth(url);
-        if (res.ok) {
-          const text = await res.text();
-          const trimmed = text.trim().slice(0, MAX_ATTACHMENT_TEXT_CHARS);
-          if (trimmed) {
-            blocks.push(`[Attached file: ${file.name}]\n${trimmed}`);
-            continue;
-          }
-        }
-      } catch (err) {
-        console.warn('[kip/agents] Failed to fetch attachment text:', file.name, err);
-      }
+    const read = await readDialogAttachment(file);
+    if (read.extractedText) {
+      blocks.push(`[Attached file: ${file.name}]\n${read.extractedText}`);
+      continue;
     }
-    if (PDF_ATTACHMENT_EXT.test(file.name) || isPdfUrl(url)) {
-      try {
-        const res = await fetchBlobWithAuth(url);
-        if (res.ok) {
-          const buffer = Buffer.from(await res.arrayBuffer());
-          if (isPdfBuffer(buffer) || PDF_ATTACHMENT_EXT.test(file.name)) {
-            const extracted = extractPdfText(buffer, MAX_ATTACHMENT_TEXT_CHARS);
-            if (extracted.text.trim()) {
-              blocks.push(`[Attached file: ${file.name}]\n${extracted.text.trim()}`);
-              continue;
-            }
-            blocks.push(
-              `[Attached file: ${file.name}]\nPDF has no extractable text. It may be scanned images.`,
-            );
-            continue;
-          }
-        }
-      } catch (err) {
-        console.warn('[kip/agents] Failed to extract attached PDF:', file.name, err);
-      }
-    }
-    blocks.push(`[Attached file: ${file.name}]\nURL: ${url}`);
+    blocks.push(`[Attached file: ${file.name}]\n${read.extractNote || 'This file was not read.'}`);
   }
 
   return blocks.join('\n\n');
-}
-
-function isPdfUrl(url: string): boolean {
-  return /\.pdf(\?|$)/i.test(url);
 }
 
 function slugifyKey(input: string) {
@@ -6724,6 +6687,8 @@ export class KipAgentService {
       activeKeeperId?: string | null;
       domainId?: string | null;
       attachments?: { url: string; name: string; type: 'image' | 'file' }[];
+      /** Bodies of documents shared earlier in this Dialog. */
+      dialogDocuments?: string;
       /** Visible composer text — Point/reorganize intent must not scan pasted supporting docs. */
       displayContent?: string | null;
       /**
@@ -7359,6 +7324,14 @@ export class KipAgentService {
         }
       }
 
+      const sharedDocuments = [
+        promptOptions?.dialogDocuments?.trim() || '',
+        await buildDialogDocumentPrompt(previousMessages),
+      ].filter(Boolean).join('\n\n');
+      if (sharedDocuments) {
+        messages.push({ role: 'system', content: sharedDocuments });
+      }
+
       // Add conversation history
       const recentMessages = previousMessages.slice(-SESSION_HISTORY_LIMIT);
       const historyCount = recentMessages.length;
@@ -7650,6 +7623,7 @@ export class KipAgentService {
         }
         let previousMessages: KipMessageWithRelations[] = [];
         let sessionActionLogOverride: string | undefined;
+        let dialogDocuments = '';
         let keepingExerciseForTurn = readKeepingChoiceExercise(options?.agentContext);
         if (keepingExerciseForTurn) {
           const gate = await isKeepingChoiceExercisable(keepingExerciseForTurn);
@@ -7701,6 +7675,7 @@ export class KipAgentService {
                     metadata: msg.metadata,
                   })),
                 );
+                dialogDocuments = await buildDialogDocumentPrompt(loaded);
               }
               if (options?.timings) {
                 options.timings.sessionMemoryMs = Date.now() - memoryStartedAt;
@@ -7752,12 +7727,22 @@ export class KipAgentService {
                 typeof options?.displayContent === 'string' && options.displayContent.trim()
                   ? options.displayContent.trim()
                   : undefined;
+              const storedAttachments = options?.attachments?.length
+                ? await enrichDialogAttachments(options.attachments)
+                : [];
               const savedUser = await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId,
                 ...(options?.humanTurnId ? { humanTurnId: options.humanTurnId } : {}),
                 ...(displayContent ? { displayContent } : {}),
-                ...(options?.attachments?.length ? { attachments: options.attachments } : {}),
+                ...(options?.attachments?.length
+                  ? {
+                      attachments: [
+                        ...options.attachments.filter((attachment) => attachment.type === 'image'),
+                        ...storedAttachments,
+                      ],
+                    }
+                  : {}),
                 ...(options?.supportingDocs?.length
                   ? { supportingDocs: options.supportingDocs }
                   : {}),
@@ -8320,6 +8305,7 @@ export class KipAgentService {
           activeKeeperId: options?.activeKeeperId ?? null,
           domainId: options?.domainId ?? null,
           attachments: options?.attachments ?? undefined,
+          dialogDocuments,
           displayContent: options?.displayContent ?? null,
           timings: options?.timings,
           timingLabel: 'lead_main',
@@ -10127,6 +10113,7 @@ export class KipAgentService {
         let currentSessionId = sessionAccess.persistSessionId ?? undefined;
         let previousMessages: KipMessageWithRelations[] = [];
         let sessionActionLogOverride: string | undefined;
+        let dialogDocuments = '';
 
         if (sessionAccess.loadSessionId) {
           try {
@@ -10144,6 +10131,7 @@ export class KipAgentService {
                   metadata: msg.metadata,
                 })),
               );
+              dialogDocuments = await buildDialogDocumentPrompt(loaded);
             }
           } catch (error) {
             console.warn('[System agent] Failed to load session memory:', error);
@@ -10172,11 +10160,21 @@ export class KipAgentService {
                 typeof options?.displayContent === 'string' && options.displayContent.trim()
                   ? options.displayContent.trim()
                   : undefined;
+              const storedAttachments = options?.attachments?.length
+                ? await enrichDialogAttachments(options.attachments)
+                : [];
               await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId,
                 ...(displayContent ? { displayContent } : {}),
-                ...(options?.attachments?.length ? { attachments: options.attachments } : {}),
+                ...(options?.attachments?.length
+                  ? {
+                      attachments: [
+                        ...options.attachments.filter((attachment) => attachment.type === 'image'),
+                        ...storedAttachments,
+                      ],
+                    }
+                  : {}),
                 ...(options?.supportingDocs?.length
                   ? { supportingDocs: options.supportingDocs }
                   : {}),
@@ -10209,6 +10207,7 @@ export class KipAgentService {
           activeKeeperId: options?.activeKeeperId ?? null,
           domainId: options?.domainId ?? null,
           attachments: options?.attachments ?? undefined,
+          dialogDocuments,
           displayContent: options?.displayContent ?? null,
           timings: options?.timings,
           timingLabel: 'system_main',

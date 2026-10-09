@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   aimIsSatisfied,
+  contributionDeniesDocumentAccess,
   buildSpecialistAssignmentBlock,
   castRoomEvent,
   classifyActionReceipt,
@@ -142,6 +143,13 @@ describe('direction and contribution', () => {
       receipts: [],
       artifactRequested: false,
     })).toBe(true);
+    expect(contributionDeniesDocumentAccess("I can't directly read attachments.")).toBe(true);
+    expect(aimIsSatisfied({
+      assessment: { addressesAim: true, evidence: 'observation', outcome: 'completed' },
+      receipts: [],
+      artifactRequested: false,
+      contributionReply: 'I cannot directly access the attached document.',
+    })).toBe(false);
     expect(aimIsSatisfied({
       assessment: { addressesAim: false, evidence: 'observation', outcome: 'completed' },
       receipts: [],
