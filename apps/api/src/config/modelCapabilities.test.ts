@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getModelCapabilities, modelAcceptsTemperature } from './modelCapabilities.js';
+import { buildOpenAIChatParams, getModelCapabilities, modelAcceptsTemperature } from './modelCapabilities.js';
 
 describe('getModelCapabilities', () => {
   it('returns exact entry for a known OpenAI model', () => {
@@ -48,6 +48,33 @@ describe('getModelCapabilities', () => {
     expect(modelAcceptsTemperature('anthropic', 'claude-sonnet-5')).toBe(false);
     expect(modelAcceptsTemperature('anthropic', 'claude-sonnet-4-6')).toBe(true);
     expect(modelAcceptsTemperature('openai', 'gpt-4o')).toBe(true);
+    expect(modelAcceptsTemperature('openai', 'gpt-6.1-sol')).toBe(false);
+  });
+
+  it('builds a GPT-6.1 Sol request without classic sampling or max_tokens', () => {
+    const params = buildOpenAIChatParams({
+      model: 'gpt-6.1-sol',
+      messages: [],
+      sampling: { temperature: 0.7, max_tokens: 2000, top_p: 1, frequency_penalty: 0, presence_penalty: 0 },
+      jsonMode: true,
+    });
+    expect(params.model).toBe('gpt-6.1-sol');
+    expect(params.max_tokens).toBeUndefined();
+    expect(params.temperature).toBeUndefined();
+    expect(params.max_completion_tokens).toBe(16_000);
+    expect(params.reasoning_effort).toBe('low');
+    expect(params.response_format).toEqual({ type: 'json_object' });
+  });
+
+  it('lets GPT-6 Luna answer without reasoning', () => {
+    const params = buildOpenAIChatParams({
+      model: 'gpt-6-luna',
+      messages: [],
+      sampling: { max_tokens: 2000, temperature: 0.2 },
+    });
+    expect(params.reasoning_effort).toBe('none');
+    expect(params.max_completion_tokens).toBe(2000);
+    expect(params.temperature).toBeUndefined();
   });
 
   it('defaults together-ai to conservative capabilities', () => {

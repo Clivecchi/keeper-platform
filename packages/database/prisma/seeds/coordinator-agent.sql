@@ -15,7 +15,7 @@ INSERT INTO kip_agents (
   'code-coordinator',
   'CodeCoordinator',
   'Orchestrates code-related tasks using specialized sub-agents for analysis, generation, and platform management',
-  'gpt-4o',
+  'gpt-6.1-sol',
   'Coordinator',
   'development',
   true,

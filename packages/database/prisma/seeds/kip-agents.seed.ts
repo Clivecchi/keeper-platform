@@ -26,7 +26,7 @@ export default async function seed() {
       'kip',
       'Kip',
       'Kip is the Keeper Platform''s Lead Agent, guiding users with wisdom, humor, and clarity. Sincere, playful, and sharp — the embodiment of ''Building worth Keeping.''',
-      'gpt-4o',
+      'gpt-6.1-sol',
       'Lead',
       'user_interaction',
       true,
@@ -35,7 +35,7 @@ export default async function seed() {
       '{"tagline": "Your AI companion for thoughts and ideas", "personality": "Experience Director. I think alongside the people building this.", "capabilities": ["thought processing", "idea organization", "task coordination"], "avatar": "🤖", "theme_color": "#3b82f6"}',
       'ready',
       'openai',
-      '{"model": "gpt-4o", "temperature": 0.3, "max_tokens": 4000, "retry": {"max_retries": 3, "retry_delay_ms": 1000}}',
+      '{"model": "gpt-6.1-sol", "temperature": 0.3, "max_tokens": 4000, "retry": {"max_retries": 3, "retry_delay_ms": 1000}}',
       'public'
     )
     ON CONFLICT (slug) DO UPDATE SET
@@ -66,7 +66,7 @@ export default async function seed() {
       'ceox',
       'CeoX',
       'Executive AI assistant specialized in strategic thinking, business analysis, and leadership support. CeoX provides high-level insights, strategic recommendations, and executive decision support.',
-      'gpt-4o',
+      'gpt-6.1-sol',
       'Lead',
       'executive',
       true,
@@ -75,7 +75,7 @@ export default async function seed() {
       '{"tagline": "Your strategic AI executive partner", "personality": "strategic, analytical, decisive", "capabilities": ["strategic analysis", "business intelligence", "executive coaching"], "avatar": "👔", "theme_color": "#dc2626"}',
       'ready',
       'openai',
-      '{"model": "gpt-4o", "temperature": 0.2, "max_tokens": 8000, "retry": {"max_retries": 3, "retry_delay_ms": 1000}}',
+      '{"model": "gpt-6.1-sol", "temperature": 0.2, "max_tokens": 8000, "retry": {"max_retries": 3, "retry_delay_ms": 1000}}',
       'shared'
     )
     ON CONFLICT (slug) DO UPDATE SET
@@ -106,19 +106,19 @@ export default async function seed() {
      'anthropic',
      '{"model": "claude-3-5-sonnet-20241022", "temperature": 0.1, "max_tokens": 4000, "retry": {"max_retries": 3, "retry_delay_ms": 1000}}'),
 
-    ('platform-agent', 'PlatformAgent', 'Manages platform operations and system orchestration', 'gpt-4o', 'platform_wide', true,
+    ('platform-agent', 'PlatformAgent', 'Manages platform operations and system orchestration', 'gpt-6.1-sol', 'platform_wide', true,
      ARRAY['database_operations', 'user_management', 'system_monitoring'],
      ARRAY['read_system_data', 'write_system_data', 'manage_users'],
      '{"system_access_level": "admin", "monitoring_interval": 300}', 'ready',
      'openai',
-     '{"model": "gpt-4o", "temperature": 0.2, "max_tokens": 8000, "top_p": 0.9, "retry": {"max_retries": 5, "retry_delay_ms": 2000}}'),
+     '{"model": "gpt-6.1-sol", "temperature": 0.2, "max_tokens": 8000, "top_p": 0.9, "retry": {"max_retries": 5, "retry_delay_ms": 2000}}'),
 
-    ('code-agent', 'CodeAgent', 'Generates, analyzes, and maintains code across the platform', 'gpt-4o', 'codebase', true,
+    ('code-agent', 'CodeAgent', 'Generates, analyzes, and maintains code across the platform', 'gpt-6.1-sol', 'codebase', true,
      ARRAY['code_generation', 'code_analysis', 'debugging', 'testing'],
      ARRAY['read_codebase', 'write_code', 'execute_tests'],
      '{"supported_languages": ["typescript", "javascript", "sql", "prisma"], "code_style": "strict"}', 'ready',
      'openai',
-     '{"model": "gpt-4o", "temperature": 0.0, "max_tokens": 8000, "frequency_penalty": 0.1, "presence_penalty": 0.1, "retry": {"max_retries": 3, "retry_delay_ms": 1500}}')
+     '{"model": "gpt-6.1-sol", "temperature": 0.0, "max_tokens": 8000, "frequency_penalty": 0.1, "presence_penalty": 0.1, "retry": {"max_retries": 3, "retry_delay_ms": 1500}}')
 
     ON CONFLICT (slug) DO UPDATE SET
       name = EXCLUDED.name,
@@ -145,7 +145,7 @@ export default async function seed() {
       'code-coordinator',
       'CodeCoordinator',
       'Orchestrates code-related tasks using specialized sub-agents for analysis, generation, and platform management',
-      'gpt-4o',
+      'gpt-6.1-sol',
       'Coordinator',
       'development',
       true,

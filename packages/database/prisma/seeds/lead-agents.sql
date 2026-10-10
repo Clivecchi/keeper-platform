@@ -31,7 +31,7 @@ INSERT INTO kip_agents (
   'ceox',
   'CeoX',
   'Executive AI assistant specialized in strategic thinking, business analysis, and leadership support. CeoX provides high-level insights, strategic recommendations, and executive decision support.',
-  'gpt-4o',
+  'gpt-6.1-sol',
   'Lead',
   'executive',
   true,

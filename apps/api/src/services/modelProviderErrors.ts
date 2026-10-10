@@ -112,13 +112,24 @@ export function unclassifiedProviderFailureMessage(
   };
 }
 
+/** Empty visible text. Retrying the same request does not fill it in. A sibling model might. */
+export function isEmptyProviderCompletion(message: string | null | undefined): boolean {
+  const lower = (message ?? '').toLowerCase();
+  return (
+    lower.includes('no response content')
+    || lower.includes('output budget before writing')
+  );
+}
+
 export function shouldFallbackToSiblingOffering(params: {
   errorCode?: string | null;
   providerStatus?: number | null;
+  message?: string | null;
 }): boolean {
   if (params.errorCode === 'INVALID_MODEL') return true;
   if (params.errorCode === 'PROVIDER_UNAVAILABLE' && params.providerStatus === 404) {
     return true;
   }
+  if (isEmptyProviderCompletion(params.message)) return true;
   return false;
 }

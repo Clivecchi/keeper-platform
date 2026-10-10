@@ -17,6 +17,7 @@ Shared configuration used by the API. Model catalog is the single source of trut
 - [ ] Consider DB-backed catalog when non-developers need to add models without deploys
 
 ## Update Log
+- 2026-10-09: **OpenAI chat offerings** — Registry chat models are GPT-6.1 Sol, GPT-6 Luna, and GPT-6 Astra. A stored GPT-4o preference resolves as `legacy_redirect` onto Sol, with Luna as the sibling. GPT-4o Mini resolves onto Luna. Cast offers use Luna. `buildOpenAIChatParams` sends `max_completion_tokens` and `reasoning_effort` and omits sampling for those models.
 - 2026-09-27: **Execution record context** — `ExecutionRecord` carries `executionMode` (`production` | `shadow` | `evaluation`, default production), purpose, caller, fallback policy, stated-vs-plan selection, usage, latency, and key source. `resolveExecutionPlan()` is unchanged.
 - 2026-09-27: **Sonnet 5 temperature** — `claude-sonnet-5` sets `acceptsTemperature: false`. Anthropic calls omit `temperature` for that model.
 - 2026-09-27: **Agent chat picker** — OpenAI, Anthropic, and Together chat pins live in `agentModelPicker`. Together images stay FLUX and are not chat choices. Together's live catalog remains on the integration.

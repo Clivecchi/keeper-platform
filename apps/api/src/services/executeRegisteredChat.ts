@@ -29,6 +29,7 @@ import {
   type ModelMessage,
   type ModelResponse,
 } from './ModelProviderService.js';
+import { retiredOpenAIChatReplacement } from '@keeper/shared';
 import { shouldFallbackToSiblingOffering } from './modelProviderErrors.js';
 
 export type RegisteredChatResult = {
@@ -52,14 +53,22 @@ function isExecutionMode(value: string): value is ExecutionMode {
   return value === 'production' || value === 'shadow' || value === 'evaluation';
 }
 
-function statedOffering(preference: ExecutionPreference): RecordedOffering | null {
+function statedOffering(preference: ExecutionPreference): {
+  offering: RecordedOffering;
+  substitutedFrom: string | null;
+} | null {
   const provider = typeof preference.provider === 'string' ? preference.provider.trim() : '';
   const modelId = typeof preference.model === 'string' ? preference.model.trim() : '';
   if (!provider || !modelId) return null;
+  const replacement = provider === 'openai' ? retiredOpenAIChatReplacement(modelId) : null;
+  const model = replacement ?? modelId;
   return {
-    offeringId: `${provider}:${modelId}`,
-    provider,
-    modelId,
+    offering: {
+      offeringId: `${provider}:${model}`,
+      provider,
+      modelId: model,
+    },
+    substitutedFrom: replacement ? modelId : null,
   };
 }
 
@@ -134,6 +143,7 @@ function recordFor(params: {
   attempts: ExecutionAttempt[];
   response: ModelResponse;
   context: ChatExecutionContext;
+  statedSubstitution?: string | null;
 }): ExecutionRecord {
   return executionRecordFromPlan({
     plan: params.plan,
@@ -150,7 +160,7 @@ function recordFor(params: {
     latencyMs: params.response.execution_time_ms ?? null,
     keySource: keySourceFromResponse(params.response),
     substitutedFrom: params.context.offeringSelection === 'stated'
-      ? null
+      ? (params.statedSubstitution ?? null)
       : undefined,
   });
 }
@@ -183,7 +193,8 @@ export async function executeRegisteredChat(params: {
   };
 
   const plan = resolveExecutionPlan(params.preference);
-  const stated = context.offeringSelection === 'stated' ? statedOffering(params.preference) : null;
+  const statedResult = context.offeringSelection === 'stated' ? statedOffering(params.preference) : null;
+  const stated = statedResult?.offering ?? null;
   const primary: RecordedOffering | ProviderOffering = stated ?? plan.offering;
   const sibling = stated || context.fallbackPolicy === 'none' ? null : plan.fallbackOffering;
   const attempts: ExecutionAttempt[] = [];
@@ -214,6 +225,7 @@ export async function executeRegisteredChat(params: {
         attempts,
         response: first,
         context,
+        statedSubstitution: statedResult?.substitutedFrom,
       }),
     };
   }
@@ -223,6 +235,7 @@ export async function executeRegisteredChat(params: {
     && shouldFallbackToSiblingOffering({
       errorCode: first.errorCode,
       providerStatus: first.providerStatus,
+      message: first.error,
     });
 
   if (!sibling || !canFallback) {
@@ -239,6 +252,7 @@ export async function executeRegisteredChat(params: {
         attempts,
         response: first,
         context,
+        statedSubstitution: statedResult?.substitutedFrom,
       }),
     };
   }
@@ -276,6 +290,7 @@ export async function executeRegisteredChat(params: {
         attempts,
         response: second,
         context,
+        statedSubstitution: statedResult?.substitutedFrom,
       }),
     };
   }
@@ -293,6 +308,7 @@ export async function executeRegisteredChat(params: {
       attempts,
       response: first,
       context,
+      statedSubstitution: statedResult?.substitutedFrom,
     }),
   };
 }

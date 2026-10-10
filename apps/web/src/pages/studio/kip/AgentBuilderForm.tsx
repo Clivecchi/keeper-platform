@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AGENT_CHAT_DEFAULTS, agentChatModelsFor, isAgentChatProvider, selectableAgentChatModel } from '@keeper/shared';
 import { KipApi, AgentInput, KipAgent, AgentRole, ModelProvider } from '../../../lib/kipApi';
 import { AgentVisibility } from '../../../types/kip';
 import HelpTooltip from '../../../components/ui/HelpTooltip';
@@ -20,7 +21,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
     name: '',
     slug: '',
     purpose: '',
-    model: 'gpt-4o',
+    model: AGENT_CHAT_DEFAULTS.openai,
     role: 'Standard',
     context_scope: 'user_input',
     memory_enabled: false,
@@ -47,7 +48,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
   } | null>(null);
 
   const providerOptions = [
-    { value: 'openai' as ModelProvider, label: 'OpenAI', description: 'GPT models (GPT-4o, GPT-4 Turbo, etc.)' },
+    { value: 'openai' as ModelProvider, label: 'OpenAI', description: 'GPT-6.1 Sol, Luna, and Astra' },
     { value: 'anthropic' as ModelProvider, label: 'Anthropic', description: 'Claude models (Claude 3.5 Sonnet, etc.)' },
     { value: 'together-ai' as ModelProvider, label: 'Together AI', description: 'Llama and Mixtral models' },
     { value: 'elevenlabs' as ModelProvider, label: 'ElevenLabs', description: 'Voice synthesis models' },
@@ -55,6 +56,9 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
 
   // Get available models for the selected provider (from catalog or fallback)
   const getAvailableModels = (provider: ModelProvider) => {
+    if (isAgentChatProvider(provider)) {
+      return agentChatModelsFor(provider).map((model) => ({ value: model.id, label: model.label }));
+    }
     if (modelCatalog?.models) {
       const providerModels = modelCatalog.models.filter((m) => m.provider === provider);
       return providerModels.map((m) => ({ value: m.id, label: m.label }));
@@ -114,7 +118,9 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
         name: existingAgent.name,
         slug: existingAgent.slug,
         purpose: existingAgent.purpose,
-        model: existingAgent.model,
+        model: existingAgent.model_provider
+          ? selectableAgentChatModel(existingAgent.model_provider, existingAgent.model)
+          : existingAgent.model,
         role: existingAgent.role,
         context_scope: existingAgent.context_scope || 'user_input',
         memory_enabled: existingAgent.memory_enabled,
@@ -209,7 +215,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
           name: '',
           slug: '',
           purpose: '',
-          model: 'gpt-4o',
+          model: AGENT_CHAT_DEFAULTS.openai,
           role: 'Standard',
           context_scope: 'user_input',
           memory_enabled: false,

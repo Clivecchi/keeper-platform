@@ -7,7 +7,7 @@
  */
 
 import type { ChatModelProvider, ModelProvider } from '@keeper/database';
-import { AGENT_CHAT_DEFAULTS } from '@keeper/shared';
+import { AGENT_CHAT_DEFAULTS, retiredOpenAIChatReplacement } from '@keeper/shared';
 
 const CHAT_PROVIDERS: readonly ChatModelProvider[] = ['openai', 'anthropic', 'together-ai'];
 
@@ -56,7 +56,13 @@ export type ExecutionPlan = {
   preference: ExecutionPreference;
   /** Non-chat preference (typesafe / elevenlabs) was replaced with a chat offering. */
   substitutedFrom: string | null;
-  resolvedFrom: 'exact_offering' | 'model_identity' | 'provider_default' | 'passthrough' | 'registry_default';
+  resolvedFrom:
+    | 'exact_offering'
+    | 'model_identity'
+    | 'provider_default'
+    | 'passthrough'
+    | 'registry_default'
+    | 'legacy_redirect';
 };
 
 export function offeringIdFor(provider: string, modelId: string): string {
@@ -66,8 +72,9 @@ export function offeringIdFor(provider: string, modelId: string): string {
 export const MODEL_IDENTITIES: ModelIdentity[] = [
   { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', kind: 'chat' },
   { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', kind: 'chat' },
-  { id: 'gpt-4o', label: 'GPT-4o', kind: 'chat' },
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', kind: 'chat' },
+  { id: 'gpt-6.1-sol', label: 'GPT-6.1 Sol', kind: 'chat' },
+  { id: 'gpt-6-luna', label: 'GPT-6 Luna', kind: 'chat' },
+  { id: 'gpt-6-astra', label: 'GPT-6 Astra', kind: 'chat' },
 ];
 
 const SONNET_5_OFFERING: ProviderOffering = {
@@ -86,20 +93,28 @@ const SONNET_46_OFFERING: ProviderOffering = {
   siblingOfferingId: offeringIdFor('anthropic', 'claude-sonnet-5'),
 };
 
-const GPT_4O_OFFERING: ProviderOffering = {
-  offeringId: offeringIdFor('openai', 'gpt-4o'),
+const GPT_61_SOL_OFFERING: ProviderOffering = {
+  offeringId: offeringIdFor('openai', 'gpt-6.1-sol'),
   provider: 'openai',
-  modelId: 'gpt-4o',
-  modelIdentityId: 'gpt-4o',
-  siblingOfferingId: null,
+  modelId: 'gpt-6.1-sol',
+  modelIdentityId: 'gpt-6.1-sol',
+  siblingOfferingId: offeringIdFor('openai', 'gpt-6-luna'),
 };
 
-const GPT_4O_MINI_OFFERING: ProviderOffering = {
-  offeringId: offeringIdFor('openai', 'gpt-4o-mini'),
+const GPT_6_LUNA_OFFERING: ProviderOffering = {
+  offeringId: offeringIdFor('openai', 'gpt-6-luna'),
   provider: 'openai',
-  modelId: 'gpt-4o-mini',
-  modelIdentityId: 'gpt-4o-mini',
-  siblingOfferingId: null,
+  modelId: 'gpt-6-luna',
+  modelIdentityId: 'gpt-6-luna',
+  siblingOfferingId: offeringIdFor('openai', 'gpt-6.1-sol'),
+};
+
+const GPT_6_ASTRA_OFFERING: ProviderOffering = {
+  offeringId: offeringIdFor('openai', 'gpt-6-astra'),
+  provider: 'openai',
+  modelId: 'gpt-6-astra',
+  modelIdentityId: 'gpt-6-astra',
+  siblingOfferingId: offeringIdFor('openai', 'gpt-6.1-sol'),
 };
 
 const TOGETHER_CHAT_MODEL = AGENT_CHAT_DEFAULTS['together-ai'];
@@ -115,8 +130,9 @@ const TOGETHER_CHAT_OFFERING: ProviderOffering = {
 export const PROVIDER_OFFERINGS: ProviderOffering[] = [
   SONNET_5_OFFERING,
   SONNET_46_OFFERING,
-  GPT_4O_OFFERING,
-  GPT_4O_MINI_OFFERING,
+  GPT_61_SOL_OFFERING,
+  GPT_6_LUNA_OFFERING,
+  GPT_6_ASTRA_OFFERING,
   TOGETHER_CHAT_OFFERING,
 ];
 
@@ -126,7 +142,7 @@ export const DEFAULT_CHAT_OFFERING = SONNET_5_OFFERING;
 
 const DEFAULT_OFFERING_BY_PROVIDER: Record<ChatModelProvider, ProviderOffering> = {
   anthropic: SONNET_5_OFFERING,
-  openai: GPT_4O_OFFERING,
+  openai: GPT_61_SOL_OFFERING,
   'together-ai': TOGETHER_CHAT_OFFERING,
 };
 
@@ -178,6 +194,20 @@ export function resolveExecutionPlan(preference: ExecutionPreference): Execution
   }
 
   const provider = rawProvider && isChatProvider(rawProvider) ? rawProvider : null;
+
+  if (model && (provider === 'openai' || provider === null)) {
+    const replacement = retiredOpenAIChatReplacement(model);
+    if (replacement) {
+      const redirected = findOffering('openai', replacement) ?? passthroughOffering('openai', replacement);
+      return {
+        offering: redirected,
+        fallbackOffering: siblingOfferingOf(redirected),
+        preference,
+        substitutedFrom: model,
+        resolvedFrom: 'legacy_redirect',
+      };
+    }
+  }
 
   if (provider && model) {
     const exact = findOffering(provider, model);
@@ -273,7 +303,7 @@ export type ExecutionPurpose =
  * (`provider:model`). The call site asks for the role, not a model name.
  */
 const PURPOSE_DEFAULT_OFFERING_ID: Partial<Record<ExecutionPurpose, string>> = {
-  cast_offer: GPT_4O_MINI_OFFERING.offeringId,
+  cast_offer: GPT_6_LUNA_OFFERING.offeringId,
 };
 
 const PURPOSE_OFFERING_ENV: Partial<Record<ExecutionPurpose, string>> = {

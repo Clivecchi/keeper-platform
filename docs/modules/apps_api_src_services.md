@@ -20,6 +20,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-09 — OpenAI empty replies are not retried
+- A stored GPT-4o chat call is redirected to GPT-6.1 Sol before the request. An empty completion is not retried.
+
 ### 2026-08-24 — PDF body on library.read
 - `pdfTextExtract.ts` — FlateDecode + Tj/TJ text extract (no schema migration).
 - `LibraryItemIngestionService` — ingest no longer UTF-8-decodes PDFs; `library.read { id }` hydrates `extracted_text` after the action transaction. Private Google Docs return a clear note instead of a login page.

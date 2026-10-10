@@ -2209,7 +2209,7 @@ export class KipApi {
       case 'openai':
         return {
           ...baseSettings,
-          model: 'gpt-4o',
+          model: AGENT_CHAT_DEFAULTS.openai,
           temperature: 0.7,
           max_tokens: 2000,
           top_p: 1.0,

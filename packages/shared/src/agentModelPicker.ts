@@ -20,8 +20,9 @@ export type AgentChatModel = {
 };
 
 export const AGENT_CHAT_MODELS: readonly AgentChatModel[] = [
-  { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'openai' },
+  { id: 'gpt-6.1-sol', label: 'GPT-6.1 Sol', provider: 'openai' },
+  { id: 'gpt-6-luna', label: 'GPT-6 Luna', provider: 'openai' },
+  { id: 'gpt-6-astra', label: 'GPT-6 Astra', provider: 'openai' },
   { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', provider: 'anthropic' },
   { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', provider: 'anthropic' },
   {
@@ -32,10 +33,43 @@ export const AGENT_CHAT_MODELS: readonly AgentChatModel[] = [
 ];
 
 export const AGENT_CHAT_DEFAULTS: Record<AgentChatProvider, string> = {
-  openai: 'gpt-4o',
+  openai: 'gpt-6.1-sol',
   anthropic: 'claude-sonnet-5',
   'together-ai': 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
 };
+
+/**
+ * Chat ids Keeper used to store. OpenAI still lists some of them, and they are
+ * no longer offered in Cockpit. Execution substitutes the current chat model.
+ * Mini and 3.5 land on Luna. The rest land on Sol.
+ */
+const RETIRED_OPENAI_CHAT: Record<string, string> = {
+  'gpt-4o': 'gpt-6.1-sol',
+  'gpt-4o-2024-05-13': 'gpt-6.1-sol',
+  'gpt-4o-2024-08-06': 'gpt-6.1-sol',
+  'gpt-4o-2024-11-20': 'gpt-6.1-sol',
+  'chatgpt-4o-latest': 'gpt-6.1-sol',
+  'gpt-4-turbo': 'gpt-6.1-sol',
+  'gpt-4-turbo-2024-04-09': 'gpt-6.1-sol',
+  'gpt-4': 'gpt-6.1-sol',
+  'gpt-4-0613': 'gpt-6.1-sol',
+  'gpt-4o-mini': 'gpt-6-luna',
+  'gpt-3.5-turbo': 'gpt-6-luna',
+};
+
+export function retiredOpenAIChatReplacement(modelId: string): string | null {
+  const trimmed = modelId.trim();
+  return RETIRED_OPENAI_CHAT[trimmed] ?? null;
+}
+
+/** Model id the chat menu can actually select for this provider. */
+export function selectableAgentChatModel(provider: string, modelId: string): string {
+  const trimmed = modelId.trim();
+  if (isAgentChatProvider(provider) && agentChatModelsFor(provider).some((model) => model.id === trimmed)) {
+    return trimmed;
+  }
+  return retiredOpenAIChatReplacement(trimmed) ?? agentChatDefaultFor(provider) ?? trimmed;
+}
 
 export const AGENT_CHAT_PROVIDER_LABELS: Record<AgentChatProvider, string> = {
   openai: 'OpenAI',

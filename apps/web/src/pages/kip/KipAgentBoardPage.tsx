@@ -1118,7 +1118,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
   const dialogueMeta = useMemo<DialogueMetaItem[]>(
     () => [
-      { label: 'Model', value: agent?.model_settings?.model || agent?.model || 'gpt-4o' },
+      { label: 'Model', value: agent?.model_settings?.model || agent?.model || 'gpt-6.1-sol' },
       { label: 'Memory', value: agent?.memory_enabled ? 'SOLE' : 'Off' },
       { label: 'Scope', value: resolvedScopeLabel },
     ],
@@ -1969,7 +1969,7 @@ const AgentBoardHeader: React.FC<{
         <p className="text-sm uppercase tracking-wide text-gray-500">Lead Agent</p>
         <h1 className="text-3xl font-semibold text-gray-900">{agent?.name ?? 'Kip'}</h1>
         <p className="text-sm text-gray-500">
-          Model {agent?.model_settings?.model || agent?.model || 'gpt-4o'} · Role: Lead Agent
+          Model {agent?.model_settings?.model || agent?.model || 'gpt-6.1-sol'} · Role: Lead Agent
         </p>
         <p className="text-sm text-gray-500">
           {contextLabel}

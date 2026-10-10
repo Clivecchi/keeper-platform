@@ -15,6 +15,7 @@ import {
   AGENT_CHAT_PROVIDER_LABELS,
   agentChatDefaultFor,
   agentChatModelsFor,
+  selectableAgentChatModel,
   isBuildBoardId,
 } from "@keeper/shared"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -511,6 +512,78 @@ function agentFieldVisible(
 
 const MODEL_PROVIDERS: ModelProvider[] = ["openai", "anthropic", "together-ai", "elevenlabs"]
 
+function AllowableChatModelSelect({
+  provider,
+  value,
+  onChange,
+  fieldError,
+}: {
+  provider: string
+  value: string
+  onChange: (v: string) => void
+  fieldError?: string
+}) {
+  const pinned = agentChatModelsFor(provider)
+  const models = pinned.length > 0
+    ? pinned
+    : KipApi.getAvailableModels(provider as ModelProvider).map((id) => ({ id, label: id }))
+  const selectable = pinned.length > 0 ? selectableAgentChatModel(provider, value) : value
+  const replaced = Boolean(value && selectable !== value)
+  const applied = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    if (!replaced) return
+    const key = `${provider}:${value}->${selectable}`
+    if (applied.current === key) return
+    applied.current = key
+    onChange(selectable)
+  }, [onChange, provider, replaced, selectable, value])
+
+  return (
+    <>
+      <select
+        value={models.some((model) => model.id === selectable) ? selectable : (models[0]?.id ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
+        style={{
+          borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+          color: "hsl(var(--theme-ink-secondary))",
+        }}
+      >
+        {models.map((model) => (
+          <option key={model.id} value={model.id}>
+            {model.label}
+          </option>
+        ))}
+      </select>
+      {replaced ? (
+        <p
+          className="text-[12px] mt-1.5 leading-relaxed"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          {value} is no longer offered. This agent runs {selectable}.
+        </p>
+      ) : null}
+      {provider === "together-ai" ? (
+        <p
+          className="text-[12px] mt-1.5 leading-relaxed"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Chat for this agent. Picture generation uses FLUX and is not listed here.
+        </p>
+      ) : null}
+      {fieldError ? (
+        <p
+          className="text-[13px] mt-1.5 leading-relaxed"
+          style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+        >
+          {fieldError}
+        </p>
+      ) : null}
+    </>
+  )
+}
+
 function PresenceFieldEditor({
   fieldKey,
   def,
@@ -589,48 +662,13 @@ function PresenceFieldEditor({
   }
 
   if (fieldKey === "model") {
-    const provider = modelProvider || "openai"
-    const pinned = agentChatModelsFor(provider)
-    const models = pinned.length > 0
-      ? pinned
-      : KipApi.getAvailableModels(provider as ModelProvider).map((id) => ({ id, label: id }))
-    const options = models.some((model) => model.id === value) || !value
-      ? models
-      : [{ id: value, label: `${value} (current)` }, ...models]
     return (
-      <>
-        <select
-          value={value || models[0]?.id || ""}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
-          style={{
-            borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-            color: "hsl(var(--theme-ink-secondary))",
-          }}
-        >
-          {options.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.label}
-            </option>
-          ))}
-        </select>
-        {provider === "together-ai" ? (
-          <p
-            className="text-[12px] mt-1.5 leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Chat for this agent. Picture generation uses FLUX and is not listed here.
-          </p>
-        ) : null}
-        {fieldError ? (
-          <p
-            className="text-[13px] mt-1.5 leading-relaxed"
-            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-          >
-            {fieldError}
-          </p>
-        ) : null}
-      </>
+      <AllowableChatModelSelect
+        provider={modelProvider || "openai"}
+        value={value}
+        onChange={onChange}
+        fieldError={fieldError}
+      />
     )
   }
 

@@ -16,4 +16,5 @@ Shared configuration used by the API. Model catalog is the single source of trut
 - [ ] Consider DB-backed catalog when non-developers need to add models without deploys
 
 ## Update Log
+- 2026-10-09: OpenAI chat offerings are GPT-6.1 Sol, GPT-6 Luna, and GPT-6 Astra. A stored GPT-4o preference redirects onto Sol. GPT-4o Mini redirects onto Luna.
 - 2026-02-19: Added modelCatalog.ts. Single source of truth for model catalog. Used by ModelProviderService and GET /api/kip/models.

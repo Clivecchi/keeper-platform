@@ -35,6 +35,9 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 ## Notes and ToDo
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
+## 📆 Update Log
+- 2026-10-09: Cockpit model menu lists only the agent chat pin. A stored GPT-4o opens as GPT-6.1 Sol. The retired id is not an option.
+
 ## Update Log
 - 2026-10-08: **Word files can be attached** — the composer accepts `.docx` along with the text formats. Excel is still refused.
 - 2026-10-08: **Markdown attachments reach the agent** — an uploaded Markdown or other text file is sent as a file, so the message includes its body. The picker also accepts YAML, HTML, XML, TSV, and logs.

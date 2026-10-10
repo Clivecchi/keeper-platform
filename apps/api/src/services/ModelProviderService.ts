@@ -8,14 +8,15 @@
 
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ModelProvider, ModelSettings } from '@keeper/database';
+import { retiredOpenAIChatReplacement } from '@keeper/shared';
 import { KipUserKeyService } from './KipUserKeyService.js';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 import { resolveDomainProviderApiKeyWithSource } from '../lib/resolveDomainProviderApiKey.js';
 import { envKeyForProvider, envVarNameForProvider } from '../lib/resolveProviderApiKey.js';
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
-import { getModelCapabilities, modelAcceptsTemperature } from '../config/index.js';
+import { buildOpenAIChatParams, getModelCapabilities, modelAcceptsTemperature } from '../config/index.js';
 import { TypeSafeProvider } from './TypeSafeProvider.js';
-import { isDeprecatedTemperatureError, isGenuineInvalidModelError, unclassifiedProviderFailureMessage } from './modelProviderErrors.js';
+import { isDeprecatedTemperatureError, isEmptyProviderCompletion, isGenuineInvalidModelError, unclassifiedProviderFailureMessage } from './modelProviderErrors.js';
 
 const DEFAULT_ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 
@@ -191,6 +192,50 @@ const RETRY_TEMPLATE = Object.freeze({
 });
 
 
+function redirectRetiredOpenAIChat(provider: ModelProvider, settings: ModelSettings): ModelSettings {
+  if (provider !== 'openai') return settings;
+  const replacement = retiredOpenAIChatReplacement(settings.model);
+  if (!replacement || replacement === settings.model) return settings;
+  console.info('[ModelProvider] retired OpenAI chat model redirected', {
+    from: settings.model,
+    to: replacement,
+  });
+  return { ...settings, model: replacement };
+}
+
+function openAIVisibleText(content: unknown, refusal?: string | null): string {
+  const parts: string[] = [];
+  if (typeof content === 'string') {
+    parts.push(content);
+  } else if (Array.isArray(content)) {
+    for (const part of content) {
+      if (typeof part === 'string') {
+        parts.push(part);
+        continue;
+      }
+      if (!part || typeof part !== 'object') continue;
+      const record = part as { text?: unknown; refusal?: unknown };
+      if (typeof record.text === 'string') parts.push(record.text);
+      else if (typeof record.refusal === 'string') parts.push(record.refusal);
+    }
+  }
+  if (typeof refusal === 'string' && refusal.trim()) parts.push(refusal);
+  return parts.join('');
+}
+
+function emptyOpenAIMessage(finishReason: string | null): string {
+  if (finishReason === 'length') {
+    return 'OpenAI used the output budget before writing a reply.';
+  }
+  if (finishReason === 'content_filter') {
+    return 'OpenAI omitted the reply because of a content filter.';
+  }
+  if (finishReason) {
+    return `No response content from OpenAI (finish: ${finishReason})`;
+  }
+  return 'No response content from OpenAI';
+}
+
 /**
  * OpenAI Provider Implementation
  */
@@ -224,44 +269,51 @@ class OpenAIProvider {
 
       let response;
       try {
-        const createParams: Record<string, unknown> = {
+        const createParams = buildOpenAIChatParams({
           model: settings.model,
           messages: messages.map(msg => ({
             role: msg.role,
             content: msg.content,
           })),
-          temperature: settings.temperature,
-          max_tokens: settings.max_tokens,
-          top_p: settings.top_p,
-          frequency_penalty: settings.frequency_penalty,
-          presence_penalty: settings.presence_penalty,
-        };
-        const capabilities = getModelCapabilities('openai', settings.model);
-        if (jsonMode && capabilities.jsonMode) {
-          (createParams as any).response_format = { type: 'json_object' };
-        }
+          sampling: {
+            temperature: settings.temperature,
+            max_tokens: settings.max_tokens,
+            top_p: settings.top_p,
+            frequency_penalty: settings.frequency_penalty,
+            presence_penalty: settings.presence_penalty,
+          },
+          jsonMode,
+          stream: Boolean(onDelta),
+        });
         if (onDelta) {
-          createParams.stream = true;
           const stream = await openai.chat.completions.create(
             createParams as any,
             { signal: controller.signal },
           );
           let content = '';
+          let finishReason: string | null = null;
           for await (const chunk of stream as unknown as AsyncIterable<{
-            choices?: Array<{ delta?: { content?: string | null } }>
+            choices?: Array<{
+              finish_reason?: string | null
+              delta?: { content?: unknown; refusal?: string | null }
+            }>
             model?: string
           }>) {
-            const piece = chunk.choices?.[0]?.delta?.content;
-            if (typeof piece === 'string' && piece.length > 0) {
+            const choice = chunk.choices?.[0];
+            const piece = openAIVisibleText(choice?.delta?.content, choice?.delta?.refusal);
+            if (piece) {
               content += piece;
               onDelta(piece);
+            }
+            if (typeof choice?.finish_reason === 'string' && choice.finish_reason) {
+              finishReason = choice.finish_reason;
             }
             if (typeof chunk.model === 'string' && chunk.model.trim()) {
               createParams.model = chunk.model;
             }
           }
           if (!content) {
-            throw new Error('No response content from OpenAI');
+            throw new Error(emptyOpenAIMessage(finishReason));
           }
           return {
             success: true,
@@ -278,13 +330,14 @@ class OpenAIProvider {
       }
 
       const choice = response.choices[0];
-      if (!choice?.message?.content) {
-        throw new Error('No response content from OpenAI');
+      const content = openAIVisibleText(choice?.message?.content, choice?.message?.refusal);
+      if (!content) {
+        throw new Error(emptyOpenAIMessage(choice?.finish_reason ?? null));
       }
 
       return {
         success: true,
-        content: choice.message.content,
+        content,
         usage: response.usage ? {
           prompt_tokens: response.usage.prompt_tokens,
           completion_tokens: response.usage.completion_tokens,
@@ -912,7 +965,8 @@ export class ModelProviderService {
    */
   static async callModel(options: ModelCallOptions): Promise<ModelResponse> {
     const startTime = Date.now();
-    const { messages, settings, provider, userId, domainId } = options;
+    const { messages, provider, userId, domainId } = options;
+    const settings = redirectRetiredOpenAIChat(provider, options.settings);
     const retryConfig = settings.retry || { max_retries: 3, retry_delay_ms: 1000 };
     
     // Helper: treat empty/whitespace keys as invalid
@@ -1210,6 +1264,14 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
 
   if (status === 401 || lowerMessage.includes('api key')) {
     return new ModelProviderException('MISSING_API_KEY', message, { retryable: false, status });
+  }
+
+  if (isEmptyProviderCompletion(message) || lowerMessage.includes('content filter')) {
+    return new ModelProviderException('PROVIDER_UNAVAILABLE', message, {
+      retryable: false,
+      status,
+      detail: message,
+    });
   }
 
   if (

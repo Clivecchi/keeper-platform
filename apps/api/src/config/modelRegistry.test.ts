@@ -73,6 +73,30 @@ describe('resolveExecutionPlan', () => {
     expect(plan.resolvedFrom).toBe('provider_default');
   });
 
+  it('redirects a stored gpt-4o preference onto GPT-6.1 Sol', () => {
+    const plan = resolveExecutionPlan({
+      provider: 'openai',
+      model: 'gpt-4o',
+      source: 'agent_preference',
+    });
+    expect(plan.offering.modelId).toBe('gpt-6.1-sol');
+    expect(plan.offering.provider).toBe('openai');
+    expect(plan.fallbackOffering?.modelId).toBe('gpt-6-luna');
+    expect(plan.substitutedFrom).toBe('gpt-4o');
+    expect(plan.resolvedFrom).toBe('legacy_redirect');
+  });
+
+  it('redirects gpt-4o-mini onto GPT-6 Luna', () => {
+    const plan = resolveExecutionPlan({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      source: 'agent_preference',
+    });
+    expect(plan.offering.modelId).toBe('gpt-6-luna');
+    expect(plan.fallbackOffering?.modelId).toBe('gpt-6.1-sol');
+    expect(plan.substitutedFrom).toBe('gpt-4o-mini');
+  });
+
   it('uses the registry default chat offering when preference is empty', () => {
     const plan = resolveExecutionPlan({ source: 'default' });
     expect(plan.offering.offeringId).toBe(DEFAULT_CHAT_OFFERING.offeringId);

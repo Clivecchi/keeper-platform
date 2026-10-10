@@ -6,7 +6,7 @@
 
 import React from "react"
 import clsx from "clsx"
-import { agentChatDefaultFor, agentChatModelsFor } from "@keeper/shared"
+import { agentChatDefaultFor, agentChatModelsFor, isAgentChatProvider, selectableAgentChatModel } from "@keeper/shared"
 import type { KipAgent, ModelProvider, ModelSettings } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import type { AgentConversationSession } from "../../hooks/useAgentSessions"
@@ -218,12 +218,13 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   const [modelsLoading, setModelsLoading] = React.useState(false)
   const [modelForm, setModelForm] = React.useState<{ provider: ModelProvider; model: string; temperature?: number; max_tokens?: number }>({
     provider: "openai",
-    model: "gpt-4o",
+    model: "gpt-6.1-sol",
     temperature: 0.7,
     max_tokens: 2000,
   })
   const [isSavingModel, setIsSavingModel] = React.useState(false)
   const [modelSaveError, setModelSaveError] = React.useState<string | null>(null)
+  const [retiredModelNotice, setRetiredModelNotice] = React.useState<string | null>(null)
   const activeSession = sessions.find(
     (session) => session.id === activeSessionId,
   )
@@ -276,7 +277,9 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     if (modelModalOpen) {
       if (agent) {
         const provider = (agent.model_provider || "openai") as ModelProvider
-        const model = agent.model_settings?.model || agent.model || "gpt-4o"
+        const stored = agent.model_settings?.model || agent.model || agentChatDefaultFor(provider) || "gpt-6.1-sol"
+        const model = isAgentChatProvider(provider) ? selectableAgentChatModel(provider, stored) : stored
+        setRetiredModelNotice(stored !== model ? stored : null)
         setModelForm({
           provider,
           model,
@@ -285,6 +288,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
         })
         loadModelsForProvider(provider)
       } else {
+        setRetiredModelNotice(null)
         loadModelsForProvider("openai")
       }
       setModelSaveError(null)
@@ -319,17 +323,12 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   const pinnedChat = agentChatModelsFor(modelForm.provider)
   const providerModelsRaw = modelCatalog?.models?.filter((m) => m.provider === modelForm.provider) ?? []
   const fallbackModels = KipApi.getAvailableModels(modelForm.provider).map((id) => ({ id, label: id }))
-  const providerModels =
+  const modelsToShow =
     pinnedChat.length > 0
       ? pinnedChat
       : providerModelsRaw.length > 0
         ? providerModelsRaw
         : fallbackModels
-  const hasCurrentModel = providerModels.some((m) => m.id === modelForm.model)
-  const modelsToShow =
-    hasCurrentModel || !modelForm.model
-      ? providerModels
-      : [{ id: modelForm.model, label: `${modelForm.model} (current)` }, ...providerModels]
 
   React.useEffect(() => {
     if (!showCompliance || !domainId) {
@@ -465,6 +464,11 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
                   ))
                 )}
               </select>
+              {retiredModelNotice ? (
+                <p className="mt-1.5 text-xs text-gray-500">
+                  {retiredModelNotice} is no longer offered. Saving uses {modelForm.model}. Turns already run on an offered model.
+                </p>
+              ) : null}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

@@ -29,6 +29,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-10-09: Cockpit model menu lists only the agent chat pin. A stored GPT-4o opens as GPT-6.1 Sol.
 - 2026-06-28: **Multi-agent collaborative bubbles** — director delegation + echo render as separate equal-weight chat bubbles per agent (treatment tint for collaborator, paper for lead, dialogue-area tint for echo).
 - 2026-05-26 (Agent Echo rename): Echo attribution fallback uses `echoAgentName` prop (board def agentName), not hardcoded "Kip".
 - 2026-05-26 (Agent Board Phase 4 — agent echo): `types.ts` — added `DialogResponseEcho` and optional `echo` on `AgentDialogueMessage`. `DialogueMessageList.tsx` — renders agent echo as subordinate beat beneath agent message (attributed name, smaller type, no avatar). Primary agent bubble rendering unchanged.

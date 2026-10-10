@@ -1,10 +1,12 @@
 export {
   getModelCapabilities,
   modelAcceptsTemperature,
+  buildOpenAIChatParams,
   MODEL_CAPABILITY_MAP,
   type ModelCapabilities,
   type ModelCapabilityMap,
   type ModelCapabilityProviderEntry,
+  type OpenAIChatSampling,
 } from './modelCapabilities.js';
 
 export {

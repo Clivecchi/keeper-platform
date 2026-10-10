@@ -18,6 +18,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-09: Agent chat menu offers GPT-6.1 Sol, GPT-6 Luna, and GPT-6 Astra. Stored GPT-4o and GPT-4o Mini are not selectable.
 - 2026-09-30: Frame cue tests now match the binder. A supplied Keep is stamped with Point ids. Keep is not invented when Rendr omitted it.
 - 2025-11-22: Added canonical board slug helpers to coordinate logged-in experience rendering.
 
