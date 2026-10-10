@@ -17,6 +17,7 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - `agentPerformanceProvenance` lives in `@keeper/shared` — named runtime checklist on persisted Lead messages
 - `ensureDialogGlossCarrier.ts` — Find/create Dialog message for Document Point glossThreads
 - `ingestExternalDocument.ts` — External markdown → Dialog + document_manuscript Points + real session (create or attach)
+- `landAttachedDocument.ts` — Agent turn: readable attachment becomes that Dialog’s Document when the human says it was updated
 - `resolveKipActionAllowlistStatus.ts` — session-bound Kip allowlist + canDraft read (MCP / REST)
 - `agentRunTimings.ts` — Per-turn phase timing bag (`envResolve` / model / actions) for latency diagnosis
 - `streamAgentOutput.ts` — Incremental extractor for the streamed `response` field inside `agent_output` JSON
@@ -49,6 +50,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-09 — Attached writing lands in the Document
+- `landAttachedDocument.ts` brings a readable attachment into the focused Dialog when the human says the document was updated. It uses `ingestExternalDocument` and does not add a second user message.
+
 ### 2026-10-08 — A Dialog document stays readable on the next turn
 - `dialogAttachmentContext.ts` stores the text of a shared file on that message and puts it back into later Lead and specialist prompts.
 

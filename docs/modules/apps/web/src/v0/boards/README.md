@@ -898,6 +898,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
 
+### 2026-10-09 — Attached writing refreshes Chronicle
+- A successful `document.ingest` receipt bumps Draft presence so the Document shows the points that were just brought in.
+
 ### 2026-09-30 — Story in Chronicle
 - Nav **Stories** opens a Story in Chronicle and leaves the Dialog in the center. Add to Story and Take Story to Stage share that selection. The Stage filmstrip is no longer the place the narrative is arranged.
 

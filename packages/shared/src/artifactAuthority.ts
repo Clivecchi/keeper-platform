@@ -74,7 +74,22 @@ const TREATMENT_PATTERNS = [
   /\b(propose|change|update|set|apply) (a |the |my )?(chronicle )?treatment\b/i,
   /\b(change|set|update) (the )?(palette|fonts?)\b/i,
   /\bchronicle look\b/i,
+  /\bvisual change\b/i,
+  /\beffect a\b[\s\S]{0,40}\bchange\b/i,
+  /\brendr\b[\s\S]{0,80}\bchange\b/i,
+  /\bchange\b[\s\S]{0,40}\brendr\b/i,
 ];
+
+/** The human handed Keeper an updated document and expects it in this Dialog. */
+const ATTACHED_DOCUMENT_PATTERNS = [
+  /\b(updated|replaced|revised|uploaded|attached)\b[\s\S]{0,120}\bdocuments?\b/i,
+  /\bdocuments?\b[\s\S]{0,80}\b(updated|uploaded|attached|revised|replaced)\b/i,
+  /\b(bring|land|import)\b[\s\S]{0,50}\b(writing|document|file)\b/i,
+  /\b(this|the attached) (file|document|writing)\b[\s\S]{0,40}\b(is|becomes) the\b/i,
+  /\bact on (this|the attached) documents?\b/i,
+];
+
+const ATTACHED_DOCUMENT_REFUSAL = /\b(do not|don['’]?t)\s+(update|replace|import|bring)\b/i;
 
 function matches(text: string, patterns: readonly RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
@@ -106,6 +121,16 @@ export function humanRequestsTreatment(text: string | null | undefined): boolean
   const input = text?.trim() ?? '';
   if (!input) return false;
   return matches(input, TREATMENT_PATTERNS);
+}
+
+/**
+ * The human said this turn's attached writing is the Document.
+ * A prohibition still wins. The file itself is not scanned.
+ */
+export function humanRequestsAttachedDocument(text: string | null | undefined): boolean {
+  const input = text?.trim() ?? '';
+  if (!input || humanProhibitsArtifacts(input) || ATTACHED_DOCUMENT_REFUSAL.test(input)) return false;
+  return matches(input, ATTACHED_DOCUMENT_PATTERNS);
 }
 
 /**

@@ -28,6 +28,8 @@ export type IngestExternalDocumentInput = {
   source?: string | null;
   /** When set, extend that Dialog's manuscript instead of creating a new Dialog. */
   dialogId?: string | null;
+  /** When false, skip the extra user message. An agent turn already has the sentence. */
+  announceInDialog?: boolean;
 };
 
 export type IngestExternalDocumentResult = {
@@ -322,21 +324,23 @@ export async function ingestExternalDocument(
     ).id;
   }
 
-  await prisma.kip_messages.create({
-    data: {
-      session_id: sessionId,
-      sender: 'user',
-      role: 'user',
-      content: `Brought in writing from outside Keeper.\n\n${describeIngestPlacement(ingestPoints.length, createdSections)}`,
-      metadata: {
-        ingest: true,
-        source,
-        appendedCount: ingestPoints.length,
-        sectionCount: createdSections.length,
-        truncated: parsed.truncated,
-      } as Prisma.InputJsonValue,
-    },
-  });
+  if (input.announceInDialog !== false) {
+    await prisma.kip_messages.create({
+      data: {
+        session_id: sessionId,
+        sender: 'user',
+        role: 'user',
+        content: `Brought in writing from outside Keeper.\n\n${describeIngestPlacement(ingestPoints.length, createdSections)}`,
+        metadata: {
+          ingest: true,
+          source,
+          appendedCount: ingestPoints.length,
+          sectionCount: createdSections.length,
+          truncated: parsed.truncated,
+        } as Prisma.InputJsonValue,
+      },
+    });
+  }
 
   await ensureDialogGlossCarrier({
     domainId: input.domainId,

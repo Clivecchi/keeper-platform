@@ -125,6 +125,7 @@ import {
   enrichDialogAttachments,
   readDialogAttachment,
 } from '../../services/kip/dialogAttachmentContext.js';
+import { landAttachedDocumentOnTurn } from '../../services/kip/landAttachedDocument.js';
 import { visibleAgentMessageText } from '../../services/structure/parseKipAgentOutput.js';
 import {
   buildDialogReadHonesty,
@@ -2119,6 +2120,9 @@ export async function executeAgentActions(
                   ? 'Skipped — nested/support turns advise; the addressed agent writes Points'
                 : action.type === 'draft.create' && ctx.manuscriptDraftId
                   ? 'Skipped draft.create — Point writes go to the active Document manuscript'
+                : action.type === 'treatment.propose'
+                  ? (artifactSkipMessage(action.type, ctx.artifactAuthority)
+                    ?? 'Skipped — a Treatment runs only when the human asked for a visual change.')
                   : 'Action skipped (handled by draft intent pipeline)');
           results.push({
             type: action.type,
@@ -7771,6 +7775,7 @@ export class KipAgentService {
 
         let leadModelInput = input || '';
         let leadOrchestrationContext: string | undefined;
+        let landedDocumentReceipt: ActionExecutionResult | null = null;
         let directorDelegationResult: DirectorDelegationResult | undefined;
         /** Persisted on the Lead message so voice cards survive session reload. */
         let castVoicesForPersist:
@@ -8290,6 +8295,48 @@ export class KipAgentService {
           });
         }
 
+        if (
+          options?.ephemeral !== true
+          && options?.supportEcho !== true
+          && userId
+          && options?.domainId
+        ) {
+          const dialogIdForLand =
+            options.dialogId
+            ?? (options.environment as { dialogDocument?: { dialogId?: string } } | null | undefined)
+              ?.dialogDocument?.dialogId
+            ?? null;
+          if (dialogIdForLand) {
+            try {
+              const landed = await landAttachedDocumentOnTurn({
+                domainId: options.domainId,
+                userId,
+                dialogId: dialogIdForLand,
+                humanText: humanTextForArtifactAuthority(input, options.displayContent),
+                attachments: options.attachments ?? [],
+              });
+              if (landed) {
+                landedDocumentReceipt = landed.receipt;
+                if (landed.promptNote) {
+                  leadOrchestrationContext = leadOrchestrationContext
+                    ? `${leadOrchestrationContext}\n\n${landed.promptNote}`
+                    : landed.promptNote;
+                }
+              }
+            } catch (error) {
+              console.warn('[kip/agents] attached document landing failed', {
+                error: error instanceof Error ? error.message : error,
+              });
+              landedDocumentReceipt = {
+                type: 'document.ingest',
+                status: 'error',
+                message: 'The attached writing could not be brought into this Document.',
+                errorCode: 'INGEST_FAILED',
+              };
+            }
+          }
+        }
+
         // Generate response using real AI model with memory context
         const aiResult = await this.callAIModel(agent, leadModelInput, previousMessages, userId, {
           mode: activeMode,
@@ -8352,6 +8399,9 @@ export class KipAgentService {
 
         let finalResponseText = structured.responseText;
         let actionResults: ActionExecutionResult[] = [];
+        if (landedDocumentReceipt) {
+          actionResults.push(landedDocumentReceipt);
+        }
 
         // Pre-exec governance check (Draft Trigger + Tool-First)
         let governanceRetryCount = 0;
@@ -9978,6 +10028,13 @@ export class KipAgentService {
           });
         }
         
+        if (landedDocumentReceipt?.status === 'success' && landedDocumentReceipt.message.trim()) {
+          const notice = landedDocumentReceipt.message.trim();
+          if (!finalResponseText.includes(notice)) {
+            finalResponseText = `${notice}\n\n${finalResponseText}`.trim();
+          }
+        }
+
         const config = agent.config || {};
         const consultActionCountForResult = actionResults.filter(
           (row) => row.type === 'delegate.consult',

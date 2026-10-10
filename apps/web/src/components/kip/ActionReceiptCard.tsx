@@ -80,6 +80,7 @@ function getActionLabel(actionType: string, receipt?: ActionReceipt): string {
     "treatment.propose": "Proposed treatment",
     "stage.composition.propose": "Composed Stage",
     "document.reorganize.propose": "Proposed Document",
+    "document.ingest": "Brought into the Document",
     "document.orientation.update": "Updated Orientation",
     "delegate.consult": "Consulted",
     "journey.create": "Journey created",

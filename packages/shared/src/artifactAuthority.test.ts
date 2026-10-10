@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   artifactSkipMessage,
+  humanRequestsAttachedDocument,
   humanTextForArtifactAuthority,
   resolveArtifactAuthority,
 } from './artifactAuthority.js';
@@ -41,6 +42,33 @@ describe('artifact authority', () => {
     expect(resolveArtifactAuthority('Add a point about the agency loop.').allowPointPropose).toBe(true);
     expect(resolveArtifactAuthority('Create a new draft for the mobile enter change.').allowDraftCreate).toBe(true);
     expect(resolveArtifactAuthority('Change the treatment palette.').allowTreatmentPropose).toBe(true);
+  });
+
+  it('lets Rendr change the look when the human asked to see a change', () => {
+    expect(
+      resolveArtifactAuthority('I want to see that Rendr can actually effect a visual change.')
+        .allowTreatmentPropose,
+    ).toBe(true);
+    expect(resolveArtifactAuthority("Rendr... Change something").allowTreatmentPropose).toBe(true);
+    expect(
+      resolveArtifactAuthority('Give me a State of Keeper report, including available agents.')
+        .allowTreatmentPropose,
+    ).toBe(false);
+  });
+
+  it('treats an updated attached document as writing to land', () => {
+    expect(
+      humanRequestsAttachedDocument(
+        'We have updated the Operational Truth document. Please act accordingly',
+      ),
+    ).toBe(true);
+    expect(humanRequestsAttachedDocument('Give me a State of Keeper report.')).toBe(false);
+    expect(
+      humanRequestsAttachedDocument('Do not update the document. Just discuss it.'),
+    ).toBe(false);
+    expect(
+      humanRequestsAttachedDocument('Do not create Points. We have updated the document.'),
+    ).toBe(false);
   });
 
   it('reads the human sentence inside a director scaffold', () => {

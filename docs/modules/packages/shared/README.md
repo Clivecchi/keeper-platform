@@ -40,6 +40,9 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-10-09 — Attached writing is the Document
+- `humanRequestsAttachedDocument` recognizes “we updated the document” on the human sentence. A prohibition still blocks it. A visual ask to Rendr (“effect a visual change”, “Rendr… change something”) allows `treatment.propose`.
+
 ### 2026-09-21 — Conversation Profile
 - 2026-10-05: `conversationProfile.ts` — Conversation, Cast, and Agency. Legacy `current` becomes Conversation. An explicit cue narrows hearing.
 - `conversationProfile.ts` — semantic family `current` | `conversation` for which standing-instruction environment the agent enters. Not Dialog Style. Not a `useReducedPrompt` boolean.

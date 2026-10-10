@@ -1561,6 +1561,7 @@ export function UniversalConversation({
           if (
             receipt.type === "document.reorganize.propose"
             || receipt.type === "document.orientation.update"
+            || receipt.type === "document.ingest"
           ) {
             actions.bumpDraftPresence()
             return
@@ -1624,6 +1625,7 @@ export function UniversalConversation({
           if (
             receipt.type === "document.reorganize.propose"
             || receipt.type === "document.orientation.update"
+            || receipt.type === "document.ingest"
           ) {
             actions.bumpDraftPresence()
             return
@@ -1903,6 +1905,7 @@ export function UniversalConversation({
             "gloss.append",
             "document.reorganize.propose",
             "document.orientation.update",
+            "document.ingest",
             "draft.point.accept",
             "draft.delete",
             "draft.setActive",
