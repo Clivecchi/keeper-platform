@@ -9756,6 +9756,13 @@ export class KipAgentService {
             status: row.status,
           })),
         });
+        if (landedDocumentReceipt?.status === 'success' && landedDocumentReceipt.message.trim()) {
+          const notice = landedDocumentReceipt.message.trim();
+          if (!finalResponseText.includes(notice)) {
+            finalResponseText = `${notice}\n\n${finalResponseText}`.trim();
+          }
+        }
+
         let stageExpressionStamp: StageExpressionStamp | undefined;
         let framePerformanceResult: FramePerformance | undefined;
         let savedLeadMessageId: string | undefined;
@@ -10028,13 +10035,6 @@ export class KipAgentService {
           });
         }
         
-        if (landedDocumentReceipt?.status === 'success' && landedDocumentReceipt.message.trim()) {
-          const notice = landedDocumentReceipt.message.trim();
-          if (!finalResponseText.includes(notice)) {
-            finalResponseText = `${notice}\n\n${finalResponseText}`.trim();
-          }
-        }
-
         const config = agent.config || {};
         const consultActionCountForResult = actionResults.filter(
           (row) => row.type === 'delegate.consult',

@@ -33,6 +33,9 @@ Person-scoped arrival at `/home` (your personal domain as Realm) — opening rem
 - [ ] Feed event types — expand when User-Realm Graph formalizes
 
 ## 📆 Update Log
+### 2026-10-10 — Chronicle cannot keep an empty Document after a newer read
+- Invalidating the Dialog Document cache drops the in-flight load. An older fetch cannot write the empty Document back over the one Kip just read.
+
 ### 2026-09-28 — Story-forward arrival cards
 - Realm arrival remarks now avoid numeric update counts and open with a "Stories are in progress" narrative.
 - `RealmInvitationButtons` now presents up to two lightweight story cards, with overflow actions kept as compact pills to avoid overload.

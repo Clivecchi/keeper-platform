@@ -1479,6 +1479,21 @@ export function UniversalConversation({
         if (savedStory) void domainStories.reload()
       }
 
+      if (
+        Array.isArray(actionResults)
+        && actionResults.some((ar) => {
+          const receipt = normalizeActionReceipt(
+            ar as Parameters<typeof normalizeActionReceipt>[0],
+          )
+          return (
+            receipt.status === "success"
+            && (receipt.type === "dialog.read" || receipt.type === "document.ingest")
+          )
+        })
+      ) {
+        actions.bumpDraftPresence()
+      }
+
       if (Array.isArray(actionResults)) {
         const savedGeneratedImage = actionResults.some((ar) => {
           const receipt = normalizeActionReceipt(
@@ -1561,7 +1576,6 @@ export function UniversalConversation({
           if (
             receipt.type === "document.reorganize.propose"
             || receipt.type === "document.orientation.update"
-            || receipt.type === "document.ingest"
           ) {
             actions.bumpDraftPresence()
             return
@@ -1625,7 +1639,6 @@ export function UniversalConversation({
           if (
             receipt.type === "document.reorganize.propose"
             || receipt.type === "document.orientation.update"
-            || receipt.type === "document.ingest"
           ) {
             actions.bumpDraftPresence()
             return

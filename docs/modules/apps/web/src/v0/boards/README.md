@@ -898,6 +898,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
 
+### 2026-10-10 — dialog.read reloads Chronicle
+- A successful `dialog.read` or `document.ingest` reloads the focused Document, so the right panel shows the same points the receipt just counted.
+
 ### 2026-10-09 — Attached writing refreshes Chronicle
 - A successful `document.ingest` receipt bumps Draft presence so the Document shows the points that were just brought in.
 

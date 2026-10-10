@@ -33,6 +33,8 @@ type CacheEntry = {
 const TTL_MS = 45_000
 const cache = new Map<string, CacheEntry>()
 const inflight = new Map<string, Promise<CachedDialogDocument>>()
+/** Bumped on invalidate so an older fetch cannot write the empty Document back. */
+const generation = new Map<string, number>()
 
 function cacheKey(domainId: string, dialogId: string): string {
   return `${domainId}::${dialogId}`
@@ -60,14 +62,20 @@ export function putDialogDocument(
   cache.set(cacheKey(domainId, dialogId), { at: Date.now(), document })
 }
 
+function bumpGeneration(key: string): void {
+  generation.set(key, (generation.get(key) ?? 0) + 1)
+  cache.delete(key)
+  inflight.delete(key)
+}
+
 export function invalidateDialogDocument(domainId: string, dialogId?: string): void {
   if (!dialogId) {
     for (const key of cache.keys()) {
-      if (key.startsWith(`${domainId}::`)) cache.delete(key)
+      if (key.startsWith(`${domainId}::`)) bumpGeneration(key)
     }
     return
   }
-  cache.delete(cacheKey(domainId, dialogId))
+  bumpGeneration(cacheKey(domainId, dialogId))
 }
 
 /** Dedupe concurrent Chronicle loads for the same Dialog. */
@@ -83,13 +91,15 @@ export async function loadDialogDocumentCached(
   const existing = inflight.get(key)
   if (existing) return existing
 
+  const gen = generation.get(key) ?? 0
   const promise = fetcher()
     .then((document) => {
+      if ((generation.get(key) ?? 0) !== gen) return document
       putDialogDocument(domainId, dialogId, document)
       return document
     })
     .finally(() => {
-      inflight.delete(key)
+      if (inflight.get(key) === promise) inflight.delete(key)
     })
 
   inflight.set(key, promise)
