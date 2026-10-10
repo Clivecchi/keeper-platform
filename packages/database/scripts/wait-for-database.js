@@ -5,6 +5,7 @@
  * Usage: node packages/database/scripts/wait-for-database.js
  */
 import pg from 'pg';
+import { applyRailwayPrivateUrl } from './railway-database-url.js';
 
 const MAX_ATTEMPTS = 30;
 const DELAY_MS = 2_000;
@@ -63,7 +64,7 @@ async function canConnect(connectionString) {
 }
 
 async function main() {
-  const connectionString = resolveWaitUrl();
+  let connectionString = resolveWaitUrl();
   if (!connectionString) {
     console.error('[wait-for-database] DATABASE_URL (or DIRECT_URL) is not set');
     process.exit(1);
@@ -72,6 +73,8 @@ async function main() {
   if (!process.env.DIRECT_URL?.trim()) {
     process.env.DIRECT_URL = connectionString;
   }
+
+  connectionString = await applyRailwayPrivateUrl(connectionString);
 
   console.log(
     `[wait-for-database] Waiting for PostgreSQL (${redactDatabaseUrl(connectionString)})…`

@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 import { randomUUID } from 'crypto';
 
-const prisma = new PrismaClient();
 
 // Inlined from apps/web/src/v0/data/domain-frame.default.ts
 // Shape: DomainFrameJson · Keeper JsonFrame Spec v0.1 · March 2026

@@ -5,9 +5,8 @@
  * Idempotent — does not modify credential tables.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 
 const PROVIDER_META: Record<
   string,

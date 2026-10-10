@@ -5,9 +5,9 @@
  * Idempotent — merges health into existing metadata without dropping catalog fields.
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 
 type LayerStatus = 'live' | 'degraded' | 'inactive';
 

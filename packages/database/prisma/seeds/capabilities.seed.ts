@@ -7,13 +7,12 @@
  * Idempotent — upserts by slug.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 import {
   resolveCapabilityChronicleDefaults,
   type CapabilityKind,
 } from '@keeper/shared';
 
-const prisma = new PrismaClient();
 
 /** Mirrors apps/api/src/capabilities/infraCapabilities.ts INFRA_CAPABILITIES */
 const INFRA_CAPABILITY_SLUGS = [

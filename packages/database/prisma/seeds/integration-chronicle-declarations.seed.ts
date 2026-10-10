@@ -5,10 +5,9 @@
  * Idempotent — safe to re-run.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 import { INTEGRATION_CHRONICLE_DECLARATIONS } from '@keeper/shared';
 
-const prisma = new PrismaClient();
 
 export { INTEGRATION_CHRONICLE_DECLARATIONS };
 

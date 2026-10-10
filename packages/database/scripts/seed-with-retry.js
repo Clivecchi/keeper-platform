@@ -9,8 +9,10 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 3;
 const DELAY_MS = 4_000;
+/** Leave room for the API to bind before Railway's healthcheck window closes. */
+const BUDGET_MS = 150_000;
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runner = path.join(pkgRoot, 'scripts', 'run-with-direct-url.js');
 const waitScript = path.join(pkgRoot, 'scripts', 'wait-for-database.js');
@@ -37,7 +39,15 @@ function runNode(scriptPath, args = []) {
 }
 
 async function main() {
+  const startedAt = Date.now();
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed > BUDGET_MS) {
+      console.error(
+        `[seed-with-retry] stopping after ${Math.round(elapsed / 1000)}s so the API can start`,
+      );
+      process.exit(1);
+    }
     console.log(`[seed-with-retry] Attempt ${attempt}/${MAX_ATTEMPTS}`);
 
     // Re-check DB reachability before each attempt (proxy flaps mid-seed).

@@ -13,6 +13,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyRailwayPrivateUrl } from './railway-database-url.js';
 
 const PLACEHOLDER = 'postgresql://postgres:postgres@127.0.0.1:5432/keeper_placeholder';
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -57,18 +58,31 @@ if (args.length === 0) {
 }
 
 const [command, ...commandArgs] = args;
-// Always use a shell so `prisma` resolves via node_modules/.bin on Railway/Linux.
-const child = spawn(command, commandArgs, {
-  stdio: 'inherit',
-  env: process.env,
-  shell: true,
-  cwd: pkgRoot,
-});
 
-child.on('exit', (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal);
-    return;
+async function main() {
+  const current = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
+  if (current && !allowPlaceholder) {
+    await applyRailwayPrivateUrl(current);
   }
-  process.exit(code ?? 1);
+
+  // Always use a shell so `prisma` resolves via node_modules/.bin on Railway/Linux.
+  const child = spawn(command, commandArgs, {
+    stdio: 'inherit',
+    env: process.env,
+    shell: true,
+    cwd: pkgRoot,
+  });
+
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+      return;
+    }
+    process.exit(code ?? 1);
+  });
+}
+
+main().catch((error) => {
+  console.error('[run-with-direct-url] Unexpected error:', error);
+  process.exit(1);
 });

@@ -1,9 +1,8 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 import { ensureAllCanonicalBoards } from '../../src/system-boards/index.js';
 
-const prisma = new PrismaClient();
 
 export default async function seedSystemBoards() {
   console.log('🧊 Seeding canonical system boards...');

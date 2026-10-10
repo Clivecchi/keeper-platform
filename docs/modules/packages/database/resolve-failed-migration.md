@@ -6,7 +6,7 @@ Prisma reports failed migrations in `_prisma_migrations` (`finished_at IS NULL`)
 
 Your logs also showed:
 
-- **P1001** — transient “Can't reach database” on `switchyard.proxy.rlwy.net` *after* `wait-for-database` already connected
+- **P1001** — transient “Can't reach database” on `switchyard.proxy.rlwy.net` *after* `wait-for-database` already connected. Seed now uses one Prisma client and the private host when it answers.
 - **P3011** — old startup tried `prisma migrate resolve --rolled-back 20260215_sole_memory_links` after the row was already deleted
 
 ## Automatic (current Railway start)

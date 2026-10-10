@@ -1,9 +1,8 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 import { randomUUID } from 'crypto';
 
-const prisma = new PrismaClient();
 
 async function ensureKeeperType(name: string): Promise<string> {
   let keeperType = await prisma.keeperType.findFirst({

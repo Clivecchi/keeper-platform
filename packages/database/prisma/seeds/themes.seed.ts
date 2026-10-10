@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 import { randomUUID } from 'crypto';
 
-const prisma = new PrismaClient();
 
 async function main() {
   console.log('🎨 Seeding canonical themes...');

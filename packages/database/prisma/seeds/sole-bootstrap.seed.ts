@@ -9,9 +9,8 @@
  * Runs after domain and kip-agents seeds. Idempotent — skips if bootstrap already exists.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 
 const BOOTSTRAP_TOPIC = 'kip-bootstrap';
 

@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 
 const KEEPER_MARK_ID = 'clx_emotif_keeper_mark';
 

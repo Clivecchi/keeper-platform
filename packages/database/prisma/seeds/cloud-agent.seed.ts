@@ -9,9 +9,8 @@
  * Idempotent — creates Cloud agent or ensures read infra capabilities are present.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 export const CLOUD_INFRA_READ_CAPABILITIES = [
   'infra.railway.read',
   'infra.vercel.read',

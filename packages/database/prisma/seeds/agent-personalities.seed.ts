@@ -5,9 +5,8 @@
  * Idempotent; safe to re-run via prisma db seed or standalone script.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 
 export const KIP_COVER_PERSONALITY =
   'Experience Director. I think alongside the people building this.';

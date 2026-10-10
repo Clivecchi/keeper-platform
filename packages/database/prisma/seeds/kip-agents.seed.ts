@@ -9,9 +9,8 @@
  * Uses Prisma upserts so this seed is idempotent and safe to re-run.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 
 export default async function seed() {
   console.log('🤖 Seeding Kip agents...');

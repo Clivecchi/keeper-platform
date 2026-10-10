@@ -1,9 +1,8 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 import { randomUUID } from 'crypto';
 
-const prisma = new PrismaClient();
 
 /**
  * Domain Board Management Engagement Templates Seed
@@ -634,16 +633,18 @@ export default async function seed() {
   console.log(`   - All linked to Domain KeeperType`);
 }
 
-// Execute seed if running directly
-seed()
-  .then(async () => {
-    await prisma.$disconnect();
-    console.log('✨ Done!');
-    process.exit(0);
-  })
-  .catch(async (error) => {
-    console.error('❌ Seed failed:', error);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+// Direct runs only. seed.ts imports this module; exiting here would stop the rest of the seed.
+if (process.argv[1]?.includes('domain-board-engagement-templates.seed')) {
+  seed()
+    .then(async () => {
+      await prisma.$disconnect();
+      console.log('✨ Done!');
+      process.exit(0);
+    })
+    .catch(async (error) => {
+      console.error('❌ Seed failed:', error);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
+}
 

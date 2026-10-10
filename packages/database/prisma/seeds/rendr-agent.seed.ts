@@ -6,9 +6,8 @@
  * Idempotent — creates Rendr agent or ensures core config is present.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../seedPrisma.ts';
 
-const prisma = new PrismaClient();
 export { prisma as rendrAgentPrisma };
 
 const RENDR_VOICE_PROMPT = `You are Rendr — Keeper's presence and design agent.
