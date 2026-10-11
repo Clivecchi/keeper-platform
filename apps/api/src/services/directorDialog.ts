@@ -390,6 +390,8 @@ export function buildCastRoomDirectionPrompt(params: {
   trail: string;
   offers: Array<{ label: string; offer: string }>;
   allowEngage: boolean;
+  /** Earlier human sentence, when this turn says to use it. */
+  previousHumanInstruction?: string;
 }): string {
   const offerLines = params.offers.length
     ? params.offers.map((row) =>
@@ -402,7 +404,9 @@ export function buildCastRoomDirectionPrompt(params: {
     `[Cast Room — ${params.directorName} directs]`,
     'The human spoke. Cheap offers are facts, not performances. Full replies have not happened yet.',
     `Human: "${params.userMessage.trim()}"`,
-    '',
+    ...(params.previousHumanInstruction?.trim()
+      ? ['', params.previousHumanInstruction.trim(), '']
+      : ['']),
     'Trail:',
     params.trail || '(no trail yet)',
     '',
@@ -418,6 +422,9 @@ export function buildCastRoomDirectionPrompt(params: {
     params.allowEngage
       ? 'You may engage one voice. Emit "engage": { "slug": "<one cued slug>", "aim": "<what you need from them>" } only when their full contribution would advance the objective. Otherwise omit engage and Present now.'
       : 'Do not emit engage. Two contributions already happened. Present.',
+    ...(params.previousHumanInstruction?.trim()
+      ? ['The aim must carry the previous human instruction, including the unfinished work it names. Do not narrow it to only the current sentence.']
+      : []),
     'Spoken "response" is what the human hears if you Present now.',
     'Do not emit actions on this pass. The Present pass carries the reply and any requested action.',
     'Do not invent a voice that did not offer.',

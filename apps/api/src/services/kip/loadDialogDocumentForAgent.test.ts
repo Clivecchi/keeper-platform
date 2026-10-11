@@ -60,4 +60,20 @@ describe('formatDialogDocumentForAgent', () => {
     expect(prompt).toContain('last set by Kip');
     expect(prompt).toContain('not a turn summary');
   });
+
+  it('names the next dialog.read offset when Points continue past the standing list', () => {
+    const points = Array.from({ length: 81 }, (_, index) => ({
+      prelude: `Point ${index + 1}`,
+      preview: `Body ${index + 1}`,
+      pathGroupId: 'plot',
+    }));
+    const prompt = formatDialogDocumentForAgent({
+      dialogId: 'dlg-1',
+      paths: [{ id: 'plot', title: 'The Plot' }],
+      points,
+    });
+    expect(prompt).toContain('80. Point 80 — Body 80');
+    expect(prompt).not.toContain('81. Point 81');
+    expect(prompt).toContain('dialog.read with offset 80');
+  });
 });

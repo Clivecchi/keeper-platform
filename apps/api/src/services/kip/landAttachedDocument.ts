@@ -51,13 +51,43 @@ export function attachedDocumentPromptNote(input: {
   fileName: string;
   appendedCount: number;
   pointCount: number;
+  reconciled?: boolean;
+  matchedCount?: number;
+  proposedCount?: number;
+  sourceTruncated?: boolean;
 }): string {
+  const cut = input.sourceTruncated
+    ? ' The file continued past this read, so later sections were not compared and this is not the whole source.'
+    : '';
+  if (input.reconciled) {
+    const proposed = input.proposedCount ?? 0;
+    return [
+      'ATTACHED WRITING WAS COMPARED WITH THIS DOCUMENT.',
+      `Keeper did not add another copy of “${input.fileName}”.`,
+      `${input.matchedCount ?? 0} existing Points kept their identities. ${input.pointCount} Points remain.`,
+      proposed > 0
+        ? `${proposed} difference${proposed === 1 ? '' : 's'} are a Review proposal. Apply is the human.`
+        : 'Nothing new was proposed.',
+      `${cut}`.trim(),
+      'Say what matched, then do the next unfinished action the writing names.',
+    ].filter(Boolean).join('\n');
+  }
   return [
     'ATTACHED WRITING IS NOW THIS DOCUMENT.',
-    `Keeper brought “${input.fileName}” into this Dialog (${input.appendedCount} points; ${input.pointCount} in the Document).`,
+    `Keeper brought “${input.fileName}” into this Dialog (${input.appendedCount} points; ${input.pointCount} in the Document).${cut}`,
     'The Document exists. Do not say it was not created. Do not hunt GitHub for a stand-in file.',
     'Say what landed, then do the next unfinished action the writing names.',
   ].join('\n');
+}
+
+/** Later action results must not drop the ingest or compare receipt. */
+export function keepLandedDocumentReceipt<T extends { type: string }>(
+  results: T[],
+  landed: T | null,
+): T[] {
+  if (!landed) return results;
+  if (results.some((result) => result.type === 'document.ingest')) return results;
+  return [landed, ...results];
 }
 
 export async function landAttachedDocumentOnTurn(input: {
@@ -77,6 +107,9 @@ export async function landAttachedDocumentOnTurn(input: {
   let dialogTitle = '';
   const names: string[] = [];
   let truncated = false;
+  let reconciled = false;
+  let matchedCount = 0;
+  let proposedCount = 0;
 
   for (const file of files) {
     const read = await readDialogAttachment(file);
@@ -102,13 +135,17 @@ export async function landAttachedDocumentOnTurn(input: {
         title: fileTitle(file.name),
         source: file.name,
         announceInDialog: false,
+        sourceTruncated: read.truncated === true,
       });
       appendedCount += landed.appendedCount;
       pointCount = landed.pointCount;
       manuscriptId = landed.manuscriptId;
       dialogTitle = landed.dialogTitle;
       names.push(file.name);
-      truncated = truncated || landed.truncated;
+      truncated = truncated || landed.truncated || read.truncated === true;
+      reconciled = reconciled || landed.reconciled === true;
+      matchedCount += landed.matchedCount ?? 0;
+      proposedCount += landed.proposedCount ?? 0;
     } catch (error) {
       const message =
         error instanceof IngestExternalDocumentError
@@ -128,8 +165,15 @@ export async function landAttachedDocumentOnTurn(input: {
   }
 
   const fileName = names.length === 1 ? names[0]! : `${names.length} files`;
-  const tail = truncated ? ' The file was longer than one Document pass, so later sections were left out.' : '';
-  const message = `Brought “${fileName}” into this Document — ${appendedCount} point${appendedCount === 1 ? '' : 's'}.${tail}`;
+  const tail = truncated
+    ? ' The file continued past this read, so later sections were not compared and this is not the whole source.'
+    : '';
+  const difference = proposedCount > 0
+    ? `${proposedCount} difference${proposedCount === 1 ? '' : 's'} ${proposedCount === 1 ? 'is' : 'are'} a Review proposal.`
+    : 'Nothing new was proposed.';
+  const message = reconciled
+    ? `Compared “${fileName}” with this Document. ${matchedCount} existing Point${matchedCount === 1 ? '' : 's'} kept their identities. ${difference} Nothing was appended.${tail}`
+    : `Brought “${fileName}” into this Document — ${appendedCount} point${appendedCount === 1 ? '' : 's'}.${tail}`;
   return {
     receipt: {
       type: 'document.ingest',
@@ -147,8 +191,18 @@ export async function landAttachedDocumentOnTurn(input: {
         appendedCount,
         pointCount,
         fileName,
+        ...(reconciled ? { reconciled: true, matchedCount, proposedCount } : {}),
+        ...(truncated ? { sourceTruncated: true } : {}),
       },
     },
-    promptNote: attachedDocumentPromptNote({ fileName, appendedCount, pointCount }),
+    promptNote: attachedDocumentPromptNote({
+      fileName,
+      appendedCount,
+      pointCount,
+      reconciled,
+      matchedCount,
+      proposedCount,
+      sourceTruncated: truncated,
+    }),
   };
 }

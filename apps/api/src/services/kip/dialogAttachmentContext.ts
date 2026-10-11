@@ -18,6 +18,8 @@ export type DialogAttachmentRecord = {
   type: 'image' | 'file';
   extractedText?: string;
   extractNote?: string;
+  /** True when the file continued past the characters stored here. */
+  truncated?: boolean;
 };
 
 type MessageWithMeta = {
@@ -53,6 +55,7 @@ export function attachmentsFromMetadata(metadata: unknown): DialogAttachmentReco
       type,
       ...(extractedText ? { extractedText } : {}),
       ...(extractNote ? { extractNote } : {}),
+      ...(record.truncated === true ? { truncated: true } : {}),
     });
   }
   return parsed;
@@ -60,7 +63,7 @@ export function attachmentsFromMetadata(metadata: unknown): DialogAttachmentReco
 
 export async function readDialogAttachment(
   attachment: { url: string; name: string },
-): Promise<{ extractedText?: string; extractNote?: string }> {
+): Promise<{ extractedText?: string; extractNote?: string; truncated?: boolean }> {
   try {
     const res = await fetchBlobWithAuth(attachment.url);
     if (!res.ok) {
@@ -69,25 +72,33 @@ export async function readDialogAttachment(
     const name = attachment.name || attachment.url;
     if (isDocxName(name) || isDocxName(attachment.url)) {
       const buffer = Buffer.from(await res.arrayBuffer());
-      const text = extractDocxText(buffer, MAX_FILE_CHARS);
-      return text
-        ? { extractedText: text }
+      const text = extractDocxText(buffer, MAX_FILE_CHARS + 1);
+      const truncated = text.length > MAX_FILE_CHARS;
+      const extractedText = truncated ? text.slice(0, MAX_FILE_CHARS) : text;
+      return extractedText
+        ? { extractedText, ...(truncated ? { truncated: true } : {}) }
         : { extractNote: 'This Word file had no readable paragraph text.' };
     }
     if (isPdfName(name) || isPdfName(attachment.url)) {
       const buffer = Buffer.from(await res.arrayBuffer());
       if (isPdfBuffer(buffer) || isPdfName(name)) {
-        const extracted = extractPdfText(buffer, MAX_FILE_CHARS);
-        return extracted.text.trim()
-          ? { extractedText: extracted.text.trim() }
+        const extracted = extractPdfText(buffer, MAX_FILE_CHARS + 1);
+        const full = extracted.text.trim();
+        const truncated = full.length > MAX_FILE_CHARS;
+        const extractedText = truncated ? full.slice(0, MAX_FILE_CHARS) : full;
+        return extractedText
+          ? { extractedText, ...(truncated ? { truncated: true } : {}) }
           : { extractNote: 'This PDF has no extractable text. It may be scanned images.' };
       }
     }
     if (isReadableTextDocument(name) || isReadableTextDocument(attachment.url)) {
-      const text = (await res.text()).trim().slice(0, MAX_FILE_CHARS);
-      return text
-        ? { extractedText: text }
-        : { extractNote: 'This text file was empty.' };
+      const full = (await res.text()).trim();
+      if (!full) return { extractNote: 'This text file was empty.' };
+      const truncated = full.length > MAX_FILE_CHARS;
+      return {
+        extractedText: truncated ? full.slice(0, MAX_FILE_CHARS) : full,
+        ...(truncated ? { truncated: true } : {}),
+      };
     }
     return { extractNote: 'This file type is stored, but its text is not read yet.' };
   } catch (error) {
@@ -115,10 +126,13 @@ export async function enrichDialogAttachments(
 }
 
 function formatOne(attachment: DialogAttachmentRecord): string {
-  if (attachment.extractedText?.trim()) {
-    return `[Document: ${attachment.name}]\n${attachment.extractedText.trim()}`;
-  }
-  return `[Document: ${attachment.name}]\n${attachment.extractNote || 'No text was stored for this file.'}`;
+  const body = attachment.extractedText?.trim()
+    ? attachment.extractedText.trim()
+    : attachment.extractNote || 'No text was stored for this file.';
+  const cut = attachment.truncated
+    ? '\n[The file continued past this extract. Later sections are not in this text.]'
+    : '';
+  return `[Document: ${attachment.name}]\n${body}${cut}`;
 }
 
 export function formatDialogDocumentPrompt(attachments: readonly DialogAttachmentRecord[]): string {
@@ -194,6 +208,7 @@ async function rememberAttachmentExtract(
     ...(current as Record<string, unknown>),
     ...(attachment.extractedText ? { extractedText: attachment.extractedText } : {}),
     ...(attachment.extractNote ? { extractNote: attachment.extractNote } : {}),
+    ...(attachment.truncated ? { truncated: true } : {}),
   };
   metadata.attachments = rows;
   await prisma.kip_messages.update({

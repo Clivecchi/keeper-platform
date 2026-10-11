@@ -32,6 +32,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-10-10 — The room sees this turn’s file and the previous sentence
+- `useAgentDialog.ts` passes the current attachments into the Cast Room. When the sentence refers to the previous prompt, that earlier human text goes with the direction.
+
 ### 2026-10-08 — Specialist receipts reach the Lead
 - `useAgentDialog.ts` forwards a progressive-room consultation when it has prose, a receipt, a card, or a failure. Empty prose no longer drops the receipt. Those receipts are annotated and held for the Lead present pass.
 

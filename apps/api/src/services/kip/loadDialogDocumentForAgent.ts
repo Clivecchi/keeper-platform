@@ -100,6 +100,7 @@ export function formatDialogDocumentForAgent(doc: DialogDocumentPromptInput): st
 
   const hosts = (doc.points ?? []).filter((point) => !point.referencesPointId);
   const numbered = hosts.slice(0, 80).map((point, index) => ({ point, n: index + 1 }));
+  const hiddenPointCount = hosts.length - numbered.length;
   lines.push(
     ...formatOrientationForAgent({
       orientation: doc.orientation,
@@ -155,6 +156,11 @@ export function formatDialogDocumentForAgent(doc: DialogDocumentPromptInput): st
     lines.push('Points: (none loaded for this Dialog manuscript yet).');
   }
 
+  if (hiddenPointCount > 0) {
+    lines.push(
+      `Points ${numbered.length + 1}–${hosts.length} are stored and are not listed above. dialog.read with offset ${numbered.length} returns their number, id, and title.`,
+    );
+  }
   lines.push(
     'Point title is prelude — a short label that tells the story of the Point (e.g. "Agent Narrates, Doesn\'t Act"), not a cut of the body. Always set prelude/title on new Points. To rename: draft.point.rewrite with pointId set to the number (1, 2, 3…) or the current title; prelude is the new title; omit content to keep the body. To Gloss a Point (depth beside it, not a rewrite): gloss.append with pointId 1–N or the current title, and content. Do not weave Gloss into the Point body. The Dialog id above is not a Point id.',
     'This Document is the primary conversational background. Stay aware of the Domain. If Working on is a Draft, do not treat this manuscript as the Point write target.',

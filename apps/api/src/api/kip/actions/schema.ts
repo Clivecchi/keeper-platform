@@ -196,6 +196,8 @@ const dialogReadPayloadSchema = z.object({
   id: z.string().optional(),
   query: z.string().optional(),
   limit: z.number().int().min(1).max(50).optional().default(20),
+  /** With id, the Point page start. Without id, how many Dialogs to skip. */
+  offset: z.number().int().min(0).max(500).optional(),
 });
 
 /** Domain catalog shelf. Titles and ids. Bodies stay on the existing read actions. */

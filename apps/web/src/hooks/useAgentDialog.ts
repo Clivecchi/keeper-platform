@@ -9,6 +9,7 @@ import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components
 import { extractLinkedCard } from "../components/agent/helpers"
 import {
   detectReorganizeIntent,
+  refersToPreviousHumanInstruction,
   extractKeeperAdviceCardFromRunResult,
   applyKeepingChoiceSelection,
   canExerciseKeepingChoice,
@@ -1150,6 +1151,11 @@ export function useAgentDialog({
             .reverse()
             .find((message) => message.role === "agent" && message.roomTrace?.length)
             ?.roomTrace ?? []
+          const previousHumanText = refersToPreviousHumanInstruction(content)
+            ? [...messagesRef.current].reverse().find((message) =>
+                message.role === "user" && message.content.trim() && message.content.trim() !== content.trim(),
+              )?.content
+            : undefined
           const room = await runProgressiveCastRoom({
             profile: conversationProfile,
             voices: roomVoices,
@@ -1164,6 +1170,8 @@ export function useAgentDialog({
             previousTrace,
             leadAgentId: agentId,
             runAgentContext: (runOpts.agentContext ?? {}) as Record<string, unknown>,
+            attachments: attachments?.length ? attachments : undefined,
+            previousHumanText,
             onStatus: appendThinkingStep,
           })
           roomPresent = {

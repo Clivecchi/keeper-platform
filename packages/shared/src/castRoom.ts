@@ -114,6 +114,8 @@ export type CastRoomWire = {
   outcome?: AgencyLoopOutcome;
   resolved?: boolean;
   assignment?: CastRoomAssignment;
+  /** Formatted earlier human sentence, when this turn refers to it. */
+  previousHumanInstruction?: string;
 };
 
 export const CAST_ROOM_DIRECTION_REF = 'direction';
@@ -205,6 +207,9 @@ export function parseCastRoomWire(value: unknown): CastRoomWire | null {
     ...(outcome ? { outcome } : {}),
     ...(record.resolved === true ? { resolved: true } : record.resolved === false ? { resolved: false } : {}),
     ...(assignment ? { assignment } : {}),
+    ...(typeof record.previousHumanInstruction === 'string' && record.previousHumanInstruction.trim()
+      ? { previousHumanInstruction: record.previousHumanInstruction.trim() }
+      : {}),
     trace: parseCastRoomEvents(record.trace),
     consumption: Array.isArray(record.consumption)
       ? record.consumption.flatMap((row) => {
@@ -513,15 +518,22 @@ export function buildSpecialistAssignmentBlock(params: {
   aim: string;
   directionId: string;
   priorTrail: string;
+  /** Earlier human sentence, when this turn says to use it. The aim stays the task. */
+  previousHumanInstruction?: string;
 }): string {
+  const previous = params.previousHumanInstruction?.trim() ?? '';
   return [
     'THIS ASSIGNMENT — answer this aim. It is the only task for this contribution.',
     'A previous contribution, a session receipt, or an older investigation is not this assignment.',
     `Direction: ${params.directionId}`,
     `Aim: ${params.aim}`,
+    ...(previous ? ['', previous] : []),
     '',
     params.priorTrail,
     'Report what you did for this aim. Do not report prior-turn work as this result.',
     'If you run a tool, the receipt is evidence. A receipt for a different object does not answer the aim.',
+    ...(previous
+      ? ['The previous human instruction above is part of this aim. Do not say it could not be recovered.']
+      : []),
   ].join('\n');
 }

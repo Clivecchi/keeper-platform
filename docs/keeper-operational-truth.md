@@ -3,6 +3,8 @@
 Version 0.3 • October 8 2026 • Decisions and evidence on top of the 0.2 audit
 Status: Product intent approved by Chuck on 2026-10-08. Implementation is not an approved operational baseline. Not a public release. Not runtime-verified as a whole.
 
+The October 10 exchange is recorded at the end of this file. It is evidence about a failed Document update. It does not replace this version, and it does not authorize deleting Points.
+
 Version 0.2 remains the code audit against `be18e65deb6cc398c9f48615485020f862e78d79`. It is not superseded. Version 0.1’s product contracts, OT IDs, parked register, and source register stand. PK01–PK14 stay parked. No requirement is dropped.
 
 ## Decisions recorded 2026-10-08
@@ -250,6 +252,8 @@ Verdict: **Unverified** as integration. A suitable path exists and was not used.
 
 Gap: Chuck chooses the audience and the home. Importing accepted Points would look like approval. Next: Library for the full 0.2 text, and a development Dialog only when Chuck wants OT rows as proposed Points. Do not add an operational-truth service. Dependency: Chuck’s decision. This pass does not publish.
 
+October 10 later did import writing into Dialog `cmv04yrn50001otb8mwjrj0as`. That import is the exchange below. It is not approval of the requirements, and it is not a reconciled baseline.
+
 ## Parked register
 
 PK01–PK14 from version 0.1 are unchanged. Nothing in this pass promotes them into the sprint.
@@ -280,3 +284,120 @@ Version 0.1 — October 7 2026 — Consolidated supplied sources. No repository 
 Version 0.2 — October 8 2026 — Cursor code and runtime reconciliation at `be18e65d`. Verdicts above. Uncommitted Agency repair recorded separately from HEAD. Not deployed as this document. Not imported into Keeper. Not approved.
 
 Next version — After Chuck’s semantic decisions and a replay that names commit, environment, actor, and reload. Do not call a later draft code-confirmed until that evidence exists.
+
+## Exchange evidence — October 10 2026
+
+This section records one live Dialog turn. It is not a new Operational Truth version. The authoritative source for that turn is the attached file `Keeper_Operational_Truth_v0.5.md`. Its body declares Version 0.5 • October 10 2026 and includes Section 0’s capability index and the S20–S21 update. The blob is 96,210 characters. Files whose names said v-4 and v-5 declared Version 0.3 • October 8 2026 in the body. Version was read from the body.
+
+No Points or Sections were deleted. A snapshot of the manuscript, the three prior versions, the turns, the Gloss, the 80,000-character extract, and the full blob is in `tmp/ot-exchange-snapshot-2026-10-10/`. That folder is local evidence. It is not a commit and not a deploy.
+
+### What reached Cloud and Kip
+
+Dialog `cmv04yrn50001otb8mwjrj0as`. Manuscript `ccdf4735-391a-4226-841d-60a5a1b48150`.
+
+| When (UTC) | Message | Attachment | Body actually stored | Who could read it on that pass |
+|---|---|---|---|---|
+| 2026-10-10 21:32 | `ed1da98e-9d6d-4206-806b-c5462e1c610f` | `Keeper_Operational_Truth v-4.md` | Version 0.3 • October 8 2026. 71,384 characters. No Section 0. | Lead present pass, after the file was saved on the message. |
+| 2026-10-10 23:52 | `6da6281f-a5c2-4f39-aa32-4114bb1b343c` | `Keeper_Operational_Truth v-5.md` | Same Version 0.3 body. 71,384 characters. Filename said v-5. | Lead present pass. Cloud was not engaged on this turn. |
+| 2026-10-11 00:03 | `e6985829-d682-42c4-8edb-b65230f43a4b` | `Keeper_Operational_Truth_v0.5.md` | Blob is Version 0.5, 96,210 characters, with Section 0, S20, S21, and sections 17–19. The text saved for later turns is the first 80,000 characters and stops mid-sentence in Section 16 C: “Human or Lead”. | Kip’s later present pass received the attachment and saw Version 0.5. Cloud’s contribution ran before that save and read the already stored v-5 / Version 0.3 file. |
+
+Cloud’s stored direction was: inspect `Keeper_Operational_Truth v-5.md`, recover the previous human prompt, and determine the update. Cloud’s stored contribution begins “Inspecting v-5.md” and reports the previous prompt from the session action log. Kip’s stored reply names the v0.5 body, Section 0, and S20–S21. Those are two different sources on one turn.
+
+### Why the update appended another import
+
+`landAttachedDocumentOnTurn` (`3489df44`) treats “the document was updated” as a request to call `ingestExternalDocument`. That function still does `points: [...existingPoints, ...ingestPoints]` (`5bdc36143`, ancestry `beb557f08`). It does not compare an incoming heading with an existing Point.
+
+`uniqueIngestSectionTitle` (`5bdc36143`) checks only the original heading. When that heading exists it appends “ · brought in” once. A later import of the same heading finds the original still present, appends the same suffix again, and `createDocumentSection` mints a new id. The Document now has two Sections titled “1 Purpose and governing conclusion · brought in”, and the same collision through Section 16.
+
+The v0.5 read also stops at `MAX_FILE_CHARS` (`1fb06fc8`, 80,000). `INGEST_MAX_POINTS` (80) was not what cut this file. The extract ended inside Section 16 C, so the import wrote 52 Points and never saw sections 17–19 or acceptance items D–G. Those headings are in the blob and absent from the stored extract.
+
+The spoken reply starts “Brought … 52 points” because the landing notice is prepended from a local variable. The persisted `actionResults` on message `71602f3f-8651-4136-9d27-3f8a769bf7ce` are `dialog.read` and `gloss.append` only. `actionResults = execution.results` (`0881a4f96`) replaces the array that had just received the `document.ingest` receipt. The import is visible in the manuscript versions and the spoken notice. It is absent from the session action log.
+
+Manuscript versions, each saved before the next write:
+
+| Version row | Saved (UTC) | Points | Declared body |
+|---|---|---|---|
+| 1 | 2026-10-10 21:32 | 0 | Empty manuscript before the first import. |
+| 2 | 2026-10-10 23:52 | 55 | One Version 0.3 copy. |
+| 3 | 2026-10-11 00:03 | 110 | Two Version 0.3 copies. This is the 110 Cloud reported. |
+| Current | after 00:03 | 162 | Those 110, plus 52 Points from the truncated Version 0.5 extract. |
+
+### Point and Section inventory
+
+162 Points. 55 Sections. 3 Points sit in Open (the title Point of each import). Every Point is `accepted`, `proposedBy` the ingest path, created in one of three timestamps.
+
+| Points | Created (UTC) | Provenance | Declared version in the body |
+|---|---|---|---|
+| 1–55 | 2026-10-10 21:32:11.559Z | First import of the v-4 file | 0.3 |
+| 56–110 | 2026-10-10 23:52:40.880Z | Second import of the v-5 file | 0.3 |
+| 111–162 | 2026-10-11 00:03:25.942Z | Third import of the truncated v0.5 extract | 0.5 where the new text survived |
+
+Body hashes: 55 bodies in Points 1–55 each have exactly one match in Points 56–110. 35 of those bodies also appear once in Points 111–162. 20 appear only in the first two copies. 17 bodies appear only in the third copy. The 17 are Points 111–122, 125, 138, 142, 151, and 162. Point 162, “C Conversation and directed presentation”, is 124 characters and is the cut sentence. Sections 17, 18, and 19, and acceptance D–G, are in the blob and have no third-copy Points.
+
+Section membership follows the three arrivals. The first 19 Sections keep the original titles and hold Points 1–55. The next 19 are the same titles plus “ · brought in” and hold Points 56–110. “0 Current operational state and capability index” holds the nine Section 0 Points from the third import (112–120). A further run of “ · brought in” titles, with new ids, holds the rest of Points 111–162 through a four-Point Section 16. Open holds the three title Points.
+
+Cloud’s 110 was the manuscript before this import. It is version row 3. It is not an inventory of Version 0.5, and it is not a list of what to delete.
+
+Full ids, preludes, section ids, and hashes are in `tmp/ot-exchange-snapshot-2026-10-10/inventory.json` and `manuscript-spec.json`.
+
+### Why dialog.read was not enough
+
+`dialog.read` on the 00:03 reply succeeded. The stored receipt lists 162 Points, and each stored summary has an id and a prelude. `summarizeDraftPointsForAgent` puts 160 characters of the body in `preview` (`draftPoints.ts`).
+
+The text handed back to the model is `formatReadActionResultsForFollowUp`. For `dialog.read` it prints the first 24 previews and omits id, prelude, and number (`2dbc8e8c9`). Points 25–162, including the entire Version 0.5 arrival, are outside that excerpt. The system Document block is a separate cap: `hosts.slice(0, 80)` (`9fc6c4cb8`), and the block the client sent was loaded before this import.
+
+`dialog.read`’s `limit` pages the Dialog list. It does not page Points. There is no Point offset. `draft.read` returns the whole spec, then `summarizeDraftSpec` shows eight Points and the follow-up does not also dump the spec. A second `dialog.read` of the same id returns the same shape. The existing reads cannot put Points 111–162’s identities and bodies into the model’s excerpt. The Lead present pass can still see the attachment, cut at 80,000 characters. That is how the reply could name Version 0.5 and also say the excerpts lacked the new Points.
+
+### Why the specialist lost the earlier objective
+
+The room runs before the Lead saves the current message (`useAgentDialog.ts` calls `runProgressiveCastRoom` first). The specialist call (`e6057cb00`, assignment block added in `cf16e1e8`) does not receive `attachments`. Its session load is ephemeral: it may read older messages, and it does not write this turn. `buildDialogDocumentPrompt` therefore offers previously saved files. The newest of those was v-5 / Version 0.3.
+
+Kip’s aim is the specialist’s assignment (`buildSpecialistAssignmentBlock`, `cf16e1e8`). The stored aim names v-5 and asks Cloud to recover the previous human prompt. The current sentence is quoted in `buildCastDelegationPrompt`. The previous sentence — the 23:52 instruction to read Version 0.5, compare, reconcile, and continue the receipt investigation — is not in that assignment. `projectCastRoomTrail` keeps prior `contributed`, `acted`, and `resolved` events and drops prior `spoke` (`e6057cb00`). The session action log skips `sender === 'user'` (`51e816be6`) and clips receipt labels to 72 characters. Cloud’s stored words say the recovery looked at that log.
+
+The unfinished repository objective remains the one named on the 21:32 reply and restated at 23:52: Cloud locates the receipt and evaluation path for OT16 and OT19–OT22, and Cursor owns any repair and tests. This turn’s contribution did not return a commit, a path, or a receipt-seam finding.
+
+### Gloss
+
+`gloss.append` succeeded. Thread `917a6626-eb9f-4e39-a4a6-b6ba965ee715` is on carrier message `23cba57e-614c-4b6c-8136-6c0c6d910571`, anchored to Point 33 (`64b7e0c3-7607-45c4-a595-64c5c256b883`, “Active evidence and development records”, first import, Section 14). The Gloss names Version 0.5, the 162-count, the excerpt gap, the truncated Section 16 C, owners, and the still-open OT16 / OT19–OT22 repository check. It states that a Gloss receipt preserves the record and does not finish the investigation. That is a sufficient unfinished-work record for this turn. It does not contain Cloud’s repository findings, because that contribution did not return them.
+
+### Layers
+
+| Layer | What this pass can say |
+|---|---|
+| Product intent | One baseline, existing identities, historical evidence kept, no second home and no wholesale duplicate import. Chuck still confirms meaning. |
+| Committed code | Causes above are in ancestors of local HEAD `f59cb73480e114478f3e5f92bc59964e0c021d51` (`anotherr v`, 2026-10-10 19:27 -0400). The append, the 80,000-character cap, the 24-preview excerpt, the 80-Point Document block, the specialist assignment, and the receipt overwrite are the commits named in this section. |
+| Local changes | No product diff was required to observe this. Inspection scripts and the snapshot are untracked under `tmp/`. |
+| Tests | No suite was run for this exchange. The counts come from the stored manuscript and the blob. |
+| Deployment | The deployed web and API SHAs were not read. The turn’s behavior matches the committed seams above. That match is not a production SHA. |
+| Live behavior | The rows cited above. 162 Points remain. Nothing was deleted. |
+| Ownership | Kip carries Document reconciliation and the Gloss. Cloud still owes the read-only repository investigation. Cursor owes any repair of attachment delivery, ingest comparison, read excerpts, and aim continuity inside the existing structures. Chuck decides when a reconciled Document is accepted. |
+
+### Smallest repairs, and the acceptance they have to meet
+
+Stay inside attachment read, ingest, Document review, `dialog.read` / `draft.read`, and the Cast Room. Do not add a reconciliation service.
+
+1. Give the direction pass and the specialist the current turn’s attachments, the same way the Lead present pass already calls `resolveFileAttachmentContext`. Both participants then read one extracted body, and the aim can name the file that is actually on the turn.
+2. When a Document already holds this writing, compare heading and body with existing Points. Keep the existing ids. Send real differences through `document.reorganize.propose`. Stop the blind append, and stop minting another “ · brought in” Section when that title already exists. If the extract is shorter than the blob, say so on the receipt and do not treat the import as the whole source.
+3. Keep the `document.ingest` receipt in `actionResults` when later actions run.
+4. Teach the existing follow-up to print Point number, id, and prelude, and to accept a continuation for Points past the first page. `dialog.read` can grow an offset for Points. `draft.read` already has the spec; its summary can expose the same page instead of eight anonymous lines.
+5. When the human says to use the previous prompt, put that previous human sentence in the specialist assignment. Keep the aim as the task. The prior sentence has to be recoverable as itself, not as a 72-character receipt label.
+
+Acceptance for the next live turn, in order:
+
+- Kip and Cloud both read Version 0.5 from the body of the same attachment, including Section 0 and S20–S21.
+- An update compares that body with Points 1–162 and preserves those ids. It does not create a fourth copy.
+- Kip’s aim to Cloud is the receipt-forwarding repository investigation named in the Gloss, and the previous instruction is still available in the specialist context.
+- Cloud’s findings come back as receipts and are preserved on the Dialog.
+- A later message and a reload retrieve the same source, the same Point ids, and the same unfinished Gloss.
+
+### Repair in the working tree — October 10 2026
+
+The five repairs above are written in this working tree. They are not committed and not deployed. The 162 Points were not deleted.
+
+- The direction pass and the specialist receive this turn’s attachments.
+- A Document that already has Points is compared. Matching headings keep the earliest id. Differences are a Review proposal. Nothing is appended. A cut extract is labeled as not the whole source.
+- The ingest receipt stays when later actions run.
+- `dialog.read` and the follow-up name number, id, and title, and name the next offset.
+- A sentence that refers to the previous prompt puts that earlier human text in the assignment.
+
+Unit tests for the compare, the previous sentence, the assignment, the receipt, the Document page, and the follow-up page passed in this session (46 tests). The API and shared packages typecheck. No live Keeper turn was run. The OT16 / OT19–OT22 repository check is still Cloud’s unfinished job.

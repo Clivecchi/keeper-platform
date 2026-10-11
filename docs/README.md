@@ -15,7 +15,7 @@ Primary documentation hub for Keeper architecture, deployment notes, and operati
 - `DOMAIN_DEVELOPMENT_PLAN.md`
 - `AUTHENTICATION_HARDENING.md`
 - `2026-09-12-domain-board-kip-inventory.md` — Track A Domain Board + Track B Kip identity inventory (canvas conversion; not a design)
-- `keeper-operational-truth.md` — Operational Truth 0.3. Version 0.2 remains the code audit. Product intent is recorded separately. Not a verified baseline.
+- `keeper-operational-truth.md` — Operational Truth 0.3 register, plus the October 10 exchange where a v0.5 attachment was appended instead of reconciled. Not a verified baseline.
 
 ## 🔄 Data & Behavior
 Docs are maintained as canonical references for architecture, flows, and playbooks. Updates should align with code sources of truth and track changes over time.
@@ -24,6 +24,8 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
+- **2026-10-10**: The five repairs from that exchange are in the working tree (compare instead of a fourth copy, same attachment for direction and specialist, ingest receipt kept, Point pages with identity, previous human sentence recoverable). Not committed. Not deployed. Points were not deleted.
+- **2026-10-10**: `keeper-operational-truth.md` records the live v0.5 exchange: three stacked imports, 162 Points, a truncated read, and a Gloss that keeps the unfinished repository check. No Points were deleted.
 - **2026-10-08**: `keeper-operational-truth.md` is version 0.3. Version 0.2 stays the audit. Chuck’s five decisions are product intent. Point bodies were withheld from the KE3P Dialog because deployed `dialog.read` does not yet use the audience filter.
 - **2026-10-08**: Added `keeper-operational-truth.md` — version 0.2 reconciliation of OT01–OT28 against commit `be18e65d`. Code audit only. Not approved and not imported into Keeper.
 - **2026-09-12**: Added `2026-09-12-domain-board-kip-inventory.md` — markdown conversion of the Domain Board + Kip inventory canvas. Inventory only.

@@ -114,13 +114,28 @@ function summarizeDraftSpec(spec: unknown): string {
   if (points.length === 0) {
     return 'spec.points: [] (empty — check session history for prior proposed content)';
   }
-  const preview = points.slice(0, 8).map((raw, index) => {
+  const shown = points.slice(0, 24);
+  const preview = shown.map((raw, index) => {
     if (!raw || typeof raw !== 'object') return `${index + 1}. (invalid point)`;
-    const point = raw as { status?: string; type?: string; content?: string; text?: string };
+    const point = raw as {
+      id?: string;
+      prelude?: string;
+      status?: string;
+      type?: string;
+      content?: string;
+      text?: string;
+    };
     const content = (point.content ?? point.text ?? '').trim().slice(0, 200);
-    return `${index + 1}. [${point.status ?? 'unknown'}/${point.type ?? 'general'}] ${content || '(no content)'}`;
+    const title = point.prelude?.trim();
+    const identity = [point.id ? `id=${point.id}` : '', title ? `title=${title}` : '']
+      .filter(Boolean)
+      .join(' ');
+    return `${index + 1}. [${point.status ?? 'unknown'}/${point.type ?? 'general'}]${identity ? ` ${identity}` : ''} ${content || '(no content)'}`;
   });
-  return [`spec.points: ${points.length} total`, ...preview].join('\n');
+  const more = points.length > shown.length
+    ? [`Next page is not in this summary. dialog.read with offset ${shown.length} returns number, id, and title for Points ${shown.length + 1}–${points.length}.`]
+    : [];
+  return [`spec.points: ${points.length} total. This page is 1–${shown.length}.`, ...preview, ...more].join('\n');
 }
 
 export function formatReadActionResultsForFollowUp(results: ActionResultLike[]): string {
@@ -202,14 +217,32 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
                 : 'Document is unbuilt — no Points. Do not claim you read a body.',
             );
           } else {
-            lines.push(`Points: ${points.length}`);
-            for (const point of points.slice(0, 24)) {
-              const preview = typeof point.preview === 'string' ? point.preview.trim() : '';
-              lines.push(
-                preview
-                  ? `- (${point.type ?? 'point'}): ${preview}`
-                  : `- (${point.type ?? 'point'})`,
-              );
+            const total = typeof data.pointTotal === 'number' ? data.pointTotal : points.length;
+            const offset = typeof data.pointOffset === 'number' && data.pointOffset >= 0
+              ? data.pointOffset
+              : 0;
+            const page = typeof data.pointTotal === 'number' ? points : points.slice(0, 24);
+            const end = offset + page.length;
+            lines.push(`Points: ${total}. This page is ${page.length ? offset + 1 : offset}–${end}. Number, id, and title are the identity.`);
+            page.forEach((point, index) => {
+              const row = point as {
+                number?: number;
+                id?: string;
+                prelude?: string;
+                type?: string;
+                preview?: string;
+              };
+              const number = typeof row.number === 'number' ? row.number : offset + index + 1;
+              const preview = typeof row.preview === 'string' ? row.preview.trim() : '';
+              const title = typeof row.prelude === 'string' ? row.prelude.trim() : '';
+              const identity = [row.id ? `id=${row.id}` : '', title ? title : '']
+                .filter(Boolean)
+                .join(' — ');
+              const body = [identity, preview].filter(Boolean).join(' — ');
+              lines.push(body ? `${number}. (${row.type ?? 'point'}) ${body}` : `${number}. (${row.type ?? 'point'})`);
+            });
+            if (end < total) {
+              lines.push(`Next page: dialog.read with this Dialog id and offset ${end}. Do not say those Points are missing.`);
             }
           }
         } else if (result.type === 'library.read' && data.item && typeof data.item === 'object') {
@@ -533,6 +566,8 @@ export function buildReadActionFollowUpInput(params: {
     'If they asked to rebuild or restore draft points, use draft.update.propose or draft.update actions now with the content you recover from the session.',
     'If dialog.read returned a Document:',
     '- Use Forward, Step, Paths, and Points from the result — same source Chronicle renders.',
+    '- Each listed Point has a number, id, and title. A page is not the whole Document.',
+    '- If the result names a next offset, call dialog.read again with that offset before saying a Point is missing.',
     '- If the result says the Document is unbuilt (no Points), say that. Do not claim you read a body.',
     'If catalog.read returned counts or a page of titles and ids:',
     '- That page is not a body. Open the one that matches the objective with dialog.read, draft.read, keeper.read, journey.read, moment.read, or library.read.',

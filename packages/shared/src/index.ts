@@ -15,6 +15,8 @@ export * from './agencyCore.js';
 export * from './domainCatalog.js';
 export * from './draftHostTitle.js';
 export * from './markdownToDraftPoints.js';
+export * from './ingestReconcile.js';
+export * from './previousHumanInstruction.js';
 export * from './draftPointStructure.js';
 export * from './draftPointPromotion.js';
 export * from './glossAnchor.js';

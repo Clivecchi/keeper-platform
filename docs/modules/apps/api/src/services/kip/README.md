@@ -50,6 +50,12 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-10 — An update compares; it does not copy the Document again
+- `ingestExternalDocument.ts` compares an attachment with existing Points. Matching headings keep the earliest id. Differences become a Review proposal. Extra copies stay. A cut-off read says the proposal is not the whole source.
+- `landAttachedDocument.ts` keeps that compare receipt when later actions run, and says when the file continued past the extract.
+- `dialogAttachmentContext.ts` records that the stored extract stopped early.
+- `actionFollowUp.ts` and `loadDialogDocumentForAgent.ts` name Point number, id, and title, and the offset for the next page.
+
 ### 2026-10-09 — Attached writing lands in the Document
 - `landAttachedDocument.ts` brings a readable attachment into the focused Dialog when the human says the document was updated. It uses `ingestExternalDocument` and does not add a second user message.
 

@@ -188,6 +188,32 @@ describe('actionFollowUp', () => {
     expect(unbuilt).toContain('Do not claim you read a body');
   });
 
+  it('pages dialog.read with number, id, and title and names the next offset', () => {
+    const formatted = formatReadActionResultsForFollowUp([
+      {
+        type: 'dialog.read',
+        status: 'success',
+        message: 'Dialog retrieved — Document has 30 Point(s).',
+        data: {
+          pointTotal: 30,
+          pointOffset: 0,
+          pointLimit: 2,
+          document: {
+            title: 'Operational Truth',
+            points: [
+              { number: 1, id: 'p1', prelude: 'Purpose', type: 'general', preview: 'First body' },
+              { number: 2, id: 'p2', prelude: 'Evidence', type: 'general', preview: 'Second body' },
+            ],
+          },
+        },
+      },
+    ]);
+    expect(formatted).toContain('1. (general) id=p1 — Purpose — First body');
+    expect(formatted).toContain('2. (general) id=p2 — Evidence — Second body');
+    expect(formatted).toContain('offset 2');
+    expect(formatted).not.toContain('Point 3');
+  });
+
   it('formats catalog.read as titles and ids, not bodies', () => {
     const input = buildReadActionFollowUpInput({
       originalInput: 'Find the mobile enter work',

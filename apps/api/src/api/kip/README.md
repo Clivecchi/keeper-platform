@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-10-10: **Same file, same page, same receipt** — the direction pass and the specialist receive this turn’s attachments. `dialog.read` pages Points with number, id, and title. A `document.ingest` receipt stays on the turn when later actions run.
 - 2026-10-09: **The Document is created from the attachment** — when the human says the document was updated and attaches writing, the Lead turn lands that file in the Dialog before the model speaks. Chronicle refreshes from `document.ingest`. A visual-change ask is no longer reported as a draft-pipeline skip.
 - 2026-10-08: **Readable attachments** — a file attachment whose name is Markdown or another text format is inlined for the model. PDF stays on the PDF path.
 - 2026-10-08: **Dialog read audience** — `dialog.read` by id and by list uses `dialogAudienceWhere`. A keeper Dialog is returned to its user. With no user, only admin and member Dialogs are returned.

@@ -9,6 +9,7 @@ import {
   aimIsSatisfied,
   contributionDeniesDocumentAccess,
   buildSpecialistAssignmentBlock,
+  formatPreviousHumanInstruction,
   castRoomEvent,
   classifyActionReceipt,
   continueOrPresent,
@@ -89,6 +90,10 @@ export async function runProgressiveCastRoom(params: {
   previousTrace: CastRoomEvent[]
   leadAgentId: string
   runAgentContext: Record<string, unknown>
+  /** This turn's files. Direction and the specialist read the same extract. */
+  attachments?: Array<{ url: string; name: string; type: "image" | "file" }>
+  /** Earlier human sentence, already selected because this turn refers to it. */
+  previousHumanText?: string
   onStatus?: (label: string) => void
 }): Promise<CastRoomTurnResult> {
   const where = {
@@ -107,6 +112,10 @@ export async function runProgressiveCastRoom(params: {
   ]
   const consumption: CastRoomConsumption[] = []
   let contributions = 0
+  const previousHumanInstruction = params.previousHumanText?.trim()
+    ? formatPreviousHumanInstruction(params.previousHumanText)
+    : ""
+  const turnAttachments = params.attachments?.length ? params.attachments : undefined
 
   const trailForOffers = projectCastRoomTrail(trace, params.previousTrace)
   params.onStatus?.(`Hearing ${params.voices.length} offers…`)
@@ -170,6 +179,7 @@ export async function runProgressiveCastRoom(params: {
         humanTurnId: params.humanTurnId,
         displayContent: params.userMessage,
         ephemeral: true,
+        attachments: turnAttachments,
         agentContext: {
           ...params.runAgentContext,
           skipDelegateConsult: true,
@@ -180,6 +190,7 @@ export async function runProgressiveCastRoom(params: {
             allowEngage: contributions < CAST_ROOM_CONTRIBUTION_CAP,
             trace,
             consumption,
+            ...(previousHumanInstruction ? { previousHumanInstruction } : {}),
           },
         },
       },
@@ -219,6 +230,7 @@ export async function runProgressiveCastRoom(params: {
           aim: allowed.aim,
           directionId: directionEvent.id,
           priorTrail: projectCastRoomTrail(trace, params.previousTrace),
+          ...(previousHumanInstruction ? { previousHumanInstruction } : {}),
         })}`,
         params.userId,
         params.sessionId,
@@ -228,6 +240,7 @@ export async function runProgressiveCastRoom(params: {
           humanTurnId: params.humanTurnId,
           displayContent: params.userMessage,
           ephemeral: true,
+          attachments: turnAttachments,
           agentContext: { ...params.runAgentContext, skipDelegateConsult: true },
         },
       )

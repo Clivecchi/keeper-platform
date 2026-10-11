@@ -217,4 +217,17 @@ describe('direction and contribution', () => {
     expect(block).toContain('not this assignment');
     expect(block.indexOf('Aim:')).toBeLessThan(block.indexOf('Railway'));
   });
+
+  it('keeps an earlier human instruction recoverable beside the aim', () => {
+    const block = buildSpecialistAssignmentBlock({
+      aim: 'inspect the receipt path',
+      directionId: 'dir-2',
+      priorTrail: 'PRIOR TURN (historical only — not this assignment): (none)',
+      previousHumanInstruction: 'PREVIOUS HUMAN INSTRUCTION — the current sentence refers to this.\n"Cloud must inspect the receipt path."',
+    });
+    expect(block).toContain('Aim: inspect the receipt path');
+    expect(block).toContain('Cloud must inspect the receipt path.');
+    expect(block).toContain('Do not say it could not be recovered.');
+    expect(block.indexOf('Aim:')).toBeLessThan(block.indexOf('Cloud must inspect'));
+  });
 });

@@ -5,17 +5,20 @@
 
 import { prisma, type Prisma } from '@keeper/database';
 import {
+  buildIngestReconcileProposal,
   canonicalizeDraftSpecJson,
   INGEST_MAX_MARKDOWN_CHARS,
   markdownToDraftPoints,
   parseDocumentPathDeclarations,
   parseDraftPoints,
   planIngestHeadingSections,
+  reconcileIncomingWriting,
   type DocumentPathDeclaration,
 } from '@keeper/shared';
 import { DOCUMENT_MANUSCRIPT_KIND } from './registerDialogDocumentComponent.js';
 import { resolveDomainLeadAgentFromDomain } from '../domains/resolveDomainLeadAgent.js';
 import { ensureDialogGlossCarrier } from './ensureDialogGlossCarrier.js';
+import { storeDocumentReorganizeProposal } from './documentReorganizeStore.js';
 import { dialogVisibleToUserWhere } from './dialogVisibility.js';
 
 const DEFAULT_SOURCE = 'External';
@@ -30,6 +33,8 @@ export type IngestExternalDocumentInput = {
   dialogId?: string | null;
   /** When false, skip the extra user message. An agent turn already has the sentence. */
   announceInDialog?: boolean;
+  /** The readable extract stopped before the file ended. */
+  sourceTruncated?: boolean;
 };
 
 export type IngestExternalDocumentResult = {
@@ -41,6 +46,11 @@ export type IngestExternalDocumentResult = {
   appendedCount: number;
   sessionId: string;
   truncated: boolean;
+  /** True when existing Points were compared and none were appended. */
+  reconciled?: boolean;
+  matchedCount?: number;
+  proposedCount?: number;
+  duplicateCopiesLeft?: number;
 };
 
 export type IngestExternalDocumentErrorCode =
@@ -49,7 +59,8 @@ export type IngestExternalDocumentErrorCode =
   | 'NO_POINTS'
   | 'DIALOG_NOT_FOUND'
   | 'DOMAIN_NOT_FOUND'
-  | 'NO_LEAD_AGENT';
+  | 'NO_LEAD_AGENT'
+  | 'RECONCILE_FAILED';
 
 export class IngestExternalDocumentError extends Error {
   readonly code: IngestExternalDocumentErrorCode;
@@ -169,6 +180,77 @@ export async function ingestExternalDocument(
     }
     dialogId = existing.id;
     dialogTitle = existing.title;
+    const manuscriptBefore = await prisma.kip_drafts.findFirst({
+      where: {
+        domain_id: input.domainId,
+        dialog_id: dialogId,
+        kind: DOCUMENT_MANUSCRIPT_KIND,
+        status: { notIn: ['promoted', 'archived'] },
+      },
+      orderBy: { updated_at: 'desc' },
+    });
+    const hosts = manuscriptBefore
+      ? parseDraftPoints(manuscriptBefore.spec_json).filter((point) => !point.referencesPointId?.trim())
+      : [];
+    if (hosts.length > 0) {
+      const plan = reconcileIncomingWriting({
+        existing: hosts,
+        blocks: parsed.blocks,
+      });
+      const proposal = buildIngestReconcileProposal({
+        plan,
+        currentSections: parseDocumentPathDeclarations(existing.document_paths),
+        sourceName: source,
+        sourceTruncated: input.sourceTruncated === true || parsed.truncated,
+      });
+      if (proposal) {
+        const stored = await storeDocumentReorganizeProposal({
+          domainId: input.domainId,
+          dialogId,
+          userId: input.userId,
+          raw: proposal,
+          proposedBy: source,
+        });
+        if (stored.ok === false) {
+          throw new IngestExternalDocumentError('RECONCILE_FAILED', stored.message);
+        }
+      }
+      const compared = proposal
+        ? `Compared with this Document. ${plan.matched.length} Point${plan.matched.length === 1 ? '' : 's'} kept their identities. ${proposal.points.length} difference${proposal.points.length === 1 ? '' : 's'} wait on Apply.`
+        : `Already on this Document. ${plan.matched.length} Point${plan.matched.length === 1 ? '' : 's'} kept their identities. Nothing new was added.`;
+      await prisma.dialog.update({
+        where: { id: dialogId },
+        data: {
+          step_title: 'Compared',
+          step_body: compared,
+        },
+      });
+      await ensureDialogGlossCarrier({
+        domainId: input.domainId,
+        dialogId,
+        userId: input.userId,
+        agentId,
+      });
+      const existingSession = await prisma.kip_sessions.findFirst({
+        where: { dialog_id: dialogId, is_archived: false },
+        orderBy: { updated_at: 'desc' },
+        select: { id: true },
+      });
+      return {
+        created: false,
+        dialogId,
+        dialogTitle,
+        manuscriptId: manuscriptBefore?.id ?? '',
+        pointCount: hosts.length,
+        appendedCount: 0,
+        sessionId: existingSession?.id ?? '',
+        truncated: parsed.truncated || input.sourceTruncated === true,
+        reconciled: true,
+        matchedCount: plan.matched.length,
+        proposedCount: proposal?.points.length ?? 0,
+        duplicateCopiesLeft: plan.duplicateCopiesLeft,
+      };
+    }
     const planned = planIngestHeadingSections({
       paths: parseDocumentPathDeclarations(existing.document_paths),
       blocks: parsed.blocks,
@@ -368,6 +450,7 @@ export function ingestErrorStatus(code: IngestExternalDocumentErrorCode): number
     case 'DOMAIN_NOT_FOUND':
       return 404;
     case 'NO_LEAD_AGENT':
+    case 'RECONCILE_FAILED':
       return 500;
     default:
       return 400;

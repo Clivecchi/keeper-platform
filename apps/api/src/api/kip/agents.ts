@@ -125,7 +125,7 @@ import {
   enrichDialogAttachments,
   readDialogAttachment,
 } from '../../services/kip/dialogAttachmentContext.js';
-import { landAttachedDocumentOnTurn } from '../../services/kip/landAttachedDocument.js';
+import { keepLandedDocumentReceipt, landAttachedDocumentOnTurn } from '../../services/kip/landAttachedDocument.js';
 import { visibleAgentMessageText } from '../../services/structure/parseKipAgentOutput.js';
 import {
   buildDialogReadHonesty,
@@ -1677,7 +1677,10 @@ async function resolveFileAttachmentContext(
   for (const file of fileAttachments) {
     const read = await readDialogAttachment(file);
     if (read.extractedText) {
-      blocks.push(`[Attached file: ${file.name}]\n${read.extractedText}`);
+      const cut = read.truncated
+        ? '\n[The file continued past this extract. Later sections are not in this text.]'
+        : '';
+      blocks.push(`[Attached file: ${file.name}]\n${read.extractedText}${cut}`);
       continue;
     }
     blocks.push(`[Attached file: ${file.name}]\n${read.extractNote || 'This file was not read.'}`);
@@ -4632,13 +4635,30 @@ export async function executeAgentActions(
                 }
                 const document = await loadDialogDocumentForAgent(dialog.id, ctx.domainId);
                 const points = document?.points ?? [];
-                const honesty = buildDialogReadHonesty(points.length);
+                const hosts = points.filter((point) => !point.referencesPointId);
+                const pointOffset = typeof payload.offset === 'number' && payload.offset >= 0
+                  ? Math.min(Math.floor(payload.offset), 500)
+                  : 0;
+                const pointLimit = typeof payload.limit === 'number' && payload.limit >= 1
+                  ? Math.min(Math.floor(payload.limit), 40)
+                  : 24;
+                const page = hosts.slice(pointOffset, pointOffset + pointLimit).map((point, index) => ({
+                  ...point,
+                  number: pointOffset + index + 1,
+                }));
+                const honesty = buildDialogReadHonesty(hosts.length);
+                const pageEnd = pointOffset + page.length;
+                const pageNote = hosts.length === 0
+                  ? ''
+                  : pageEnd >= hosts.length
+                    ? ` Page ${pointOffset + 1}–${pageEnd} of ${hosts.length}. This is the last page.`
+                    : ` Page ${pointOffset + 1}–${pageEnd} of ${hosts.length}. Next page: dialog.read with this id and offset ${pageEnd}.`;
                 results.push({
                   type: action.type,
                   status: 'success',
                   message: honesty.documentUnbuilt
                     ? `Dialog "${dialog.title}" retrieved — Document is unbuilt (no Points).`
-                    : `Dialog "${dialog.title}" retrieved — Document has ${points.length} Point(s).`,
+                    : `Dialog "${dialog.title}" retrieved — Document has ${hosts.length} Point(s).${pageNote}`,
                   data: {
                     entityIds: [dialog.id],
                     dialogId: dialog.id,
@@ -4660,10 +4680,13 @@ export async function executeAgentActions(
                           step: document.step,
                           orientation: document.orientation,
                           paths: document.paths,
-                          points,
+                          points: page,
                           manuscriptDraftId: document.manuscriptDraftId,
                         }
                       : null,
+                    pointTotal: hosts.length,
+                    pointOffset,
+                    pointLimit,
                     documentUnbuilt: honesty.documentUnbuilt,
                     honesty: honesty.honesty,
                   },
@@ -6537,7 +6560,8 @@ export class KipAgentService {
         'with { limit: 20 } first, then { id } for the file text on your choice.',
         '',
         'dialog.read — list recent Dialogs ({ limit? }), search by title ({ query, limit? }),',
-        'or fetch one Dialog ({ id }). { id } returns the same Document Chronicle shows (Forward, Step, Paths, Points).',
+        'or fetch one Dialog ({ id, offset?, limit? }). { id } returns one page of the Document Chronicle shows.',
+        'Each Point on that page has number, id, and title. If the result names a next offset, call dialog.read again with that offset before saying a Point is missing.',
         'If Points are empty, the Document is unbuilt — say that. Do not claim you read a body from a title/status husk.',
         'Use when the user names a Dialog from Nav that is not the active one.',
         'titleSource auto_generated = Chatter; user_set / system_promoted = Dialog. Prefer domainIndex.dialogs first.',
@@ -8270,6 +8294,7 @@ export class KipAgentService {
               offer: row.offer,
             })),
             allowEngage: castRoomWire.allowEngage !== false,
+            previousHumanInstruction: castRoomWire.previousHumanInstruction,
           });
         } else if (castRoomWire?.phase === 'evaluate' && castRoomWire.assignment) {
           leadOrchestrationContext = buildCastRoomEvaluatePrompt({
@@ -8544,11 +8569,14 @@ export class KipAgentService {
           && castRoomWire?.phase !== 'evaluate'
         ) {
           if (options?.forceSkipActions) {
-            actionResults = structured.actions.map((action) => ({
-              type: action.type,
-              status: 'skipped',
-              message: 'Action execution disabled by server (draft pipeline owns persistence)',
-            }));
+            actionResults = keepLandedDocumentReceipt(
+              structured.actions.map((action): ActionExecutionResult => ({
+                type: action.type,
+                status: 'skipped',
+                message: 'Action execution disabled by server (draft pipeline owns persistence)',
+              })),
+              landedDocumentReceipt,
+            );
           } else {
             options?.onStatus?.('Taking action…');
             const actionsStartedAt = Date.now();
@@ -8566,7 +8594,7 @@ export class KipAgentService {
             if (options?.timings) {
               options.timings.actionsMs = (options.timings.actionsMs ?? 0) + (Date.now() - actionsStartedAt);
             }
-            actionResults = execution.results;
+            actionResults = keepLandedDocumentReceipt(execution.results, landedDocumentReceipt);
 
             const pointWriteTurn = pointObligation?.required === true && !pointObligation.constrained;
             if (!pointWriteTurn) {
