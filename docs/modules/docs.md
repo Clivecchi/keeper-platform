@@ -20,6 +20,7 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
+- **2026-10-10**: Cast execution gap on human turn `320e4056-fb0f-4338-8468-53d5c5a28212`. Cloud’s follow-up saw bare tool objects and no Point bodies. The repair is local, tested, and not deployed. Live reload acceptance stays open.
 - **2026-10-10**: The five repairs from that exchange are in the working tree (compare instead of a fourth copy, same attachment for direction and specialist, ingest receipt kept, Point pages with identity, previous human sentence recoverable). Not committed. Not deployed. Points were not deleted.
 - **2026-10-10**: `keeper-operational-truth.md` records the live v0.5 exchange: three stacked imports, 162 Points, a truncated read, and a Gloss that keeps the unfinished repository check. No Points were deleted.
 - **2026-08-17**: Object Glossary — board-emphasis invariant (governing); IDE display rename to Build; in-product Glossary nav (Domain read / Design definition).

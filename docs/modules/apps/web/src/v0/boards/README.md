@@ -925,6 +925,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-09-27 — People in the Dialog
 - `UniversalConversation` loads human members and the arrival snapshot, and shows them above the messages. Guided arrival does not clear a Dialog that was opened on purpose.
 
+### 2026-10-10 — Named voices get a turn before a repeat
+- `castRoomTurn.ts` keeps a contribution for each voice the human named, up to four, before it engages the same voice again.
+
 ### 2026-10-10 — Direction and the specialist read this turn’s file
 - `castRoomTurn.ts` sends the current attachments to the direction pass and the specialist. When the human refers to a previous prompt, that sentence is in the assignment and is not replaced by the trail.
 

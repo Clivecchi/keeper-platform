@@ -3,6 +3,8 @@ import { formatKeeperAdviceCardForPrompt } from '@keeper/shared';
 import {
   attachStageContextToCastEnvironment,
   buildCastConsultationsSynthesisPrompt,
+  buildCastRoomDirectionPrompt,
+  formatActionReceiptsForLead,
   buildCastMemberDelegationPrompt,
   buildDirectorSynthesisPrompt,
   delegateConsultSkipMessage,
@@ -15,6 +17,61 @@ const keepingJudgmentCard = {
   body: 'Form before capability.',
   items: ['**A. Keeping Judgment**\n\nJudge fitness before mutation.'],
 };
+
+describe('cast receipt forwarding', () => {
+  it('gives the Lead Point identity, body, and a missing-path message', () => {
+    const lines = formatActionReceiptsForLead([
+      {
+        type: 'dialog.read',
+        status: 'success',
+        message: 'Page 33–33 of 162.',
+        data: {
+          pointTotal: 162,
+          pointOffset: 32,
+          document: {
+            points: [
+              {
+                number: 33,
+                id: '64b7e0c3-7607-45c4-a595-64c5c256b883',
+                prelude: 'Active evidence and development records',
+                type: 'general',
+                body: 'The Gloss sits beside this Point.',
+                gloss: { threadId: 'thread-33', body: 'Unfinished repository check.' },
+              },
+            ],
+          },
+        },
+      },
+      {
+        type: 'mcp.call',
+        status: 'error',
+        message: 'github_repo_read: GitHub file not found: apps/api/src/lib/castRoom. Nearby in apps/api/src/lib: env.ts.',
+      },
+    ]);
+    const text = lines.join('\n');
+    expect(text).toContain('64b7e0c3-7607-45c4-a595-64c5c256b883');
+    expect(text).toContain('The Gloss sits beside this Point.');
+    expect(text).toContain('thread-33');
+    expect(text).toContain('Nearby in apps/api/src/lib: env.ts.');
+  });
+
+  it('keeps a named voice required before a repeat', () => {
+    const prompt = buildCastRoomDirectionPrompt({
+      directorName: 'Kip',
+      userMessage: 'Cloud: inspect receipts.\nCeox: challenge completion.\nRendr: make it legible.',
+      trail: 'cloud contributed',
+      offers: [
+        { slug: 'cloud', label: 'Cloud', offer: 'inspect' },
+        { slug: 'ceox', label: 'Ceox', offer: '' },
+        { slug: 'rendr', label: 'Rendr', offer: 'arrange' },
+      ],
+      allowEngage: true,
+      contributedSlugs: ['cloud'],
+    });
+    expect(prompt).toContain('Still required this turn: ceox, rendr.');
+    expect(prompt).toContain('before you engage a voice again');
+  });
+});
 
 describe('buildCastMemberDelegationPrompt', () => {
   it('tells Cast they cannot write the Document', () => {

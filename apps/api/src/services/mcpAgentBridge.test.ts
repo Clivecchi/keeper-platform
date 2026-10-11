@@ -3,6 +3,7 @@ import {
   buildMcpToolSystemPrompt,
   executeMcpCallAction,
   getMcpToolsForCapabilities,
+  formatMcpActionResultsForFollowUp,
   hasSuccessfulMcpResults,
   isTypeSafeEvaluateMcpAlias,
   isWebSearchMcpAlias,
@@ -146,6 +147,22 @@ describe('mcpAgentBridge', () => {
         process.env.BRAVE_SEARCH_API_KEY = original;
       }
     }
+  });
+
+  it('keeps a missing-path message instead of a bare tool object', () => {
+    const formatted = formatMcpActionResultsForFollowUp([
+      {
+        type: 'mcp.call',
+        status: 'error',
+        errorCode: 'EXECUTION_ERROR',
+        message: 'github_repo_read: GitHub file not found: apps/api/src/lib/castRoom in Clivecchi/keeper-platform. Nearby in apps/api/src/lib: env.ts, errors.',
+        data: { tool: 'github_repo_read' },
+      },
+    ]);
+    expect(formatted).toContain('apps/api/src/lib/castRoom');
+    expect(formatted).toContain('Nearby in apps/api/src/lib: env.ts, errors.');
+    expect(formatted).toContain('Read one of those paths');
+    expect(formatted).not.toContain('"tool": "github_repo_read"');
   });
 
   it('detects successful MCP action results', () => {

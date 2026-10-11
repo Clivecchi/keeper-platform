@@ -50,6 +50,11 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-10 — Specialist results keep their bodies and errors
+- `actionFollowUp.ts` prints Point number, id, prelude, body, a cut, and Gloss. Empty specialist prose forwards that digest. The assignment stays on the continuation.
+- `loadDialogDocumentForAgent.ts` can supply full Point text for a paged read. The system Document block still uses the short preview.
+- `ensureDialogGlossCarrier.ts` can read Point Gloss already stored on the carrier.
+
 ### 2026-10-10 — An update compares; it does not copy the Document again
 - `ingestExternalDocument.ts` compares an attachment with existing Points. Matching headings keep the earliest id. Differences become a Review proposal. Extra copies stay. A cut-off read says the proposal is not the whole source.
 - `landAttachedDocument.ts` keeps that compare receipt when later actions run, and says when the file continued past the extract.

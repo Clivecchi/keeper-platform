@@ -400,4 +400,35 @@ The five repairs above are written in this working tree. They are not committed 
 - `dialog.read` and the follow-up name number, id, and title, and name the next offset.
 - A sentence that refers to the previous prompt puts that earlier human text in the assignment.
 
-Unit tests for the compare, the previous sentence, the assignment, the receipt, the Document page, and the follow-up page passed in this session (46 tests). The API and shared packages typecheck. No live Keeper turn was run. The OT16 / OT19–OT22 repository check is still Cloud’s unfinished job.
+Unit tests for the compare, the previous sentence, the assignment, the receipt, the Document page, and the follow-up page passed in that session (46 tests). The API and shared packages typecheck. Those five repairs were committed as `97048fc41c7cc44bc7330e0b51fa3453898e4443` (`consol`, 2026-10-10 20:41 -0400). That commit was not a deployment. The OT16 / OT19–OT22 repository check stayed Cloud’s unfinished job.
+
+### Cast execution gap — October 10 2026
+
+Human turn `320e4056-fb0f-4338-8468-53d5c5a28212` on Dialog `cmv04yrn50001otb8mwjrj0as`, session `45dc89eb-d9e6-46cc-94ce-49924fee6d6c`. Stored user message `a18def78-fde7-4df8-8bc8-bf3cc6429850`. Stored reply `953a0ddd-4978-4c43-b2d0-2f687b2f98ff`. The room presented Agency unfinished. Cloud reported repository `Clivecchi/keeper-platform`, branch `cloud`, HEAD `97048fc41c7cc44bc7330e0b51fa3453898e4443`. That HEAD matches this repository’s commit `consol`. It is an inspected source report from the turn, not a new deployment SHA.
+
+| Boundary | What the stored turn shows |
+|---|---|
+| Tool execution | `dialog.read` pages 111–150, 151–162, and Point 33 succeeded. Each stored point has number, id, prelude, and a 160-character preview. The body field is absent. Point 33’s Gloss thread `917a6626-eb9f-4e39-a4a6-b6ba965ee715` is on carrier message `23cba57e-614c-4b6c-8136-6c0c6d910571` and was not on the read. `github_repo_read` errors name missing paths `apps/api/src/lib/castRoom` and `apps/api/src/hooks` and list nearby entries. |
+| Specialist-visible result | Cloud is a system agent. A successful `mcp.call` opens `buildMcpFollowUpInput`. That formatter used `data.result ?? data`. An error stores `{ tool }` and puts the nearby-path text on `message`, so the follow-up saw a bare tool object. `dialog.read` results were not in that follow-up. |
+| Specialist continuation | The first prose is written before the tools return. The follow-up is the reasoning step, and it did not receive Document bodies or the error messages. Follow-up actions were not executed. |
+| Contribution to the Lead | The contribution label is 180 characters. Classified receipt messages were clipped. The Lead receipt list printed status and message, not Point bodies. Kip’s reply correctly said the pages succeeded and the identities and bodies were not in the contribution. |
+| Who spoke | `consultedSlugs` is the list of engagements. Both were `cloud` because the room cap is 2 and both directions chose Cloud. Ceox and Rendr were named in the human sentence and did not receive a turn. |
+| Source | The attachment extract still stops in Section 16. This pass does not raise that cap. |
+
+The attachment truncation, the 162 Points, and the duplicate copies were left as they are.
+
+### Repair after that turn
+
+Written in this working tree after inspecting the turn. Not deployed. Points were not deleted or reimported.
+
+- A Document page now carries prelude, body, and an explicit cut. A one-Point read returns a longer extract. The follow-up and the Lead receipt list print number, id, prelude, and body.
+- `dialog.read` loads Gloss from the existing carrier (`glossThreads` on the gloss-carrier message). Point 33’s thread is that route. A Point with no thread says none is stored.
+- A missing-path `mcp.call` follow-up prints the Message, including nearby entries, and tells the specialist to read one of those paths.
+- After system-agent actions finish, one reasoning step sees reads and tool errors together. Empty prose forwards that digest. One further action round runs, and those receipts are appended for the Lead.
+- When the human names Cloud, Ceox, or Rendr, the room keeps a turn for each named voice before it repeats one. The cap stays at most 4. The receipt investigation remains the assignment text on that reasoning step.
+
+A read-only replay of the stored Point 33 and the missing-path error through these formatters returned the Gloss thread, a cut body, the point id, and the nearby-path message, and did not return a bare tool object. That replay did not call a model, did not write the Dialog, and is not reload acceptance.
+
+Passing tests in this session: cast-room naming, the missing-path formatter, paged bodies and Gloss lines, empty-prose forwarding, and the Lead receipt list. API typecheck passed. No live Cast turn was run on this repair. Deployment was not changed.
+
+Still open: a live turn in which Cloud’s commit-specific receipt-path findings reach Kip, the existing Gloss is quoted from the read, an identity-preserving work-record update lands with a receipt, and a later reload retrieves the same records. The Section 16 cut on the attachment remains. OT16 and OT19–OT22 stay unfinished until that live evidence exists.

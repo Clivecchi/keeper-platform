@@ -427,7 +427,7 @@ export function classifyActionReceipt(row: {
     type,
     status: status || 'unknown',
     standing,
-    ...(message ? { message: message.slice(0, 180) } : {}),
+    ...(message ? { message: message.slice(0, 500) } : {}),
   };
 }
 
@@ -511,6 +511,63 @@ export function continueOrPresent(params: {
   return budget
     ? { step: 'direct', resolve: false, outcome: 'unfinished' }
     : { step: 'present', resolve: false, outcome: 'unfinished' };
+}
+
+/** Voices the human addressed by name at the start of a line, limited to the room. */
+export function namedCastSlugs(
+  text: string,
+  voices: readonly { slug: string; label: string }[],
+): string[] {
+  const wanted = new Set<string>();
+  const pattern = /(?:^|\n)\s*([A-Za-z][A-Za-z0-9 _-]{0,40}?)\s*:/g;
+  for (const match of text.matchAll(pattern)) {
+    const name = match[1]?.trim().toLowerCase();
+    if (name) wanted.add(name);
+  }
+  const slugs: string[] = [];
+  for (const voice of voices) {
+    const slug = voice.slug.trim().toLowerCase();
+    const label = voice.label.trim().toLowerCase();
+    if (!slug) continue;
+    if (wanted.has(slug) || wanted.has(label)) slugs.push(voice.slug);
+  }
+  return slugs;
+}
+
+/** Room size stays 2 unless the human named more voices. Never more than 4. */
+export function castRoomContributionCap(namedCount: number): number {
+  const named = Number.isFinite(namedCount) ? Math.max(0, Math.floor(namedCount)) : 0;
+  return Math.min(4, Math.max(CAST_ROOM_CONTRIBUTION_CAP, named));
+}
+
+function aimLineForNamedVoice(text: string, label: string): string {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = text.match(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*:\\s*([^\\n]+)`, 'i'));
+  const line = match?.[1]?.trim();
+  return line || `Do the work the human assigned to ${label}.`;
+}
+
+/**
+ * A named voice that has not spoken comes before a repeat.
+ * The director's aim is kept when that voice is the one engaged.
+ */
+export function honorNamedCastEngage(params: {
+  engage: { slug: string; aim: string } | null;
+  named: readonly { slug: string; label: string }[];
+  contributed: readonly string[];
+  userMessage: string;
+}): { slug: string; aim: string } | null {
+  if (!params.named.length) return params.engage;
+  const contributed = new Set(params.contributed.map((slug) => slug.toLowerCase()));
+  const unmet = params.named.filter((voice) => !contributed.has(voice.slug.toLowerCase()));
+  if (!unmet.length) return params.engage;
+  const engageSlug = params.engage?.slug.toLowerCase() ?? '';
+  if (params.engage && unmet.some((voice) => voice.slug.toLowerCase() === engageSlug)) {
+    return params.engage;
+  }
+  const next = unmet[0];
+  if (!next) return params.engage;
+  return { slug: next.slug, aim: aimLineForNamedVoice(params.userMessage, next.label) };
 }
 
 /** The aim is the assignment. Prior trail is context and cannot replace it. */

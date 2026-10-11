@@ -42,6 +42,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-10: A human line that names Cloud, Ceox, or Rendr reserves a turn for each of them before the room repeats one voice. The room stays at most four contributions.
 - 2026-10-10: An attached update compares with existing Points (`ingestReconcile.ts`). Matching headings keep the earliest id. Differences are a Review proposal. Extra copies stay. When the human refers to the previous prompt, that sentence stays recoverable (`previousHumanInstruction.ts`).
 - 2026-10-09: Agent chat menu offers GPT-6.1 Sol, GPT-6 Luna, and GPT-6 Astra. Stored GPT-4o and GPT-4o Mini are not selectable. `selectableAgentChatModel` and `retiredOpenAIChatReplacement` map them onto Sol and Luna.
 - 2026-10-08: A reply that says it cannot read the attachment does not satisfy the aim. `.docx` is an upload type. It is not treated as plain text.

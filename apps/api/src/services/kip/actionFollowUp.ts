@@ -5,13 +5,97 @@
  */
 
 import { isAdviseOnlySkip } from '@keeper/shared';
+import { formatMcpActionResultsForFollowUp } from '../mcpAgentBridge.js';
 
 export type ActionResultLike = {
   type: string;
   status: string;
   message: string;
+  errorCode?: string;
   data?: Record<string, unknown>;
 };
+
+/** A page of several Points. One Point may return a longer extract. */
+export const POINT_PAGE_BODY_CHARS = 800;
+export const POINT_SINGLE_BODY_CHARS = 4000;
+
+export function packPointReadBody(
+  content: string,
+  singlePoint: boolean,
+): { body: string; bodyTruncated: boolean } {
+  const text = content.replace(/\s+$/g, '');
+  const limit = singlePoint ? POINT_SINGLE_BODY_CHARS : POINT_PAGE_BODY_CHARS;
+  if (text.length <= limit) return { body: text, bodyTruncated: false };
+  return { body: text.slice(0, limit), bodyTruncated: true };
+}
+
+export function formatDialogPointPageLines(data: Record<string, unknown>): string[] {
+  const doc = data.document;
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return [];
+  const document = doc as { points?: unknown };
+  const points = Array.isArray(document.points) ? document.points : [];
+  if (data.documentUnbuilt === true || points.length === 0) return [];
+  const total = typeof data.pointTotal === 'number' ? data.pointTotal : points.length;
+  const offset = typeof data.pointOffset === 'number' && data.pointOffset >= 0
+    ? data.pointOffset
+    : 0;
+  const page = typeof data.pointTotal === 'number' ? points : points.slice(0, 24);
+  const end = offset + page.length;
+  const lines = [
+    `Points: ${total}. This page is ${page.length ? offset + 1 : offset}–${end}. Number, id, prelude, and body are the read.`,
+  ];
+  page.forEach((point, index) => {
+    if (!point || typeof point !== 'object') return;
+    const row = point as {
+      number?: number;
+      id?: string;
+      prelude?: string;
+      type?: string;
+      preview?: string;
+      body?: string;
+      bodyTruncated?: boolean;
+      gloss?: { threadId?: string; body?: string; bodyTruncated?: boolean } | null;
+    };
+    const number = typeof row.number === 'number' ? row.number : offset + index + 1;
+    const title = typeof row.prelude === 'string' ? row.prelude.trim() : '';
+    const preview = typeof row.preview === 'string' ? row.preview.trim() : '';
+    const body = typeof row.body === 'string' ? row.body.trim() : '';
+    const identity = [row.id ? `id=${row.id}` : '', title].filter(Boolean).join(' — ');
+    const head = body
+      ? identity
+      : [identity, preview].filter(Boolean).join(' — ');
+    lines.push(head ? `${number}. (${row.type ?? 'point'}) ${head}` : `${number}. (${row.type ?? 'point'})`);
+    if (body) lines.push(body);
+    if (row.bodyTruncated === true) {
+      lines.push(
+        `Body cut at ${body.length} characters. dialog.read with this Dialog id, offset ${number - 1}, and limit 1 returns a longer extract of Point ${number}. This extract is not the whole Point.`,
+      );
+    }
+    if (row.gloss && typeof row.gloss === 'object') {
+      const glossBody = typeof row.gloss.body === 'string' ? row.gloss.body.trim() : '';
+      const threadId = typeof row.gloss.threadId === 'string' ? row.gloss.threadId : '';
+      lines.push(
+        `Gloss${threadId ? ` thread ${threadId}` : ''}${glossBody ? `: ${glossBody}` : ': stored, empty.'}`,
+      );
+      if (row.gloss.bodyTruncated === true) {
+        lines.push('Gloss text was cut. The thread id is the stored record.');
+      }
+    } else if ('gloss' in row) {
+      lines.push('Gloss: none stored on this Point.');
+    }
+  });
+  if (end < total) {
+    lines.push(`Next page: dialog.read with this Dialog id and offset ${end}. Do not say those Points are missing.`);
+  }
+  return lines;
+}
+
+/** Prose when the specialist wrote it. The result digest when the specialist wrote none. */
+export function specialistContributionText(prose: string, digest: string): string {
+  const text = prose.trim();
+  if (text) return text;
+  return digest.trim();
+}
 
 const READ_ONLY_ACTION_TYPES = new Set([
   'draft.read',
@@ -217,33 +301,7 @@ export function formatReadActionResultsForFollowUp(results: ActionResultLike[]):
                 : 'Document is unbuilt — no Points. Do not claim you read a body.',
             );
           } else {
-            const total = typeof data.pointTotal === 'number' ? data.pointTotal : points.length;
-            const offset = typeof data.pointOffset === 'number' && data.pointOffset >= 0
-              ? data.pointOffset
-              : 0;
-            const page = typeof data.pointTotal === 'number' ? points : points.slice(0, 24);
-            const end = offset + page.length;
-            lines.push(`Points: ${total}. This page is ${page.length ? offset + 1 : offset}–${end}. Number, id, and title are the identity.`);
-            page.forEach((point, index) => {
-              const row = point as {
-                number?: number;
-                id?: string;
-                prelude?: string;
-                type?: string;
-                preview?: string;
-              };
-              const number = typeof row.number === 'number' ? row.number : offset + index + 1;
-              const preview = typeof row.preview === 'string' ? row.preview.trim() : '';
-              const title = typeof row.prelude === 'string' ? row.prelude.trim() : '';
-              const identity = [row.id ? `id=${row.id}` : '', title ? title : '']
-                .filter(Boolean)
-                .join(' — ');
-              const body = [identity, preview].filter(Boolean).join(' — ');
-              lines.push(body ? `${number}. (${row.type ?? 'point'}) ${body}` : `${number}. (${row.type ?? 'point'})`);
-            });
-            if (end < total) {
-              lines.push(`Next page: dialog.read with this Dialog id and offset ${end}. Do not say those Points are missing.`);
-            }
+            lines.push(...formatDialogPointPageLines(data));
           }
         } else if (result.type === 'library.read' && data.item && typeof data.item === 'object') {
           const item = data.item as {
@@ -468,6 +526,35 @@ export function formatReadActionResultsForUserFallback(results: ActionResultLike
 /** Skip a second model call when the turn is already near the proxy first-byte limit (~120s). */
 export const READ_FOLLOW_UP_MAX_ELAPSED_MS = 75_000;
 
+export function formatSpecialistActionDigest(results: ActionResultLike[]): string {
+  const mcp = formatMcpActionResultsForFollowUp(results);
+  const reads = formatReadActionResultsForFollowUp(results);
+  return [mcp, reads].filter((part) => part.trim()).join('\n\n');
+}
+
+export function buildSpecialistContinuationInput(params: {
+  originalInput: string;
+  agentName: string;
+  actionResults: ActionResultLike[];
+}): string {
+  const assignment = params.originalInput.trim().slice(0, 6000);
+  return [
+    `[Action results for ${params.agentName}. This is not a new assignment.]`,
+    formatSpecialistActionDigest(params.actionResults),
+    '',
+    'The assignment remains:',
+    assignment,
+    '',
+    'Answer that assignment from these results. A retry does not replace it.',
+    'Quote Point number, id, prelude, and body when a Document page is present.',
+    'If a body or Gloss is cut, say so and name the continuation.',
+    'If Gloss is present, quote its thread id and text. If the line says none is stored, say that.',
+    'If a path is missing, the Message lists nearby entries. Read one of those paths before you stop.',
+    'Do not describe an error as an empty object when a Message is present.',
+    'If you have nothing further to say, the results above are the contribution. Do not drop them.',
+  ].join('\n');
+}
+
 export function buildReadActionFollowUpInput(params: {
   originalInput: string;
   agentName: string;
@@ -566,7 +653,8 @@ export function buildReadActionFollowUpInput(params: {
     'If they asked to rebuild or restore draft points, use draft.update.propose or draft.update actions now with the content you recover from the session.',
     'If dialog.read returned a Document:',
     '- Use Forward, Step, Paths, and Points from the result — same source Chronicle renders.',
-    '- Each listed Point has a number, id, and title. A page is not the whole Document.',
+    '- Each listed Point has a number, id, prelude, and body. A cut body names the offset and limit that continue it.',
+    '- If Gloss is listed, quote its thread id and text. If the line says none is stored, say that. Do not invent a Gloss.',
     '- If the result names a next offset, call dialog.read again with that offset before saying a Point is missing.',
     '- If the result says the Document is unbuilt (no Points), say that. Do not claim you read a body.',
     'If catalog.read returned counts or a page of titles and ids:',

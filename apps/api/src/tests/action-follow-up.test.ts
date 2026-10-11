@@ -4,7 +4,10 @@ import {
   buildDraftMutationFailureNotice,
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
+  buildSpecialistContinuationInput,
   formatReadActionResultsForFollowUp,
+  formatSpecialistActionDigest,
+  specialistContributionText,
   formatReadActionResultsForUserFallback,
   responseAlreadyUsesReadResults,
   shouldRunMutationDeferralFollowUp,
@@ -212,6 +215,74 @@ describe('actionFollowUp', () => {
     expect(formatted).toContain('2. (general) id=p2 — Evidence — Second body');
     expect(formatted).toContain('offset 2');
     expect(formatted).not.toContain('Point 3');
+  });
+
+  it('prints paged bodies, a cut, and the stored Gloss', () => {
+    const formatted = formatReadActionResultsForFollowUp([
+      {
+        type: 'dialog.read',
+        status: 'success',
+        message: 'page',
+        data: {
+          pointTotal: 162,
+          pointOffset: 32,
+          pointLimit: 1,
+          document: {
+            title: 'Operational Truth',
+            points: [
+              {
+                number: 33,
+                id: '64b7e0c3-7607-45c4-a595-64c5c256b883',
+                prelude: 'Active evidence and development records',
+                type: 'general',
+                preview: 'short',
+                body: 'The requirement stays open.',
+                bodyTruncated: true,
+                gloss: {
+                  threadId: '917a6626-eb9f-4e39-a4a6-b6ba965ee715',
+                  body: 'Version 0.5 is the source. The repository check is unfinished.',
+                  bodyTruncated: false,
+                },
+              },
+            ],
+          },
+        },
+      },
+    ]);
+    expect(formatted).toContain('33. (general) id=64b7e0c3-7607-45c4-a595-64c5c256b883 — Active evidence and development records');
+    expect(formatted).toContain('The requirement stays open.');
+    expect(formatted).toContain('offset 32');
+    expect(formatted).toContain('limit 1');
+    expect(formatted).toContain('917a6626-eb9f-4e39-a4a6-b6ba965ee715');
+    expect(formatted).toContain('repository check is unfinished');
+  });
+
+  it('forwards receipt text when the specialist returns no prose', () => {
+    const digest = formatSpecialistActionDigest([
+      {
+        type: 'mcp.call',
+        status: 'error',
+        message: 'github_repo_read: GitHub file not found: apps/api/src/hooks. Nearby in apps/api/src: api, lib.',
+        data: { tool: 'github_repo_read' },
+      },
+    ]);
+    expect(specialistContributionText('', digest)).toContain('Nearby in apps/api/src: api, lib.');
+    expect(specialistContributionText('Repository confirmed.', digest)).toBe('Repository confirmed.');
+    const continuation = buildSpecialistContinuationInput({
+      originalInput: 'Inspect OT16 and the receipt path. Do not replace this aim.',
+      agentName: 'Cloud',
+      actionResults: [
+        {
+          type: 'mcp.call',
+          status: 'error',
+          message: 'github_repo_read: GitHub file not found: apps/api/src/hooks. Nearby in apps/api/src: api, lib.',
+          data: { tool: 'github_repo_read' },
+        },
+      ],
+    });
+    expect(continuation).toContain('The assignment remains:');
+    expect(continuation).toContain('Inspect OT16 and the receipt path.');
+    expect(continuation).toContain('Nearby in apps/api/src: api, lib.');
   });
 
   it('formats catalog.read as titles and ids, not bodies', () => {

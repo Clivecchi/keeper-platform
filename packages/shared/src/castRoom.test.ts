@@ -4,7 +4,10 @@ import {
   contributionDeniesDocumentAccess,
   buildSpecialistAssignmentBlock,
   castRoomEvent,
+  castRoomContributionCap,
   classifyActionReceipt,
+  honorNamedCastEngage,
+  namedCastSlugs,
   continueOrPresent,
   contributionMatchesDirection,
   formatCastRoomTraceLine,
@@ -229,5 +232,31 @@ describe('direction and contribution', () => {
     expect(block).toContain('Cloud must inspect the receipt path.');
     expect(block).toContain('Do not say it could not be recovered.');
     expect(block.indexOf('Aim:')).toBeLessThan(block.indexOf('Cloud must inspect'));
+  });
+
+  it('names Ceox and Rendr and does not spend the next turn repeating Cloud', () => {
+    const text = [
+      'Cloud: inspect the receipt path.',
+      'Ceox: challenge unsupported completion claims.',
+      'Rendr: make the unfinished state legible.',
+    ].join('\n');
+    const voices = [
+      { slug: 'cloud', label: 'Cloud' },
+      { slug: 'ceox', label: 'Ceox' },
+      { slug: 'rendr', label: 'Rendr' },
+    ];
+    expect(namedCastSlugs(text, voices)).toEqual(['cloud', 'ceox', 'rendr']);
+    expect(castRoomContributionCap(3)).toBe(3);
+    expect(castRoomContributionCap(0)).toBe(2);
+    const again = honorNamedCastEngage({
+      engage: { slug: 'cloud', aim: 'inspect again' },
+      named: voices,
+      contributed: ['cloud'],
+      userMessage: text,
+    });
+    expect(again).toEqual({
+      slug: 'ceox',
+      aim: 'challenge unsupported completion claims.',
+    });
   });
 });

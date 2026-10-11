@@ -26,6 +26,10 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-10 — Missing-path errors stay readable
+- `mcpAgentBridge.ts` puts the tool Message, including nearby paths, in the specialist follow-up.
+- `directorDialog.ts` gives the Lead Point number, id, prelude, body, and Gloss from a `dialog.read` receipt, and requires a named voice before a repeat.
+
 ### 2026-10-09 — OpenAI empty replies are not retried
 - A stored GPT-4o chat call is redirected to GPT-6.1 Sol before the request. GPT-6 requests use `max_completion_tokens` and do not send sampling temperature. An empty completion is not retried; a sibling offering is tried once.
 

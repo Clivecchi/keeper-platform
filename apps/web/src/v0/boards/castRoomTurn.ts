@@ -3,7 +3,9 @@
  * Offers are cheap. A full contribution happens only when the Lead engages one voice.
  */
 import {
-  CAST_ROOM_CONTRIBUTION_CAP,
+  castRoomContributionCap,
+  honorNamedCastEngage,
+  namedCastSlugs,
   CAST_ROOM_DIRECTION_REF,
   CAST_ROOM_CONTRIBUTION_REF,
   aimIsSatisfied,
@@ -164,8 +166,12 @@ export async function runProgressiveCastRoom(params: {
   const consultations: CastRoomConsultation[] = []
   const artifactRequested = humanRequestedArtifact(params.userMessage)
   const profileName = params.profile === "agency" ? "Agency" : "Cast"
+  const namedVoices = params.voices.filter((voice) =>
+    namedCastSlugs(params.userMessage, params.voices).includes(voice.slug),
+  )
+  const contributionCap = castRoomContributionCap(namedVoices.length)
 
-  while (contributions < CAST_ROOM_CONTRIBUTION_CAP) {
+  while (contributions < contributionCap) {
     const directionTrail = projectCastRoomTrail(trace, params.previousTrace)
     params.onStatus?.(`${params.directorName} is choosing who speaks…`)
     const direction = await KipApi.runAgent(
@@ -187,7 +193,7 @@ export async function runProgressiveCastRoom(params: {
             phase: "direct",
             trail: directionTrail,
             offers,
-            allowEngage: contributions < CAST_ROOM_CONTRIBUTION_CAP,
+            allowEngage: contributions < contributionCap,
             trace,
             consumption,
             ...(previousHumanInstruction ? { previousHumanInstruction } : {}),
@@ -200,8 +206,17 @@ export async function runProgressiveCastRoom(params: {
       || (typeof directionData.response === "string" ? directionData.response.trim() : "")
     if (directionText) decision = directionText
     const engage = parseCastRoomEngage(directionData.engage)
-    const allowed = engage && params.voices.some((voice) => voice.slug === engage.slug)
+    const parsed = engage && params.voices.some((voice) => voice.slug === engage.slug)
       ? engage
+      : null
+    const honored = honorNamedCastEngage({
+      engage: parsed,
+      named: namedVoices,
+      contributed: consultations.map((row) => row.instrumentSlug),
+      userMessage: params.userMessage,
+    })
+    const allowed = honored && params.voices.some((voice) => voice.slug === honored.slug)
+      ? honored
       : null
     if (!allowed) break
 
@@ -274,7 +289,7 @@ export async function runProgressiveCastRoom(params: {
           actor: { kind: "agent", slug: voice.slug },
           what: "acted",
           ...where,
-          label: receiptLabel.slice(0, 180),
+          label: receiptLabel.slice(0, 500),
           refs: [
             { kind: CAST_ROOM_CONTRIBUTION_REF, id: contributionEvent.id },
             { kind: CAST_ROOM_DIRECTION_REF, id: directionEvent.id },
@@ -337,6 +352,7 @@ export async function runProgressiveCastRoom(params: {
     }) && !contributionDeniesDocumentAccess(reply)
     const step = continueOrPresent({
       contributionsUsed: contributions,
+      cap: contributionCap,
       hasSubstance,
       correlated,
       failed,

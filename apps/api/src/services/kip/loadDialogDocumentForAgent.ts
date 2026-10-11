@@ -10,6 +10,7 @@ import {
   isAuthoredDocumentForward,
   isOpenSectionId,
   parseDocumentPathDeclarations,
+  parseDraftPoints,
   resolveDocumentForward,
   summarizeDraftPointsForAgent,
   type DocumentOrientation,
@@ -183,6 +184,30 @@ export function buildDialogReadHonesty(pointCount: number): DialogReadHonesty {
     documentUnbuilt: false,
     honesty: `Document has ${pointCount} Point(s) — same source Chronicle renders. Use these Points; do not invent others.`,
   };
+}
+
+/** Full Point bodies for a paged read. The system Document block keeps the short preview. */
+export async function loadDialogPointContents(
+  dialogId: string,
+  domainId: string,
+): Promise<Map<string, string>> {
+  const manuscript = await prisma.kip_drafts.findFirst({
+    where: {
+      dialog_id: dialogId,
+      domain_id: domainId,
+      kind: 'document_manuscript',
+      status: { notIn: ['promoted', 'archived'] },
+    },
+    select: { spec_json: true },
+    orderBy: { updated_at: 'desc' },
+  });
+  const contents = new Map<string, string>();
+  if (!manuscript) return contents;
+  for (const point of parseDraftPoints(manuscript.spec_json)) {
+    if (!point.id || point.referencesPointId?.trim()) continue;
+    contents.set(point.id, point.content ?? '');
+  }
+  return contents;
 }
 
 export async function loadDialogDocumentForAgent(

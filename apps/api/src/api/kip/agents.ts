@@ -131,6 +131,7 @@ import {
   buildDialogReadHonesty,
   formatDialogDocumentForAgent,
   loadDialogDocumentForAgent,
+  loadDialogPointContents,
 } from '../../services/kip/loadDialogDocumentForAgent.js';
 import { readObjectGlossary } from '../../services/kip/loadObjectGlossary.js';
 import { WebSearchService } from '../../services/WebSearchService.js';
@@ -185,7 +186,11 @@ import {
   buildDraftMutationFailureNotice,
   buildMutationDeferralFollowUpInput,
   buildReadActionFollowUpInput,
+  buildSpecialistContinuationInput,
   formatReadActionResultsForUserFallback,
+  formatSpecialistActionDigest,
+  packPointReadBody,
+  specialistContributionText,
   READ_FOLLOW_UP_MAX_ELAPSED_MS,
   responseAlreadyUsesReadResults,
   shouldRunMutationDeferralFollowUp,
@@ -228,7 +233,7 @@ import { runPreserveDiscoveryTurn } from '../../services/kip/preserveDiscoveryTu
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
 import { layoutStageStory } from '../../services/kip/layoutStageStory.js';
 import { appendGlossTurn } from '../../services/GlossWriteService.js';
-import { ensureDialogGlossCarrier } from '../../services/kip/ensureDialogGlossCarrier.js';
+import { ensureDialogGlossCarrier, readDialogGlossByPointId } from '../../services/kip/ensureDialogGlossCarrier.js';
 import {
   buildGlossAppendFollowUpInput,
   buildGlossAppendSystemPrompt,
@@ -286,10 +291,8 @@ import {
   setDirectedStoryTelling,
 } from '../../services/domains/directKeeperStory.js';
 import {
-  buildMcpFollowUpInput,
   buildMcpToolSystemPrompt,
   executeMcpCallAction,
-  hasSuccessfulMcpResults,
   McpCallExecutionError,
   resolveMcpToolsForAgent,
 } from '../../services/mcpAgentBridge.js';
@@ -4642,17 +4645,29 @@ export async function executeAgentActions(
                 const pointLimit = typeof payload.limit === 'number' && payload.limit >= 1
                   ? Math.min(Math.floor(payload.limit), 40)
                   : 24;
-                const page = hosts.slice(pointOffset, pointOffset + pointLimit).map((point, index) => ({
-                  ...point,
-                  number: pointOffset + index + 1,
-                }));
+                const [contents, glossByPoint] = await Promise.all([
+                  loadDialogPointContents(dialog.id, ctx.domainId),
+                  readDialogGlossByPointId(dialog.id),
+                ]);
+                const page = hosts.slice(pointOffset, pointOffset + pointLimit).map((point, index) => {
+                  const packed = packPointReadBody(contents.get(point.id) ?? '', pointLimit === 1);
+                  const gloss = glossByPoint.get(point.id) ?? null;
+                  return {
+                    ...point,
+                    number: pointOffset + index + 1,
+                    body: packed.body,
+                    bodyTruncated: packed.bodyTruncated,
+                    gloss,
+                  };
+                });
                 const honesty = buildDialogReadHonesty(hosts.length);
                 const pageEnd = pointOffset + page.length;
+                const cutBodies = page.filter((point) => point.bodyTruncated).length;
                 const pageNote = hosts.length === 0
                   ? ''
                   : pageEnd >= hosts.length
-                    ? ` Page ${pointOffset + 1}–${pageEnd} of ${hosts.length}. This is the last page.`
-                    : ` Page ${pointOffset + 1}–${pageEnd} of ${hosts.length}. Next page: dialog.read with this id and offset ${pageEnd}.`;
+                    ? ` Page ${pointOffset + 1}–${pageEnd} of ${hosts.length}. This is the last page.${cutBodies ? ` ${cutBodies} body extract${cutBodies === 1 ? ' is' : 's are'} cut.` : ''}`
+                    : ` Page ${pointOffset + 1}–${pageEnd} of ${hosts.length}. Next page: dialog.read with this id and offset ${pageEnd}.${cutBodies ? ` ${cutBodies} body extract${cutBodies === 1 ? ' is' : 's are'} cut.` : ''}`;
                 results.push({
                   type: action.type,
                   status: 'success',
@@ -8290,11 +8305,15 @@ export class KipAgentService {
             userMessage: leadModelInput,
             trail: castRoomWire.trail ?? '',
             offers: (castRoomWire.offers ?? []).map((row) => ({
+              slug: row.slug,
               label: row.label,
               offer: row.offer,
             })),
             allowEngage: castRoomWire.allowEngage !== false,
             previousHumanInstruction: castRoomWire.previousHumanInstruction,
+            contributedSlugs: (castRoomWire.trace ?? [])
+              .filter((event) => event.what === 'contributed' && event.actor.slug)
+              .map((event) => event.actor.slug!),
           });
         } else if (castRoomWire?.phase === 'evaluate' && castRoomWire.assignment) {
           leadOrchestrationContext = buildCastRoomEvaluatePrompt({
@@ -10353,45 +10372,81 @@ export class KipAgentService {
             }
             actionResults = execution.results;
 
-            if (hasSuccessfulMcpResults(actionResults)) {
-              const followUpInput = buildMcpFollowUpInput({
+            const completedSpecialistActions = actionResults.some(
+              (result) => result.status === 'success' || result.status === 'error',
+            );
+            if (completedSpecialistActions) {
+              const followUpInput = buildSpecialistContinuationInput({
                 originalInput: input || '',
                 agentName: agent.name,
                 actionResults,
               });
-              const followUpResult = await this.callAIModel(
-                agent,
-                followUpInput,
-                previousMessages,
-                userId,
-                {
-                  mode: 'domain',
-                  modeConfig: systemModeConfig,
-                  lens: { systemPrompt: agentVoicePrompt || null },
-                  environment: options?.environment ?? null,
-                  activeJourneyId: options?.activeJourneyId ?? null,
-                  activeKeeperId: options?.activeKeeperId ?? null,
-                  domainId: options?.domainId ?? null,
-                  attachments: options?.attachments ?? undefined,
-                  timings: options?.timings,
-                  timingLabel: 'mcp_follow_up',
-                  reuseMessages: [
-                    ...lastSystemPromptMessages,
-                    { role: 'assistant', content: aiResult.content },
-                  ],
-                  onDelta: options?.onDelta,
-                },
-              );
-              const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
-                requestId: randomUUID(),
-                userId,
-                allowedActions: Array.from(systemAllowActions),
-              });
-              finalResponseText =
-                followUpStructured.responseText?.trim() || followUpResult.content.trim() || finalResponseText;
-              if (followUpStructured.card) {
-                structured = { ...structured, card: followUpStructured.card };
+              let followUpProse = '';
+              let continuedResults: ActionExecutionResult[] = [];
+              try {
+                const followUpResult = await this.callAIModel(
+                  agent,
+                  followUpInput,
+                  previousMessages,
+                  userId,
+                  {
+                    mode: 'domain',
+                    modeConfig: systemModeConfig,
+                    lens: { systemPrompt: agentVoicePrompt || null },
+                    environment: options?.environment ?? null,
+                    activeJourneyId: options?.activeJourneyId ?? null,
+                    activeKeeperId: options?.activeKeeperId ?? null,
+                    domainId: options?.domainId ?? null,
+                    attachments: options?.attachments ?? undefined,
+                    timings: options?.timings,
+                    timingLabel: 'mcp_follow_up',
+                    reuseMessages: [
+                      ...lastSystemPromptMessages,
+                      { role: 'assistant', content: aiResult.content },
+                    ],
+                    onDelta: options?.onDelta,
+                  },
+                );
+                const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
+                  requestId: randomUUID(),
+                  userId,
+                  allowedActions: Array.from(systemAllowActions),
+                });
+                followUpProse = followUpStructured.responseText?.trim() || '';
+                if (followUpStructured.card) {
+                  structured = { ...structured, card: followUpStructured.card };
+                }
+                if (followUpStructured.actions.length) {
+                  const continued = await executeAgentActions(
+                    followUpStructured.actions,
+                    buildExecuteAgentActionsCtx(options, {
+                      userId,
+                      agentId: agent.id,
+                      allowlist: systemAllowActions,
+                      sessionId: currentSessionId,
+                      requestId: systemRequestId,
+                      actor: pointTurnActor,
+                    }),
+                  );
+                  continuedResults = continued.results;
+                  actionResults = [...actionResults, ...continued.results];
+                }
+              } catch (error) {
+                console.warn('[System agent] specialist continuation failed', {
+                  agentId: agent.id,
+                  error: error instanceof Error ? error.message : error,
+                });
               }
+              const spoken = specialistContributionText(
+                followUpProse,
+                formatSpecialistActionDigest(actionResults),
+              );
+              const continuedDigest = continuedResults.length
+                ? formatSpecialistActionDigest(continuedResults)
+                : '';
+              finalResponseText = followUpProse && continuedDigest
+                ? `${spoken}\n\n${continuedDigest}`
+                : spoken;
             } else if (!(
               pointObligationFromEnv(options?.environment)?.required === true
               && !pointObligationFromEnv(options?.environment)?.constrained

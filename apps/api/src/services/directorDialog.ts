@@ -3,7 +3,8 @@
  * After Cast, orchestration context informs the Lead. It does not impersonate the human.
  */
 
-import { buildCastSpeechAndAgencyLines } from '@keeper/shared';
+import { buildCastSpeechAndAgencyLines, namedCastSlugs } from '@keeper/shared';
+import { formatDialogPointPageLines } from './kip/actionFollowUp.js';
 import { prisma } from '@keeper/database';
 
 /** Agent slug cued by Lead on director-mode boards (IDE tools or domain lead agents). */
@@ -200,6 +201,11 @@ export function formatActionReceiptsForLead(receipts: Array<Record<string, unkno
     const message = typeof row.message === 'string' ? row.message.trim() : '';
     const prefix = who ? `${who} · ${type}` : type;
     lines.push(`- ${prefix}: ${status}${code}${message ? ` — ${message}` : ''}`);
+    if (type === 'dialog.read' && status === 'success') {
+      for (const detail of formatDialogPointPageLines(data)) {
+        lines.push(`  ${detail}`);
+      }
+    }
   }
   lines.push(
     'You may describe intended next work in future tense.',
@@ -388,11 +394,19 @@ export function buildCastRoomDirectionPrompt(params: {
   directorName: string;
   userMessage: string;
   trail: string;
-  offers: Array<{ label: string; offer: string }>;
+  offers: Array<{ slug?: string; label: string; offer: string }>;
   allowEngage: boolean;
   /** Earlier human sentence, when this turn says to use it. */
   previousHumanInstruction?: string;
+  /** Slugs that already contributed on this turn. */
+  contributedSlugs?: string[];
 }): string {
+  const named = namedCastSlugs(
+    params.userMessage,
+    params.offers.flatMap((row) => (row.slug ? [{ slug: row.slug, label: row.label }] : [])),
+  );
+  const contributed = new Set((params.contributedSlugs ?? []).map((slug) => slug.toLowerCase()));
+  const unmet = named.filter((slug) => !contributed.has(slug.toLowerCase()));
   const offerLines = params.offers.length
     ? params.offers.map((row) =>
         row.offer
@@ -418,6 +432,15 @@ export function buildCastRoomDirectionPrompt(params: {
     'A contribution already on THIS TURN that does not address its aim is not success. Direct a sharper aim, or omit engage.',
     'Implementation and product protection belong to Cloud. Chronicle look and Stage arrangement belong to Rendr. Engage that voice when the objective is theirs.',
     'Engage the one voice whose offer is the real next step for the human\'s objective. Aim is the work you need from that responsibility.',
+    ...(unmet.length
+      ? [
+          `The human named these voices: ${named.join(', ')}.`,
+          `Still required this turn: ${unmet.join(', ')}.`,
+          'Engage a named voice that has not contributed before you engage a voice again.',
+          'A named voice may be engaged even when their offer line is silent.',
+          'The original investigation stays the aim when you return to the voice who owns it. Do not replace it with a new task.',
+        ]
+      : []),
     'If every offer is silence, or the only offers are about a different object, omit engage.',
     params.allowEngage
       ? 'You may engage one voice. Emit "engage": { "slug": "<one cued slug>", "aim": "<what you need from them>" } only when their full contribution would advance the objective. Otherwise omit engage and Present now.'

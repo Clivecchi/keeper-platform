@@ -215,3 +215,45 @@ export async function reconcileDialogGlossOntoCarrier(
 
   return nextCarrierThreads;
 }
+
+export type DialogPointGlossRead = {
+  threadId: string;
+  carrierMessageId: string;
+  body: string;
+  bodyTruncated: boolean;
+};
+
+const GLOSS_READ_CHARS = 2000;
+
+/** Read Point Gloss already stored on the carrier. Does not create a carrier. */
+export async function readDialogGlossByPointId(
+  dialogId: string,
+): Promise<Map<string, DialogPointGlossRead>> {
+  const dedicated = await prisma.kip_messages.findFirst({
+    where: {
+      kip_sessions: { dialog_id: dialogId, is_archived: false },
+      metadata: { path: ['glossCarrier'], equals: true },
+    },
+    orderBy: { created_at: 'asc' },
+    select: { id: true, metadata: true },
+  });
+  const found = new Map<string, DialogPointGlossRead>();
+  if (!dedicated) return found;
+  const meta = dedicated.metadata;
+  const record = meta && typeof meta === 'object' && !Array.isArray(meta)
+    ? meta as Record<string, unknown>
+    : null;
+  const threads = mergeDocumentGlossThreads(parseGlossThreads(record?.glossThreads));
+  for (const thread of threads) {
+    const pointId = thread.anchor.nodeId?.trim();
+    if (!pointId || found.has(pointId)) continue;
+    const text = thread.messages.map((message) => message.content.trim()).filter(Boolean).join('\n\n');
+    found.set(pointId, {
+      threadId: thread.id,
+      carrierMessageId: dedicated.id,
+      body: text.slice(0, GLOSS_READ_CHARS),
+      bodyTruncated: text.length > GLOSS_READ_CHARS,
+    });
+  }
+  return found;
+}

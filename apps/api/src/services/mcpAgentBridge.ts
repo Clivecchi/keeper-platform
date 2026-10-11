@@ -65,6 +65,7 @@ export type McpActionResultLike = {
   type: string;
   status: string;
   message: string;
+  errorCode?: string;
   data?: Record<string, unknown>;
 };
 
@@ -196,10 +197,22 @@ export function formatMcpActionResultsForFollowUp(results: McpActionResultLike[]
     .map((result) => {
       const toolName =
         typeof result.data?.tool === 'string' ? result.data.tool : result.type;
-      const payload = result.data?.result ?? result.data ?? result.message;
-      return [`Tool: ${toolName}`, `Status: ${result.status}`, JSON.stringify(payload, null, 2)].join(
-        '\n',
-      );
+      const lines = [`Tool: ${toolName}`, `Status: ${result.status}`];
+      const message = result.message?.trim() ?? '';
+      if (message) lines.push(`Message: ${message}`);
+      const errorCode = result.errorCode?.trim() ?? '';
+      if (errorCode) lines.push(`Error: ${errorCode}`);
+      const payload = result.data?.result;
+      if (payload !== undefined) {
+        const text = JSON.stringify(payload, null, 2);
+        lines.push(text.length > 8000 ? `${text.slice(0, 8000)}\n… result truncated` : text);
+      }
+      if (result.status === 'error' && /Nearby in /i.test(message)) {
+        lines.push(
+          'This missing path lists nearby entries. Read one of those paths with github_repo_read. Do not describe this error as an empty object.',
+        );
+      }
+      return lines.join('\n');
     })
     .join('\n\n');
 }
@@ -214,7 +227,10 @@ export function buildMcpFollowUpInput(params: {
     formatMcpActionResultsForFollowUp(params.actionResults),
     '',
     `Original user message: "${params.originalInput}"`,
-    'Summarize the tool results for the user. Use specific statuses, timestamps, and service names when present.',
+    'Answer that assignment from these results. The assignment stays in force on a retry.',
+    'Use specific paths, commits, statuses, and nearby entries when they are in the Message.',
+    'A missing path that lists nearby entries is recoverable. Read one of those paths before you stop.',
+    'Do not describe an error as an empty object when a Message is present.',
     'Do not say tools are unavailable or suggest wiring MCP — you already ran them.',
   ].join('\n');
 }

@@ -26,6 +26,10 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-10 — Missing-path errors stay readable
+- `mcpAgentBridge.ts` puts the tool Message, including nearby paths, in the specialist follow-up.
+- `directorDialog.ts` gives the Lead Point number, id, prelude, body, and Gloss from a `dialog.read` receipt, and requires a named voice before a repeat.
+
 ### 2026-10-08 — Word documents yield paragraph text
 - `docxTextExtract.ts` reads `.docx` paragraph text. Excel workbooks are still not read.
 
