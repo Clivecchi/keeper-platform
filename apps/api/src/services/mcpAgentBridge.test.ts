@@ -165,6 +165,29 @@ describe('mcpAgentBridge', () => {
     expect(formatted).not.toContain('"tool": "github_repo_read"');
   });
 
+  it('names the next file offset before a truncated payload', () => {
+    const formatted = formatMcpActionResultsForFollowUp([
+      {
+        type: 'mcp.call',
+        status: 'success',
+        message: 'MCP github_repo_read completed',
+        data: {
+          tool: 'github_repo_read',
+          result: {
+            path: 'apps/web/src/hooks/useAgentDialog.ts',
+            ref: 'cloud',
+            offset: 0,
+            nextOffset: 6000,
+            contentTruncated: true,
+            content: 'use client',
+          },
+        },
+      },
+    ]);
+    expect(formatted.indexOf('offset 6000')).toBeLessThan(formatted.indexOf('use client'));
+    expect(formatted).toContain('not the whole file');
+  });
+
   it('detects successful MCP action results', () => {
     expect(
       hasSuccessfulMcpResults([

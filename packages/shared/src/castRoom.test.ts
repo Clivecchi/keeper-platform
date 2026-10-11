@@ -258,5 +258,7 @@ describe('direction and contribution', () => {
       slug: 'ceox',
       aim: 'challenge unsupported completion claims.',
     });
+    const inline = 'Cloud: inspect the path. Ceox: challenge any completion claim. Rendr: make the unfinished state legible.';
+    expect(namedCastSlugs(inline, voices)).toEqual(['cloud', 'ceox', 'rendr']);
   });
 });

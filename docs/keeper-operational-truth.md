@@ -431,4 +431,20 @@ A read-only replay of the stored Point 33 and the missing-path error through the
 
 Passing tests in this session: cast-room naming, the missing-path formatter, paged bodies and Gloss lines, empty-prose forwarding, and the Lead receipt list. API typecheck passed. No live Cast turn was run on this repair. Deployment was not changed.
 
-Still open: a live turn in which Cloud’s commit-specific receipt-path findings reach Kip, the existing Gloss is quoted from the read, an identity-preserving work-record update lands with a receipt, and a later reload retrieves the same records. The Section 16 cut on the attachment remains. OT16 and OT19–OT22 stay unfinished until that live evidence exists.
+Still open after that repair: a live turn in which Cloud’s commit-specific receipt-path findings reach Kip, an identity-preserving work-record update lands with a receipt, and a later reload retrieves the same records. The Section 16 cut on the attachment remains.
+
+### Live turn after `2b3c3fd1` — commit pin missed
+
+The next Dialog turn did retrieve Point 33 (`64b7e0c3-7607-45c4-a595-64c5c256b883`) and Gloss thread `917a6626-eb9f-4e39-a4a6-b6ba965ee715`. Both texts were cut. Kip left the investigation unfinished. No records were changed. Ceox and Rendr still did not contribute: the human named them in one sentence, and the room only reserved a name that began a line. Cloud was directed twice.
+
+`github_repo_read` resolved `ref` only through `git/ref/heads`. Passing `2b3c3fd18d70a2d455f8bae5d03e78d411e24b08` produced “GitHub branch not found.” That lookup fails for any SHA, including one that is already on the branch. Cloud’s branch read in that turn reported HEAD `97048fc41c7cc44bc7330e0b51fa3453898e4443`. Current `origin/cloud` is `ca08935838fca42bf3d4f4470d3ad6f749277bfc`, which contains `2b3c3fd1`. The `useAgentDialog.ts` body was cut in the specialist result (`… result truncated`) before the receipt path.
+
+### Repair for the commit pin
+
+In this working tree, not pushed and not deployed:
+
+- A 7–40 hex `ref` is resolved as a commit (`/commits/{sha}`), not as a branch. A missing commit says so, and says a local-only commit is not on GitHub yet.
+- A file read returns one window and `nextOffset`. The specialist is told to call the same path again with that offset.
+- A name in the middle of a sentence (`Ceox:`, `Rendr:`) counts as a requested voice.
+
+Tests covering the commit-not-found path, the file window, the continuation line, and an inline Ceox/Rendr name passed. No live turn was run on this repair. Push and deployment were not done. OT16 and OT19–OT22 stay unfinished until a live read can name the receipt path at a commit GitHub actually has, and a reload retrieves the same Gloss and work record.

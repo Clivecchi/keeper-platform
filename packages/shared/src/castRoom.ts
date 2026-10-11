@@ -513,23 +513,23 @@ export function continueOrPresent(params: {
     : { step: 'present', resolve: false, outcome: 'unfinished' };
 }
 
-/** Voices the human addressed by name at the start of a line, limited to the room. */
+function voiceAddressPattern(name: string): RegExp {
+  const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[\\n.]|\\s)${escaped}\\s*:`, 'i');
+}
+
+/** Voices the human addressed by name, including a name in the middle of a sentence. */
 export function namedCastSlugs(
   text: string,
   voices: readonly { slug: string; label: string }[],
 ): string[] {
-  const wanted = new Set<string>();
-  const pattern = /(?:^|\n)\s*([A-Za-z][A-Za-z0-9 _-]{0,40}?)\s*:/g;
-  for (const match of text.matchAll(pattern)) {
-    const name = match[1]?.trim().toLowerCase();
-    if (name) wanted.add(name);
-  }
   const slugs: string[] = [];
   for (const voice of voices) {
     const slug = voice.slug.trim().toLowerCase();
-    const label = voice.label.trim().toLowerCase();
+    const label = voice.label.trim();
     if (!slug) continue;
-    if (wanted.has(slug) || wanted.has(label)) slugs.push(voice.slug);
+    const names = [voice.slug, label].map((name) => name.trim()).filter(Boolean);
+    if (names.some((name) => voiceAddressPattern(name).test(text))) slugs.push(voice.slug);
   }
   return slugs;
 }
@@ -542,7 +542,7 @@ export function castRoomContributionCap(namedCount: number): number {
 
 function aimLineForNamedVoice(text: string, label: string): string {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = text.match(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*:\\s*([^\\n]+)`, 'i'));
+  const match = text.match(new RegExp(`(?:^|[\\n.]|\\s)${escaped}\\s*:\\s*([^\\n]+)`, 'i'));
   const line = match?.[1]?.trim();
   return line || `Do the work the human assigned to ${label}.`;
 }

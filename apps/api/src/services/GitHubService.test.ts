@@ -25,8 +25,10 @@ import {
   GitHubService,
   encodeGitHubContentsPath,
   formatGitHubProxyError,
+  isCommitShaRef,
   isGitHubFileNotFoundError,
   nearbyGitHubPaths,
+  windowFileContent,
 } from './GitHubService.js';
 
 function githubContents404() {
@@ -74,6 +76,37 @@ describe('GitHubService', () => {
         'apps/web/src/components/board',
       )[0],
     ).toBe('apps/web/src/components/boards');
+  });
+
+  it('treats a hex ref as a commit and does not look up a branch', async () => {
+    const sha = '2b3c3fd18d70a2d455f8bae5d03e78d411e24b08';
+    const proxy = vi.fn().mockRejectedValue(githubContents404());
+    nangoMock.getNango.mockReturnValue({ proxy });
+    await expect(
+      GitHubService.readRepository({
+        repository: 'Clivecchi/keeper-platform',
+        path: 'apps/api/src/api/kip/agents.ts',
+        ref: sha,
+      }),
+    ).rejects.toThrow(/GitHub commit not found: 2b3c3fd18d70a2d455f8bae5d03e78d411e24b08/);
+    const endpoint = String(proxy.mock.calls[0]?.[0]?.endpoint);
+    expect(endpoint).toContain(`/commits/${sha}`);
+    expect(endpoint).not.toContain('/git/ref/heads/');
+    expect(isCommitShaRef(sha)).toBe(true);
+    expect(isCommitShaRef('cloud')).toBe(false);
+  });
+
+  it('windows a long file and names the next offset', () => {
+    const window = windowFileContent('abcdefghijklmnopqrstuvwxyz', 0, 200);
+    expect(window.content).toBe('abcdefghijklmnopqrstuvwxyz');
+    expect(window.contentTruncated).toBe(false);
+    const cut = windowFileContent('abcdefghijklmnopqrstuvwxyz', 4, 200);
+    expect(cut.offset).toBe(4);
+    expect(cut.contentTruncated).toBe(false);
+    const limited = windowFileContent('x'.repeat(8000), 0, 200);
+    expect(limited.content).toHaveLength(200);
+    expect(limited.nextOffset).toBe(200);
+    expect(limited.contentTruncated).toBe(true);
   });
 
   it('readRepository decodes base64 file content', async () => {

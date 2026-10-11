@@ -384,7 +384,7 @@ const tools: Tool[] = [
     // Underscore names for Claude.ai (`^[a-zA-Z0-9_-]{1,64}$`); dotted aliases still resolve in callTool.
     name: 'github_repo_read',
     description:
-      'Read a file, list a directory, or list the git tree. Pass path to a file for contents, or path to a folder to list that directory (nested paths work; mode=tree is not required for folders). Omit path for a recursive tree. Required capability: github.repo.read.',
+      'Read a file, list a directory, or list the git tree. Pass path to a file for contents, or path to a folder to list that directory (nested paths work; mode=tree is not required for folders). Omit path for a recursive tree. ref or branch is a branch name, or a commit SHA (7–40 hex) for that exact revision. A file returns at most one window; when contentTruncated is true, call again with the same path and offset set to nextOffset. Required capability: github.repo.read.',
     requiredCapability: 'github.repo.read',
     parameters: {
       type: 'object',
@@ -396,8 +396,10 @@ const tools: Tool[] = [
           type: 'string',
           description: 'File or directory path within the repository (nested folders are supported)',
         },
-        branch: { type: 'string', description: 'Branch or ref (default main)' },
-        ref: { type: 'string', description: 'Alias for branch' },
+        branch: { type: 'string', description: 'Branch name, or a commit SHA for that exact revision (default main)' },
+        ref: { type: 'string', description: 'Branch name or commit SHA. A SHA is not a branch.' },
+        offset: { type: 'number', description: 'Character start for a file window. Use nextOffset to continue.' },
+        limit: { type: 'number', description: 'File window length. Default 6000. Maximum 12000.' },
         mode: {
           type: 'string',
           enum: ['file', 'dir', 'tree'],

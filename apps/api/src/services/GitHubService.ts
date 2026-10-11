@@ -179,6 +179,40 @@ function decodeBase64Content(encoding: string | undefined, content: string | und
   return Buffer.from(content.replace(/\n/g, ''), 'base64').toString('utf8');
 }
 
+/** A 7–40 hex ref is a commit, not a branch name. */
+export function isCommitShaRef(ref: string): boolean {
+  return /^[0-9a-f]{7,40}$/i.test(ref.trim());
+}
+
+export const GITHUB_FILE_READ_CHARS = 6000;
+
+export function windowFileContent(
+  content: string | null,
+  offsetRaw: unknown,
+  limitRaw: unknown,
+): {
+  content: string | null;
+  offset: number;
+  nextOffset: number | null;
+  contentTruncated: boolean;
+} {
+  if (content == null) {
+    return { content: null, offset: 0, nextOffset: null, contentTruncated: false };
+  }
+  const offset = typeof offsetRaw === 'number' && offsetRaw >= 0 ? Math.floor(offsetRaw) : 0;
+  const requested = typeof limitRaw === 'number' && limitRaw >= 200 ? Math.floor(limitRaw) : GITHUB_FILE_READ_CHARS;
+  const limit = Math.min(requested, 12000);
+  const slice = content.slice(offset, offset + limit);
+  const next = offset + slice.length;
+  const contentTruncated = next < content.length;
+  return {
+    content: slice,
+    offset,
+    nextOffset: contentTruncated ? next : null,
+    contentTruncated,
+  };
+}
+
 function contentsEndpoint(owner: string, repo: string, path: string, ref: string): string {
   const encoded = encodeGitHubContentsPath(path);
   const base = encoded
@@ -227,6 +261,10 @@ export function formatGitHubProxyError(err: unknown, endpoint: string): string {
     if (/\/git\/ref\/heads\//.test(endpoint)) {
       const branch = decodeURIComponent(endpoint.split('/git/ref/heads/')[1] ?? '');
       return `GitHub branch not found${branch ? `: ${branch}` : ''}${repo ? ` in ${repo}` : ''}. Check the default branch in the GitHub binding.`;
+    }
+    if (/\/commits\/[0-9a-f]{7,40}/i.test(endpoint)) {
+      const sha = endpoint.match(/\/commits\/([0-9a-f]{7,40})/i)?.[1] ?? '';
+      return `GitHub commit not found${sha ? `: ${sha}` : ''}${repo ? ` in ${repo}` : ''}. A commit SHA is not a branch. If this commit is only local, GitHub cannot read it until it is pushed.`;
     }
     return `GitHub repository not found or the connected GitHub app cannot access it${repo ? ` (${repo})` : ''}. ${GITHUB_RECONNECT_HINT}`;
   }
@@ -277,6 +315,8 @@ async function readPathFromGitTree(params: {
   fullName: string;
   path: string;
   ref: string;
+  offset?: unknown;
+  limit?: unknown;
 }) {
   const { owner, repo, fullName, path, ref } = params;
   const tree = await GitHubService.loadGitTree(owner, repo, ref);
@@ -290,6 +330,8 @@ async function readPathFromGitTree(params: {
       sha?: string;
       size?: number;
     }>('GET', `/repos/${owner}/${repo}/git/blobs/${exact.sha}`);
+    const decoded = decodeBase64Content(blob.encoding, blob.content);
+    const window = windowFileContent(decoded, params.offset, params.limit);
     return {
       repository: fullName,
       path,
@@ -297,8 +339,11 @@ async function readPathFromGitTree(params: {
       mode: 'file' as const,
       type: 'file',
       sha: blob.sha ?? exact.sha,
-      size: blob.size ?? exact.size,
-      content: decodeBase64Content(blob.encoding, blob.content),
+      size: blob.size ?? exact.size ?? decoded?.length,
+      offset: window.offset,
+      nextOffset: window.nextOffset,
+      contentTruncated: window.contentTruncated,
+      content: window.content,
     };
   }
 
@@ -329,11 +374,24 @@ export class GitHubService {
     return resolveRepository(args);
   }
 
-  static async loadGitTree(
+  static async resolveGitRef(
     owner: string,
     repo: string,
     ref: string,
-  ): Promise<{ ref: string; sha: string; entries: GitHubTreeEntry[]; truncated: boolean }> {
+  ): Promise<{ sha: string; kind: 'branch' | 'commit' }> {
+    if (isCommitShaRef(ref)) {
+      const commit = await githubProxy<{ sha?: string }>(
+        'GET',
+        `/repos/${owner}/${repo}/commits/${encodeURIComponent(ref.trim())}`,
+      );
+      const sha = commit.sha?.trim();
+      if (!sha) {
+        throw new Error(
+          `GitHub commit not found: ${ref} in ${owner}/${repo}. A commit SHA is not a branch. If this commit is only local, GitHub cannot read it until it is pushed.`,
+        );
+      }
+      return { sha, kind: 'commit' };
+    }
     const branchRef = await githubProxy<{ object?: { sha?: string } }>(
       'GET',
       `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(ref)}`,
@@ -342,13 +400,22 @@ export class GitHubService {
     if (!treeSha) {
       throw new Error(`Could not resolve branch ref "${ref}" for ${owner}/${repo}`);
     }
+    return { sha: treeSha, kind: 'branch' };
+  }
+
+  static async loadGitTree(
+    owner: string,
+    repo: string,
+    ref: string,
+  ): Promise<{ ref: string; sha: string; entries: GitHubTreeEntry[]; truncated: boolean }> {
+    const resolved = await GitHubService.resolveGitRef(owner, repo, ref);
     const tree = await githubProxy<{
       tree?: GitHubTreeEntry[];
       truncated?: boolean;
-    }>('GET', `/repos/${owner}/${repo}/git/trees/${treeSha}?recursive=1`);
+    }>('GET', `/repos/${owner}/${repo}/git/trees/${resolved.sha}?recursive=1`);
     return {
       ref,
-      sha: treeSha,
+      sha: resolved.sha,
       entries: tree.tree ?? [],
       truncated: tree.truncated ?? false,
     };
@@ -363,6 +430,9 @@ export class GitHubService {
       (typeof resolvedArgs.ref === 'string' && resolvedArgs.ref) ||
       (typeof resolvedArgs.branch === 'string' && resolvedArgs.branch) ||
       'main';
+    if (isCommitShaRef(ref)) {
+      await GitHubService.resolveGitRef(owner, repo, ref);
+    }
     const mode = typeof args.mode === 'string' ? args.mode : path ? 'auto' : 'tree';
 
     if (mode === 'tree') {
@@ -407,6 +477,8 @@ export class GitHubService {
         };
       }
 
+      const decoded = decodeBase64Content(content.encoding, content.content);
+      const window = windowFileContent(decoded, args.offset, args.limit);
       return {
         repository: fullName,
         path,
@@ -414,12 +486,23 @@ export class GitHubService {
         mode: 'file' as const,
         type: content.type,
         sha: content.sha,
-        size: content.size,
-        content: decodeBase64Content(content.encoding, content.content),
+        size: content.size ?? decoded?.length,
+        offset: window.offset,
+        nextOffset: window.nextOffset,
+        contentTruncated: window.contentTruncated,
+        content: window.content,
       };
     } catch (error) {
       if (!isGitHubFileNotFoundError(error)) throw error;
-      return readPathFromGitTree({ owner, repo, fullName, path, ref });
+      return readPathFromGitTree({
+        owner,
+        repo,
+        fullName,
+        path,
+        ref,
+        offset: args.offset,
+        limit: args.limit,
+      });
     }
   }
 

@@ -204,6 +204,14 @@ export function formatMcpActionResultsForFollowUp(results: McpActionResultLike[]
       if (errorCode) lines.push(`Error: ${errorCode}`);
       const payload = result.data?.result;
       if (payload !== undefined) {
+        const record = payload && typeof payload === 'object' && !Array.isArray(payload)
+          ? payload as { contentTruncated?: boolean; nextOffset?: number | null; path?: string }
+          : null;
+        if (record?.contentTruncated === true && typeof record.nextOffset === 'number') {
+          lines.push(
+            `File continues past this window. github_repo_read the same path with offset ${record.nextOffset}. This window is not the whole file.`,
+          );
+        }
         const text = JSON.stringify(payload, null, 2);
         lines.push(text.length > 8000 ? `${text.slice(0, 8000)}\n… result truncated` : text);
       }
