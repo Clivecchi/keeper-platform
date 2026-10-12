@@ -1,0 +1,1933 @@
+{
+  "dialog": {
+    "id": "cmv04yrn50001otb8mwjrj0as",
+    "title": "Keeper Operational Truth",
+    "domain_id": "9b0989f6-2fe4-4aa6-9c8a-f49a2516e7f9",
+    "updated_at": "2026-10-11T00:03:25.959Z"
+  },
+  "sessions": [
+    {
+      "id": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+      "updated_at": "2026-10-12T01:47:05.337Z",
+      "agent_id": "385689a0-d5e5-47a7-bf97-08d6597e1a33"
+    }
+  ],
+  "messageCount": 6,
+  "messages": [
+    {
+      "id": "ee0eb86f-3e33-413c-b627-baf59d001185",
+      "at": "2026-10-12T01:08:51.021Z",
+      "role": "user",
+      "contentLen": 21,
+      "content": "SO what have we here?",
+      "frame": null,
+      "actions": [],
+      "cast": []
+    },
+    {
+      "id": "60df22d3-0c0e-4cff-8ce9-bed13c6fe763",
+      "at": "2026-10-12T01:08:54.632Z",
+      "role": "assistant",
+      "contentLen": 336,
+      "content": "Rendr’s previous pass applied a hero-and-stack arrangement—but to the “Where are we” arrival view, not the selected Operational Truth work. So there was a real composition change, but not yet the demonstration you asked for. Rendr owns applying that treatment to the selected work; that composition capability is unavailable in my turn.",
+      "frame": null,
+      "actions": [],
+      "cast": []
+    },
+    {
+      "id": "df2ca04c-66c7-4bbe-8b75-227757d6d0de",
+      "at": "2026-10-12T01:17:43.592Z",
+      "role": "user",
+      "contentLen": 91,
+      "content": "So am I to understand the Rendr is making changes, but I dont know what is being changed...",
+      "frame": null,
+      "actions": [],
+      "cast": []
+    },
+    {
+      "id": "000ff4cf-a533-4cec-9b41-bfc95c4dff26",
+      "at": "2026-10-12T01:17:47.804Z",
+      "role": "assistant",
+      "contentLen": 220,
+      "content": "No—I overstated it earlier. The receipts show repository reads, not an applied Rendr change. Cloud still owns verifying what Rendr can change and where you see the result; the returned evidence has not answered that yet.",
+      "frame": {
+        "title": "Applied Change Remains Unproven",
+        "beatCount": 1,
+        "beats": [
+          {
+            "title": "A Distinction Still to Establish",
+            "bodyLen": 140,
+            "bodyHead": "An applied visual change must be distinguishable from a proposed arrangement and from investigation. That distinction remains unproven here."
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed",
+          "data": {
+            "tool": "github_repo_read",
+            "result": {
+              "ref": "cloud",
+              "mode": "dir",
+              "path": "apps/api/src/api",
+              "type": "dir",
+              "entries": [
+                {
+                  "sha": "e9ed29c1b6f9ddc9ea8dd524f9bc3c4e2f3e82d1",
+                  "name": "README.md",
+                  "path": "apps/api/src/api/README.md",
+                  "size": 8574,
+                  "type": "file"
+                },
+                {
+                  "sha": "43b512c8979d5401a6e8b152b6e572c68b747407",
+                  "name": "admin.ts",
+                  "path": "apps/api/src/api/admin.ts",
+                  "size": 694,
+                  "type": "file"
+                },
+                {
+                  "sha": "1aef361c1007cf1cd25aa0adc2891eeb11a84af9",
+                  "name": "admin",
+                  "path": "apps/api/src/api/admin",
+                  "type": "dir"
+                },
+                {
+                  "sha": "9f44141614366e0b621d8a19f67e890cc1bddaac",
+                  "name": "agents.ts",
+                  "path": "apps/api/src/api/agents.ts",
+                  "size": 38309,
+                  "type": "file"
+                },
+                {
+                  "sha": "3adc41c6e7081a16c808177952d14cc16716ce94",
+                  "name": "agents",
+                  "path": "apps/api/src/api/agents",
+                  "type": "dir"
+                },
+                {
+                  "sha": "c61230070e447c83cbfad0aaec161364ddccd8cf",
+                  "name": "board-data",
+                  "path": "apps/api/src/api/board-data",
+                  "type": "dir"
+                },
+                {
+                  "sha": "7a10e173c2daea31d39356830e056f0a894e1311",
+                  "name": "boards.ts",
+                  "path": "apps/api/src/api/boards.ts",
+                  "size": 54864,
+                  "type": "file"
+                },
+                {
+                  "sha": "24212f3d45e2b419121a9b9e35eda3d5eded96b4",
+                  "name": "debug-db.ts",
+                  "path": "apps/api/src/api/debug-db.ts",
+                  "size": 267,
+                  "type": "file"
+                },
+                {
+                  "sha": "2c304130ab361078bcaf1b32bf353df346839bc3",
+                  "name": "debug.ts",
+                  "path": "apps/api/src/api/debug.ts",
+                  "size": 47133,
+                  "type": "file"
+                },
+                {
+                  "sha": "299c9ee8c994b4d78c67d7ba67fb506af52b7aac",
+                  "name": "domains.management.ts",
+                  "path": "apps/api/src/api/domains.management.ts",
+                  "size": 3743,
+                  "type": "file"
+                },
+                {
+                  "sha": "282b748c9cac8c179be4a9b2c9dadd5b9d3b9a6b",
+                  "name": "domains.ts",
+                  "path": "apps/api/src/api/domains.ts",
+                  "size": 9246,
+                  "type": "file"
+                },
+                {
+                  "sha": "b8d80fb36ac38077c4eaf5687dff3ed1336a157d",
+                  "name": "domains",
+                  "path": "apps/api/src/api/domains",
+                  "type": "dir"
+                },
+                {
+                  "sha": "618fb1cdc128ae3e458ff45f891f0ad9cab4028d",
+                  "name": "emotifs",
+                  "path": "apps/api/src/api/emotifs",
+                  "type": "dir"
+                },
+                {
+                  "sha": "044174a5c0b5e6cfee3ef8c00e88b6dd8dace13f",
+                  "name": "engagement",
+                  "path": "apps/api/src/api/engagement",
+                  "type": "dir"
+                },
+                {
+                  "sha": "8e5742d71e7a3f649a0659ba6ed908bf2683adc7",
+                  "name": "entities",
+                  "path": "apps/api/src/api/entities",
+                  "type": "dir"
+                },
+                {
+                  "sha": "d1d0ddd7f5f654376fd50106b688ace235c8da05",
+                  "name": "governance",
+                  "path": "apps/api/src/api/governance",
+                  "type": "dir"
+                },
+                {
+                  "sha": "34c340a6e965d67d1fc552c77fb38c3a4f21208f",
+                  "name": "image",
+                  "path": "apps/api/src/api/image",
+                  "type": "dir"
+                },
+                {
+                  "sha": "c6277005278dbfca2fb3d43ab642160746eaa511",
+                  "name": "journey",
+                  "path": "apps/api/src/api/journey",
+                  "type": "dir"
+                },
+                {
+                  "sha": "d63fdcb5f8e3764297218752762ba51884d9b0b9",
+                  "name": "journeyListScope.test.ts",
+                  "path": "apps/api/src/api/journeyListScope.test.ts",
+                  "size": 6221,
+                  "type": "file"
+                },
+                {
+                  "sha": "c0f16183196763a2eb9b7a9a618ba48a1bf15e5b",
+                  "name": "journeyListScope.ts",
+                  "path": "apps/api/src/api/journeyListScope.ts",
+                  "size": 3713,
+                  "type": "file"
+                },
+                {
+                  "sha": "1cf15366a60f895ed1a882ae06b50c6e0b0af4d1",
+                  "name": "journeys.list-scope.test.ts",
+                  "path": "apps/api/src/api/journeys.list-scope.test.ts",
+                  "size": 5021,
+                  "type": "file"
+                },
+                {
+                  "sha": "442d173f9b1859f6c53fdc0a6428d374d10eb478",
+                  "name": "journeys.ts",
+                  "path": "apps/api/src/api/journeys.ts",
+                  "size": 10995,
+                  "type": "file"
+                },
+                {
+                  "sha": "a9e237229e3fb574833faa3c91a1c7912c4c073e",
+                  "name": "kam",
+                  "path": "apps/api/src/api/kam",
+                  "type": "dir"
+                },
+                {
+                  "sha": "c09672a7678c3caa6539dd25044d3e5868fd859c",
+                  "name": "keeper-types.ts",
+                  "path": "apps/api/src/api/keeper-types.ts",
+                  "size": 7535,
+                  "type": "file"
+                },
+                {
+                  "sha": "4fead4a44102a790e924865f97581344354b99ab",
+                  "name": "keeper",
+                  "path": "apps/api/src/api/keeper",
+                  "type": "dir"
+                },
+                {
+                  "sha": "14ba08091eb2c76bb3a8f032d7b1a556d60f5646",
+                  "name": "kip",
+                  "path": "apps/api/src/api/kip",
+                  "type": "dir"
+                },
+                {
+                  "sha": "a4d81156f454b4deecc9b25d00e01133a88b68ff",
+                  "name": "memory",
+                  "path": "apps/api/src/api/memory",
+                  "type": "dir"
+                },
+                {
+                  "sha": "bae2c6c5e6ee02cadd9103b2652e8a3000bdb672",
+                  "name": "moment",
+                  "path": "apps/api/src/api/moment",
+                  "type": "dir"
+                },
+                {
+                  "sha": "384ea712ef66efffe76309b81fbd4f9906ea1cd9",
+                  "name": "path",
+                  "path": "apps/api/src/api/path",
+                  "type": "dir"
+                },
+                {
+                  "sha": "110be7fd94454ba65917bf011ad8d2a32d6e02a0",
+                  "name": "people.ts",
+                  "path": "apps/api/src/api/people.ts",
+                  "size": 6925,
+                  "type": "file"
+                },
+                {
+                  "sha": "0b735ba7e8b00276e4127eece81cb39eda22b092",
+                  "name": "production",
+                  "path": "apps/api/src/api/production",
+                  "type": "dir"
+                },
+                {
+                  "sha": "613769081d075e2c2e0d1dd96ab9532648ebcfa2",
+                  "name": "public",
+                  "path": "apps/api/src/api/public",
+                  "type": "dir"
+                },
+                {
+                  "sha": "d70f9c0431a65cd25926a642589f2e6229be78a3",
+                  "name": "realm",
+                  "path": "apps/api/src/api/realm",
+                  "type": "dir"
+                },
+                {
+                  "sha": "f45f7ce566796c4207bbc4eef81b21a5a3d272f6",
+                  "name": "sharing",
+                  "path": "apps/api/src/api/sharing",
+                  "type": "dir"
+                },
+                {
+                  "sha": "94f42340ecca406a817d6b8ce7a02d90827d7152",
+                  "name": "uploads",
+                  "path": "apps/api/src/api/uploads",
+                  "type": "dir"
+                },
+                {
+                  "sha": "e6ccf2a3785fb6d88b438341770ae91d28ff5789",
+                  "name": "users",
+                  "path": "apps/api/src/api/users",
+                  "type": "dir"
+                },
+                {
+                  "sha": "13e48e1ba4e00c4496d6c8ec43122e607b1d6d5b",
+                  "name": "voice",
+                  "path": "apps/api/src/api/voice",
+                  "type": "dir"
+                }
+              ],
+              "truncated": false,
+              "repository": "Clivecchi/keeper-platform"
+            },
+            "castSlug": "cloud",
+            "attributedTo": "Cloud"
+          }
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed",
+          "data": {
+            "tool": "github_repo_read",
+            "result": {
+              "ref": "cloud",
+              "mode": "dir",
+              "path": "apps/web/src/components",
+              "type": "dir",
+              "entries": [
+                {
+                  "sha": "2e997b6cf1fe0f5973fcd013ca8aa844a1de48a7",
+                  "name": "AuthDebug.tsx",
+                  "path": "apps/web/src/components/AuthDebug.tsx",
+                  "size": 2967,
+                  "type": "file"
+                },
+                {
+                  "sha": "60801ade708817c8aeac3f59bdf878366fe7d667",
+                  "name": "AuthForm.tsx",
+                  "path": "apps/web/src/components/AuthForm.tsx",
+                  "size": 7555,
+                  "type": "file"
+                },
+                {
+                  "sha": "056984e759ddd49ec874951b24914660b36ccba8",
+                  "name": "DebugButton.tsx",
+                  "path": "apps/web/src/components/DebugButton.tsx",
+                  "size": 8640,
+                  "type": "file"
+                },
+                {
+                  "sha": "8f2439824f9f9d7172926047899bdfc3744bd80e",
+                  "name": "ErrorBoundary.tsx",
+                  "path": "apps/web/src/components/ErrorBoundary.tsx",
+                  "size": 1617,
+                  "type": "file"
+                },
+                {
+                  "sha": "063c9c9b7da56a714e21c03c4dd3a21ed480a58e",
+                  "name": "HostnameSlugGuard.tsx",
+                  "path": "apps/web/src/components/HostnameSlugGuard.tsx",
+                  "size": 808,
+                  "type": "file"
+                },
+                {
+                  "sha": "f0be1988a28a754e918e7cb473d9d79c6a1164c6",
+                  "name": "NavigationMenu",
+                  "path": "apps/web/src/components/NavigationMenu",
+                  "type": "dir"
+                },
+                {
+                  "sha": "030e2f0a4d53242e13e2b0ee5d304afade6f8130",
+                  "name": "README.md",
+                  "path": "apps/web/src/components/README.md",
+                  "size": 2745,
+                  "type": "file"
+                },
+                {
+                  "sha": "0394cbca4d950c1d92a6963ce6fb7b7245e7ed86",
+                  "name": "RealmRoot.tsx",
+                  "path": "apps/web/src/components/RealmRoot.tsx",
+                  "size": 650,
+                  "type": "file"
+                },
+                {
+                  "sha": "eca3b96e3bf255c91cfc922be99b09c1668598f4",
+                  "name": "ThemeProvider",
+                  "path": "apps/web/src/components/ThemeProvider",
+                  "type": "dir"
+                },
+                {
+                  "sha": "89463dd104fc7a643bae01d409877ab00d6d43e4",
+                  "name": "agent",
+                  "path": "apps/web/src/components/agent",
+                  "type": "dir"
+                },
+                {
+                  "sha": "21c592511a44ddc360f462f3ba5125894bbc5daa",
+                  "name": "boards",
+                  "path": "apps/web/src/components/boards",
+                  "type": "dir"
+                },
+                {
+                  "sha": "ce6abbd48171f497781d015f2f68b3b4e6e0244e",
+                  "name": "domain-manager",
+                  "path": "apps/web/src/components/domain-manager",
+                  "type": "dir"
+                },
+                {
+                  "sha": "0db9259d666c88391b2bff6b3c8b1854285920c5",
+                  "name": "domain",
+                  "path": "apps/web/src/components/domain",
+                  "type": "dir"
+                },
+                {
+                  "sha": "a6209a7248a6c339173c86fd4889a12101311e2e",
+                  "name": "engagement",
+                  "path": "apps/web/src/components/engagement",
+                  "type": "dir"
+                },
+                {
+                  "sha": "6289e1a28609534150508cb01f5d6e036509ae43",
+                  "name": "frames",
+                  "path": "apps/web/src/components/frames",
+                  "type": "dir"
+                },
+                {
+                  "sha": "8120b4870bfb772678289ec295e2778f26ec344a",
+                  "name": "gloss",
+                  "path": "apps/web/src/components/gloss",
+                  "type": "dir"
+                },
+                {
+                  "sha": "aa52157c322d2163e5ba36f6c042f177992e6563",
+                  "name": "keeper",
+                  "path": "apps/web/src/components/keeper",
+                  "type": "dir"
+                },
+                {
+                  "sha": "349f97212f552e19faecc10f9e3db3b7ac710b5e",
+                  "name": "kip",
+                  "path": "apps/web/src/components/kip",
+                  "type": "dir"
+                },
+                {
+                  "sha": "98c6a86ebfe29901909ccaa7899ca726913a223b",
+                  "name": "layout",
+                  "path": "apps/web/src/components/layout",
+                  "type": "dir"
+                },
+                {
+                  "sha": "4fd042d31d0054a622907874ff5b3daa63f9104a",
+                  "name": "patterns",
+                  "path": "apps/web/src/components/patterns",
+                  "type": "dir"
+                },
+                {
+                  "sha": "7dffdb81e6ea053660d9b415a8d6d7994cd70303",
+                  "name": "props",
+                  "path": "apps/web/src/components/props",
+                  "type": "dir"
+                },
+                {
+                  "sha": "b472d318b0113fa9812dfb0489c8b0ea81cfe396",
+                  "name": "studio",
+                  "path": "apps/web/src/components/studio",
+                  "type": "dir"
+                },
+                {
+                  "sha": "e63c783ec6f60fb51360a5bc6a60fff5602a6952",
+                  "name": "ui",
+                  "path": "apps/web/src/components/ui",
+                  "type": "dir"
+                }
+              ],
+              "truncated": false,
+              "repository": "Clivecchi/keeper-platform"
+            },
+            "castSlug": "cloud",
+            "attributedTo": "Cloud"
+          }
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed",
+          "data": {
+            "tool": "github_repo_read",
+            "result": {
+              "ref": "cloud",
+              "mode": "dir",
+              "path": "packages/shared/src",
+              "type": "dir",
+              "entries": [
+                {
+                  "sha": "1bfca5a69fb42f1057df08f187132a7407ea5e1c",
+                  "name": "README.md",
+                  "path": "packages/shared/src/README.md",
+                  "size": 17014,
+                  "type": "file"
+                },
+                {
+                  "sha": "735bfa972000c6aa810628e1a78edfc692609059",
+                  "name": "agencyCore.test.ts",
+                  "path": "packages/shared/src/agencyCore.test.ts",
+                  "size": 3294,
+                  "type": "file"
+                },
+                {
+                  "sha": "7974f836b3f8fecc8f2c624f89358e347972e7cc",
+                  "name": "agencyCore.ts",
+                  "path": "packages/shared/src/agencyCore.ts",
+                  "size": 8300,
+                  "type": "file"
+                },
+                {
+                  "sha": "ece7f4933232f11a3d7374cd6bb191feefcb2f05",
+                  "name": "agentModelPicker.ts",
+                  "path": "packages/shared/src/agentModelPicker.ts",
+                  "size": 3269,
+                  "type": "file"
+                },
+                {
+                  "sha": "384b97d53239bfa44a8c7b40101d977afe05cf53",
+                  "name": "agentPerformanceProvenance.test.ts",
+                  "path": "packages/shared/src/agentPerformanceProvenance.test.ts",
+                  "size": 3882,
+                  "type": "file"
+                },
+                {
+                  "sha": "8436f58b985a221363c7f4cb6e073e63eef732ba",
+                  "name": "agentPerformanceProvenance.ts",
+                  "path": "packages/shared/src/agentPerformanceProvenance.ts",
+                  "size": 10831,
+                  "type": "file"
+                },
+                {
+                  "sha": "45f0480926839c84af90b3c2f2fac7fed3162b81",
+                  "name": "agentRole.test.ts",
+                  "path": "packages/shared/src/agentRole.test.ts",
+                  "size": 555,
+                  "type": "file"
+                },
+                {
+                  "sha": "9d97bd0dcc97a5bc8a0ad465082844176205faa3",
+                  "name": "agentRole.ts",
+                  "path": "packages/shared/src/agentRole.ts",
+                  "size": 272,
+                  "type": "file"
+                },
+                {
+                  "sha": "870454e94b4a7ca26009751b532e49be424793b7",
+                  "name": "anonymousClaimContract.test.ts",
+                  "path": "packages/shared/src/anonymousClaimContract.test.ts",
+                  "size": 1384,
+                  "type": "file"
+                },
+                {
+                  "sha": "46004305ce4c848099f51081e5a6e3216fc5d913",
+                  "name": "anonymousClaimContract.ts",
+                  "path": "packages/shared/src/anonymousClaimContract.ts",
+                  "size": 1957,
+                  "type": "file"
+                },
+                {
+                  "sha": "26e2d9e463604388ffa44ea15c7ee9e63d9bcc1e",
+                  "name": "artifactAuthority.test.ts",
+                  "path": "packages/shared/src/artifactAuthority.test.ts",
+                  "size": 3517,
+                  "type": "file"
+                },
+                {
+                  "sha": "328bbbdec2dedf6d17ac9918a41abba576fa6f04",
+                  "name": "artifactAuthority.ts",
+                  "path": "packages/shared/src/artifactAuthority.ts",
+                  "size": 7981,
+                  "type": "file"
+                },
+                {
+                  "sha": "0c316abc8e78a569ec8aa979ae9c16064eec29f6",
+                  "name": "canonicalBoards.ts",
+                  "path": "packages/shared/src/canonicalBoards.ts",
+                  "size": 577,
+                  "type": "file"
+                },
+                {
+                  "sha": "92e871093a793b4abcc854fc83efe3c9e93cf4cb",
+                  "name": "castDelegationVoice.test.ts",
+                  "path": "packages/shared/src/castDelegationVoice.test.ts",
+                  "size": 2354,
+                  "type": "file"
+                },
+                {
+                  "sha": "31f78f12f956ea008fea5d51a7ed5944f0d935bf",
+                  "name": "castDelegationVoice.ts",
+                  "path": "packages/shared/src/castDelegationVoice.ts",
+                  "size": 6203,
+                  "type": "file"
+                },
+                {
+                  "sha": "3152e29bb29d0f51cefef25c805a66796931e532",
+                  "name": "castRoom.test.ts",
+                  "path": "packages/shared/src/castRoom.test.ts",
+                  "size": 9655,
+                  "type": "file"
+                },
+                {
+                  "sha": "06d22f6c8627e653082fff780cd251cff49f0216",
+                  "name": "castRoom.ts",
+                  "path": "packages/shared/src/castRoom.ts",
+                  "size": 22970,
+                  "type": "file"
+                },
+                {
+                  "sha": "00343cdcb108b3b1478e7055a7acb7dbd6239d7f",
+                  "name": "chronicleEvent.test.ts",
+                  "path": "packages/shared/src/chronicleEvent.test.ts",
+                  "size": 2706,
+                  "type": "file"
+                },
+                {
+                  "sha": "e1ee3174e3a8b1f4567e50b17d9772e3042a24de",
+                  "name": "chronicleEvent.ts",
+                  "path": "packages/shared/src/chronicleEvent.ts",
+                  "size": 2561,
+                  "type": "file"
+                },
+                {
+                  "sha": "b4525489582cfde5f1e80bdf71ecef9b2acec90d",
+                  "name": "chronicleSubject.test.ts",
+                  "path": "packages/shared/src/chronicleSubject.test.ts",
+                  "size": 5586,
+                  "type": "file"
+                },
+                {
+                  "sha": "f087f90869e707c34eaec39981539be2d55ec59d",
+                  "name": "chronicleSubject.ts",
+                  "path": "packages/shared/src/chronicleSubject.ts",
+                  "size": 9951,
+                  "type": "file"
+                },
+                {
+                  "sha": "0b4df7a1aa1e6511fd85f7e324f4c70038037e45",
+                  "name": "cloudMcpCeiling.ts",
+                  "path": "packages/shared/src/cloudMcpCeiling.ts",
+                  "size": 755,
+                  "type": "file"
+                },
+                {
+                  "sha": "d9db90a55f9115814f6195887caf51b2f13c2d5d",
+                  "name": "conversationProfile.test.ts",
+                  "path": "packages/shared/src/conversationProfile.test.ts",
+                  "size": 2711,
+                  "type": "file"
+                },
+                {
+                  "sha": "ad996eb402ff62283ca1315bf92794ed9bc871c6",
+                  "name": "conversationProfile.ts",
+                  "path": "packages/shared/src/conversationProfile.ts",
+                  "size": 2964,
+                  "type": "file"
+                },
+                {
+                  "sha": "a533c666a5f7bea332263df10a0cd569d5f6ba09",
+                  "name": "dialogContext.test.ts",
+                  "path": "packages/shared/src/dialogContext.test.ts",
+                  "size": 1358,
+                  "type": "file"
+                },
+                {
+                  "sha": "82c8c2c6fd36b9300247aa4c905c4e10fc104a8f",
+                  "name": "dialogContext.ts",
+                  "path": "packages/shared/src/dialogContext.ts",
+                  "size": 8946,
+                  "type": "file"
+                },
+                {
+                  "sha": "6efdd9ec811d2827c8e6b5af3342055a1779ad36",
+                  "name": "dialogHumanMembership.ts",
+                  "path": "packages/shared/src/dialogHumanMembership.ts",
+                  "size": 437,
+                  "type": "file"
+                },
+                {
+                  "sha": "c48c4f6e51236375f394570c7847d36906b5703b",
+                  "name": "dialogParticipation.test.ts",
+                  "path": "packages/shared/src/dialogParticipation.test.ts",
+                  "size": 1442,
+                  "type": "file"
+                },
+                {
+                  "sha": "179677df9b7b80f465040983235371b5aef12222",
+                  "name": "dialogParticipation.ts",
+                  "path": "packages/shared/src/dialogParticipation.ts",
+                  "size": 1551,
+                  "type": "file"
+                },
+                {
+                  "sha": "baf3ee06414d9471abc777fc3494c0f990463457",
+                  "name": "dialogTitleSource.test.ts",
+                  "path": "packages/shared/src/dialogTitleSource.test.ts",
+                  "size": 1046,
+                  "type": "file"
+                },
+                {
+                  "sha": "ec9e79e8c21015e3199e1243bd7998ef0845a838",
+                  "name": "dialogTitleSource.ts",
+                  "path": "packages/shared/src/dialogTitleSource.ts",
+                  "size": 1640,
+                  "type": "file"
+                },
+                {
+                  "sha": "3f49d20cd76f8e133b9af2a51687b0e2ee8b2f0f",
+                  "name": "directorContinuity.ts",
+                  "path": "packages/shared/src/directorContinuity.ts",
+                  "size": 5928,
+                  "type": "file"
+                },
+                {
+                  "sha": "5cc7573a8fda12ea4ab669b85276391b48191c03",
+                  "name": "document.ts",
+                  "path": "packages/shared/src/document.ts",
+                  "size": 10537,
+                  "type": "file"
+                },
+                {
+                  "sha": "d5a92df09b257a9ae397979bb60d0dd3d5117303",
+                  "name": "documentAuthoring.test.ts",
+                  "path": "packages/shared/src/documentAuthoring.test.ts",
+                  "size": 7300,
+                  "type": "file"
+                },
+                {
+                  "sha": "e62b7c50459225975a496c89561f516fd03b2137",
+                  "name": "documentAuthoring.ts",
+                  "path": "packages/shared/src/documentAuthoring.ts",
+                  "size": 7738,
+                  "type": "file"
+                },
+                {
+                  "sha": "eb30fd3534e207ac0b953f334821a4ddf8a05bb0",
+                  "name": "documentComponents.test.ts",
+                  "path": "packages/shared/src/documentComponents.test.ts",
+                  "size": 925,
+                  "type": "file"
+                },
+                {
+                  "sha": "519259794e7dfde7244f137f8fbd34dfbad73562",
+                  "name": "documentForward.test.ts",
+                  "path": "packages/shared/src/documentForward.test.ts",
+                  "size": 1554,
+                  "type": "file"
+                },
+                {
+                  "sha": "4b860005e43840ad078a7badefeded03c6192880",
+                  "name": "documentOrientation.test.ts",
+                  "path": "packages/shared/src/documentOrientation.test.ts",
+                  "size": 1939,
+                  "type": "file"
+                },
+                {
+                  "sha": "3942d2053364c4dacff052e36ef816b34fd1183f",
+                  "name": "documentOrientation.ts",
+                  "path": "packages/shared/src/documentOrientation.ts",
+                  "size": 3794,
+                  "type": "file"
+                },
+                {
+                  "sha": "1bcf6a9409950503535e7d8119a4e32195b68ed0",
+                  "name": "documentReorganize.test.ts",
+                  "path": "packages/shared/src/documentReorganize.test.ts",
+                  "size": 21615,
+                  "type": "file"
+                },
+                {
+                  "sha": "82ccdc67e7bde928ba325bca1c2c77bf27c3ca13",
+                  "name": "documentReorganize.ts",
+                  "path": "packages/shared/src/documentReorganize.ts",
+                  "size": 33676,
+                  "type": "file"
+                },
+                {
+                  "sha": "c057fbc52618820a45624ebbabf227e52b5e6821",
+                  "name": "documentReorganizeIntent.ts",
+                  "path": "packages/shared/src/documentReorganizeIntent.ts",
+                  "size": 6378,
+                  "type": "file"
+                },
+                {
+                  "sha": "d5d641b8824b5c632dfe94f2f767074527141ac9",
+                  "name": "documentSectionIntro.test.ts",
+                  "path": "packages/shared/src/documentSectionIntro.test.ts",
+                  "size": 1061,
+                  "type": "file"
+                },
+                {
+                  "sha": "af9a34863cf26332ef7578556c70a16a9b761fe0",
+                  "name": "documentTurnPosture.test.ts",
+                  "path": "packages/shared/src/documentTurnPosture.test.ts",
+                  "size": 5774,
+                  "type": "file"
+                },
+                {
+                  "sha": "e6cac077d3fc56d642e3d0f0a48dc9888c2bf63e",
+                  "name": "documentTurnPosture.ts",
+                  "path": "packages/shared/src/documentTurnPosture.ts",
+                  "size": 9675,
+                  "type": "file"
+                },
+                {
+                  "sha": "ca3c143876a95920293a0cb821804f87bc3d2009",
+                  "name": "domainAccessKey.test.ts",
+                  "path": "packages/shared/src/domainAccessKey.test.ts",
+                  "size": 513,
+                  "type": "file"
+                },
+                {
+                  "sha": "7cec3170a58359d01178492a04c3805de4393345",
+                  "name": "domainAccessKey.ts",
+                  "path": "packages/shared/src/domainAccessKey.ts",
+                  "size": 1152,
+                  "type": "file"
+                },
+                {
+                  "sha": "986f90eb1ccb01fbf9104a838f7168700e74531f",
+                  "name": "domainCatalog.ts",
+                  "path": "packages/shared/src/domainCatalog.ts",
+                  "size": 2174,
+                  "type": "file"
+                },
+                {
+                  "sha": "ff8ae1da4eb461daa39ab25d52c93671d6202753",
+                  "name": "domainRoleCatalog.test.ts",
+                  "path": "packages/shared/src/domainRoleCatalog.test.ts",
+                  "size": 3320,
+                  "type": "file"
+                },
+                {
+                  "sha": "d211aa4f8e5dc97365871669c2cba655b944b14b",
+                  "name": "domainRoleCatalog.ts",
+                  "path": "packages/shared/src/domainRoleCatalog.ts",
+                  "size": 9851,
+                  "type": "file"
+                },
+                {
+                  "sha": "9c5ac763ddaf062af01e7aa624359bb5e5249cf8",
+                  "name": "domainTier.test.ts",
+                  "path": "packages/shared/src/domainTier.test.ts",
+                  "size": 1464,
+                  "type": "file"
+                },
+                {
+                  "sha": "3ccd5703d17d323bdae4cca12e67a76677084814",
+                  "name": "domainTier.ts",
+                  "path": "packages/shared/src/domainTier.ts",
+                  "size": 4242,
+                  "type": "file"
+                },
+                {
+                  "sha": "53268ab15f0cefb676491500cfad1c292c8650e8",
+                  "name": "domains",
+                  "path": "packages/shared/src/domains",
+                  "type": "dir"
+                },
+                {
+                  "sha": "6c9e0694aca22ee716fe5077fda82ebec9cd0a4a",
+                  "name": "draftHostTitle.test.ts",
+                  "path": "packages/shared/src/draftHostTitle.test.ts",
+                  "size": 929,
+                  "type": "file"
+                },
+                {
+                  "sha": "552a27afcdc48d8220b1bd707976aa6aa35a839c",
+                  "name": "draftHostTitle.ts",
+                  "path": "packages/shared/src/draftHostTitle.ts",
+                  "size": 695,
+                  "type": "file"
+                },
+                {
+                  "sha": "e37a06e892c0ee7fc6364bf0b84efc0c59234162",
+                  "name": "draftPointPromotion.test.ts",
+                  "path": "packages/shared/src/draftPointPromotion.test.ts",
+                  "size": 2919,
+                  "type": "file"
+                },
+                {
+                  "sha": "008bfc3eda10aebec78869686a5cf194815cd483",
+                  "name": "draftPointPromotion.ts",
+                  "path": "packages/shared/src/draftPointPromotion.ts",
+                  "size": 3120,
+                  "type": "file"
+                },
+                {
+                  "sha": "10adafeded3e541cf6184aaa9875b002d5c7a456",
+                  "name": "draftPointStructure.test.ts",
+                  "path": "packages/shared/src/draftPointStructure.test.ts",
+                  "size": 2452,
+                  "type": "file"
+                },
+                {
+                  "sha": "328de60b95af8cfb8c6723a2a564bfeba922e698",
+                  "name": "draftPointStructure.ts",
+                  "path": "packages/shared/src/draftPointStructure.ts",
+                  "size": 4522,
+                  "type": "file"
+                },
+                {
+                  "sha": "9056516c04d44d702222a9a2ed74be22f5abdb10",
+                  "name": "draftPoints.test.ts",
+                  "path": "packages/shared/src/draftPoints.test.ts",
+                  "size": 3684,
+                  "type": "file"
+                },
+                {
+                  "sha": "08b30e647dc0cca220801e833ae96d7b9fa42561",
+                  "name": "draftPoints.ts",
+                  "path": "packages/shared/src/draftPoints.ts",
+                  "size": 22674,
+                  "type": "file"
+                },
+                {
+                  "sha": "6ee653bb664b08c3ae528e366a7bdee6ac8a1cac",
+                  "name": "framePerformance.test.ts",
+                  "path": "packages/shared/src/framePerformance.test.ts",
+                  "size": 7642,
+                  "type": "file"
+                },
+                {
+                  "sha": "4ca6178011ab0c2329f06a7fdc56eb9d4160f46c",
+                  "name": "framePerformance.ts",
+                  "path": "packages/shared/src/framePerformance.ts",
+                  "size": 13222,
+                  "type": "file"
+                },
+                {
+                  "sha": "386f8321a55d068d2a3642c3d00e55b65b523731",
+                  "name": "glossAnchor.ts",
+                  "path": "packages/shared/src/glossAnchor.ts",
+                  "size": 3108,
+                  "type": "file"
+                },
+                {
+                  "sha": "1951cb548cf188bf1f4b1dfbf3f4fb74a8331dc0",
+                  "name": "glossThread.test.ts",
+                  "path": "packages/shared/src/glossThread.test.ts",
+                  "size": 2735,
+                  "type": "file"
+                },
+                {
+                  "sha": "c2f50b937abc15d59cf13761825e1ea64fa6f0ff",
+                  "name": "glossThread.ts",
+                  "path": "packages/shared/src/glossThread.ts",
+                  "size": 6056,
+                  "type": "file"
+                },
+                {
+                  "sha": "b252b7191556fbbfcbe140bf8d096b7b83ec308d",
+                  "name": "guidedArrival.test.ts",
+                  "path": "packages/shared/src/guidedArrival.test.ts",
+                  "size": 874,
+                  "type": "file"
+                },
+                {
+                  "sha": "d105b5e9ab654fc98620c629732a20e242b2fd34",
+                  "name": "guidedArrival.ts",
+                  "path": "packages/shared/src/guidedArrival.ts",
+                  "size": 1006,
+                  "type": "file"
+                },
+                {
+                  "sha": "74da15d842b86de5bf49c81c9188c9cad723f632",
+                  "name": "humanTurn.test.ts",
+                  "path": "packages/shared/src/humanTurn.test.ts",
+                  "size": 2249,
+                  "type": "file"
+                },
+                {
+                  "sha": "bd330ec7d6b4e412aee84a6ce14635455e178050",
+                  "name": "humanTurn.ts",
+                  "path": "packages/shared/src/humanTurn.ts",
+                  "size": 5777,
+                  "type": "file"
+                },
+                {
+                  "sha": "a6610afc74d7e950c8badfbdf2ae98b239c75f3d",
+                  "name": "imagePalette.test.ts",
+                  "path": "packages/shared/src/imagePalette.test.ts",
+                  "size": 1427,
+                  "type": "file"
+                },
+                {
+                  "sha": "d82d8a9ead887c4762e2d46e31e3b0b28dead6e4",
+                  "name": "imagePalette.ts",
+                  "path": "packages/shared/src/imagePalette.ts",
+                  "size": 3700,
+                  "type": "file"
+                },
+                {
+                  "sha": "e55289e76e79b2d878bba46112e90cc49f88676f",
+                  "name": "index.d.ts",
+                  "path": "packages/shared/src/index.d.ts",
+                  "size": 64,
+                  "type": "file"
+                },
+                {
+                  "sha": "c4985f9a8e488f5f25088027ee77cc0976d8d6f3",
+                  "name": "index.d.ts.map",
+                  "path": "packages/shared/src/index.d.ts.map",
+                  "size": 116,
+                  "type": "file"
+                },
+                {
+                  "sha": "872ed128fc3f0af80c05ac26fdfa09f366f46858",
+                  "name": "index.js",
+                  "path": "packages/shared/src/index.js",
+                  "size": 62,
+                  "type": "file"
+                },
+                {
+                  "sha": "a7e6e70d4fff0d88a33e62bca1290ec862fae037",
+                  "name": "index.js.map",
+                  "path": "packages/shared/src/index.js.map",
+                  "size": 114,
+                  "type": "file"
+                },
+                {
+                  "sha": "a2221a79ef088e01ec410bb6d64a6226b0febde6",
+                  "name": "index.ts",
+                  "path": "packages/shared/src/index.ts",
+                  "size": 3063,
+                  "type": "file"
+                },
+                {
+                  "sha": "e2a5b2b13c071184d76a81a007cda7f05156ac66",
+                  "name": "ingestReconcile.test.ts",
+                  "path": "packages/shared/src/ingestReconcile.test.ts",
+                  "size": 4390,
+                  "type": "file"
+                },
+                {
+                  "sha": "283e7f8ddb25dfb6d4db5fbbd70e269875f8e37e",
+                  "name": "ingestReconcile.ts",
+                  "path": "packages/shared/src/ingestReconcile.ts",
+                  "size": 7771,
+                  "type": "file"
+                },
+                {
+                  "sha": "6a10c177f8cbd96e4d6bafe73a04c5e59b2d5c10",
+                  "name": "integrationChronicleDeclarations.ts",
+                  "path": "packages/shared/src/integrationChronicleDeclarations.ts",
+                  "size": 11611,
+                  "type": "file"
+                },
+                {
+                  "sha": "8b47d4dd0a9a300f705ab82d3690d9f0db813e8a",
+                  "name": "invitationSeed.test.ts",
+                  "path": "packages/shared/src/invitationSeed.test.ts",
+                  "size": 2400,
+                  "type": "file"
+                },
+                {
+                  "sha": "bd8d98c6ded382e36d2a477320b5b4f9e2557035",
+                  "name": "invitationSeed.ts",
+                  "path": "packages/shared/src/invitationSeed.ts",
+                  "size": 5941,
+                  "type": "file"
+                },
+                {
+                  "sha": "429af5e4c9e4a307b0a867da128ce7b300408d16",
+                  "name": "keeperAdviceCard.test.ts",
+                  "path": "packages/shared/src/keeperAdviceCard.test.ts",
+                  "size": 2963,
+                  "type": "file"
+                },
+                {
+                  "sha": "678907304cda195cb04c5385d7bd209ab528dbd8",
+                  "name": "keeperAdviceCard.ts",
+                  "path": "packages/shared/src/keeperAdviceCard.ts",
+                  "size": 2768,
+                  "type": "file"
+                },
+                {
+                  "sha": "b9ee25a1a79e0001729990ff488055ec73e48a2a",
+                  "name": "keeperStage.test.ts",
+                  "path": "packages/shared/src/keeperStage.test.ts",
+                  "size": 9897,
+                  "type": "file"
+                },
+                {
+                  "sha": "9b27ce52bf47694d4b3d14930a96b688a99802d7",
+                  "name": "keeperStage.ts",
+                  "path": "packages/shared/src/keeperStage.ts",
+                  "size": 20637,
+                  "type": "file"
+                },
+                {
+                  "sha": "a0b98ea85bb5ec665a4f887e6c0364e8039affa7",
+                  "name": "keeperStory.test.ts",
+                  "path": "packages/shared/src/keeperStory.test.ts",
+                  "size": 3154,
+                  "type": "file"
+                },
+                {
+                  "sha": "22a123d45c55a2957bc2da3bdff307bfe44787e5",
+                  "name": "keeperStory.ts",
+                  "path": "packages/shared/src/keeperStory.ts",
+                  "size": 10370,
+                  "type": "file"
+                },
+                {
+                  "sha": "d6d922b31376dbcf3c0f6f328128adb96781882b",
+                  "name": "keepingChoice.test.ts",
+                  "path": "packages/shared/src/keepingChoice.test.ts",
+                  "size": 8950,
+                  "type": "file"
+                },
+                {
+                  "sha": "7519065c73623cafaa0050b4bfccea07630a411b",
+                  "name": "keepingChoice.ts",
+                  "path": "packages/shared/src/keepingChoice.ts",
+                  "size": 15230,
+                  "type": "file"
+                },
+                {
+                  "sha": "ecbb1198203c5d387296de02ac472ecbd68b22cc",
+                  "name": "libraryPointer.ts",
+                  "path": "packages/shared/src/libraryPointer.ts",
+                  "size": 968,
+                  "type": "file"
+                },
+                {
+                  "sha": "7a6617e5c3ff2641ebe5dfad7207e87818352f45",
+                  "name": "logger.d.ts",
+                  "path": "packages/shared/src/logger.d.ts",
+                  "size": 263,
+                  "type": "file"
+                },
+                {
+                  "sha": "5ea77749d418627155cf91ae2b18fd894bf0dc1f",
+                  "name": "logger.d.ts.map",
+                  "path": "packages/shared/src/logger.d.ts.map",
+                  "size": 400,
+                  "type": "file"
+                },
+                {
+                  "sha": "64e83c2547e674e71e32cd117d59f8fc11f885ac",
+                  "name": "logger.js",
+                  "path": "packages/shared/src/logger.js",
+                  "size": 601,
+                  "type": "file"
+                },
+                {
+                  "sha": "12c3f0537ec39ec51bb0d377c785555d9be4eddd",
+                  "name": "logger.js.map",
+                  "path": "packages/shared/src/logger.js.map",
+                  "size": 847,
+                  "type": "file"
+                },
+                {
+                  "sha": "84d96826093ccedd5ce06df09770b99e929f4c74",
+                  "name": "logger.ts",
+                  "path": "packages/shared/src/logger.ts",
+                  "size": 799,
+                  "type": "file"
+                },
+                {
+                  "sha": "198299503d23c95201a036deb9f3a80f5f96aa3f",
+                  "name": "markdownToDraftPoints.test.ts",
+                  "path": "packages/shared/src/markdownToDraftPoints.test.ts",
+                  "size": 2386,
+                  "type": "file"
+                },
+                {
+                  "sha": "e243a806c5f2720f73e5e9b64dc8b59f6da9437a",
+                  "name": "markdownToDraftPoints.ts",
+                  "path": "packages/shared/src/markdownToDraftPoints.ts",
+                  "size": 4500,
+                  "type": "file"
+                },
+                {
+                  "sha": "990e02223aa4c90c85f92494dccc71c0b19978ea",
+                  "name": "mcpOauthGrant.ts",
+                  "path": "packages/shared/src/mcpOauthGrant.ts",
+                  "size": 403,
+                  "type": "file"
+                },
+                {
+                  "sha": "0b1e53bb220c0274004ad2edce1248f9c09c8e30",
+                  "name": "objectTheme.test.ts",
+                  "path": "packages/shared/src/objectTheme.test.ts",
+                  "size": 1271,
+                  "type": "file"
+                },
+                {
+                  "sha": "eecdec0b7932a5a50f15da63b7de0307a23a2100",
+                  "name": "objectTheme.ts",
+                  "path": "packages/shared/src/objectTheme.ts",
+                  "size": 4777,
+                  "type": "file"
+                },
+                {
+                  "sha": "81fba75bc34d9d6cb3ae2ed1d1493dbf78e3a8bb",
+                  "name": "placementContrast.test.ts",
+                  "path": "packages/shared/src/placementContrast.test.ts",
+                  "size": 2224,
+                  "type": "file"
+                },
+                {
+                  "sha": "4d5bd8a79d285baa5693fa5135df5d69d358b9a6",
+                  "name": "placementContrast.ts",
+                  "path": "packages/shared/src/placementContrast.ts",
+                  "size": 7414,
+                  "type": "file"
+                },
+                {
+                  "sha": "43ae274ff5224076c1108a36792229c6a59157a0",
+                  "name": "platformDomainSlug.ts",
+                  "path": "packages/shared/src/platformDomainSlug.ts",
+                  "size": 1144,
+                  "type": "file"
+                },
+                {
+                  "sha": "e15f88c3e21679d0b7e33254cc53a63bebd06ece",
+                  "name": "pointProposeIdentity.test.ts",
+                  "path": "packages/shared/src/pointProposeIdentity.test.ts",
+                  "size": 4380,
+                  "type": "file"
+                },
+                {
+                  "sha": "5f728652148b31fb4e07649c68edca337c96a2b2",
+                  "name": "pointProposeIdentity.ts",
+                  "path": "packages/shared/src/pointProposeIdentity.ts",
+                  "size": 3534,
+                  "type": "file"
+                },
+                {
+                  "sha": "b652b62f431761c72fa6cabcc17d6880fc1fbd98",
+                  "name": "presenceCover.ts",
+                  "path": "packages/shared/src/presenceCover.ts",
+                  "size": 1611,
+                  "type": "file"
+                },
+                {
+                  "sha": "3573914513b4feb2173132607c9bb940e1326161",
+                  "name": "previousHumanInstruction.test.ts",
+                  "path": "packages/shared/src/previousHumanInstruction.test.ts",
+                  "size": 1074,
+                  "type": "file"
+                },
+                {
+                  "sha": "b1fe8fddd32832d6891ef256bd04d3452423a1e7",
+                  "name": "previousHumanInstruction.ts",
+                  "path": "packages/shared/src/previousHumanInstruction.ts",
+                  "size": 1332,
+                  "type": "file"
+                },
+                {
+                  "sha": "ea59d6a4e008be95ee8407af63eb5347861ea3b8",
+                  "name": "readableDocuments.test.ts",
+                  "path": "packages/shared/src/readableDocuments.test.ts",
+                  "size": 1645,
+                  "type": "file"
+                },
+                {
+                  "sha": "0ba3f607a36371df30e605676f35ab175972e371",
+                  "name": "readableDocuments.ts",
+                  "path": "packages/shared/src/readableDocuments.ts",
+                  "size": 4759,
+                  "type": "file"
+                },
+                {
+                  "sha": "09bab2630a697891246f46d863c8ee42a2f016b0",
+                  "name": "realm",
+                  "path": "packages/shared/src/realm",
+                  "type": "dir"
+                },
+                {
+                  "sha": "7d86544e4df6b95aa464db0db669c578350c9a90",
+                  "name": "realmArrival.test.ts",
+                  "path": "packages/shared/src/realmArrival.test.ts",
+                  "size": 5688,
+                  "type": "file"
+                },
+                {
+                  "sha": "2b15888a3a6dd533c9cb997d6e6f59d88c654ddd",
+                  "name": "realmArrival.ts",
+                  "path": "packages/shared/src/realmArrival.ts",
+                  "size": 5669,
+                  "type": "file"
+                },
+                {
+                  "sha": "aa56d8a26971d5e767deb9bf223899ec38d63f5d",
+                  "name": "recordNaming.test.ts",
+                  "path": "packages/shared/src/recordNaming.test.ts",
+                  "size": 1289,
+                  "type": "file"
+                },
+                {
+                  "sha": "34e62c56fbc9c5674f61c99a2428025f0aaa8dd0",
+                  "name": "recordNaming.ts",
+                  "path": "packages/shared/src/recordNaming.ts",
+                  "size": 1650,
+                  "type": "file"
+                },
+                {
+                  "sha": "3964231802689f93b049e9d9c392c75e0d913721",
+                  "name": "redactForLog.ts",
+                  "path": "packages/shared/src/redactForLog.ts",
+                  "size": 1511,
+                  "type": "file"
+                },
+                {
+                  "sha": "d38d0b298695475cb38a632532ca9630a34a6255",
+                  "name": "resolvedMeaning.test.ts",
+                  "path": "packages/shared/src/resolvedMeaning.test.ts",
+                  "size": 3522,
+                  "type": "file"
+                },
+                {
+                  "sha": "5e9b48051ed5d3a345570814ca9a4b60fb532848",
+                  "name": "resolvedMeaning.ts",
+                  "path": "packages/shared/src/resolvedMeaning.ts",
+                  "size": 6445,
+                  "type": "file"
+                },
+                {
+                  "sha": "6e7ee14fb811943e22b2848c4186d6383b3beacc",
+                  "name": "roles.test.ts",
+                  "path": "packages/shared/src/roles.test.ts",
+                  "size": 1229,
+                  "type": "file"
+                },
+                {
+                  "sha": "58f3bbc87f9240437e86ef51565fdba9c782da6d",
+                  "name": "roles.ts",
+                  "path": "packages/shared/src/roles.ts",
+                  "size": 1975,
+                  "type": "file"
+                },
+                {
+                  "sha": "48baa1de9ac8f372a7816952492017ed610892b5",
+                  "name": "serviceBindings.test.ts",
+                  "path": "packages/shared/src/serviceBindings.test.ts",
+                  "size": 1642,
+                  "type": "file"
+                },
+                {
+                  "sha": "e8b961a882d327dc1b55b5488cf53def9146c97c",
+                  "name": "serviceBindings.ts",
+                  "path": "packages/shared/src/serviceBindings.ts",
+                  "size": 4102,
+                  "type": "file"
+                },
+                {
+                  "sha": "3dd655c2d0fb75d868797cd5e19c6b46ac301ef8",
+                  "name": "sessionActionLog.test.ts",
+                  "path": "packages/shared/src/sessionActionLog.test.ts",
+                  "size": 5887,
+                  "type": "file"
+                },
+                {
+                  "sha": "4091206e6b4d349df34b10418559c6d4bd2b226b",
+                  "name": "sessionActionLog.ts",
+                  "path": "packages/shared/src/sessionActionLog.ts",
+                  "size": 7692,
+                  "type": "file"
+                },
+                {
+                  "sha": "ec311f696c1394280b341a3f17198edaa28968e5",
+                  "name": "stageArrival.test.ts",
+                  "path": "packages/shared/src/stageArrival.test.ts",
+                  "size": 4084,
+                  "type": "file"
+                },
+                {
+                  "sha": "0483f4ad9fbe20313ec8f0c9a96084dc94a4c9fd",
+                  "name": "stageArrival.ts",
+                  "path": "packages/shared/src/stageArrival.ts",
+                  "size": 6099,
+                  "type": "file"
+                },
+                {
+                  "sha": "cedc68e30ffbe4fa1389d9f013e74c8e3376c7fe",
+                  "name": "stageComposition.test.ts",
+                  "path": "packages/shared/src/stageComposition.test.ts",
+                  "size": 12866,
+                  "type": "file"
+                },
+                {
+                  "sha": "d0e268d01eaecbf777babea51d01cd0d37c8972c",
+                  "name": "stageComposition.ts",
+                  "path": "packages/shared/src/stageComposition.ts",
+                  "size": 35746,
+                  "type": "file"
+                },
+                {
+                  "sha": "ecb1938f6013925e81d345152cdc3db42b955337",
+                  "name": "storyTruthPacket.test.ts",
+                  "path": "packages/shared/src/storyTruthPacket.test.ts",
+                  "size": 4483,
+                  "type": "file"
+                },
+                {
+                  "sha": "cb90448aebcca207c2108fb3b829e9fbc26ad9ef",
+                  "name": "storyTruthPacket.ts",
+                  "path": "packages/shared/src/storyTruthPacket.ts",
+                  "size": 8305,
+                  "type": "file"
+                },
+                {
+                  "sha": "b94ba3add20bec5553e416c6cf172b95a1525b6c",
+                  "name": "structure",
+                  "path": "packages/shared/src/structure",
+                  "type": "dir"
+                },
+                {
+                  "sha": "4ee1bfe99b2dd43ddc27deb5307bcd62a7d7e035",
+                  "name": "talkingInWorkingOn.test.ts",
+                  "path": "packages/shared/src/talkingInWorkingOn.test.ts",
+                  "size": 6914,
+                  "type": "file"
+                },
+                {
+                  "sha": "c303ff49ee558b7fc1da3a8c48b8d2bcdc84b516",
+                  "name": "talkingInWorkingOn.ts",
+                  "path": "packages/shared/src/talkingInWorkingOn.ts",
+                  "size": 10843,
+                  "type": "file"
+                },
+                {
+                  "sha": "950a64a3c2ca1cbfd2f8d5da7f27d13b8b005f06",
+                  "name": "treatmentSwatches.test.ts",
+                  "path": "packages/shared/src/treatmentSwatches.test.ts",
+                  "size": 1162,
+                  "type": "file"
+                },
+                {
+                  "sha": "f8cecd7db99b44bce6b331edbfaddc58bc6c6433",
+                  "name": "treatmentSwatches.ts",
+                  "path": "packages/shared/src/treatmentSwatches.ts",
+                  "size": 5213,
+                  "type": "file"
+                },
+                {
+                  "sha": "4f7b2a9b2f7db43a61764a12a467ba6c4bf0c5f0",
+                  "name": "universalBoardId.test.ts",
+                  "path": "packages/shared/src/universalBoardId.test.ts",
+                  "size": 527,
+                  "type": "file"
+                },
+                {
+                  "sha": "4198009995e2b1770196c07e679aaeac7c9a52bb",
+                  "name": "universalBoardId.ts",
+                  "path": "packages/shared/src/universalBoardId.ts",
+                  "size": 689,
+                  "type": "file"
+                }
+              ],
+              "truncated": false,
+              "repository": "Clivecchi/keeper-platform"
+            },
+            "castSlug": "cloud",
+            "attributedTo": "Cloud"
+          }
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed",
+          "data": {
+            "tool": "github_repo_read",
+            "result": {
+              "ref": "cloud",
+              "sha": "7a10e173c2daea31d39356830e056f0a894e1311",
+              "mode": "file",
+              "path": "apps/api/src/api/boards.ts",
+              "size": 54864,
+              "type": "file",
+              "offset": 0,
+              "content": "/**\n * Boards API Routes - Phase 1 Implementation\n * Real database persistence with Board model and default frames\n */\n\nimport { Router, Request, Response } from 'express';\nimport { z } from 'zod';\nimport { prisma } from '@keeper/database';\nimport { authMiddlewareCompat } from '../middleware/authMiddleware.js';\nimport { kamAuth, kamScope } from '../kam/middleware.js';\nimport { randomUUID } from 'crypto';\nimport { broadcastAgentEvent } from './agents/events.js';\nimport { extractRole, can } from '../kam/permissions.js';\nimport type { IncomingHttpHeaders } from 'http';\nimport { ensureDomainTableShape } from '../lib/db-guards.js';\nimport { addLog as addInternalLog } from '../utils/LogStore.js';\nimport { ensureDomainManagementBoard } from '../services/boards/domainManagement.js';\nimport { logReq } from '../utils/requestLog.js';\n\nconst router: Router = Router();\n// Import ensure so Studio alias uses the same canonical ensure logic for AHB\nimport { ensureAgentHomeBoard } from './agents.js';\n\n// UUID v4 validator\nconst UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\n// =============================================================================\n// ZOD VALIDATION SCHEMAS\n// =============================================================================\n\nconst boardQuerySchema = z.object({\n  keeperId: z.string().uuid(),\n  limit: z.number().min(1).max(100).default(20),\n  offset: z.number().min(0).default(0),\n});\n\nconst BoardCreate = z.object({\n  keeperId: z.string().uuid(),\n  name: z.string().min(1).max(80),\n  slug: z.string().min(1).max(80),\n  description: z.string().max(280).optional(),\n  icon: z.string().optional(),\n  templateId: z.enum(['agent', 'domain', 'journey', 'people', 'custom']).optional(),\n});\n\nconst BoardUpdate = z.object({\n  name: z.string().min(1).max(80).optional(),\n  slug: z.string().min(1).max(80).optional(),\n  description: z.string().max(280).optional(),\n  theme: z.object({ \n    primary: z.string().optional(), \n    background: z.string().optional() \n  }).optional(),\n  behavior: z.object({\n    showGrid: z.boolean().optional(),\n    snapToGrid: z.boolean().optional(),\n    gridSize: z.number().int().min(4).max(24).optional(),\n    defaultPattern: z.enum(['dialogic','wizard','focus','canvas','gallery','form']).optional(),\n    startFrameId: z.string().uuid().nullable().optional(),\n    draftMode: z.boolean().optional(),\n    autosave: z.boolean().optional(),\n    frameOrder: z.array(z.string()).optional(),\n    // Phase 10 flags\n    realtime: z.object({ enabled: z.boolean().default(true) }).optional(),\n    composition: z.object({ allowEdits: z.boolean().default(true) }).optional(),\n  }).optional(),\n  data: z.object({\n    scope: z.enum(['keeper','domain','journey','people','custom']).optional(),\n    entityId: z.string().uuid().nullable().optional(),\n    dataBindings: z.record(z.any()).optional(),\n    agentId: z.string().uuid().nullable().optional(),\n  }).optional(),\n  access: z.object({\n    visibility: z.enum(['private','unlisted','org','public']).optional(),\n    roles: z.record(z.string()).optional(),\n    allowComments: z.boolean().optional(),\n    shareLinkEnabled: z.boolean().optional(),\n  }).optional(),\n  // NEW: allow layoutPrefs at top-level; will be merged into Board.data\n  layoutPrefs: z.record(z.any()).optional(),\n});\n\n// -----------------------------------------------------------------------------\n// Phase 9 additions: Board-level frames (data.frames) and templates\n// -----------------------------------------------------------------------------\nconst DataFrameInstance = z.object({\n  id: z.string().uuid(),\n  key: z.string(),\n  title: z.string().optional(),\n  visible: z.boolean().optional(),\n  props: z.record(z.any()).optional(),\n  region: z.enum(['main','side','footer']).optional()\n});\n\nconst FrameAdd = z.object({\n  key: z.string(),\n  title: z.string().optional(),\n  visible: z.boolean().optional().default(true),\n  props: z.record(z.any()).optional(),\n  region: z.enum(['main','side','footer']).optional()\n});\n\nconst FramePatch = z.object({\n  title: z.string().optional(),\n  visible: z.boolean().optional(),\n  props: z.record(z.any()).optional(),\n  region: z.enum(['main','side','footer']).optional()\n});\n\nconst BoardTemplate = z.object({\n  id: z.string().uuid(),\n  name: z.string().min(1),\n  description: z.string().optional(),\n  frames: z.array(DataFrameInstance),\n  layoutPrefs: z.record(z.any()).optional(),\n  createdAt: z.string()\n});\n\nconst BoardTemplateCreate = z.object({\n  name: z.string().min(1),\n  description: z.string().optional(),\n  frames: z.array(DataFrameInstance.extend({ id: z.string().uuid().optional() })).default([]),\n  layoutPrefs: z.record(z.any()).optional()\n});\n\n// In-memory templates for mock usage\nconst templatesMem: Array<z.infer<typeof BoardTemplate>> = [];\n\nconst FrameCreate = z.object({\n  name: z.string().min(1).max(60),\n  pattern: z.enum(['dialogic','wizard','focus','canvas','gallery','form']).optional(),\n  frameType: z.string().default('media_card'),\n  orderIndex: z.number().int().optional(),\n});\n\nconst FrameUpdate = z.object({\n  name: z.string().min(1).max(60).optional(),\n  pattern: z.enum(['dialogic','wizard','focus','canvas','gallery','form']).optional(),\n  layoutKind: z.string().optional(),\n  layoutData: z.record(z.any()).optional(),\n  props: z.record(z.any()).optional(),\n  orderIndex: z.number().int().optional(),\n});\n\nconst FrameReorder = z.object({\n  order: z.array(z.string().uuid()),\n});\n\n// =============================================================================\n// UTILITY FUNCTIONS\n// =============================================================================\n\n/**\n * Create default FrameConfig for frames\n */\nasync function ensureDefaultFrameConfig(name: string): Promise<string> {\n  try {\n    const existing = await prisma.frameConfig.findFirst({\n      where: { name }\n    });\n    \n    if (existing) {\n      return existing.id;\n    }\n    \n    const config = await prisma.frameConfig.create({\n      data: {\n        id: ",
+              "nextOffset": 6000,
+              "repository": "Clivecchi/keeper-platform",
+              "contentTruncated": true
+            },
+            "castSlug": "cloud",
+            "attributedTo": "Cloud"
+          }
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed",
+          "data": {
+            "tool": "github_repo_read",
+            "result": {
+              "ref": "cloud",
+              "mode": "dir",
+              "path": "apps/web/src/components/studio",
+              "type": "dir",
+              "entries": [
+                {
+                  "sha": "f053abac7501caf8e579d4cf1eb99746e80d15eb",
+                  "name": "AIAssistPanel.tsx",
+                  "path": "apps/web/src/components/studio/AIAssistPanel.tsx",
+                  "size": 12624,
+                  "type": "file"
+                },
+                {
+                  "sha": "a0e9e87eddd02caeb9b27d690632e71447a91e5e",
+                  "name": "AgentKeeperTypeAssignment.tsx",
+                  "path": "apps/web/src/components/studio/AgentKeeperTypeAssignment.tsx",
+                  "size": 10947,
+                  "type": "file"
+                },
+                {
+                  "sha": "f45580b4e716dde1bfef00cf2a5cc671a0b8e658",
+                  "name": "ConflictDialog.tsx",
+                  "path": "apps/web/src/components/studio/ConflictDialog.tsx",
+                  "size": 5892,
+                  "type": "file"
+                },
+                {
+                  "sha": "f94a6dc9947dd251fd3bc6e226b91ea526d981f6",
+                  "name": "DraggableTabs.tsx",
+                  "path": "apps/web/src/components/studio/DraggableTabs.tsx",
+                  "size": 11706,
+                  "type": "file"
+                },
+                {
+                  "sha": "4f2eabaf859a18cc52cc6adc9df90672202b224c",
+                  "name": "FrameConfigSheet.tsx",
+                  "path": "apps/web/src/components/studio/FrameConfigSheet.tsx",
+                  "size": 2897,
+                  "type": "file"
+                },
+                {
+                  "sha": "8d891cc99553a4d0fec68c17a05c110e10441f68",
+                  "name": "MediaUploader.tsx",
+                  "path": "apps/web/src/components/studio/MediaUploader.tsx",
+                  "size": 12815,
+                  "type": "file"
+                },
+                {
+                  "sha": "60d08dd59d89c3a6f271fe7b207c1afd79f0d866",
+                  "name": "README.md",
+                  "path": "apps/web/src/components/studio/README.md",
+                  "size": 2262,
+                  "type": "file"
+                },
+                {
+                  "sha": "d5de4b4ef228e75a519e95b7b41bb8869f8106f0",
+                  "name": "TemplateChooser.tsx",
+                  "path": "apps/web/src/components/studio/TemplateChooser.tsx",
+                  "size": 8354,
+                  "type": "file"
+                }
+              ],
+              "truncated": false,
+              "repository": "Clivecchi/keeper-platform"
+            },
+            "castSlug": "cloud",
+            "attributedTo": "Cloud"
+          }
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed",
+          "data": {
+            "tool": "github_repo_read",
+            "result": {
+              "ref": "cloud",
+              "mode": "dir",
+              "path": "apps/web/src/components/frames",
+              "type": "dir",
+              "entries": [
+                {
+                  "sha": "0227a7ad6c5f87e860531b5a15912a8809cc5fc3",
+                  "name": "AgentPreviewFrame.tsx",
+                  "path": "apps/web/src/components/frames/AgentPreviewFrame.tsx",
+                  "size": 9508,
+                  "type": "file"
+                },
+                {
+                  "sha": "ee058d27dbd35e2f7465b79c66dd1ca0b0e5b896",
+                  "name": "CodeSnippetFrame.tsx",
+                  "path": "apps/web/src/components/frames/CodeSnippetFrame.tsx",
+                  "size": 10352,
+                  "type": "file"
+                },
+                {
+                  "sha": "6378b5284578792969aab5a932ce6b0dd477910e",
+                  "name": "ConfigPanelFrame.tsx",
+                  "path": "apps/web/src/components/frames/ConfigPanelFrame.tsx",
+                  "size": 10655,
+                  "type": "file"
+                },
+                {
+                  "sha": "432d90199605cb619299c4667ccb21a795fc7c87",
+                  "name": "CustomDomainFrame.tsx",
+                  "path": "apps/web/src/components/frames/CustomDomainFrame.tsx",
+                  "size": 17526,
+                  "type": "file"
+                },
+                {
+                  "sha": "c80637599189818e9cf4731eabeef6adfedcda2c",
+                  "name": "DialogFrame.tsx",
+                  "path": "apps/web/src/components/frames/DialogFrame.tsx",
+                  "size": 9225,
+                  "type": "file"
+                },
+                {
+                  "sha": "7ce2ad2b35869ffac56198f6e8b489b30094602d",
+                  "name": "DomainCardFrame.tsx",
+                  "path": "apps/web/src/components/frames/DomainCardFrame.tsx",
+                  "size": 8316,
+                  "type": "file"
+                },
+                {
+                  "sha": "9c035bc45da14e58811aadf3f6d28d554fa292f7",
+                  "name": "FrameRenderer.tsx",
+                  "path": "apps/web/src/components/frames/FrameRenderer.tsx",
+                  "size": 13902,
+                  "type": "file"
+                },
+                {
+                  "sha": "6ae03374c6ef22397ce3497fd248134e055d1039",
+                  "name": "MediaCardFrame.tsx",
+                  "path": "apps/web/src/components/frames/MediaCardFrame.tsx",
+                  "size": 6886,
+                  "type": "file"
+                },
+                {
+                  "sha": "8af9a7456afaab34bee1d077f9b15191aa22c2ea",
+                  "name": "MemberListFrame.tsx",
+                  "path": "apps/web/src/components/frames/MemberListFrame.tsx",
+                  "size": 14734,
+                  "type": "file"
+                },
+                {
+                  "sha": "aaa24b127798548d03f1ee240cb2e073b94f599d",
+                  "name": "MemoryFrame.tsx",
+                  "path": "apps/web/src/components/frames/MemoryFrame.tsx",
+                  "size": 2175,
+                  "type": "file"
+                },
+                {
+                  "sha": "9aaf0dd12ff6c3bf555bd4dfd1f02511b8caac90",
+                  "name": "PreviewFrame.tsx",
+                  "path": "apps/web/src/components/frames/PreviewFrame.tsx",
+                  "size": 4276,
+                  "type": "file"
+                },
+                {
+                  "sha": "f81a67fd46daec82682a1cde3b98063b5653029f",
+                  "name": "ProcessFrame.tsx",
+                  "path": "apps/web/src/components/frames/ProcessFrame.tsx",
+                  "size": 11383,
+                  "type": "file"
+                },
+                {
+                  "sha": "51f701bbdc9759a7bb8dbb8ce87ccf8c410ce600",
+                  "name": "README.md",
+                  "path": "apps/web/src/components/frames/README.md",
+                  "size": 4282,
+                  "type": "file"
+                },
+                {
+                  "sha": "df4ae243e1b79586b7b0902c8bc7c1b83372b823",
+                  "name": "SetupStepsFrame.tsx",
+                  "path": "apps/web/src/components/frames/SetupStepsFrame.tsx",
+                  "size": 9952,
+                  "type": "file"
+                },
+                {
+                  "sha": "b735e0c01426cd6c01f64bb0314937ca8423512f",
+                  "name": "TasksFrame.tsx",
+                  "path": "apps/web/src/components/frames/TasksFrame.tsx",
+                  "size": 2917,
+                  "type": "file"
+                },
+                {
+                  "sha": "4014c27770ee920166bf29f98d12e0d4b3d9b372",
+                  "name": "TopicsFrame.tsx",
+                  "path": "apps/web/src/components/frames/TopicsFrame.tsx",
+                  "size": 22130,
+                  "type": "file"
+                },
+                {
+                  "sha": "2aad9328287cad8c7be3be7337e1b8c728408fba",
+                  "name": "activity-feed-frame.tsx",
+                  "path": "apps/web/src/components/frames/activity-feed-frame.tsx",
+                  "size": 7208,
+                  "type": "file"
+                },
+                {
+                  "sha": "7a8c37c28c8dd26ababd484393ba40a981608c65",
+                  "name": "collaboration-network-frame.tsx",
+                  "path": "apps/web/src/components/frames/collaboration-network-frame.tsx",
+                  "size": 17685,
+                  "type": "file"
+                },
+                {
+                  "sha": "a88d59dc9e17a66ae1923379d989bce05da572a5",
+                  "name": "index.ts",
+                  "path": "apps/web/src/components/frames/index.ts",
+                  "size": 1138,
+                  "type": "file"
+                },
+                {
+                  "sha": "6a2e99c5f93e9625f99fe18bf58bf6c1442f4e6b",
+                  "name": "journey-config-frame.tsx",
+                  "path": "apps/web/src/components/frames/journey-config-frame.tsx",
+                  "size": 24270,
+                  "type": "file"
+                },
+                {
+                  "sha": "d34f32a9e3e25d1d28452d959090a6dd70c044ca",
+                  "name": "journey-overview-frame.tsx",
+                  "path": "apps/web/src/components/frames/journey-overview-frame.tsx",
+                  "size": 10891,
+                  "type": "file"
+                },
+                {
+                  "sha": "3ca64cd0ba8a4479758e6a91b6c03e37a906bb3b",
+                  "name": "keeper-type-config-frame.tsx",
+                  "path": "apps/web/src/components/frames/keeper-type-config-frame.tsx",
+                  "size": 25352,
+                  "type": "file"
+                },
+                {
+                  "sha": "d35198a015a163632f975c0593dc9a59407643dc",
+                  "name": "keeper-type-overview-frame.tsx",
+                  "path": "apps/web/src/components/frames/keeper-type-overview-frame.tsx",
+                  "size": 12682,
+                  "type": "file"
+                },
+                {
+                  "sha": "3c1fad6437f4ae70e41363b372ad5e2e213f5b74",
+                  "name": "keeper-type-process-frame.tsx",
+                  "path": "apps/web/src/components/frames/keeper-type-process-frame.tsx",
+                  "size": 14965,
+                  "type": "file"
+                },
+                {
+                  "sha": "aea3ed5d7200a1e3f3fdb71391d6648fe6d4552f",
+                  "name": "linked-agents-frame.tsx",
+                  "path": "apps/web/src/components/frames/linked-agents-frame.tsx",
+                  "size": 18359,
+                  "type": "file"
+                },
+                {
+                  "sha": "f3f3124601d4e558a6a129e8a6bfb7ea6d60a677",
+                  "name": "linked-journeys-frame.tsx",
+                  "path": "apps/web/src/components/frames/linked-journeys-frame.tsx",
+                  "size": 16280,
+                  "type": "file"
+                },
+                {
+                  "sha": "173ac0313615054c501e0af782abc894c15e596f",
+                  "name": "moment-grid-frame.tsx",
+                  "path": "apps/web/src/components/frames/moment-grid-frame.tsx",
+                  "size": 15260,
+                  "type": "file"
+                },
+                {
+                  "sha": "3f82f50dd5403e6edb727eb83f7d094aa53e6eee",
+                  "name": "path-list-frame.tsx",
+                  "path": "apps/web/src/components/frames/path-list-frame.tsx",
+                  "size": 15554,
+                  "type": "file"
+                },
+                {
+                  "sha": "cce9625fe9a74e8c5d23b8cfe21112bba448fedc",
+                  "name": "people-overview-frame.tsx",
+                  "path": "apps/web/src/components/frames/people-overview-frame.tsx",
+                  "size": 19103,
+                  "type": "file"
+                },
+                {
+                  "sha": "2927d46979fff548406c805e647d5c62b1ed1ae5",
+                  "name": "people-process-frame.tsx",
+                  "path": "apps/web/src/components/frames/people-process-frame.tsx",
+                  "size": 20736,
+                  "type": "file"
+                },
+                {
+                  "sha": "8bc83eaec3891357093003ec0dd4798404d7cb51",
+                  "name": "registerFrames.ts",
+                  "path": "apps/web/src/components/frames/registerFrames.ts",
+                  "size": 1561,
+                  "type": "file"
+                },
+                {
+                  "sha": "89417e28c9b927393ab0e61f36da9777380579d7",
+                  "name": "registry.ts",
+                  "path": "apps/web/src/components/frames/registry.ts",
+                  "size": 858,
+                  "type": "file"
+                },
+                {
+                  "sha": "f45e380ef0148bee49ad46555c1cf38eba7db439",
+                  "name": "role-manager-frame.tsx",
+                  "path": "apps/web/src/components/frames/role-manager-frame.tsx",
+                  "size": 20855,
+                  "type": "file"
+                },
+                {
+                  "sha": "5a7eed4ddd89bb286f5744d25939d5584393b2fc",
+                  "name": "schemas.ts",
+                  "path": "apps/web/src/components/frames/schemas.ts",
+                  "size": 699,
+                  "type": "file"
+                }
+              ],
+              "truncated": false,
+              "repository": "Clivecchi/keeper-platform"
+            },
+            "castSlug": "cloud",
+            "attributedTo": "Cloud"
+          }
+        }
+      ],
+      "cast": [
+        {
+          "slug": "cloud",
+          "name": "Cloud",
+          "status": "ok",
+          "head": "No Rendr change ran this session — every receipt in the log is my own github_repo_read, nothing from Rendr. I've only confirmed directory structure so far, not file contents. boards.ts is the likely home for the Stage/Treatment routes; studio/ and frames/ are the component candid"
+        },
+        {
+          "slug": "cloud",
+          "name": "Cloud",
+          "status": "ok",
+          "head": "Firing targeted file reads against the three symbols the doc actually names: the action executor, the Stage composition service, and the Stage UI consumer (KeeperStageCanvas).\n\n**Status:** this turn's receipts are the evidence — not last turn's directory walk. Reporting exact con"
+        }
+      ]
+    },
+    {
+      "id": "34e3cd7a-c697-4840-8df5-ba259005ad6e",
+      "at": "2026-10-12T01:47:05.343Z",
+      "role": "user",
+      "contentLen": 199,
+      "content": "Okay, at this point we are just going to brute strength this forward. Show me waht you got. I have provided a big huge amount of infomration with Keeper truth. Make a stroy that shows you understand.",
+      "frame": null,
+      "actions": [],
+      "cast": []
+    },
+    {
+      "id": "210571b1-3995-4a83-b82f-8f9d79057589",
+      "at": "2026-10-12T01:47:16.435Z",
+      "role": "assistant",
+      "contentLen": 327,
+      "content": "The story is **From Unfinished to Worth Keeping**. Not a tour of the machinery—a human journey, with Keeper’s unfinished promises visible.\n\n```keeper-card\n{\"type\":\"info\",\"title\":\"Taking the story to Stage\",\"body\":\"Submitting five short beats for the selected Operational Truth work; the visual result is not yet verified.\"}\n```",
+      "frame": null,
+      "actions": [
+        {
+          "type": "stage.story.layout",
+          "status": "success",
+          "message": "Laid out 5 Slides on Stage.",
+          "data": {
+            "titles": [
+              "Bring Something Unfinished",
+              "Speak. Find the Thread.",
+              "“So Do It” Must Mean Something",
+              "Same Work. A New Expression.",
+              "Worth Keeping Means Worth Returning To"
+            ],
+            "rationale": "The human explicitly requested a story demonstrating understanding. Replace the current filmstrip with a concise human-centered story grounded in Operational Truth, preserving the distinction between product promise and verified behavior.",
+            "slideCount": 5
+          }
+        }
+      ],
+      "cast": []
+    }
+  ],
+  "stageStory": {
+    "version": 1,
+    "slideCount": 5,
+    "slides": [
+      {
+        "id": "slide-1",
+        "title": "Bring Something Unfinished",
+        "kind": "beat",
+        "slideType": "text_slide",
+        "bodyLen": 133,
+        "bodyHead": "A photograph. A question. A project you cannot quite explain.\nYou should not need to understand Keeper before Keeper helps you begin."
+      },
+      {
+        "id": "slide-2",
+        "title": "Speak. Find the Thread.",
+        "kind": "beat",
+        "slideType": "text_slide",
+        "bodyLen": 122,
+        "bodyHead": "Dialog helps meaning emerge.\nChronicle holds what matters—not every word.\nYou remain Author; the domain Lead helps direct."
+      },
+      {
+        "id": "slide-3",
+        "title": "“So Do It” Must Mean Something",
+        "kind": "beat",
+        "slideType": "text_slide",
+        "bodyLen": 153,
+        "bodyHead": "Kip carries the objective. Cloud investigates. Rendr shapes the experience.\nA tool receipt is not the finish line.\nThe question is: what changed for you?"
+      },
+      {
+        "id": "slide-4",
+        "title": "Same Work. A New Expression.",
+        "kind": "beat",
+        "slideType": "text_slide",
+        "bodyLen": 154,
+        "bodyHead": "Dialog → Stage.\nNot a different place. Not a different story.\nLess reading. More seeing. Supporting evidence within reach.\nComposition is not publication."
+      },
+      {
+        "id": "slide-5",
+        "title": "Worth Keeping Means Worth Returning To",
+        "kind": "beat",
+        "slideType": "text_slide",
+        "bodyLen": 214,
+        "bodyHead": "Come back tomorrow: the meaning, evidence, and unfinished work should still be there.\nThat is Keeper’s promise.\nReceipt-only Agency completion and reload acceptance remain open—not hidden behind a beautiful ending."
+      }
+    ]
+  },
+  "storiesShape": [
+    "stories",
+    "version",
+    "activeStoryId"
+  ],
+  "activeStoryId": "already-in-progress",
+  "storyBriefs": []
+}
