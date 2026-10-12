@@ -51,6 +51,7 @@ import { DialogDebugOverlay } from "./DialogDebugOverlay"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
 import { DialogBroadcastStrip } from "./DialogBroadcastStrip"
+import { DialogWorkFrame } from "./DialogWorkFrame"
 import { DialogUploadStream } from "./DialogUploadStream"
 import {
   composeHorizonBeat,
@@ -175,8 +176,10 @@ export interface KeeperDialogFrameProps {
   castAddEnabled?: boolean
   /** Overrides Horizon summary while sending; otherwise derived from thinkingSteps. */
   thinkingStatusLabel?: string
-  /** Run trace for Broadcast Strip while sending. */
+  /** Run trace for the work card while sending. */
   thinkingSteps?: readonly DialogThinkingStep[]
+  /** Stop the in-flight turn. Shown on the Full turn tab. */
+  onStopTurn?: () => void
   railwayStatus?: ServiceStatus
   vercelStatus?: ServiceStatus
   githubStatus?: ServiceStatus
@@ -331,6 +334,7 @@ export function KeeperDialogFrame({
   castAddEnabled = true,
   thinkingStatusLabel,
   thinkingSteps = [],
+  onStopTurn,
   railwayStatus = "disconnected",
   vercelStatus = "disconnected",
   githubStatus = "disconnected",
@@ -406,7 +410,8 @@ export function KeeperDialogFrame({
   const [isSubmittingMessage, setIsSubmittingMessage] = React.useState(false)
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
   const isWorking = isSending || isFileUploading || isSubmittingMessage
-  const showBroadcastStrip = mode !== "feed" && (isWorking || hasUploads)
+  const showWorkFrame = mode !== "feed" && isSending
+  const showBroadcastStrip = mode !== "feed" && !isSending && (isWorking || hasUploads)
   const showComposerFooter = mode !== "feed"
   /**
    * Adaptive mobile: Playbill is the sole top identity/location bar.
@@ -778,6 +783,7 @@ export function KeeperDialogFrame({
       data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
       data-dialog-presentation={surfaceFrame ? "frame" : "conversation"}
+      data-dialog-work={showWorkFrame ? "open" : undefined}
       data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
       data-mobile-dialog-stage={isMobileStaged ? mobileDialogStage : undefined}
     >
@@ -1171,6 +1177,17 @@ export function KeeperDialogFrame({
               />
             )}
           </div>
+        </div>
+      ) : null}
+
+      {showWorkFrame ? (
+        <div className="dialog-work-layer">
+          <DialogWorkFrame
+            liveLabel={broadcastLiveLabel}
+            steps={thinkingSteps}
+            agentName={agentName}
+            onStop={onStopTurn}
+          />
         </div>
       ) : null}
 

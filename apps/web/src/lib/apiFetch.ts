@@ -72,6 +72,7 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
   try {
     response = await fetch(url, nextInit)
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") throw err
     // Browser TypeError "Failed to fetch" = network/CORS/TLS/offline — not an HTTP body.
     const raw = err instanceof Error ? err.message : String(err)
     const networkish =

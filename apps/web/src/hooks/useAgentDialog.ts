@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { FormEvent } from "react"
 import { KipApi, KipAgentRunError, formatKipRunErrorMessage } from "../lib/kipApi"
+import { isAbortError } from "../lib/turnStop"
 import type { KipMessage } from "../lib/kipApi"
 import type { AgentAttachment } from "../components/agent/AgentComposer"
 import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components/agent/types"
@@ -409,6 +410,8 @@ export interface UseAgentDialogResult {
       keepingChoice?: KeepingChoiceExercise
     },
   ) => Promise<void>
+  /** Abort the in-flight turn. The Dialog shows Stopped. */
+  stopTurn: () => void
 }
 
 function extractKeepingChoiceAlreadySelected(result: unknown): boolean {
@@ -640,6 +643,7 @@ export function useAgentDialog({
   const [input, setInput] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
   const sendInFlightRef = React.useRef(false)
+  const turnAbortRef = React.useRef<AbortController | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [thinkingSteps, setThinkingSteps] = React.useState<DialogThinkingStep[]>([])
   const [agentId, setAgentId] = React.useState<string | null>(null)
@@ -877,6 +881,10 @@ export function useAgentDialog({
       sendInFlightRef.current = true
       setIsSending(true)
       setError(null)
+      turnAbortRef.current?.abort()
+      const turnAbort = new AbortController()
+      turnAbortRef.current = turnAbort
+      const signal = turnAbort.signal
 
       const resolvedDomainId =
         domainId && !String(domainId).startsWith("fallback-")
@@ -975,6 +983,20 @@ export function useAgentDialog({
       }
 
       const ts = Date.now()
+      const finishStopped = () => {
+        setMessages((prev) => [
+          ...prev.filter((message) => message.id !== `stream-agent-${ts}`),
+          {
+            id: `system-stop-${ts}`,
+            role: "system" as const,
+            content: "Stopped.",
+            createdAt: new Date().toISOString(),
+          },
+        ])
+        onDirectorPhaseChange?.(null)
+        sendInFlightRef.current = false
+        setIsSending(false)
+      }
       const exercisedChoice = parseKeepingChoiceExercise(keepingChoice)
 
       const transcriptContent = displayContent?.trim() || content || "[attachment]"
@@ -1095,6 +1117,7 @@ export function useAgentDialog({
         displayContent: displayContent?.trim() || undefined,
         supportingDocs: supportingDocs?.length ? [...supportingDocs] : undefined,
         humanTurnId,
+        signal,
       }
 
       const castMemberLabel =
@@ -1156,7 +1179,9 @@ export function useAgentDialog({
                 message.role === "user" && message.content.trim() && message.content.trim() !== content.trim(),
               )?.content
             : undefined
-          const room = await runProgressiveCastRoom({
+          let room: Awaited<ReturnType<typeof runProgressiveCastRoom>>
+          try {
+            room = await runProgressiveCastRoom({
             profile: conversationProfile,
             voices: roomVoices,
             userMessage: content,
@@ -1173,7 +1198,15 @@ export function useAgentDialog({
             attachments: attachments?.length ? attachments : undefined,
             previousHumanText,
             onStatus: appendThinkingStep,
+            signal,
           })
+          } catch (err) {
+            if (isAbortError(err)) {
+              finishStopped()
+              return
+            }
+            throw err
+          }
           roomPresent = {
             trail: room.trail,
             decision: room.decision,
@@ -1289,6 +1322,9 @@ export function useAgentDialog({
                 ...(castActions.length ? { actionResults: castActions } : {}),
               }
             } catch (castErr: unknown) {
+              if (isAbortError(castErr)) {
+                return { instrumentSlug: slug, instrumentReply: null, status: "failed" }
+              }
               const castMsg = castErr instanceof Error ? castErr.message : "cast member failed"
               const isNetworkFail =
                 /failed to fetch|could not reach the keeper api|network_unreachable|network request failed/i.test(
@@ -1307,6 +1343,10 @@ export function useAgentDialog({
             }
           }),
         )
+        if (signal.aborted) {
+          finishStopped()
+          return
+        }
         for (const row of consultationRows) {
           if (row.actionResults?.length) {
             castActionResults.push(...row.actionResults)
@@ -1401,6 +1441,10 @@ export function useAgentDialog({
               appendThinkingStep(`${castMemberLabel} returned an empty reply — ${agentDisplayName} will answer directly…`)
             }
           } catch (castErr: unknown) {
+            if (isAbortError(castErr)) {
+              finishStopped()
+              return
+            }
             const castMsg = castErr instanceof Error ? castErr.message : "cast member failed"
             console.warn("[director] client cast member run failed", { castMember, castMsg })
             appendThinkingStep(`${castMemberLabel} couldn't respond — ${agentDisplayName} will answer directly…`)
@@ -1795,6 +1839,10 @@ export function useAgentDialog({
         await onRefreshDraftsAfterRun?.(result)
         clearSavedDraft()
       } catch (err: unknown) {
+        if (isAbortError(err) || signal.aborted) {
+          finishStopped()
+          return
+        }
         const status = (err as { status?: number })?.status
         const authMsg = `Please sign in to continue the conversation with ${agentDisplayName}.`
         const failMsg = err instanceof KipAgentRunError
@@ -1899,5 +1947,8 @@ export function useAgentDialog({
     activeSessionId,
     fetchMessages,
     sendMessage,
+    stopTurn: () => {
+      turnAbortRef.current?.abort()
+    },
   }
 }

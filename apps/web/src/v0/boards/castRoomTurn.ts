@@ -29,6 +29,7 @@ import {
   type LeadAssessment,
 } from "@keeper/shared"
 import { KipApi } from "../../lib/kipApi"
+import { isAbortError, turnAbortError } from "../../lib/turnStop"
 import {
   buildCastDelegationPrompt,
   extractActionResultsFromRunResult,
@@ -97,6 +98,8 @@ export async function runProgressiveCastRoom(params: {
   /** Earlier human sentence, already selected because this turn refers to it. */
   previousHumanText?: string
   onStatus?: (label: string) => void
+  /** When the human stops the turn, in-flight calls abort and the room exits. */
+  signal?: AbortSignal
 }): Promise<CastRoomTurnResult> {
   const where = {
     humanTurnId: params.humanTurnId,
@@ -131,6 +134,7 @@ export async function runProgressiveCastRoom(params: {
           trail: trailForOffers,
           domainId: params.domainId,
           userId: params.userId,
+          signal: params.signal,
         })
         const data = unwrapData(raw) as OfferResponse
         const offer = typeof data.offer === "string" ? data.offer.trim() : ""
@@ -153,7 +157,8 @@ export async function runProgressiveCastRoom(params: {
           }))
         }
         return { slug: voice.slug, label: voice.label, offer }
-      } catch {
+      } catch (error) {
+        if (isAbortError(error)) throw error
         params.onStatus?.(`${voice.label} — offer did not return.`)
         return { slug: voice.slug, label: voice.label, offer: "" }
       }
@@ -172,6 +177,7 @@ export async function runProgressiveCastRoom(params: {
   const contributionCap = castRoomContributionCap(namedVoices.length)
 
   while (contributions < contributionCap) {
+    if (params.signal?.aborted) throw turnAbortError()
     const directionTrail = projectCastRoomTrail(trace, params.previousTrace)
     params.onStatus?.(`${params.directorName} is choosing who speaks…`)
     const direction = await KipApi.runAgent(
@@ -186,6 +192,7 @@ export async function runProgressiveCastRoom(params: {
         displayContent: params.userMessage,
         ephemeral: true,
         attachments: turnAttachments,
+        signal: params.signal,
         agentContext: {
           ...params.runAgentContext,
           skipDelegateConsult: true,
@@ -256,12 +263,14 @@ export async function runProgressiveCastRoom(params: {
           displayContent: params.userMessage,
           ephemeral: true,
           attachments: turnAttachments,
+          signal: params.signal,
           agentContext: { ...params.runAgentContext, skipDelegateConsult: true },
         },
       )
       reply = extractAgentReplyFromRunResult(castResult)?.trim() || ""
       rawActions = extractActionResultsFromRunResult(castResult)
-    } catch {
+    } catch (error) {
+      if (isAbortError(error)) throw error
       failed = true
     }
 
@@ -318,6 +327,7 @@ export async function runProgressiveCastRoom(params: {
             humanTurnId: params.humanTurnId,
             displayContent: params.userMessage,
             ephemeral: true,
+            signal: params.signal,
             agentContext: {
               ...params.runAgentContext,
               skipDelegateConsult: true,
@@ -339,7 +349,8 @@ export async function runProgressiveCastRoom(params: {
           },
         )
         assessment = parseLeadAssessment(unwrapData(evaluation).assessment)
-      } catch {
+      } catch (error) {
+        if (isAbortError(error)) throw error
         assessment = null
       }
     }

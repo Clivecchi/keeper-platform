@@ -970,12 +970,15 @@ export class KipApi {
     trail: string
     domainId?: string
     userId?: string
+    signal?: AbortSignal
   }): Promise<unknown> {
+    const { signal, ...body } = params
     const response = await apiFetch("/api/kip/agents", {
       method: "POST",
+      signal,
       body: JSON.stringify({
         action: "castOffer",
-        ...params,
+        ...body,
       }),
     })
     if (!response.success) {
@@ -1043,10 +1046,13 @@ export class KipApi {
       ephemeral?: boolean
       /** Client-minted Human Turn id shared by Cast + Lead of one send. */
       humanTurnId?: string
+      /** Abort the in-flight request when the human stops the turn. */
+      signal?: AbortSignal
     },
   ): Promise<AgentResponse> {
     const response = await apiFetch('/api/kip/agents', {
       method: 'POST',
+      signal: options?.signal,
       body: JSON.stringify({
         action: 'run',
         agentId,
@@ -1133,6 +1139,7 @@ export class KipApi {
         method: 'POST',
         credentials: 'include',
         headers,
+        signal: options?.signal,
         body: JSON.stringify({
           action: 'run',
           stream: true,
@@ -1159,6 +1166,7 @@ export class KipApi {
         }),
       })
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") throw err
       const raw = err instanceof Error ? err.message : String(err)
       const networkish =
         /failed to fetch|networkerror|load failed|network request failed/i.test(raw)
