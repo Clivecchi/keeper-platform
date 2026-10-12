@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { isAbortError, turnAbortError } from "../../../lib/turnStop"
-import { workElapsedLabel, workIsStalled, workVoiceName, WORK_STALL_MS } from "./dialogWork"
+import {
+  directedWorkLabel,
+  workElapsedLabel,
+  workIsStalled,
+  workVoiceName,
+  WORK_STALL_MS,
+} from "./dialogWork"
 
 describe("dialog work copy", () => {
   it("names the voice in the live line", () => {
@@ -16,6 +22,21 @@ describe("dialog work copy", () => {
   it("calls a step stalled after twenty seconds without a new line", () => {
     expect(workIsStalled(WORK_STALL_MS - 1)).toBe(false)
     expect(workIsStalled(WORK_STALL_MS)).toBe(true)
+  })
+
+  it("does not name the highlighted cast chip while the room is open", () => {
+    expect(directedWorkLabel({
+      directed: true,
+      sending: true,
+      phase: "cast",
+      leadName: "Kip",
+    })).toBeUndefined()
+    expect(directedWorkLabel({
+      directed: true,
+      sending: true,
+      phase: "director",
+      leadName: "Kip",
+    })).toBe("Kip is thinking…")
   })
 
   it("recognizes a stopped request", () => {

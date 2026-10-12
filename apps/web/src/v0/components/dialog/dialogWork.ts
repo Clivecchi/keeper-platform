@@ -22,3 +22,23 @@ export function workElapsedLabel(elapsedMs: number): string {
 export function workIsStalled(stepElapsedMs: number): boolean {
   return stepElapsedMs >= WORK_STALL_MS
 }
+
+export type DirectedWorkPhase = "cast" | "director" | null
+
+/**
+ * Live line for a directed send.
+ * The highlighted cast chip is not the voice at work. Only the lead's own
+ * composing phase may supply a name here. Cast progress comes from the step
+ * the room actually set ("Cloud is contributing…" only after Cloud is engaged).
+ */
+export function directedWorkLabel(params: {
+  directed: boolean
+  sending: boolean
+  phase: DirectedWorkPhase
+  leadName: string
+}): string | undefined {
+  if (!params.directed || !params.sending) return undefined
+  if (params.phase !== "director") return undefined
+  const name = params.leadName.trim() || "Kip"
+  return `${name} is thinking…`
+}

@@ -33,6 +33,7 @@ import {
   type DialogHumanMemberRow,
 } from "@keeper/shared"
 import { DialogRoomPreface } from "../components/dialog/DialogRoomPreface"
+import { directedWorkLabel } from "../components/dialog/dialogWork"
 import type { KipDraftStatus, KipMessage } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
@@ -1996,16 +1997,15 @@ export function UniversalConversation({
     actions.clearDraftComposeHint()
   }, [selection.draftComposeHint, setInput, actions])
 
-  const horizonThinkingLabel = React.useMemo(() => {
-    if (!isDirectedCueing || !isSending) return undefined
-    if (directorSendPhase === "cast" && activeCastMember) {
-      return `${directorCastLabels[activeCastMember] ?? activeCastMember} is thinking…`
-    }
-    if (directorSendPhase === "director") {
-      return `${defaultAgentName} is thinking…`
-    }
-    return undefined
-  }, [isDirectedCueing, isSending, directorSendPhase, activeCastMember, defaultAgentName, directorCastLabels])
+  const horizonThinkingLabel = React.useMemo(
+    () => directedWorkLabel({
+      directed: isDirectedCueing,
+      sending: isSending,
+      phase: directorSendPhase,
+      leadName: defaultAgentName,
+    }),
+    [isDirectedCueing, isSending, directorSendPhase, defaultAgentName],
+  )
 
   setMessagesRef.current = setMessages
 

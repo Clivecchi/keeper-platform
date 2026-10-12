@@ -1,0 +1,835 @@
+{
+  "sessions": [
+    {
+      "id": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+      "updated_at": "2026-10-12T23:25:01.319Z"
+    }
+  ],
+  "summary": [
+    {
+      "id": "df2ca04c-66c7-4bbe-8b75-227757d6d0de",
+      "at": "2026-10-12T01:17:43.592Z",
+      "role": "user",
+      "contentLen": 91,
+      "content": "So am I to understand the Rendr is making changes, but I dont know what is being changed...",
+      "metaKeys": [
+        "agent_id",
+        "timestamp",
+        "humanTurnId"
+      ],
+      "voices": [],
+      "actionCount": 0,
+      "actions": [],
+      "traceCount": 0,
+      "traceBrief": [],
+      "error": null,
+      "orchestration": null
+    },
+    {
+      "id": "000ff4cf-a533-4cec-9b41-bfc95c4dff26",
+      "at": "2026-10-12T01:17:47.804Z",
+      "role": "assistant",
+      "contentLen": 220,
+      "content": "No—I overstated it earlier. The receipts show repository reads, not an applied Rendr change. Cloud still owns verifying what Rendr can change and where you see the result; the returned evidence has not answered that yet.",
+      "metaKeys": [
+        "model",
+        "trace",
+        "agent_id",
+        "agentName",
+        "timestamp",
+        "castVoices",
+        "senderName",
+        "actionResults",
+        "orchestration",
+        "resolvedMeaning",
+        "turnConsumption",
+        "framePerformance",
+        "performanceProvenance"
+      ],
+      "voices": [
+        {
+          "slug": "cloud",
+          "name": "Cloud",
+          "status": "ok",
+          "len": 10025,
+          "head": "No Rendr change ran this session — every receipt in the log is my own github_repo_read, nothing from Rendr. I've only confirmed directory structure so far, not file contents. boards.ts is the likely home for the Stage/Treatment routes; studio/ and frames/ are the component candidates. Reading those three now to get real symbols and the propose-vs-auto-apply line.\n\nTool: github_repo_read\nStatus: su"
+        },
+        {
+          "slug": "cloud",
+          "name": "Cloud",
+          "status": "ok",
+          "len": 772,
+          "head": "Firing targeted file reads against the three symbols the doc actually names: the action executor, the Stage composition service, and the Stage UI consumer (KeeperStageCanvas).\n\n**Status:** this turn's receipts are the evidence — not last turn's directory walk. Reporting exact contents or exact blockers below once they return.\n\n- Rendr's writable actions are `treatment.propose` and `stage.compositi"
+        }
+      ],
+      "actionCount": 6,
+      "actions": [
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed"
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed"
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed"
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed"
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed"
+        },
+        {
+          "type": "mcp.call",
+          "status": "success",
+          "message": "MCP github_repo_read completed"
+        }
+      ],
+      "traceCount": 19,
+      "traceBrief": [
+        {
+          "label": "Firing targeted file reads against the three symbols the doc actually names: the action executor, the Stage composition service, and the Stage UI consumer (Keep"
+        },
+        {
+          "label": "mcp.call — success — MCP github_repo_read completed"
+        },
+        {
+          "label": "mcp.call — success — MCP github_repo_read completed"
+        },
+        {
+          "label": "mcp.call — success — MCP github_repo_read completed"
+        },
+        {
+          "label": "mcp.call — success — MCP github_repo_read completed"
+        },
+        {
+          "label": "mcp.call — success — MCP github_repo_read completed"
+        },
+        {
+          "label": "mcp.call — success — MCP github_repo_read completed"
+        },
+        {
+          "label": "Agency — unfinished"
+        }
+      ],
+      "error": null,
+      "orchestration": {
+        "model": "gpt-6.1-sol",
+        "attempts": [
+          {
+            "model": "gpt-6.1-sol",
+            "outcome": "succeeded",
+            "provider": "openai",
+            "offeringId": "openai:gpt-6.1-sol"
+          }
+        ],
+        "dialogId": "cmv04yrn50001otb8mwjrj0as",
+        "agentSlug": "kip",
+        "humanTurn": {
+          "id": "6204b7a7-01cb-449d-be48-2ad258deb13d",
+          "cast": [
+            {
+              "slug": "cloud",
+              "status": "ok",
+              "attributedTo": "Cloud",
+              "receivedOrientation": false
+            },
+            {
+              "slug": "cloud",
+              "status": "ok",
+              "attributedTo": "Cloud",
+              "receivedOrientation": false
+            }
+          ],
+          "role": "lead",
+          "actions": [
+            {
+              "type": "mcp.call",
+              "status": "success"
+            },
+            {
+              "type": "mcp.call",
+              "status": "success"
+            },
+            {
+              "type": "mcp.call",
+              "status": "success"
+            },
+            {
+              "type": "mcp.call",
+              "status": "success"
+            },
+            {
+              "type": "mcp.call",
+              "status": "success"
+            },
+            {
+              "type": "mcp.call",
+              "status": "success"
+            }
+          ],
+          "version": "human-turn-v0",
+          "dialogId": "cmv04yrn50001otb8mwjrj0as",
+          "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+          "systemOne": {
+            "shadow": null,
+            "delivery": {
+              "model": null,
+              "audience": "lead",
+              "eligible": false,
+              "available": false,
+              "suppliedToCast": false,
+              "suppliedToLead": false
+            },
+            "judgedAt": "2026-10-12T01:17:43.632Z",
+            "evaluatedOnce": true
+          },
+          "leadGenerations": [
+            {
+              "label": "lead_main",
+              "receivedOrientation": false
+            }
+          ]
+        },
+        "mechanism": "cast_consultation_a",
+        "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+        "offeringId": "openai:gpt-6.1-sol",
+        "humanTurnId": "6204b7a7-01cb-449d-be48-2ad258deb13d",
+        "fallbackUsed": false,
+        "executedModel": "gpt-6.1-sol",
+        "modelProvider": "openai",
+        "consultOkCount": 2,
+        "documentHasStep": true,
+        "castConsultSlugs": [
+          "cloud",
+          "cloud"
+        ],
+        "executedProvider": "openai",
+        "consultEmptyCount": 0,
+        "documentInContext": true,
+        "preserveDiscovery": {
+          "gate": "preserve-discovery@1",
+          "model": "jev-1.13.0",
+          "choice": "CONTINUE",
+          "opened": false,
+          "reason": "below_threshold",
+          "satisfied": false,
+          "confidence": 0.59,
+          "probabilities": {
+            "CONTINUE": 0.69,
+            "ASK_HUMAN": 0.04,
+            "PRESERVE_DISCOVERY": 0.22,
+            "RECONSIDER_ORIENTATION": 0.05
+          }
+        },
+        "castConsultRecords": [
+          {
+            "slug": "cloud",
+            "status": "ok",
+            "replyChars": 10025,
+            "replyExcerpt": "No Rendr change ran this session — every receipt in the log is my own github_repo_read, nothing from Rendr. I've only confirmed directory structure so far, not file contents. boards.ts is the likely home for the Stage/Treatment routes; studio/ and frames/ are the component candid"
+          },
+          {
+            "slug": "cloud",
+            "status": "ok",
+            "replyChars": 772,
+            "replyExcerpt": "Firing targeted file reads against the three symbols the doc actually names: the action executor, the Stage composition service, and the Stage UI consumer (KeeperStageCanvas).\n\n**Status:** this turn's receipts are the evidence — not last turn's directory walk. Reporting exact con"
+          }
+        ],
+        "consultFailedCount": 0,
+        "documentHasForward": true,
+        "documentPointCount": 163,
+        "castConsultStatuses": [
+          {
+            "slug": "cloud",
+            "status": "ok"
+          },
+          {
+            "slug": "cloud",
+            "status": "ok"
+          }
+        ],
+        "conversationProfile": "agency",
+        "delegateConsultCount": 0,
+        "systemOneOrientation": {
+          "model": null,
+          "audience": "lead",
+          "eligible": false,
+          "available": false,
+          "suppliedToCast": false,
+          "suppliedToLead": false
+        },
+        "domainAgentParticipation": [
+          {
+            "slug": "kip",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "cloud",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "rendr",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "chuck-livecchi-lead",
+            "dialogParticipation": "voice"
+          }
+        ]
+      }
+    },
+    {
+      "id": "34e3cd7a-c697-4840-8df5-ba259005ad6e",
+      "at": "2026-10-12T01:47:05.343Z",
+      "role": "user",
+      "contentLen": 199,
+      "content": "Okay, at this point we are just going to brute strength this forward. Show me waht you got. I have provided a big huge amount of infomration with Keeper truth. Make a stroy that shows you understand.",
+      "metaKeys": [
+        "agent_id",
+        "timestamp",
+        "humanTurnId"
+      ],
+      "voices": [],
+      "actionCount": 0,
+      "actions": [],
+      "traceCount": 0,
+      "traceBrief": [],
+      "error": null,
+      "orchestration": null
+    },
+    {
+      "id": "210571b1-3995-4a83-b82f-8f9d79057589",
+      "at": "2026-10-12T01:47:16.435Z",
+      "role": "assistant",
+      "contentLen": 327,
+      "content": "The story is **From Unfinished to Worth Keeping**. Not a tour of the machinery—a human journey, with Keeper’s unfinished promises visible.\n\n```keeper-card\n{\"type\":\"info\",\"title\":\"Taking the story to Stage\",\"body\":\"Submitting five short beats for the selected Operational Truth work; the visual result is not yet verified.\"}\n```",
+      "metaKeys": [
+        "model",
+        "trace",
+        "agent_id",
+        "agentName",
+        "timestamp",
+        "senderName",
+        "actionResults",
+        "orchestration",
+        "turnConsumption",
+        "performanceProvenance"
+      ],
+      "voices": [],
+      "actionCount": 1,
+      "actions": [
+        {
+          "type": "stage.story.layout",
+          "status": "success",
+          "message": "Laid out 5 Slides on Stage."
+        }
+      ],
+      "traceCount": 3,
+      "traceBrief": [
+        {
+          "label": "Okay, at this point we are just going to brute strength this forward. Show me waht you got. I have provided a big huge amount of infomration with Keeper truth. "
+        },
+        {
+          "label": "stage.story.layout — success — Laid out 5 Slides on Stage."
+        },
+        {
+          "label": "Cast — undirected"
+        }
+      ],
+      "error": null,
+      "orchestration": {
+        "model": "gpt-6.1-sol",
+        "attempts": [
+          {
+            "model": "gpt-6.1-sol",
+            "outcome": "succeeded",
+            "provider": "openai",
+            "offeringId": "openai:gpt-6.1-sol"
+          }
+        ],
+        "dialogId": "cmv04yrn50001otb8mwjrj0as",
+        "agentSlug": "kip",
+        "humanTurn": {
+          "id": "a6500647-45e6-4047-a55b-7dd0832ed5e1",
+          "cast": [],
+          "role": "lead",
+          "actions": [
+            {
+              "type": "stage.story.layout",
+              "status": "success"
+            }
+          ],
+          "version": "human-turn-v0",
+          "dialogId": "cmv04yrn50001otb8mwjrj0as",
+          "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+          "systemOne": {
+            "shadow": null,
+            "delivery": {
+              "model": null,
+              "audience": "lead",
+              "eligible": false,
+              "available": false,
+              "suppliedToCast": false,
+              "suppliedToLead": false
+            },
+            "judgedAt": "2026-10-12T01:47:05.348Z",
+            "evaluatedOnce": true
+          },
+          "leadGenerations": [
+            {
+              "label": "lead_main",
+              "receivedOrientation": false
+            }
+          ]
+        },
+        "mechanism": "plain_lead",
+        "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+        "offeringId": "openai:gpt-6.1-sol",
+        "humanTurnId": "a6500647-45e6-4047-a55b-7dd0832ed5e1",
+        "fallbackUsed": false,
+        "executedModel": "gpt-6.1-sol",
+        "modelProvider": "openai",
+        "consultOkCount": 0,
+        "documentHasStep": true,
+        "castConsultSlugs": [],
+        "executedProvider": "openai",
+        "consultEmptyCount": 0,
+        "documentInContext": true,
+        "preserveDiscovery": {
+          "gate": "preserve-discovery@1",
+          "model": "jev-1.13.0",
+          "choice": "CONTINUE",
+          "opened": false,
+          "reason": "below_threshold",
+          "satisfied": false,
+          "confidence": 0.67,
+          "probabilities": {
+            "CONTINUE": 0.75,
+            "ASK_HUMAN": 0.01,
+            "PRESERVE_DISCOVERY": 0.22,
+            "RECONSIDER_ORIENTATION": 0.02
+          }
+        },
+        "castConsultRecords": [],
+        "consultFailedCount": 0,
+        "documentHasForward": true,
+        "documentPointCount": 163,
+        "castConsultStatuses": [],
+        "conversationProfile": "conversation",
+        "delegateConsultCount": 0,
+        "systemOneOrientation": {
+          "model": null,
+          "audience": "lead",
+          "eligible": false,
+          "available": false,
+          "suppliedToCast": false,
+          "suppliedToLead": false
+        },
+        "domainAgentParticipation": [
+          {
+            "slug": "kip",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "cloud",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "rendr",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "chuck-livecchi-lead",
+            "dialogParticipation": "voice"
+          }
+        ]
+      }
+    },
+    {
+      "id": "41d09e1e-5b47-423d-aecf-5e1c2b3b3f8a",
+      "at": "2026-10-12T01:59:42.140Z",
+      "role": "user",
+      "contentLen": 122,
+      "content": "I want each agent to respond concisely, Do we currently operate according to Operation Truth? Yes or No. One sentence why?",
+      "metaKeys": [
+        "agent_id",
+        "timestamp",
+        "humanTurnId"
+      ],
+      "voices": [],
+      "actionCount": 0,
+      "actions": [],
+      "traceCount": 0,
+      "traceBrief": [],
+      "error": null,
+      "orchestration": null
+    },
+    {
+      "id": "929c47b4-c696-4b8c-9304-6b1979ff427d",
+      "at": "2026-10-12T01:59:45.676Z",
+      "role": "assistant",
+      "contentLen": 215,
+      "content": "**Kip: No** — our actions do not yet consistently demonstrate receipt-backed completion and verified continuity required by Operational Truth. Cloud and Rendr returned no replies this turn; I cannot answer for them.",
+      "metaKeys": [
+        "model",
+        "trace",
+        "agent_id",
+        "agentName",
+        "timestamp",
+        "castVoices",
+        "senderName",
+        "orchestration",
+        "resolvedMeaning",
+        "turnConsumption",
+        "framePerformance",
+        "performanceProvenance"
+      ],
+      "voices": [
+        {
+          "slug": "chuck-livecchi-lead",
+          "name": "Ceox",
+          "status": "ok",
+          "len": 768,
+          "head": "**No.**\n\nThe Document exists and the guide has been imported, but the operational requirements it defines — Agency receipts flowing correctly, Stage continuity verified in browser, anonymous claim completing end-to-end, Present release contract in place — remain unverified or demonstrably defective in the evidence on record.\n\nWhat we *have* demonstrated: Points written to the Document, Stage layou"
+        }
+      ],
+      "actionCount": 0,
+      "actions": [],
+      "traceCount": 5,
+      "traceBrief": [
+        {
+          "label": "I want each agent to respond concisely, Do we currently operate according to Operation Truth? Yes or No. One sentence why?"
+        },
+        {
+          "label": "Reply concisely with Yes or No and one sentence explaining whether current operations align with Operation Truth."
+        },
+        {
+          "label": "chuck-livecchi-lead: Give your own assessment of whether we currently operate according to Keeper Operational Truth: Yes or No, followed by one concise sentence"
+        },
+        {
+          "label": "**No.**\n\nThe Document exists and the guide has been imported, but the operational requirements it defines — Agency receipts flowing correctly, Stage continuity "
+        },
+        {
+          "label": "Cast — unfinished"
+        }
+      ],
+      "error": null,
+      "orchestration": {
+        "model": "gpt-6.1-sol",
+        "attempts": [
+          {
+            "model": "gpt-6.1-sol",
+            "outcome": "succeeded",
+            "provider": "openai",
+            "offeringId": "openai:gpt-6.1-sol"
+          }
+        ],
+        "dialogId": "cmv04yrn50001otb8mwjrj0as",
+        "agentSlug": "kip",
+        "humanTurn": {
+          "id": "b651ff82-6d26-49e2-b63e-58590d5ace25",
+          "cast": [
+            {
+              "slug": "chuck-livecchi-lead",
+              "status": "ok",
+              "attributedTo": "Ceox",
+              "receivedOrientation": false
+            }
+          ],
+          "role": "lead",
+          "actions": [],
+          "version": "human-turn-v0",
+          "dialogId": "cmv04yrn50001otb8mwjrj0as",
+          "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+          "systemOne": {
+            "shadow": null,
+            "delivery": {
+              "model": null,
+              "audience": "lead",
+              "eligible": false,
+              "available": false,
+              "suppliedToCast": false,
+              "suppliedToLead": false
+            },
+            "judgedAt": "2026-10-12T01:59:42.152Z",
+            "evaluatedOnce": true
+          },
+          "leadGenerations": [
+            {
+              "label": "lead_main",
+              "receivedOrientation": false
+            }
+          ]
+        },
+        "mechanism": "cast_consultation_a",
+        "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+        "offeringId": "openai:gpt-6.1-sol",
+        "humanTurnId": "b651ff82-6d26-49e2-b63e-58590d5ace25",
+        "fallbackUsed": false,
+        "executedModel": "gpt-6.1-sol",
+        "modelProvider": "openai",
+        "consultOkCount": 1,
+        "documentHasStep": true,
+        "castConsultSlugs": [
+          "chuck-livecchi-lead"
+        ],
+        "executedProvider": "openai",
+        "consultEmptyCount": 0,
+        "documentInContext": true,
+        "preserveDiscovery": {
+          "gate": "preserve-discovery@1",
+          "model": "jev-1.13.0",
+          "choice": "CONTINUE",
+          "opened": false,
+          "reason": "below_threshold",
+          "satisfied": false,
+          "confidence": 0.65,
+          "probabilities": {
+            "CONTINUE": 0.74,
+            "ASK_HUMAN": 0.02,
+            "PRESERVE_DISCOVERY": 0.23,
+            "RECONSIDER_ORIENTATION": 0.01
+          }
+        },
+        "castConsultRecords": [
+          {
+            "slug": "chuck-livecchi-lead",
+            "status": "ok",
+            "replyChars": 768,
+            "replyExcerpt": "**No.**\n\nThe Document exists and the guide has been imported, but the operational requirements it defines — Agency receipts flowing correctly, Stage continuity verified in browser, anonymous claim completing end-to-end, Present release contract in place — remain unverified or dem"
+          }
+        ],
+        "consultFailedCount": 0,
+        "documentHasForward": true,
+        "documentPointCount": 163,
+        "castConsultStatuses": [
+          {
+            "slug": "chuck-livecchi-lead",
+            "status": "ok"
+          }
+        ],
+        "conversationProfile": "conversation",
+        "delegateConsultCount": 0,
+        "systemOneOrientation": {
+          "model": null,
+          "audience": "lead",
+          "eligible": false,
+          "available": false,
+          "suppliedToCast": false,
+          "suppliedToLead": false
+        },
+        "domainAgentParticipation": [
+          {
+            "slug": "kip",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "cloud",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "rendr",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "chuck-livecchi-lead",
+            "dialogParticipation": "voice"
+          }
+        ]
+      }
+    },
+    {
+      "id": "f048784e-2500-434b-9e1d-85d5ecf2c61e",
+      "at": "2026-10-12T23:25:01.337Z",
+      "role": "user",
+      "contentLen": 1828,
+      "content": "Cast — review the five Slides you created under “Keeper Operational Truth.” Retrieve the actual Slides and maintained Operational Truth before answering.\r\n\r\nDefend your composition: how does it sufficiently express this work—its purpose, agreed architecture, requirements, decisions, evidence, failures, progress, and unfinished actions?\r\n\r\nThe sequence appears to describe Keeper’s general promise:\r\nBring Something Unfinished → Speak. Find the Thread. → “So Do It” Must Mean Something → Same Work. A New Expression. → Worth Keeping Means Worth Returning To.\r\n\r\nWhat makes this specifically Keeper Operational Truth? What did you select from the source, what did you omit, and how can I reach the deeper material? Five introductory Slides may be a useful opening, but where is the rest of the experience?\r\n\r\nKip: explain the directing judgment and intended audience.\r\nRendr: evaluate whether the composition makes this particular work understandable and explorable. Show a concrete improvement through your actual capabilities.\r\nCeox: independently challenge the defense against the maintained source.\r\nCloud: verify the existing connections between these Slides, their originating turn, source mate",
+      "metaKeys": [
+        "agent_id",
+        "timestamp",
+        "humanTurnId"
+      ],
+      "voices": [],
+      "actionCount": 0,
+      "actions": [],
+      "traceCount": 0,
+      "traceBrief": [],
+      "error": null,
+      "orchestration": null
+    },
+    {
+      "id": "995051c6-3c4f-47d2-b0f2-6582dc050bb6",
+      "at": "2026-10-12T23:25:17.971Z",
+      "role": "assistant",
+      "contentLen": 992,
+      "content": "**I can’t yet defend the opening as sufficient.** It offers a general promise, while your audience needs this particular work made understandable and explorable.\n\n```keeper-card\n{\"type\":\"info\",\"title\":\"Review remains incomplete\",\"body\":\"The returned truth identifies Forward, Step, and a Chronicle trail, but supplies neither the actual Slide bodies nor the maintained source.\",\"meta\":\"No composition change or Story save is claimed; the existing sequence remains unchanged.\"}\n```\nOne specific orientation problem is supported: **Operational Truth has no Orientation, and its trail does not resolve to one place.** That should inform the next composition—not be hidden behind an introductory story.\n\nMy proposed direction is an opening that leads into **meaning → evidence → unfinished work**, with an explicit way back to the source. That is a design proposal, not verified navigation. No Rendr, Ceox, or Cloud findings returned here, so their review and connection checks remain unanswered.",
+      "metaKeys": [
+        "model",
+        "trace",
+        "agent_id",
+        "agentName",
+        "timestamp",
+        "senderName",
+        "actionResults",
+        "orchestration",
+        "performanceProvenance"
+      ],
+      "voices": [],
+      "actionCount": 2,
+      "actions": [
+        {
+          "type": "dialog.read",
+          "status": "success",
+          "message": "Dialog \"Keeper Operational Truth\" retrieved — Document has 163 Point(s). Page 111–130 of 163. Next page: dialog.read with this id and offset 130. 19 body extracts are cut."
+        },
+        {
+          "type": "story.truth.read",
+          "status": "success",
+          "message": "Story truth for Keeper Operational Truth: 10 supported sentences. Chronicle event bodies were not read."
+        }
+      ],
+      "traceCount": 4,
+      "traceBrief": [
+        {
+          "label": "Cast — review the five Slides you created under “Keeper Operational Truth.” Retrieve the actual Slides and maintained Operational Truth before answering.\r\n\r\nDef"
+        },
+        {
+          "label": "dialog.read — success — Dialog \"Keeper Operational Truth\" retrieved — Document has 163 Point(s). Page 111–130 of 163. Next page: dialog.read with this id and of"
+        },
+        {
+          "label": "story.truth.read — success — Story truth for Keeper Operational Truth: 10 supported sentences. Chronicle event bodies were not read."
+        },
+        {
+          "label": "Conversation — undirected"
+        }
+      ],
+      "error": null,
+      "orchestration": {
+        "model": "gpt-6.1-sol",
+        "attempts": [
+          {
+            "model": "gpt-6.1-sol",
+            "outcome": "succeeded",
+            "provider": "openai",
+            "offeringId": "openai:gpt-6.1-sol"
+          }
+        ],
+        "dialogId": "cmv04yrn50001otb8mwjrj0as",
+        "agentSlug": "kip",
+        "humanTurn": {
+          "id": "63f7c85c-b8f7-45ae-a631-1e67ea7d1444",
+          "cast": [],
+          "role": "lead",
+          "actions": [
+            {
+              "type": "dialog.read",
+              "status": "success"
+            },
+            {
+              "type": "story.truth.read",
+              "status": "success"
+            }
+          ],
+          "version": "human-turn-v0",
+          "dialogId": "cmv04yrn50001otb8mwjrj0as",
+          "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+          "systemOne": {
+            "shadow": null,
+            "delivery": {
+              "model": null,
+              "audience": "lead",
+              "eligible": false,
+              "available": false,
+              "suppliedToCast": false,
+              "suppliedToLead": false
+            },
+            "judgedAt": "2026-10-12T23:25:01.351Z",
+            "evaluatedOnce": true
+          },
+          "leadGenerations": [
+            {
+              "label": "lead_main",
+              "receivedOrientation": false
+            },
+            {
+              "label": "read_follow_up",
+              "receivedOrientation": false
+            }
+          ]
+        },
+        "mechanism": "plain_lead",
+        "sessionId": "45dc89eb-d9e6-46cc-94ce-49924fee6d6c",
+        "offeringId": "openai:gpt-6.1-sol",
+        "humanTurnId": "63f7c85c-b8f7-45ae-a631-1e67ea7d1444",
+        "fallbackUsed": false,
+        "executedModel": "gpt-6.1-sol",
+        "modelProvider": "openai",
+        "consultOkCount": 0,
+        "documentHasStep": true,
+        "castConsultSlugs": [],
+        "executedProvider": "openai",
+        "consultEmptyCount": 0,
+        "documentInContext": true,
+        "preserveDiscovery": {
+          "gate": "preserve-discovery@1",
+          "model": "jev-1.13.0",
+          "choice": "RECONSIDER_ORIENTATION",
+          "opened": false,
+          "reason": "below_threshold",
+          "satisfied": false,
+          "confidence": 0.21,
+          "probabilities": {
+            "CONTINUE": 0.33,
+            "ASK_HUMAN": 0.03,
+            "PRESERVE_DISCOVERY": 0.23,
+            "RECONSIDER_ORIENTATION": 0.41
+          }
+        },
+        "castConsultRecords": [],
+        "consultFailedCount": 0,
+        "documentHasForward": true,
+        "documentPointCount": 163,
+        "castConsultStatuses": [],
+        "conversationProfile": "conversation",
+        "delegateConsultCount": 0,
+        "systemOneOrientation": {
+          "model": null,
+          "audience": "lead",
+          "eligible": false,
+          "available": false,
+          "suppliedToCast": false,
+          "suppliedToLead": false
+        },
+        "domainAgentParticipation": [
+          {
+            "slug": "kip",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "cloud",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "rendr",
+            "dialogParticipation": "voice"
+          },
+          {
+            "slug": "chuck-livecchi-lead",
+            "dialogParticipation": "voice"
+          }
+        ]
+      }
+    }
+  ]
+}
