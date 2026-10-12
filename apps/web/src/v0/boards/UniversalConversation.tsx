@@ -2817,15 +2817,33 @@ export function UniversalConversation({
 
   const wasStageSendingRef = React.useRef(false)
   React.useEffect(() => {
-    if (workspaceSurface !== "stage") {
-      wasStageSendingRef.current = isSending
-      return
-    }
-    if (wasStageSendingRef.current && !isSending) {
-      keeperStage?.reload()
-    }
+    const finished = wasStageSendingRef.current && !isSending
     wasStageSendingRef.current = isSending
-  }, [workspaceSurface, isSending, keeperStage])
+    if (!finished) return
+    const latest = [...dialogMessages].reverse().find((message) => message.role === "agent")
+    const laidOut = latest?.actionResults?.some(
+      (action) => action.type === "stage.story.layout" && action.status === "success",
+    )
+    if (workspaceSurface === "stage" || laidOut) keeperStage?.reload()
+  }, [dialogMessages, isSending, keeperStage, workspaceSurface])
+
+  const latestLayoutMessageId = React.useMemo(() => {
+    for (let index = dialogMessages.length - 1; index >= 0; index -= 1) {
+      const message = dialogMessages[index]
+      if (message?.actionResults?.some(
+        (action) => action.type === "stage.story.layout" && action.status === "success",
+      )) {
+        return message.id
+      }
+    }
+    return null
+  }, [dialogMessages])
+  const reloadedLayoutRef = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    if (!latestLayoutMessageId || reloadedLayoutRef.current === latestLayoutMessageId) return
+    reloadedLayoutRef.current = latestLayoutMessageId
+    keeperStage?.reload()
+  }, [keeperStage, latestLayoutMessageId])
 
   // Defer blur so composerSize class/rows updates don't collapse mid-focus transition.
   const handleComposerFocusChange = React.useCallback(

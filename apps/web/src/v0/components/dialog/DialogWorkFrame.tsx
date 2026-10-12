@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { AgentMessageContent } from "../../../components/agent/AgentMessageContent"
 import type { DialogThinkingStep } from "./dialogThinking"
 import {
   workElapsedLabel,
@@ -162,9 +163,7 @@ export function DialogReplySlide({
 }) {
   return (
     <FrameSlide context="Dialog" title={agentName} index={0} count={1} onIndex={() => {}}>
-      <p className="whitespace-pre-wrap" style={{ margin: 0 }}>
-        {text}
-      </p>
+      <AgentMessageContent content={text} />
     </FrameSlide>
   )
 }

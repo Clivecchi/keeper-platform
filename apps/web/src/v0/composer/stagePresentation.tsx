@@ -12,6 +12,12 @@ import { resolveStageNowBeat } from "./stageNowBeat"
 import type { FrameCastVoice } from "./FramePerformanceView"
 import { selectPerformedFrame, type PerformedFrameRef } from "./workStageComposition"
 import {
+  classifyStageLayout,
+  stageCanvasReading,
+  type StageCanvasReading,
+  type StageLayoutReceipt,
+} from "./stageLayoutHandoff"
+import {
   canReturnFromStageAttention,
   holdStageFrame,
   nextStageAttention,
@@ -90,9 +96,16 @@ type StagePresentationValue = {
   slides: ReadonlyArray<StageSlide>
   index: number
   setIndex: (index: number) => void
+  /** Show one slide without treating later slides as the place to follow. */
+  presentSlide: (index: number) => void
   current: StageSlide | null
   liveFrames: ReadonlyMap<string, LiveFrameHit>
   performedFrame: PerformedFrameRef | null
+  /** The filmstrip whose titles still match a layout receipt in this Dialog. */
+  filmstripLayout: StageLayoutReceipt | null
+  /** A layout receipt in this Dialog whose titles are no longer the filmstrip. */
+  staleFilmstripLayout: StageLayoutReceipt | null
+  stageReading: StageCanvasReading
   attention: StageAttentionState
   attentionSubject: StageAttentionSubject | null
   workForward: boolean
@@ -101,6 +114,8 @@ type StagePresentationValue = {
 }
 
 const StagePresentationCtx = React.createContext<StagePresentationValue | null>(null)
+
+const NO_STORY_SLIDES: readonly { title: string }[] = []
 
 export function StagePresentationProvider({
   messages,
@@ -204,6 +219,23 @@ export function StagePresentationProvider({
     }),
     [focusSourceId, frameRefs, storySourceIds],
   )
+  const storySlides = stageApi?.stage.story?.slides ?? NO_STORY_SLIDES
+  const layoutClass = React.useMemo(
+    () => classifyStageLayout({
+      messages,
+      slides: storySlides,
+    }),
+    [messages, storySlides],
+  )
+  const stageReading = React.useMemo(
+    () => stageCanvasReading({
+      messages,
+      current: layoutClass.current,
+      stale: layoutClass.stale,
+      performedMessageId: performedFrame?.messageId ?? null,
+    }),
+    [layoutClass.current, layoutClass.stale, messages, performedFrame?.messageId],
+  )
   const last = Math.max(0, slides.length - 1)
   const [index, setIndexState] = React.useState(0)
   const [attention, setAttention] = React.useState<StageAttentionState>("present")
@@ -214,6 +246,11 @@ export function StagePresentationProvider({
 
   const setIndex = React.useCallback((next: number) => {
     followStoryRef.current = next > 0
+    setIndexState(next)
+  }, [])
+
+  const presentSlide = React.useCallback((next: number) => {
+    followStoryRef.current = false
     setIndexState(next)
   }, [])
 
@@ -285,9 +322,13 @@ export function StagePresentationProvider({
       slides,
       index: Math.min(index, last),
       setIndex,
+      presentSlide,
       current,
       liveFrames,
       performedFrame,
+      filmstripLayout: layoutClass.current,
+      staleFilmstripLayout: layoutClass.stale,
+      stageReading,
       attention,
       attentionSubject,
       workForward,
@@ -299,9 +340,13 @@ export function StagePresentationProvider({
       index,
       last,
       setIndex,
+      presentSlide,
       current,
       liveFrames,
       performedFrame,
+      layoutClass.current,
+      layoutClass.stale,
+      stageReading,
       attention,
       attentionSubject,
       workForward,

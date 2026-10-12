@@ -23,6 +23,7 @@ import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
 import { buildMessageGlossAnchor, displayDraftHostTitle, formatCastRoomTraceLine, promotedDialogFrame, type DraftPoint } from "@keeper/shared"
 import { separateReplyEvidence } from "./replyEvidence"
+import { readStageLayoutReceipt } from "../../v0/composer/stageLayoutHandoff"
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
@@ -429,6 +430,8 @@ function AgentMessageTurn({
   onExerciseKeepingChoice,
   keepingChoiceBusy,
   onReopenFrame,
+  onOpenStageLayout,
+  currentLayoutMessageId,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -452,6 +455,8 @@ function AgentMessageTurn({
   onExerciseKeepingChoice?: (record: KeepingChoiceRecord) => void
   keepingChoiceBusy?: boolean
   onReopenFrame?: (messageId: string) => void
+  onOpenStageLayout?: (messageId: string) => void
+  currentLayoutMessageId?: string | null
 }) {
   const castVoices = (message.castVoices ?? []).filter((voice) => {
     const content = voice.content?.trim()
@@ -478,6 +483,14 @@ function AgentMessageTurn({
       title={frameLink.title}
       slideCount={frameLink.beats.length}
       onOpen={() => onReopenFrame(message.id)}
+    />
+  ) : null
+  const layoutReceipt = readStageLayoutReceipt(message)
+  const layoutControl = layoutReceipt && onOpenStageLayout ? (
+    <FrameReopenButton
+      title={layoutReceipt.messageId === currentLayoutMessageId ? "Stage filmstrip" : "Stage filmstrip, no longer current"}
+      slideCount={layoutReceipt.titles.length}
+      onOpen={() => onOpenStageLayout(message.id)}
     />
   ) : null
 
@@ -513,6 +526,7 @@ function AgentMessageTurn({
     return (
       <div className="max-w-xl min-w-0">
         {reopen}
+        {layoutControl}
         <GlossSurface
           messageId={message.id}
           anchor={buildMessageGlossAnchor(message.id, "body")}
@@ -640,6 +654,7 @@ function AgentMessageTurn({
   return (
     <div className="max-w-xl min-w-0 space-y-2.5">
       {reopen}
+      {layoutControl}
       <MultiAgentTurnGroup>
         {message.content.trim() && (
           <>
@@ -1060,6 +1075,10 @@ export interface DialogueMessageListProps {
   onExerciseKeepingChoice?: (record: KeepingChoiceRecord) => void
   /** Reopen the Frame stored on this turn. */
   onReopenFrame?: (messageId: string) => void
+  /** Open the Stage filmstrip laid out on this turn. */
+  onOpenStageLayout?: (messageId: string) => void
+  /** Layout message whose titles still match the filmstrip. */
+  currentLayoutMessageId?: string | null
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -1090,6 +1109,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   acceptingDraftPointId,
   onExerciseKeepingChoice,
   onReopenFrame,
+  onOpenStageLayout,
+  currentLayoutMessageId,
 }) => (
   <div className="dialogue-message-list min-h-[24rem] space-y-4 overflow-x-hidden overflow-y-auto rounded-2xl px-4 py-4">
     {isLoading ? (
@@ -1182,6 +1203,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               onExerciseKeepingChoice={onExerciseKeepingChoice}
               keepingChoiceBusy={isSending}
               onReopenFrame={onReopenFrame}
+              onOpenStageLayout={onOpenStageLayout}
+              currentLayoutMessageId={currentLayoutMessageId}
             />
           </div>
         )

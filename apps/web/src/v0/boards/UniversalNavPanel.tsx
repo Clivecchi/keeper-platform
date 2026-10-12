@@ -330,7 +330,7 @@ function StoryNavCard() {
     <SidebarCard
       className="keeper-sidebar-card"
       title="Stories"
-      description={stories.loading ? "Loading…" : "Shape the telling"}
+      description={stories.loading ? "Loading…" : "Kept Stories. A Stage filmstrip is not listed here."}
       onAdd={() => {
         void stories.createStory().then((story) => {
           if (story) board.actions.onStorySelect(story.id)

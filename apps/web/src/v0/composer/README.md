@@ -56,6 +56,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-11: A Lead `stage.story.layout` shows the stored filmstrip on the canvas, with slide navigation and a return to the turn. It is not a Story. A later reply does not cover those slides.
 - 2026-10-11: Reopening a Frame uses the turn it was composed on. Take to Stage shows that Frame on the canvas. On Stage lists sources; the highlight follows the Dialog in hand. Add to Story names the Story and keeps the turn as the source. A slide can be Glossed on `beat-{index}`.
 - 2026-10-11: While a turn runs, the Dialog Frame’s slide is the work, on Stage too. When the output is determined, that slide becomes the Frame or the reply. The cover returns from Stage.
 - 2026-10-11: Cast Review opens each voice closed, and Dialog Frame returns to the beat.

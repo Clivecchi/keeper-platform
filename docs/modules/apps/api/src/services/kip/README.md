@@ -50,6 +50,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-11 — A Stage layout receipt names the filmstrip
+- `stageLayoutReceiptMessage` says the slides were written to the Stage filmstrip, no Story was saved, and the screen is not verified.
+
 ### 2026-10-10 — Specialist results keep their bodies and errors
 - `actionFollowUp.ts` prints Point number, id, prelude, body, a cut, and Gloss. Empty specialist prose forwards that digest. The assignment stays on the continuation.
 - `loadDialogDocumentForAgent.ts` can supply full Point text for a paged read. The system Document block still uses the short preview.

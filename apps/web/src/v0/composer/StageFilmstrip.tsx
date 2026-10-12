@@ -24,7 +24,8 @@ import { FramePerformanceView } from "./FramePerformanceView"
 function beatCaption(slide: StageSlide): string {
   if (slide.sourceResolve === "unresolved") return "Unavailable"
   if (slide.source?.kind === "moment") return "Moment"
-  return "Engagement"
+  if (slide.source?.kind === "live") return "Frame"
+  return "Slide"
 }
 
 function SlideScene({

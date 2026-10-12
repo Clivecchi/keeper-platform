@@ -8,6 +8,7 @@
 
 import { boardSurfaceProps } from "../boardSurface"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { useDomainStoriesOptional } from "../../composer/useDomainStories"
 import { useStagePresentationOptional } from "../../composer/stagePresentation"
 import { resolveEnteredPlaceName } from "./stagePlace"
 
@@ -25,10 +26,23 @@ export function StageSceneHeader({
     domainName,
   })
   const presentation = useStagePresentationOptional()
+  const stories = useDomainStoriesOptional()
   const performed = presentation?.performedFrame ?? null
+  const filmstrip = presentation?.stageReading === "filmstrip" ? presentation.filmstripLayout : null
+  const stale = presentation?.stageReading === "stale"
+  const activeStory = stories?.set.stories.find((story) => story.id === stories.set.activeStoryId) ?? null
   const work = workTitle?.trim() || ""
-  const slideLine = performed
-    ? `${performed.slideCount === 1 ? "1 slide" : `${performed.slideCount} slides`} · ${performed.title}`
+  const slideLine = filmstrip
+    ? `Stage filmstrip · ${filmstrip.titles.length === 1 ? "1 slide" : `${filmstrip.titles.length} slides`}`
+    : stale
+      ? "This Dialog’s Stage layout is no longer the filmstrip"
+      : performed
+        ? `${performed.slideCount === 1 ? "1 slide" : `${performed.slideCount} slides`} · ${performed.title}`
+        : ""
+  const storyLine = filmstrip
+    ? activeStory
+      ? `Not a Story. “${activeStory.title}” was not changed.`
+      : "Not a Story. No Story was saved."
     : ""
 
   return (
@@ -58,7 +72,12 @@ export function StageSceneHeader({
             {slideLine}
           </p>
         ) : null}
-        {work && !performed ? (
+        {storyLine ? (
+          <p className="mt-1 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            {storyLine}
+          </p>
+        ) : null}
+        {work && !slideLine ? (
           <p className="mt-1 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             No slides yet
           </p>

@@ -547,3 +547,74 @@ It is not a fourth import. The Points still timestamped `2026-10-11T00:03:25.943
 - OT16 and OT19–OT22, including a live receipt-only turn and reload of the same Gloss.
 - The Section 16 cut, and the duplicate copies from the three imports. Compare before any merge. Do not delete.
 - The 163rd Point stays `proposed` until a person accepts it. Acceptance would not verify the landing claim in its body.
+
+## October 11 2026 — the filmstrip is not a Story
+
+About 9:47 PM, Chuck asked Operational Truth to make a story from the material already given. This section records that turn. It is not a new Operational Truth version. OT01–OT28 stand. PK01–PK14 stay parked. OT16 and OT19–OT22 stay open. Chronicle orientation, Slide Gloss on a live signed-in pass, and the duplicate imported Points stay open. Nothing was reimported or deleted.
+
+### The turn
+
+| | |
+|---|---|
+| Dialog | `cmv04yrn50001otb8mwjrj0as` |
+| Human message | `34e3cd7a-c697-4840-8df5-ba259005ad6e` at `2026-10-12T01:47:05.343Z` |
+| Lead message | `210571b1-3995-4a83-b82f-8f9d79057589` at `2026-10-12T01:47:16.435Z` |
+| Actor | Kip, Lead, agent `385689a0-d5e5-47a7-bf97-08d6597e1a33`. No Cast voices are stored. Rendr did not compose this turn. |
+| Action | `stage.story.layout`, status success. No `story.save`. No `framePerformance`. |
+
+Kip’s reply names “From Unfinished to Worth Keeping” and includes a keeper-card whose body says the visual result is not yet verified. That title is prose. It is not a Story id.
+
+### What was saved
+
+`stage.story.layout` replaced `Domain.settings.keeperStage.story` on domain `9b0989f6-2fe4-4aa6-9c8a-f49a2516e7f9`. Five beats, no source ids:
+
+| Id | Title |
+|---|---|
+| `slide-1` | Bring Something Unfinished |
+| `slide-2` | Speak. Find the Thread. |
+| `slide-3` | “So Do It” Must Mean Something |
+| `slide-4` | Same Work. A New Expression. |
+| `slide-5` | Worth Keeping Means Worth Returning To |
+
+The receipt stored “Laid out 5 Slides on Stage.” with those titles and a rationale. It did not store a Story id. A successful layout writes the filmstrip. It does not verify the screen.
+
+### Why Stage showed the reply
+
+The selected Dialog covers the canvas. This message has no promoted Frame, so Stage held the reply text in one slide. That slide printed the Markdown and the keeper-card fence as characters. The five beats were already stored. The filmstrip navigation is hidden while a Dialog title is set, and the work canvas did not read `keeperStage.story`.
+
+### Already in Progress… is a different record
+
+Stories navigation lists the domain Story set. The active Story is `already-in-progress`, title “Already in Progress...”, status `staged`. Its material is two captures:
+
+- `5d93b026-2b42-4e5d-b8ab-227d22d6d596`, “Kept, and Still Opening”, Dialog `cmuj4x5u70007nr0115wle41p`
+- `dec7d504-33c7-455e-a8fd-985d60e63283`, “What the test shows — and what it doesn't”, this Dialog
+
+Neither source is message `210571b1-3995-4a83-b82f-8f9d79057589`. This turn did not create or update that Story.
+
+On Stage lists presences. It is not the Story and it is not the filmstrip.
+
+### What this repair changes
+
+- The receipt sentence for a new layout says the filmstrip was written, no Story was saved, and the screen is not verified. The card also lists the slide titles. The sentence already stored on `210571b1` is shown that way too.
+- When those titles still match the filmstrip, Stage shows the five slides, with navigation, and Back to this turn. A later reply does not cover them. The turn keeps a “Stage filmstrip · 5 slides” control.
+- If a later layout replaces the titles, the old control says the filmstrip is no longer current.
+- A reply slide renders a keeper-card as a card.
+- Stories navigation says a Stage filmstrip is not listed there. The header names the filmstrip and the Story that was not changed.
+
+### Layers
+
+| Layer | What this pass can say |
+|---|---|
+| Product intent | A layout is the Stage filmstrip. “From Unfinished to Worth Keeping” was not saved as a Story. |
+| Implementation | The files in this commit. No new Story system. |
+| Tests | API layout receipt message passed. Web unit tests for the handoff, Dialog surface, and performed Frame passed (16, plus the API file’s 2). |
+| Deployment | Not deployed. Not pushed. |
+| Live behavior | The stored slides and the Story row were read from the database. This browser session was not a signed-in walk of the five slides. |
+| Reload | The five slide ids and the Lead message id are already stored. Matching titles is how this turn finds them again. A signed-in reload is still Chuck’s to accept. |
+
+### Still open, including the earlier list
+
+- Signed-in walk: open the 9:47 turn, open the filmstrip, see the five slides, move among them, return to the turn, talk again, reopen, reload, and find `slide-1` through `slide-5` and message `210571b1-3995-4a83-b82f-8f9d79057589`.
+- Chronicle orientation, Slide Gloss on a live pass, OT16, OT19–OT22, the Section 16 cut, and the duplicate imported Points. Do not delete them.
+- The 163rd Point `63a70b4f-6745-446b-8006-b02480cd6817` stays `proposed`.
+- “New surface” remains a later Stage-and-Composer experience. This repair does not build it.

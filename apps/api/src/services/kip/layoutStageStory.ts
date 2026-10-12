@@ -34,6 +34,13 @@ export type LayoutStageStoryError = {
 
 export type LayoutStageStoryResult = LayoutStageStorySuccess | LayoutStageStoryError;
 
+/** Storage succeeded. It did not save a Story, and it did not verify the screen. */
+export function stageLayoutReceiptMessage(slideCount: number): string {
+  const count = Number.isFinite(slideCount) ? Math.max(0, Math.floor(slideCount)) : 0;
+  const label = count === 1 ? '1 Slide' : `${count} Slides`;
+  return `Laid out ${label} on the Stage filmstrip. No Story was saved. This receipt does not verify what is on screen.`;
+}
+
 export async function layoutStageStory(input: LayoutStageStoryInput): Promise<LayoutStageStoryResult> {
   const story = parseStageStory({ slides: input.slides });
   if (!story) {

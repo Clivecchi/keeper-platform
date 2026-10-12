@@ -182,7 +182,20 @@ function WorkStageComposition({
     () => projectStoryPass({ context, slides }),
     [context, slides],
   )
-  if (hit && performed) {
+  const reading = presentation?.stageReading ?? "empty"
+  if (reading === "filmstrip" && presentation?.filmstripLayout) {
+    return <FilmstripPerformance messageId={presentation.filmstripLayout.messageId} />
+  }
+  if (reading === "stale" && presentation?.staleFilmstripLayout) {
+    return (
+      <StageReadingNotice
+        workId={workId}
+        title="This Stage layout is no longer the filmstrip"
+        body="The slides named on that turn were replaced. No Story was saved by the layout."
+      />
+    )
+  }
+  if (hit && performed && reading === "frame") {
     return (
       <div
         className="absolute inset-0 flex min-h-0 flex-col"
@@ -221,6 +234,88 @@ function WorkStageComposition({
           title={title}
         />
       </div>
+    </div>
+  )
+}
+
+function FilmstripPerformance({ messageId }: { messageId: string }) {
+  const presentation = useStagePresentationOptional()
+  const jumped = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    if (!presentation || jumped.current === messageId) return
+    const firstBeat = presentation.slides.findIndex((slide) => slide.kind !== "root")
+    if (firstBeat >= 0) {
+      presentation.presentSlide(firstBeat)
+      jumped.current = messageId
+    }
+  }, [messageId, presentation])
+  const beats = (presentation?.slides ?? []).filter((slide) => slide.kind !== "root")
+
+  return (
+    <div
+      className="absolute inset-0 flex min-h-0 flex-col"
+      data-stage-renderer="filmstrip"
+      data-stage-layout={messageId}
+      data-stage-slide-count={beats.length}
+    >
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <StagePresentationScreen />
+      </div>
+      {beats.length > 0 ? (
+        <nav aria-label="Stage slides" className="flex flex-wrap gap-2 px-4 py-3">
+          {beats.map((slide) => {
+            const index = presentation?.slides.findIndex((item) => item.id === slide.id) ?? -1
+            const current = presentation?.current?.id === slide.id
+            return (
+              <button
+                key={slide.id}
+                type="button"
+                aria-current={current ? "true" : undefined}
+                onClick={() => {
+                  if (index >= 0) presentation?.setIndex(index)
+                }}
+                className="rounded-md px-3 py-2 text-left text-[13px]"
+                style={{
+                  border: current
+                    ? "1px solid hsl(var(--theme-accent-primary))"
+                    : "1px solid hsl(var(--theme-border-soft) / 0.7)",
+                  background: current
+                    ? "hsl(var(--theme-surface-paper) / 0.88)"
+                    : "hsl(var(--theme-surface-paper) / 0.45)",
+                  color: "hsl(var(--theme-ink-primary))",
+                }}
+              >
+                {slide.title}
+              </button>
+            )
+          })}
+        </nav>
+      ) : null}
+    </div>
+  )
+}
+
+function StageReadingNotice({
+  workId,
+  title,
+  body,
+}: {
+  workId: string
+  title: string
+  body: string
+}) {
+  return (
+    <div
+      className="absolute inset-0 flex min-h-0 flex-col items-start justify-center px-8"
+      data-stage-renderer="notice"
+      data-stage-work={workId}
+    >
+      <h2 className="font-serif text-[1.6rem]" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+        {title}
+      </h2>
+      <p className="mt-3 max-w-xl text-[16px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+        {body}
+      </p>
     </div>
   )
 }

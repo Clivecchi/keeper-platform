@@ -16,6 +16,7 @@ import {
 } from "@keeper/shared"
 import { GlossSurface } from "../gloss/GlossSurface"
 import { imageGenerateFailureCopy } from "./imageGenerateFailureCopy"
+import { stageLayoutReceiptMessage } from "../../v0/composer/stageLayoutHandoff"
 
 export interface ActionReceipt {
   type: string
@@ -79,6 +80,7 @@ function getActionLabel(actionType: string, receipt?: ActionReceipt): string {
     "image.generate": "Image generated",
     "treatment.propose": "Proposed treatment",
     "stage.composition.propose": "Composed Stage",
+    "stage.story.layout": "Stage filmstrip",
     "document.reorganize.propose": "Proposed Document",
     "document.ingest": "Brought into the Document",
     "document.orientation.update": "Updated Orientation",
@@ -889,6 +891,14 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   }
 
   // Default success state — compact receipt
+  const layoutTitles = type === "stage.story.layout" && Array.isArray(data?.titles)
+    ? data.titles.filter((title): title is string => typeof title === "string" && title.trim().length > 0)
+    : []
+  const shownMessage = type === "stage.story.layout" && status === "success"
+    ? stageLayoutReceiptMessage(
+      typeof data?.slideCount === "number" ? data.slideCount : layoutTitles.length,
+    )
+    : message
   const actionLabel = getActionLabel(type, receipt)
   return (
     <div
@@ -931,11 +941,18 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
                 {message}
               </p>
             )}
-          {message && !moment && !draft?.title && !isSoleSave && (
+          {shownMessage && !moment && !draft?.title && !isSoleSave && (
             <p className="mt-1 text-xs" style={{ color: "var(--theme-ink-secondary-color)" }}>
-              {message}
+              {shownMessage}
             </p>
           )}
+          {layoutTitles.length > 0 ? (
+            <ol className="mt-2 list-decimal pl-4 text-xs" style={{ color: "var(--theme-ink-secondary-color)" }}>
+              {layoutTitles.map((title) => (
+                <li key={title}>{title}</li>
+              ))}
+            </ol>
+          ) : null}
           {isSoleSave && (
             <p className="mt-0.5 text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>
               SOLE memory card recorded

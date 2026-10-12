@@ -231,7 +231,7 @@ import {
 } from '../../services/kip/preserveDiscoveryGate.js';
 import { runPreserveDiscoveryTurn } from '../../services/kip/preserveDiscoveryTurn.js';
 import { storeDocumentReorganizeProposal } from '../../services/kip/documentReorganizeStore.js';
-import { layoutStageStory } from '../../services/kip/layoutStageStory.js';
+import { layoutStageStory, stageLayoutReceiptMessage } from '../../services/kip/layoutStageStory.js';
 import { appendGlossTurn } from '../../services/GlossWriteService.js';
 import { ensureDialogGlossCarrier, readDialogGlossByPointId } from '../../services/kip/ensureDialogGlossCarrier.js';
 import {
@@ -2995,10 +2995,13 @@ export async function executeAgentActions(
             results.push({
               type: action.type,
               status: 'success',
-              message: `Laid out ${laidOut.story.slides.length} Slide${laidOut.story.slides.length === 1 ? '' : 's'} on Stage.`,
+              message: stageLayoutReceiptMessage(laidOut.story.slides.length),
               data: {
                 slideCount: laidOut.story.slides.length,
                 titles: laidOut.story.slides.map((slide) => slide.title),
+                slideIds: laidOut.story.slides.map((slide) => slide.id),
+                scope: 'stage-filmstrip',
+                storySaved: false,
                 rationale: laidOut.rationale,
               },
             });

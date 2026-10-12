@@ -8,7 +8,15 @@ vi.mock('../domains/keeperStageStore.js', () => ({
   saveKeeperStage,
 }));
 
-const { appendStageExpressionBeat } = await import('./layoutStageStory.js');
+const { appendStageExpressionBeat, stageLayoutReceiptMessage } = await import('./layoutStageStory.js');
+
+describe('stageLayoutReceiptMessage', () => {
+  it('names the filmstrip and does not claim a Story or a verified screen', () => {
+    expect(stageLayoutReceiptMessage(5)).toBe(
+      'Laid out 5 Slides on the Stage filmstrip. No Story was saved. This receipt does not verify what is on screen.',
+    );
+  });
+});
 
 describe('appendStageExpressionBeat', () => {
   it('appends one live-sourced beat and is idempotent for the same Lead message', async () => {

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { performedStagePresenceId, stagePresenceKindLabel, type StagePresence } from "@keeper/shared"
+import { useStagePresentationOptional } from "./stagePresentation"
 import { useUniversalBoard } from "../boards/UniversalBoardContext"
 import { useKeeperStageOptional } from "./useKeeperStage"
 
@@ -12,6 +13,7 @@ export function OnStageObjectList({
 }) {
   const { actions, selection, workspaceSurface } = useUniversalBoard()
   const stageApi = useKeeperStageOptional()
+  const presentation = useStagePresentationOptional()
   if (!stageApi || workspaceSurface !== "stage") return null
   if (stageApi.stage.presences.length === 0) return null
 
@@ -44,7 +46,9 @@ export function OnStageObjectList({
         On Stage
       </h3>
       <p className="mb-2 text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-        Sources placed here. The canvas is the Dialog in hand.
+        {presentation?.stageReading === "filmstrip"
+          ? "Sources placed here. The canvas is the Stage filmstrip, not a Story."
+          : "Sources placed here. The canvas is the Dialog in hand."}
       </p>
       <ul className="flex flex-col gap-1">
         {stageApi.stage.presences.map((presence) => {

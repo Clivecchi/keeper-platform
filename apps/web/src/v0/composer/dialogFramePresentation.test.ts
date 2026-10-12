@@ -112,6 +112,17 @@ describe("dialogTurnSurface", () => {
     })
   })
 
+  it("keeps a laid-out filmstrip on Stage when a later reply arrives", () => {
+    expect(dialogTurnSurface({
+      messages: [{ id: "m1", role: "agent", content: "The story is **named**.\n\n```keeper-card\n{}\n```" }],
+      dismissedMessageId: null,
+      isSending: false,
+      stageOwnsSurface: true,
+      holdOutput: true,
+      filmstripCoversStage: true,
+    })).toBeNull()
+  })
+
   it("leaves the Stage cover up when this turn is not the one just finished", () => {
     expect(dialogTurnSurface({
       messages: [{ id: "m1", role: "agent", content: "Older reply.", framePerformance: telling }],

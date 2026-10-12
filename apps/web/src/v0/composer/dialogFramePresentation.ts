@@ -27,6 +27,11 @@ export function dialogTurnSurface(input: {
   stageOwnsSurface: boolean
   /** This turn just finished. Hold its output in the frame until dismissed. */
   holdOutput: boolean
+  /**
+   * This Dialog’s Stage filmstrip is the current performance.
+   * A plain reply does not cover those slides.
+   */
+  filmstripCoversStage?: boolean
 }): DialogTurnSurface | null {
   if (input.isSending) return { kind: "work" }
 
@@ -50,6 +55,7 @@ export function dialogTurnSurface(input: {
     return { kind: "frame", messageId: latest.id, performance }
   }
   if (!input.stageOwnsSurface || !input.holdOutput) return null
+  if (input.filmstripCoversStage) return null
   const text = latest.content?.trim() ?? ""
   if (!text) return null
   return { kind: "reply", messageId: latest.id, text }

@@ -15,6 +15,7 @@ Shared components for Kip/agent action receipts and draft proposals. Used by Dia
 - `DraftPointProposeCard` receives `draftId`, `point` (`DraftPoint` from `@keeper/shared`), and optional `onAccept(draftId, pointId)`.
 
 ## Update Log
+- 2026-10-11: A successful `stage.story.layout` receipt says the filmstrip was written, lists the slide titles, and does not claim a Story or a verified screen.
 - 2026-10-09: `document.ingest` receipts label as **Brought into the Document**.
 - 2026-09-27: Failed `image.generate` receipts explain a missing subject. The saved sentence `subject is required for image.generate` expands in the Dialog card.
 - 2026-09-21: `document.orientation.update` labels as **Updated Orientation**.

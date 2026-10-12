@@ -69,6 +69,7 @@ import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
 import { useStageArrivalPresentation } from "../../composer/useStageArrivalPresentation"
 import { useStagePresentationOptional } from "../../composer/stagePresentation"
+import { useKeeperStageOptional } from "../../composer/useKeeperStage"
 import { FramePerformanceView } from "../../composer/FramePerformanceView"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
@@ -499,7 +500,9 @@ export function KeeperDialogFrame({
   )
   const [conversationOverFrameId, setConversationOverFrameId] = React.useState<string | null>(null)
   const [openedFrameMessageId, setOpenedFrameMessageId] = React.useState<string | null>(null)
+  const [pendingReturnId, setPendingReturnId] = React.useState<string | null>(null)
   const [holdOutput, setHoldOutput] = React.useState(false)
+  const keeperStage = useKeeperStageOptional()
   const sawWorkRef = React.useRef(false)
   const returnToTurn = React.useCallback((messageId: string) => {
     setOpenedFrameMessageId(null)
@@ -524,6 +527,27 @@ export function KeeperDialogFrame({
     sawWorkRef.current = false
     setHoldOutput(true)
   }, [isSending, mode])
+  React.useEffect(() => {
+    if (!pendingReturnId || composerOnStage) return
+    const id = pendingReturnId
+    const timer = window.setTimeout(() => {
+      scrollRef.current
+        ?.querySelector(`[data-message-id="${id}"]`)
+        ?.scrollIntoView({ block: "center" })
+      setPendingReturnId(null)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [composerOnStage, pendingReturnId])
+  const openStageLayout = React.useCallback((messageId: string) => {
+    setPendingReturnId(null)
+    keeperStage?.reload()
+    board?.actions.openStageRoom()
+    window.setTimeout(() => {
+      scrollRef.current
+        ?.querySelector(`[data-message-id="${messageId}"]`)
+        ?.scrollIntoView({ block: "nearest" })
+    }, 0)
+  }, [board, keeperStage])
   const turnSurface = mode === "feed" ? null : dialogTurnSurface({
     messages,
     dismissedMessageId: conversationOverFrameId,
@@ -531,6 +555,7 @@ export function KeeperDialogFrame({
     isSending,
     stageOwnsSurface: composerOnStage,
     holdOutput,
+    filmstripCoversStage: Boolean(stagePresentation?.filmstripLayout),
   })
   const surfaceMessage = turnSurface && turnSurface.kind !== "work"
     ? messages.find((message) => message.id === turnSurface.messageId)
@@ -779,6 +804,8 @@ export function KeeperDialogFrame({
             acceptingDraftPointId={acceptingDraftPointId}
             onExerciseKeepingChoice={onExerciseKeepingChoice}
             onReopenFrame={setOpenedFrameMessageId}
+            onOpenStageLayout={openStageLayout}
+            currentLayoutMessageId={stagePresentation?.filmstripLayout?.messageId ?? null}
             agentBubbleFullWidth={agentBubbleFullWidth}
             agentBoardMessaging={agentBoardMessaging}
             scrollContainerRef={scrollRef}
@@ -813,6 +840,8 @@ export function KeeperDialogFrame({
           acceptingDraftPointId={acceptingDraftPointId}
           onExerciseKeepingChoice={onExerciseKeepingChoice}
           onReopenFrame={setOpenedFrameMessageId}
+          onOpenStageLayout={openStageLayout}
+          currentLayoutMessageId={stagePresentation?.filmstripLayout?.messageId ?? null}
           agentBubbleFullWidth={agentBubbleFullWidth}
           agentBoardMessaging={agentBoardMessaging}
           scrollContainerRef={scrollRef}
@@ -1122,6 +1151,20 @@ export function KeeperDialogFrame({
         className="dialog-message-zone"
         {...(composerOnStage ? boardSurfaceProps("stage") : {})}
       >
+        {composerOnStage && stagePresentation?.filmstripLayout && !turnSurface ? (
+          <button
+            type="button"
+            className="dialog-frame-return"
+            onClick={() => {
+              const id = stagePresentation.filmstripLayout?.messageId
+              if (!id) return
+              setPendingReturnId(id)
+              board?.actions.leaveStageRoom()
+            }}
+          >
+            Back to this turn
+          </button>
+        ) : null}
         {turnSurface ? (
           <div className="dialog-frame-surface">
             {turnSurface.kind === "work" ? null : (
