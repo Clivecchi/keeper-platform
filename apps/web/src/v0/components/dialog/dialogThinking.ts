@@ -42,13 +42,19 @@ const ACTION_TRACE_VERBS: Record<string, string> = {
   "mcp.call": "Called tool",
 }
 
+function conciseProgress(text: string): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= 96) return trimmed
+  return `${trimmed.slice(0, 93)}…`
+}
+
 function formatActionTraceLabel(receipt: ReturnType<typeof normalizeActionReceipt>): string {
   const verb = ACTION_TRACE_VERBS[receipt.type] ?? "Completed action"
   if (receipt.status === "error") {
-    return `${verb} failed — ${receipt.message}`
+    return conciseProgress(`${verb} failed — ${receipt.message}`)
   }
   if (receipt.status === "skipped") {
-    return `${verb} skipped — ${receipt.message}`
+    return conciseProgress(`${verb} skipped — ${receipt.message}`)
   }
 
   const draft = receipt.data?.draft as { title?: string } | undefined
@@ -69,7 +75,9 @@ function formatActionTraceLabel(receipt: ReturnType<typeof normalizeActionReceip
   }
 
   const message = receipt.message?.trim()
-  return message && message !== "Action completed successfully" ? `${verb} — ${message}` : verb
+  return message && message !== "Action completed successfully"
+    ? conciseProgress(`${verb} — ${message}`)
+    : verb
 }
 
 /** API action payload shape accepted by {@link normalizeActionReceipt}. */

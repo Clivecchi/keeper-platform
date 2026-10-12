@@ -56,6 +56,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-11: Cast Review opens each voice closed, and Dialog Frame returns to the beat.
 - 2026-10-07: A selected Dialog is what Stage composes. `workStageComposition` feeds that title into the existing composition view. The domain filmstrip does not replace it. Where are we? remains the no-work arrival.
 - 2026-10-07: `StageOrientationBar` is off the performance. The orientation surface may render nothing. Restore stays on the Stage when a stored arrangement exists. Presentation / Workshop tabs are gone. Full-room presentation still needs a meaningful invocation.
 - 2026-10-07: Focusing the message box and sending a reply leave the performance in the center. The Dialog no longer steps forward over it.

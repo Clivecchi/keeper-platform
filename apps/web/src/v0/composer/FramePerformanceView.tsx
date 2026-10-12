@@ -36,6 +36,12 @@ function voiceAccent(slug: string): string {
   return `hsl(${hue} 38% 46%)`
 }
 
+function voiceLead(content: string): string {
+  const line = content.trim().split(/\n+/)[0] ?? ""
+  if (line.length <= 140) return line
+  return `${line.slice(0, 137)}…`
+}
+
 function contextLine(performance: FramePerformance): string | null {
   const documentTitle = performance.context?.documentTitle?.trim()
   const sectionTitle = performance.context?.sectionTitle?.trim()
@@ -261,20 +267,35 @@ export function FramePerformanceView({
       {SpatialHost ? <SpatialHost /> : null}
 
       {reviewingCast && castVoices.length > 0 ? (
-        <div className="mt-4 space-y-3" aria-label="Cast contributions">
-          {castVoices.map((voice, voiceIndex) => (
-            <p
-              key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${voiceIndex}`}
-              className="text-[13px] leading-relaxed"
-              style={{ color: "hsl(var(--theme-ink-secondary))", margin: 0 }}
-            >
-              <span style={{ color: voiceAccent(voice.slug ?? "cast") }}>
-                {voice.attributedTo ?? "Cast"}
-              </span>
-              {" — "}
-              {voice.content}
-            </p>
-          ))}
+        <div className="mt-4 space-y-3" aria-label="Cast review">
+          <button
+            type="button"
+            className="text-[12px] underline-offset-4 hover:underline"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
+            onClick={() => setReviewingCast(false)}
+          >
+            Dialog Frame
+          </button>
+          {castVoices.map((voice, voiceIndex) => {
+            const name = voice.attributedTo ?? "Cast"
+            return (
+              <details
+                key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${voiceIndex}`}
+                className="dialog-fold"
+              >
+                <summary className="text-[13px]" style={{ color: voiceAccent(voice.slug ?? "cast") }}>
+                  {name}
+                  {voiceLead(voice.content) ? ` — ${voiceLead(voice.content)}` : ""}
+                </summary>
+                <p
+                  className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed"
+                  style={{ color: "hsl(var(--theme-ink-secondary))", marginTop: "0.5rem" }}
+                >
+                  {voice.content}
+                </p>
+              </details>
+            )
+          })}
         </div>
       ) : null}
     </section>

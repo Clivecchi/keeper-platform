@@ -29,7 +29,7 @@ Shared conversation shell used across Build Board, Agent Board, Domain Board, Re
 | **Composing** | Input + optional post-run summary; Broadcast Strip collapsed | default state |
 | **Working** | Broadcast Strip expanded + input (disabled while sending) | `isSending === true` |
 
-While sending: one Broadcast Strip carries the live beat and prior story beats. After the reply, the strip collapses and a dialogic one-liner (`.dialog-composer-horizon`) sits directly above the input.
+While sending: the Broadcast Strip shows one live line. After the reply, the strip collapses and a dialogic one-liner (`.dialog-composer-horizon`) sits directly above the input.
 
 ### Named Surfaces — Opacity Hierarchy (most opaque → most transparent)
 | Surface | CSS class | Opacity | Blur | Purpose |
@@ -78,6 +78,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-10-11: While Agency is working, the Broadcast Strip shows one live line. Tool progress stays under 96 characters.
 - 2026-10-09: Thinking trace labels `document.ingest` as bringing writing into the Document.
 - 2026-10-07: When a Dialog is the work, the domain filmstrip strip stays off the lectern. The center composition is that Dialog.
 - 2026-10-07: On the performance posture the banner and center Cast hide. The scene header names the place and the work. The Composer carries place travel. Cast is on the right curtain.

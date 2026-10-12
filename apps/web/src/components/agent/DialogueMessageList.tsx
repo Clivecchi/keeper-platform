@@ -25,6 +25,7 @@ import { buildMessageGlossAnchor, displayDraftHostTitle, formatCastRoomTraceLine
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
+import { turnBrief } from "./turnBrief"
 import {
   leadCardForSystemOne,
   leadContentForSystemOne,
@@ -34,6 +35,28 @@ import {
   MessageSenderLabel,
   type MessageSenderVariant,
 } from "./MessageSenderLabel"
+
+function DialogFold({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <details className="dialog-fold mt-2">
+      <summary>{title}</summary>
+      <div className="mt-2 space-y-2.5">{children}</div>
+    </details>
+  )
+}
+
+function isHumanContractReceipt(receipt: ReturnType<typeof normalizeActionReceipt>): boolean {
+  if (receipt.type === "draft.update.propose") return true
+  if (receipt.type === "treatment.propose" && receipt.status === "success") return true
+  if (receipt.type === "document.reorganize.propose" && receipt.status === "success") return true
+  return false
+}
 
 function visibleDelegationBeat(
   delegation: DialogResponseEcho | undefined,
@@ -407,6 +430,7 @@ function AgentMessageTurn({
   const isMultiAgentTurn = Boolean(castVoices.length > 0 || delegation || echo)
   const resolvedAgentName = message.senderName?.trim() || agentName
   const visibleContent = sanitizeAgentMessageContent(message.content)
+  const leadBrief = turnBrief(leadContentForSystemOne(visibleContent, message.orchestration))
 
   if (!isMultiAgentTurn) {
     if (
@@ -455,11 +479,16 @@ function AgentMessageTurn({
           }}
         >
           <AgentMessageContent
-            content={leadContentForSystemOne(visibleContent, message.orchestration)}
+            content={leadBrief.shown}
             card={leadCardForSystemOne(message.keeperCard, message.orchestration)}
             chronicleChip={message.chronicleChip}
             onOpenChronicleChip={onOpenChronicleChip}
           />
+          {leadBrief.folded ? (
+            <DialogFold title="Full reply">
+              <AgentMessageContent content={leadBrief.folded} />
+            </DialogFold>
+          ) : null}
           <SystemOneOrientationCard orchestration={message.orchestration} />
           {message.arrivalInvitations?.length && onArrivalInvitation ? (
             <RealmInvitationButtons
@@ -504,70 +533,77 @@ function AgentMessageTurn({
   }
 
   const leadName = echoAgentName ?? agentName
+  const castNames = [
+    ...castVoices.map((voice) => voice.attributedTo?.trim() || voice.slug || "Cast"),
+    ...(delegation?.attributedTo?.trim() ? [delegation.attributedTo.trim()] : []),
+  ]
+  const castFold = castVoices.length > 0 || delegation ? (
+    <DialogFold title={castNames.length ? `Cast · ${castNames.join(", ")}` : "Cast"}>
+      {castVoices.map((voice, index) => (
+        <AgentChatBubble
+          key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${index}`}
+          grouped
+          variant={
+            voice.status === "failed" || voice.status === "empty"
+              ? "delegation-failed"
+              : "collaborator"
+          }
+          name={voice.attributedTo ?? "Agent"}
+          content={
+            voice.content?.trim()
+            || voice.card?.title
+            || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`
+          }
+          card={voice.card}
+          glossMessageId={message.id}
+          glossNodeId={`cast-${voice.slug ?? index}`}
+          glossThreads={message.glossThreads}
+          glossSnapshotText={voice.content}
+        />
+      ))}
+      {delegation && (
+        <AgentChatBubble
+          grouped
+          variant={
+            delegation.status === "failed" || delegation.status === "empty"
+              ? "delegation-failed"
+              : "collaborator"
+          }
+          name={delegation.attributedTo ?? "Agent"}
+          content={delegation.content}
+          card={delegation.card}
+          glossMessageId={message.id}
+          glossNodeId="delegation"
+          glossThreads={message.glossThreads}
+          glossSnapshotText={delegation.content}
+        />
+      )}
+    </DialogFold>
+  ) : null
 
   return (
     <div className="max-w-xl min-w-0 space-y-2.5">
       <MultiAgentTurnGroup>
-        {castVoices.map((voice, index) => (
-          <AgentChatBubble
-            key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${index}`}
-            grouped
-            variant={
-              voice.status === "failed" || voice.status === "empty"
-                ? "delegation-failed"
-                : "collaborator"
-            }
-            name={voice.attributedTo ?? "Agent"}
-            content={
-              voice.content?.trim()
-              || voice.card?.title
-              || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`
-            }
-            card={voice.card}
-            glossMessageId={message.id}
-            glossNodeId={`cast-${voice.slug ?? index}`}
-            glossThreads={message.glossThreads}
-            glossSnapshotText={voice.content}
-          />
-        ))}
-        {delegation && (
-          <AgentChatBubble
-            grouped
-            variant={
-              delegation.status === "failed" || delegation.status === "empty"
-                ? "delegation-failed"
-                : "collaborator"
-            }
-            name={delegation.attributedTo ?? "Agent"}
-            content={delegation.content}
-            card={delegation.card}
-            glossMessageId={message.id}
-            glossNodeId="delegation"
-            glossThreads={message.glossThreads}
-            glossSnapshotText={delegation.content}
-          />
-        )}
         {message.content.trim() && (
           <>
             <AgentChatBubble
               grouped
               variant="lead"
               name={resolvedAgentName}
-              content={leadContentForSystemOne(
-                sanitizeAgentMessageContent(message.content),
-                message.orchestration,
-              )}
+              content={leadBrief.shown}
               card={leadCardForSystemOne(message.keeperCard, message.orchestration)}
               chronicleChip={message.chronicleChip}
               onOpenChronicleChip={onOpenChronicleChip}
               glossMessageId={message.id}
               glossNodeId="body"
               glossThreads={message.glossThreads}
-              glossSnapshotText={leadContentForSystemOne(
-                sanitizeAgentMessageContent(message.content),
-                message.orchestration,
-              )}
+              glossSnapshotText={leadBrief.shown}
             />
+            {leadBrief.folded ? (
+              <DialogFold title="Full reply">
+                <AgentMessageContent content={leadBrief.folded} />
+              </DialogFold>
+            ) : null}
             <SystemOneOrientationCard orchestration={message.orchestration} />
           </>
         )}
@@ -592,6 +628,7 @@ function AgentMessageTurn({
             onExercise={onExerciseKeepingChoice}
           />
         ) : null}
+        {castFold}
         {echo && (
           <AgentChatBubble
             grouped
@@ -665,46 +702,19 @@ function MessageAttachments({
   acceptedDraftPointIds?: ReadonlySet<string>
   acceptingDraftPointId?: string | null
 }) {
-  return (
-    <>
-      {message.roomTrace && message.roomTrace.length > 0 && (
-        <div className="mt-2 space-y-0.5">
-          <div
-            className="text-[11px] font-medium"
-            style={{ color: "var(--theme-ink-tertiary-color)" }}
-          >
-            Trace
-          </div>
-          {message.roomTrace.map((event) => (
-            <div
-              key={event.id}
-              className="text-[11px] leading-snug"
-              style={{ color: "var(--theme-ink-secondary-color)" }}
-            >
-              {formatCastRoomTraceLine(event)}
-            </div>
-          ))}
-        </div>
-      )}
-      {message.linkedCard && (
-        <div className="mt-1">
-          <LinkedCard
-            {...message.linkedCard}
-            variant="inline"
-            onNavigate={(() => {
-              const card = message.linkedCard!
-              const entityType = card.entityType as string
-              if (entityType === "draft" && onOpenDraft) return () => onOpenDraft(card.entityId)
-              if (entityType === "moment" && onOpenMoment) return () => onOpenMoment(card.entityId)
-              if (entityType === "journey" && onOpenJourney) return () => onOpenJourney(card.entityId)
-              return undefined
-            })()}
-          />
-        </div>
-      )}
-      {message.actionResults && foldVisibleActionResults(message.actionResults).length > 0 && (
-        <div className="mt-2 space-y-2">
-          {foldVisibleActionResults(message.actionResults).map((actionResult, idx) => {
+  const visibleResults = message.actionResults
+    ? foldVisibleActionResults(message.actionResults)
+    : []
+  const contractResults = visibleResults.filter((row) =>
+    isHumanContractReceipt(normalizeActionReceipt(row)),
+  )
+  const technicalResults = visibleResults.filter(
+    (row) => !isHumanContractReceipt(normalizeActionReceipt(row)),
+  )
+  const traceCount = message.roomTrace?.length ?? 0
+  const renderReceipts = (
+    results: NonNullable<AgentDialogueMessage["actionResults"]>,
+  ) => results.map((actionResult, idx) => {
             const receipt = normalizeActionReceipt(actionResult)
             const isProposeError = receipt.type === "draft.update.propose" && receipt.status === "error"
             const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
@@ -878,9 +888,55 @@ function MessageAttachments({
                 onKeepAsMoment={onKeepAsMoment}
               />
             )
-          })}
+  })
+
+  return (
+    <>
+      {message.linkedCard && (
+        <div className="mt-1">
+          <LinkedCard
+            {...message.linkedCard}
+            variant="inline"
+            onNavigate={(() => {
+              const card = message.linkedCard!
+              const entityType = card.entityType as string
+              if (entityType === "draft" && onOpenDraft) return () => onOpenDraft(card.entityId)
+              if (entityType === "moment" && onOpenMoment) return () => onOpenMoment(card.entityId)
+              if (entityType === "journey" && onOpenJourney) return () => onOpenJourney(card.entityId)
+              return undefined
+            })()}
+          />
         </div>
       )}
+      {contractResults.length > 0 ? (
+        <div className="mt-2 space-y-2">{renderReceipts(contractResults)}</div>
+      ) : null}
+      {technicalResults.length > 0 || traceCount > 0 ? (
+        <DialogFold
+          title={
+            traceCount > 0
+              ? `Receipts · ${technicalResults.length + traceCount}`
+              : `Receipts · ${technicalResults.length}`
+          }
+        >
+          {message.roomTrace && message.roomTrace.length > 0 ? (
+            <div className="space-y-0.5">
+              {message.roomTrace.map((event) => (
+                <div
+                  key={event.id}
+                  className="text-[11px] leading-snug"
+                  style={{ color: "var(--theme-ink-secondary-color)" }}
+                >
+                  {formatCastRoomTraceLine(event)}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {technicalResults.length > 0 ? (
+            <div className="space-y-2">{renderReceipts(technicalResults)}</div>
+          ) : null}
+        </DialogFold>
+      ) : null}
     </>
   )
 }

@@ -448,3 +448,35 @@ In this working tree, not pushed and not deployed:
 - A name in the middle of a sentence (`Ceox:`, `Rendr:`) counts as a requested voice.
 
 Tests covering the commit-not-found path, the file window, the continuation line, and an inline Ceox/Rendr name passed. No live turn was run on this repair. Push and deployment were not done. OT16 and OT19–OT22 stay unfinished until a live read can name the receipt path at a commit GitHub actually has, and a reload retrieves the same Gloss and work record.
+
+### Live turn — branch read, same bytes as `2b3c3fd1`
+
+The following Dialog turn asked Cloud to read `castRoomTurn.ts` and `agents.ts` at `2b3c3fd18d70a2d455f8bae5d03e78d411e24b08` and to follow `nextOffset`. Ceox and Rendr both contributed. Kip left the objective unfinished. No import, deletion, deployment, or Document write occurred.
+
+Cloud requested `ref` `cloud`. The tool echoed that. There is no new “branch not found” error in this turn. File windows worked: both reads returned offset `6000`, `nextOffset` `12000`, and the continuation line. `castRoomTurn.ts` came back as blob `04e1cae8ca09cb2558b4d3cb884a6c46bf90fd78`, size 13,377. `agents.ts` came back as blob `3a3025ca7f4f8ff49eae9a3709f5b88cb1912b8b`, size 501,368.
+
+Local git, which contains that commit, has those same two blobs at `2b3c3fd1` and at current `HEAD` `a7677a92ab446454eb6e1313c99353eace115772`. Parent `97048fc4` has different blobs (`76dddab9` and `e728e5c5`). For these two paths, the branch-tip bytes and the pinned-commit bytes are the same. That identity is a local blob comparison. The GitHub receipt itself does not name the SHA, because the call asked for the branch.
+
+The `castRoomTurn.ts` window at offset 6000 is the receipt seam in that blob. An empty reply still counts when receipts exist. The contribution and each acted event reference the direction. Evaluate runs when there is substance, the contribution matches that direction, and the call did not fail, and the evaluation assignment includes `receipts`. The consultation row keeps `actionResults` and `directionId`.
+
+The `agents.ts` window at offset 6000 is still the import block. In the same blob, later, a completed specialist action (success or error) builds one continuation, runs at most one follow-up action round, and uses the action digest when the prose is empty. The Lead present prompt lists a receipt-only voice as the contribution and prints the action receipts. `useAgentDialog.ts` blob `a4285bf4f9fa90083a44c193a55aa560d335aa10` is also unchanged from `2b3c3fd1` to `a7677a92`. The client puts room consultations, including `actionResults`, on the Lead run, and keeps a voice card when the reply is empty and receipts exist.
+
+`origin/cloud` is now `a7677a92`, which contains the commit-SHA reader. This turn did not call it.
+
+Still open: a GitHub read whose receipt names `2b3c3fd1`, the unread remainder of `agents.ts` on the tool path, prohibition and assent, a live receipt-only turn, an identity-preserving work-record update, and reload. OT16 and OT19–OT22 stay unfinished.
+
+### Live turn — pinned ref succeeded
+
+The next Dialog turn asked Cloud to read `apps/api/src/api/kip/action-allowlist.ts` with `ref` set to `2b3c3fd18d70a2d455f8bae5d03e78d411e24b08`, and not to send the branch name. Cloud, Ceox, and Rendr each contributed. Kip presented Agency unfinished. No import, deletion, or deployment.
+
+Cloud quoted the tool JSON: `ref` `2b3c3fd18d70a2d455f8bae5d03e78d411e24b08`, `sha` `d549cc86d328e892bc1dac28ab285f20e452e1c8`, `path` `apps/api/src/api/kip/action-allowlist.ts`, 1157 bytes, not truncated. Local git at that commit has the same blob and the same size. The earlier “branch not found” blocker for a commit pin is closed for this reader.
+
+The file is the allowlist GET route. It calls `resolveKipActionAllowlistStatusForSession`. That service is not the receipt path. This read does not prove receipt-only results reach Lead evaluation, prohibition or assent, a work-record update, or reload. OT16 and OT19–OT22 stay unfinished.
+
+### Live turn — the reply was the wall
+
+The following user turn asked for less text and a visible change, and named Rendr. Message `9b1ddece-a38f-475b-8c49-11bb42428b9d`. Rendr’s stored contribution describes a Chronicle palette Treatment. The lead message’s action results are five `github_repo_read` calls. No `treatment.propose` receipt is stored on that message. Cloud’s contribution is “Reading it now” for `ActionReceiptCard.tsx`, with no file write. Kip’s reply says this Lead turn cannot write the repository.
+
+Rendr’s Dialog voice proposes Chronicle Treatment (`treatment.propose`); a human Apply is what changes the look. A separate composer turns resolved meaning into Frame beats. Neither path edits the transcript renderer. Cloud’s seeded authority includes `github.file.write`. Kip’s environment sets `canWriteProduction` false. This turn Cloud only read.
+
+The expanded text was the transcript: full Cast bubbles, an open trace, and one receipt card per tool call. `ActionReceiptCard` prints a short status line. The working tree now leads with a short outcome, keeps Cast and technical receipts closed until opened, keeps proposal cards visible, shows one progress line while Agency works, and returns from Cast Review to the Dialog Frame. Not committed. Not deployed.

@@ -877,6 +877,17 @@ button.dialog-prelude:hover {
   overflow: auto;
 }
 
+.dialog-fold > summary {
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--theme-ink-secondary-color, hsl(var(--theme-ink-secondary)));
+}
+
+.dialog-fold > summary:hover {
+  color: var(--theme-ink-primary-color, hsl(var(--theme-ink-primary)));
+}
+
 .dialog-frame-return {
   position: absolute;
   z-index: 3;

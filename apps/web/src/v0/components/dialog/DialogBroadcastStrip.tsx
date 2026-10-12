@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { composeThinkingStoryBody, type DialogThinkingStep } from "./dialogThinking"
+import type { DialogThinkingStep } from "./dialogThinking"
 
 export interface DialogBroadcastStripProps {
   /** Live lower-third line — current beat while the agent works. */
@@ -19,14 +19,8 @@ export interface DialogBroadcastStripProps {
 export function DialogBroadcastStrip({
   liveLabel,
   steps,
-  agentName = "Kip",
   isActive = false,
 }: DialogBroadcastStripProps) {
-  const tickerBody = React.useMemo(
-    () => composeThinkingStoryBody(steps, agentName),
-    [steps, agentName],
-  )
-
   if (!isActive && steps.length === 0 && !liveLabel.trim()) {
     return null
   }
@@ -40,11 +34,6 @@ export function DialogBroadcastStrip({
         <span className="dialog-broadcast-live-text dialog-think-pulse">{liveLabel}</span>
         {isActive ? <span className="dialog-broadcast-cursor" aria-hidden /> : null}
       </div>
-      {tickerBody ? (
-        <p className="dialog-broadcast-ticker">{tickerBody}</p>
-      ) : isActive && steps.length === 0 ? (
-        <p className="dialog-broadcast-ticker dialog-broadcast-ticker--pending">Tuning in…</p>
-      ) : null}
     </div>
   )
 }
