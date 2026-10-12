@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest"
 import type { FramePerformance } from "@keeper/shared"
-import { dialogSurfaceFrame } from "./dialogFramePresentation"
+import { dialogSurfaceFrame, dialogTurnSurface } from "./dialogFramePresentation"
 
 const telling: FramePerformance = {
   version: 1,
@@ -53,6 +53,52 @@ describe("dialogSurfaceFrame", () => {
     expect(dialogSurfaceFrame({
       ...base,
       messages: [...base.messages, { id: "u2", role: "user" }],
+    })).toBeNull()
+  })
+})
+
+describe("dialogTurnSurface", () => {
+  it("puts the work in the Dialog Frame while the turn runs, including on Stage", () => {
+    expect(dialogTurnSurface({
+      messages: [{ id: "u1", role: "user", content: "Show me" }],
+      dismissedMessageId: null,
+      isSending: true,
+      stageOwnsSurface: true,
+      holdOutput: false,
+    })).toEqual({ kind: "work" })
+  })
+
+  it("replaces the work with a promoted frame when the turn finishes on Stage", () => {
+    expect(dialogTurnSurface({
+      messages: [{ id: "m1", role: "agent", content: "Done.", framePerformance: telling }],
+      dismissedMessageId: null,
+      isSending: false,
+      stageOwnsSurface: true,
+      holdOutput: true,
+    })?.kind).toBe("frame")
+  })
+
+  it("replaces the work with the reply when Stage has no promoted frame", () => {
+    expect(dialogTurnSurface({
+      messages: [{ id: "m1", role: "agent", content: "The change is in the room." }],
+      dismissedMessageId: null,
+      isSending: false,
+      stageOwnsSurface: true,
+      holdOutput: true,
+    })).toEqual({
+      kind: "reply",
+      messageId: "m1",
+      text: "The change is in the room.",
+    })
+  })
+
+  it("leaves the Stage cover up when this turn is not the one just finished", () => {
+    expect(dialogTurnSurface({
+      messages: [{ id: "m1", role: "agent", content: "Older reply.", framePerformance: telling }],
+      dismissedMessageId: null,
+      isSending: false,
+      stageOwnsSurface: true,
+      holdOutput: false,
     })).toBeNull()
   })
 })

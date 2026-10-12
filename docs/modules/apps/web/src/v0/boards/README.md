@@ -898,6 +898,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
 
+### 2026-10-11 — The working turn is a center card
+- While a turn runs, `UniversalConversation` puts `DialogWorkFrame` in front of the Stage and the composer. Full turn can stop the request. `castRoomTurn` passes that abort through offers, direction, the specialist, and the check.
+
 ### 2026-10-10 — dialog.read reloads Chronicle
 - A successful `dialog.read` or `document.ingest` reloads the focused Document, so the right panel shows the same points the receipt just counted.
 

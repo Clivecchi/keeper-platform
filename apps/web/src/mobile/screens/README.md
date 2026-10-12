@@ -22,6 +22,9 @@ Screen components for Universal Mobile shell tabs — Domains picker, Moment cap
 
 ## 📆 Update Log
 
+### 2026-10-11 — Mobile Dialog can stop a turn
+- `KipScreen` passes `stopTurn` into the Dialog frame so Full turn can stop the same request as the desktop board.
+
 ### 2026-10-06 — Enter is a line break
 - `RealmScreen` composer: Return inserts a new line. Only the send button submits.
 

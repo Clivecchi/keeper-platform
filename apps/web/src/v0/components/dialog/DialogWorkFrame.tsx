@@ -6,8 +6,71 @@ import {
   workElapsedLabel,
   workIsStalled,
   workVoiceName,
-  type DialogWorkTab,
 } from "./dialogWork"
+
+const ink = "hsl(var(--theme-ink-primary))"
+const inkSecondary = "hsl(var(--theme-ink-secondary))"
+const inkTertiary = "hsl(var(--theme-ink-tertiary, var(--theme-ink-secondary)))"
+
+function FrameSlide({
+  context,
+  title,
+  children,
+  index,
+  count,
+  onIndex,
+}: {
+  context: string
+  title: string
+  children: React.ReactNode
+  index: number
+  count: number
+  onIndex: (next: number) => void
+}) {
+  return (
+    <section
+      aria-label={title}
+      className="flex h-full min-h-0 w-full flex-col justify-center px-[8%] py-16"
+    >
+      <p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: inkTertiary, margin: 0 }}>
+        {context}
+      </p>
+      <h2 className="keeper-treatment-title mt-3 text-[34px] leading-tight" style={{ color: ink, marginTop: "0.75rem" }}>
+        {title}
+      </h2>
+      <div className="mt-4 text-[18px] leading-relaxed" style={{ color: ink }}>
+        {children}
+      </div>
+      {count > 1 ? (
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            aria-label="Previous beat"
+            disabled={index <= 0}
+            onClick={() => onIndex(Math.max(0, index - 1))}
+            className="text-[12px] disabled:opacity-30"
+            style={{ color: inkSecondary }}
+          >
+            Back
+          </button>
+          <p className="text-[11px] tabular-nums tracking-[0.08em]" style={{ color: inkTertiary, margin: 0 }}>
+            {index + 1} / {count}
+          </p>
+          <button
+            type="button"
+            aria-label="Next beat"
+            disabled={index >= count - 1}
+            onClick={() => onIndex(Math.min(count - 1, index + 1))}
+            className="text-[12px] disabled:opacity-30"
+            style={{ color: inkSecondary }}
+          >
+            Forward
+          </button>
+        </div>
+      ) : null}
+    </section>
+  )
+}
 
 export interface DialogWorkFrameProps {
   liveLabel: string
@@ -16,17 +79,14 @@ export interface DialogWorkFrameProps {
   onStop?: () => void
 }
 
-/**
- * Center card while a turn runs.
- * At work is one voice and one line. Full turn is the line-by-line record, with Stop.
- */
+/** Two beats inside the Dialog Frame: the live line, then the full turn. */
 export function DialogWorkFrame({
   liveLabel,
   steps,
   agentName,
   onStop,
 }: DialogWorkFrameProps) {
-  const [tab, setTab] = React.useState<DialogWorkTab>("at-work")
+  const [index, setIndex] = React.useState(0)
   const [stopping, setStopping] = React.useState(false)
   const startedAt = React.useRef(Date.now())
   const stepMark = React.useRef(Date.now())
@@ -48,80 +108,64 @@ export function DialogWorkFrame({
   const stalled = workIsStalled(now - stepMark.current)
   const elapsed = workElapsedLabel(now - startedAt.current)
 
-  return (
-    <section className="dialog-work-card" aria-label="Dialog at work" data-stalled={stalled || undefined}>
-      <div className="dialog-work-tabs" role="tablist" aria-label="Turn view">
-        <button
-          type="button"
-          role="tab"
-          id="dialog-work-tab-at-work"
-          aria-selected={tab === "at-work"}
-          aria-controls="dialog-work-panel-at-work"
-          className={tab === "at-work" ? "dialog-work-tab dialog-work-tab--active" : "dialog-work-tab"}
-          onClick={() => setTab("at-work")}
-        >
-          At work
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="dialog-work-tab-full-turn"
-          aria-selected={tab === "full-turn"}
-          aria-controls="dialog-work-panel-full-turn"
-          className={tab === "full-turn" ? "dialog-work-tab dialog-work-tab--active" : "dialog-work-tab"}
-          onClick={() => setTab("full-turn")}
-        >
-          Full turn
-        </button>
-      </div>
+  if (index === 1) {
+    return (
+      <FrameSlide context="Dialog" title="Full turn" index={1} count={2} onIndex={setIndex}>
+        <ol className="list-decimal space-y-2 pl-5 text-[16px]" style={{ color: ink }}>
+          {steps.length === 0 ? <li>Starting…</li> : null}
+          {steps.map((step) => (
+            <li key={step.id}>{step.label}</li>
+          ))}
+        </ol>
+        {onStop ? (
+          <button
+            type="button"
+            className="mt-5 text-[12px] underline-offset-4 hover:underline"
+            style={{ color: ink }}
+            onClick={() => {
+              setStopping(true)
+              onStop()
+            }}
+            disabled={stopping}
+          >
+            {stopping ? "Stopping…" : "Stop"}
+          </button>
+        ) : null}
+      </FrameSlide>
+    )
+  }
 
-      {tab === "at-work" ? (
-        <div
-          role="tabpanel"
-          id="dialog-work-panel-at-work"
-          aria-labelledby="dialog-work-tab-at-work"
-          className="dialog-work-panel"
-        >
-          <div className="dialog-work-live">
-            <span className={stalled ? "dialog-work-pulse dialog-work-pulse--stalled" : "dialog-work-pulse"} aria-hidden />
-            <h2 className="dialog-work-voice">{voice}</h2>
-            <span className="dialog-work-elapsed">{elapsed}</span>
-          </div>
-          <p className="dialog-work-beat" aria-live="polite">
-            {stalled ? "Still on this step." : beat}
-          </p>
-          {stalled ? <p className="dialog-work-beat-prior">{beat}</p> : null}
-          <p className="dialog-work-hint">Full turn shows each line, and Stop.</p>
-        </div>
-      ) : (
-        <div
-          role="tabpanel"
-          id="dialog-work-panel-full-turn"
-          aria-labelledby="dialog-work-tab-full-turn"
-          className="dialog-work-panel"
-        >
-          <ol className="dialog-work-lines">
-            {steps.length === 0 ? <li>Starting…</li> : null}
-            {steps.map((step) => (
-              <li key={step.id}>{step.label}</li>
-            ))}
-          </ol>
-          {onStop ? (
-            <button
-              type="button"
-              className="dialog-work-stop"
-              onClick={() => {
-                setStopping(true)
-                onStop()
-              }}
-              disabled={stopping}
-            >
-              {stopping ? "Stopping…" : "Stop"}
-            </button>
-          ) : null}
-        </div>
-      )}
-    </section>
+  return (
+    <FrameSlide context="Dialog" title={voice} index={0} count={2} onIndex={setIndex}>
+      <p className="whitespace-pre-wrap" style={{ margin: 0 }}>
+        {stalled ? "Still on this step." : beat}
+      </p>
+      {stalled ? (
+        <p className="mt-3 text-[15px]" style={{ color: inkSecondary, marginTop: "0.75rem" }}>
+          {beat}
+        </p>
+      ) : null}
+      <p className="mt-5 text-[15px] tabular-nums" style={{ color: inkSecondary, marginTop: "1.25rem" }}>
+        {elapsed}
+      </p>
+    </FrameSlide>
+  )
+}
+
+/** The determined reply, in the same slide the work just occupied. */
+export function DialogReplySlide({
+  text,
+  agentName,
+}: {
+  text: string
+  agentName: string
+}) {
+  return (
+    <FrameSlide context="Dialog" title={agentName} index={0} count={1} onIndex={() => {}}>
+      <p className="whitespace-pre-wrap" style={{ margin: 0 }}>
+        {text}
+      </p>
+    </FrameSlide>
   )
 }
 

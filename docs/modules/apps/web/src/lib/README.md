@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-10-11 — A stopped turn aborts the request
+- `apiFetch`, `KipApi.runAgent`, `runAgentStream`, and `castOffer` accept `AbortSignal`. An abort stays an abort instead of becoming a network error. `turnStop.ts` names that error.
+
 ### 2026-10-07 — Consultation rows can say whether the aim was met
 - `kipApi.ts` carries an optional `satisfied` flag on a Cast consultation. The room sets it. The client does not infer success from a non-empty reply.
 

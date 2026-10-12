@@ -32,6 +32,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-10-11 — Stop aborts the turn
+- `useAgentDialog` keeps an `AbortController` for the send. `stopTurn` aborts it. A stopped turn leaves the human message and a short “Stopped.” line, and does not paint a provider error.
+
 ### 2026-10-10 — The room sees this turn’s file and the previous sentence
 - `useAgentDialog.ts` passes the current attachments into the Cast Room. When the sentence refers to the previous prompt, that earlier human text goes with the direction.
 

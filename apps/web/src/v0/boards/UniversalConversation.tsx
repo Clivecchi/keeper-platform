@@ -1943,6 +1943,7 @@ export function UniversalConversation({
     agentId,
     activeSessionId: dialogSessionId,
     sendMessage,
+    stopTurn,
     fetchMessages,
   } = useAgentDialog({
     agentSlug: dialogAgentSlug,
@@ -3001,6 +3002,7 @@ export function UniversalConversation({
         }
         thinkingStatusLabel={horizonThinkingLabel}
         thinkingSteps={thinkingSteps}
+        onStopTurn={stopTurn}
         messages={dialogMessages}
         isSending={isSending}
         error={error}

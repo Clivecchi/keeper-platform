@@ -116,6 +116,7 @@ export function KipScreen() {
     agentId,
     activeSessionId,
     sendMessage,
+    stopTurn,
   } = useAgentDialog({
     agentSlug: dialogAgentSlug,
     agentDisplayName: dialogAgentDisplayName,
@@ -375,6 +376,7 @@ export function KipScreen() {
           isSending={isSending}
           error={error}
           thinkingSteps={thinkingSteps}
+          onStopTurn={stopTurn}
           agentId={agentId}
           domainId={domainId}
           activeSessionId={activeSessionId}

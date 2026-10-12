@@ -6,7 +6,8 @@ Shared conversation shell used across Build Board, Agent Board, Domain Board, Re
 ## 🧱 Key Files
 - `KeeperDialogFrame.tsx` — Main shell. Composer stays at the bottom. On Stage it is a lectern (`data-composer-placement="pit"`).
 - `DialogRoomPreface.tsx` — Arrival doors and the people in the Dialog, above the messages.
-- `DialogBroadcastStrip.tsx` — Unified working surface: live beat + prior-beat ticker (CRT lower third).
+- `DialogWorkFrame.tsx` — Work slide inside the Dialog Frame. Forward opens the full turn and Stop. The determined output replaces this slide.
+- `dialogWork.ts` — Short voice, clock, and stall copy for that card.
 - `DialogScrollHint.tsx` — “Latest” pill above the Broadcast Strip when the user scrolls up.
 - `DialogUploadStream.tsx` — Pending uploads in Broadcast Strip (Library item created at clip; sent with next message).
 - `DialogDebugOverlay.tsx` — Client console log panel (overlay over Broadcast Strip + Composer). Copy + close.
@@ -27,9 +28,9 @@ Shared conversation shell used across Build Board, Agent Board, Domain Board, Re
 | **Broadcast Strip** | Unified working surface — live beat + ticker; upload previews when staging | `.dialog-broadcast-strip` |
 | **Composer** | User input floor; two states on `.keeper-dialog-frame` | `data-composer-state="composing"` \| `"working"` |
 | **Composing** | Input + optional post-run summary; Broadcast Strip collapsed | default state |
-| **Working** | Broadcast Strip expanded + input (disabled while sending) | `isSending === true` |
+| **Working** | Dialog Frame slide: the work, then the output that replaces it | `isSending === true` |
 
-While sending: the Broadcast Strip shows one live line. After the reply, the strip collapses and a dialogic one-liner (`.dialog-composer-horizon`) sits directly above the input.
+While a turn runs, the Dialog Frame takes the center and its slide is the work: the voice, one line, and Forward to the full turn with Stop. When the output is determined, that slide is replaced by the Frame or the reply. The Stage cover stays up until this turn is running. The Broadcast Strip stays for uploads.
 
 ### Named Surfaces — Opacity Hierarchy (most opaque → most transparent)
 | Surface | CSS class | Opacity | Blur | Purpose |
@@ -75,10 +76,11 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] Stage `dialogContent` reads the current beat via **Now** (last Turn + reply). Full transcript stays on Dialog view.
 - [x] The performance stays in the center. Composer focus does not bring the Dialog forward.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
-- [x] When `isSending` is true, working status renders in Broadcast Strip; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
+- [x] When `isSending` is true, working status renders in `DialogWorkFrame`; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
-- 2026-10-11: While Agency is working, the Broadcast Strip shows one live line. Tool progress stays under 96 characters.
+- 2026-10-11: Dialog Work is a slide in the Dialog Frame, using the frame’s type. The determined output replaces that slide. The floating card is gone.
+- 2026-10-11: While Agency is working, the Broadcast Strip shows one live line. Tool progress stays under 96 characters. Superseded the same day by the center card.
 - 2026-10-09: Thinking trace labels `document.ingest` as bringing writing into the Document.
 - 2026-10-07: When a Dialog is the work, the domain filmstrip strip stays off the lectern. The center composition is that Dialog.
 - 2026-10-07: On the performance posture the banner and center Cast hide. The scene header names the place and the work. The Composer carries place travel. Cast is on the right curtain.

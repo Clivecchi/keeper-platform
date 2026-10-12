@@ -51,7 +51,8 @@ import { DialogDebugOverlay } from "./DialogDebugOverlay"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
 import { DialogBroadcastStrip } from "./DialogBroadcastStrip"
-import { DialogWorkFrame } from "./DialogWorkFrame"
+import { DialogWorkFrame, DialogReplySlide } from "./DialogWorkFrame"
+import { dialogTurnSurface } from "../../composer/dialogFramePresentation"
 import { DialogUploadStream } from "./DialogUploadStream"
 import {
   composeHorizonBeat,
@@ -68,7 +69,6 @@ import { ComposerStageAgency } from "../../composer/ComposerStageAgency"
 import { StageSlideStrip } from "../../composer/StageFilmstrip"
 import { useStageArrivalPresentation } from "../../composer/useStageArrivalPresentation"
 import { useStagePresentationOptional } from "../../composer/stagePresentation"
-import { dialogSurfaceFrame } from "../../composer/dialogFramePresentation"
 import { FramePerformanceView } from "../../composer/FramePerformanceView"
 import { GlossProvider, type GlossRunConfig } from "../../../components/gloss/GlossProvider"
 import type { GlossThread } from "@keeper/shared"
@@ -410,8 +410,6 @@ export function KeeperDialogFrame({
   const [isSubmittingMessage, setIsSubmittingMessage] = React.useState(false)
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
   const isWorking = isSending || isFileUploading || isSubmittingMessage
-  const showWorkFrame = mode !== "feed" && isSending
-  const showBroadcastStrip = mode !== "feed" && !isSending && (isWorking || hasUploads)
   const showComposerFooter = mode !== "feed"
   /**
    * Adaptive mobile: Playbill is the sole top identity/location bar.
@@ -475,15 +473,30 @@ export function KeeperDialogFrame({
     stagePass?.compositionSpan,
   )
   const [conversationOverFrameId, setConversationOverFrameId] = React.useState<string | null>(null)
-  const surfaceFrame = dialogSurfaceFrame({
+  const [holdOutput, setHoldOutput] = React.useState(false)
+  const sawWorkRef = React.useRef(false)
+  React.useEffect(() => {
+    if (mode === "feed") return
+    if (isSending) {
+      sawWorkRef.current = true
+      setHoldOutput(false)
+      return
+    }
+    if (!sawWorkRef.current) return
+    sawWorkRef.current = false
+    setHoldOutput(true)
+  }, [isSending, mode])
+  const turnSurface = mode === "feed" ? null : dialogTurnSurface({
     messages,
     dismissedMessageId: conversationOverFrameId,
     isSending,
     stageOwnsSurface: composerOnStage,
+    holdOutput,
   })
-  const surfaceMessage = surfaceFrame
-    ? messages.find((message) => message.id === surfaceFrame.messageId)
+  const surfaceMessage = turnSurface && turnSurface.kind !== "work"
+    ? messages.find((message) => message.id === turnSurface.messageId)
     : undefined
+  const showBroadcastStrip = mode !== "feed" && !turnSurface && (isWorking || hasUploads)
   const workForward = composerOnStage && stagePresentation?.workForward === true
   const attention = composerOnStage ? (stagePresentation?.attention ?? "present") : undefined
   const dialogWorkVisible = mode !== "feed" && (!dialogContent || workForward)
@@ -782,8 +795,7 @@ export function KeeperDialogFrame({
       }
       data-has-run-summary={postRunSummary ? "true" : undefined}
       data-has-uploads={hasUploads ? "true" : undefined}
-      data-dialog-presentation={surfaceFrame ? "frame" : "conversation"}
-      data-dialog-work={showWorkFrame ? "open" : undefined}
+      data-dialog-presentation={turnSurface ? "frame" : "conversation"}
       data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
       data-mobile-dialog-stage={isMobileStaged ? mobileDialogStage : undefined}
     >
@@ -1069,26 +1081,44 @@ export function KeeperDialogFrame({
         className="dialog-message-zone"
         {...(composerOnStage ? boardSurfaceProps("stage") : {})}
       >
-        {surfaceFrame && surfaceMessage ? (
+        {turnSurface ? (
           <div className="dialog-frame-surface">
-            <button
-              type="button"
-              className="dialog-frame-return"
-              onClick={() => setConversationOverFrameId(surfaceFrame.messageId)}
-            >
-              Conversation
-            </button>
+            {turnSurface.kind === "work" ? null : (
+              <button
+                type="button"
+                className="dialog-frame-return"
+                onClick={() => {
+                  setHoldOutput(false)
+                  if (turnSurface.kind !== "work") setConversationOverFrameId(turnSurface.messageId)
+                }}
+              >
+                {composerOnStage ? "Stage" : "Conversation"}
+              </button>
+            )}
             <div className="dialog-frame-surface-canvas">
-              <FramePerformanceView
-                performance={surfaceFrame.performance}
-                placement="dialog"
-                messageId={surfaceFrame.messageId}
-                castVoices={(surfaceMessage.castVoices ?? []).map((voice) => ({
-                  slug: voice.slug,
-                  attributedTo: voice.attributedTo,
-                  content: voice.content,
-                }))}
-              />
+              {turnSurface.kind === "work" ? (
+                <DialogWorkFrame
+                  liveLabel={broadcastLiveLabel}
+                  steps={thinkingSteps}
+                  agentName={agentName}
+                  onStop={onStopTurn}
+                />
+              ) : null}
+              {turnSurface.kind === "frame" ? (
+                <FramePerformanceView
+                  performance={turnSurface.performance}
+                  placement="dialog"
+                  messageId={turnSurface.messageId}
+                  castVoices={(surfaceMessage?.castVoices ?? []).map((voice) => ({
+                    slug: voice.slug,
+                    attributedTo: voice.attributedTo,
+                    content: voice.content,
+                  }))}
+                />
+              ) : null}
+              {turnSurface.kind === "reply" ? (
+                <DialogReplySlide text={turnSurface.text} agentName={agentName} />
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -1118,7 +1148,7 @@ export function KeeperDialogFrame({
         <div
           ref={scrollRef}
           className={workForward ? "dialog-message-surface stage-attention-work" : "dialog-message-surface"}
-          aria-hidden={surfaceFrame ? true : undefined}
+          aria-hidden={turnSurface ? true : undefined}
           onClick={workForward ? (event) => event.stopPropagation() : undefined}
         >
           {mode === "feed"
@@ -1177,17 +1207,6 @@ export function KeeperDialogFrame({
               />
             )}
           </div>
-        </div>
-      ) : null}
-
-      {showWorkFrame ? (
-        <div className="dialog-work-layer">
-          <DialogWorkFrame
-            liveLabel={broadcastLiveLabel}
-            steps={thinkingSteps}
-            agentName={agentName}
-            onStop={onStopTurn}
-          />
         </div>
       ) : null}
 
