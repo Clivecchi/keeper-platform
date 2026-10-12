@@ -2579,22 +2579,30 @@ export function UniversalConversation({
   }, [requestedStageFocusId])
 
   const openStagePerformance = React.useCallback((messageId: string, performance: FramePerformance) => {
+    const dialogId = selection.selectedDialogId
     keeperStage?.appendLiveBeat({
       leadMessageId: messageId,
       title: performance.title,
-      body: performance.beats[0]?.body ?? "",
+      body: performance.beats.map((beat) => beat.body).filter(Boolean).join("\n\n"),
     })
+    if (dialogId) {
+      keeperStage?.bring({
+        kind: "dialog",
+        objectId: dialogId,
+        title: dialogTitle?.trim() || performance.title,
+      })
+    }
     setStageFocusSourceId(messageId)
     actions.openStageRoom()
-  }, [actions, keeperStage])
+  }, [actions, dialogTitle, keeperStage, selection.selectedDialogId])
 
   const addPerformanceToStory = React.useCallback((
     messageId: string,
     _performance: FramePerformance,
     beat: { title: string; body: string; index: number },
   ) => {
-    if (!domainStories) return
-    void domainStories.addMaterial({
+    if (!domainStories) return Promise.resolve(null)
+    return domainStories.addMaterial({
       kind: "capture",
       sourceId: messageId,
       title: beat.title,
@@ -2602,7 +2610,9 @@ export function UniversalConversation({
       dialogId: selection.selectedDialogId,
       beatIndex: beat.index,
     }).then((story) => {
-      if (story) actions.onStorySelect(story.id)
+      if (!story) return null
+      actions.onStorySelect(story.id)
+      return { storyTitle: story.title }
     })
   }, [actions, domainStories, selection.selectedDialogId])
 

@@ -21,7 +21,8 @@ import { getAgentErrorPresentation } from "./errorPresentation"
 import { isDirectorDelegationFailureContent, sanitizeAgentMessageContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
-import { buildMessageGlossAnchor, displayDraftHostTitle, formatCastRoomTraceLine, type DraftPoint } from "@keeper/shared"
+import { buildMessageGlossAnchor, displayDraftHostTitle, formatCastRoomTraceLine, promotedDialogFrame, type DraftPoint } from "@keeper/shared"
+import { separateReplyEvidence } from "./replyEvidence"
 import { RealmInvitationButtons } from "../../v0/realm/RealmInvitationButtons"
 import type { RealmInvitationId } from "../../v0/realm/realmInvitations"
 import { AgentMessageContent } from "./AgentMessageContent"
@@ -35,6 +36,43 @@ import {
   MessageSenderLabel,
   type MessageSenderVariant,
 } from "./MessageSenderLabel"
+
+function FrameReopenButton({
+  title,
+  slideCount,
+  onOpen,
+}: {
+  title: string
+  slideCount: number
+  onOpen: () => void
+}) {
+  const countLabel = slideCount === 1 ? "1 slide" : `${slideCount} slides`
+  return (
+    <button
+      type="button"
+      className="mb-1 text-[12px] underline-offset-4 hover:underline"
+      style={{ color: "hsl(var(--theme-ink-primary))" }}
+      aria-label={`Open ${title}, ${countLabel}`}
+      onClick={onOpen}
+    >
+      {title} · {countLabel}
+    </button>
+  )
+}
+
+function EvidenceFold({ text }: { text: string | null }) {
+  if (!text?.trim()) return null
+  return (
+    <DialogFold title="Evidence">
+      <pre
+        className="max-h-80 overflow-auto whitespace-pre-wrap text-[12px] leading-relaxed"
+        style={{ color: "var(--theme-ink-secondary-color)", margin: 0 }}
+      >
+        {text}
+      </pre>
+    </DialogFold>
+  )
+}
 
 function DialogFold({
   title,
@@ -390,6 +428,7 @@ function AgentMessageTurn({
   acceptingDraftPointId,
   onExerciseKeepingChoice,
   keepingChoiceBusy,
+  onReopenFrame,
 }: {
   message: AgentDialogueMessage
   agentName: string
@@ -412,6 +451,7 @@ function AgentMessageTurn({
   acceptingDraftPointId?: string | null
   onExerciseKeepingChoice?: (record: KeepingChoiceRecord) => void
   keepingChoiceBusy?: boolean
+  onReopenFrame?: (messageId: string) => void
 }) {
   const castVoices = (message.castVoices ?? []).filter((voice) => {
     const content = voice.content?.trim()
@@ -430,7 +470,16 @@ function AgentMessageTurn({
   const isMultiAgentTurn = Boolean(castVoices.length > 0 || delegation || echo)
   const resolvedAgentName = message.senderName?.trim() || agentName
   const visibleContent = sanitizeAgentMessageContent(message.content)
-  const leadBrief = turnBrief(leadContentForSystemOne(visibleContent, message.orchestration))
+  const separated = separateReplyEvidence(leadContentForSystemOne(visibleContent, message.orchestration))
+  const leadBrief = turnBrief(separated.prose)
+  const frameLink = promotedDialogFrame(message.framePerformance)
+  const reopen = frameLink && onReopenFrame ? (
+    <FrameReopenButton
+      title={frameLink.title}
+      slideCount={frameLink.beats.length}
+      onOpen={() => onReopenFrame(message.id)}
+    />
+  ) : null
 
   if (!isMultiAgentTurn) {
     if (
@@ -463,11 +512,12 @@ function AgentMessageTurn({
 
     return (
       <div className="max-w-xl min-w-0">
+        {reopen}
         <GlossSurface
           messageId={message.id}
           anchor={buildMessageGlossAnchor(message.id, "body")}
           glossThreads={message.glossThreads}
-          snapshot={{ label: "message", text: visibleContent.trim().slice(0, 280) }}
+          snapshot={{ label: "message", text: separated.prose.trim().slice(0, 280) }}
           highlightMode="border"
           affordancePlacement="border"
           className="rounded-2xl px-4 py-3 text-sm shadow-sm break-words"
@@ -504,6 +554,7 @@ function AgentMessageTurn({
             />
           ) : null}
         </GlossSurface>
+        <EvidenceFold text={separated.evidence} />
         <MessageAttachments
           message={message}
           onOpenDraft={onOpenDraft}
@@ -539,28 +590,33 @@ function AgentMessageTurn({
   ]
   const castFold = castVoices.length > 0 || delegation ? (
     <DialogFold title={castNames.length ? `Cast · ${castNames.join(", ")}` : "Cast"}>
-      {castVoices.map((voice, index) => (
-        <AgentChatBubble
-          key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${index}`}
-          grouped
-          variant={
-            voice.status === "failed" || voice.status === "empty"
-              ? "delegation-failed"
-              : "collaborator"
-          }
-          name={voice.attributedTo ?? "Agent"}
-          content={
-            voice.content?.trim()
-            || voice.card?.title
-            || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`
-          }
-          card={voice.card}
-          glossMessageId={message.id}
-          glossNodeId={`cast-${voice.slug ?? index}`}
-          glossThreads={message.glossThreads}
-          glossSnapshotText={voice.content}
-        />
-      ))}
+      {castVoices.map((voice, index) => {
+        const raw = voice.content?.trim() ?? ""
+        const split = separateReplyEvidence(raw)
+        const spoken = split.evidence
+          ? (split.prose || "The detail is in Evidence.")
+          : (raw || voice.card?.title || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`)
+        return (
+          <React.Fragment key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${index}`}>
+            <AgentChatBubble
+              grouped
+              variant={
+                voice.status === "failed" || voice.status === "empty"
+                  ? "delegation-failed"
+                  : "collaborator"
+              }
+              name={voice.attributedTo ?? "Agent"}
+              content={spoken}
+              card={voice.card}
+              glossMessageId={message.id}
+              glossNodeId={`cast-${voice.slug ?? index}`}
+              glossThreads={message.glossThreads}
+              glossSnapshotText={spoken}
+            />
+            <EvidenceFold text={split.evidence} />
+          </React.Fragment>
+        )
+      })}
       {delegation && (
         <AgentChatBubble
           grouped
@@ -583,6 +639,7 @@ function AgentMessageTurn({
 
   return (
     <div className="max-w-xl min-w-0 space-y-2.5">
+      {reopen}
       <MultiAgentTurnGroup>
         {message.content.trim() && (
           <>
@@ -604,6 +661,7 @@ function AgentMessageTurn({
                 <AgentMessageContent content={leadBrief.folded} />
               </DialogFold>
             ) : null}
+            <EvidenceFold text={separated.evidence} />
             <SystemOneOrientationCard orchestration={message.orchestration} />
           </>
         )}
@@ -1000,6 +1058,8 @@ export interface DialogueMessageListProps {
   /** Open Chronicle Document from an in-stream chronicle_update / Known Issue chip. */
   onOpenChronicleChip?: (chip: NonNullable<AgentDialogueMessage["chronicleChip"]>) => void
   onExerciseKeepingChoice?: (record: KeepingChoiceRecord) => void
+  /** Reopen the Frame stored on this turn. */
+  onReopenFrame?: (messageId: string) => void
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -1029,6 +1089,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   acceptedDraftPointIds,
   acceptingDraftPointId,
   onExerciseKeepingChoice,
+  onReopenFrame,
 }) => (
   <div className="dialogue-message-list min-h-[24rem] space-y-4 overflow-x-hidden overflow-y-auto rounded-2xl px-4 py-4">
     {isLoading ? (
@@ -1097,7 +1158,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
         }
 
         return (
-          <div key={message.id} className="flex w-full min-w-0 justify-start">
+          <div key={message.id} data-message-id={message.id} className="flex w-full min-w-0 justify-start">
             <AgentMessageTurn
               message={message}
               agentName={agentName}
@@ -1120,6 +1181,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               acceptingDraftPointId={acceptingDraftPointId}
               onExerciseKeepingChoice={onExerciseKeepingChoice}
               keepingChoiceBusy={isSending}
+              onReopenFrame={onReopenFrame}
             />
           </div>
         )

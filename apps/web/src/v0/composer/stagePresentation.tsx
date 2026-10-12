@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { promotedDialogFrame, type FramePerformance, type StageStorySlide } from "@keeper/shared"
+import { promotedDialogFrame, type FramePerformance, type GlossThread, type StageStorySlide } from "@keeper/shared"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { apiFetch } from "../../lib/api"
 import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
@@ -10,6 +10,7 @@ import { useKeeperStageOptional } from "./useKeeperStage"
 import { resolveStageFilmstrip, type StageSlide } from "./stageStorySlides"
 import { resolveStageNowBeat } from "./stageNowBeat"
 import type { FrameCastVoice } from "./FramePerformanceView"
+import { selectPerformedFrame, type PerformedFrameRef } from "./workStageComposition"
 import {
   canReturnFromStageAttention,
   holdStageFrame,
@@ -82,6 +83,7 @@ function useStageMomentSourceLookup(slides: ReadonlyArray<StageStorySlide> | nul
 export type LiveFrameHit = {
   performance: FramePerformance
   castVoices: FrameCastVoice[]
+  glossThreads?: readonly GlossThread[]
 }
 
 type StagePresentationValue = {
@@ -90,6 +92,7 @@ type StagePresentationValue = {
   setIndex: (index: number) => void
   current: StageSlide | null
   liveFrames: ReadonlyMap<string, LiveFrameHit>
+  performedFrame: PerformedFrameRef | null
   attention: StageAttentionState
   attentionSubject: StageAttentionSubject | null
   workForward: boolean
@@ -156,6 +159,7 @@ export function StagePresentationProvider({
           attributedTo: voice.attributedTo,
           content: voice.content,
         })),
+        ...(message.glossThreads?.length ? { glossThreads: message.glossThreads } : {}),
       })
     }
     return map
@@ -171,6 +175,34 @@ export function StagePresentationProvider({
         persisted: resolvedPersisted,
       }),
     [shell?.domainFrame?.theme.wordmark, shell?.domainFrame?.theme.tagline, domainLabel, beat, isSending, resolvedPersisted],
+  )
+  const frameRefs = React.useMemo((): PerformedFrameRef[] => {
+    const refs: PerformedFrameRef[] = []
+    for (const message of messages) {
+      const hit = liveFrames.get(message.id)
+      if (!hit) continue
+      refs.push({
+        messageId: message.id,
+        title: hit.performance.title,
+        slideCount: hit.performance.beats.length,
+      })
+    }
+    return refs
+  }, [liveFrames, messages])
+  const storySourceIds = React.useMemo(
+    () =>
+      (stageApi?.stage.story?.slides ?? [])
+        .map((slide) => (slide.source?.kind === "live" ? slide.source.id?.trim() || "" : ""))
+        .filter(Boolean),
+    [stageApi?.stage.story],
+  )
+  const performedFrame = React.useMemo(
+    () => selectPerformedFrame({
+      frames: frameRefs,
+      focusMessageId: focusSourceId,
+      storySourceIds,
+    }),
+    [focusSourceId, frameRefs, storySourceIds],
   )
   const last = Math.max(0, slides.length - 1)
   const [index, setIndexState] = React.useState(0)
@@ -255,6 +287,7 @@ export function StagePresentationProvider({
       setIndex,
       current,
       liveFrames,
+      performedFrame,
       attention,
       attentionSubject,
       workForward,
@@ -268,6 +301,7 @@ export function StagePresentationProvider({
       setIndex,
       current,
       liveFrames,
+      performedFrame,
       attention,
       attentionSubject,
       workForward,

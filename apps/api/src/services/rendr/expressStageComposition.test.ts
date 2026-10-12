@@ -23,7 +23,7 @@ vi.mock('../domains/keeperStageStore.js', () => ({
   saveKeeperStage,
 }));
 
-const { expressStageComposition } = await import('./expressStageComposition.js');
+const { expressStageComposition, shouldProposeStageComposition } = await import('./expressStageComposition.js');
 
 const reading = {
   context: { scope: 'domain', domainId: 'dom-1', audience: 'admin', arriving: true },
@@ -37,6 +37,13 @@ const reading = {
     },
   ],
 };
+
+describe('shouldProposeStageComposition', () => {
+  it('leaves Dialog turns on the Frame path', () => {
+    expect(shouldProposeStageComposition(false)).toBe(false);
+    expect(shouldProposeStageComposition(true)).toBe(true);
+  });
+});
 
 describe('expressStageComposition', () => {
   beforeEach(() => {

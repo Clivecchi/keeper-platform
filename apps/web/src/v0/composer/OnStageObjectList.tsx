@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { stagePresenceKindLabel, type StagePresence } from "@keeper/shared"
+import { performedStagePresenceId, stagePresenceKindLabel, type StagePresence } from "@keeper/shared"
 import { useUniversalBoard } from "../boards/UniversalBoardContext"
 import { useKeeperStageOptional } from "./useKeeperStage"
 
@@ -10,12 +10,16 @@ export function OnStageObjectList({
 }: {
   layout: "chronicle" | "reach"
 }) {
-  const { actions, workspaceSurface } = useUniversalBoard()
+  const { actions, selection, workspaceSurface } = useUniversalBoard()
   const stageApi = useKeeperStageOptional()
   if (!stageApi || workspaceSurface !== "stage") return null
   if (stageApi.stage.presences.length === 0) return null
 
-  const selected = stageApi.selected
+  const performedId = performedStagePresenceId(
+    stageApi.stage.presences,
+    selection.selectedDialogId,
+    stageApi.selected?.id ?? null,
+  )
 
   const pick = (presence: StagePresence) => {
     stageApi.select(presence.id)
@@ -39,9 +43,12 @@ export function OnStageObjectList({
       >
         On Stage
       </h3>
+      <p className="mb-2 text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+        Sources placed here. The canvas is the Dialog in hand.
+      </p>
       <ul className="flex flex-col gap-1">
         {stageApi.stage.presences.map((presence) => {
-          const on = selected?.id === presence.id
+          const on = performedId === presence.id
           return (
             <li
               key={presence.id}

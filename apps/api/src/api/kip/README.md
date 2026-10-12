@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-10-11: A Dialog turn does not call Stage composition. A composed Frame is saved on the Lead message with a `frame.performance` receipt.
 - 2026-10-10: **Bodies, Gloss, and the error message reach the next step** — `dialog.read` returns a Point body, a cut, and Gloss from the existing carrier. A system agent reasons after its actions. Empty prose still forwards the results.
 - 2026-10-10: **Same file, same page, same receipt** — the direction pass and the specialist receive this turn’s attachments. `dialog.read` pages Points with number, id, and title. A `document.ingest` receipt stays on the turn when later actions run.
 - 2026-10-09: **The Document is created from the attachment** — when the human says the document was updated and attaches writing, the Lead turn lands that file in the Dialog before the model speaks. Chronicle refreshes from `document.ingest`. A visual-change ask is no longer reported as a draft-pipeline skip.

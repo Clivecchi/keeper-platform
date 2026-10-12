@@ -100,6 +100,14 @@ function decisionMessage(decision: StageCompositionDecision, truth: StageTruthKe
   return `${truth} · empty arrangement`;
 }
 
+/**
+ * Stage composition runs when the room is already Stage.
+ * A Dialog turn uses the Frame performance path. It does not record an offstage failure.
+ */
+export function shouldProposeStageComposition(onStage: boolean): boolean {
+  return onStage
+}
+
 export async function expressStageComposition(
   input: ExpressStageCompositionInput,
 ): Promise<StageCompositionProposeReceipt> {

@@ -8,6 +8,7 @@
 
 import { boardSurfaceProps } from "../boardSurface"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { useStagePresentationOptional } from "../../composer/stagePresentation"
 import { resolveEnteredPlaceName } from "./stagePlace"
 
 export function StageSceneHeader({
@@ -23,7 +24,12 @@ export function StageSceneHeader({
     homeDisplayName: shell?.homeDisplayName,
     domainName,
   })
+  const presentation = useStagePresentationOptional()
+  const performed = presentation?.performedFrame ?? null
   const work = workTitle?.trim() || ""
+  const slideLine = performed
+    ? `${performed.slideCount === 1 ? "1 slide" : `${performed.slideCount} slides`} · ${performed.title}`
+    : ""
 
   return (
     <header
@@ -46,6 +52,16 @@ export function StageSceneHeader({
           >
             {work}
           </h1>
+        ) : null}
+        {work && slideLine ? (
+          <p className="mt-1 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            {slideLine}
+          </p>
+        ) : null}
+        {work && !performed ? (
+          <p className="mt-1 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            No slides yet
+          </p>
         ) : null}
       </div>
     </header>

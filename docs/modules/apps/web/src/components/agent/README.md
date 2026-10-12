@@ -35,8 +35,12 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 ## Notes and ToDo
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
-## Update Log
+## 📆 Update Log
+- 2026-10-11: A promoted Frame on a turn shows its title and slide count. Opening it restores that Frame. Directory listings, file bodies, and tool JSON render under Evidence, beside the reply.
 - 2026-10-11: A Cast reply leads with a short outcome and next step. Cast voices and technical receipts stay closed until opened. Point, Treatment, and reorganize proposals stay visible.
+- 2026-10-09: Cockpit model menu lists only the agent chat pin. A stored GPT-4o opens as GPT-6.1 Sol. The retired id is not an option.
+
+## Update Log
 - 2026-10-08: **Word files can be attached** — the composer accepts `.docx` along with the text formats. Excel is still refused.
 - 2026-10-08: **Markdown attachments reach the agent** — an uploaded Markdown or other text file is sent as a file, so the message includes its body. The picker also accepts YAML, HTML, XML, TSV, and logs.
 - 2026-10-06: **Mobile Enter is a line break** — mobile composer sizes (`mobile-docked` and the other staged sizes) no longer send on Return. The keyboard hint is `enter`. Only the send button submits. Desktop still sends on Enter (Shift+Enter for a new line).

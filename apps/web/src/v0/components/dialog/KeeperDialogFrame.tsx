@@ -301,6 +301,31 @@ export interface KeeperDialogFrameProps {
   }
 }
 
+function DialogGlossBoundary({
+  config,
+  children,
+}: {
+  config: KeeperDialogFrameProps["glossConfig"]
+  children: React.ReactNode
+}) {
+  if (!config) return <>{children}</>
+  return (
+    <GlossProvider
+      config={{
+        agentId: config.agentId,
+        sessionId: config.sessionId,
+        domainId: config.domainId,
+        domainSlug: config.domainSlug,
+        agentContext: config.agentContext,
+        agentName: config.agentName,
+      }}
+      onUpdateMessageThreads={config.onUpdateMessageThreads}
+    >
+      {children}
+    </GlossProvider>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function KeeperDialogFrame({
@@ -473,13 +498,26 @@ export function KeeperDialogFrame({
     stagePass?.compositionSpan,
   )
   const [conversationOverFrameId, setConversationOverFrameId] = React.useState<string | null>(null)
+  const [openedFrameMessageId, setOpenedFrameMessageId] = React.useState<string | null>(null)
   const [holdOutput, setHoldOutput] = React.useState(false)
   const sawWorkRef = React.useRef(false)
+  const returnToTurn = React.useCallback((messageId: string) => {
+    setOpenedFrameMessageId(null)
+    setHoldOutput(false)
+    const latestAgent = [...messages].reverse().find((message) => message.role === "agent")
+    setConversationOverFrameId(latestAgent?.id ?? messageId)
+    window.setTimeout(() => {
+      scrollRef.current
+        ?.querySelector(`[data-message-id="${messageId}"]`)
+        ?.scrollIntoView({ block: "center" })
+    }, 0)
+  }, [messages])
   React.useEffect(() => {
     if (mode === "feed") return
     if (isSending) {
       sawWorkRef.current = true
       setHoldOutput(false)
+      setOpenedFrameMessageId(null)
       return
     }
     if (!sawWorkRef.current) return
@@ -489,6 +527,7 @@ export function KeeperDialogFrame({
   const turnSurface = mode === "feed" ? null : dialogTurnSurface({
     messages,
     dismissedMessageId: conversationOverFrameId,
+    openedMessageId: openedFrameMessageId,
     isSending,
     stageOwnsSurface: composerOnStage,
     holdOutput,
@@ -739,6 +778,7 @@ export function KeeperDialogFrame({
             acceptedDraftPointIds={acceptedDraftPointIds}
             acceptingDraftPointId={acceptingDraftPointId}
             onExerciseKeepingChoice={onExerciseKeepingChoice}
+            onReopenFrame={setOpenedFrameMessageId}
             agentBubbleFullWidth={agentBubbleFullWidth}
             agentBoardMessaging={agentBoardMessaging}
             scrollContainerRef={scrollRef}
@@ -772,6 +812,7 @@ export function KeeperDialogFrame({
           acceptedDraftPointIds={acceptedDraftPointIds}
           acceptingDraftPointId={acceptingDraftPointId}
           onExerciseKeepingChoice={onExerciseKeepingChoice}
+          onReopenFrame={setOpenedFrameMessageId}
           agentBubbleFullWidth={agentBubbleFullWidth}
           agentBoardMessaging={agentBoardMessaging}
           scrollContainerRef={scrollRef}
@@ -1087,12 +1128,9 @@ export function KeeperDialogFrame({
               <button
                 type="button"
                 className="dialog-frame-return"
-                onClick={() => {
-                  setHoldOutput(false)
-                  if (turnSurface.kind !== "work") setConversationOverFrameId(turnSurface.messageId)
-                }}
+                onClick={() => returnToTurn(turnSurface.messageId)}
               >
-                {composerOnStage ? "Stage" : "Conversation"}
+                Back to this turn
               </button>
             )}
             <div className="dialog-frame-surface-canvas">
@@ -1105,16 +1143,19 @@ export function KeeperDialogFrame({
                 />
               ) : null}
               {turnSurface.kind === "frame" ? (
-                <FramePerformanceView
-                  performance={turnSurface.performance}
-                  placement="dialog"
-                  messageId={turnSurface.messageId}
-                  castVoices={(surfaceMessage?.castVoices ?? []).map((voice) => ({
-                    slug: voice.slug,
-                    attributedTo: voice.attributedTo,
-                    content: voice.content,
-                  }))}
-                />
+                <DialogGlossBoundary config={glossConfig}>
+                  <FramePerformanceView
+                    performance={turnSurface.performance}
+                    placement="dialog"
+                    messageId={turnSurface.messageId}
+                    castVoices={(surfaceMessage?.castVoices ?? []).map((voice) => ({
+                      slug: voice.slug,
+                      attributedTo: voice.attributedTo,
+                      content: voice.content,
+                    }))}
+                    glossThreads={surfaceMessage?.glossThreads}
+                  />
+                </DialogGlossBoundary>
               ) : null}
               {turnSurface.kind === "reply" ? (
                 <DialogReplySlide text={turnSurface.text} agentName={agentName} />
@@ -1141,7 +1182,7 @@ export function KeeperDialogFrame({
             }}
           >
             <div className="stage-frame-layer-canvas">
-              {dialogContent}
+              <DialogGlossBoundary config={glossConfig}>{dialogContent}</DialogGlossBoundary>
             </div>
           </div>
         ) : null}
@@ -1155,7 +1196,9 @@ export function KeeperDialogFrame({
             ? feedContent
             : workForward
               ? dialogueWork
-              : dialogContent ?? dialogueWork
+              : dialogContent
+                ? <DialogGlossBoundary config={glossConfig}>{dialogContent}</DialogGlossBoundary>
+                : dialogueWork
           }
         </div>
 

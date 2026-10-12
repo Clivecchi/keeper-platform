@@ -18,6 +18,9 @@ Treatment changes use `treatment.propose` on Design Board. Dialog Points use `dr
 
 ## 📆 Update Log
 
+### 2026-10-11 — Dialog does not record an offstage composition
+- Stage composition is proposed only when the room is already Stage. A Dialog turn keeps the Frame performance path. A composed Frame stores a one-line `frame.performance` receipt with the slide count.
+
 ### 2026-10-05 — Rendr composes the Reading
 - When Kip emits `stageComposition.authorize` on Stage, Rendr receives the current Reading and proposes a Composition. Keeper applies it onto `keeperStage.arrangements` for that truth, with a Trace receipt. A needs-grammar or unsourced proposal does not replace the arrangement. The voice no longer asks Rendr to advise CSS.
 

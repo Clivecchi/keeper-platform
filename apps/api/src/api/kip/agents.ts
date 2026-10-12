@@ -282,7 +282,7 @@ import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
 import { runCastOffer } from '../../services/castRoomOffer.js';
 import { parseCastRoomEngage, parseCastRoomWire, parseStageCompositionAuthority, stagePassFromAgentContext, withActionReceiptsOnTrace } from '@keeper/shared';
 import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
-import { expressStageComposition } from '../../services/rendr/expressStageComposition.js';
+import { expressStageComposition, shouldProposeStageComposition } from '../../services/rendr/expressStageComposition.js';
 import {
   attachFrameToDirectedStory,
   loadStoryTruthPacket,
@@ -9962,9 +9962,22 @@ export class KipAgentService {
                 } else {
                   framePerformanceResult = expressed.performance;
                   stageExpressionStamp = expressed.stamp;
+                  const presentedCount = expressed.performance.beats.filter((beat) => beat.promote === true).length;
+                  const slideCount = presentedCount || expressed.performance.beats.length;
+                  actionResults.push({
+                    type: 'frame.performance',
+                    status: 'success',
+                    message: `${expressed.performance.title} · ${slideCount} ${slideCount === 1 ? 'slide' : 'slides'}`,
+                    data: {
+                      messageId: savedAgent.id,
+                      title: expressed.performance.title,
+                      slideCount,
+                    },
+                  });
                   if (userId) {
                     await this.updateMessageMetadata(savedAgent.id, userId, {
                       framePerformance: expressed.performance,
+                      actionResults,
                       ...(expressed.stamp ? { stageExpression: expressed.stamp } : {}),
                       ...(directedStory ? { storySources: directedStory.claims } : {}),
                     });
@@ -10004,7 +10017,13 @@ export class KipAgentService {
             const compositionAuthority =
               'stageComposition' in structured ? structured.stageComposition : undefined;
             const stagePass = stagePassFromAgentContext(options?.agentContext);
-            if (compositionAuthority && savedAgent && options?.domainId && userId) {
+            if (
+              compositionAuthority
+              && shouldProposeStageComposition(placeOnStage)
+              && savedAgent
+              && options?.domainId
+              && userId
+            ) {
               try {
                 const composed = await expressStageComposition({
                   domainId: stagePass?.domainId || options.domainId,

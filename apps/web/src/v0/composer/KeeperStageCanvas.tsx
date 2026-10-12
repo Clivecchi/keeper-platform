@@ -24,6 +24,7 @@ import { StageCompositionView } from "./StageCompositionView"
 import { useStagePresentationOptional } from "./stagePresentation"
 import { useStagePass } from "./stagePass"
 import { StagePresentationScreen } from "./StageFilmstrip"
+import { FramePerformanceView } from "./FramePerformanceView"
 import { useBindStageDialog } from "./useBindStageDialog"
 import { useKeeperStageOptional } from "./useKeeperStage"
 import { useDomainWhereWeAreTruth, useRealmWhereWeAreTruth } from "./useStageTruth"
@@ -170,6 +171,9 @@ function WorkStageComposition({
   workTitle: string
   context: StageContext
 }) {
+  const presentation = useStagePresentationOptional()
+  const performed = presentation?.performedFrame ?? null
+  const hit = performed ? presentation?.liveFrames.get(performed.messageId) : undefined
   const slides = React.useMemo(
     () => workCompositionSlides({ workId, workTitle }),
     [workId, workTitle],
@@ -178,6 +182,27 @@ function WorkStageComposition({
     () => projectStoryPass({ context, slides }),
     [context, slides],
   )
+  if (hit && performed) {
+    return (
+      <div
+        className="absolute inset-0 flex min-h-0 flex-col"
+        data-stage-renderer="frame"
+        data-stage-truth="work"
+        data-stage-work={workId}
+        data-stage-performance={performed.messageId}
+      >
+        <div className="min-h-0 flex-1 overflow-auto">
+          <FramePerformanceView
+            performance={hit.performance}
+            placement="stage"
+            messageId={performed.messageId}
+            castVoices={hit.castVoices}
+            glossThreads={hit.glossThreads}
+          />
+        </div>
+      </div>
+    )
+  }
   const title = workTitle.trim() || "Work in hand"
 
   return (

@@ -68,14 +68,34 @@ describe("dialogTurnSurface", () => {
     })).toEqual({ kind: "work" })
   })
 
-  it("replaces the work with a promoted frame when the turn finishes on Stage", () => {
+  it("leaves a promoted frame to the Stage canvas", () => {
     expect(dialogTurnSurface({
       messages: [{ id: "m1", role: "agent", content: "Done.", framePerformance: telling }],
       dismissedMessageId: null,
       isSending: false,
       stageOwnsSurface: true,
       holdOutput: true,
-    })?.kind).toBe("frame")
+    })).toBeNull()
+  })
+
+  it("reopens an earlier frame after later talk", () => {
+    const surface = dialogTurnSurface({
+      messages: [
+        { id: "m1", role: "agent", framePerformance: telling },
+        { id: "u2", role: "user", content: "Continue." },
+        { id: "m2", role: "agent", content: "Still talking." },
+      ],
+      dismissedMessageId: null,
+      openedMessageId: "m1",
+      isSending: false,
+      stageOwnsSurface: false,
+      holdOutput: false,
+    })
+    expect(surface?.kind).toBe("frame")
+    if (surface?.kind === "frame") {
+      expect(surface.messageId).toBe("m1")
+      expect(surface.performance.beats).toHaveLength(1)
+    }
   })
 
   it("replaces the work with the reply when Stage has no promoted frame", () => {

@@ -19,7 +19,7 @@ export type FrameCueHandlers = {
     messageId: string,
     performance: FramePerformance,
     beat: { title: string; body: string; index: number },
-  ) => void
+  ) => void | Promise<{ storyTitle: string } | null | void>
 }
 
 const FrameCueContext = React.createContext<FrameCueHandlers>({})

@@ -489,6 +489,26 @@ export function removeStagePresence(
   };
 }
 
+/**
+ * The On Stage row that matches the Dialog in hand.
+ * A stored highlight for a different Dialog does not outrank that Dialog.
+ */
+export function performedStagePresenceId(
+  presences: ReadonlyArray<{ id: string; kind: string; objectId: string }>,
+  selectedDialogId: string | null | undefined,
+  selectedPresenceId: string | null | undefined,
+): string | null {
+  const dialogId = selectedDialogId?.trim()
+  if (dialogId) {
+    const match = presences.find(
+      (presence) => presence.kind === 'dialog' && presence.objectId === dialogId,
+    )
+    if (match) return match.id
+  }
+  const selected = selectedPresenceId?.trim()
+  return selected || null
+}
+
 export function selectStagePresence(
   stage: KeeperStageComposition,
   presenceId: string | null,

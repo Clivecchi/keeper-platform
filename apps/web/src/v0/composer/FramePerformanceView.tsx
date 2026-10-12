@@ -6,7 +6,10 @@
  */
 
 import * as React from "react"
-import type { FrameCueAction, FramePerformance } from "@keeper/shared"
+import type { FrameCueAction, FrameCueKind, FramePerformance, GlossThread } from "@keeper/shared"
+import { buildMessageGlossAnchor } from "@keeper/shared"
+import { GlossSurface } from "../../components/gloss/GlossSurface"
+import { separateReplyEvidence } from "../../components/agent/replyEvidence"
 import { toPresentInstanceKey } from "../presents/presentInstanceKey"
 import {
   captionMotionStyle,
@@ -50,14 +53,24 @@ function contextLine(performance: FramePerformance): string | null {
   return null
 }
 
+const CUE_CONSEQUENCE: Partial<Record<FrameCueKind, string>> = {
+  add_to_story: "Keeps this Slide in the Story. You stay in this Dialog.",
+  open_stage: "Presents these Slides on Stage now.",
+  review_cast: "Summarizes who contributed. Returns to this Frame.",
+}
+
 function FrameBeat({
   performance,
   index,
   placement,
+  messageId,
+  glossThreads,
 }: {
   performance: FramePerformance
   index: number
   placement: FramePerformancePlacement
+  messageId: string
+  glossThreads?: readonly GlossThread[]
 }) {
   const motion = usePresentMotionValues()
   const beat = performance.beats[index]
@@ -66,8 +79,17 @@ function FrameBeat({
   const titleSize = placement === "stage" ? "text-[40px]" : "text-[34px]"
   const bodySize = placement === "stage" ? "text-[20px]" : "text-[18px]"
 
+  const passage = `${beat.title}\n${beat.body}`
   return (
-    <div className={placement === "stage" ? "px-2 py-6" : "px-2 py-4"}>
+    <GlossSurface
+      messageId={messageId}
+      anchor={buildMessageGlossAnchor(messageId, `beat-${index}`)}
+      glossThreads={glossThreads}
+      snapshot={{ label: beat.title, text: passage.slice(0, 280) }}
+      highlightMode="border"
+      affordancePlacement="border"
+      className={placement === "stage" ? "px-2 py-6" : "px-2 py-4"}
+    >
       {context ? (
         <p
           className="text-[11px] uppercase tracking-[0.14em]"
@@ -119,7 +141,7 @@ function FrameBeat({
           </footer>
         </blockquote>
       ) : null}
-    </div>
+    </GlossSurface>
   )
 }
 
@@ -128,12 +150,14 @@ export function FramePerformanceView({
   placement,
   messageId,
   castVoices = [],
+  glossThreads,
   spatial = false,
 }: {
   performance: FramePerformance
   placement: FramePerformancePlacement
   messageId: string
   castVoices?: readonly FrameCastVoice[]
+  glossThreads?: readonly GlossThread[]
   /** Loads Three only when a composition opts in. The first frames leave this off. */
   spatial?: boolean
 }) {
@@ -152,6 +176,7 @@ export function FramePerformanceView({
   }, [spatial])
   const [index, setIndex] = React.useState(0)
   const [reviewingCast, setReviewingCast] = React.useState(false)
+  const [storyNotice, setStoryNotice] = React.useState<string | null>(null)
   const beatCount = performance.beats.length
   const beat = performance.beats[Math.min(index, beatCount - 1)]
   const beatKey = beat ? `${messageId}:${index}:${beat.title}` : messageId
@@ -168,10 +193,17 @@ export function FramePerformanceView({
     if (action.kind === "add_to_story") {
       const beatIndex = Math.min(index, Math.max(beatCount - 1, 0))
       const current = performance.beats[beatIndex]
-      cues.onAddToStory?.(messageId, performance, {
+      void Promise.resolve(cues.onAddToStory?.(messageId, performance, {
         title: current?.title ?? performance.title,
         body: current?.body ?? "",
         index: beatIndex,
+      })).then((result) => {
+        const title = result && typeof result === "object" && "storyTitle" in result
+          ? result.storyTitle.trim()
+          : ""
+        setStoryNotice(title
+          ? `Kept in ${title}. This turn remains the source.`
+          : "This Slide was not added to a Story.")
       })
       return
     }
@@ -206,7 +238,13 @@ export function FramePerformanceView({
         instanceKey={toPresentInstanceKey("frame", beatKey)}
         enabled
       >
-        <FrameBeat performance={performance} index={Math.min(index, beatCount - 1)} placement={placement} />
+        <FrameBeat
+          performance={performance}
+          index={Math.min(index, beatCount - 1)}
+          placement={placement}
+          messageId={messageId}
+          glossThreads={glossThreads}
+        />
       </PresentMotionProvider>
 
       {beatCount > 1 ? (
@@ -248,19 +286,37 @@ export function FramePerformanceView({
           >
             {performance.cue.prompt}
           </p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+          <ul className="mt-2 flex flex-col gap-2">
             {performance.cue.actions.map((action) => (
-              <button
-                key={action.kind}
-                type="button"
-                className="text-[12px] underline-offset-4 hover:underline"
-                style={{ color: "hsl(var(--theme-ink-primary))" }}
-                onClick={() => runCue(action)}
-              >
-                {action.label}
-              </button>
+              <li key={action.kind}>
+                <button
+                  type="button"
+                  className="text-left"
+                  onClick={() => runCue(action)}
+                >
+                  <span
+                    className="block text-[13px] underline-offset-4 hover:underline"
+                    style={{ color: "hsl(var(--theme-ink-primary))" }}
+                  >
+                    {action.label}
+                  </span>
+                  {CUE_CONSEQUENCE[action.kind] ? (
+                    <span
+                      className="block text-[12px]"
+                      style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                    >
+                      {CUE_CONSEQUENCE[action.kind]}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
+          {storyNotice ? (
+            <p className="mt-2 text-[13px]" style={{ color: "hsl(var(--theme-ink-primary))", marginTop: "0.5rem" }}>
+              {storyNotice}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -278,6 +334,7 @@ export function FramePerformanceView({
           </button>
           {castVoices.map((voice, voiceIndex) => {
             const name = voice.attributedTo ?? "Cast"
+            const split = separateReplyEvidence(voice.content)
             return (
               <details
                 key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${voiceIndex}`}
@@ -285,14 +342,26 @@ export function FramePerformanceView({
               >
                 <summary className="text-[13px]" style={{ color: voiceAccent(voice.slug ?? "cast") }}>
                   {name}
-                  {voiceLead(voice.content) ? ` — ${voiceLead(voice.content)}` : ""}
+                  {split.prose && split.prose !== "The detail is in Evidence."
+                    ? ` — ${voiceLead(split.prose)}`
+                    : ""}
                 </summary>
-                <p
-                  className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed"
-                  style={{ color: "hsl(var(--theme-ink-secondary))", marginTop: "0.5rem" }}
-                >
-                  {voice.content}
-                </p>
+                {split.prose && split.prose !== "The detail is in Evidence." ? (
+                  <p
+                    className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed"
+                    style={{ color: "hsl(var(--theme-ink-secondary))", marginTop: "0.5rem" }}
+                  >
+                    {split.prose}
+                  </p>
+                ) : null}
+                {split.evidence ? (
+                  <pre
+                    className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-[12px] leading-relaxed"
+                    style={{ color: "hsl(var(--theme-ink-secondary))", marginTop: "0.5rem" }}
+                  >
+                    {split.evidence}
+                  </pre>
+                ) : null}
               </details>
             )
           })}

@@ -898,6 +898,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-09-17 — First Introduction landing
 - `UniversalBoardContext` honors `?dialogId=` the same way it honors `?draftId=`. Invitation accept/register lands on that Dialog. Other Nav selections clear `dialogId` from the URL.
 
+### 2026-10-11 — Take to Stage keeps the Dialog with the Frame
+- Taking a Frame to Stage places that Dialog on Stage and points a live cell at the message. The canvas shows the Frame. On Stage highlight follows the Dialog in hand.
+
 ### 2026-10-11 — The working turn is a center card
 - While a turn runs, `UniversalConversation` puts `DialogWorkFrame` in front of the Stage and the composer. Full turn can stop the request. `castRoomTurn` passes that abort through offers, direction, the specialist, and the check.
 

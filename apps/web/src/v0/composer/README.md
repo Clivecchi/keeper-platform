@@ -5,7 +5,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 
 ## 🧱 Key Files
 - `FramePerformanceView.tsx` — a promoted Frame. `placement="dialog"` fills the Dialog surface; `placement="stage"` fills the Stage screen. Beats replace inside the viewport.
-- `dialogFramePresentation.ts` — latest agent turn presents a Frame only when a beat is promoted. Conversation is the default.
+- `dialogFramePresentation.ts` — a promoted Frame can be reopened from its own turn. Stage does not cover that Frame with the Dialog overlay.
 - `frameCue.tsx` — Add to Story, Keep, review Cast, open Point, and Take to Stage handlers shared by both placements
 - `useDomainStories.ts` — domain Story set for Chronicle and the Dialog Frame cue
 - `spatial/loadSpatialFrameHost.tsx` — optional lazy Three.js host. Dialog frames do not call it.
@@ -21,7 +21,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - `whereWeAreCopy.ts` — Sentences for the arrival reading. The resolver does not own this wording.
 - `StageFilmstrip.tsx` / `stagePresentation.tsx` — big screen + strip above Composer
 - `stageMomentSource.ts` — render-time resolve of `source.kind === 'moment'` to the live Moment row
-- `OnStageObjectList.tsx` — On Stage list in Reach and Chronicle (not Composer)
+- `OnStageObjectList.tsx` — sources placed on Stage. The highlighted row is the Dialog in hand.
 - `StageEngagementSurface.tsx` — Slide as media field + paper card (public Cover dress; `.theme-reading-plane`)
 - `ThemeChroniclePresence.tsx` (in `presence/`) — Composer Theme tool: Domain look editor + ask the lead; Stage inherit when on Stage
 - `stageNowBeat.ts` / `stageFilmstrip.ts` — domain Root (`domain_cover`) + story beats after Forward
@@ -56,6 +56,7 @@ Reach and Stage sit above Boards without becoming a fourth column. **Composer** 
 - [ ] Mobile drag/group/connector semantics — deliberately not built
 
 ## 📆 Update Log
+- 2026-10-11: Reopening a Frame uses the turn it was composed on. Take to Stage shows that Frame on the canvas. On Stage lists sources; the highlight follows the Dialog in hand. Add to Story names the Story and keeps the turn as the source. A slide can be Glossed on `beat-{index}`.
 - 2026-10-11: While a turn runs, the Dialog Frame’s slide is the work, on Stage too. When the output is determined, that slide becomes the Frame or the reply. The cover returns from Stage.
 - 2026-10-11: Cast Review opens each voice closed, and Dialog Frame returns to the beat.
 - 2026-10-07: A selected Dialog is what Stage composes. `workStageComposition` feeds that title into the existing composition view. The domain filmstrip does not replace it. Where are we? remains the no-work arrival.

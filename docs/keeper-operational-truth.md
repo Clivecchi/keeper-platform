@@ -480,3 +480,70 @@ The following user turn asked for less text and a visible change, and named Rend
 Rendr’s Dialog voice proposes Chronicle Treatment (`treatment.propose`); a human Apply is what changes the look. A separate composer turns resolved meaning into Frame beats. Neither path edits the transcript renderer. Cloud’s seeded authority includes `github.file.write`. Kip’s environment sets `canWriteProduction` false. This turn Cloud only read.
 
 The expanded text was the transcript: full Cast bubbles, an open trace, and one receipt card per tool call. `ActionReceiptCard` prints a short status line. The working tree now leads with a short outcome, keeps Cast and technical receipts closed until opened, keeps proposal cards visible, shows one progress line while Agency works, and returns from Cast Review to the Dialog Frame. Not committed. Not deployed.
+
+## October 11 2026 — experience continuity
+
+This section records Chuck’s Operational Truth Dialog and the repair that followed. It is not a new Operational Truth version. OT01–OT28 stand. PK01–PK14 stay parked. No Point was deleted or reimported. OT16 and OT19–OT22 stay open until a live turn shows receipt-only results, prohibition, assent, and a reload of the same Gloss and work record.
+
+Governing intent for this repair: build through an unfolding experience, and keep what emerges within reach. Rendr’s responsibility is experience across Dialog Frame, Chronicle, Cast Review, Story, Stage, and Gloss. A palette Treatment does not satisfy that. The execution path already in the code is a Frame on the Lead message (`framePerformance`), cues on that Frame, and Stage as a placement of the same telling.
+
+### What the Dialog showed
+
+| Observation | Cause found in the code |
+|---|---|
+| Replies included directory listings, file bodies, and tool JSON. | That text was stored in the reply. Folding Cast and Receipts did not move it. |
+| A two-slide Frame could not be opened again from its turn. “Full reply” did nothing for the slides. | The surface only presents the latest turn. Later talk dismisses it. “Full reply” expands leftover prose. It is not the Frame. |
+| Slide Gloss was unavailable. | The Frame rendered outside the Gloss provider, and the beat had no anchor. |
+| Add to Story, Take to Stage, and On Stage did not say what each one does. | They were labels without a consequence. |
+| The header showed Operational Truth while On Stage highlighted Finding the Plot. Adding Operational Truth showed a Dialog entry and no slides. | Header used the selected Dialog. On Stage highlight used a different presence. A selected Dialog painted a title with an empty body, so the Frame never reached the canvas. |
+| Rendr failed with “offstage — Stage is not the room for this turn.” | Stage composition runs only on Stage. The Dialog path is the Frame. The offstage receipt was what the turn showed. |
+
+### Decisions
+
+- The spoken reply stays short. Directory listings, file bodies, and tool JSON stay under Evidence. They are not deleted, and they are not spread across slides.
+- A person can still speak while a Frame is up. The composer stays at the bottom.
+- A simple question stays a conversation. A Frame is stamped only when the Lead sets `presentFrame` or the human asks for a Frame. A successful tool call does not promote itself.
+- Each promoted Frame stays on its message. The turn shows the title and the slide count. Opening it restores those slides. “Back to this turn” returns to that message.
+- Add to Story keeps the slide in the named Story and says so. The message remains the source. Take to Stage presents those slides and places the Dialog on Stage.
+- On Stage is the list of sources. The highlighted row is the Dialog in hand. The header names that Dialog, and the slide count and title of the Frame the canvas is showing.
+- Gloss on a slide uses the existing message anchor `beat-{index}` and the slide’s own text. The thread is added. The slide source is not rewritten.
+- Stage composition is not proposed while the room is Dialog. A composed Frame stores a one-line `frame.performance` receipt.
+- “New surface” remains a later, calmer Stage-and-Composer experience. This repair does not add a replacement UI.
+
+### The 163rd Point
+
+Read on the evening of October 11, 2026 from manuscript draft `ccdf4735-391a-4226-841d-60a5a1b48150` on Dialog `cmv04yrn50001otb8mwjrj0as`. Count 163. Draft `updated_at` `2026-10-11T23:45:46.317Z`. Nothing was deleted.
+
+The new Point is `63a70b4f-6745-446b-8006-b02480cd6817`. Status `proposed`. `proposedBy` `kip`. Created `2026-10-11T23:45:46.267Z`. Path group `0-current-operational-state-and--yx6zw`. Prelude “Landing Restores the Work, Not Proof of Continuity.” 1,655 characters. Its body matches no earlier Point.
+
+It is not a fourth import. The Points still timestamped `2026-10-11T00:03:25.943Z` belong to the third import. That includes `3a56d68b-29ac-4df3-bde2-124db10affea`, “C Conversation and directed presentation,” 124 characters, the cut sentence, with no duplicate body. Other third-import bodies still match the first two copies. Those copies remain.
+
+### What this repair changed
+
+- `separateReplyEvidence` pulls listings, fenced bodies, and tool JSON into Evidence.
+- `dialogTurnSurface` reopens a named message’s Frame and leaves a promoted Frame to the Stage canvas.
+- The transcript control is the Frame title and slide count. “Back to this turn” scrolls to that message.
+- The selected Dialog’s canvas shows its Frame. An empty Dialog says it has no slides.
+- Take to Stage writes the live cell, brings that Dialog onto Stage, and selects it. `performedStagePresenceId` keeps the highlight on that Dialog.
+- Cue lines state the consequence. Add to Story reports the Story title.
+- The beat is a Gloss surface on `beat-{index}`.
+- `shouldProposeStageComposition` skips the offstage call. A successful Frame appends `frame.performance`.
+
+### Layers
+
+| Layer | What this pass can say |
+|---|---|
+| Product intent | The decisions above. Chuck still confirms meaning. |
+| Implementation | The files in this commit. Not a new Stage subsystem. |
+| Tests | Shared `keeperStage` and `framePerformance` passed (33). API `expressStageComposition` passed (4), including the Dialog guard. Web unit config passed reply evidence, Dialog Frame reopen, and performed-Frame selection (13). Web vitest’s jsdom setup is still missing in this workspace; those tests used `vitest.unit.config.ts`. |
+| Deployment | Not deployed. Not pushed by this pass. |
+| Live behavior | `http://127.0.0.1:5173/d/ke3p?board=domain&dialogId=cmv04yrn50001otb8mwjrj0as` loaded the guest Cover. This browser was signed out, so the member Dialog, the two-slide reopen, Gloss, Story, and Stage were not walked. |
+| Reload | Not accepted on a signed-in session. The Frame remains `framePerformance` on the message. The Stage cell remains a live source id. The 163rd Point was read back at the id above. |
+
+### Still open
+
+- Chuck’s signed-in replay: present two slides, keep talking, reopen them, review Cast and return, Gloss the slide, add it to a Story, take it to Stage, return to the turn, reload, and find the same slides.
+- Chronicle orientation across manuscript, Sections, Points, and discussion.
+- OT16 and OT19–OT22, including a live receipt-only turn and reload of the same Gloss.
+- The Section 16 cut, and the duplicate copies from the three imports. Compare before any merge. Do not delete.
+- The 163rd Point stays `proposed` until a person accepts it. Acceptance would not verify the landing claim in its body.

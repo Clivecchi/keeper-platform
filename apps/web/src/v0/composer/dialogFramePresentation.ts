@@ -21,6 +21,8 @@ export type DialogTurnSurface =
 export function dialogTurnSurface(input: {
   messages: readonly DialogSurfaceTurn[]
   dismissedMessageId: string | null
+  /** An earlier turn's Frame, opened from its own control. */
+  openedMessageId?: string | null
   isSending: boolean
   stageOwnsSurface: boolean
   /** This turn just finished. Hold its output in the frame until dismissed. */
@@ -28,15 +30,26 @@ export function dialogTurnSurface(input: {
 }): DialogTurnSurface | null {
   if (input.isSending) return { kind: "work" }
 
+  if (!input.stageOwnsSurface && input.openedMessageId) {
+    const opened = input.messages.find((message) => message.id === input.openedMessageId)
+    const openedPerformance = opened && opened.role === "agent"
+      ? promotedDialogFrame(opened.framePerformance)
+      : null
+    if (opened && openedPerformance) {
+      return { kind: "frame", messageId: opened.id, performance: openedPerformance }
+    }
+  }
+
   const latest = input.messages[input.messages.length - 1]
   if (!latest || latest.role !== "agent" || latest.id === input.dismissedMessageId) return null
 
   const performance = promotedDialogFrame(latest.framePerformance)
-  if (performance && !input.stageOwnsSurface) {
+  if (performance) {
+    // Stage presents this Frame on the canvas. The Dialog overlay does not cover it.
+    if (input.stageOwnsSurface) return null
     return { kind: "frame", messageId: latest.id, performance }
   }
   if (!input.stageOwnsSurface || !input.holdOutput) return null
-  if (performance) return { kind: "frame", messageId: latest.id, performance }
   const text = latest.content?.trim() ?? ""
   if (!text) return null
   return { kind: "reply", messageId: latest.id, text }

@@ -8,11 +8,31 @@ import {
   emptyKeeperStage,
   findLiveSourcedSlide,
   mergeKeeperStagePatch,
+  performedStagePresenceId,
   parseKeeperStage,
   parseStageStory,
   readKeeperStageFromDomainSettings,
   withDomainCoverRoot,
 } from './keeperStage.js';
+
+describe('performedStagePresenceId', () => {
+  const presences = [
+    { id: 'plot', kind: 'dialog', objectId: 'finding-the-plot' },
+    { id: 'truth', kind: 'dialog', objectId: 'operational-truth' },
+  ]
+
+  it('highlights the Dialog in hand when On Stage still points at another', () => {
+    expect(performedStagePresenceId(presences, 'operational-truth', 'plot')).toBe('truth')
+  })
+
+  it('keeps a non-dialog highlight when that Dialog is not on Stage', () => {
+    expect(performedStagePresenceId(
+      [{ id: 'kip', kind: 'agent', objectId: 'kip' }],
+      'operational-truth',
+      'kip',
+    )).toBe('kip')
+  })
+})
 
 describe('parseKeeperStage', () => {
   it('returns an empty Keeper stage for junk', () => {
