@@ -6,7 +6,7 @@ import type { DialogThinkingStep } from "./dialogThinking"
 import {
   workElapsedLabel,
   workIsStalled,
-  workVoiceName,
+  workProgress,
 } from "./dialogWork"
 
 const ink = "hsl(var(--theme-ink-primary))"
@@ -104,10 +104,10 @@ export function DialogWorkFrame({
     return () => window.clearInterval(timer)
   }, [])
 
-  const voice = workVoiceName(liveLabel, agentName)
-  const beat = liveLabel.trim() || `${voice} is working…`
+  const progress = workProgress(steps, liveLabel)
   const stalled = workIsStalled(now - stepMark.current)
   const elapsed = workElapsedLabel(now - startedAt.current)
+  const clock = stalled ? `${elapsed} · still on this step` : elapsed
 
   if (index === 1) {
     return (
@@ -137,17 +137,19 @@ export function DialogWorkFrame({
   }
 
   return (
-    <FrameSlide context="Dialog" title={voice} index={0} count={2} onIndex={setIndex}>
-      <p className="whitespace-pre-wrap" style={{ margin: 0 }}>
-        {stalled ? "Still on this step." : beat}
-      </p>
-      {stalled ? (
-        <p className="mt-3 text-[15px]" style={{ color: inkSecondary, marginTop: "0.75rem" }}>
-          {beat}
-        </p>
+    <FrameSlide context="Dialog" title={progress.voice} index={0} count={2} onIndex={setIndex}>
+      {progress.earlier.length > 0 ? (
+        <ul className="mb-4 list-none space-y-1 text-[14px]" style={{ color: inkSecondary, margin: "0 0 1rem" }}>
+          {progress.earlier.map((line, lineIndex) => (
+            <li key={`${lineIndex}-${line}`}>{line}</li>
+          ))}
+        </ul>
       ) : null}
+      <p className="whitespace-pre-wrap" style={{ margin: 0 }}>
+        {progress.now}
+      </p>
       <p className="mt-5 text-[15px] tabular-nums" style={{ color: inkSecondary, marginTop: "1.25rem" }}>
-        {elapsed}
+        {clock}
       </p>
     </FrameSlide>
   )

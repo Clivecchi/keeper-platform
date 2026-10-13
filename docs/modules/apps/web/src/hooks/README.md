@@ -32,6 +32,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-10-13 — A lost stream reloads the saved reply
+- If the Lead stream closes without a result, `useAgentDialog` reloads the session. A saved agent reply replaces the failure. An empty session still reports the stream error.
+
 ### 2026-10-11 — Stop aborts the turn
 - `useAgentDialog` keeps an `AbortController` for the send. `stopTurn` aborts it. A stopped turn leaves the human message and a short “Stopped.” line, and does not paint a provider error.
 

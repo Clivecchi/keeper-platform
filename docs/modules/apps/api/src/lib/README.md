@@ -29,6 +29,9 @@ Shared utilities and service clients used across Express routes and middleware.
 
 ## 📆 Update Log
 
+### 2026-10-13 — The stream result leaves the prompt behind
+- `agentResultForStream` removes `composedSystemPrompt` and `model_response_raw` from the SSE done event. Those fields stay in the agent log. The Dialog still receives the reply and receipts.
+
 ### 2026-09-17 — TypeSafe key path
 - `resolveProviderApiKey.ts` maps `typesafe` → `TYPESAFE_API_KEY`. Same env → user → platform order as the other AI providers.
 - `integrationAiModelConnect.ts` verifies TypeSafe keys against `GET /v1/models`.

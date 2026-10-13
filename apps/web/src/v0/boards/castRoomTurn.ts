@@ -30,6 +30,7 @@ import {
 } from "@keeper/shared"
 import { KipApi } from "../../lib/kipApi"
 import { isAbortError, turnAbortError } from "../../lib/turnStop"
+import { workStatusLine } from "../components/dialog/dialogWork"
 import {
   buildCastDelegationPrompt,
   extractActionResultsFromRunResult,
@@ -235,7 +236,7 @@ export async function runProgressiveCastRoom(params: {
       label: `${allowed.slug}: ${allowed.aim}`,
     })
     trace.push(directionEvent)
-    params.onStatus?.(`${voice.label} is contributing…`)
+    params.onStatus?.(workStatusLine(voice.label, allowed.aim))
 
     let reply = ""
     let failed = false
@@ -273,6 +274,11 @@ export async function runProgressiveCastRoom(params: {
       if (isAbortError(error)) throw error
       failed = true
     }
+
+    params.onStatus?.(workStatusLine(
+      voice.label,
+      failed ? "could not answer" : reply || "returned nothing to show",
+    ))
 
     const receipts: ClassifiedReceipt[] = rawActions.flatMap((row) => {
       if (!row || typeof row !== "object" || Array.isArray(row)) return []
@@ -314,7 +320,7 @@ export async function runProgressiveCastRoom(params: {
     const hasSubstance = Boolean(substanceLabel)
     let assessment: LeadAssessment | null = null
     if (hasSubstance && correlated && !failed) {
-      params.onStatus?.(`${params.directorName} is checking the contribution…`)
+      params.onStatus?.(workStatusLine(params.directorName, `checking ${voice.label}`))
       try {
         const evaluation = await KipApi.runAgent(
           params.leadAgentId,

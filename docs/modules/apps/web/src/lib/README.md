@@ -36,6 +36,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-10-13 — A closed stream can still be read
+- `consumeAgentRunSse` accepts CRLF framing and trims each data line. A stream that ends without `done` or `error` still fails with “Agent stream ended without a result.”
+
 ### 2026-10-11 — A stopped turn aborts the request
 - `apiFetch`, `KipApi.runAgent`, `runAgentStream`, and `castOffer` accept `AbortSignal`. An abort stays an abort instead of becoming a network error. `turnStop.ts` names that error.
 

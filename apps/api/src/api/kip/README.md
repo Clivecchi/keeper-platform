@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-10-13: A streamed Lead result omits the composed prompt and raw model text so the done event can finish.
 - 2026-10-12: An authorized composition in Dialog arranges the stored filmstrip. On Stage it still arranges the pass that is up. The filmstrip slides are not replaced.
 - 2026-10-11: `stage.story.layout` reports a filmstrip write. The receipt says no Story was saved and the screen is not verified.
 - 2026-10-11: A Dialog turn does not call Stage composition. A composed Frame is saved on the Lead message with a `frame.performance` receipt.

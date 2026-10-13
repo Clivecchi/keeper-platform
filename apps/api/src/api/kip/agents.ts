@@ -87,7 +87,7 @@ import {
   type KeeperStageComposition,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
-import { openSse, startSseHeartbeat, writeSseEvent } from '../../lib/sse.js';
+import { agentResultForStream, openSse, startSseHeartbeat, writeSseEvent } from '../../lib/sse.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
 import { buildDomainLeadCollaborationPrompt } from '../../services/kip/buildDomainLeadCollaborationPrompt.js';
@@ -11686,7 +11686,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
 
           if (wantsStream) {
             if (heartbeat) clearInterval(heartbeat);
-            writeSseEvent(res, 'done', { success: true, data: result, ctx: ctxFlags });
+            writeSseEvent(res, 'done', { success: true, data: agentResultForStream(result), ctx: ctxFlags });
             res.end();
             return;
           }

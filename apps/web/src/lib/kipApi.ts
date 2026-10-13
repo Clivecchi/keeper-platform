@@ -733,7 +733,7 @@ function unwrapAgentRunResult(agentResult: AgentResponse): AgentResponse {
   return agentResult
 }
 
-async function consumeAgentRunSse(
+export async function consumeAgentRunSse(
   response: Response,
   handlers?: {
     onDelta?: (text: string) => void
@@ -755,7 +755,7 @@ async function consumeAgentRunSse(
     const dataLines: string[] = []
     for (const line of lines) {
       if (line.startsWith('event:')) event = line.slice(6).trim()
-      else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart())
+      else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
     }
     if (dataLines.length === 0) return
     let parsed: unknown
@@ -786,6 +786,7 @@ async function consumeAgentRunSse(
   while (true) {
     const { done, value } = await reader.read()
     buffer += decoder.decode(value || new Uint8Array(), { stream: !done })
+    buffer = buffer.replace(/\r\n/g, '\n')
     let sep = buffer.indexOf('\n\n')
     while (sep >= 0) {
       const block = buffer.slice(0, sep)

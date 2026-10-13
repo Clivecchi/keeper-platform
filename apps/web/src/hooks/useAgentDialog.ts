@@ -1843,6 +1843,31 @@ export function useAgentDialog({
           finishStopped()
           return
         }
+        if (
+          sessionId
+          && err instanceof Error
+          && err.message === "Agent stream ended without a result"
+        ) {
+          try {
+            const saved = await KipApi.getSessionMessages(sessionId)
+            const normalized = saved.map(normalizeMessage).map(stampSenderName)
+            const last = normalized[normalized.length - 1]
+            const savedAt = last?.createdAt ? Date.parse(last.createdAt) : Number.NaN
+            if (
+              last?.role === "agent"
+              && last.content.trim()
+              && Number.isFinite(savedAt)
+              && savedAt >= ts - 5_000
+            ) {
+              setMessages(normalized)
+              appendThinkingStep("The reply was saved. The stream closed before it arrived.")
+              clearSavedDraft()
+              return
+            }
+          } catch {
+            // The session reload failed. The error below still tells the truth.
+          }
+        }
         const status = (err as { status?: number })?.status
         const authMsg = `Please sign in to continue the conversation with ${agentDisplayName}.`
         const failMsg = err instanceof KipAgentRunError

@@ -79,6 +79,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in `DialogWorkFrame`; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-10-13: The work slide keeps the current aim and the three lines before it. A long step stays named instead of collapsing to “still contributing.”
 - 2026-10-12: The work slide no longer titles itself with the highlighted cast chip. A name appears when the live line says that voice is working.
 - 2026-10-11: A Stage filmstrip can be left with Back to this turn. A reply slide renders keeper-card markup as a card.
 - 2026-10-11: A Frame opened from its turn can be left with Back to this turn. The slide sits inside Gloss, so the selected passage can be polished without leaving the Frame.

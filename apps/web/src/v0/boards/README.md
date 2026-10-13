@@ -941,6 +941,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `castRoomTurn.ts` sends the current attachments to the direction pass and the specialist. When the human refers to a previous prompt, that sentence is in the assignment and is not replaced by the trail.
 
 ## 📆 Update Log
+- 2026-10-13: A directed contribution reports its aim, then its result. The check names who is being checked.
 - 2026-10-12: While a turn is sending, the work slide follows the live step. The highlighted cast chip is not shown as the person working.
 
 ### 2026-10-07 — Agency room continues until the aim is met or the budget is spent
