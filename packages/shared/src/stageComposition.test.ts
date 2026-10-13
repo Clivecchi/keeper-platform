@@ -155,6 +155,7 @@ describe('projectStoryPass', () => {
     })
     expect(reading.items.find((item) => item.id === 'root')?.lifecycle).toBe('derived')
     expect(reading.items.find((item) => item.id === 'slide:beat-1')?.lifecycle).toBe('stored')
+    expect(reading.items.find((item) => item.id === 'slide:beat-1')?.text).toBe('Kept\nbody')
     expect(reading.items.find((item) => item.id === 'frame:msg-9')?.lifecycle).toBe('live')
     const sequence = composition.nodes.find((node) => node.kind === 'sequence')
     expect(sequence?.kind).toBe('sequence')
@@ -165,6 +166,62 @@ describe('projectStoryPass', () => {
       { kind: 'cite', readingId: 'frame:msg-9', emphasis: 'primary', present: 'frame' },
     ])
     expect(composition.nodes.some((node) => node.kind === 'media' && node.readingId === 'cover-plate')).toBe(true)
+  })
+
+  it('reads the stored filmstrip bodies and cites them without rewriting the slides', () => {
+    const slides = [
+      { id: 'slide-1', title: 'Bring Something Unfinished', body: 'An unfinished thing is the start.', kind: 'beat' as const },
+      { id: 'slide-2', title: 'Speak. Find the Thread.', body: 'Speaking finds the thread.', kind: 'beat' as const },
+      { id: 'slide-3', title: '“So Do It” Must Mean Something', body: 'The instruction has to mean something.', kind: 'beat' as const },
+      { id: 'slide-4', title: 'Same Work. A New Expression.', body: 'The same work can be expressed again.', kind: 'beat' as const },
+      { id: 'slide-5', title: 'Worth Keeping Means Worth Returning To', body: 'Worth keeping is worth returning to.', kind: 'beat' as const },
+    ]
+    const { reading, composition } = projectStoryPass({
+      context: { ...adminDomain, arriving: false },
+      domainId: 'ke3p-id',
+      slides,
+    })
+    expect(reading.items.map((item) => item.id)).toEqual([
+      'slide:slide-1',
+      'slide:slide-2',
+      'slide:slide-3',
+      'slide:slide-4',
+      'slide:slide-5',
+    ])
+    expect(reading.items[0]?.text).toContain('An unfinished thing is the start.')
+    const sequence = composition.nodes.find((node) => node.kind === 'sequence')
+    expect(sequence?.kind).toBe('sequence')
+    if (sequence?.kind !== 'sequence') return
+    expect(sequence.children.map((child) => child.kind === 'cite' ? child.readingId : '')).toEqual([
+      'slide:slide-1',
+      'slide:slide-2',
+      'slide:slide-3',
+      'slide:slide-4',
+      'slide:slide-5',
+    ])
+    const decision = decideStageComposition({
+      raw: {
+        nodes: [{
+          kind: 'sequence',
+          index: 0,
+          children: slides.map((slide) => ({
+            kind: 'cite',
+            readingId: `slide:${slide.id}`,
+            emphasis: 'primary',
+            present: 'slide',
+            body: 'A new sentence that must not land.',
+          })),
+        }],
+      },
+      reading,
+      truth: 'story',
+      previousId: 'pass-story',
+    })
+    expect(decision.status).toBe('applied')
+    if (decision.status !== 'applied') return
+    expect(decision.strippedKeys).toContain('cite.body')
+    expect(reading.items[0]?.text).toContain('An unfinished thing is the start.')
+    expect(JSON.stringify(decision.composition)).not.toContain('A new sentence')
   })
 
   it('does not invent a cover when the pass has no domain', () => {

@@ -320,6 +320,15 @@ function composeWhereWeAre(reading: StageReading, id: string): StageComposition 
   );
 }
 
+/** Stored slide words. Title and body stay the Reading. Nothing new is written. */
+export function slideReadingText(title: string, body: string): string {
+  const heading = title.trim()
+  const sentence = body.trim()
+  if (!sentence || sentence === heading) return heading || sentence
+  if (!heading) return sentence
+  return `${heading}\n${sentence}`
+}
+
 function presentForSlide(item: StageReadingItem): StagePresent {
   if (item.source.kind === 'frame') return 'frame';
   if (item.source.kind === 'domain-cover') return 'cover';
@@ -623,7 +632,7 @@ export function projectStoryPass(input: {
     items.push({
       id: 'cover-plate',
       lifecycle: 'derived',
-      text: root.title,
+      text: slideReadingText(root.title, root.body),
       source: { kind: 'domain-cover', domainId },
       actions: [],
     });
@@ -634,7 +643,7 @@ export function projectStoryPass(input: {
       items.push({
         id: `frame:${frameId}`,
         lifecycle: 'live',
-        text: slide.title,
+        text: slideReadingText(slide.title, slide.body),
         source: { kind: 'frame', messageId: frameId },
         actions: [],
       });
@@ -645,7 +654,7 @@ export function projectStoryPass(input: {
       items.push({
         id: 'root',
         lifecycle: 'derived',
-        text: slide.title,
+        text: slideReadingText(slide.title, slide.body),
         source: { kind: 'domain-cover', domainId },
         actions: [],
       });
@@ -655,7 +664,7 @@ export function projectStoryPass(input: {
     items.push({
       id: `slide:${slide.id}`,
       lifecycle: stored ? 'stored' : 'derived',
-      text: slide.title,
+      text: slideReadingText(slide.title, slide.body),
       source: {
         kind: 'stage-slide',
         id: slide.id,

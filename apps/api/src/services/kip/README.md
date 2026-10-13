@@ -50,6 +50,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-12 — Compact Stage keeps the slide body
+- The compact environment for a turn includes a stored filmstrip slide’s body with its title. Reading the sequence does not require a new layout.
+
 ### 2026-10-11 — A Stage layout receipt names the filmstrip
 - `stageLayoutReceiptMessage` says the slides were written to the Stage filmstrip, no Story was saved, and the screen is not verified.
 

@@ -380,7 +380,9 @@ export function buildCastConsultationsSynthesisPrompt(params: {
       '- Rendr composes the Frame. Rendr does not decide that the Dialog becomes presentation.',
       '- Do not emit stage.story.layout for this. Expression is not your job this turn.',
       '- When the human is responding to the experience on Stage — unclear, disconnected, hierarchy, navigation, the presentation itself — emit "stageComposition": { "authorize": true, "brief": "what should change in the arrangement" }.',
+      '- When the human asks for the stored Slides to be read or arranged, emit stageComposition even in Dialog. Rendr cites that filmstrip. The stored slides stay as they are.',
       '- The brief names hierarchy, sequence, emphasis, navigation, field, density, or how much of the room. It does not name CSS, colors, or new sentences.',
+      '- An arrangement does not change slide sentences. If those sentences are not sufficient, say so in the reply. Dress is not new content.',
       '- Omit stageComposition when they are talking about meaning, a Document, or anything other than how this Stage presentation is experienced.',
       '- You authorize. Rendr composes the existing Reading. You do not emit the composition.',
     );

@@ -42,6 +42,7 @@ Core source files for the `@keeper/shared` workspace package. Provides shared lo
 - [ ] Consider moving engagement template metadata here when API/web need the same constants
 
 ## 📆 Update Log
+- 2026-10-12: A Stage slide Reading keeps the stored title and body. The filmstrip prompt names `slide:{id}` and that body. A composition cites those ids. It does not replace the slides.
 - 2026-10-11: `performedStagePresenceId` highlights the Dialog in hand when On Stage still points at another presence.
 - 2026-10-10: A human line that names Cloud, Ceox, or Rendr reserves a turn for each of them before the room repeats one voice. The room stays at most four contributions.
 - 2026-10-10: An attached update compares with existing Points (`ingestReconcile.ts`). Matching headings keep the earliest id. Differences are a Review proposal. Extra copies stay. When the human refers to the previous prompt, that sentence stays recoverable (`previousHumanInstruction.ts`).

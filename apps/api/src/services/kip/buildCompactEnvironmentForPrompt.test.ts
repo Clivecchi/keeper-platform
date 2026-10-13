@@ -17,4 +17,25 @@ describe('buildCompactEnvironmentForPrompt', () => {
     expect(compact?.activeDraft?.title).toBe('In focus');
     expect(JSON.stringify(compact)).not.toMatch(/Hidden draft|Hidden keeper|Hidden dialog/);
   });
+
+  it('keeps a stored slide body in the compact Stage reading', () => {
+    const compact = buildCompactEnvironmentForPrompt({
+      version: 'env-v1',
+      keeperStage: {
+        slug: 'keeper',
+        title: 'Keeper',
+        presences: [],
+        story: {
+          slides: [
+            { id: 'slide-1', kind: 'beat', title: 'Bring Something Unfinished', body: 'An unfinished thing is the start.' },
+          ],
+        },
+      },
+    });
+    expect(compact?.keeperStage?.story?.slides[0]).toMatchObject({
+      id: 'slide-1',
+      title: 'Bring Something Unfinished',
+      body: 'An unfinished thing is the start.',
+    });
+  });
 });

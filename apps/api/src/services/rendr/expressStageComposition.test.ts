@@ -23,7 +23,7 @@ vi.mock('../domains/keeperStageStore.js', () => ({
   saveKeeperStage,
 }));
 
-const { expressStageComposition, shouldProposeStageComposition } = await import('./expressStageComposition.js');
+const { compositionTruthForTurn, expressStageComposition, shouldProposeStageComposition } = await import('./expressStageComposition.js');
 
 const reading = {
   context: { scope: 'domain', domainId: 'dom-1', audience: 'admin', arriving: true },
@@ -39,9 +39,12 @@ const reading = {
 };
 
 describe('shouldProposeStageComposition', () => {
-  it('leaves Dialog turns on the Frame path', () => {
-    expect(shouldProposeStageComposition(false)).toBe(false);
-    expect(shouldProposeStageComposition(true)).toBe(true);
+  it('arranges the stored filmstrip from Dialog and the pass that is up on Stage', () => {
+    expect(compositionTruthForTurn({ onStage: false, passTruth: 'domain-where-we-are' })).toBe('story');
+    expect(compositionTruthForTurn({ onStage: true, passTruth: 'domain-where-we-are' })).toBe('domain-where-we-are');
+    expect(shouldProposeStageComposition({ onStage: false, passTruth: 'domain-where-we-are' })).toBe(true);
+    expect(shouldProposeStageComposition({ onStage: true })).toBe(true);
+    expect(shouldProposeStageComposition({ onStage: false })).toBe(true);
   });
 });
 
@@ -62,15 +65,66 @@ describe('expressStageComposition', () => {
     saveKeeperStage.mockImplementation(async (_id: string, patch: unknown) => patch);
   });
 
-  it('does not call Rendr when the turn is off Stage', async () => {
+  it('reads the filmstrip from Dialog and does not replace the slides when nothing is stored', async () => {
+    loadStageReading.mockResolvedValue({ context: reading.context, items: [] });
     const result = await expressStageComposition({
       domainId: 'dom-1',
       truth: 'domain-where-we-are',
       onStage: false,
     });
-    expect(result.status).toBe('offstage');
+    expect(loadStageReading).toHaveBeenCalledWith(expect.objectContaining({ truth: 'story' }));
+    expect(result.status).toBe('no-reading');
     expect(executeRegisteredChat).not.toHaveBeenCalled();
     expect(saveKeeperStage).not.toHaveBeenCalled();
+  });
+
+  it('sends the stored slide body to Rendr and saves an arrangement only', async () => {
+    const slideReading = {
+      context: { scope: 'domain', domainId: 'dom-1', audience: 'admin', arriving: false },
+      items: [
+        {
+          id: 'slide:slide-1',
+          lifecycle: 'stored',
+          text: 'Bring Something Unfinished\nAn unfinished thing is the start.',
+          source: { kind: 'stage-slide', id: 'slide-1' },
+          actions: [],
+        },
+      ],
+    };
+    loadStageReading.mockResolvedValue(slideReading);
+    executeRegisteredChat.mockResolvedValue({
+      response: {
+        success: true,
+        content: JSON.stringify({
+          nodes: [{
+            kind: 'cite',
+            readingId: 'slide:slide-1',
+            emphasis: 'primary',
+            present: 'slide',
+            body: 'A replacement sentence',
+          }],
+        }),
+      },
+    });
+    const result = await expressStageComposition({
+      domainId: 'dom-1',
+      truth: 'domain-where-we-are',
+      onStage: false,
+    });
+    expect(result.status).toBe('applied');
+    const prompt = executeRegisteredChat.mock.calls[0]?.[0] as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    expect(prompt.messages.find((message) => message.role === 'user')?.content).toContain(
+      'An unfinished thing is the start.',
+    );
+    const patch = saveKeeperStage.mock.calls[0]?.[1] as {
+      story?: unknown;
+      arrangements: { story: { composition: { nodes: unknown[] } } };
+    };
+    expect(patch.story).toBeUndefined();
+    expect(patch.arrangements.story).toBeTruthy();
+    expect(JSON.stringify(patch)).not.toContain('A replacement sentence');
   });
 
   it('applies a composition of the Reading and records what it replaced', async () => {

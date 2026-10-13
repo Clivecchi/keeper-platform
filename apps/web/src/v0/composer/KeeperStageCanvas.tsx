@@ -184,7 +184,12 @@ function WorkStageComposition({
   )
   const reading = presentation?.stageReading ?? "empty"
   if (reading === "filmstrip" && presentation?.filmstripLayout) {
-    return <FilmstripPerformance messageId={presentation.filmstripLayout.messageId} />
+    return (
+      <FilmstripPerformance
+        messageId={presentation.filmstripLayout.messageId}
+        context={context}
+      />
+    )
   }
   if (reading === "stale" && presentation?.staleFilmstripLayout) {
     return (
@@ -238,8 +243,15 @@ function WorkStageComposition({
   )
 }
 
-function FilmstripPerformance({ messageId }: { messageId: string }) {
+function FilmstripPerformance({
+  messageId,
+  context,
+}: {
+  messageId: string
+  context: StageContext
+}) {
   const presentation = useStagePresentationOptional()
+  const stageApi = useKeeperStageOptional()
   const jumped = React.useRef<string | null>(null)
   React.useEffect(() => {
     if (!presentation || jumped.current === messageId) return
@@ -250,47 +262,77 @@ function FilmstripPerformance({ messageId }: { messageId: string }) {
     }
   }, [messageId, presentation])
   const beats = (presentation?.slides ?? []).filter((slide) => slide.kind !== "root")
+  const projected = React.useMemo(() => {
+    const slides: StoryPassSlide[] = (presentation?.slides ?? []).map((slide) => ({
+      id: slide.id,
+      title: slide.title,
+      body: slide.body,
+      kind: slide.kind === "root" ? "root" : "beat",
+      ...(slide.source ? { source: slide.source } : {}),
+      frameMessageId: slide.source?.kind === "live" ? slide.source.id ?? null : null,
+    }))
+    return projectStoryPass({
+      context,
+      domainId: context.domainId,
+      slides,
+      openingIndex: presentation?.index ?? 0,
+    })
+  }, [context, presentation?.index, presentation?.slides])
+  const stored = stageApi?.stage.arrangements?.story?.composition
+  const composed = stored ? presentStoredArrangement(stored, projected.reading) : null
+  const composition = composed ?? projected.composition
 
   return (
     <div
       className="absolute inset-0 flex min-h-0 flex-col"
       data-stage-renderer="filmstrip"
+      data-stage-preserved="filmstrip"
       data-stage-layout={messageId}
       data-stage-slide-count={beats.length}
     >
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <StagePresentationScreen />
-      </div>
-      {beats.length > 0 ? (
-        <nav aria-label="Stage slides" className="flex flex-wrap gap-2 px-4 py-3">
-          {beats.map((slide) => {
-            const index = presentation?.slides.findIndex((item) => item.id === slide.id) ?? -1
-            const current = presentation?.current?.id === slide.id
-            return (
-              <button
-                key={slide.id}
-                type="button"
-                aria-current={current ? "true" : undefined}
-                onClick={() => {
-                  if (index >= 0) presentation?.setIndex(index)
-                }}
-                className="rounded-md px-3 py-2 text-left text-[13px]"
-                style={{
-                  border: current
-                    ? "1px solid hsl(var(--theme-accent-primary))"
-                    : "1px solid hsl(var(--theme-border-soft) / 0.7)",
-                  background: current
-                    ? "hsl(var(--theme-surface-paper) / 0.88)"
-                    : "hsl(var(--theme-surface-paper) / 0.45)",
-                  color: "hsl(var(--theme-ink-primary))",
-                }}
-              >
-                {slide.title}
-              </button>
-            )
-          })}
-        </nav>
-      ) : null}
+      <StageCompositionView
+        composition={composition}
+        reading={projected.reading}
+        status="story"
+        onContinue={() => undefined}
+        sequence={
+          <>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <StagePresentationScreen />
+            </div>
+            {beats.length > 0 ? (
+              <nav aria-label="Stage slides" className="flex flex-wrap gap-2 px-4 py-3">
+                {beats.map((slide) => {
+                  const index = presentation?.slides.findIndex((item) => item.id === slide.id) ?? -1
+                  const current = presentation?.current?.id === slide.id
+                  return (
+                    <button
+                      key={slide.id}
+                      type="button"
+                      aria-current={current ? "true" : undefined}
+                      onClick={() => {
+                        if (index >= 0) presentation?.setIndex(index)
+                      }}
+                      className="rounded-md px-3 py-2 text-left text-[13px]"
+                      style={{
+                        border: current
+                          ? "1px solid hsl(var(--theme-accent-primary))"
+                          : "1px solid hsl(var(--theme-border-soft) / 0.7)",
+                        background: current
+                          ? "hsl(var(--theme-surface-paper) / 0.88)"
+                          : "hsl(var(--theme-surface-paper) / 0.45)",
+                        color: "hsl(var(--theme-ink-primary))",
+                      }}
+                    >
+                      {slide.title}
+                    </button>
+                  )
+                })}
+              </nav>
+            ) : null}
+          </>
+        }
+      />
     </div>
   )
 }

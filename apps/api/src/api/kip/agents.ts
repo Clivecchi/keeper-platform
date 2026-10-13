@@ -282,7 +282,7 @@ import { ensureCastMemberAgent } from '../../services/ensureCastMemberAgent.js';
 import { runCastOffer } from '../../services/castRoomOffer.js';
 import { parseCastRoomEngage, parseCastRoomWire, parseStageCompositionAuthority, stagePassFromAgentContext, withActionReceiptsOnTrace } from '@keeper/shared';
 import { expressResolvedMeaningOnStage } from '../../services/rendr/expressResolvedMeaningOnStage.js';
-import { expressStageComposition, shouldProposeStageComposition } from '../../services/rendr/expressStageComposition.js';
+import { compositionTruthForTurn, expressStageComposition, shouldProposeStageComposition } from '../../services/rendr/expressStageComposition.js';
 import {
   attachFrameToDirectedStory,
   loadStoryTruthPacket,
@@ -10020,9 +10020,14 @@ export class KipAgentService {
             const compositionAuthority =
               'stageComposition' in structured ? structured.stageComposition : undefined;
             const stagePass = stagePassFromAgentContext(options?.agentContext);
+            const compositionTruth = compositionTruthForTurn({
+              onStage: placeOnStage,
+              passTruth: stagePass?.truth,
+            });
             if (
               compositionAuthority
-              && shouldProposeStageComposition(placeOnStage)
+              && shouldProposeStageComposition({ onStage: placeOnStage, passTruth: stagePass?.truth })
+              && (compositionTruth || placeOnStage)
               && savedAgent
               && options?.domainId
               && userId
@@ -10031,7 +10036,7 @@ export class KipAgentService {
                 const composed = await expressStageComposition({
                   domainId: stagePass?.domainId || options.domainId,
                   userId,
-                  truth: stagePass?.truth,
+                  truth: compositionTruth,
                   brief: compositionAuthority.brief,
                   onStage: placeOnStage,
                 });

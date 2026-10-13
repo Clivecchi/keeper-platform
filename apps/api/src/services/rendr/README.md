@@ -18,6 +18,9 @@ Treatment changes use `treatment.propose` on Design Board. Dialog Points use `dr
 
 ## 📆 Update Log
 
+### 2026-10-12 — The filmstrip is the Reading
+- A Dialog authorization arranges the stored filmstrip. The Reading text is each slide’s title and body. Rendr cites those ids. The save is an arrangement. The slides stay.
+
 ### 2026-10-11 — Dialog does not record an offstage composition
 - Stage composition is proposed only when the room is already Stage. A Dialog turn keeps the Frame performance path. A composed Frame stores a one-line `frame.performance` receipt with the slide count.
 

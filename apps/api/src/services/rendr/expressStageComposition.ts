@@ -101,23 +101,32 @@ function decisionMessage(decision: StageCompositionDecision, truth: StageTruthKe
 }
 
 /**
- * Stage composition runs when the room is already Stage.
- * A Dialog turn uses the Frame performance path. It does not record an offstage failure.
+ * Kip already authorized a composition.
+ * On Stage, Rendr arranges the pass that is up.
+ * In Dialog, Rendr arranges the stored filmstrip. That does not replace the slides.
  */
-export function shouldProposeStageComposition(onStage: boolean): boolean {
-  return onStage
+export function compositionTruthForTurn(input: {
+  onStage: boolean;
+  passTruth?: StageTruthKey | null;
+}): StageTruthKey | undefined {
+  if (!input.onStage) return 'story';
+  return input.passTruth ?? undefined;
+}
+
+export function shouldProposeStageComposition(input: {
+  onStage: boolean;
+  passTruth?: StageTruthKey | null;
+}): boolean {
+  return input.onStage || compositionTruthForTurn(input) != null;
 }
 
 export async function expressStageComposition(
   input: ExpressStageCompositionInput,
 ): Promise<StageCompositionProposeReceipt> {
-  if (!input.onStage) {
-    return receipt('offstage', 'Stage is not the room for this turn');
-  }
-  if (!input.truth) {
+  const truth = compositionTruthForTurn({ onStage: input.onStage, passTruth: input.truth });
+  if (!truth) {
     return receipt('no-reading', 'Stage did not report which presentation is up');
   }
-  const truth = input.truth;
 
   let reading: StageReading | null = null;
   try {
@@ -130,11 +139,11 @@ export async function expressStageComposition(
     return receipt('no-reading', error instanceof Error ? error.message : 'The Reading could not be loaded');
   }
   if (!reading || reading.items.length === 0) {
-    return receipt('no-reading', `${input.truth} has nothing to arrange`, { truth: input.truth });
+    return receipt('no-reading', `${truth} has nothing to arrange`, { truth });
   }
 
   const stage = await loadKeeperStage(input.domainId);
-  const previousId = stage.arrangements?.[input.truth]?.id ?? deterministicPassId(input.truth);
+  const previousId = stage.arrangements?.[truth]?.id ?? deterministicPassId(truth);
 
   const rendr = await prisma.kip_agents.findUnique({
     where: { slug: 'rendr' },
@@ -174,24 +183,24 @@ export async function expressStageComposition(
 
   const raced = await withDeadline(modelPromise, RENDR_COMPOSITION_TIMEOUT_MS);
   if (raced === 'timeout') {
-    return receipt('timeout', `${input.truth} · Rendr timed out`, { truth: input.truth, replacedId: previousId });
+    return receipt('timeout', `${truth} · Rendr timed out`, { truth, replacedId: previousId });
   }
   if (!raced.success || !raced.content.trim()) {
-    return receipt('model_failed', raced.error || 'Rendr did not compose', { truth: input.truth });
+    return receipt('model_failed', raced.error || 'Rendr did not compose', { truth });
   }
   const raw = compositionFromModelText(raced.content);
   if (raw == null) {
-    return receipt('no_expression', `${input.truth} · Rendr returned no composition`, { truth: input.truth });
+    return receipt('no_expression', `${truth} · Rendr returned no composition`, { truth });
   }
 
   const decision = decideStageComposition({
     raw,
     reading,
-    truth: input.truth,
+    truth,
     previousId,
     id: `comp-${Date.now().toString(36)}`,
   });
-  const message = decisionMessage(decision, input.truth);
+  const message = decisionMessage(decision, truth);
   if (decision.status !== 'applied') {
     return receipt(decision.status, message, {
       truth,
@@ -203,7 +212,7 @@ export async function expressStageComposition(
   const at = new Date().toISOString();
   await saveKeeperStage(input.domainId, {
     arrangements: {
-      [input.truth]: {
+      [truth]: {
         id: decision.composition.id,
         truth,
         composition: decision.composition,
@@ -215,7 +224,7 @@ export async function expressStageComposition(
   });
 
   return receipt('applied', message, {
-    truth: input.truth,
+    truth,
     compositionId: decision.composition.id,
     replacedId: decision.replacedId,
     summary: decision.summary,

@@ -23,11 +23,13 @@ These story surfaces must never be collapsed:
 
 | Term | What it is | Where it lives |
 |---|---|---|
-| **Stage** | The **room / screen**. Named composition of assets. How you look. Not the story. | `workspaceSurface: stage` + `Domain.settings.keeperStage`. First name: Keeper Stage |
+| **Dialog** | Where we speak, discover, and create together, through talk and visual expression. | The Dialog’s messages. A visual telling on a turn is `framePerformance` on that Lead message. The storage field for its Slides is `beats`. |
+| **Story** | A coherent telling shaped from what emerged, connected to its sources. Not every utterance. Not the Stage sequence. | `Domain.settings.stories`. Lead `story.save`. A capture points at a source. It does not silently copy that source. |
+| **Stage** | Where we experience and work with a telling in a composed, visual space. A saved Story is not required before work can be explored. | The room is `workspaceSurface: stage` plus `Domain.settings.keeperStage`. First name: Keeper Stage. |
+| **Stage sequence** | What Stage is showing now. Internal mechanism name: filmstrip. Not a second Story. | `Domain.settings.keeperStage.story`. Lead `stage.story.layout` replaces this sequence and does not save a Story. Replacing it must not be the only copy of created Slides. |
 | **Stage theme** | Inherit the domain Treatment and cover. May grow its own look from uploaded imagery (same palette pipeline). | `keeperStage.theme`. Not a Prisma Theme table. Composer Look → Chronicle |
-| **Story in development** | The **single** filmstrip being told on Stage. Agents lay it out. Not the Stage. Not yet a Prisma EntityKind. | `Domain.settings.keeperStage.story`. Lead `stage.story.layout`. Derived title + beat only until the first layout |
 | **Root** | The domain Cover — the frame that loads with the domain (`domain_cover`). Not a text title. | First cell on Stage. Same identity as `?frame=cover` |
-| **Slide** | One cell of the selected story after Forward. A **presentation of** a live beat, Point, Moment, Path, or Keeper. SlideType is the dress (`text_slide`, later `moment_card`, `path_index`) | Filmstrip after Root. Not the Cover |
+| **Slide** | How the work is expressed, in Dialog and on Stage. Not every reply. On a Dialog Frame the field is named `beats`. On Stage, a Slide may present a Point, Moment, Path, Keeper, Journey, or the Slides of a turn. | Dialog: `framePerformance.beats`. Stage: cells after the Cover in the Stage sequence. Dress today: `text_slide`. |
 | **Document Point** | A unit of **discussion** | Chronicle. Review & Reorganize. Stays on the Document until Keep lifts it |
 | **Moment / Path / Journey / Keeper** | Where **Kept** weight belongs — the narrative hierarchy | Point → Moment exists (`promoteDraftPoint`). Keep should also propose Keeper, Journey, Path so the Document is not the warehouse |
 | **Present** | Guest/read of what has been kept, first built on Stage | `PresentFrame` / SlideTypes. Stage is the first place to Shape toward Show |
@@ -38,7 +40,9 @@ These story surfaces must never be collapsed:
 - **Kept** — settle, and **unburden**. Lift weight that belongs in the hierarchy (Keeper, Journey, Path, Moment). The Document keeps what is still discussion.
 - **Presented** — one story, laid out on Stage, then shown.
 
-Stage is a room on the current Board, not `?board=stage`. The story in development is not the Stage. Selecting a Dialog still has a Chronicle Document — that reading is not a Stage and not a Story.
+Stage is a room on the current Board, not `?board=stage`. Selecting a Dialog still has a Chronicle Document — that reading is not a Stage and not a Story.
+
+Clarified by Chuck on 2026-10-12. Until then, this table called `keeperStage.story` the “story in development” and limited Slide to a filmstrip cell. Those sentences are superseded here. The October 12 wording is the product meaning. “Filmstrip” remains an internal name for the Stage sequence. The human remains Author. Rendr shapes the experience and does not take the Lead’s decision to present.
 
 ---
 

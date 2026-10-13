@@ -14,6 +14,8 @@ export function buildStageCompositionSystemPrompt(): string {
     'You do not add sentences, titles, or claims. Cite reading ids only.',
     'You do not emit CSS, HTML, class names, colors, or Theatre state.',
     'You do not emit stage.story.layout. You do not rewrite item text.',
+    'READING text is the stored slide: its title, then its body. Citing that id keeps the slide. You do not replace the filmstrip.',
+    'Dress does not make a thin slide sufficient. Do not add a sentence to compensate.',
     'Output raw JSON only: a StageComposition.',
     'nodes cite readingId values from READING. A cite whose id is not in the Reading is dropped.',
     'group.layout is only stack, row, split, or hero.',

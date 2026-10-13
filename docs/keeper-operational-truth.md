@@ -17,6 +17,32 @@ These are product-intent approvals. They are not implementation evidence.
 4. Ceox gets an Agency Core on the existing versioned structure. Advisory and challenge stay. Capabilities are the reads already allowed. Permissions were not widened for parity.
 5. A Dialog named Keeper Operational Truth exists on KE3P, scoped to the Domain owner (`available_to: ["keeper"]`, dialog `cmv04yrn50001otb8mwjrj0as`). The full document stays in this file. It was not copied to Library, because a Library item has no private flag. Proposed Points were written and then removed: the access check against `dialogAudienceWhere` passed (owner sees it; a second user does not; a null user does not), but the running API’s catalog and `dialog.read` do not use that filter yet. Point bodies wait until that code is what the API is running. Accepting a Point does not verify a requirement.
 
+## Decision recorded 2026-10-12
+
+Explicitly approved by Chuck. This governs how existing implementation is reconciled. It does not replace version 0.3, OT01–OT28, or PK01–PK14. It does not approve the implementation as a baseline.
+
+Build through an unfolding experience—and keep what emerges within reach.
+
+- **Dialog:** we speak, discover, and create together—through talk and visual expression.
+- **Story:** we shape what emerges into a coherent telling, connected to its sources.
+- **Stage:** we experience and work with that telling in a composed, visual space.
+- The same work stays connected and within reach throughout.
+- **Slides** help express it. **Rendr** shapes how we experience it.
+
+Not implied: every utterance becomes a Story, every reply becomes a Slide, or Stage requires a saved Story before any work can be explored. The human remains Author. Meaningful presentation stays under the human or the domain Lead.
+
+### Definitions this decision clarifies
+
+| Earlier wording | Where it stood | What this decision does |
+|---|---|---|
+| “Story in development” is the single filmstrip, stored at `keeperStage.story` | Glossary key distinctions, landed 2026-08-02. Repeated in `AGENTS.md`. | **Clarified.** That record is Stage’s current sequence. It is not the Story. “Filmstrip” may name the mechanism. It is not a product the human has to learn. |
+| A Slide is only one cell of that filmstrip after Forward | Same glossary row | **Clarified.** A Slide is how work is expressed, in Dialog and on Stage. On a Dialog Frame the storage field is named `beats`. That field name is not a second product object and was not a rename approved before this decision. |
+| “Only the cell is a Slide” | Working note “one Slide map,” later the same evening, marked not a contract | **Superseded as product language.** The note stays as implementation history. |
+| The filmstrip is not a Story | October 11 2026 section on the 9:47 PM layout | **Stands.** Consistent with this decision. |
+| A Story is ordered references in `settings.stories` (`story.save`) | OT11, Partial | **Stands.** This is the Story. Saving one remains explicit. |
+| Lead or human controls Frame promotion | OT10, Partial | **Stands.** Rendr still does not decide that a reply becomes a Slide. |
+| `stage.story.layout` replaces `keeperStage.story` and does not save a Story | Implementation. October 11 section records the 9:47 PM effect. | **The “no Story” part stands.** The full replace conflicts with “changing Stage content does not erase earlier created material.” Repair is proposed below. Not done. |
+
 ## Handoff
 
 - Objective: finish MVP continuity on KE3P without a new work system.
@@ -618,3 +644,136 @@ On Stage lists presences. It is not the Story and it is not the filmstrip.
 - Chronicle orientation, Slide Gloss on a live pass, OT16, OT19–OT22, the Section 16 cut, and the duplicate imported Points. Do not delete them.
 - The 163rd Point `63a70b4f-6745-446b-8006-b02480cd6817` stays `proposed`.
 - “New surface” remains a later Stage-and-Composer experience. This repair does not build it.
+
+## October 12 2026 — the slides can be read
+
+The five beats from the 9:47 turn are still `slide-1` through `slide-5` on `keeperStage.story`. This note is about reading them. It does not say those sentences are enough to express Operational Truth.
+
+### What was disconnected
+
+The Slide Reading existed. It kept the title and dropped the body. `projectStoryPass` set each item’s text to the title. The agent prompt listed titles and said to replace the sequence in order to lay it out. The compact environment omitted the body. `dialog.read` and `story.truth.read` do not return this filmstrip.
+
+The composition path also existed. Rendr cites Reading ids and Keeper stores an arrangement. That write does not replace `story.slides`. It ran only when the room was already Stage, and the filmstrip canvas did not use that Reading. A Dialog ask to arrange these slides never reached Rendr. The earlier “offstage” receipt was that gate.
+
+### What this repair changes
+
+- A slide’s Reading text is the stored title and the stored body.
+- The filmstrip prompt and the compact environment include that body and the id `slide:{id}`.
+- When Kip authorizes a composition in Dialog, Rendr arranges this filmstrip. On Stage, Rendr still arranges the pass that is up.
+- The save is `arrangements.story`. The five slides stay. A proposal that writes a new sentence onto a cite is stripped.
+- The filmstrip canvas cites those Reading ids and still plays the original slides.
+- The Lead is told that dress does not make a thin slide sufficient, and to say so when the sentences are not enough.
+
+### Layers
+
+| Layer | What this pass can say |
+|---|---|
+| Product intent | Rendr can read this sequence and arrange it. The arrangement is not a new telling, and it is not proof the slides express Operational Truth. |
+| Implementation | Reading text, prompt, compact environment, Dialog authorization, filmstrip canvas cite. No new Story. No slide rewrite. |
+| Tests | Shared story-pass test for the five titles and bodies. API composition test sends the body and saves an arrangement only. |
+| Deployment | Not deployed. Not pushed. |
+| Live behavior | Rendr was not called against the live domain in this pass. The next authorized turn can. |
+| Reload | `slide-1` through `slide-5` are unchanged by this repair. |
+
+### Still open
+
+- Whether these five bodies are sufficient. Typography, dress, and a cite do not answer that.
+- Signed-in walk of the filmstrip, Chronicle orientation, Slide Gloss, OT16, OT19–OT22, the Section 16 cut, and the duplicate imported Points.
+- The 163rd Point `63a70b4f-6745-446b-8006-b02480cd6817` stays `proposed`.
+- “New surface” remains later. This repair does not build it.
+
+## October 12 2026 — proposal only, not a contract
+
+The section “one Slide map” and a glossary edit made the same evening are not approval. The glossary edit was withdrawn. Slide, beat, filmstrip, and the two uses of “story” stay unresolved. OT01–OT28 and PK01–PK14 are unchanged. No product data was written. No code was changed in this pass. The five-slide read-and-cite repair remains bounded evidence.
+
+Proposal, for Chuck to accept or refuse: what a person sees is a Slide. The code field `beats` is not a product rename. `keeperStage.story` is the sequence now on the Stage screen. `settings.stories` is a Story of references. `stage.story.layout` may change the screen and must point each cell at its turn. It must not be the only copy, and it must not create a Story by itself. Rendr arranges and phrases through the existing Frame and arrangement paths. Cursor keeps those paths fed with the turn’s own slides. No new Slide type.
+
+The October 12 repair above is bounded evidence. The map that follows is a working note from that evening. It is not a contract.
+
+## October 12 2026 — one Slide map
+
+Working note only. Product language is the decision recorded above, approved by Chuck the same evening. Where this note says only a Stage cell is a Slide, or that the glossary already settled the words, those sentences are superseded.
+
+Meaning emerges in Dialog, stays within reach, can be shaped into Story, and is experienced on Stage. Three records already do that. They do not share one Slide type. They have diverged in what a “slide” is allowed to be. No new Slide type is added here.
+
+### Three records
+
+| | Dialog Frame | Stage filmstrip | Story |
+|---|---|---|---|
+| Meaning | What emerged on a turn | How a sequence is experienced on the Stage screen | What is being kept, in order |
+| Identity | `framePerformance` on the Lead message. `title` is the subject. `beats[]` are the telling. At most four. | `Domain.settings.keeperStage.story`. Cells are `StageStorySlide`. Cap 24. Root is the domain Cover (`domain_cover`). Later cells are `text_slide` beats. | `Domain.settings.stories`. A `KeeperStory` has material slots. A slot id is not the source id. Cap 24 stories, 24 slots. |
+| Source | Lead `resolvedMeaning`, plus selected Cast lines. Rendr phrases beats. Keeper stamps `promote` only when the Lead set `presentFrame` or the human asked for a Frame. | Optional `source`: `live`, `point`, `moment`, `path`, `keeper`, `journey`. The five Operational Truth cells have no source. That is allowed by the parser. The glossary now calls the missing source unfinished provenance. | A capture’s `sourceId` is the Lead message. Moment, Point, and message slots point at those objects. The excerpt is display. The source stays the authority. |
+| Persistence | Message metadata. Reload reads the same message. | `keeperStage.story`, replaced as a whole by Lead `stage.story.layout`. An arrangement lives beside it on `keeperStage.arrangements` and does not replace the cells. | `story.save`. It does not call `stage.story.layout`. |
+| Rendering | Dialog Frame when promoted. On Stage, a later filmstrip match covers the reply. Reopen uses the message. | Filmstrip screen and its navigation when the stored titles match a layout receipt. Otherwise the Stage composition walker. | Chronicle `StoryPresence`. Stories navigation. A filmstrip is not listed there. |
+| Composition | Rendr writes beats. Rendr does not set `promote`. | Lead writes cells. Rendr, when authorized, cites a Reading of those cells and stores an arrangement. Dress is not new sentences. | The human or Lead orders references. Rendr does not own this record. |
+
+### Where Rendr actually acts
+
+| Control | What it changes | What it must not change |
+|---|---|---|
+| Frame composition | Phrases `framePerformance` on the Lead message from resolved meaning. May recommend presentation. | `promote`, the Document, `stage.story.layout`. |
+| One Stage cell | When a Frame is stamped and the turn is already on Stage, one live-sourced filmstrip cell points at that Lead message. The beats stay on the message. | The rest of the filmstrip. A Dialog turn does not append that cell. |
+| Stage arrangement | Cites Reading ids. Saves `arrangements`. From Dialog, the Reading is the stored filmstrip. On Stage, it is the pass that is up. | Slide sentences. A cite that invents a body is stripped. |
+| `treatment.propose` | A look proposal: palette, type. A human Apply changes the domain Treatment. | Slide content, Story material, the filmstrip sequence. |
+
+`stage.story.layout` is Lead-only. It is content of the filmstrip, not Rendr’s composition. The October 11 layout that wrote `slide-1` through `slide-5` was Kip. Rendr did not compose that turn.
+
+### What authorized the filmstrip
+
+The glossary and the Stage record authorize one sequence on the Stage screen, after the Cover, laid out by the Lead. Taking a Story to Stage is the other authorized write: `storyMaterialToStageSlides` copies titles and excerpts onto filmstrip cells and keeps a source when the slot is a capture, message, moment, or point. That is a projection of a Story. It is not a second Story system.
+
+The October 12 read-and-arrange repair lets Rendr see those stored bodies and cite them. It does not make arrangement the way meaning becomes a Story, and it does not make an unsourced `text_slide` a kept object.
+
+### Overlap
+
+- A Frame beat and a filmstrip cell both have a title and a body. Only the cell is a Slide. The beat becomes reachable on Stage when a cell’s source is `live` and the id is the Lead message, or when someone lays the words into the filmstrip without a source.
+- A Story capture and a live-sourced cell can point at the same message. The Story keeps the reference. The filmstrip keeps the sequence now on screen.
+- “Story in development” in older glossary wording meant the filmstrip. A Story is `settings.stories`. The October 11 section already separated them. The glossary rows now say the same thing.
+
+### Smallest corrections
+
+Already in this working tree, and not a new subsystem:
+
+- Reading text includes the stored slide body. The prompt names `slide:{id}`.
+- An authorized Dialog composition arranges the filmstrip and does not replace it.
+- The glossary names Story, the filmstrip, a Dialog Frame beat, and a Slide as different records. An unsourced `text_slide` stays a `text_slide`.
+
+Not done, and not authorized by this map:
+
+- Stamping `slide-1` through `slide-5` with sources they do not have.
+- Treating the arrangement as proof the sentences express Operational Truth.
+- A new Slide type, a new Story store, or a replacement of Frame, filmstrip, or Story.
+
+### Still open, carried forward
+
+- Signed-in walk of Frame reopen and of `slide-1` through `slide-5`.
+- Chronicle orientation, Slide Gloss, OT16, OT19–OT22, the Section 16 cut, and the duplicate imported Points.
+- Point `63a70b4f-6745-446b-8006-b02480cd6817` stays `proposed`.
+- Whether the five bodies are sufficient.
+- “New surface” remains later.
+
+## October 12 2026 — where the five Slide bodies live
+
+Read-only. Domain `9b0989f6-2fe4-4aa6-9c8a-f49a2516e7f9`. Lead message `210571b1-3995-4a83-b82f-8f9d79057589`. No Frame on that message. No arrangements on the Stage record.
+
+| Place | Bodies |
+|---|---|
+| `keeperStage.story` cells `slide-1` … `slide-5` | Yes. Lengths 133, 122, 153, 154, 214. No source. |
+| That message’s content | No exact body. |
+| That message’s metadata | No. The layout receipt has titles, a rationale, and `slideCount`. Not the bodies. Not slide ids. |
+| Story `already-in-progress` | No. |
+
+The bodies have one durable home: the current Stage sequence. A later `stage.story.layout` would erase them. Pointing those cells at the message would not preserve them, because the message does not hold them. No Story was saved. No provenance was added.
+
+### Correction plan — not implemented
+
+Approved meaning stays as decided above. The choices below are technical. They wait for review.
+
+1. Copy the five existing bodies, with their current ids and titles, onto the layout receipt of `210571b1`. That is the originating turn. It is not a Frame and not a Story.
+2. After that copy exists, the Stage cells may record `source: { kind: "live", id: "210571b1-3995-4a83-b82f-8f9d79057589" }` plus the slide id. Not before.
+3. Going forward, a successful `stage.story.layout` stores each slide’s id, title, and body on that turn’s receipt before it replaces `keeperStage.story`. The previous sequence’s bodies stay on the turn that wrote them.
+4. `story.save` stays explicit. Do not create a Story for these five.
+5. Rendr reads the turn’s Slides once they are on the message, and can already read the Stage sequence. Arrangement still cites and does not rewrite sentences. Frame promotion stays with the human or the Lead.
+6. Gloss stays on a Dialog Frame Slide. These five have no Frame, so Gloss does not apply to them yet.
+
+No new Slide type. No new product name. Filmstrip stays the internal name of the Stage sequence.

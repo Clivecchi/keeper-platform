@@ -590,12 +590,15 @@ export function buildKeeperStagePrompt(
     );
   }
   if (hasStory && stage.story) {
-    lines.push('Current filmstrip (replace the whole sequence when you lay it out again):');
+    lines.push('Current filmstrip (stored sequence — read these slides; a composition cites them and does not replace them):');
     for (const [index, slide] of stage.story.slides.entries()) {
+      const readingId = slide.kind === 'root' ? 'root' : `slide:${slide.id}`;
       const source = slide.source
         ? ` [${slide.source.kind}${slide.source.id ? `:${slide.source.id}` : ''}]`
         : '';
-      lines.push(`  ${index + 1}. ${slide.kind} “${slide.title}”${source}`);
+      lines.push(`  ${index + 1}. ${readingId} ${slide.kind} “${slide.title}”${source}`);
+      const body = slide.body.trim();
+      if (body && body !== slide.title.trim()) lines.push(`     ${body}`);
     }
   } else {
     lines.push('The selected story is not laid out yet. Keeper already places the domain Root (Cover). Your slides are what Forward opens.');
@@ -604,7 +607,7 @@ export function buildKeeperStagePrompt(
     'Selecting an object on Stage may set Working on without changing Talking in.',
     'Contextual stage role/direction is who the Agent is here — it does not redefine Base Agency.',
     'Do not invent objects that are not on this Stage or in Talking in / Working on.',
-    'stage.story.layout is available to the Lead when composing the filmstrip. Payload: { rationale?, slides: [{ title, body?, source?: { kind: live|point|moment|path|keeper|journey, id? } }] }. Slides are text_slide beats after Forward. Do not emit the domain Cover / Root. Not a Document write. Review & Reorganize remains for the Document only.',
+    'Reading this filmstrip is not a layout. stage.story.layout is available to the Lead only when replacing the sequence. Payload: { rationale?, slides: [{ title, body?, source?: { kind: live|point|moment|path|keeper|journey, id? } }] }. Slides are text_slide beats after Forward. Do not emit the domain Cover / Root. Not a Document write. Review & Reorganize remains for the Document only.',
     'Stage presence does not require a mutation. Conversation, advice, or no action is a valid successful turn. Emit stage.story.layout only when you are actually laying out the story.',
   );
   return lines.join('\n');

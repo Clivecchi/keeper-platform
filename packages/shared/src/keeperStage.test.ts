@@ -104,6 +104,7 @@ describe('buildKeeperStagePrompt', () => {
     expect(buildKeeperStagePrompt(stage, 'livecchi.biz')).toContain('Stage: “livecchi.biz Stage”');
     expect(prompt).toContain('single story on this screen');
     expect(prompt).toContain('stage.story.layout is available');
+    expect(prompt).toContain('Reading this filmstrip is not a layout');
     expect(prompt).not.toContain('Emit stage.story.layout this turn');
     expect(prompt).toContain('does not require a mutation');
     expect(prompt).toContain('Conversation, advice, or no action is a valid successful turn');
@@ -113,6 +114,16 @@ describe('buildKeeperStagePrompt', () => {
     expect(prompt).toContain('Agent “Kip”');
     expect(prompt).toContain('stage role: Lead');
     expect(prompt).toContain('Keep the Re-Center honest');
+  });
+
+  it('includes the stored slide body in the reading', () => {
+    const stage = parseKeeperStage({
+      story: { slides: [{ id: 'slide-1', title: 'Bring Something Unfinished', body: 'An unfinished thing is the start.' }] },
+    });
+    const prompt = buildKeeperStagePrompt(stage);
+    expect(prompt).toContain('slide:slide-1');
+    expect(prompt).toContain('An unfinished thing is the start.');
+    expect(prompt).toContain('does not replace them');
   });
 
   it('is silent when the Stage is empty', () => {

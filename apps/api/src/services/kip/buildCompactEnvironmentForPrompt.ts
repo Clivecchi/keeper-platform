@@ -102,7 +102,7 @@ export type CompactEnvironmentForPrompt = {
       direction?: string | null;
     }>;
     story?: {
-      slides: Array<{ id: string; kind: string; title: string }>;
+      slides: Array<{ id: string; kind: string; title: string; body?: string }>;
     } | null;
   };
   agentContext?: Record<string, unknown>;
@@ -328,10 +328,12 @@ export function buildCompactEnvironmentForPrompt(
               .map((entry) => {
                 const row = asRecord(entry);
                 if (!row || typeof row.title !== 'string') return null;
+                const body = typeof row.body === 'string' ? row.body.trim() : '';
                 return {
                   id: typeof row.id === 'string' ? row.id : row.title,
                   kind: typeof row.kind === 'string' ? row.kind : 'beat',
                   title: row.title,
+                  ...(body && body !== row.title.trim() ? { body } : {}),
                 };
               })
               .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
