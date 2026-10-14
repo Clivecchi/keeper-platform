@@ -26,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-13 — Cloud is not cut off at 110 seconds
+- Anthropic calls stream, and the budget is 170 seconds. Text that already arrived is kept if the budget ends. A Cast specialist uses that stream, so the connection is open while Cloud is still writing.
+
 ### 2026-10-10 — A commit SHA is not a branch
 - `GitHubService.ts` resolves a 7–40 hex ref through the commit API. A missing commit says it is not on GitHub yet. A file read returns one window and the next offset.
 

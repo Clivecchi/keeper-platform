@@ -131,8 +131,10 @@ const IMAGE_GEN_MAX_RETRIES = 3;
 
 /**
  * Per-provider chat completion budgets.
- * Vercel external rewrites wait ~120s for first byte — keep single-call caps under that,
- * and leave room for env resolve + actions + optional read follow-up in the same request.
+ * A blocking response has to finish before the Vercel rewrite gives up.
+ * Anthropic calls stream, and Cast specialist runs use that stream, so the
+ * first byte is immediate. Cloud's directed calls were aborted at 110s with
+ * no text. The Anthropic budget has to outlast that wall.
  * Override with MODEL_TIMEOUT_OPENAI_MS / MODEL_TIMEOUT_ANTHROPIC_MS / MODEL_TIMEOUT_TOGETHER_MS.
  */
 function readTimeoutMs(envName: string, fallbackMs: number): number {
@@ -144,8 +146,14 @@ function readTimeoutMs(envName: string, fallbackMs: number): number {
 }
 
 const OPENAI_MODEL_TIMEOUT_MS = readTimeoutMs('MODEL_TIMEOUT_OPENAI_MS', 90_000);
-const ANTHROPIC_MODEL_TIMEOUT_MS = readTimeoutMs('MODEL_TIMEOUT_ANTHROPIC_MS', 110_000);
+export const ANTHROPIC_MODEL_TIMEOUT_MS = readTimeoutMs('MODEL_TIMEOUT_ANTHROPIC_MS', 170_000);
 const TOGETHER_MODEL_TIMEOUT_MS = readTimeoutMs('MODEL_TIMEOUT_TOGETHER_MS', 90_000);
+
+/** Text already streamed when the Anthropic budget ends. Empty means the call failed. */
+export function keepAnthropicPartial(text: string): string | null {
+  const kept = text.trim();
+  return kept ? kept : null;
+}
 
 function isAbortTimeoutError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
@@ -397,6 +405,7 @@ class AnthropicProvider {
       );
     }
 
+    const partial = { text: '' };
     try {
       const { default: Anthropic } = await import('@anthropic-ai/sdk');
 
@@ -429,7 +438,7 @@ class AnthropicProvider {
           stopReason?: string | null
         }
       > => {
-        if (streamText && onDelta) {
+        if (streamText) {
           const stream = await client.messages.create(
             { ...params, stream: true } as any,
             { signal: controller.signal },
@@ -449,7 +458,8 @@ class AnthropicProvider {
               && event.delta.text.length > 0
             ) {
               textContent += event.delta.text;
-              onDelta(event.delta.text);
+              partial.text += event.delta.text;
+              onDelta?.(event.delta.text);
             }
             if (event.type === 'message_delta' && typeof event.delta?.stop_reason === 'string') {
               stopReason = event.delta.stop_reason;
@@ -539,6 +549,14 @@ class AnthropicProvider {
       }
     } catch (error) {
       if (isAbortTimeoutError(error)) {
+        const kept = keepAnthropicPartial(partial.text);
+        if (kept) {
+          return {
+            success: true,
+            content: kept,
+            model: settings.model,
+          };
+        }
         console.error(`Anthropic API timeout after ${ANTHROPIC_MODEL_TIMEOUT_MS}ms`);
         throw new ModelProviderException(
           'TIMEOUT',

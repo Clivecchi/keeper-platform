@@ -243,7 +243,7 @@ export async function runProgressiveCastRoom(params: {
     let rawActions: unknown[] = []
     try {
       const castAgent = await KipApi.getAgentBySlug(voice.slug)
-      const castResult = await KipApi.runAgent(
+      const castResult = await KipApi.runAgentStream(
         castAgent.id,
         `${buildCastDelegationPrompt({
           userMessage: params.userMessage,
