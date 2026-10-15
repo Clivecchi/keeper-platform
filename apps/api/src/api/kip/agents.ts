@@ -7935,25 +7935,27 @@ export class KipAgentService {
           if (!leadModelInput.trim() && cc.userMessage.trim()) {
             leadModelInput = cc.userMessage.trim();
           }
-          castVoicesForPersist = labeled.flatMap((row) => {
-            const speech = row.reply?.trim() ?? '';
-            if (row.status === 'failed' && !speech && !row.card) {
+          castVoicesForPersist = labeled.flatMap(
+            (row): NonNullable<typeof castVoicesForPersist> => {
+              const speech = row.reply?.trim() ?? '';
+              if (row.status === 'failed' && !speech && !row.card) {
+                return [{
+                  slug: row.slug,
+                  attributedTo: row.label,
+                  content: `${row.label} couldn't respond this turn.`,
+                  status: 'failed',
+                }];
+              }
+              if (!speech && !row.card) return [];
               return [{
                 slug: row.slug,
                 attributedTo: row.label,
-                content: `${row.label} couldn't respond this turn.`,
-                status: 'failed' as const,
+                content: speech || row.card?.title || '',
+                status: 'ok',
+                ...(row.card ? { card: row.card } : {}),
               }];
-            }
-            if (!speech && !row.card) return [];
-            return [{
-              slug: row.slug,
-              attributedTo: row.label,
-              content: speech || row.card?.title || '',
-              status: 'ok' as const,
-              ...(row.card ? { card: row.card } : {}),
-            }];
-          });
+            },
+          );
           if (!castVoicesForPersist.length) castVoicesForPersist = undefined;
           // Prefer equal castVoices in UI; keep firstOk delegation for older clients.
           const firstOk = labeled.find((row) => row.status === 'ok' && (row.reply || row.card));

@@ -32,6 +32,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-10-14: Cast voice cards saved from a consultation use one shared shape, so an ok voice and a failed voice type-check together. The API build was failing on that mismatch.
 - 2026-10-14: A request to create a named Story directs the Lead to `story.truth.read` and `story.save` under that title. If the Lead only describes the story, the turn still reads the packet and saves. A saved Story keeps a capture when the Frame is not composed.
 - 2026-10-14: A silent Agency reply is not spoken. A kept Point can still be the Dialog line. An agent who said nothing does not get a line that says so. Receipts stay on the turn.
 - 2026-10-13: A streamed Lead result omits the composed prompt and raw model text so the done event can finish.
