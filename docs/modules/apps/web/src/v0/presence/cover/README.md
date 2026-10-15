@@ -66,6 +66,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-10-14 — Addresses example and automatic Keeper host
+- Custom domain example text uses this Domain’s tag (`northstar.com`), not a fixed brand.
+- Addresses registers a missing `{slug}.keeper.domains` host on its own. Try again appears only after that registration fails.
+
 ### 2026-09-27 — Agent chat model follows provider
 - Config asks for provider, then the pinned chat model. Together shows Llama 3.3 70B and notes that FLUX is not this menu.
 

@@ -347,12 +347,23 @@ export interface CreateDomainPayload {
   description?: string
 }
 
-interface CreateDomainResponse {
-  domain?: ApiDomainRow & { id?: string }
+export interface KeeperHostSetup {
+  hostname: string | null
+  attached: boolean
   error?: string
 }
 
-export async function createDomain(payload: CreateDomainPayload): Promise<ApiDomainRow> {
+interface CreateDomainResponse {
+  domain?: ApiDomainRow & { id?: string }
+  keeperHost?: KeeperHostSetup
+  error?: string
+}
+
+export interface CreatedDomain extends ApiDomainRow {
+  keeperHost?: KeeperHostSetup
+}
+
+export async function createDomain(payload: CreateDomainPayload): Promise<CreatedDomain> {
   const body = {
     name: payload.name.trim(),
     ...(payload.slug?.trim() ? { slug: payload.slug.trim() } : {}),
@@ -372,6 +383,34 @@ export async function createDomain(payload: CreateDomainPayload): Promise<ApiDom
     throw new Error(message)
   }
 
+  let keeperHost = data.keeperHost
+  if (!keeperHost?.attached && data.domain.id) {
+    try {
+      const hosted = (await apiFetch(
+        `/api/domains/custom/${encodeURIComponent(data.domain.id)}/keeper-host`,
+        { method: "POST" },
+      )) as { success?: boolean; hostname?: string; error?: string; attached?: boolean }
+      if (hosted.success === false) {
+        keeperHost = {
+          hostname: hosted.hostname ?? keeperHost?.hostname ?? null,
+          attached: false,
+          error: hosted.error || keeperHost?.error || "The Keeper address could not be registered.",
+        }
+      } else {
+        keeperHost = {
+          hostname: hosted.hostname ?? keeperHost?.hostname ?? null,
+          attached: hosted.attached !== false,
+        }
+      }
+    } catch (err) {
+      keeperHost = {
+        hostname: keeperHost?.hostname ?? null,
+        attached: false,
+        error: err instanceof Error ? err.message : keeperHost?.error,
+      }
+    }
+  }
+
   invalidateDomainSwitcherCache()
-  return data.domain
+  return { ...data.domain, keeperHost }
 }

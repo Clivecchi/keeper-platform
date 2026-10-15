@@ -32,6 +32,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-10-14 — Silence is not a voice card
+- `useAgentDialog` does not paint a cast card whose only line is that the agent said nothing. A failed consult still says they could not respond. Receipts stay on the turn.
+
 ### 2026-10-13 — A lost stream reloads the saved reply
 - If the Lead stream closes without a result, `useAgentDialog` reloads the session. A saved agent reply replaces the failure. An empty session still reports the stream error.
 

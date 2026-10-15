@@ -190,6 +190,18 @@ describe('buildCastConsultationsSynthesisPrompt', () => {
     expect(prompt).toMatch(/Do NOT treat "I will give you the report" as delivery/);
   });
 
+  it('does not ask the Lead to announce a silent cast member', () => {
+    const prompt = buildCastConsultationsSynthesisPrompt({
+      userMessage: 'What do you think?',
+      directorName: 'Northstar',
+      consultations: [{ label: 'Kip', reply: null, status: 'empty' }],
+    });
+    expect(prompt).toMatch(/did not speak/i);
+    expect(prompt).toMatch(/Do not announce/i);
+    expect(prompt).not.toMatch(/say you got nothing back/i);
+    expect(prompt).toMatch(/If that silence changes the answer/i);
+  });
+
   it('tells Lead that empty prose with receipts is the contribution', () => {
     const prompt = buildCastConsultationsSynthesisPrompt({
       userMessage: 'Cloud, inspect the mobile Enter handler',

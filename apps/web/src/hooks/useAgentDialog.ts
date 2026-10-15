@@ -39,6 +39,7 @@ import {
   buildInstrumentUnavailableDelegationBeat,
   extractActionResultsFromRunResult,
   extractAgentReplyFromRunResult,
+  isAgentSilenceNotice,
   isDirectorDelegationFailureContent,
   mergeCastAndLeadActionResults,
   resolveDirectorCastMember,
@@ -506,11 +507,14 @@ export function extractRunAgentPayload(result: unknown): {
       rawStatus === "ok" || rawStatus === "failed" || rawStatus === "empty"
         ? rawStatus
         : undefined
-    const content = typeof d.content === "string" ? d.content.trim() : ""
+    const rawContent = typeof d.content === "string" ? d.content.trim() : ""
+    const content = isAgentSilenceNotice(rawContent) ? "" : rawContent
     const attributedTo = typeof d.attributedTo === "string" ? d.attributedTo : undefined
     const card = parseKeeperAdviceCard(d.card)
 
-    if (status === "failed" || status === "empty") {
+    if (status === "empty" && !content && !card) {
+      directorDelegation = undefined
+    } else if (status === "failed") {
       directorDelegation = {
         content:
           content ||
@@ -1711,36 +1715,31 @@ export function useAgentDialog({
         // stand alone instead of nesting inside Kip's synthesis.
         const castVoices: Array<DirectorDelegationBeat & { slug: string }> | undefined =
           castConsultations?.consultations.length
-            ? castConsultations.consultations.map((row) => {
+            ? castConsultations.consultations.flatMap((row) => {
                 const label =
                   liveDirectorConfig?.castLabels[row.instrumentSlug]
                   ?? row.instrumentSlug
-                const reply = row.instrumentReply?.trim() ?? ""
+                const replyRaw = row.instrumentReply?.trim() ?? ""
+                const reply = isAgentSilenceNotice(replyRaw) ? "" : replyRaw
                 const card = parseKeeperAdviceCard(row.instrumentCard)
-                const receiptCount = row.actionResults?.length ?? 0
-                if (row.status === "ok" && (reply || card || receiptCount > 0)) {
-                  return {
+                if (reply || card) {
+                  return [{
                     slug: row.instrumentSlug,
                     attributedTo: label,
-                    content: reply || card?.title || `${label} returned action receipts.`,
+                    content: reply || card?.title || "",
                     status: "ok" as const,
                     ...(card ? { card } : {}),
-                  }
+                  }]
                 }
                 if (row.status === "failed") {
-                  return {
+                  return [{
                     slug: row.instrumentSlug,
                     attributedTo: label,
                     content: `${label} couldn't respond this turn.`,
                     status: "failed" as const,
-                  }
+                  }]
                 }
-                return {
-                  slug: row.instrumentSlug,
-                  attributedTo: label,
-                  content: reply || `${label} returned nothing this turn.`,
-                  status: "empty" as const,
-                }
+                return []
               })
             : undefined
 

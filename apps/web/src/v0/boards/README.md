@@ -42,6 +42,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## ?? Update Log
 
+### 2026-10-14 — Silence is not a reply
+- `directorDialog.ts` treats “didn’t return a reply” and “returned nothing” as non-speech. The Lead is not told to announce that silence.
+
 ### 2026-10-08 — Receipts survive an empty specialist reply
 - `directorDialog.ts` `selectProgressiveRoomConsultations` keeps receipt-bearing and failed room rows. A bare empty offer stays off the Lead present pass.
 
@@ -941,6 +944,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `castRoomTurn.ts` sends the current attachments to the direction pass and the specialist. When the human refers to a previous prompt, that sentence is in the assignment and is not replaced by the trail.
 
 ## 📆 Update Log
+- 2026-10-14: A failed Dialog add stays visible in the room instead of disappearing.
 - 2026-10-13: A Cast specialist call streams, so Cloud can finish past the old 110-second cutoff.
 - 2026-10-13: A directed contribution reports its aim, then its result. The check names who is being checked.
 - 2026-10-12: While a turn is sending, the work slide follows the live step. The highlighted cast chip is not shown as the person working.

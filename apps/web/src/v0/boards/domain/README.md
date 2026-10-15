@@ -34,6 +34,9 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## ?? Update Log
 
+### 2026-10-14 ? Domain create registers the Keeper address
+- `createDomain` asks the server to register `{slug}.keeper.domains` as part of setup, then retries the host call once if that did not stick. The add panel opens the Domain when the address is live, and stays open with the reason when registration failed.
+
 ### 2026-09-17 — Add TypeSafe (or any) MCP key
 - Add-key form moved to the top of External Access with a `+` and a real **Add key** submit (Enter works). New keys are labeled freely (TypeSafe, Claude, Cursor…) and mint Library + Dialog + Gloss scopes. Secret stays on the form until copied.
 

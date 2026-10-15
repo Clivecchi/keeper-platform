@@ -119,10 +119,11 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
     `The user addressed ${params.instrumentLabel} on the Build board.`,
     `"${params.userMessage}"`,
     "",
-    `${params.instrumentLabel} did not return a reply this turn (delegation empty or failed).`,
+    `${params.instrumentLabel} did not speak this turn (delegation empty or failed).`,
     "",
-    `Reply as Lead (${params.directorName}). Be honest about the empty consultation.`,
-    `- Say plainly that you reached out to ${params.instrumentLabel} and got nothing back.`,
+    `Reply as Lead (${params.directorName}).`,
+    `- Do not announce that ${params.instrumentLabel} said nothing.`,
+    `- If that silence changes the answer, say so in your own reply.`,
     `- Do NOT invent, paraphrase, or role-play ${params.instrumentLabel}'s voice or opinion.`,
     `- Do NOT claim ${params.instrumentLabel} said, decided, or agreed to anything.`,
     `- Answer the user's question from your own knowledge only, and mark that clearly if you do.`,
@@ -151,7 +152,7 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     if (row.status === "ok" && row.reply?.trim()) {
       lines.push(`- ${row.label}: "${row.reply.trim()}"`)
     } else {
-      lines.push(`- ${row.label}: (nothing returned — say you got nothing back)`)
+      lines.push(`- ${row.label}: (no reply — they did not speak. Do not announce that.)`)
     }
   }
   lines.push(
@@ -160,7 +161,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     "- The Dialog UI already shows each cast member's real reply as their own voice card.",
     "- Your reply is Lead synthesis only — do NOT re-quote or roll-call their full answers.",
     "- Attribute a stance to a cast member ONLY when a real reply is listed above.",
-    "- If a cast member returned nothing, say plainly you got nothing back from them.",
+    "- A cast member who returned nothing did not speak. Do not invent their line, and do not announce that they said nothing.",
+    "- If that silence changes the answer, say so in your own reply.",
     "- Never invent, paraphrase-as-quote, or fabricate another agent's words.",
     "- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.",
     "- When the user asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.",
@@ -241,6 +243,21 @@ export function isDirectorDelegationFailureContent(content: string): boolean {
 }
 
 /**
+ * A line whose only job is to announce that an agent did not speak.
+ * Silence is not a reply. The lead's own reply is where a note belongs, when one is useful.
+ */
+export function isAgentSilenceNotice(content: string): boolean {
+  const trimmed = content.trim()
+  if (!trimmed || trimmed.includes("\n")) return false
+  return (
+    /didn['’]t return a reply on this turn\.?$/i.test(trimmed)
+    || /did not return a reply(?: on this turn)?\.?$/i.test(trimmed)
+    || /returned nothing this turn\.?$/i.test(trimmed)
+    || /^cast consultation returned nothing/i.test(trimmed)
+  )
+}
+
+/**
  * Echo / Kip support is offstage unless it returned real substance.
  * Empty and failed must not paint a voice card or `_(failed)_`.
  */
@@ -262,12 +279,14 @@ const RAW_ACTION_JSON_PATTERN =
 export function sanitizeAgentMessageContent(content: string): string {
   const trimmed = content.trim()
   if (!trimmed) return trimmed
+  if (isAgentSilenceNotice(trimmed)) return ""
   if (RAW_ACTION_JSON_PATTERN.test(trimmed)) return ""
   const withoutExecutorLeak = trimmed
     .replace(/\s*I attempted draft work, but it did not complete:[\s\S]*$/i, "")
     .replace(/\s*I attempted an action, but it failed:[\s\S]*$/i, "")
     .replace(/\s*I could not add Points:[^\n]*$/i, "")
     .split(/\n\n+/)
+    .filter((paragraph) => !isAgentSilenceNotice(paragraph))
     .filter((paragraph) => !/prisma\.|Error creating UUID|Inconsistent column data|invalid prisma|EXECUTION_ERROR/i.test(paragraph))
     .join("\n\n")
     .trim()

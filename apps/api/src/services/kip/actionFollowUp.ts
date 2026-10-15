@@ -613,7 +613,8 @@ export function buildReadActionFollowUpInput(params: {
       'Stay in the performance as Lead. Use ONLY the real results above.',
       'Do not summarize the room. Recognize what the scene was about and move it forward.',
       '- Attribute a quote only when a real reply is present.',
-      '- If a cast member returned nothing, say plainly you got nothing back from them.',
+      '- A cast member who returned nothing did not speak. Do not announce that they said nothing.',
+      '- If that silence changes the answer, say so in your own reply.',
       '- Never invent another agent\'s words.',
       '- Do NOT call delegate.consult again in this follow-up.',
     ].join('\n');

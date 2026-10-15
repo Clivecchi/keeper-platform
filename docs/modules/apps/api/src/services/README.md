@@ -26,6 +26,9 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+### 2026-10-14 — Silence is not a reply
+- `directorDialog.ts` no longer tells the Lead to announce that a cast member said nothing. If the silence changes the answer, that note belongs in the Lead's own reply.
+
 ### 2026-10-13 — Cloud is not cut off at 110 seconds
 - Anthropic calls stream, and the budget is 170 seconds. Text that already arrived is kept if the budget ends. A Cast specialist uses that stream, so the connection is open while Cloud is still writing.
 

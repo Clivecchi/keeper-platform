@@ -577,6 +577,7 @@ export function UniversalConversation({
   const [roomArrival, setRoomArrival] = React.useState<DialogArrivalContext | null>(null)
   const [roomMembers, setRoomMembers] = React.useState<Array<{ userId: string; name: string }>>([])
   const [roomRevision, setRoomRevision] = React.useState(0)
+  const [roomNotice, setRoomNotice] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!domainId || !selectedDialogId) {
@@ -623,14 +624,20 @@ export function UniversalConversation({
   const handleAddRoomPerson = React.useCallback(
     async (userId: string) => {
       if (!domainId || !selectedDialogId || !userId.trim()) return
+      setRoomNotice(null)
       try {
         await apiFetch(
           `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}/human-members`,
           { method: "POST", body: JSON.stringify({ userId }) },
         )
         setRoomRevision((n) => n + 1)
-      } catch {
-        // Domain write is required to add a person.
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not add this person to the Dialog."
+        setRoomNotice(
+          message.includes("DOMAIN_MEMBER_REQUIRED")
+            ? "They need to be on this Domain before they can enter the Dialog. Invite them from People."
+            : message,
+        )
       }
     },
     [domainId, selectedDialogId],
@@ -655,6 +662,7 @@ export function UniversalConversation({
       domainMembers={roomMembers}
       onOpenPath={(path) => navigate(path)}
       onAddPerson={(userId) => { void handleAddRoomPerson(userId) }}
+      notice={roomNotice}
       onRemovePerson={
         user?.id
           ? (userId) => {

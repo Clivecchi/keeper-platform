@@ -16,6 +16,7 @@ export interface DialogRoomPrefaceProps {
   onOpenPath: (path: string) => void
   onAddPerson?: (userId: string) => void
   onRemovePerson?: (userId: string) => void
+  notice?: string | null
 }
 
 const chipStyle: React.CSSProperties = {
@@ -37,6 +38,7 @@ export function DialogRoomPreface({
   onOpenPath,
   onAddPerson,
   onRemovePerson,
+  notice,
 }: DialogRoomPrefaceProps) {
   const [addUserId, setAddUserId] = React.useState("")
   const present = new Set(people.map((person) => person.userId))
@@ -201,6 +203,12 @@ export function DialogRoomPreface({
             Add
           </button>
         </form>
+      ) : null}
+
+      {notice ? (
+        <p className="mt-2 text-[12px]" style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}>
+          {notice}
+        </p>
       ) : null}
     </section>
   )

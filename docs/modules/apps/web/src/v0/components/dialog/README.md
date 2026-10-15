@@ -79,6 +79,7 @@ All zones are direct flex children of `.keeper-dialog-frame`. The Broadcast Stri
 - [x] When `isSending` is true, working status renders in `DialogWorkFrame`; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-10-14: Adding a person to a Dialog shows the failure when they are not on the Domain yet.
 - 2026-10-13: The work slide keeps the current aim and the three lines before it. A long step stays named instead of collapsing to “still contributing.”
 - 2026-10-12: The work slide no longer titles itself with the highlighted cast chip. A name appears when the live line says that voice is working.
 - 2026-10-11: A Stage filmstrip can be left with Back to this turn. A reply slide renders keeper-card markup as a card.

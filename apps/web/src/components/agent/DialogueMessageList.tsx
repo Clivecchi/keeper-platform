@@ -18,7 +18,7 @@ import type { AgentDialogueMessage, DialogResponseEcho } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
 import { getAgentErrorPresentation } from "./errorPresentation"
-import { isDirectorDelegationFailureContent, sanitizeAgentMessageContent } from "../../v0/boards/directorDialog"
+import { isAgentSilenceNotice, isDirectorDelegationFailureContent, sanitizeAgentMessageContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 import { GlossSurface } from "../gloss/GlossSurface"
 import { buildMessageGlossAnchor, displayDraftHostTitle, formatCastRoomTraceLine, promotedDialogFrame, type DraftPoint } from "@keeper/shared"
@@ -101,8 +101,9 @@ function visibleDelegationBeat(
   delegation: DialogResponseEcho | undefined,
 ): DialogResponseEcho | null {
   if (!delegation) return null
-  const content = delegation.content?.trim()
-  if (delegation.status === "failed" || delegation.status === "empty") {
+  const content = delegation.content?.trim() ?? ""
+  if (delegation.status === "empty" || isAgentSilenceNotice(content)) return null
+  if (delegation.status === "failed") {
     return {
       ...delegation,
       content:
@@ -459,8 +460,9 @@ function AgentMessageTurn({
   currentLayoutMessageId?: string | null
 }) {
   const castVoices = (message.castVoices ?? []).filter((voice) => {
-    const content = voice.content?.trim()
-    if (!content) return voice.status === "failed" || voice.status === "empty"
+    const content = voice.content?.trim() ?? ""
+    if (isAgentSilenceNotice(content)) return Boolean(voice.card)
+    if (!content) return voice.status === "failed"
     return !isDirectorDelegationFailureContent(content)
   })
   const delegation =
@@ -502,24 +504,33 @@ function AgentMessageTurn({
       && !message.chronicleChip
       && !message.keepingChoices?.length
     ) {
+      if (!message.actionResults?.length && !message.roomTrace?.length) return null
       return (
-        <MessageAttachments
-          message={message}
-          onOpenDraft={onOpenDraft}
-          onOpenMoment={onOpenMoment}
-          onOpenJourney={onOpenJourney}
-          onOpenLibraryItem={onOpenLibraryItem}
-          onKeepAsMoment={onKeepAsMoment}
-          onConfirmDraftUpdate={onConfirmDraftUpdate}
-          onApplyTreatmentProposal={onApplyTreatmentProposal}
-          applyingTreatmentProposal={applyingTreatmentProposal}
-          onOpenPoint={onOpenPoint}
-          conversationDialogTitle={conversationDialogTitle}
-          talkingDialogId={talkingDialogId}
-          onAcceptDraftPoint={onAcceptDraftPoint}
-          acceptedDraftPointIds={acceptedDraftPointIds}
-          acceptingDraftPointId={acceptingDraftPointId}
-        />
+        <div className="max-w-xl min-w-0">
+          <MessageAttachments
+            message={message}
+            onOpenDraft={onOpenDraft}
+            onOpenMoment={onOpenMoment}
+            onOpenJourney={onOpenJourney}
+            onOpenLibraryItem={onOpenLibraryItem}
+            onKeepAsMoment={onKeepAsMoment}
+            onConfirmDraftUpdate={onConfirmDraftUpdate}
+            onApplyTreatmentProposal={onApplyTreatmentProposal}
+            applyingTreatmentProposal={applyingTreatmentProposal}
+            onOpenPoint={onOpenPoint}
+            conversationDialogTitle={conversationDialogTitle}
+            talkingDialogId={talkingDialogId}
+            onAcceptDraftPoint={onAcceptDraftPoint}
+            acceptedDraftPointIds={acceptedDraftPointIds}
+            acceptingDraftPointId={acceptingDraftPointId}
+          />
+          <MessageSenderFooter
+            name={resolvedAgentName}
+            variant="agent"
+            timestamp={formatTime(message.createdAt)}
+            timestampStyle={{ color: "var(--theme-ink-tertiary-color)" }}
+          />
+        </div>
       )
     }
 
@@ -605,11 +616,13 @@ function AgentMessageTurn({
   const castFold = castVoices.length > 0 || delegation ? (
     <DialogFold title={castNames.length ? `Cast · ${castNames.join(", ")}` : "Cast"}>
       {castVoices.map((voice, index) => {
-        const raw = voice.content?.trim() ?? ""
+        const rawSource = voice.content?.trim() ?? ""
+        const raw = isAgentSilenceNotice(rawSource) ? "" : rawSource
         const split = separateReplyEvidence(raw)
         const spoken = split.evidence
           ? (split.prose || "The detail is in Evidence.")
-          : (raw || voice.card?.title || `${voice.attributedTo ?? "Agent"} returned nothing this turn.`)
+          : (raw || voice.card?.title || "")
+        if (!spoken.trim() && !voice.card) return null
         return (
           <React.Fragment key={`${voice.slug ?? voice.attributedTo ?? "voice"}-${index}`}>
             <AgentChatBubble

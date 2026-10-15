@@ -7,6 +7,7 @@ import {
   patchFrameLeadAgentMirror,
 } from '@keeper/shared';
 import { ensureDomainHomeBoard } from '../boards/domainManagement.js';
+import { attachKeeperTenantHost, type KeeperHostAttachResult } from './attachKeeperTenantHost.js';
 import { buildInitialDomainFrameJson } from './buildInitialDomainFrameJson.js';
 import { DEFAULT_DOMAIN_THEME_PRIMARY } from './domainFrameFallback.js';
 
@@ -27,6 +28,7 @@ export interface ProvisionDomainOnCreateResult {
   leadAgentSlug: string | null;
   frameWritten: boolean;
   frameAgentSynced: boolean;
+  keeperHost: KeeperHostAttachResult;
 }
 
 function isEmptyJson(value: unknown): boolean {
@@ -332,6 +334,11 @@ export async function provisionDomainOnCreate(
     console.warn('[provisionDomain] Failed to ensure domain home board:', error);
   }
 
+  const keeperHost = await attachKeeperTenantHost(domain.slug);
+  if (!keeperHost.attached) {
+    console.warn('[provisionDomain] Keeper address was not registered:', keeperHost.error);
+  }
+
   const updatedDomain = await prisma.domain.findUniqueOrThrow({ where: { id: domain.id } });
 
   return {
@@ -341,6 +348,7 @@ export async function provisionDomainOnCreate(
     leadAgentSlug,
     frameWritten: frameJson !== null,
     frameAgentSynced,
+    keeperHost,
   };
 }
 

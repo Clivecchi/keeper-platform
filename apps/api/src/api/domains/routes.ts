@@ -38,6 +38,7 @@ import { loadDomainAgentPolicy, ensureDomainAgentPolicy } from '../../governance
 import { buildDomainKeyAccessPayload } from '../../routes/key-entity-routes.js';
 import { DOMAIN_FRAME_FALLBACK } from '../../services/domains/domainFrameFallback.js';
 import { expandPlatformDomainSlugCandidates } from '@keeper/shared';
+import { attachKeeperTenantHost } from '../../services/domains/attachKeeperTenantHost.js';
 import { provisionDomainOnCreate } from '../../services/domains/provisionDomainOnCreate.js';
 import { repairDomainLeadBindings } from '../../services/domains/repairDomainLeadBindings.js';
 import {
@@ -53,6 +54,7 @@ import {
   listAdministrableDomains,
   listDomainConnections,
   previewDomainInvitation,
+  reconcilePendingInvitationsForExistingAccounts,
   returnMemberToInvitation,
   revokeDomainConnection,
   revokeDomainInvitation,
@@ -1236,7 +1238,13 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       return null;
     });
 
-    return res.status(201).json({ domain: provisioned?.domain ?? domain });
+    const ready = provisioned?.domain ?? domain;
+    let keeperHost = provisioned?.keeperHost ?? null;
+    if (!keeperHost?.attached) {
+      keeperHost = await attachKeeperTenantHost(ready.slug);
+    }
+
+    return res.status(201).json({ domain: ready, keeperHost });
   } catch (error) {
     console.error('Error creating domain:', error);
     if (error instanceof Error) {
@@ -1271,6 +1279,9 @@ router.post('/:id/provision', authMiddlewareCompat, async (req: Request, res: Re
     }
 
     const provisioned = await provisionDomainOnCreate(prisma, { domain });
+    const keeperHost = provisioned.keeperHost.attached
+      ? provisioned.keeperHost
+      : await attachKeeperTenantHost(provisioned.domain.slug);
     return res.json({
       domain: provisioned.domain,
       provision: {
@@ -1279,6 +1290,7 @@ router.post('/:id/provision', authMiddlewareCompat, async (req: Request, res: Re
         leadAgentSlug: provisioned.leadAgentSlug,
         frameWritten: provisioned.frameWritten,
         frameAgentSynced: provisioned.frameAgentSynced,
+        keeperHost,
       },
     });
   } catch (error) {
@@ -1367,6 +1379,11 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     }
 
     const domain = await getDomainService().updateDomain(req.params.id, req.body);
+    if (typeof req.body?.slug === 'string' && req.body.slug.trim()) {
+      await attachKeeperTenantHost(domain.slug).catch((error) => {
+        console.warn('[domains] Failed to host Keeper address after update:', error);
+      });
+    }
 
     return res.json({ domain });
   } catch (error) {
@@ -1402,6 +1419,11 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     }
 
     const domain = await getDomainService().updateDomain(req.params.id, req.body);
+    if (typeof req.body?.slug === 'string' && req.body.slug.trim()) {
+      await attachKeeperTenantHost(domain.slug).catch((error) => {
+        console.warn('[domains] Failed to host Keeper address after update:', error);
+      });
+    }
 
     return res.json({ domain });
   } catch (error) {
@@ -1598,6 +1620,11 @@ router.post(
         seed: req.body.seed,
         additionalDomainIds: req.body.additionalDomainIds,
         additionalDomains: req.body.additionalDomains,
+        actingUser: {
+          id: req.user.id,
+          email: req.user.email,
+          name: req.user.name,
+        },
       });
 
       const extraNames = result.additional
@@ -1611,7 +1638,9 @@ router.post(
           where: { id: result.permission.userId },
           select: { email: true },
         });
-        const email = await deliverInvitationEmail({
+        const email = result.permission.userId === req.user.id
+          ? { sent: false as const }
+          : await deliverInvitationEmail({
           kind: 'granted',
           to: member?.email,
           inviterName: context.inviterName,
@@ -1677,7 +1706,8 @@ router.post(
         }
         if (
           error.message.includes('Domain owner is already a member') ||
-          error.message.includes('Identifier is required')
+          error.message.includes('Identifier is required') ||
+          error.message.includes('Use their email')
         ) {
           return res.status(400).json({ error: error.message });
         }
@@ -2646,6 +2676,14 @@ router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async
       name: ownerUser?.name || ownerUser?.email || domain.ownerId,
       email: ownerUser?.email ?? null,
     };
+
+    await reconcilePendingInvitationsForExistingAccounts(
+      prisma,
+      getPermissionService(),
+      req.params.id,
+    ).catch((error) => {
+      console.warn('[DomainRoutes] pending invitation reconcile failed', error);
+    });
 
     const now = new Date();
     const invitations = await prisma.domainInvitation.findMany({

@@ -7929,31 +7929,26 @@ export class KipAgentService {
           if (!leadModelInput.trim() && cc.userMessage.trim()) {
             leadModelInput = cc.userMessage.trim();
           }
-          castVoicesForPersist = labeled.map((row) => {
-            const hasReceipts = row.castReceipts.length > 0;
-            const status: 'ok' | 'empty' | 'failed' =
-              (row.reply || row.card || hasReceipts)
-                ? 'ok'
-                : row.status === 'failed'
-                  ? 'failed'
-                  : 'empty';
-            return {
+          castVoicesForPersist = labeled.flatMap((row) => {
+            const speech = row.reply?.trim() ?? '';
+            if (row.status === 'failed' && !speech && !row.card) {
+              return [{
+                slug: row.slug,
+                attributedTo: row.label,
+                content: `${row.label} couldn't respond this turn.`,
+                status: 'failed' as const,
+              }];
+            }
+            if (!speech && !row.card) return [];
+            return [{
               slug: row.slug,
               attributedTo: row.label,
-              content:
-                row.reply
-                  ? row.reply
-                  : row.card
-                    ? row.card.title
-                    : hasReceipts
-                      ? `${row.label} returned action receipts.`
-                      : status === 'failed'
-                        ? `${row.label} couldn't respond this turn.`
-                        : `${row.label} returned nothing this turn.`,
-              status,
+              content: speech || row.card?.title || '',
+              status: 'ok' as const,
               ...(row.card ? { card: row.card } : {}),
-            };
+            }];
           });
+          if (!castVoicesForPersist.length) castVoicesForPersist = undefined;
           // Prefer equal castVoices in UI; keep firstOk delegation for older clients.
           const firstOk = labeled.find((row) => row.status === 'ok' && (row.reply || row.card));
           directorDelegationResult = firstOk
@@ -7963,11 +7958,7 @@ export class KipAgentService {
                 status: 'ok',
                 ...(firstOk.card ? { card: firstOk.card } : {}),
               }
-            : {
-                attributedTo: labeled[0]?.label ?? 'Cast',
-                content: 'Cast consultation returned nothing this turn.',
-                status: 'empty',
-              };
+            : undefined;
         } else if (options?.directorDelegation) {
           orchestrationMechanism = 'director_instrument';
           const dd = options.directorDelegation;
@@ -9512,10 +9503,11 @@ export class KipAgentService {
               && typeof result.message === 'string'
               && result.message.trim(),
           )?.message?.trim();
-          finalResponseText = keptNotice || `${agent.name} didn't return a reply on this turn.`;
+          // A kept Point is a Dialog line. Silence is not. The lead reply is where a note belongs.
+          finalResponseText = keptNotice ?? '';
           preserveDiscoveryHoldReply = false;
           options?.onReset?.();
-          options?.onDelta?.(finalResponseText);
+          if (finalResponseText) options?.onDelta?.(finalResponseText);
         }
 
         if (hasSuccessfulPointPropose(actionResults)) {

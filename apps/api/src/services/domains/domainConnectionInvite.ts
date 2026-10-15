@@ -1,4 +1,4 @@
-import type { DomainInvitation, DomainPermission } from '@prisma/client';
+import type { DomainInvitation } from '@prisma/client';
 import type { Prisma, PrismaClient } from '@keeper/database';
 import {
   DomainPermissionService,
@@ -85,8 +85,13 @@ export type AdditionalInviteResult =
   | { domainId: string; name: string; slug: string; outcome: 'granted' | 'invited' }
   | { domainId: string; name: string; slug: string; outcome: 'skipped'; error: string };
 
+export type InviteGrant = {
+  userId: string;
+  role: string;
+};
+
 export type InviteConnectionResult =
-  | { outcome: 'granted'; permission: DomainPermission; additional: AdditionalInviteResult[] }
+  | { outcome: 'granted'; permission: InviteGrant; additional: AdditionalInviteResult[] }
   | { outcome: 'invited'; invitation: DomainInvitation; additional: AdditionalInviteResult[] };
 
 export type AdministrableDomain = {
@@ -105,7 +110,10 @@ export type AcceptInvitationResult = {
   homeDialogId?: string;
 };
 
-type UserLookupClient = Pick<PrismaClient, 'users' | 'domain' | 'domainPermission' | 'domainInvitation' | 'dialog'>;
+type UserLookupClient = Pick<
+  PrismaClient,
+  'users' | 'domain' | 'domainPermission' | 'domainInvitation' | 'dialog' | 'dialogHumanMember'
+>;
 
 async function loadInvitationDoors(
   prisma: Pick<PrismaClient, 'domain'>,
@@ -275,10 +283,22 @@ export async function resolveUserByIdentifier(
     });
   }
 
-  return prisma.users.findFirst({
+  const exact = await prisma.users.findFirst({
     where: { name: { equals: normalized, mode: 'insensitive' } },
     select: { id: true, email: true, name: true },
   });
+  if (exact) return exact;
+
+  const matches = await prisma.users.findMany({
+    where: { name: { contains: normalized, mode: 'insensitive' } },
+    select: { id: true, email: true, name: true },
+    take: 5,
+  });
+  if (matches.length === 1) return matches[0] ?? null;
+  if (matches.length > 1) {
+    throw new Error('More than one Keeper account matches that name. Use their email.');
+  }
+  return null;
 }
 
 export async function listDomainConnections(
@@ -488,6 +508,74 @@ export async function listDomainPeopleNotes(
   return notes;
 }
 
+/** Put the inviter and invitee on the Dialogs named in the invitation seed. */
+async function seatAssignedDialogs(
+  prisma: UserLookupClient,
+  params: {
+    domainId: string;
+    actorUserId: string;
+    inviteeUserId: string;
+    seed: InvitationSeed | null;
+  },
+): Promise<void> {
+  const ids = params.seed?.assignedDialogIds ?? [];
+  if (ids.length === 0) return;
+  const dialogs = await prisma.dialog.findMany({
+    where: {
+      id: { in: ids },
+      domain_id: params.domainId,
+      is_archived: false,
+    },
+    select: { id: true },
+  });
+  const userIds = [...new Set([params.inviteeUserId, params.actorUserId])];
+  for (const dialog of dialogs) {
+    for (const userId of userIds) {
+      await prisma.dialogHumanMember.upsert({
+        where: {
+          dialogId_userId: {
+            dialogId: dialog.id,
+            userId,
+          },
+        },
+        create: {
+          dialogId: dialog.id,
+          userId,
+          addedByUserId: params.actorUserId,
+          source: 'invitation',
+        },
+        update: {},
+      });
+    }
+  }
+}
+
+async function closePendingInvitation(
+  prisma: UserLookupClient,
+  domainId: string,
+  email: string,
+): Promise<void> {
+  const existing = await prisma.domainInvitation.findUnique({
+    where: {
+      domainId_email: {
+        domainId,
+        email: email.trim().toLowerCase(),
+      },
+    },
+    select: { id: true, acceptedAt: true },
+  });
+  if (!existing || existing.acceptedAt) return;
+  await prisma.domainInvitation.update({
+    where: { id: existing.id },
+    data: { acceptedAt: new Date() },
+  });
+}
+
+function isFullDomainMember(role: string, settings: unknown): boolean {
+  const bundle = resolveRoleBundle(role, resolveDomainRoleCatalog(settings));
+  return !CONNECTION_ROLES.includes(bundle as ConnectionRole);
+}
+
 async function inviteOntoOneDomain(
   prisma: UserLookupClient,
   permissionService: DomainPermissionService,
@@ -520,26 +608,48 @@ async function inviteOntoOneDomain(
   };
 
   if (params.invitee) {
-    if (params.invitee.id === domain.ownerId) {
-      throw new Error('Domain owner is already a member');
-    }
+    const alreadyHere =
+      params.invitee.id === domain.ownerId
+      || Boolean(
+        await prisma.domainPermission
+          .findUnique({
+            where: {
+              domainId_userId: {
+                domainId: params.domainId,
+                userId: params.invitee.id,
+              },
+            },
+          })
+          .then((existing) => (existing ? isFullDomainMember(existing.role, domain.settings) : false)),
+      );
 
-    const existingPermission = await prisma.domainPermission.findUnique({
-      where: {
-        domainId_userId: {
+    if (alreadyHere) {
+      await seatAssignedDialogs(prisma, {
+        domainId: params.domainId,
+        actorUserId: params.invitedBy,
+        inviteeUserId: params.invitee.id,
+        seed: params.seed,
+      });
+      if (params.seed && params.invitee.email) {
+        await persistGrantedInvitationSeed(prisma, {
           domainId: params.domainId,
+          invitedBy: params.invitedBy,
+          email: params.invitee.email.toLowerCase(),
+          role: resolved.role,
+          seed: params.seed,
+          ...originFields,
+        });
+      } else if (params.invitee.email) {
+        await closePendingInvitation(prisma, params.domainId, params.invitee.email);
+      }
+      return {
+        outcome: 'granted',
+        permission: {
           userId: params.invitee.id,
+          role: params.invitee.id === domain.ownerId ? 'owner' : resolved.role,
         },
-      },
-    });
-
-    if (
-      existingPermission &&
-      !CONNECTION_ROLES.includes(
-        resolveRoleBundle(existingPermission.role, resolveDomainRoleCatalog(domain.settings)) as ConnectionRole,
-      )
-    ) {
-      throw new Error('User already has a member role on this domain');
+        additional: [],
+      };
     }
 
     const permission = await permissionService.grantPermission({
@@ -560,6 +670,13 @@ async function inviteOntoOneDomain(
         ...originFields,
       });
     }
+
+    await seatAssignedDialogs(prisma, {
+      domainId: params.domainId,
+      actorUserId: params.invitedBy,
+      inviteeUserId: params.invitee.id,
+      seed: params.seed,
+    });
 
     return { outcome: 'granted', permission, additional: [] };
   }
@@ -597,6 +714,13 @@ async function inviteOntoOneDomain(
     },
   });
 
+  await seatAssignedDialogs(prisma, {
+    domainId: params.domainId,
+    actorUserId: params.invitedBy,
+    inviteeUserId: params.invitedBy,
+    seed: params.seed,
+  });
+
   return { outcome: 'invited', invitation, additional: [] };
 }
 
@@ -611,6 +735,7 @@ export async function inviteDomainConnection(
     seed?: unknown;
     additionalDomainIds?: string[];
     additionalDomains?: Array<{ domainId: string; role?: string }>;
+    actingUser?: { id: string; email?: string | null; name?: string | null };
   },
 ): Promise<InviteConnectionResult> {
   const identifier = normalizeIdentifier(params.identifier);
@@ -627,7 +752,14 @@ export async function inviteDomainConnection(
     throw new Error('Identifier is required');
   }
 
-  const invitee = await resolveUserByIdentifier(prisma, identifier);
+  let invitee = await resolveUserByIdentifier(prisma, identifier);
+  if (!invitee && params.actingUser && emailsMatch(params.actingUser.email, identifier)) {
+    invitee = {
+      id: params.actingUser.id,
+      email: params.actingUser.email?.trim() || null,
+      name: params.actingUser.name?.trim() || null,
+    };
+  }
   const bundleId = generateInvitationBundleId();
   const originDomainId = params.domainId;
 
@@ -825,6 +957,70 @@ export async function shouldSkipPersonalDomainForInvitation(
   });
   if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) return false;
   return emailsMatch(invitation.email, email);
+}
+
+/**
+ * An account that already existed when the invitation was sent should already
+ * be in the Dialog. Pending rows for those people are joined here.
+ * Accounts created after the invite still wait for the acceptance link.
+ */
+export async function reconcilePendingInvitationsForExistingAccounts(
+  prisma: UserLookupClient,
+  permissionService: DomainPermissionService,
+  domainId: string,
+): Promise<void> {
+  const domain = await prisma.domain.findUnique({
+    where: { id: domainId },
+    select: { ownerId: true, settings: true },
+  });
+  if (!domain) return;
+
+  const pending = await prisma.domainInvitation.findMany({
+    where: {
+      domainId,
+      acceptedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  for (const invitation of pending) {
+    try {
+      const account = await prisma.users.findFirst({
+        where: { email: { equals: invitation.email, mode: 'insensitive' } },
+        select: { id: true, email: true, createdAt: true },
+      });
+      if (!account?.createdAt || account.createdAt > invitation.createdAt) continue;
+
+      const seed = normalizeInvitationSeed(invitation.seed);
+      const isOwner = account.id === domain.ownerId;
+      if (!isOwner) {
+        const resolved = resolveAssignableDomainRole(invitation.role, domain.settings);
+        await permissionService.grantPermission({
+          domainId,
+          userId: account.id,
+          role: resolved.role,
+          permissions: resolved.permissions,
+          grantedBy: invitation.invitedBy,
+        });
+      }
+
+      await seatAssignedDialogs(prisma, {
+        domainId,
+        actorUserId: invitation.invitedBy,
+        inviteeUserId: account.id,
+        seed,
+      });
+      await prisma.domainInvitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date() },
+      });
+    } catch (error) {
+      console.warn('[invite] could not join an existing account that was left pending', {
+        invitationId: invitation.id,
+        error,
+      });
+    }
+  }
 }
 
 export async function acceptDomainInvitation(

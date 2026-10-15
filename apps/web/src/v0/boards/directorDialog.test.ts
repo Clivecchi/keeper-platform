@@ -305,6 +305,13 @@ describe("sanitizeAgentMessageContent", () => {
     expect(sanitizeAgentMessageContent(raw)).toBe("This is the Community Commerce model from 2019.")
   })
 
+  it("drops a line that only announces an agent said nothing", () => {
+    expect(sanitizeAgentMessageContent("Kip didn't return a reply on this turn.")).toBe("")
+    expect(
+      sanitizeAgentMessageContent("The receipt is the work.\n\nKip returned nothing this turn."),
+    ).toBe("The receipt is the work.")
+  })
+
   it("unwraps agent_output JSON pasted under a Cast heading", () => {
     const raw = `### Cloud\n${JSON.stringify({
       type: "agent_output",

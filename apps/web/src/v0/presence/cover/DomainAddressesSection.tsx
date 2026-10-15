@@ -204,14 +204,18 @@ export function DomainAddressesSection({
     return () => window.clearTimeout(timer)
   }, [success])
 
+  const customDomainExample = savedSlug.trim()
+    ? `${savedSlug.trim().toLowerCase()}.com`
+    : "example.com"
+
   const handleAddCustomDomain = async () => {
     const trimmed = customDomainDraft.trim().toLowerCase()
     if (!trimmed) {
-      setError("Enter a custom domain (e.g. livecchi.us).")
+      setError(`Enter a custom domain (for example ${customDomainExample}).`)
       return
     }
     if (!CUSTOM_DOMAIN_PATTERN.test(trimmed)) {
-      setError("Use a valid domain like livecchi.us (no paths or protocols).")
+      setError(`Use a valid domain like ${customDomainExample} (no paths or protocols).`)
       return
     }
 
@@ -235,7 +239,7 @@ export function DomainAddressesSection({
     }
   }
 
-  const handleHostKeeperAddress = async () => {
+  const handleHostKeeperAddress = React.useCallback(async () => {
     setHostingKeeperAddress(true)
     setError(null)
     try {
@@ -249,11 +253,30 @@ export function DomainAddressesSection({
       setSuccess(`Hosted ${response.hostname ?? liveHostname} on Vercel`)
       await loadKeeperHostStatus()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to host Keeper address")
+      const message = err instanceof Error ? err.message : "Failed to host Keeper address"
+      setError(message)
+      setKeeperHostStatus((prev) => ({
+        ...(prev ?? {}),
+        hostname: liveHostname,
+        attached: false,
+        error: message,
+      }))
     } finally {
       setHostingKeeperAddress(false)
     }
-  }
+  }, [domainId, liveHostname, loadKeeperHostStatus])
+
+  const autoHostAttempted = React.useRef(false)
+  React.useEffect(() => {
+    autoHostAttempted.current = false
+  }, [domainId, savedSlug])
+  React.useEffect(() => {
+    if (autoHostAttempted.current || loadingKeeperHost || !savedSlug.trim()) return
+    if (!keeperHostStatus || keeperHostStatus.attached || keeperHostStatus.error) return
+    if (keeperHostStatus.hostname && keeperHostStatus.hostname !== liveHostname) return
+    autoHostAttempted.current = true
+    void handleHostKeeperAddress()
+  }, [loadingKeeperHost, savedSlug, keeperHostStatus, liveHostname, handleHostKeeperAddress])
 
   const handleAddToVercel = async () => {
     if (!savedCustomDomain) return
@@ -415,19 +438,19 @@ export function DomainAddressesSection({
                 />
               )}
               <div className="min-w-0">
-                <p className="text-sm font-medium">Host on Vercel</p>
+                <p className="text-sm font-medium">Keeper address</p>
                 <p className="text-[11px]" style={quietStyle}>
                   {keeperHostAttached
-                    ? "Attached to the Keeper web project"
+                    ? "Ready. This address opens the Domain."
                     : keeperHostStatus?.error
                       ? keeperHostStatus.error
-                      : loadingKeeperHost
-                        ? "Checking hosting…"
-                        : "This URL 404s until the saved tag is attached to the web project."}
+                      : hostingKeeperAddress || loadingKeeperHost
+                        ? "Setting up this address…"
+                        : "Setting up this address…"}
                 </p>
               </div>
             </div>
-            {!keeperHostAttached ? (
+            {!keeperHostAttached && keeperHostStatus?.error ? (
               <button
                 type="button"
                 onClick={() => void handleHostKeeperAddress()}
@@ -435,7 +458,7 @@ export function DomainAddressesSection({
                 className="rounded-md px-2.5 py-1 text-xs font-semibold disabled:opacity-50 shrink-0"
                 style={actionButtonStyle}
               >
-                {hostingKeeperAddress ? "Hosting…" : "Host on Vercel"}
+                {hostingKeeperAddress ? "Trying…" : "Try again"}
               </button>
             ) : null}
           </div>
@@ -450,7 +473,7 @@ export function DomainAddressesSection({
               type="text"
               value={customDomainDraft}
               onChange={(e) => onCustomDomainDraftChange?.(e.target.value)}
-              placeholder="livecchi.us"
+              placeholder={customDomainExample}
               className="flex-1 rounded-md px-3 py-2 text-sm"
               style={inputStyle}
               disabled={addingCustomDomain}
@@ -585,7 +608,7 @@ export function DomainAddressesSection({
           </div>
         )}
         <p className="text-[11px] mt-2" style={quietStyle}>
-          Optional public brand URL (e.g. livecchi.us). Save to keep it, then attach it to Vercel.
+          Optional public brand URL (for example {customDomainExample}). Save to keep it, then attach it to Vercel.
           Separate from your Keeper address above.
         </p>
       </div>

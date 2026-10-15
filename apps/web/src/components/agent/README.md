@@ -36,6 +36,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## 📆 Update Log
+- 2026-10-14: A voice card that only says an agent did not reply is not shown. Receipts and the turn footer remain.
 - 2026-10-11: A turn that laid out the Stage filmstrip keeps a control with the slide count. Opening it shows those slides. A replaced filmstrip says it is no longer current.
 - 2026-10-11: A promoted Frame on a turn shows its title and slide count. Opening it restores that Frame. Directory listings, file bodies, and tool JSON render under Evidence, beside the reply.
 - 2026-10-11: A Cast reply leads with a short outcome and next step. Cast voices and technical receipts stay closed until opened. Point, Treatment, and reorganize proposals stay visible.

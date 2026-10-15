@@ -272,12 +272,13 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
       : `The human addressed ${params.castMemberLabel}.`,
     `Task in play: "${task}"`,
     '',
-    `${params.castMemberLabel} did not return a reply this turn.`,
+    `${params.castMemberLabel} did not speak this turn.`,
     '',
     ...formatActionReceiptsForLead(params.actionReceipts),
     '',
     ...buildLeadJudgmentLines(params.directorName),
-    `- Say plainly that you reached out to ${params.castMemberLabel} and got nothing back.`,
+    `- Do not announce that ${params.castMemberLabel} said nothing.`,
+    '- If that silence changes the answer, say so in your own reply.',
     `- Do NOT invent, paraphrase, or role-play ${params.castMemberLabel}'s voice or opinion.`,
     `- Do NOT claim ${params.castMemberLabel} said, decided, or agreed to anything.`,
     `- Answer the human's direction from your own knowledge only, and mark that clearly if you do.`,
@@ -326,9 +327,9 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     } else if (row.hasReceipts) {
       lines.push(`- ${row.label}${unmet}: (prose empty — the action receipts below are this contribution)`);
     } else if (row.status === 'failed' || row.status === 'error') {
-      lines.push(`- ${row.label}: (failed — say you got nothing back)`);
+      lines.push(`- ${row.label}: (failed — they did not contribute. Mention it only if it changes the answer.)`);
     } else {
-      lines.push(`- ${row.label}: (nothing returned — say you got nothing back)`);
+      lines.push(`- ${row.label}: (no reply — they did not speak. Do not announce that.)`);
     }
   }
 
@@ -339,7 +340,8 @@ export function buildCastConsultationsSynthesisPrompt(params: {
     ...buildLeadJudgmentLines(params.directorName),
     '- Do NOT claim a cast member provided a report, card, or artifact unless it is listed as delivered above.',
     '- Do NOT treat "I will give you the report" as delivery.',
-    '- If a cast member returned nothing, say plainly you got nothing back from them.',
+    '- A cast member who returned nothing did not speak. Do not invent their line, and do not announce that they said nothing.',
+    '- If that silence changes the answer, say so in your own reply.',
     '- Never invent, paraphrase-as-quote, or fabricate another agent\'s words.',
     '- Do not invent unanimous consensus. If replies disagree or are empty, say so plainly.',
     '- When the human asked for a Document Path item, only relay titles that appear in a real consult reply or in the DIALOG DOCUMENT Points block — never invent a shared title.',

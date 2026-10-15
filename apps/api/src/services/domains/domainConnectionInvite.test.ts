@@ -14,6 +14,8 @@ import {
   returnMemberToInvitation,
   resolveAssignableDomainRole,
   shouldSkipPersonalDomainForInvitation,
+  inviteDomainConnection,
+  reconcilePendingInvitationsForExistingAccounts,
   resolveUserByIdentifier,
   withInvitationAccountPresence,
 } from './domainConnectionInvite.js';
@@ -217,6 +219,34 @@ describe('resolveUserByIdentifier', () => {
 
     await expect(resolveUserByIdentifier(prisma, '   ')).resolves.toBeNull();
     expect(findFirst).not.toHaveBeenCalled();
+  });
+
+  it('uses a unique partial display name', async () => {
+    const findFirst = vi.fn().mockResolvedValueOnce(null);
+    const findMany = vi.fn().mockResolvedValueOnce([
+      { id: 'user-3', email: 'chris@example.com', name: 'Chris Adeyemi' },
+    ]);
+    const prisma = { users: { findFirst, findMany } } as never;
+
+    await expect(resolveUserByIdentifier(prisma, 'chris')).resolves.toEqual({
+      id: 'user-3',
+      email: 'chris@example.com',
+      name: 'Chris Adeyemi',
+    });
+  });
+
+  it('asks for an email when several people share the name', async () => {
+    const prisma = {
+      users: {
+        findFirst: vi.fn().mockResolvedValueOnce(null),
+        findMany: vi.fn().mockResolvedValueOnce([
+          { id: 'user-3', email: 'chris@example.com', name: 'Chris Adeyemi' },
+          { id: 'user-4', email: 'chris2@example.com', name: 'Chris Lee' },
+        ]),
+      },
+    } as never;
+
+    await expect(resolveUserByIdentifier(prisma, 'Chris')).rejects.toThrow('Use their email');
   });
 });
 
@@ -501,6 +531,145 @@ describe('returnMemberToInvitation', () => {
       }),
     );
     expect(revokePermission).toHaveBeenCalledWith('domain-1', 'user-2', 'owner-1');
+  });
+});
+
+describe('inviteDomainConnection', () => {
+  it('puts the domain owner into the assigned Dialog instead of a pending invitation', async () => {
+    const memberUpsert = vi.fn().mockResolvedValue({});
+    const invitationUpsert = vi.fn().mockResolvedValue({ id: 'inv-1' });
+    const prisma = {
+      domain: {
+        findUnique: vi.fn().mockResolvedValue({ ownerId: 'owner-1', settings: {} }),
+      },
+      users: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'owner-1',
+          email: 'chuck@example.com',
+          name: 'Chuck',
+        }),
+      },
+      dialog: {
+        findMany: vi.fn().mockResolvedValue([{ id: 'dlg-1' }]),
+      },
+      dialogHumanMember: { upsert: memberUpsert },
+      domainInvitation: { upsert: invitationUpsert },
+    };
+
+    const result = await inviteDomainConnection(prisma as never, {} as never, {
+      domainId: 'domain-1',
+      invitedBy: 'owner-1',
+      identifier: 'Chuck@Example.com',
+      role: 'collaborator',
+      seed: { assignedDialogIds: ['dlg-build'] },
+    });
+
+    expect(result.outcome).toBe('granted');
+    if (result.outcome !== 'granted') return;
+    expect(result.permission.userId).toBe('owner-1');
+    expect(memberUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { dialogId_userId: { dialogId: 'dlg-1', userId: 'owner-1' } },
+      }),
+    );
+    expect(invitationUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ acceptedAt: expect.any(Date) }),
+      }),
+    );
+  });
+});
+
+describe('reconcilePendingInvitationsForExistingAccounts', () => {
+  it('joins an account that already existed when the invite was sent', async () => {
+    const grantPermission = vi.fn().mockResolvedValue({ userId: 'user-2', role: 'user' });
+    const update = vi.fn().mockResolvedValue({});
+    const memberUpsert = vi.fn().mockResolvedValue({});
+    const invitedAt = new Date('2026-10-14T12:00:00Z');
+    const prisma = {
+      domain: {
+        findUnique: vi.fn().mockResolvedValue({ ownerId: 'owner-1', settings: {} }),
+      },
+      domainInvitation: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'inv-1',
+            email: 'chris@example.com',
+            role: 'user',
+            invitedBy: 'owner-1',
+            createdAt: invitedAt,
+            seed: { assignedDialogIds: ['dialog-01'] },
+          },
+        ]),
+        update,
+      },
+      users: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'user-2',
+          email: 'chris@example.com',
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+        }),
+      },
+      dialog: {
+        findMany: vi.fn().mockResolvedValue([{ id: 'dlg-1' }]),
+      },
+      dialogHumanMember: { upsert: memberUpsert },
+    };
+
+    await reconcilePendingInvitationsForExistingAccounts(
+      prisma as never,
+      { grantPermission } as never,
+      'domain-1',
+    );
+
+    expect(grantPermission).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-2', domainId: 'domain-1' }),
+    );
+    expect(memberUpsert).toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'inv-1' },
+        data: expect.objectContaining({ acceptedAt: expect.any(Date) }),
+      }),
+    );
+  });
+
+  it('leaves a later registration on the acceptance link', async () => {
+    const grantPermission = vi.fn();
+    const prisma = {
+      domain: {
+        findUnique: vi.fn().mockResolvedValue({ ownerId: 'owner-1', settings: {} }),
+      },
+      domainInvitation: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'inv-1',
+            email: 'new@example.com',
+            role: 'user',
+            invitedBy: 'owner-1',
+            createdAt: new Date('2026-10-01T00:00:00Z'),
+            seed: null,
+          },
+        ]),
+        update: vi.fn(),
+      },
+      users: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'user-9',
+          email: 'new@example.com',
+          createdAt: new Date('2026-10-14T00:00:00Z'),
+        }),
+      },
+    };
+
+    await reconcilePendingInvitationsForExistingAccounts(
+      prisma as never,
+      { grantPermission } as never,
+      'domain-1',
+    );
+
+    expect(grantPermission).not.toHaveBeenCalled();
+    expect(prisma.domainInvitation.update).not.toHaveBeenCalled();
   });
 });
 

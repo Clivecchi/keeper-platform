@@ -22,6 +22,7 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
   const [slugTouched, setSlugTouched] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [createdSlug, setCreatedSlug] = React.useState<string | null>(null)
 
   const suggestedSlug = suggestDomainSlug(name)
 
@@ -67,6 +68,17 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
         description: description.trim() || undefined,
         slug: slug.trim() || undefined,
       })
+      if (created.keeperHost && !created.keeperHost.attached) {
+        const host = created.keeperHost.hostname ?? `${created.slug}.keeper.domains`
+        setCreatedSlug(created.slug)
+        setError(
+          created.keeperHost.error
+            ? `${created.name} was created. ${host} was not registered. ${created.keeperHost.error}`
+            : `${created.name} was created. ${host} was not registered.`,
+        )
+        setSubmitting(false)
+        return
+      }
       onCreated(created.slug)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create domain.")
@@ -172,17 +184,31 @@ export function DomainAddPanel({ onClose, onBack, onCreated }: DomainAddPanelPro
             </p>
           ) : null}
 
-          <button
-            type="submit"
-            disabled={submitting || !name.trim()}
-            className="w-full rounded-md py-2 text-[11px] font-medium transition-opacity disabled:opacity-40"
-            style={{
-              background: "#6ee7b7",
-              color: "hsl(220 18% 10%)",
-            }}
-          >
-            {submitting ? "Creating…" : "Create domain"}
-          </button>
+          {createdSlug ? (
+            <button
+              type="button"
+              onClick={() => onCreated(createdSlug)}
+              className="w-full rounded-md py-2 text-[11px] font-medium"
+              style={{
+                background: "#6ee7b7",
+                color: "hsl(220 18% 10%)",
+              }}
+            >
+              Open domain
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={submitting || !name.trim()}
+              className="w-full rounded-md py-2 text-[11px] font-medium transition-opacity disabled:opacity-40"
+              style={{
+                background: "#6ee7b7",
+                color: "hsl(220 18% 10%)",
+              }}
+            >
+              {submitting ? "Creating…" : "Create domain"}
+            </button>
+          )}
         </form>
     </div>
   )

@@ -30,6 +30,7 @@ On create (and via `POST /api/domains/:id/provision` repair):
 3. Creates default Keeper (`DomainKeeper`) when none exists for the domain.
 4. Sets `users.primaryDomainId` when unset.
 5. Calls `ensureDomainHomeBoard`.
+6. Attaches `{slug}.keeper.domains` on Vercel when `VERCEL_TOKEN` and `VERCEL_PROJECT_ID` are set.
 
 `domainConnectionInvite.ts` resolves invitees by case-insensitive email or display name. Known users receive a `DomainPermission` for the chosen Domain role immediately; unknown email addresses create or refresh `DomainInvitation` tokens (7-day expiry). Optional `seed` notes persist on the invitation (and as an accepted invitation row when an existing account is granted). `listDomainPeopleNotes` feeds Domain agents. `listDomainConnections` still lists Friend/Connection only. Invite create uses all four Domain roles.
 
@@ -44,6 +45,12 @@ Failures in individual steps log warnings and do not fail domain create.
 - [ ] Domain lead persona/lens tuning via Designer Board after create.
 
 ## 📆 Update Log
+
+### 2026-10-14 — Keeper address + Dialog seating
+- Domain create and tag save register `{slug}.keeper.domains` on the Vercel project. DNS already sends the name; the project still needs the exact host or it 404s. A failed registration is returned on create. The Addresses button is only a retry.
+- Inviting someone who already has a Keeper account puts them, and you, on the Dialogs checked in the invite. The owner inviting their own email does the same, instead of a pending “has not arrived” row.
+- A unique partial name (one Chris) resolves. Several matches ask for an email.
+- People reload joins pending invites whose account already existed when the invite was sent.
 
 ### 2026-10-04 — Directed Keeper Story
 - `directKeeperStory.ts` loads a short truth packet for one Dialog and saves the Lead’s chosen claims as a Keeper Story. A later capture points at the Lead message. The Stage filmstrip is untouched.

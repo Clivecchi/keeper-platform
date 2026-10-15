@@ -50,6 +50,9 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+### 2026-10-14 — Silence is not a reply
+- A follow-up after Cast no longer requires the Lead to say they got nothing back from a silent member.
+
 ### 2026-10-12 — Compact Stage keeps the slide body
 - The compact environment for a turn includes a stored filmstrip slide’s body with its title. Reading the sequence does not require a new layout.
 

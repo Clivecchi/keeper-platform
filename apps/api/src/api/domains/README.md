@@ -46,6 +46,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-10-14: Creating a Domain, or saving its tag, attaches `{slug}.keeper.domains` on Vercel. `GET /:id/members` joins pending invites for accounts that already existed. Invite by a unique partial name resolves; several matches ask for an email. The owner can be seated on assigned Dialogs without a pending self-invite.
 - 2026-10-03: Dialog list now returns Orientation text, who set or cleared it, and a History count, so Stage arrival can read stored facts. Orientation writes are unchanged.
 - 2026-09-30: **Stories** — `GET/PUT /:domainId/stories` persists `Domain.settings.stories`. References only. Does not replace `keeperStage`.
 
