@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { WhereWeAreReading } from './stageArrival.js';
 import {
   buildStoryTruthPacket,
+  buildKeeperStoryDirectionPrompt,
   humanRequestsKeeperStory,
+  requestedKeeperStoryTitle,
   keeperStoryIdForTitle,
   meaningWithStorySources,
   selectStoryClaims,
@@ -119,5 +121,17 @@ describe('story direction phrases', () => {
     expect(humanRequestsKeeperStory('Create Already in Progress... from what you know.')).toBe(true);
     expect(humanRequestsKeeperStory('Where are we?')).toBe(false);
     expect(keeperStoryIdForTitle('Already in Progress...')).toBe('already-in-progress');
+  });
+
+  it('hears a named Story and keeps that title', () => {
+    const ask = 'Review the current document and create 1sh story, Dialog to Deploy';
+    expect(humanRequestsKeeperStory(ask)).toBe(true);
+    expect(humanRequestsKeeperStory("don't create a story")).toBe(false);
+    expect(requestedKeeperStoryTitle(ask)).toBe('Dialog to Deploy');
+    expect(requestedKeeperStoryTitle('Create Already in Progress... from what you know.')).toBe('Already in Progress...');
+    const prompt = buildKeeperStoryDirectionPrompt('dlg-1', 'Dialog to Deploy');
+    expect(prompt).toContain('"Dialog to Deploy"');
+    expect(prompt).not.toContain('Already in Progress...');
+    expect(prompt).toContain('Saying you see a story does not save one.');
   });
 });

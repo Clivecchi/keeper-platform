@@ -46,6 +46,9 @@ Failures in individual steps log warnings and do not fail domain create.
 
 ## 📆 Update Log
 
+### 2026-10-14 — Named Story fills the existing shell
+- `saveDirectedStory` writes the Story whose title already matches, including one created empty from Nav. A new title still gets the stable slug id.
+
 ### 2026-10-14 — Keeper address + Dialog seating
 - Domain create and tag save register `{slug}.keeper.domains` on the Vercel project. DNS already sends the name; the project still needs the exact host or it 404s. A failed registration is returned on create. The Addresses button is only a retry.
 - Inviting someone who already has a Keeper account puts them, and you, on the Dialogs checked in the invite. The owner inviting their own email does the same, instead of a pending “has not arrived” row.

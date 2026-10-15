@@ -73,6 +73,7 @@ import {
   parseKeeperStage,
   humanRequestsDialogFrame,
   humanRequestsKeeperStory,
+  requestedKeeperStoryTitle,
   buildKeeperStoryDirectionPrompt,
   meaningWithStorySources,
   parseSelectedVoices,
@@ -193,8 +194,10 @@ import {
   specialistContributionText,
   READ_FOLLOW_UP_MAX_ELAPSED_MS,
   responseAlreadyUsesReadResults,
+  buildStoryDirectionFollowUpInput,
   shouldRunMutationDeferralFollowUp,
   shouldRunReadActionFollowUp,
+  shouldRunStoryDirectionFollowUp,
 } from '../../services/kip/actionFollowUp.js';
 import {
   applyManuscriptDraftIdToProposePayload,
@@ -7029,7 +7032,10 @@ export class KipAgentService {
             ?? null;
           messages.push({
             role: 'system',
-            content: buildKeeperStoryDirectionPrompt(storyDialogId),
+            content: buildKeeperStoryDirectionPrompt(
+              storyDialogId,
+              requestedKeeperStoryTitle(glossHumanTurn),
+            ),
           });
         }
 
@@ -8753,6 +8759,158 @@ export class KipAgentService {
         actionResults = withoutAdviseOnlySkips(actionResults);
 
         if (
+          shouldRunStoryDirectionFollowUp({
+            userInput: input,
+            isLead: agent.role === 'Lead',
+            actionResults,
+          })
+        ) {
+          options?.onStatus?.('Saving the Story…');
+          options?.onReset?.();
+          const storyDialogId = dialogDocument?.dialogId ?? options?.dialogId ?? null;
+          const storyAlreadyRead = actionResults.some(
+            (row) => row.type === 'story.truth.read' && row.status === 'success',
+          );
+          if (!storyAlreadyRead && !options?.forceSkipActions) {
+            const storyReadFollowUp = await this.callAIModel(
+              agent,
+              buildStoryDirectionFollowUpInput({
+                originalInput: input,
+                agentName: agent.name,
+                dialogId: storyDialogId,
+              }),
+              previousMessages,
+              userId,
+              {
+                mode: activeMode,
+                modeConfig: activeModeConfig,
+                lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+                debugSummary,
+                maxChars,
+                outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+                includeFixPlan: activeModeConfig.includeFixPlan,
+                autoBrief: activeModeConfig.autoBrief,
+                environment: options?.environment ?? null,
+                activeJourneyId: options?.activeJourneyId ?? null,
+                activeKeeperId: options?.activeKeeperId ?? null,
+                domainId: options?.domainId ?? null,
+                attachments: options?.attachments ?? undefined,
+                timings: options?.timings,
+                timingLabel: 'story_direction_follow_up',
+                reuseMessages: [
+                  ...lastPromptMessages,
+                  { role: 'assistant', content: finalResponseText },
+                ],
+                systemOneOrientation,
+                onDelta: options?.onDelta,
+              },
+            );
+            lastPromptMessages = storyReadFollowUp.messages;
+            const storyReadStructured = await ensureKipAgentOutputEnvelope(storyReadFollowUp.content, {
+              requestId: randomUUID(),
+              userId,
+              allowedActions: Array.from(allowActions),
+            });
+            if (storyReadStructured.responseText?.trim()) {
+              finalResponseText = storyReadStructured.responseText.trim();
+            }
+            if (storyReadStructured.actions.length) {
+              const storyReadStartedAt = Date.now();
+              const storyReadExecution = await executeAgentActions(
+                storyReadStructured.actions,
+                buildExecuteAgentActionsCtx(options, {
+                  userId,
+                  agentId: agent.id,
+                  allowlist: allowActions,
+                  sessionId: currentSessionId,
+                  requestId,
+                  actor: pointTurnActor,
+                }),
+              );
+              if (options?.timings) {
+                options.timings.actionsMs =
+                  (options.timings.actionsMs ?? 0) + (Date.now() - storyReadStartedAt);
+              }
+              actionResults = [...actionResults, ...storyReadExecution.results];
+            }
+          }
+
+          const storyReadLanded = actionResults.some(
+            (row) => row.type === 'story.truth.read' && row.status === 'success',
+          );
+          const storySaved = actionResults.some(
+            (row) => row.type === 'story.save' && row.status === 'success',
+          );
+          if (storyReadLanded && !storySaved && !options?.forceSkipActions) {
+            const storySaveFollowUp = await this.callAIModel(
+              agent,
+              buildReadActionFollowUpInput({
+                originalInput: input,
+                agentName: agent.name,
+                actionResults,
+                priorResponseText: finalResponseText,
+              }),
+              previousMessages,
+              userId,
+              {
+                mode: activeMode,
+                modeConfig: activeModeConfig,
+                lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+                debugSummary,
+                maxChars,
+                outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+                includeFixPlan: activeModeConfig.includeFixPlan,
+                autoBrief: activeModeConfig.autoBrief,
+                environment: options?.environment ?? null,
+                activeJourneyId: options?.activeJourneyId ?? null,
+                activeKeeperId: options?.activeKeeperId ?? null,
+                domainId: options?.domainId ?? null,
+                attachments: options?.attachments ?? undefined,
+                timings: options?.timings,
+                timingLabel: 'story_save_follow_up',
+                reuseMessages: [
+                  ...lastPromptMessages,
+                  { role: 'assistant', content: finalResponseText },
+                ],
+                systemOneOrientation,
+                onDelta: options?.onDelta,
+              },
+            );
+            lastPromptMessages = storySaveFollowUp.messages;
+            const storySaveStructured = await ensureKipAgentOutputEnvelope(storySaveFollowUp.content, {
+              requestId: randomUUID(),
+              userId,
+              allowedActions: Array.from(allowActions),
+            });
+            if (storySaveStructured.responseText?.trim()) {
+              finalResponseText = storySaveStructured.responseText.trim();
+            }
+            if (storySaveStructured.actions.length) {
+              const storySaveStartedAt = Date.now();
+              const storySaveExecution = await executeAgentActions(
+                storySaveStructured.actions,
+                buildExecuteAgentActionsCtx(options, {
+                  userId,
+                  agentId: agent.id,
+                  allowlist: allowActions,
+                  sessionId: currentSessionId,
+                  requestId,
+                  actor: pointTurnActor,
+                }),
+              );
+              if (options?.timings) {
+                options.timings.actionsMs =
+                  (options.timings.actionsMs ?? 0) + (Date.now() - storySaveStartedAt);
+              }
+              actionResults = [...actionResults, ...storySaveExecution.results];
+              if (storySaveExecution.failedMessage) {
+                finalResponseText = `${finalResponseText}\n\n${storySaveExecution.failedMessage}`;
+              }
+            }
+          }
+        }
+
+        if (
           glossIntent !== 'required'
           && reorganizeIntent !== 'required'
           && shouldRunMutationDeferralFollowUp({
@@ -9808,6 +9966,7 @@ export class KipAgentService {
         let stageExpressionStamp: StageExpressionStamp | undefined;
         let framePerformanceResult: FramePerformance | undefined;
         let savedLeadMessageId: string | undefined;
+        let storyCaptureAttached = false;
         let stageCompositionReceipt: Awaited<ReturnType<typeof expressStageComposition>> | undefined;
         let stageCompositionTrace: ReturnType<typeof withActionReceiptsOnTrace> | undefined;
 
@@ -10000,6 +10159,7 @@ export class KipAgentService {
                       excerpt: expression,
                       actorId: userId ?? null,
                     });
+                    storyCaptureAttached = true;
                   }
                 }
               } catch (error) {
@@ -10008,6 +10168,28 @@ export class KipAgentService {
                   error: error instanceof Error ? error.message : error,
                 });
               }
+            }
+            if (directedStory && !storyCaptureAttached && savedAgent && options?.domainId) {
+              const meaning = persistedResolvedMeaning?.meaning?.trim() ?? '';
+              const telling = meaning.startsWith('Tell what the chosen claims') ? '' : meaning;
+              const excerpt = (telling || finalResponseText.trim() || directedStory.title).slice(0, 2000);
+              if (telling) {
+                await setDirectedStoryTelling({
+                  domainId: options.domainId,
+                  storyId: directedStory.storyId,
+                  telling,
+                  actorId: userId ?? null,
+                });
+              }
+              await attachFrameToDirectedStory({
+                domainId: options.domainId,
+                storyId: directedStory.storyId,
+                messageId: savedAgent.id,
+                dialogId: directedStory.dialogId,
+                title: directedStory.title,
+                excerpt,
+                actorId: userId ?? null,
+              });
             }
             const compositionAuthority =
               'stageComposition' in structured ? structured.stageComposition : undefined;

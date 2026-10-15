@@ -8,6 +8,7 @@ import {
   addStoryMaterial,
   buildStoryTruthPacket,
   createKeeperStory,
+  findStoryForTitle,
   keeperStoryIdForTitle,
   resolveWhereWeAre,
   selectStoryClaims,
@@ -119,10 +120,10 @@ export async function saveDirectedStory(input: {
     return { ok: false, message: 'Choose claim ids from story.truth.read.' };
   }
   const now = new Date().toISOString();
-  const storyId = keeperStoryIdForTitle(title);
   const description = input.telling?.trim().slice(0, 2000) ?? '';
   const current = await loadDomainStories(input.domainId);
-  const prior = current.stories.find((row) => row.id === storyId);
+  const prior = findStoryForTitle(current.stories, title);
+  const storyId = prior?.id ?? keeperStoryIdForTitle(title);
   const story = prior
     ? {
         ...prior,

@@ -7,6 +7,7 @@
  */
 
 import type { StageStorySlideSource } from './keeperStage.js';
+import { keeperStoryIdForTitle } from './storyTruthPacket.js';
 
 export const STORY_SETTINGS_KEY = 'stories' as const;
 export const STORY_SET_VERSION = 1 as const;
@@ -165,6 +166,18 @@ export function readStoriesFromDomainSettings(settings: unknown): DomainStorySet
     return emptyDomainStories();
   }
   return parseDomainStories((settings as Record<string, unknown>)[STORY_SETTINGS_KEY]);
+}
+
+/** Stable slug first. Then a Story the human already titled, including an empty shell from Nav. */
+export function findStoryForTitle(
+  stories: readonly KeeperStory[],
+  title: string,
+): KeeperStory | undefined {
+  const wanted = title.trim().toLowerCase();
+  if (!wanted) return undefined;
+  const id = keeperStoryIdForTitle(title);
+  return stories.find((row) => row.id === id)
+    ?? stories.find((row) => row.title.trim().toLowerCase() === wanted);
 }
 
 export function createKeeperStory(input: {

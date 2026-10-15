@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addStoryMaterial,
   createKeeperStory,
+  findStoryForTitle,
   mergeDomainStories,
   moveStoryMaterial,
   parseDomainStories,
@@ -77,6 +78,12 @@ describe('keeper story', () => {
         source: { kind: 'moment', id: 'mom-1' },
       },
     ]);
+  });
+
+  it('fills an empty shell that already has the title', () => {
+    const shell = createKeeperStory({ id: 'random-id', title: 'Dialog to Deploy', now: 't0' });
+    expect(findStoryForTitle([shell], 'Dialog to Deploy')?.id).toBe('random-id');
+    expect(findStoryForTitle([shell], 'dialog to deploy')?.id).toBe('random-id');
   });
 
   it('round-trips and stamps a creator only when the story is new', () => {

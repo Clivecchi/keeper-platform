@@ -204,21 +204,66 @@ export function meaningWithStorySources(
   };
 }
 
-export function humanRequestsKeeperStory(text: string): boolean {
-  return /already in progress/i.test(text);
+const STORY_REQUEST_VERBS = 'create|make|save|write|start|build';
+
+function storyRequestIsBlocked(text: string): boolean {
+  return new RegExp(
+    `\\b(?:don'?t|do not|never)\\s+(?:${STORY_REQUEST_VERBS})\\b(?:\\s+\\S+){0,6}\\s+story\\b`,
+    'i',
+  ).test(text);
 }
 
-export function buildKeeperStoryDirectionPrompt(dialogId: string | null): string {
+/** The human asked for a Keeper Story. Any create/make/save/write/start/build plus “story” counts. */
+export function humanRequestsKeeperStory(text: string): boolean {
+  const normalized = text.trim();
+  if (!normalized || storyRequestIsBlocked(normalized)) return false;
+  if (/already in progress/i.test(normalized)) return true;
+  return new RegExp(
+    `\\b(?:${STORY_REQUEST_VERBS})\\b(?:\\s+\\S+){0,6}\\s+story\\b`,
+    'i',
+  ).test(normalized);
+}
+
+function cleanRequestedStoryTitle(value: string | undefined): string | null {
+  if (!value) return null;
+  const title = value
+    .replace(/^(?:called|named|titled)\s+/i, '')
+    .replace(/^["“']+|["”']+$/g, '')
+    .replace(/[.?!]+$/g, '')
+    .trim();
+  if (!title || /^(?:a|an|the|this|that|one|it)$/i.test(title)) return null;
+  return title.slice(0, 200);
+}
+
+/** Title the human gave this Story. Null when they asked for a Story and did not name it. */
+export function requestedKeeperStoryTitle(text: string): string | null {
+  const raw = text.trim();
+  if (!raw || storyRequestIsBlocked(raw)) return null;
+  if (/already in progress/i.test(raw)) return ALREADY_IN_PROGRESS_TITLE;
+  const labeled = raw.match(/\bstory\b\s*(?:,|:|—|–|-)\s*(.+)$/i);
+  const named = raw.match(/\bstory\b\s+(?:called|named|titled)\s+["“']?(.+?)["”']?\s*$/i);
+  return cleanRequestedStoryTitle(labeled?.[1] ?? named?.[1]);
+}
+
+export function buildKeeperStoryDirectionPrompt(dialogId: string | null, title?: string | null): string {
+  const named = title?.trim() || null;
   const read = dialogId
     ? `Call story.truth.read with { "dialogId": "${dialogId}" } before you decide.`
     : 'Call story.truth.read with this Dialog’s id before you decide.';
+  const save = named
+    ? `Emit story.save { "title": ${JSON.stringify(named)}, "dialogId": "<this Dialog>", "claimIds": ["..."], "description": "<your telling>" }.`
+    : 'Emit story.save { "title": "<short title from the human>", "dialogId": "<this Dialog>", "claimIds": ["..."], "description": "<your telling>" }.';
   return [
     'KEEPER STORY — you direct. Rendr composes the Frame after this turn, from the meaning you resolve. Rendr does not choose the Story.',
     'Do not emit stage.story.layout. That writes the Stage filmstrip. This Story is saved apart from it.',
+    'Saying you see a story does not save one. Narration without story.save leaves the Story empty.',
     read,
     'When the packet is in front of you, choose the claim ids the Story should stand on. Leave out a claim that is not worth telling. Those ids are the factual boundary. They are not the sentences the audience must hear.',
     'Direct the telling in your own words. You may summarize, phrase, sequence, and emphasize. Do not state an event, motive, name, date, or outcome the packet does not support.',
-    'Emit story.save { "title": "Already in Progress...", "dialogId": "<this Dialog>", "claimIds": ["..."], "description": "<your telling>" }.',
+    named
+      ? `The human named this Story ${JSON.stringify(named)}. Use that title. If that Story already exists, story.save fills it.`
+      : 'If the human named a title, use it. Otherwise choose a short title from their words.',
+    save,
     'Emit resolvedMeaning with presentFrame true. meaning is that telling, not a paste of the claim sentences. Cite their Dialogs in about. performedBy is you.',
     'Rendr will compose how the telling is experienced. Rendr does not choose the Story.',
   ].join('\n');

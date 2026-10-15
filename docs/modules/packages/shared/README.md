@@ -40,6 +40,11 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-10-14 — A named Story is a Story request
+- `humanRequestsKeeperStory` hears “create a story” as well as “Already in Progress...”. A prohibition still blocks it.
+- `requestedKeeperStoryTitle` keeps the title the human named, such as “Dialog to Deploy”.
+- `findStoryForTitle` fills an existing Story with that title, including an empty shell.
+
 ### 2026-10-09 — Attached writing is the Document
 - `humanRequestsAttachedDocument` recognizes “we updated the document” on the human sentence. A prohibition still blocks it. A visual ask to Rendr (“effect a visual change”, “Rendr… change something”) allows `treatment.propose`.
 

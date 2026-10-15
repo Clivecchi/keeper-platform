@@ -50,6 +50,10 @@ Shared server-side helpers for Kip agent runtime — environment resolution, dia
 - [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
+
+### 2026-10-14 — Story narration is not a save
+- When the human asks for a Story and `story.save` has not landed, the Lead follow-up reads `story.truth.read`, then saves under the title they named.
+
 ### 2026-10-14 — Silence is not a reply
 - A follow-up after Cast no longer requires the Lead to say they got nothing back from a silent member.
 

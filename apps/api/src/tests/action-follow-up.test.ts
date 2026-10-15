@@ -10,8 +10,10 @@ import {
   specialistContributionText,
   formatReadActionResultsForUserFallback,
   responseAlreadyUsesReadResults,
+  buildStoryDirectionFollowUpInput,
   shouldRunMutationDeferralFollowUp,
   shouldRunReadActionFollowUp,
+  shouldRunStoryDirectionFollowUp,
 } from '../services/kip/actionFollowUp.js';
 
 describe('actionFollowUp', () => {
@@ -588,5 +590,39 @@ describe('actionFollowUp', () => {
     expect(formatted).toContain('Extracted document text');
     expect(formatted).toContain('public marketplace layer');
     expect(formatted).not.toContain('"source_ref"');
+  });
+
+  it('saves the Story title the human named after the packet is read', () => {
+    const ask = 'Review the current document and create 1sh story, Dialog to Deploy';
+    const input = buildReadActionFollowUpInput({
+      originalInput: ask,
+      agentName: 'Northstar',
+      actionResults: [{
+        type: 'story.truth.read',
+        status: 'success',
+        message: 'ok',
+        data: {
+          dialogId: 'dlg-1',
+          claims: [{ id: 'dialog-forward', text: 'Build something together has an authored Forward.' }],
+        },
+      }],
+    });
+    expect(input).toContain('"Dialog to Deploy"');
+    expect(input).not.toContain('Already in Progress...');
+    expect(shouldRunStoryDirectionFollowUp({
+      userInput: ask,
+      isLead: true,
+      actionResults: [],
+    })).toBe(true);
+    expect(shouldRunStoryDirectionFollowUp({
+      userInput: ask,
+      isLead: true,
+      actionResults: [{ type: 'story.save', status: 'success', message: 'saved' }],
+    })).toBe(false);
+    expect(buildStoryDirectionFollowUpInput({
+      originalInput: ask,
+      agentName: 'Northstar',
+      dialogId: 'dlg-1',
+    })).toContain('story.truth.read');
   });
 });

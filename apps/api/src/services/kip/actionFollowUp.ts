@@ -4,7 +4,7 @@
  * available until after execution — a second model turn closes the loop.
  */
 
-import { isAdviseOnlySkip } from '@keeper/shared';
+import { humanRequestsKeeperStory, isAdviseOnlySkip, requestedKeeperStoryTitle } from '@keeper/shared';
 import { formatMcpActionResultsForFollowUp } from '../mcpAgentBridge.js';
 
 export type ActionResultLike = {
@@ -574,6 +574,7 @@ export function buildReadActionFollowUpInput(params: {
       return `- ${row.id}: ${row.text}`;
     }).filter(Boolean);
     const dialogId = typeof data.dialogId === 'string' ? data.dialogId : '';
+    const namedTitle = requestedKeeperStoryTitle(params.originalInput);
     return [
       `[Orchestration context — story truth for ${params.agentName}. This is not the user's message.]`,
       'STORY TRUTH PACKET — these sentences are the only Keeper truth you may use. Do not add history.',
@@ -583,7 +584,10 @@ export function buildReadActionFollowUpInput(params: {
       `The human's direction remains: "${params.originalInput}"`,
       'You direct the Story. The claim ids are the factual boundary. Rendr composes the Frame from your telling. Rendr does not choose which claims belong.',
       'Choose the claims worth telling. Omit the rest. You may summarize and phrase. Do not add an event, motive, name, date, or outcome the packet does not support.',
-      'Emit story.save { "title": "Already in Progress...", "dialogId": "<dialog id>", "claimIds": ["..."], "description": "<your telling>" }.',
+      'Saying you see a story does not save one.',
+      namedTitle
+        ? `Emit story.save { "title": ${JSON.stringify(namedTitle)}, "dialogId": "<dialog id>", "claimIds": ["..."], "description": "<your telling>" }.`
+        : 'Emit story.save { "title": "<short title from the human>", "dialogId": "<dialog id>", "claimIds": ["..."], "description": "<your telling>" }.',
       'Emit resolvedMeaning with presentFrame true. meaning is your telling, not a paste of the claim lines. performedBy is you.',
       'Do not emit stage.story.layout. Do not call story.truth.read again.',
     ].filter((line) => line !== '').join('\n');
@@ -802,6 +806,40 @@ export function shouldRunMutationDeferralFollowUp(params: {
   }
   if (!userRequestedDraftWork(params.userInput)) return false;
   return responseDefersDraftWork(params.responseText);
+}
+
+/** Lead narrated a Story, or read the packet, and story.save has not landed. */
+export function shouldRunStoryDirectionFollowUp(params: {
+  userInput: string;
+  isLead: boolean;
+  actionResults: ActionResultLike[];
+}): boolean {
+  if (!params.isLead || !humanRequestsKeeperStory(params.userInput)) return false;
+  return !params.actionResults.some(
+    (result) => result.type === 'story.save' && result.status === 'success',
+  );
+}
+
+export function buildStoryDirectionFollowUpInput(params: {
+  originalInput: string;
+  agentName: string;
+  dialogId: string | null;
+}): string {
+  const named = requestedKeeperStoryTitle(params.originalInput);
+  const read = params.dialogId
+    ? `Emit story.truth.read { "dialogId": ${JSON.stringify(params.dialogId)} } now.`
+    : 'Emit story.truth.read with this Dialog’s id now.';
+  return [
+    `[Story unmet — reply as ${params.agentName}. Read the Story truth now.]`,
+    'Narration is not a Story. A sentence about the story you see does not save one.',
+    named
+      ? `The Story title is ${JSON.stringify(named)}.`
+      : 'The human asked for a Story and did not name it. You will title it on the save step.',
+    read,
+    'Do not emit story.save in this step. Do not emit stage.story.layout.',
+    '',
+    `The human asked: "${params.originalInput.trim().slice(0, 500)}"`,
+  ].join('\n');
 }
 
 export function buildMutationDeferralFollowUpInput(params: {
